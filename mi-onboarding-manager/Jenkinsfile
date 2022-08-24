@@ -1,0 +1,34 @@
+pipeline {
+    agent {
+        label 'docker'
+    }
+    stages {
+        stage('Build') {
+            steps {
+                echo "Hi, I'm a pipeline, doing build step"
+            }
+        }
+        stage('Test') {
+            steps {
+                echo "Hi, I'm a pipeline, doing test step"
+            }
+        }
+        stage('Upload') {
+            steps {
+                echo "Hi, I'm a pipeline, doing upload step"
+            }
+        }
+    }
+    post {
+        always {
+            script {
+                if (currentBuild.currentResult == 'FAILURE') {
+                    emailext body: 'Check console output at $BUILD_URL to view the results. \n\n ${CHANGES} \n\n -------------------------------------------------- \n${BUILD_LOG, maxLines=100, escapeHtml=false}', 
+                    to: "OIE@intel.com", 
+                    subject: 'Build failed in Jenkins: $PROJECT_NAME - #$BUILD_NUMBER'
+                }
+            }
+            cleanWs()
+        }
+    }
+}
