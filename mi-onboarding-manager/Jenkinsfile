@@ -32,6 +32,14 @@ pipeline {
                 '''
             }
         }
+        stage('Lint') {
+            steps {
+                echo "Hi, I'm a pipeline, doing lint step"
+                sh '''
+                make lint
+                '''
+            }
+        }
         stage('Test') {
             steps {
                 echo "Hi, I'm a pipeline, doing test step"
