@@ -45,6 +45,7 @@ pipeline {
                 echo "Hi, I'm a pipeline, doing test step"
                 sh '''
                 make test
+                make coverage
                 '''
             }
         }

@@ -18,6 +18,13 @@ NodeJS 18
 Mermaid CLI (used in documentation generation): https://github.com/mermaid-js/mermaid-cli 
 ```
 
+## Coverage above 70% threshold. The following tools 
+```
+Python - Coverage
+Java - Bazel, Jacoco
+Go - Built-in Coverage
+```
+
 ## Artifacts
 The source will be packed in a archive named after the repo. The archive will then be uploaded to artifactory following a path simillar to:
 https://ubit-artifactory-or.intel.com/artifactory/one-intel-edge-or-local/<project_name>/<jenkins_controller>/<jenkins_team>/<jenkins_job>/<repo_name>/<branch>/

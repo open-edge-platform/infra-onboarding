@@ -37,6 +37,12 @@ test:
 	echo $@
 	@echo "---END MAKEFILE TEST---"
 	
+coverage:
+	@# Help: Runs coverage stage
+	@echo "---MAKEFILE COVERAGE---"
+	echo $@
+	@echo "---END MAKEFILE COVERAGE---"
+
 list: 
 	@# Help: displays make targets
 	help
