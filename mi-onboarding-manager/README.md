@@ -23,6 +23,15 @@ Mermaid CLI (used in documentation generation): https://github.com/mermaid-js/me
 Python - Coverage
 Java - Bazel, Jacoco
 Go - Built-in Coverage
+JS - c8
+```
+
+## Linters. The following tools 
+```
+Python - pycodestyle (formerly pep8)
+Java - Checkstyle
+Go - GoLint
+JS - prittier
 ```
 
 ## Artifacts
