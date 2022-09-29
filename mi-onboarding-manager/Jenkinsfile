@@ -22,6 +22,7 @@ pipeline {
     }
     environment {
         GIT_SHORT_URL=env.GIT_URL.split('/')[4].toString().replaceAll('.git','')
+        SUB_PROJECT_NAME='maestro-a'          //update the sub project name based on your repo, eg:maestro-a/i, springboard
     }
     stages {
         stage('Build') {
@@ -63,7 +64,7 @@ pipeline {
                     mv  *.tar.gz artifacts/
                 '''
                 //in case your projects is mastro-i or springbord replace "maestro-a" from bellow accordingly
-                publishArtifacts([artifactsRepo: 'one-intel-edge-or-local/maestro-a',
+                publishArtifacts([artifactsRepo: "one-intel-edge-or-local/${SUB_PROJECT_NAME}",
                                   credentialId: 'sys_oie_devops_ubit-artifactory-or.intel.com'])
             }
         }
@@ -75,7 +76,7 @@ pipeline {
                 // publishArtifacts details
                 ARTIFACT_RETENTION_PERIOD  = ''
                 ARTIFACTORY_URL            = 'https://ubit-artifactory-or.intel.com/artifactory'
-                ARTIFACTS_REPO             = 'one-intel-edge-or-local/maestro-a'
+                ARTIFACTS_REPO             = "one-intel-edge-or-local/${SUB_PROJECT_NAME}"
                 PUBLISH_TO_ARTIFACTORY     = true
                 ARTIFACTORY_CREDENTIAL_ID  = 'sys_oie_devops_ubit-artifactory-or.intel.com'
 
@@ -87,7 +88,7 @@ pipeline {
                 //protex project has to be create before running the scan and the faceless user added to it
                 PROTEX_PROJECT_NAME        = "${GIT_SHORT_URL}"
                 
-                VIRUS_SCAN_DIR             = "artifacts/${GIT_SHORT_URL}.tar.gz"
+                VIRUS_SCAN_DIR             = "."
             }
             when {
                 anyOf {
