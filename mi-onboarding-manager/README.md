@@ -28,10 +28,10 @@ JS - c8
 
 ## Linters. The following tools 
 ```
-Python - pycodestyle (formerly pep8)
-Java - Checkstyle
+Python - Flake8 (formerly pep8)
+Java - Sonallint 
 Go - GoLint
-JS - prittier
+JS - prittier, Karma
 ```
 
 ## Artifacts
