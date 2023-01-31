@@ -80,8 +80,6 @@ pipeline {
                 PUBLISH_TO_ARTIFACTORY     = true
                 ARTIFACTORY_CREDENTIAL_ID  = 'sys_oie_devops_ubit-artifactory-or.intel.com'
 
-                CHECKMARX_INCREMENTAL_SCAN = false
-                CHECKMARX_PROJECT_NAME     = 'one-intel-edge'
                 CHECKMARX_FORCE_SCAN       = true
                 CHECKMARX_USER_AUTH_DOMAIN = 'GER'
                 
