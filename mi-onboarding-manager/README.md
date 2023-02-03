@@ -32,6 +32,7 @@ Python - Flake8 (formerly pep8)
 Java - Sonallint 
 Go - GoLint
 JS - prittier, Karma
+Ansible - Ansible Lint
 ```
 
 ## Artifacts
