@@ -25,6 +25,16 @@ pipeline {
         SUB_PROJECT_NAME='maestro-a'          //update the sub project name based on your repo, eg:maestro-a/i, springboard
     }
     stages {
+        // This stage is required for service/agent repos only
+        // Please remove it for chart repos
+        stage('Version Check') {
+            steps {
+                echo "Check if its a valid code version"
+                sh '''
+                /opt/ci/version-check.sh
+                '''
+            }        
+        }
         stage('Build') {
             steps {
                 echo "Hi, I'm a pipeline, doing build step"
@@ -48,6 +58,30 @@ pipeline {
                 make test
                 make coverage
                 '''
+            }
+        }
+        // This stage is required for service/agent repos only
+        // Please remove it for chart repos
+        stage('Version Tag') {
+            when {
+                anyOf { branch 'main'; branch 'feature*'; branch 'release*' }
+            }
+            steps {
+                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
+                    {
+                        echo "Generate tag if SemVer"
+                        sh '''
+                        # Use writable user for git
+                        echo "machine github.com" >> $HOME/.netrc
+                        echo "  login not-used" >> $HOME/.netrc
+                        echo "  password $PASSWORD" >> $HOME/.netrc
+                        echo "machine api.github.com" >> $HOME/.netrc
+                        echo "  login not-used" >> $HOME/.netrc
+                        echo "  password $PASSWORD" >> $HOME/.netrc
+                        # Tag the version
+                        /opt/ci/version-tag.sh
+                        '''
+                }
             }
         }
         stage('Artifact') {
