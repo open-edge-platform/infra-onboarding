@@ -1,6 +1,6 @@
 def getEnvFromBranch(branch) {
     if (branch ==~ /main/) {
-        return 'checkmarx,virus,protex'
+        return 'virus,protex'
     }
     else {
         return 'virus'
@@ -25,6 +25,57 @@ pipeline {
         SUB_PROJECT_NAME='maestro-a'          //update the sub project name based on your repo, eg:maestro-a/i, springboard
     }
     stages {
+        stage('Scan Sources'){
+            environment {
+                PROJECT_NAME               = "oie-${GIT_SHORT_URL}"
+                SCANNERS                   = getEnvFromBranch(env.BRANCH_NAME)
+
+                // publishArtifacts details
+                ARTIFACT_RETENTION_PERIOD  = ''
+                ARTIFACTORY_URL            = 'https://ubit-artifactory-or.intel.com/artifactory'
+                ARTIFACTS_REPO             = "one-intel-edge-or-local/${SUB_PROJECT_NAME}"
+                PUBLISH_TO_ARTIFACTORY     = true
+                ARTIFACTORY_CREDENTIAL_ID  = 'sys_oie_devops_ubit-artifactory-or.intel.com'
+
+                CHECKMARX_FORCE_SCAN       = true
+                CHECKMARX_USER_AUTH_DOMAIN = 'GER'
+                
+                //protex project has to be create before running the scan and the faceless user added to it
+                PROTEX_PROJECT_NAME        = "${GIT_SHORT_URL}"
+                
+                VIRUS_SCAN_DIR             = "."
+
+                SNYK_PRE_SCAN_SCRIPT = '''\
+                    env
+                    echo 'Adding GitHub credentials to ~/.netrc'
+                    umask 077
+                    echo 'machine github.com' >> ~/.netrc
+                    echo "login $GITHUB_USER" >> ~/.netrc
+                    echo "password $GITHUB_TOKEN" >> ~/.netrc
+                    echo 'machine api.github.com' >> ~/.netrc
+                    echo "login $GITHUB_USER" >> ~/.netrc
+                    echo "password $GITHUB_TOKEN" >> ~/.netrc
+                    umask 022
+                '''.stripIndent()
+            }
+            when {
+                anyOf {
+                    branch 'main';
+                    changeRequest();
+                }
+            }
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'sys_oie_devops_github_api',
+                        usernameVariable: 'GITHUB_USER',
+                        passwordVariable: 'GITHUB_TOKEN',
+                    ),
+                ]){
+                    rbheStaticCodeScan()
+                }
+            }
+        }
         // This stage is required for service/agent repos only
         // Please remove it for chart repos
         stage('Version Check') {
@@ -119,6 +170,38 @@ pipeline {
                 }
             }
         }
+        stage('Scan Binary'){
+            environment {
+                PROJECT_NAME                 = "oie-${GIT_SHORT_URL}"
+                SCANNERS                     = 'bdba'
+
+                // publishArtifacts details
+                ARTIFACT_RETENTION_PERIOD    = ''
+                ARTIFACTORY_URL              = 'https://ubit-artifactory-or.intel.com/artifactory'
+                ARTIFACTS_REPO               = "one-intel-edge-or-local/${SUB_PROJECT_NAME}"
+                PUBLISH_TO_ARTIFACTORY       = true
+                ARTIFACTORY_CREDENTIAL_ID    = 'sys_oie_devops_ubit-artifactory-or.intel.com'
+		        ARTIFACTORY_BYPASS_PROXY   = true
+
+	            BDBA_BIN_DIR                 = "BDBA"
+            }
+            when {
+                anyOf {
+                    branch 'main';
+                    changeRequest();
+                }
+            }
+            steps {
+               script{
+                    sh """
+	                [ -d "BDBA" ] || mkdir BDBA
+		            tar -zcvf BDBA/${GIT_SHORT_URL}.tar.gz build
+                    //replace build directory with the directory where binaries are stored
+                    """
+                    rbheStaticCodeScan()
+                }
+            }
+        }
         stage('Artifact') {
             steps {
                 sh '''
@@ -129,81 +212,18 @@ pipeline {
                 fingerprint: true,
                 onlyIfSuccessful: true
                 sh '''
-                    [ -d "artifacts" ] || mkdir -p artifacts
-                    mv  *.tar.gz artifacts/
+                [ -d "artifacts" ] || mkdir -p artifacts
+                mv  *.tar.gz artifacts/
                 '''
                 //in case your projects is mastro-i or springbord replace "maestro-a" from bellow accordingly
                 publishArtifacts([artifactsRepo: "one-intel-edge-or-local/${SUB_PROJECT_NAME}",
                                   credentialId: 'sys_oie_devops_ubit-artifactory-or.intel.com'])
             }
         }
-        stage('Scan'){
-            environment {
-                PROJECT_NAME               = "oie-${GIT_SHORT_URL}"
-                SCANNERS                   = getEnvFromBranch(env.BRANCH_NAME)
 
-                // publishArtifacts details
-                ARTIFACT_RETENTION_PERIOD  = ''
-                ARTIFACTORY_URL            = 'https://ubit-artifactory-or.intel.com/artifactory'
-                ARTIFACTS_REPO             = "one-intel-edge-or-local/${SUB_PROJECT_NAME}"
-                PUBLISH_TO_ARTIFACTORY     = true
-                ARTIFACTORY_CREDENTIAL_ID  = 'sys_oie_devops_ubit-artifactory-or.intel.com'
-
-                CHECKMARX_FORCE_SCAN       = true
-                CHECKMARX_USER_AUTH_DOMAIN = 'GER'
-                
-                //protex project has to be create before running the scan and the faceless user added to it
-                PROTEX_PROJECT_NAME        = "${GIT_SHORT_URL}"
-                
-                VIRUS_SCAN_DIR             = "."
-
-                SNYK_PRE_SCAN_SCRIPT = '''\
-                    env
-                    echo 'Adding GitHub credentials to ~/.netrc'
-                    umask 077
-                    echo 'machine github.com' >> ~/.netrc
-                    echo "login $GITHUB_USER" >> ~/.netrc
-                    echo "password $GITHUB_TOKEN" >> ~/.netrc
-                    echo 'machine api.github.com' >> ~/.netrc
-                    echo "login $GITHUB_USER" >> ~/.netrc
-                    echo "password $GITHUB_TOKEN" >> ~/.netrc
-                    umask 022
-                '''.stripIndent()
-            }
-            when {
-                anyOf {
-                    branch 'main';
-                    changeRequest();
-                }
-            }
-            steps {
-                  script{
-                    scmCheckout {
-                        clean = true
-                    } 
-                 }
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'sys_oie_devops_github_api',
-                        usernameVariable: 'GITHUB_USER',
-                        passwordVariable: 'GITHUB_TOKEN',
-                    ),
-                ]){
-
-                    rbheStaticCodeScan()
-                }
-            }
-        }
     }
     post {
         always {
-            script {
-                if (currentBuild.currentResult == 'FAILURE') {
-                    emailext body: 'Check console output at $BUILD_URL to view the results. \n\n ${CHANGES} \n\n -------------------------------------------------- \n${BUILD_LOG, maxLines=100, escapeHtml=false}', 
-                    to: "OIE@intel.com", 
-                    subject: 'Build failed in Jenkins: $PROJECT_NAME - #$BUILD_NUMBER'
-                }
-            }
             cleanWs()
         }
     }
