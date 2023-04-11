@@ -58,6 +58,41 @@ pipeline {
                 make test
                 make coverage
                 '''
+                // Coverage template for Java 
+                //step([$class: 'JacocoPublisher', 
+                //               exclusionPattern: '**/com/intel/auth/**,**/com/intel/cloud/**,**/com/intel/test/**,**/com/intel/producer/model/**', 
+                //               inclusionPattern: '**/*.class',
+                //               changeBuildStatus: true,
+                //               minimumInstructionCoverage: '50',
+                //              maximumInstructionCoverage: '51',
+                //               sourcePattern: '**/src/test/java/**'])
+                
+                // Coverage and Allure for Python
+                // python -m coverage run -m pytest --alluredir allure_reports
+                //  python -m coverage xml -o ./reports/coverage.xml 
+                //
+                // step([$class: 'CoberturaPublisher',
+                //                   autoUpdateHealth: false,
+                //                   autoUpdateStability: false,
+                //                  coberturaReportFile: 'reports/coverage.xml',
+                //                   failNoReports: false,
+                //                   failUnhealthy: false,
+                //                   failUnstable: false,
+                //                   maxNumberOfBuilds: 10,
+                //                  onlyStable: false,
+                //                   sourceEncoding: 'ASCII',
+                //                  zoomCoverageChart: false])
+                //    allure([
+                 //       includeProperties: false,
+                 //       properties: [],
+                 //       reportBuildPolicy: 'ALWAYS',
+                 //       results: [[path: 'allure_reports']]
+                 //   ])
+                 
+                 // Python lint using flake8
+                // flake8 --format=pylint --exit-zero /home/jenkins/agent/workspace/e.devops-staging_python_coverage/ >flake8-output.txt
+                // recordIssues enabledForFailure: true, tools: [flake8(name: 'Lint - Flake8', pattern: 'flake8-output.txt', skipSymbolicLinks: true)]
+                
             }
         }
         // This stage is required for service/agent repos only
