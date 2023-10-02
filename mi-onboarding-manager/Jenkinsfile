@@ -224,6 +224,7 @@ pipeline {
     }
     post {
         always {
+	    jcpSummaryReport()
             cleanWs()
         }
     }
