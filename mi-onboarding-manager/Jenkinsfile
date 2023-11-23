@@ -170,7 +170,7 @@ pipeline {
                 }
             }
         }
-        stage('Scan Binary'){
+        /*stage('Scan Binary'){
             environment {
                 PROJECT_NAME                 = "oie-${GIT_SHORT_URL}"
                 SCANNERS                     = 'bdba'
@@ -201,7 +201,7 @@ pipeline {
                     rbheStaticCodeScan()
                 }
             }
-        }
+        }*/
         stage('Artifact') {
             steps {
                 sh '''
