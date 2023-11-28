@@ -1,0 +1,29 @@
+apiVersion: "tinkerbell.org/v1alpha1"
+kind: Template
+metadata:
+  name: fdods-$TINKERBELL_CLIENT_UID
+spec:
+  data: |
+    version: "0.1"
+    name: fdods_$TINKERBELL_CLIENT_UID
+    global_timeout: 8000
+    tasks:
+      - name: "os-installation-device_setup"
+        worker: "{{.device_1}}"
+        volumes:
+          - /dev:/dev
+          - /dev/console:/dev/console
+          - /lib/firmware:/lib/firmware:ro
+        actions:
+          - name: "create-partition"
+            image: $PROVISIONER_HOST_IP:5015/create_partition:latest
+            timeout: 300
+            environment:
+              BLOCK_DEVICE: $DISK_DEVICE
+              PARTITION_SZ: "500MB"
+
+          - name: "reboot"
+            image: public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest
+            timeout: 90
+            volumes:
+              - /worker:/worker

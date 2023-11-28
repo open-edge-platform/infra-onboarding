@@ -1,0 +1,67 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: download-bkc-image
+data:
+  entrypoint.sh: |-
+    #!/usr/bin/env bash
+    # This script is designed to download a cloud image file (.img) and then convert it to a .raw.gz file.
+    # This is purpose built so non-raw cloud image files can be used with the "image2disk" action.
+    # See https://artifacthub.io/packages/tbaction/tinkerbell-community/image2disk.
+    set -euxo pipefail
+    echo "nameserver 10.248.2.1" >> /etc/resolv.conf
+    echo "nameserver 172.30.90.4" >> /etc/resolv.conf
+    echo "nameserver 10.223.45.36" >> /etc/resolv.conf
+    export http_proxy=http://proxy-dmz.intel.com:911
+    export https_proxy=http://proxy-dmz.intel.com:912
+    export no_proxy=localhost,.intel.com,devtools.intel.com,127.0.0.0/8,172.16.0.0/20,192.168.0.0/16,10.0.0.0/8
+    if ! which pigz qemu-img &>/dev/null; then
+      apk add --update pigz qemu-img wget bzip2
+    fi
+    image_url=$1
+    file=$2/${image_url##*/}
+    file=${file%.*}.raw.gz
+    file_name=${image_url##*/}
+    if [[ ! -f "$file" ]]; then
+        wget --no-proxy "$image_url" -O "$file_name"
+        bzip2 -d "$file_name"
+        img_name=$(echo $file_name | sed 's/.bz2//')
+        echo $img_name
+        qemu-img convert -O raw $img_name image.raw
+        pigz <image.raw >"$file"
+        rm -f $img_name image.raw
+        #wget "$image_url" -O image.bzip2
+        #bzip2 -d image.bzip2
+        #qemu-img convert -O raw image.img image.raw
+        #pigz <image.raw >"$file"
+        #rm -f image.img image.raw
+    fi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: download-ubuntu-bkc
+spec:
+  template:
+    spec:
+      containers:
+      - name: download-ubuntu-bkc
+        image: bash:5.2.2
+        command: ["/script/entrypoint.sh"]
+        args: ["BKC_IMG_LINK", "/output"]
+        volumeMounts:
+        - mountPath: /output
+          name: hook-artifacts
+        - mountPath: /script
+          name: configmap-volume
+      restartPolicy: OnFailure
+      volumes:
+      - name: hook-artifacts
+        hostPath:
+          path: /opt/hook
+          type: DirectoryOrCreate
+      - name: configmap-volume
+        configMap:
+          defaultMode: 0700
+          name: download-bkc-image

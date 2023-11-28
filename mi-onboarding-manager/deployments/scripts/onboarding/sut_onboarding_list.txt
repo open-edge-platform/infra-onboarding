@@ -1,0 +1,13 @@
+################################################################
+#
+#  This file is a input for the zero touch onboarding automation
+#  provide the details as per below order for sut's to provision
+#
+################################################################
+
+#Example
+#SUT_NAME  #MAC_ID           #Load_Balancer_IP   #SUT_IP           #Disk_type   	#Image_Type
+
+#SUT1	  00:49:fa:07:8d:05   10.199.199.100	10.199.199.101   /dev/neme0n1    prod_bkc/prod_focal/prod_jammy/prod_focal-ms
+
+

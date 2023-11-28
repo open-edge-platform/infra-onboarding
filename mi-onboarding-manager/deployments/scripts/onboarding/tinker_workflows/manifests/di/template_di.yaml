@@ -1,0 +1,39 @@
+apiVersion: "tinkerbell.org/v1alpha1"
+kind: Template
+metadata:
+  name: fdodi-$TINKERBELL_CLIENT_UID
+spec:
+  data: |
+    version: "0.1"
+    name: fdoDi-$TINKERBELL_CLIENT_UID
+    global_timeout: 8000
+    tasks:
+      - name: "os-installation-di"
+        worker: "{{.device_1}}"
+        volumes:
+          - /dev:/dev
+          - /dev/console:/dev/console
+          - /lib/firmware:/lib/firmware:ro
+        actions:
+          - name: "store-Alpine"
+            image: $PROVISIONER_HOST_IP:5015/store_alpine:latest
+            timeout: 500
+            environment:
+              BLOCK_DEVICE: $DISK_DEVICE
+              PARTITION_SZ: "500MB"
+          - name: "run-fdo"
+            image: $PROVISIONER_HOST_IP:5015/fdoclient_action:latest
+            timeout: 400
+            environment:
+              DATA_PARTITION_LBL: "CREDS"
+              FDO_RUN_TYPE: "di"
+              FDO_MFGIP: "$PROVISIONER_HOST_IP"
+              FDO_MPORT: 8038
+              DEVICE_SERIAL: "$TINKERBELL_DEV_SERIAL"
+              TYPE: "$FDO_CLIENT_TYPE"
+              FDO_TLS: "https"
+          - name: "reboot"
+            image: public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest
+            timeout: 90
+            volumes:
+              - /worker:/worker

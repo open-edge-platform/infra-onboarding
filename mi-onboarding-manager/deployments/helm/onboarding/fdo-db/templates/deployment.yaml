@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fdo-db.fullname" . }}
+  labels:
+    {{- include "fdo-db.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "fdo-db.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "fdo-db.selectorLabels" . | nindent 8 }}
+    spec:
+      hostNetwork: {{ .Values.hostNetwork }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: MARIADB_ROOT_PASSWORD_FILE
+              value: "/run/secrets/db_password.txt"
+            - name: MARIADB_DATABASE
+              value: "emdb"
+          volumeMounts:
+            - name: cacert
+              mountPath: /run/secrets/ca-cert.pem
+            - name: servercert
+              mountPath: /run/secrets/server-cert.pem
+            - name: serverkey
+              mountPath: /run/secrets/server-key.pem
+            - name: dbpassword
+              mountPath: /run/secrets/db_password.txt
+            - name: appdata
+              mountPath: /var/lib/mysql
+            - name: custom
+              mountPath: /etc/mysql/conf.d
+      volumes:
+        - name: cacert
+          hostPath:
+            path: {{ .Values.path.ca_cert }}
+        - name: servercert
+          hostPath:
+            path: {{ .Values.path.server_cert }}
+        - name: serverkey
+          hostPath:
+            path: {{ .Values.path.server_key }}
+        - name: dbpassword
+          hostPath:
+            path: {{ .Values.path.db_password }}
+        - name: appdata
+          hostPath:
+            path: {{ .Values.path.app_data }}
+        - name: custom
+          hostPath:
+            path: {{ .Values.path.custom }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

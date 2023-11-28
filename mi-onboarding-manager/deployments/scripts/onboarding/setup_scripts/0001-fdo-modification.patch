@@ -1,0 +1,453 @@
+From d00f461b237630f2756b0d273077ed372b1feda4 Mon Sep 17 00:00:00 2001
+From: Rishi Raj Gupta <rishi.raj1.gupta@intel.com>
+Date: Mon, 10 Jul 2023 15:00:30 +0530
+Subject: [PATCH] fdo modification
+
+Signed-off-by: Rishi Raj Gupta <rishi.raj1.gupta@intel.com>
+---
+ component-samples/demo/owner/Dockerfile       |   4 +-
+ component-samples/demo/owner/WEB-INF/web.xml  |   4 +-
+ component-samples/demo/owner/app-data/config  |   0
+ .../demo/owner/docker-compose.yml             |  11 +-
+ .../demo/owner/hibernate.cfg.xml              |   2 +-
+ component-samples/demo/owner/service.yml      |  35 ++--
+ component-samples/demo/rv/service.yml         |   4 +-
+ .../demo/scripts/extend_upload.sh             |   6 +-
+ protocol/pom.xml                              |  12 ++
+ .../fdo/protocol/db/FdoSysOwnerModule.java    | 169 +++++++++++++++++-
+ 10 files changed, 212 insertions(+), 35 deletions(-)
+ create mode 100644 component-samples/demo/owner/app-data/config
+
+diff --git a/component-samples/demo/owner/Dockerfile b/component-samples/demo/owner/Dockerfile
+index e773153..e4cd905 100644
+--- a/component-samples/demo/owner/Dockerfile
++++ b/component-samples/demo/owner/Dockerfile
+@@ -21,8 +21,8 @@ COPY service.yml .
+ COPY context.xml .
+ COPY tomcat-users.xml .
+ COPY secrets.run.path /home/fdo/secrets.path
+-
+-
++COPY ./secrets/ca-cert.pem /home/fdo/ca-cert.pem
++RUN keytool -import -trustcacerts -noprompt -keystore  /usr/lib/jvm/java-11-openjdk-amd64/lib/security/cacerts -storepass changeit -alias ownercacert -file /home/fdo/ca-cert.pem
+ RUN chown -R fdo:fdo /home/fdo
+ USER fdo
+ 
+diff --git a/component-samples/demo/owner/WEB-INF/web.xml b/component-samples/demo/owner/WEB-INF/web.xml
+index 4da2774..6b09801 100644
+--- a/component-samples/demo/owner/WEB-INF/web.xml
++++ b/component-samples/demo/owner/WEB-INF/web.xml
+@@ -224,7 +224,7 @@
+         <url-pattern>/api/v1/resell/*</url-pattern>
+     </servlet-mapping>
+ 
+- <security-constraint>
++ <!-- <security-constraint>
+     <web-resource-collection>
+         <web-resource-name>apis</web-resource-name>
+         <url-pattern>/api/v1/*</url-pattern>
+@@ -243,6 +243,6 @@
+ 
+   <security-role>
+     <role-name>api</role-name>
+-  </security-role>
++  </security-role> -->
+ 
+ </web-app>
+\ No newline at end of file
+diff --git a/component-samples/demo/owner/app-data/config b/component-samples/demo/owner/app-data/config
+new file mode 100644
+index 0000000..e69de29
+diff --git a/component-samples/demo/owner/docker-compose.yml b/component-samples/demo/owner/docker-compose.yml
+index 8399feb..7969087 100644
+--- a/component-samples/demo/owner/docker-compose.yml
++++ b/component-samples/demo/owner/docker-compose.yml
+@@ -11,6 +11,7 @@ services:
+     expose:
+       - "8042"
+       - "8043"
++      - "6443"
+     ports:
+      - "8042:8042"
+      - "8043:8043"
+@@ -23,11 +24,8 @@ services:
+     env_file:
+       - service.env
+     secrets:
+-      - ca-cert.pem
+       - server-cert.pem
+       - server-key.pem
+-      - api-user.pem
+-      - db_password.txt
+     volumes:
+       - ./app-data:/home/fdo/app-data 
+     extra_hosts:
+@@ -36,15 +34,10 @@ services:
+     mem_reservation: 200m
+     cpu_shares: 1024
+     pids_limit: 500
++    network_mode: "host" 
+ 
+ secrets:
+-  ca-cert.pem:
+-    file: ./secrets/ca-cert.pem
+   server-cert.pem:
+     file: ./secrets/server-cert.pem
+   server-key.pem:
+     file: ./secrets/server-key.pem
+-  api-user.pem:
+-    file: ./secrets/api-user.pem
+-  db_password.txt:
+-    file: ./secrets/db_password.txt
+diff --git a/component-samples/demo/owner/hibernate.cfg.xml b/component-samples/demo/owner/hibernate.cfg.xml
+index a86978a..73de0d9 100644
+--- a/component-samples/demo/owner/hibernate.cfg.xml
++++ b/component-samples/demo/owner/hibernate.cfg.xml
+@@ -5,7 +5,7 @@
+ <hibernate-configuration>
+     <session-factory>
+ 
+-        <property name = "hibernate.connection.driver_class">org.mariadb.jdbc.Driver</property>
++        <!-- <property name = "hibernate.connection.driver_class">org.mariadb.jdbc.Driver</property> -->
+ 
+         <!--
+         <property name="hibernate.connection.username"></property>
+diff --git a/component-samples/demo/owner/service.yml b/component-samples/demo/owner/service.yml
+index bf90d13..eea3e8e 100644
+--- a/component-samples/demo/owner/service.yml
++++ b/component-samples/demo/owner/service.yml
+@@ -1,10 +1,16 @@
+ hibernate-properties:
+-  hibernate.connection.username: $(db_user)
+-  hibernate.connection.password: $(db_password)
+-  hibernate.connection.url: jdbc:mariadb://host.docker.internal:3306/emdb?useSSL=$(useSSL)
+-  hibernate.connection.requireSSL: $(requireSSL)
+-  hibernate.connection.autoReconnect: true
+-  hibernate.dialect: org.hibernate.dialect.MariaDBDialect
++  connection.driver_class: org.h2.Driver
++  hibernate.connection.username: 'sa'
++  hibernate.connection.password: 'root'
++  hibernate.connection.url: jdbc:h2:tcp://localhost:9092/./app-data/emdb
++  hibernate.dialect: org.hibernate.dialect.H2Dialect
++
++h2-database:
++  tcp-server:
++    - "-ifNotExists"
++  web-server:
++    - "-webPort"
++    - "8082"
+ 
+ system-properties:
+   log4j.configurationFile: log4j2.xml
+@@ -13,12 +19,12 @@ system-properties:
+   service.name: "Owner"
+   server.api.user: $(api_user)
+   server.api.password: "null"
+-  javax.net.ssl.keyStorePassword: default
+-  javax.net.ssl.trustStorePassword: default
+-  javax.net.ssl.keyStore: $(secrets.path)/api-user.pem
+-  javax.net.ssl.trustStore: $(secrets.path)/ca-cert.pem
+-  javax.net.ssl.keyStoreType: PEM
+-  javax.net.ssl.trustStoreType: PEM
++  # javax.net.ssl.keyStorePassword: default
++  # javax.net.ssl.trustStorePassword: default
++  # javax.net.ssl.keyStore: $(secrets.path)/api-user.pem
++  # javax.net.ssl.trustStore: $(secrets.path)/ca-cert.pem
++  # javax.net.ssl.keyStoreType: PEM
++  # javax.net.ssl.trustStoreType: PEM
+   #javax.net.debug: ssl:handshake
+   #log4j.logger.org.apache.http.impl.conn: DEBUG
+   #log4j.logger.org.apache.http.impl.client: DEBUG
+@@ -45,8 +51,6 @@ http-server:
+   http_timeout: 20000
+   server_cert: $(secrets.path)/server-cert.pem
+   server_key: $(secrets.path)/server-key.pem
+-  truststore_file: $(secrets.path)/ca-cert.pem
+-  truststore_type: PEM
+   certificate_verification: want
+   protocols: TLSv1.3
+   certificate_verification_depth: 2
+@@ -106,7 +110,8 @@ workers:
+   - org.fidoalliance.fdo.protocol.StandardMessageDispatcher
+   - org.fidoalliance.fdo.protocol.StandardCryptoService
+   - org.fidoalliance.fdo.protocol.StandardHttpServer
+-  - org.fidoalliance.fdo.protocol.StandardDatabaseServer
++  # - org.fidoalliance.fdo.protocol.StandardDatabaseServer
++  - org.fidoalliance.fdo.protocol.EmbeddedDatabaseServer
+   - org.fidoalliance.fdo.protocol.StandardOwnerKeySupplier
+   - org.fidoalliance.fdo.protocol.StandardCwtKeySupplier
+   - org.fidoalliance.fdo.protocol.StandardReplacementKeySupplier
+diff --git a/component-samples/demo/rv/service.yml b/component-samples/demo/rv/service.yml
+index a38cd71..0dab058 100644
+--- a/component-samples/demo/rv/service.yml
++++ b/component-samples/demo/rv/service.yml
+@@ -103,8 +103,8 @@ workers:
+   - org.fidoalliance.fdo.protocol.db.StandardValidityDaysSupplier
+   - org.fidoalliance.fdo.protocol.db.StandardRvBlobQueryFunction
+   - org.fidoalliance.fdo.protocol.db.StandardRvBlobStorageFunction
+-  - org.fidoalliance.fdo.protocol.db.TrustedRendezvousAcceptFunction
+-  #- org.fidoalliance.fdo.protocol.UntrustedRendezvousAcceptFunction
++  # - org.fidoalliance.fdo.protocol.db.TrustedRendezvousAcceptFunction
++  - org.fidoalliance.fdo.protocol.UntrustedRendezvousAcceptFunction
+ 
+ 
+ 
+diff --git a/component-samples/demo/scripts/extend_upload.sh b/component-samples/demo/scripts/extend_upload.sh
+index 5eaf95d..4ed3def 100644
+--- a/component-samples/demo/scripts/extend_upload.sh
++++ b/component-samples/demo/scripts/extend_upload.sh
+@@ -120,7 +120,7 @@ else
+     echo "Provided Auth type is not valid, check usage with -h" >&2
+     exit 1
+ fi
+-get_cert=$(curl ${onr_auth_arg} --silent -w "%{http_code}\n" --location --request GET "https://${onr_ip}:${onr_port}/api/v1/certificate?alias=${attestation_type}" -H 'Content-Type: text/plain' -o owner_cert_${attestation_type}.txt)
++get_cert=$(curl  --silent -w "%{http_code}\n" --location --request GET "https://${onr_ip}:${onr_port}/api/v1/certificate?alias=${attestation_type}" -H 'Content-Type: text/plain' -o owner_cert_${attestation_type}.txt -k)
+ get_cert_code=$(tail -n1 <<< "$get_cert")
+ if [ "$get_cert_code" = "200" ]; then
+     echo "Success in downloading ${attestation_type} owner certificate to owner_cert_${attestation_type}.txt"
+@@ -130,13 +130,13 @@ if [ "$get_cert_code" = "200" ]; then
+     if [ "$get_voucher_code" = "200" ]; then
+         echo "Success in downloading extended voucher for device with serial number ${serial_no}"
+         extended_voucher=`cat ${serial_no}_voucher.txt`
+-        upload_voucher=$(curl ${onr_auth_arg} --silent -w "%{http_code}\n" --location --request POST "https://${onr_ip}:${onr_port}/api/v1/owner/vouchers/" --header 'Content-Type: text/plain' --data-raw "$extended_voucher" -o ${serial_no}_guid.txt)
++        upload_voucher=$(curl  --silent -w "%{http_code}\n" --location --request POST "https://${onr_ip}:${onr_port}/api/v1/owner/vouchers/" --header 'Content-Type: text/plain' --data-raw "$extended_voucher" -o ${serial_no}_guid.txt -k)
+         upload_voucher_code=$(tail -n1 <<< "$upload_voucher")
+         if [ "$upload_voucher_code" = "200" ]; then
+             device_guid=`cat ${serial_no}_guid.txt`
+             echo "Success in uploading voucher to owner for device with serial number ${serial_no}"
+             echo "GUID of the device is ${device_guid}"
+-            trigger_to0=$(curl ${onr_auth_arg} --silent -w "%{http_code}\n" --location --request GET "https://${onr_ip}:${onr_port}/api/v1/to0/${device_guid}" --header 'Content-Type: text/plain')
++            trigger_to0=$(curl  --silent -w "%{http_code}\n" --location --request GET "https://${onr_ip}:${onr_port}/api/v1/to0/${device_guid}" --header 'Content-Type: text/plain' -k)
+             trigger_to0_code=$(tail -n1 <<< "$trigger_to0")
+             if [ "$trigger_to0_code" = "200" ]; then
+                 echo "Success in triggering TO0 for ${serial_no} with GUID ${device_guid}"
+diff --git a/protocol/pom.xml b/protocol/pom.xml
+index 1d51097..1801eb9 100644
+--- a/protocol/pom.xml
++++ b/protocol/pom.xml
+@@ -69,6 +69,18 @@
+       <version>${log4j.version}</version>
+     </dependency>
+ 
++    <dependency>
++      <groupId>io.kubernetes</groupId>
++      <artifactId>client-java</artifactId>
++      <version>15.0.1</version>
++    </dependency>
++    
++    <dependency>
++      <groupId>org.yaml</groupId>
++      <artifactId>snakeyaml</artifactId>
++      <version>1.29</version>
++    </dependency>
++    
+     <!-- https://mvnrepository.com/artifact/commons-codec/commons-codec -->
+     <dependency>
+       <groupId>commons-codec</groupId>
+diff --git a/protocol/src/main/java/org/fidoalliance/fdo/protocol/db/FdoSysOwnerModule.java b/protocol/src/main/java/org/fidoalliance/fdo/protocol/db/FdoSysOwnerModule.java
+index 2d86498..754ad74 100644
+--- a/protocol/src/main/java/org/fidoalliance/fdo/protocol/db/FdoSysOwnerModule.java
++++ b/protocol/src/main/java/org/fidoalliance/fdo/protocol/db/FdoSysOwnerModule.java
+@@ -3,11 +3,28 @@
+ 
+ package org.fidoalliance.fdo.protocol.db;
+ 
++import io.kubernetes.client.openapi.ApiClient;
++import io.kubernetes.client.openapi.ApiException;
++import io.kubernetes.client.openapi.Configuration;
++import io.kubernetes.client.openapi.apis.CoreV1Api;
++import io.kubernetes.client.openapi.apis.CustomObjectsApi;
++import io.kubernetes.client.openapi.models.V1Pod;
++import io.kubernetes.client.openapi.models.V1PodList;
++import io.kubernetes.client.util.ClientBuilder;
++import io.kubernetes.client.util.KubeConfig;
++
++import java.io.FileInputStream;
++import java.io.FileNotFoundException;
++import java.io.FileReader;
+ import java.io.IOException;
+ import java.io.InputStream;
+ import java.nio.charset.StandardCharsets;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.nio.file.StandardOpenOption;
+ import java.sql.Blob;
+ import java.sql.SQLException;
++import java.util.Date;
+ import java.util.Map;
+ import org.apache.http.HttpEntity;
+ import org.apache.http.client.methods.CloseableHttpResponse;
+@@ -33,6 +50,7 @@ import org.fidoalliance.fdo.protocol.serviceinfo.DevMod;
+ import org.fidoalliance.fdo.protocol.serviceinfo.FdoSys;
+ import org.hibernate.Session;
+ import org.hibernate.Transaction;
++import org.yaml.snakeyaml.Yaml;
+ 
+ /**
+  * Implements FdoSysModule spec.
+@@ -180,12 +198,161 @@ public class FdoSysOwnerModule implements ServiceInfoModule {
+         + status.getRetCode() + " timeout " + status.getTimeout());
+   }
+ 
++  ///Todo: move this code to custom owner module check on deletion of workflow
++  //Todo:Add dkam api if needed
++
+   protected void onFetch(ServiceInfoModuleState state, FdoSysModuleExtra extra,
+       byte[] data) throws IOException {
+-
++    //defining workflow file path
++    String imgtype = extractValueFromInputData(data,"img:");
++    String workflowFilePath;
++    String templateWorkflowPath;
++    String templateName;
++    String deviceMacIdre = extractValueFromInputData(data, "macid:");
++    String clientimgnametemp = extractValueFromInputData(data,"clientimg: ");
++    String workflowName = generateNameFromMacId("workflow", deviceMacIdre);
++    logger.info("imgname " + clientimgnametemp);
++    if (clientimgnametemp.isEmpty()) {
++      workflowFilePath = "/home/fdo/app-data/workflow.yaml";
++      templateWorkflowPath = "/home/fdo/app-data/template_prod.yaml";
++      templateName = generateNameFromMacId("ubuntu-focal", deviceMacIdre);
++    } else {
++      workflowFilePath = "/home/fdo/app-data/workflow_bkc.yaml";
++      templateWorkflowPath = "/home/fdo/app-data/template_prod_bkc.yaml";
++      templateName = generateNameFromMacId("ubuntu-bkc", deviceMacIdre);
++    }
++    //genrate workflow for harware,workflow,template
++    Map<String, Object> template = generateWorkflowDynamic(data,templateWorkflowPath);
++    Map<String, Object> workflowtemplate = generateWorkflowDynamic(data,workflowFilePath);
++    logger.info("img" + imgtype);
++    //logger.warn(new String(data, StandardCharsets.US_ASCII));
++    logger.info("acessing cluster....");
++    String kubeConfigPath = "/home/fdo/app-data/config";
++    try {
++      Thread.sleep(25000);
++      ApiClient client = ClientBuilder.kubeconfig(
++          KubeConfig.loadKubeConfig(new FileReader(kubeConfigPath))).build();
++      Configuration.setDefaultApiClient(client);
++      logger.info("loaded kubeconfig....");
++      createOrUpdateCustomObjectDynamic(client, "tinkerbell.org",
++          "v1alpha1", "tink-system", "templates", template,templateName);
++      logger.info("starting template workflow");
++      createOrUpdateCustomObjectDynamic(client, "tinkerbell.org",
++          "v1alpha1", "tink-system", "workflows",workflowtemplate,workflowName);
++      logger.info("created prod workflows");
++    } catch (IOException e) {
++      e.printStackTrace();
++    } catch (ApiException e) {
++      System.err.println("Exception when calling CoreV1Api");
++      System.err.println("Status code: " + e.getCode());
++      System.err.println("Reason: " + e.getResponseBody());
++      System.err.println("Response headers: " + e.getResponseHeaders());
++      e.printStackTrace();
++      e.printStackTrace();
++    } catch (InterruptedException ex) {
++      ex.printStackTrace();
++    }
+     logger.warn(new String(data, StandardCharsets.US_ASCII));
+   }
+ 
++  protected void createOrUpdateCustomObjectDynamic(ApiClient client, String group,
++      String version, String namespace, String plural, Map<String, Object> workflow,
++      String workflowName) throws ApiException, IOException {
++    CustomObjectsApi api = new CustomObjectsApi(client);
++    // Check if the resource exists
++    boolean resourceExists = checkCustomObjectExists(api, group,
++        version, namespace, plural, workflowName);
++    logger.info("resource check " + resourceExists);
++    if (resourceExists) {
++      //TODO:Enable deleting workflow
++      // Delete the existing resource
++      // api.deleteNamespacedCustomObject(group, version, namespace,
++      //     plural, workflowName, null,
++      //     null, null, null, null);
++      logger.info("we should deleted workflow");
++    }
++    // Create the new resource
++    api.createNamespacedCustomObject(group, version, namespace, plural,
++        workflow, null, null, null);
++  }
++
++  protected boolean checkCustomObjectExists(CustomObjectsApi api,
++      String group, String version, String namespace,
++      String plural, String name) throws ApiException {
++    try {
++      api.getNamespacedCustomObject(group, version, namespace, plural, name);
++      return true; // Resource exists
++    } catch (ApiException e) {
++      if (e.getCode() == 404) {
++        return false; // Resource doesn't exist
++      } else {
++        System.err.println("Exception when calling CustomObjectsApi#getNamespacedCustomObject");
++        System.err.println("Status code: " + e.getCode());
++        System.err.println("Reason: " + e.getResponseBody());
++        System.err.println("Response headers: " + e.getResponseHeaders());
++        e.printStackTrace();
++        return false;
++      }
++    }
++  }
++
++  protected Map<String, Object> generateWorkflowDynamic(byte[] inputData, String workflowFilePath) {
++    String deviceMacId = extractValueFromInputData(inputData, "macid:");
++    String clientimgname = extractValueFromInputData(inputData,"clientimg: ");
++    String rootfspartno = extractValueFromInputData(inputData, "rootfspartno:");
++    String rootfspart = extractValueFromInputData(inputData, "rootfspart:");
++    String loadbalacerip = extractValueFromInputData(inputData, "loadbalacerip:");
++    String hostname = generateNameFromMacId("machine", deviceMacId);
++    String workflowName = generateNameFromMacId("workflow", deviceMacId);
++    try {
++      String existingContent = Files.readString(Path.of(workflowFilePath));
++      String updatedContent = updateContentWithValues(existingContent,
++          deviceMacId, rootfspartno, rootfspart, loadbalacerip, hostname, 
++          workflowName,clientimgname);
++      // Convert the updated content to a Map object
++      Yaml yaml = new Yaml();
++      Map<String, Object> workflowMap = yaml.load(updatedContent);
++      return workflowMap;
++    } catch (IOException e) {
++      e.printStackTrace();
++      return null;
++    }
++  }
++
++  protected String extractValueFromInputData(byte[] inputData, String prefix) {
++    String inputString = new String(inputData, StandardCharsets.US_ASCII);
++    int prefixIndex = inputString.indexOf(prefix);
++    int endIndex = inputString.indexOf("\n", prefixIndex);
++    if (prefixIndex != -1 && endIndex != -1) {
++      return inputString.substring(prefixIndex + prefix.length(), endIndex).trim().toLowerCase();
++    }
++    return "$TINKERBELL_CLIENT_" + prefix.toUpperCase();
++  }
++
++  protected String updateContentWithValues(String content, String deviceMacId,
++      String rootfspartno,String rootfspart, 
++      String loadbalacerip, String hostname, String workflowName,String clientimgname) {
++    content = content.replace("$TINKERBELL_CLIENT_MAC", deviceMacId);
++    content = content.replace("$TINKERBELL_CLIENT_UID",generateMacIdString(deviceMacId));
++    content = content.replace("$ROOTFS_PART_NO", rootfspartno);
++    content = content.replace("$ROOTFS_PARTITION", rootfspart);
++    content = content.replace("$TINKERBELL_HOST_IP", loadbalacerip);
++    content = content.replace("$TINKERBELL_CLIENT_HOST", hostname);
++    content = content.replace("$UNIQUE_WFLOW_NAME", workflowName);
++    content = content.replace("$TINKERBELL_CLIENT_IMG", clientimgname);
++    return content;
++  }
++
++  protected String generateNameFromMacId(String name, String macId) {
++    String macWithoutColon = macId.replace(":", "");
++    return name + "-" + macWithoutColon.toLowerCase();
++  }
++
++  protected String generateMacIdString(String macId) {
++    String macWithoutColon = macId.replace(":", "");
++    return macWithoutColon.toLowerCase();
++  }
++  
+   protected void onEot(ServiceInfoModuleState state, FdoSysModuleExtra extra, EotResult result)
+       throws IOException {
+     logger.info("EOT:resultCode " + result.getResult());
+-- 
+2.39.1.windows.1
+

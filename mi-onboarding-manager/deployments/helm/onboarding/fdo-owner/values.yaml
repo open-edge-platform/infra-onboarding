@@ -1,0 +1,38 @@
+# Default values for fdo-owner.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: gar-registry.caas.intel.com/lp-iaas/onboarding/pri-fdo-owner
+  pullPolicy: Always
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "latest"
+
+host:
+  internalIP: ""
+
+path:
+  ca_cert: "/home/<USER>/.fdo-secrets/owner/secrets/ca-cert.pem"
+  server_cert: "/home/<USER>/.fdo-secrets/owner/secrets/server-cert.pem"
+  server_key: "/home/<USER>/.fdo-secrets/owner/secrets/server-key.pem"
+  api_user: "/home/<USER>/.fdo-secrets/owner/secrets/api-user.pem"
+  db_password: "/home/<USER>/.fdo-secrets/owner/secrets/db_password.txt"
+  app_data: "/home/<USER>/.fdo-secrets/owner/app-data"
+  service_yaml: "/home/<USER>/.fdo-secrets/owner/service.yml"
+
+hostNetwork: true
+
+tolerations:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
+    operator: Exists
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: node-role.kubernetes.io/master
+              operator: Exists

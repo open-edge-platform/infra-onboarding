@@ -1,0 +1,16 @@
+MGR_HOST=""
+INVMGR_PORT=31846
+UPDATEMGR_PORT=31845
+BKC_USER="user"
+TINKER_CLIENT_IMG=""
+TINKER_CLIENT_IMG="ubuntu-22.04-desktop-amd64+intel-iot-37-custom.img.raw.gz"
+TINKER_CLIENT_IMG="ubuntu-22.04-desktop-amd64+intel-iot-37-custom.img.raw.gz"
+TINKER_CLIENT_IMG="ubuntu-22.04-desktop-amd64+intel-iot-37-custom.img.raw.gz"
+TINKER_CLIENT_IMG="ubuntu-22.04-desktop-amd64+intel-iot-37-custom.img.raw.gz"
+TINKER_CLIENT_IMG="ubuntu-22.04-desktop-amd64+intel-iot-37-custom.img.raw.gz"
+TINKER_CLIENT_IMG="ubuntu-22.04-desktop-amd64+intel-iot-37-custom.img.raw.gz"
+TINKER_CLIENT_IMG="ubuntu-22.04-desktop-amd64+intel-iot-37-custom.img.raw.gz"
+TINKER_CLIENT_IMG="ubuntu-22.04-desktop-amd64+intel-iot-37-custom.img.raw.gz"
+TINKER_CLIENT_IMG="ubuntu-22.04-desktop-amd64+intel-iot-37-custom.img.raw.gz"
+TINKER_CLIENT_IMG=""
+TINKER_CLIENT_IMG=""

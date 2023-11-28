@@ -1,0 +1,106 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: download-focal-ms-image
+  namespace: tink-system
+data:
+  entrypoint.sh: |-
+    #!/usr/bin/env bash
+    # This script is designed to download a cloud image file (.img) and then convert it to a .raw.gz file.
+    # This is purpose built so non-raw cloud image files can be used with the "image2disk" action.
+    # See https://artifacthub.io/packages/tbaction/tinkerbell-community/image2disk.
+    set -euxo pipefail
+    echo "nameserver 10.248.2.1" >> /etc/resolv.conf
+    echo "nameserver 172.30.90.4" >> /etc/resolv.conf
+    echo "nameserver 10.223.45.36" >> /etc/resolv.conf
+    export http_proxy=http://proxy-dmz.intel.com:911
+    export https_proxy=http://proxy-dmz.intel.com:912
+    export no_proxy=localhost,.intel.com,127.0.0.0/8,172.16.0.0/20,192.168.0.0/16,10.0.0.0/8
+    if ! which pigz qemu-img &>/dev/null; then
+      apk add --update pigz qemu-img wget
+    fi
+
+    img_url=$1
+    image_file1=$4/${img_url##*/}
+    image_file=${image_file1%%_*}
+    image_file=${image_file%-*}.deb
+    echo $image_file
+    if [[ ! -f "$image_file" ]]; then
+    wget "$img_url" -O image2.img
+    mv image2.img $image_file
+    rm -f image2.img
+    fi
+ 
+    headers_image_url=$2
+    headers_image_file1=$4/${headers_image_url##*/}
+    headers_image_file=${headers_image_file1%%_*}
+    headers_image_file=${headers_image_file%-*}.deb
+    echo $headers_image_file
+    if [[ ! -f "$headers_image_file" ]]; then
+    wget "$headers_image_url" -O image3.img
+    mv image3.img $headers_image_file
+    rm -f image3.img
+    fi
+
+    image_url=$3
+    file=$4/${image_url##*/}
+    file=${file%.*}.raw.gz
+    if [[ ! -f "$file" ]]; then
+      wget "$image_url" -O image1.img
+      qemu-img convert -O raw image1.img image1.raw
+      pigz <image1.raw >"$file"
+      rm -f image1.img image1.raw
+    fi
+    
+    if [ ! -f $4/azure_dps_installer.sh ]; then
+      cp $5/internal/provisioningservice/azure_env/azure_dps_installer.sh $4
+    fi
+    
+    if [ ! -f $4/log.sh ]; then
+      cp $5/internal/provisioningservice/azure_env/log.sh $4
+    fi
+
+    # Copying the all node Azure credential files into /opt/hook
+    cp $5/internal/provisioningservice/azure_env/* $4
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: download-ubuntu-focal-ms
+  namespace: tink-system
+spec:
+  template:
+    spec:
+      containers:
+        - name: download-ubuntu-focal-ms
+          image: bash:5.2.2
+          command: ["/script/entrypoint.sh"]
+          args:
+            [
+              "http://oak-07.jf.intel.com/ikt_kernel_deb_repo/pool/main/l/linux-5.15.96-lts-230421t211918z/linux-image-5.15.96-lts-230421t211918z_5.15.96-184_amd64.deb",
+              "http://oak-07.jf.intel.com/ikt_kernel_deb_repo/pool/main/l/linux-5.15.96-lts-230421t211918z/linux-headers-5.15.96-lts-230421t211918z_5.15.96-184_amd64.deb",
+              "https://cloud-images.ubuntu.com/daily/server/focal/current/focal-server-cloudimg-amd64.img",
+              "/output",
+              "/azureEnvPath"
+            ]
+          volumeMounts:
+            - mountPath: /output
+              name: hook-artifacts
+            - mountPath: /script
+              name: configmap-volume
+            - mountPath: /azureEnvPath
+              name: azure-env-path
+      restartPolicy: OnFailure
+      volumes:
+        - name: hook-artifacts
+          hostPath:
+            path: /opt/hook
+            type: DirectoryOrCreate
+        - name: azure-env-path
+          hostPath:
+            path: azure_env_path
+            type: DirectoryOrCreate
+        - name: configmap-volume
+          configMap:
+            defaultMode: 0700
+            name: download-focal-ms-image
