@@ -1,0 +1,48 @@
+#####################################################################################
+# INTEL CONFIDENTIAL                                                                #
+# Copyright (C) 2023 Intel Corporation                                              # 
+# This software and the related documents are Intel copyrighted materials,          #
+# and your use of them is governed by the express license under which they          #
+# were provided to you ("License"). Unless the License provides otherwise,          #
+# you may not use, modify, copy, publish, distribute, disclose or transmit          #
+# this software or the related documents without Intel's prior written permission.  #
+# This software and the related documents are provided as is, with no express       #
+# or implied warranties, other than those that are expressly stated in the License. #
+#####################################################################################
+
+#####################################################################################
+# Provide the following inputs
+#####################################################################################
+
+#####################################################################################
+### Mandatory configurations
+### The Private interface needs to be onboard NIC.
+### If there are multiple NICs then 2nd NIC can be connected to a enterprise network
+### else use a usb-ethernet connecter 
+#####################################################################################
+
+
+
+## Please provide the Public interface name on your system [eg. en01]
+pub_inerface_name=""
+
+## Please provide pd ip from organizational dhcp  // Or  private interface static IP when pd is on private network
+pd_host_ip=""
+
+## Please provide the Load Balancer interface IP
+load_balancer_ip=""
+
+## Organizationonal proxy config (default is intel)
+http_proxy=""
+https_proxy=""
+ftp_proxy=""
+socks_proxy=""
+no_proxy=""
+## add name servers of organization
+nameserver=("" "" "")
+####
+
+# Please provide the stable tinkerbell charts branch id for clone , below one is the stable one
+#unless you need latest vesrion please do not change the below tag version
+tinkerbell_charts_stable_branch=v0.3.0
+
