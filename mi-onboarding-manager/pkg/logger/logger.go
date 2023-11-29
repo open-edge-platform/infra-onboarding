@@ -14,6 +14,10 @@ import (
 
 var logger *Logger
 
+func init() {
+	InitLogger(1)
+}
+
 // Logger is a Logger
 type Logger struct {
 	*log.Logger

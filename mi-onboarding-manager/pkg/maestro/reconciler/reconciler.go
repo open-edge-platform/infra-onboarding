@@ -1,0 +1,39 @@
+package reconciler
+
+import (
+	"time"
+
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
+	"github.com/intel-sandbox/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/logger"
+	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
+	grpc_status "google.golang.org/grpc/status"
+)
+
+const (
+	minDelay = 1 * time.Second
+	maxDelay = 30 * time.Second
+)
+
+type ResourceID string
+
+func (id ResourceID) String() string {
+	return string(id)
+}
+
+var log = logger.GetLogger()
+
+func handleInventoryError(err error, request rec_v2.Request[ResourceID]) rec_v2.Directive[ResourceID] {
+	if _, ok := grpc_status.FromError(err); !ok {
+		return request.Ack()
+	}
+
+	if inv_errors.IsNotFound(err) || inv_errors.IsAlreadyExists(err) || inv_errors.IsUnauthenticated(err) || inv_errors.IsPermissionDenied(err) {
+		return request.Ack()
+	}
+
+	if err != nil {
+		return request.Retry(err).With(rec_v2.ExponentialBackoff(minDelay, maxDelay))
+	}
+
+	return nil
+}
