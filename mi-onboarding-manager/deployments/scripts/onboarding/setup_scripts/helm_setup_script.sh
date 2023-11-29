@@ -104,7 +104,7 @@ SECRETS_PATH=/home/$USER/.fdo-secrets
 RV_CONFIGMAP=fdo-rv-service-env
 MFG_CONFIGMAP=fdo-mfg-service-env
 OWNER_CONFIGMAP=fdo-owner-service-env
-helm_path=$setup_script_path/../../../../../helm/edge-iaas-platform/platform-director/on-boarding
+helm_path=$setup_script_path/../../../helm/onboarding
 
 cd $FDO_HOME/component-samples/demo/scripts
 bash demo_ca.sh
@@ -322,3 +322,10 @@ if [[ ${response} != "200" ]]; then
         echo "Allow owners redirect ${response}"
 fi
 echo "Allow owners key API is success $http_code"
+
+cd $setup_script_path
+
+# TODO Change root path of nodes agents
+REPO_ROOT_PATH=$(echo "$(pwd)" | sed "s|/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service.*|/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service|")
+
+helm install onb-mgr $REPO_ROOT_PATH/deployments/helm/onboarding-manager/ --set volumes.secret_path="$HOME/.fdo-secrets",volumes.kube_config="$HOME/.kube",env.repo_dir="$REPO_ROOT_PATH"
