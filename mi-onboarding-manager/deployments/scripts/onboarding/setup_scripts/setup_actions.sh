@@ -13,6 +13,7 @@
 #####################################################################################
 #set -x
 source ../config
+source ./secure_hookos.sh
 
 ip_regex="^([0-9]{1,3}\.){3}[0-9]{1,3}$"
 
@@ -206,6 +207,8 @@ main() {
     efibootset_setup
 
     build_hook
+
+    secure_hookos
 
     store_alpine_setup
     create_partition_setup

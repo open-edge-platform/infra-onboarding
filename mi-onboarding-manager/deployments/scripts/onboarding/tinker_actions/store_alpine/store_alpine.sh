@@ -71,9 +71,6 @@ check_return_value() {
 
 echo "Selected Block Disk $BLOCK_DEVICE"
 suffix=$(fix_partition_suffix)
-grub-mkimage -O x86_64-efi -p "" -o BOOTX64.EFI $MODULES
-
-echo "Create Bootx64"
 
 
 #make grub partition
@@ -146,21 +143,9 @@ echo "free partition mount done"
 # Making hook bootable
 mkdir -p ${efi_mnt}/EFI/hook
 
+#grubenv add
+grub-editenv ${efi_mnt}/EFI/hook/mac_address set net_default_mac_user=$mac_address_current_device
 
-# for bootx64
-cp BOOTX64.EFI ${efi_mnt}/EFI/hook/
-echo "Copied bootx64"
-
-# for grub.cfg
-#root uuid replacement in grub.cfg
-cp /grub.cfg ${efi_mnt}/EFI/hook/
-# uuid_for_boot=$(blkid -o value "${BLOCK_DEVICE}${suffix}$hook_part" | head -1)
-uuid_for_boot=$(blkid -o value "${BLOCK_DEVICE}${suffix}${hook_part}" | grep -o "UUID=\".*\" " | sed "s/\"//gI")
-sed -i "s/PART_REPLACE/${uuid_for_boot}/" ${efi_mnt}/EFI/hook/grub.cfg
-sed -i "s+EXTRA_TINK_OPTIONS+$EXTRA_TINK_OPTIONS+g" ${efi_mnt}/EFI/hook/grub.cfg
-#sed -i "s/EXTRA_TINK_OPTIONS/$EXTRA_TINK_OPTIONS/" grub.cfg2
-
-echo "Completed Grub.cfg update"
 
 #copy vmlinuz of hook
 cd ${efi_mnt}/EFI/hook/
@@ -193,7 +178,7 @@ echo "Made nvme/sata disk the first in the boot order"
 ########################################################
 
 
-efibootmgr -c --remove-dups -d ${BLOCK_DEVICE} -p 1 -L "hookOS" -l '\EFI\hook\BOOTX64.EFI'
+efibootmgr -c --remove-dups -d ${BLOCK_DEVICE} -p 1 -L "hookOS" -l '\EFI\hook\BOOTX64.efi'
 echo "Configure EFI boot manager done"
 
 ######## make PXE the last boot option possible.
