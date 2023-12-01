@@ -28,8 +28,9 @@ func main() {
 	flag.Parse()
 	wg := &sync.WaitGroup{}
 	ctx := context.Background()
+	termChan := make(chan bool)
 
-	invClient, invEvents, err := maestro.NewInventoryClient(ctx, wg, *invSvrAddr)
+	invClient, invEvents, err := maestro.NewInventoryClient(ctx, wg, termChan, *invSvrAddr)
 	if err != nil {
 		log.Fatalf("failed to create NewInventoryClient: %v", err)
 	}
@@ -49,6 +50,7 @@ func main() {
 	go func() {
 		<-sigChan
 		log.Info("Shutdown server")
+		close(termChan)
 		nbHandler.Stop()
 		invClient.Close()
 	}()

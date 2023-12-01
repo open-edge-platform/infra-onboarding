@@ -17,7 +17,7 @@ import (
 
 var log = logger.GetLogger()
 
-func NewInventoryClient(ctx context.Context, wg *sync.WaitGroup, addr string) (inv_client.InventoryClient, chan *inv_client.WatchEvents, error) {
+func NewInventoryClient(ctx context.Context, wg *sync.WaitGroup, termChan chan bool, addr string) (inv_client.InventoryClient, chan *inv_client.WatchEvents, error) {
 	log.Info("Init Inv client")
 	resourceKinds := []inv_v1.ResourceKind{
 		inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE,
@@ -36,6 +36,7 @@ func NewInventoryClient(ctx context.Context, wg *sync.WaitGroup, addr string) (i
 		ResourceKinds:             resourceKinds,
 		EnableTracing:             true,
 		Wg:                        wg,
+		TermChan:                  termChan,
 		SecurityCfg: &inv_client.SecurityConfig{
 			Insecure: true,
 		},
