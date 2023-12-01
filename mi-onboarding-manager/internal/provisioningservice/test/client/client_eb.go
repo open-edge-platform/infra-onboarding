@@ -8,14 +8,15 @@ import (
 	"strings"
 	"time"
 
-	pbi "github.com/intel-sandbox/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
-	pb "github.com/intel-sandbox/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/provisioningproto"
+	pbi "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
+	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/provisioningproto"
 	"google.golang.org/grpc"
 )
 
 const (
 	address = "localhost:50054"
 )
+
 func generateDevSerial(macID string) (string, error) {
 	// Remove colons from the MAC address
 	uniqueID := strings.ReplaceAll(macID, ":", "")

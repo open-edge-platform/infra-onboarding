@@ -15,7 +15,7 @@ import (
 	"os"
 	"path/filepath"
 
-	pb "github.com/intel-sandbox/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/provisioningproto"
+	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/provisioningproto"
 	"google.golang.org/protobuf/proto"
 )
 

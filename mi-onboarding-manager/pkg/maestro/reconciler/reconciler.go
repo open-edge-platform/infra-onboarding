@@ -4,7 +4,7 @@ import (
 	"time"
 
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
-	"github.com/intel-sandbox/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/logger"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/logger"
 	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
 	grpc_status "google.golang.org/grpc/status"
 )

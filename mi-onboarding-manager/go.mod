@@ -1,4 +1,4 @@
-module github.com/intel-sandbox/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding
+module github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding
 
 go 1.19
 
