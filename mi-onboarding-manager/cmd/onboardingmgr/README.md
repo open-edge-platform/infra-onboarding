@@ -33,7 +33,6 @@ Note: This will start the server please use the another terminal to trigger pdct
         cd cmd/onboardingmgr/
         go run main.go
 ```
-
 ## 3. Build and Test for MS and BKC
 ```
 How to run Onboaridng manager and trigger command from pdctl to start onboarding for the profile 
@@ -68,7 +67,6 @@ step 3) check if onboaridng manager and inventory manager  is running
         pdctl onboard --addr=onboardingmgrip:<port>--profile-name=<Name used in profile_sample> --inv_addr=inventorymgrip:<port to communicate>  --insecure`
 
 ```
-
 ### 3.2. To Run BKC Workflow
 ````
     step 1) change the profil_sample.yaml  present in /cmd/pdctl/commands/yaml/profile_sample.yaml
@@ -111,3 +109,47 @@ Note: make sure your dkam is running to get the urls
 		`pdctl profile create`
 
         5)Make sure to  add all the profile details in profile sample.yaml /cmd/pdctl
+
+
+====================================================================================================================================================
+====================================================================================================================================================
+
+# 5. Test Node Operations : Create, Get, Update, and Delete nodes using gRPC client
+
+## 5.1 Run the Maestro Inventory Service
+```
+git clone https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory
+
+cd frameworks.edge.one-intel-edge.maestro-infra.services.inventory/
+
+make go-build
+
+make db-start
+
+export PGUSER=admin
+export PGHOST=localhost
+export PGDATABASE=postgres
+export PGPORT=5432
+export PGPASSWORD=pass
+export PGSSLMODE=disable
+
+curl -sSf https://atlasgo.sh | sh
+
+sudo cp -avr internal/ent/migrate/migrations /usr/share/
+
+./build/miinv --policyBundle=./build/policy_bundle.tar.gz
+```
+
+## 5.2 Run the Onboarding service
+```
+git clone https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service
+
+go run cmd/onboardingmgr/main.go
+```
+
+## 5.3 Run the PDCTL command, client to the onboarding service
+```
+go run cmd/pdctl/main.go nodes add --addr=localhost:50052 --insecure --hw-id=123
+
+go run cmd/pdctl/main.go nodes delete --addr=localhost:50052 --insecure --hw-id=123
+```
