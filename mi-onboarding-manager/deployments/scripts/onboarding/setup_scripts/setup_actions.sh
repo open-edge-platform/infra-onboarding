@@ -13,6 +13,7 @@
 #####################################################################################
 #set -x
 source ../config
+
 source ./secure_hookos.sh
 
 ip_regex="^([0-9]{1,3}\.){3}[0-9]{1,3}$"
@@ -201,6 +202,8 @@ make_local_hook_over_pxe() {
 }
 
 main() {
+
+    sudo apt install -y build-essential
 
     setup_docker_registry
     fdo_docker_setup

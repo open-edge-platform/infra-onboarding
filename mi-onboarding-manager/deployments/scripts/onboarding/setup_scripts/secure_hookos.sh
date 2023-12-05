@@ -13,7 +13,7 @@
 
 #set -x
 
-######
+#######
 GPG_KEY_DIR=$PWD/gpg_key
 SB_KEYS_DIR=$PWD/sb_keys
 PROXY=1
@@ -22,12 +22,12 @@ STORE_ALPINE=$PWD/../tinker_actions/store_alpine/
 GRUB_CFG_LOC=${PWD}/grub.cfg
 GRUB_SRC=$PWD/grub_source
 BOOTX_LOC=$PWD/BOOTX64.efi
-tinkerbell_owner="192.168.1.120"
+tinkerbell_owner=${load_balanceer_ip:-192.168.1.120}
 #mac_address_current_device=$(cat /proc/cmdline | grep -o "instance_id=..:..:..:..:..:.. " | awk ' {split($0,a,"="); print a[2]} ')
 mac_address_current_device="net_default_mac_user"
 
-MODULES="fat ext2 part_gpt normal 
-linux ls boot echo reboot search 
+MODULES="fat ext2 part_gpt normal
+linux ls boot echo reboot search
 search_label help signature_test pgp crypto gcry_dsa gcry_rsa gcry_sha1 gcry_sha512 gcry_sha256
 configfile net loadenv"
 
@@ -47,8 +47,8 @@ compile_grub() {
 
     if [ -f $GRUB_SRC/grub-lib/bin/grub-mkimage ];
     then
-	echo "Grub seems to be already built; delete grub$GRUB_SRC to recompile"
-	return
+        echo "Grub seems to be already built; delete grub$GRUB_SRC to recompile"
+        return
     fi
 
     git clone https://git.savannah.gnu.org/git/grub.git $GRUB_SRC
@@ -56,28 +56,28 @@ compile_grub() {
     ./bootstrap
     ./configure --with-platform=efi --libdir=$GRUB_SRC/grub-lib --prefix=$GRUB_SRC/grub-lib
     make -j
-    make install 
-    popd 
+    make install
+    popd
 }
 
 
 create_gpg_key() {
     if [ -f $public_gpg_key ];
     then
-	echo "Reuse of existing key; Delete $public_gpg_key to Regenerate"
-	return
+        echo "Reuse of existing key; Delete $public_gpg_key to Regenerate"
+        return
     fi
-    
-    gpg --batch --gen-key --homedir $GPG_KEY_DIR <<<"""
-%no-protection
+
+    mkdir -p $GPG_KEY_DIR
+    echo '%no-protection
 Key-Type:1
 Key-Length:2048
 Subkey-Type:1
 Subkey-Length:2048
 Name-Real: Boot verifier
 Expire-Date:0
-"""
-    
+%commit'| gpg --batch  --gen-key --homedir $GPG_KEY_DIR
+
     gpg --homedir $GPG_KEY_DIR --export > $public_gpg_key
 }
 
@@ -91,14 +91,17 @@ sign_all_components() {
     mkdir -p $GPG_KEY_DIR
 
     pushd $STORE_ALPINE/hook_sign_temp
-    
+
+    KEY_ID=$(gpg --homedir $GPG_KEY_DIR --list-secret-keys --keyid-format LONG | grep sec | awk '{print $2}' | cut -d '/' -f2)
+
     #grub.cfg
-    cp $GRUB_CFG_LOC . 
-    gpg --batch --yes --homedir $GPG_KEY_DIR --detach-sign grub.cfg 
+    cp $GRUB_CFG_LOC .
+    rm -rf grub.cfg.sig
+    gpg --batch  --homedir $GPG_KEY_DIR --local-user $KEY_ID --detach-sign grub.cfg
     if [ $? != 0 ];
     then
-	echo "Failed to gpg sign grub.cfg"
-	exit
+        echo "Failed to gpg sign grub.cfg"
+        exit
     fi
 
     #vmlinuz
@@ -107,23 +110,25 @@ sign_all_components() {
     # need to UEFI sb sign before gpg takes its signature.
     uefi_sign_grub_vmlinuz
     #########
-    
-    gpg --batch --yes --homedir $GPG_KEY_DIR --detach-sign vmlinuz-x86_64
+
+    rm -rf vmlinuz-x86_64.sig
+    gpg --batch --homedir $GPG_KEY_DIR --local-user $KEY_ID --detach-sign vmlinuz-x86_64
     if [ $? != 0 ];
     then
-	echo "Failed to gpg sign vmlinuz"
-	exit
+        echo "Failed to gpg sign vmlinuz"
+        exit
     fi
 
     #initramfs
-    gpg --batch --yes --homedir $GPG_KEY_DIR --detach-sign initramfs-x86_64
+    rm -rf initramfs-x86_64.sig
+    gpg --batch  --homedir $GPG_KEY_DIR --local-user $KEY_ID --detach-sign initramfs-x86_64
     if [ $? != 0 ];
     then
-	echo "Failed to gpg sign initramfs"
-	exit
+        echo "Failed to gpg sign initramfs"
+        exit
     fi
 
-    popd 
+    popd
 
 }
 
@@ -132,15 +137,15 @@ uefi_sign_grub_vmlinuz() {
     sbsign --key $SB_KEYS_DIR/db.key --cert $SB_KEYS_DIR/db.crt --output $STORE_ALPINE/hook_sign_temp/BOOTX64.efi $BOOTX_LOC
     if [ $? != 0 ];
     then
-	echo "Failed to sign grub image"
-	exit
+        echo "Failed to sign grub image"
+        exit
     fi
-    
+
     sbsign --key $SB_KEYS_DIR/db.key --cert $SB_KEYS_DIR/db.crt --output $STORE_ALPINE/hook_sign_temp/vmlinuz-x86_64 $STORE_ALPINE/hook_sign_temp/vmlinuz-x86_64
     if [ $? != 0 ];
     then
-	echo "Failed to sign vmlinuz image"
-	exit
+        echo "Failed to sign vmlinuz image"
+        exit
     fi
 }
 
@@ -149,10 +154,10 @@ generate_pk_kek_db() {
     #verfy that pk kek db is already present.
     if [ -d $SB_KEYS_DIR ] || [ -f $SB_KEYS_DIR/db.crt ] ;
     then
-	echo "Seems like Secure boot $SB_KEYS_DIR are already present. Reusing the same"
-	return
+        echo "Seems like Secure boot $SB_KEYS_DIR are already present. Reusing the same"
+        return
     fi
-    
+
     mkdir -p $SB_KEYS_DIR
     pushd $SB_KEYS_DIR
 
@@ -165,13 +170,11 @@ generate_pk_kek_db() {
     cert-to-efi-sig-list -g $GUID PK.crt PK.esl
     sign-efi-sig-list -g $GUID -k PK.key -c PK.crt PK PK.esl PK.auth
     sign-efi-sig-list -g $GUID -c PK.crt -k PK.key PK /dev/null noPK.auth
-    
-    
+
     openssl req -newkey rsa:2048 -nodes -keyout KEK.key -new -x509 -sha256 -days 3650 -subj "/CN=Secure Boot KEK/" -out KEK.crt
     openssl x509 -outform DER -in KEK.crt -out KEK.cer
     cert-to-efi-sig-list -g $GUID KEK.crt KEK.esl
     sign-efi-sig-list -g $GUID -k PK.key -c PK.crt KEK KEK.esl KEK.auth
-    
 
     openssl req -newkey rsa:2048 -nodes -keyout db.key -new -x509 -sha256 -days 3650 -subj "/CN=Secure Boot DB/" -out db.crt
     openssl x509 -outform DER -in db.crt -out db.cer
@@ -180,47 +183,46 @@ generate_pk_kek_db() {
 
     if [ ! -f $SB_KEYS_DIR/PK.crt ] || [ ! -f $SB_KEYS_DIR/KEK.crt ] || [ ! -f $SB_KEYS_DIR/db.crt ] ;
     then
-	echo "Seems like some issue with UEFI keys generation. Check again"
-	popd
-	return
+        echo "Seems like some issue with UEFI keys generation. Check again"
+        popd
+        return
     fi
-	
     popd
 }
 
 package_signed_hookOS(){
 
-    # make one tar which has all signatures and efi binaries 
+    # make one tar which has all signatures and efi binaries
     pushd $STORE_ALPINE/hook_sign_temp
 
     sync
 
     tar -czvf hook_x86_64.tar.gz .
 
-    #mv $STORE_ALPINE/hook_sign_temp/hook_x86_64.tar.gz $STORE_ALPINE/hook_x86_64.tar.gz 
-    
+    #mv $STORE_ALPINE/hook_sign_temp/hook_x86_64.tar.gz $STORE_ALPINE/hook_x86_64.tar.gz
+
     popd
-    
+
 }
 
 create_grub_cfg() {
     cp $PWD/grub_template.cfg ${PWD}/grub.cfg
 
     if [ $PROXY == 1 ]; then
-	echo "Ensure that the correct proxy is configured in the script: Else it will cause failure at the node"
-	EXTRA_TINK_OPTIONS="$EXTRA_TINK_OPTIONS $EXTRA_TINK_OPTIONS_PROXY"
+        echo "Ensure that the correct proxy is configured in the script: Else it will cause failure at the node"
+        EXTRA_TINK_OPTIONS="$EXTRA_TINK_OPTIONS $EXTRA_TINK_OPTIONS_PROXY"
     fi
-    
+
     sed -i "s+EXTRA_TINK_OPTIONS+$EXTRA_TINK_OPTIONS+g" ${PWD}/grub.cfg
-    
+
 }
 
 secure_hookos() {
     #container/host setup
-    sudo apt install -y autoconf automake make gcc m4 git gettext autopoint pkg-config autoconf-archive python3 bison flex gawk
+    sudo apt install -y autoconf automake make gcc m4 git gettext autopoint pkg-config autoconf-archive python3 bison flex gawk efitools
     #container/host setup done
 
-    
+
     create_grub_cfg
     compile_grub
     create_gpg_key
@@ -232,3 +234,5 @@ secure_hookos() {
 
     echo "Save db.cer file on a FAT volume to enroll inside UEFI bios"
 }
+
+#secure_hookos
