@@ -1,0 +1,26 @@
+---
+# SPDX-FileCopyrightText: (C) 2023 Intel Corporation
+# SPDX-License-Identifier: LicenseRef-Intel
+
+on:
+  pull_request:
+    types:
+    - opened
+    - synchronize
+    - reopened
+    - edited
+jobs:
+  Check-PR-Reqs:
+    runs-on: generic
+    steps:
+      - name: Check if Jira ticket is added to PR body
+        id: check_body
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if [[ "$PR_BODY" =~ \|[\ ]?Jira\ ticket[\ ]?\|[\ ]?LP[A-Z0-9]*[\ ]? ]]; then
+            echo "body_contains_jira=true" >> $GITHUB_ENV
+          else
+            echo "body_contains_jira=false" >> $GITHUB_ENV
+            exit 1
+          fi
