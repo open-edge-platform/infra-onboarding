@@ -13,6 +13,7 @@
 
 #set -x
 
+source ../config
 #######
 GPG_KEY_DIR=$PWD/gpg_key
 SB_KEYS_DIR=$PWD/sb_keys
@@ -22,7 +23,7 @@ STORE_ALPINE=$PWD/../tinker_actions/store_alpine/
 GRUB_CFG_LOC=${PWD}/grub.cfg
 GRUB_SRC=$PWD/grub_source
 BOOTX_LOC=$PWD/BOOTX64.efi
-tinkerbell_owner=${load_balanceer_ip:-192.168.1.120}
+tinkerbell_owner=${load_balancer_ip:-192.168.1.120}
 #mac_address_current_device=$(cat /proc/cmdline | grep -o "instance_id=..:..:..:..:..:.. " | awk ' {split($0,a,"="); print a[2]} ')
 mac_address_current_device="net_default_mac_user"
 
@@ -31,7 +32,7 @@ linux ls boot echo reboot search
 search_label help signature_test pgp crypto gcry_dsa gcry_rsa gcry_sha1 gcry_sha512 gcry_sha256
 configfile net loadenv"
 
-EXTRA_TINK_OPTIONS="tinkerbell=http://$tinkerbell_owner syslog_host=$tinkerbell_owner packet_action=workflow console=ttyS0,11520 tink_worker_image=quay.io/tinkerbell/tink-worker:v0.8.0 grpc_authority=$tinkerbell_owner:42113 packet_base_url=http://$tinkerbell_owner:8080/workflow tinkerbell_tls=false instance_id=\${$mac_address_current_device} worker_id=\${$mac_address_current_device} packet_bootdev_mac=\${$mac_address_current_device} facility=sandbox"
+EXTRA_TINK_OPTIONS="tinkerbell=http://$tinkerbell_owner syslog_host=$tinkerbell_owner packet_action=workflow console=ttyS0,11520 tink_worker_image=quay.io/tinkerbell/tink-worker:v0.8.0 grpc_authority=$tinkerbell_owner:42113 packet_base_url=http://$tinkerbell_owner:8080/workflow tinkerbell_tls=false insecure_registries=$pd_host_ip:5015 instance_id=\${$mac_address_current_device} worker_id=\${$mac_address_current_device} packet_bootdev_mac=\${$mac_address_current_device} facility=sandbox"
 
 EXTRA_TINK_OPTIONS_PROXY="http_proxy=http://proxy.iind.intel.com:911 https_proxy=http://proxy.iind.intel.com:911 no_proxy=localhost,.intel.com,127.0.0.0/8,172.16.0.0/20,192.168.0.0/16,10.0.0.0/8 HTTP_PROXY=http://proxy.iind.intel.com:911 HTTPS_PROXY=http://proxy.iind.intel.com:911 NO_PROXY=localhost,.intel.com,127.0.0.0/8,172.16.0.0/20,192.168.0.0/16,10.0.0.0/8 "
 ######
@@ -84,6 +85,7 @@ Expire-Date:0
 sign_all_components() {
 
     #temp untar to sign images only
+    rm -rf $STORE_ALPINE/hook_sign_temp
     mkdir -p $STORE_ALPINE/hook_sign_temp
 
     tar -xvf $STORE_ALPINE/hook_x86_64.tar.gz -C $STORE_ALPINE/hook_sign_temp

@@ -25,7 +25,7 @@ ver=latest
 
 
 sed -i "s/tinkerbell_owner=[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+/tinkerbell_owner=$load_balancer_ip/g" store_alpine.sh
-
+sed -i "s/pd_host_ip=[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+/pd_host_ip=$pd_host_ip/g" store_alpine.sh
 
 ## # Build the container
 docker build -f Dockerfile \

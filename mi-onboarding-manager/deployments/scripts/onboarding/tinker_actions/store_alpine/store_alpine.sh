@@ -31,6 +31,8 @@ tinkerbell_owner=11.11.11.11
 mac_address_current_device=$(cat /proc/cmdline | grep -o "instance_id=..:..:..:..:..:.. " | awk ' {split($0,a,"="); print a[2]} ')
 #mac_address_current_device="90:49:fa:07:8d:d9"
 
+pd_host_ip=12.33.44.55
+#TODO add ips from workflow env variables
 ####################
 #fixed variables
 hook_mnt="/var/hook"
@@ -43,7 +45,7 @@ linux ls boot echo reboot search search_fs_file search_fs_uuid
 search_label help font efi_gop efi_uga gfxterm linuxefi regexp probe progress"
 
 ###################
-EXTRA_TINK_OPTIONS="tinkerbell=http://$tinkerbell_owner syslog_host=$tinkerbell_owner packet_action=workflow packet_state= osie_vendors_url= http_proxy=http://proxy.iind.intel.com:911 https_proxy=http://proxy.iind.intel.com:911 no_proxy=localhost,.intel.com,127.0.0.0/8,172.16.0.0/20,192.168.0.0/16,10.0.0.0/8 HTTP_PROXY=http://proxy.iind.intel.com:911 HTTPS_PROXY=http://proxy.iind.intel.com:911 NO_PROXY=localhost,.intel.com,127.0.0.0/8,172.16.0.0/20,192.168.0.0/16,10.0.0.0/8 console=ttyS0,11520 tink_worker_image=quay.io/tinkerbell/tink-worker:v0.8.0 grpc_authority=$tinkerbell_owner:42113 packet_base_url=http://$tinkerbell_owner:8080/workflow tinkerbell_tls=false instance_id=$mac_address_current_device worker_id=$mac_address_current_device packet_bootdev_mac=$mac_address_current_device facility=sandbox"
+EXTRA_TINK_OPTIONS="tinkerbell=http://$tinkerbell_owner syslog_host=$tinkerbell_owner packet_action=workflow packet_state= osie_vendors_url= http_proxy=http://proxy.iind.intel.com:911 https_proxy=http://proxy.iind.intel.com:911 no_proxy=localhost,.intel.com,127.0.0.0/8,172.16.0.0/20,192.168.0.0/16,10.0.0.0/8 HTTP_PROXY=http://proxy.iind.intel.com:911 HTTPS_PROXY=http://proxy.iind.intel.com:911 NO_PROXY=localhost,.intel.com,127.0.0.0/8,172.16.0.0/20,192.168.0.0/16,10.0.0.0/8 console=ttyS0,11520 tink_worker_image=quay.io/tinkerbell/tink-worker:v0.8.0 grpc_authority=$tinkerbell_owner:42113 packet_base_url=http://$tinkerbell_owner:8080/workflow insecure_registries=$pd_host_ip:5015 tinkerbell_tls=false instance_id=$mac_address_current_device worker_id=$mac_address_current_device packet_bootdev_mac=$mac_address_current_device facility=sandbox"
 
 
 

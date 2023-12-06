@@ -513,17 +513,17 @@ function setup_tinsk_stack() {
 
 	get_system_ip_details
 
-	update_system_packages
+#	update_system_packages
 
-	install_docker_services
+#	install_docker_services
 
-	install_kubectl_service
+#	install_kubectl_service
 
-	set_rk2_proxy
+#	set_rk2_proxy
 
 	create_rk2e_services
 
-	install_helm_service
+#	install_helm_service
 
 	install_tinkerbell_stack
 }
