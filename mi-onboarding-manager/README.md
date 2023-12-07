@@ -1,79 +1,120 @@
-Your new repo has been pre-propulated with this Readme and a minimal Jenkinsfile. The steps for the Jenkinsfile should be adapted to suit the build/test commands of this repo contents.
+# Secure Onboarding and provisioning controller
 
-## Scans
-Scans have been limited to the minimal required number. They can be extended with Bandit(for python code) or Snyk(for go code). Protex will only run on "main" branch and not on PRs because of tool limitations (parelel jobs cannot be executed) and also to shorten the PR check time. 
+This repo has the service controller module to do onboarding and provisioning
+It will do the following things
 
-## Triggers
-Please adapt the time at which the main branch is being executed according to your night time
+1. OS image download as mentioned in the profile
+2. FDO voucher extension
+3. Tinker workflow management - DI and Final OS installation
+4. Interfacing with inventory service to do profile management
+5. Interfacing with DKAM service to get the curated software artifacts
 
-## Containers
-amr-registry.caas.intel.com/one-intel-edge/rrp-devops/oie_ci_testing:latest is used currently. This container has the following tools: 
-```
-Git 
-Make and standard build tooling 
-Docker CLI (to start containers) 
-Go 1.19.x 
-Python 3.9 or later 
-NodeJS 18 
-Mermaid CLI (used in documentation generation): https://github.com/mermaid-js/mermaid-cli 
-```
+## Setup
 
-## Coverage above 70% threshold. The following tools 
-```
-Python - Coverage
-Java - Bazel, Jacoco
-Go - Built-in Coverage
-JS - c8
-```
-
-## Linters. The following tools 
-```
-Python - Flake8 (formerly pep8)
-Java - Sonallint 
-Go - GoLint
-JS - prittier, Karma
-Ansible - Ansible Lint
-```
-
-## Artifacts
-The source will be packed in a archive named after the repo. The archive will then be uploaded to artifactory following a path simillar to:
-https://ubit-artifactory-or.intel.com/artifactory/one-intel-edge-or-local/<project_name>/<jenkins_controller>/<jenkins_team>/<jenkins_job>/<repo_name>/<branch>/
-
-## Create Custom HTTPS supported NGINX server
+### Create Custom HTTPS supported NGINX server
 
 1. Refer to this section [Server Certificates for HTTPS boot](https://github.com/intel-innersource/documentation.edge.one-edge.maestro/blob/762b2526abd36203f2ee5c20b45ccaea9ebb2140/content/docs/specs/secure-boot.md#server-certificates-for-htts-boot) for creating certificates. The file ```full_server.crt``` will be required in the next steps.
-1. Clone the [repository](https://github.com/intel-sandbox/nginx/tree/main)
-1. Go inside the repository and build and run the nginx container as per the [README](https://github.com/intel-sandbox/nginx/blob/main/README.md). 
-As seen in the docker run command example we are mounting two folders to the container, which are refered to in the next steps.
-    ```
+
+2. Clone the [repository](https://github.com/intel-sandbox/nginx/tree/main)
+
+3. Go inside the repository and build and run the nginx container as per the [README](https://github.com/intel-sandbox/nginx/blob/main/README.md).
+As seen in the docker run command example we are mounting two folders to the container, which are referred to in the next steps.
+
+    ```bash
         -v ./certs:/etc/ssl/cert/ \
         -v ./data:/usr/share/nginx/html \
     ```
+
     ```certs``` : server certificates are present here
     ```data```  : files present here are hosted by the NGINX server
-    <br>
-    
-1. Once the NGINX container is up, replace the contents of ```certs/EB_web.crt``` with the contents of ```full_server.crt``` generated in the first step.
-```
-    $ cat full_server.crt > certs/EB_web.crt
-```
 
-## Modify auto.ipxe as per setup details
+4. Once the NGINX container is up, replace the contents of ```certs/EB_web.crt``` with the contents of ```full_server.crt``` generated in the first step.
+
+    ```bash
+        cat full_server.crt > certs/EB_web.crt
+    ```
+
+### Modify auto.ipxe as per setup details
+
 1. Inside ```data/auto.ipxe```, replace the placeholders with real values.
-```
-    set loadbalancer <LOADBALANCER>
-    set macaddress <MAC_ADDRESS>
-    set nginx <NGINX_IP_ADDRESS>
-```
+
+    ```bash
+        set loadbalancer <LOADBALANCER>
+        set macaddress <MAC_ADDRESS>
+        set nginx <NGINX_IP_ADDRESS>
+    ```
+
 2. Copy the ```vmlinuz``` and ```initramfs``` files generated in tink-stack inside the ```data``` folder.
+
 3. Copy the signed ```ipxe.efi``` generated as per the [documentation](https://github.com/intel-innersource/documentation.edge.one-edge.maestro/blob/762b2526abd36203f2ee5c20b45ccaea9ebb2140/content/docs/specs/secure-boot.md#download-and-build-ipxe-image) inside the ```data``` folder.
 
-## Upload certificate to BIOS
+### Upload certificate to BIOS
 
 1. Refer the [documentation](https://github.com/intel-innersource/documentation.edge.one-edge.maestro/blob/762b2526abd36203f2ee5c20b45ccaea9ebb2140/content/docs/specs/secure-boot.md#bios-settings-in-idrac-gui) to upload the HTTP boot URL.<br>
 The URL will be of the form ```https://<NGINX_HOST_IP_ADDRESS/ipxe.efi```<br>
 The certificate file will be the ```full_server.crt``` file generated earlier.
 
-## HTTP Boot
+### HTTP Boot
 
 1. Boot to Tinkerbell interface using HTTP boot option.
+
+### Deploy onboarding and provisioning components
+
+> Note: This setup instructions are meant for On-prem deployment
+
+1. Deploy the Tinkerbell services using tink-stack umbrella helm charts. If RKE2 cluster is not setup then below setup script will bring up RKE2 cluster and deploy the Tinkerbell components.
+
+   ```bash
+   cd provisioning
+   chmod +x ./setup_tinkerbell_stack_with_intel_network.sh
+   ./setup_tinkerbell_stack_with_intel_network.sh
+   ```
+
+2. Build custom tinker actions docker images using script
+Update config file which holds all the configuration details needed for the setup. Change parameters in config file `pub_inerface_name`, `pd_host_ip` and `load_balancer_ip` and proxy settings.
+
+    ```bash
+    cd deployments/scripts/onboarding
+    vim config
+    ```
+
+    ```bash
+    cd setup_scripts
+    chmod + ./setup_actions.sh
+    ./setup_actions.sh
+    ```
+
+3. Deploy the FDO services and provisioning service using helm chart
+
+    ```bash
+    cd deployments/scripts/onboarding/setup_scripts
+    chmod + ./helm_setup_script.sh
+    ./helm_setup_script.sh
+    ```
+
+## How to test
+
+>Note: Install earthly
+
+1. Build provisioning CLI tool using Earthfile
+
+   ```bash
+   earthly +build-onboardingcli
+   ```
+
+2. Update `internal/provisioningservice/test/client/profile_sample.yaml` with OS profile and node details. Update `macid` with edge node mac ID, `sutip` with IP address of the node, `pdip` with provisioning service IP and `loadbalancerip`.
+
+3. Set ENV variables `MGR_HOST` to IP of provisioning system and `ONBMGR_PORT` to 32000 which is node port of onboarding manager service.
+
+4. Run onboardingcli
+
+    ```bash
+    cd internal/provisioningservice/test/client/
+    ../../../../build/onboardingcli
+    ```
+
+5. On edge node complete the configuring the secure boot and HTTPS boot using KVM console/ Dell idRAC. Refer to step
+
+6. Choose boot option to boot from UEFI HTTP
+
+7. After this on the node side operations will happen without intervention. Monitor the logs of onboarding manager service and tinker boots log.
