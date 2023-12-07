@@ -1,8 +1,11 @@
 #!/bin/bash
 
 #Cleaning up the helm chart
-helm uninstall  fdo-db  fdo-mfg fdo-owner fdo-rv
 
+helm uninstall fdo-db
+helm uninstall fdo-mfg
+helm uninstall fdo-owner
+helm uninstall fdo-rv
 #Cleaning up existing configmaps
 kubectl delete cm fdo-mfg-service-env fdo-owner-service-env fdo-rv-service-env
 

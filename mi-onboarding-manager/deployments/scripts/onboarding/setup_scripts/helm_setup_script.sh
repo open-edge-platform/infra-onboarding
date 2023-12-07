@@ -154,7 +154,10 @@ pod_healthcheck() {
 }
 
 #Cleaning up old helm charts & configmaps
-helm uninstall fdo-db  fdo-mfg fdo-owner fdo-rv
+helm uninstall fdo-db
+helm uninstall fdo-mfg
+helm uninstall fdo-owner
+helm uninstall fdo-rv
 kubectl delete cm  $MFG_CONFIGMAP $OWNER_CONFIGMAP $RV_CONFIGMAP
 
 #changes to values.yaml files for Helm deployment

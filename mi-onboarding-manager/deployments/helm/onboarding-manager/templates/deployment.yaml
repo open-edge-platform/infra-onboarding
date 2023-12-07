@@ -49,7 +49,7 @@ spec:
               fieldRef:
                 fieldPath: status.podIP
           - name: ONBMGR_PORT
-            value: {{ .Values.service.port }}
+            value: "{{ .Values.service.port }}"
           - name: IAAS_ROOT_DIR
             value: {{ .Values.env.repo_dir }}
           ports:
