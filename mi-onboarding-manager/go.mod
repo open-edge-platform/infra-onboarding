@@ -2,7 +2,6 @@ module github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra
 
 go 1.21
 
-toolchain go1.21.4
 
 require (
 	github.com/apex/log v1.9.0
