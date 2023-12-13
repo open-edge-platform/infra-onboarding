@@ -15,7 +15,7 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 	"google.golang.org/grpc"
 
-	pbinv "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/api/grpc/onboardingmgr"
+	pbinv "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
 	"gopkg.in/yaml.v2"
 
 	"github.com/spf13/cobra"
@@ -525,7 +525,7 @@ func getNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*
 func updateNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*nodeData, error) {
 	fmt.Println("PDCTL entry point - Update Host by ID - INV ...")
 
-	resp, err := pbinv.NewNodeArtifactServiceNBClient(cc).UpdateNodes(ctx, &pbinv.NodeRequest{Payload: []*pbinv.NodeData{node}})
+	resp, err := pbinv.NewNodeArtifactServiceNBClient(cc).UpdateNodesbyId(ctx, &pbinv.NodeRequest{Payload: []*pbinv.NodeData{node}})
 	if err != nil {
 		return nil, err
 	}

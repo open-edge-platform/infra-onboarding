@@ -31,6 +31,7 @@ build-onboarding-stack:
     BUILD +docker-provisioningservice
     BUILD +helm-provisioningservice
     BUILD +build-onboardingcli
+    BUILD +build-pdctl
 
 build-provisioningservice:
     ARG version='0.0.0-unknown'
@@ -51,9 +52,9 @@ docker-provisioningservice:
 
 helm-provisioningservice:
     FROM alpine/helm:3.12.3
-    COPY deployments/helm/provisioningservice /provisioningservice
+    COPY deployments/helm/onboarding-manager /provisioningservice
     RUN helm package /provisioningservice
-    SAVE ARTIFACT provisioningservice-*.tgz AS LOCAL ./build/
+    SAVE ARTIFACT onboarding-*.tgz AS LOCAL ./build/
 	IF [ "$tag" != "ci" ]
 		RUN --push --secret HARBOR_USER --secret HARBOR_PASSWD \
 		helm registry login --insecure -u $HARBOR_USER -p $HARBOR_PASSWD $registry \
@@ -69,3 +70,13 @@ build-onboardingcli:
             -ldflags "-s -w -extldflags '-static' -X main.Version=$version" \
             ./internal/provisioningservice/test/client/client_eb.go
     SAVE ARTIFACT build/onboardingcli AS LOCAL build/onboardingcli
+
+build-pdctl:
+    ARG version='0.0.0-unknown'
+    WORKDIR /work
+    COPY . .
+    RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOARCH=amd64 GOOS=linux \
+        go build -trimpath -o build/exe \
+            -ldflags "-s -w -extldflags '-static' -X main.Version=$version" \
+            ./cmd/pdctl
+    SAVE ARTIFACT build/exe AS LOCAL ./build/pdctl

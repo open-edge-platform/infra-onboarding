@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc/status"
 	"gopkg.in/yaml.v2"
 
-	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/api/grpc/onboardingmgr"
+	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
