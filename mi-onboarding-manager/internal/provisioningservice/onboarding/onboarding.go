@@ -23,6 +23,7 @@ import (
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/provisioningproto"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/provisioningservice/onbworkflowclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/provisioningservice/utils"
+	"github.com/mohae/deepcopy"
 )
 
 type OnboardingManager struct {
@@ -125,48 +126,100 @@ func DeviceOnboardingManagerZt(deviceInfo utils.DeviceInfo, kubeconfigPath strin
 	return nil
 }
 
-func DeviceOnboardingManagerNzt(deviceInfo utils.DeviceInfo, artifactinfo utils.ArtifactData, kubeconfigPath string) error {
+func DeviceOnboardingManagerNzt(deviceDetails utils.DeviceInfo, artifactDetails utils.ArtifactData, kubeconfigPath string, nodeExistCount *int, totalNodes int, ErrCh chan error, ImgDownldLock, focalImgDdLock, jammyImgDdLock, focalMsImgDdLock *sync.Mutex) {
+	log.Println("Onboarding is Triggered for ", deviceDetails.HwIP, *nodeExistCount, totalNodes)
+	deviceInfo := deepcopy.Copy(deviceDetails).(utils.DeviceInfo)
+	artifactinfo := deepcopy.Copy(artifactDetails).(utils.ArtifactData)
+	log.Println("deviceInfo--", deviceInfo)
+	log.Println("artifactinfo--", artifactinfo)
 
-	ImageDownloadErr := onbworkflowclient.ImageDownload(artifactinfo, deviceInfo, kubeconfigPath)
-	if ImageDownloadErr != nil {
-		log.Println("Error while ImageDownloading: ", ImageDownloadErr)
-		return ImageDownloadErr
-	}
+	var imageDownloadErr, dierror error
+	imageDownloadStatus := make(chan struct{})
+	diStatus := make(chan struct{})
 
-	// Onboarding script
-	log.Printf("Device initialization started for Device: %s", deviceInfo.HwMacID)
+	// ImageDownload goroutine
+	go func() {
+		defer close(imageDownloadStatus)
+		log.Println("Image Download started for ", deviceInfo.HwIP)
+		imageDownloadErr = onbworkflowclient.ImageDownload(artifactinfo, deviceInfo, kubeconfigPath, ImgDownldLock, focalImgDdLock, jammyImgDdLock, focalMsImgDdLock)
+		if imageDownloadErr != nil {
+			imageDownloadErr = fmt.Errorf("SutIP %s: %w", deviceInfo.HwIP, imageDownloadErr)
+			fmt.Printf("Error in ImageDownload for %v\n", imageDownloadErr)
+			return
+		}
+		log.Println("Image Download Finished for ", deviceInfo.HwIP)
+	}()
 
-	guid, dierror := onbworkflowclient.DiWorkflowCreation(deviceInfo, kubeconfigPath)
-	if dierror != nil {
-		fmt.Printf("Error in DiWorkflowCreation: %v\n", dierror)
-	} else {
-		fmt.Printf("GUID: %s\n", guid)
+	// DI goroutine
+	go func() {
+		defer close(diStatus)
+		log.Printf("Device initialization started for Device: %s", deviceInfo.HwIP)
+		var guid string
+		guid, dierror = onbworkflowclient.DiWorkflowCreation(deviceInfo, kubeconfigPath)
+		if dierror != nil {
+			dierror = fmt.Errorf("SutIP %s: %w", deviceInfo.HwIP, dierror)
+			fmt.Printf("Error in DiWorkflowCreation for %v\n", dierror)
+			return
+		}
+		log.Printf("GUID: %s\n", guid)
 		deviceInfo.Guid = guid
-	}
-	log.Printf("Device initialization completed for device: %s", deviceInfo.HwMacID)
+		// TODO: change the certificate path to the common location once fdo services are working
+		caCertPath := "/home/" + os.Getenv("USER") + "/.fdo-secrets/scripts/secrets/ca-cert.pem"
+		certPath := "/home/" + os.Getenv("USER") + "/.fdo-secrets/scripts/secrets/api-user.pem"
+		log.Println("----guid--------", deviceInfo.Guid)
 
-	// TODO: change the certificate path to the common location once fdo services are working
+		dierror = MakeGETRequestWithRetry(deviceInfo.HwSerialID, deviceInfo.ProvisionerIp, caCertPath, certPath, deviceInfo.Guid)
+		if dierror != nil {
+			fmt.Printf("Error while MakeGETRequestWithRetry T02: %v\n", dierror)
+			dierror = fmt.Errorf("SutIP %s: %w", deviceInfo.HwIP, dierror)
+			return
+		}
+		log.Printf("Device initialization completed for device: %s", deviceInfo.HwIP)
+	}()
 
-	caCertPath := "/home/" + os.Getenv("USER") + "/.fdo-secrets/scripts/secrets/ca-cert.pem"
-	certPath := "/home/" + os.Getenv("USER") + "/.fdo-secrets/scripts/secrets/api-user.pem"
+	// Production Workflow goroutine
+	go func() {
+		//TODO:change this and pass the file naem instead of conversion
+		log.Println("ProdWorkflowCreation triggired for ", deviceInfo.HwIP)
+		imgurl := artifactinfo.BkcUrl
+		filenameBz2 := filepath.Base(imgurl)
+		filenameWithoutExt := strings.TrimSuffix(filenameBz2, ".bz2")
+		deviceInfo.ClientImgName = filenameWithoutExt + ".raw.gz"
 
-	errto2 := MakeGETRequestWithRetry(deviceInfo.HwSerialID, deviceInfo.ProvisionerIp, caCertPath, certPath, deviceInfo.Guid)
-	if errto2 != nil {
-		log.Println("Error for ", deviceInfo.HwMacID, errto2)
-		return errto2
-	}
-	//TODO:change this and pass the file naem instead of conversion
-	imgurl := artifactinfo.BkcUrl
-	filenameBz2 := filepath.Base(imgurl)
-	filenameWithoutExt := strings.TrimSuffix(filenameBz2, ".bz2")
-	deviceInfo.ClientImgName = filenameWithoutExt + ".raw.gz"
-	// Production Workflow creation
-	proderror := onbworkflowclient.ProdWorkflowCreation(deviceInfo, kubeconfigPath, deviceInfo.ImType)
-	if proderror != nil {
-		return proderror
-	}
+		log.Println("ProdWorkflowCreation Waiting for Image Download Status for node", deviceInfo.HwIP)
+		<-imageDownloadStatus
+		log.Println("ProdWorkflowCreation Waiting for DI and TO Status for node", deviceInfo.HwIP)
+		<-diStatus
+		defer func() {
+			if totalNodes == *nodeExistCount {
+				close(ErrCh)
+				log.Println("closed Errch channel")
+			}
+		}()
+
+		if imageDownloadErr != nil {
+			ErrCh <- imageDownloadErr
+			*nodeExistCount += 1
+			return
+		}
+		if dierror != nil {
+			ErrCh <- dierror
+			*nodeExistCount += 1
+			return
+		}
+		log.Println("ProdWorkflowCreation started for ", deviceInfo.HwIP)
+		// Production Workflow creation
+		proderror := onbworkflowclient.ProdWorkflowCreation(deviceInfo, kubeconfigPath, deviceInfo.ImType)
+		if proderror != nil {
+			proderror = fmt.Errorf("SutIP %s: %w", deviceInfo.HwIP, proderror)
+			ErrCh <- proderror
+			*nodeExistCount += 1
+			return
+		}
+		log.Println("ProdWorkflowCreation Finished for ", deviceInfo.HwIP)
+		*nodeExistCount += 1
+	}()
 	// TODO: Delete the hardware workflow remaining
-	return nil
 }
 
 func DeviceOnboardingManager(deviceInfoList []utils.DeviceInfo, artifactinfo utils.ArtifactData, kubeconfigPath string, onbtype string) error {
@@ -198,7 +251,7 @@ func DeviceOnboardingManager(deviceInfoList []utils.DeviceInfo, artifactinfo uti
 		}
 		log.Printf("Onboarding ZT: %s", currDir)
 	} else if onbtype == "NZT" {
-		targetDir := "../../internal/provisioningservice/onboarding/"
+		targetDir := "../../internal/provisioningservice/onboarding"
 		if err := utils.ChangeWorkingDirectory(targetDir); err != nil {
 			log.Fatalf("Failed to change working directory: %v", err)
 		}
@@ -212,13 +265,24 @@ func DeviceOnboardingManager(deviceInfoList []utils.DeviceInfo, artifactinfo uti
 		log.Printf("onbtype not correct %s", onbtype)
 	}
 	//setup the sutonboaridng file
+	var (
+		bkcImgDdLock     sync.Mutex
+		focalImgDdLock   sync.Mutex
+		jammyImgDdLock   sync.Mutex
+		focalMsImgDdLock sync.Mutex
+	)
+	var CurrentDeviceList = make(map[string]string)
+	nodeExistCount := 0
+	ErrCh := make(chan error, len(deviceInfoList))
 	for i, deviceInfo := range deviceInfoList {
 		if onbtype == "NZT" {
-			err := DeviceOnboardingManagerNzt(deviceInfo, artifactinfo, kubeconfigPath)
-			if err != nil {
-				return err
+			if _, found := CurrentDeviceList[deviceInfo.HwMacID]; !found {
+				CurrentDeviceList[deviceInfo.HwMacID] = deviceInfo.HwIP
+				DeviceOnboardingManagerNzt(deviceInfo, artifactinfo, kubeconfigPath, &nodeExistCount, len(deviceInfoList), ErrCh, &bkcImgDdLock, &focalImgDdLock, &jammyImgDdLock, &focalMsImgDdLock)
+			} else {
+				nodeExistCount += 1
+				log.Println("Duplicate Device from ther profile request", deviceInfo.HwIP)
 			}
-
 		} else if onbtype == "ZT" {
 			sutLabel := fmt.Sprintf("SUT%d", i+1)
 			err := DeviceOnboardingManagerZt(deviceInfo, kubeconfigPath, sutLabel)
@@ -227,6 +291,10 @@ func DeviceOnboardingManager(deviceInfoList []utils.DeviceInfo, artifactinfo uti
 				return err
 			}
 		}
+	}
+	log.Println("Handling DeviceOnboardingManagerNzt errors if present----")
+	for err := range ErrCh {
+		log.Printf("Error while onboarding Node/SUT IP is %v\n", err)
 	}
 	// TODO: Delete the hardware workflow remaining
 

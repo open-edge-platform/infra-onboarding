@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/provisioningservice/utils"
@@ -236,7 +237,7 @@ func ListPodsInNamespace(kubeconfigPath, namespace string) error {
 }
 
 // Function to check the status of a Kubernetes Job
-func checkJobStatus(kubeconfigPath, namespace, jobName string) error {
+func checkJobStatus(kubeconfigPath, namespace, jobName, HwId string) error {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 	if err != nil {
 		return fmt.Errorf("Failed to load kubeconfig: %v", err)
@@ -260,7 +261,7 @@ func checkJobStatus(kubeconfigPath, namespace, jobName string) error {
 			return true, nil
 		} else if job.Status.Failed > 0 {
 			// The Job has failed
-			return true, fmt.Errorf("Job %s failed", jobName)
+			return true, fmt.Errorf("Job %s failed for SUT IP %s", jobName, HwId)
 		}
 
 		// The Job is still running
@@ -275,10 +276,10 @@ func checkJobStatus(kubeconfigPath, namespace, jobName string) error {
 			return false, nil
 		}
 		if completed {
-			log.Printf("Job %s has completed", jobName)
+			log.Printf("Job %s has completed for SUT IP %s", jobName, HwId)
 			return true, nil
 		}
-		log.Printf("Job %s is still running", jobName)
+		log.Printf("Job %s is still running for SUT IP %s", jobName, HwId)
 		return false, nil
 	})
 
@@ -324,13 +325,15 @@ func CreateTemplateWorkflow(deviceInfo utils.DeviceInfo, kubeconfigPath string, 
 }
 
 // //////////////Image download logic/////////////////////////////////////
-func ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo, kubeconfigPath string) error {
+func ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo, kubeconfigPath string, BkcImgDdLock, JammyImgDdLock, FocalImgDdLock, FocalMsImgDdLock sync.Locker) error {
 	switch deviceInfo.ImType {
 	case "prod_bkc":
+		BkcImgDdLock.Lock()
+		defer BkcImgDdLock.Unlock()
 		if artifactinfo.BkcUrl == "" || artifactinfo.BkcBasePkgUrl == "" {
 			return errors.New("required image download Bkc url or Bkc basee pkg url are missing from ArtifactData")
 		}
-		log.Println("Bkc image Download process is started")
+		log.Println("Bkc image Download process is started for ", deviceInfo.HwIP)
 		imgurl := artifactinfo.BkcUrl
 		filenameBz2 := filepath.Base(imgurl)
 		filenameWithoutExt := strings.TrimSuffix(filenameBz2, ".bz2")
@@ -342,61 +345,67 @@ func ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo,
 		fileName := "ubuntu-download_bkc.yaml"
 		if toDownload {
 			// TODO: Need to Remove hardcoding path
-			err := ReadingYamlNCreatingResourse(kubeconfigPath, imgurl, deviceInfo.ImType, "../../provisioningservice/workflows/manifests/image_dload", fileName)
+			err := ReadingYamlNCreatingResourse(kubeconfigPath, imgurl, deviceInfo.ImType, "../../provisioningservice/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
 			if err != nil {
 				return err
 			}
-			fmt.Println("File does not exist. So, Image file is downloaded")
+			fmt.Println("Prod_bkc Image file is downloaded")
 		} else {
 			fmt.Printf("using old downloaded bkc %s\n", bkcRawGz)
 		}
 		pkgFileName := "ubuntu-download-pkg-agents_bkc.yaml"
 		// TODO: Need to Remove hardcoding path
-		err := ReadingYamlNCreatingResourse(kubeconfigPath, artifactinfo.BkcBasePkgUrl, "prod_bkc-pkg", "../../provisioningservice/workflows/manifests/image_dload", pkgFileName)
+		err := ReadingYamlNCreatingResourse(kubeconfigPath, artifactinfo.BkcBasePkgUrl, "prod_bkc-pkg", "../../provisioningservice/workflows/manifests/image_dload", pkgFileName, deviceInfo.HwIP)
 		if err != nil {
 			return err
 		}
 	case "prod_jammy":
-		log.Println("Jammy image Download process is started")
+		JammyImgDdLock.Lock()
+		defer JammyImgDdLock.Unlock()
+		log.Println("Jammy image Download process is started for", deviceInfo.HwIP)
 		fileName := "ubuntu-download_jammy.yaml"
 		toDownload := !fileExists("/opt/hook/jammy-server-cloudimg-amd64.raw.gz")
 		if toDownload {
 			// TODO: Need to Remove hardcoding path
-			err := ReadingYamlNCreatingResourse(kubeconfigPath, "", deviceInfo.ImType, "../../provisioningservice/workflows/manifests/image_dload", fileName)
+			err := ReadingYamlNCreatingResourse(kubeconfigPath, "", deviceInfo.ImType, "../../provisioningservice/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
 			if err != nil {
 				return err
 			}
-			fmt.Println("File does not exist. So, Image file is downloaded")
+			fmt.Println("Prod_jammy Image file is downloaded")
 		} else {
 			fmt.Printf("using old downloaded jammy \n")
 		}
 
 	case "prod_focal":
+		FocalImgDdLock.Lock()
+		defer FocalImgDdLock.Unlock()
 		fileName := "ubuntu-download.yaml"
 		toDownload := !fileExists("/opt/hook/focal-server-cloudimg-amd64.raw.gz")
+		log.Println("Focal image Download process is started for", deviceInfo.HwIP)
 		if toDownload {
 			log.Println("Focal image Download process is started")
 			// TODO: Need to Remove hardcoding path
-			err := ReadingYamlNCreatingResourse(kubeconfigPath, "", deviceInfo.ImType, "../../provisioningservice/workflows/manifests/image_dload", fileName)
+			err := ReadingYamlNCreatingResourse(kubeconfigPath, "", deviceInfo.ImType, "../../provisioningservice/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
 			if err != nil {
 				return err
 			}
-			fmt.Println("File does not exist. So, Image file is downloaded")
+			fmt.Println("Prod_focal Image file is downloaded")
 		} else {
 			fmt.Printf("using old downloaded focal \n")
 		}
 
 	case "prod_focal-ms":
-		log.Println("Prod Focal MS image Download process is started")
+		FocalMsImgDdLock.Lock()
+		defer FocalMsImgDdLock.Unlock()
+		log.Println("Prod Focal MS image Download process is started for", deviceInfo.HwIP)
 		fileName := "ubuntu-download_focal-ms.yaml"
 		if !fileExists("/opt/hook/linux-image-5.15.96-lts.deb") || !fileExists("/opt/hook/linux-headers-5.15.96-lts.deb") || !fileExists("/opt/hook/focal-server-cloudimg-amd64.raw.gz") || !fileExists("/opt/hook/azure-credentials.env_"+deviceInfo.HwMacID) || !fileExists("/opt/hook/azure_dps_installer.sh") || !fileExists("/opt/hook/log.sh") {
 			// TODO: Need to Remove hardcoding path
-			err := ReadingYamlNCreatingResourse(kubeconfigPath, "", deviceInfo.ImType, "../../provisioningservice/workflows/manifests/image_dload", fileName)
+			err := ReadingYamlNCreatingResourse(kubeconfigPath, "", deviceInfo.ImType, "../../provisioningservice/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
 			if err != nil {
 				return err
 			}
-
-			fmt.Println("File does not exist. So, Image file is downloaded")
+			fmt.Println("Prod_focal-ms Image file is downloaded")
 		} else {
 			fmt.Printf("using old downloaded prod focal ms \n")
 		}
@@ -407,7 +416,7 @@ func ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo,
 	return nil
 }
 
-func ReadingYamlNCreatingResourse(kubeconfigPath, imgurl, imgType, filePath, fileName string) error {
+func ReadingYamlNCreatingResourse(kubeconfigPath, imgurl, imgType, filePath, fileName, HwId string) error {
 	dynamicClient, err := createDynamicClient(kubeconfigPath)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
@@ -458,7 +467,7 @@ func ReadingYamlNCreatingResourse(kubeconfigPath, imgurl, imgType, filePath, fil
 
 		if strings.ToLower(u.GetKind()) == "job" {
 			log.Println("Checking the Job status of ", u.GetName())
-			err = checkJobStatus(kubeconfigPath, "tink-system", u.GetName())
+			err = checkJobStatus(kubeconfigPath, "tink-system", u.GetName(), HwId)
 			if err != nil {
 				log.Fatalf("Error while waiting for workflow success: %v", err)
 				return err
@@ -536,7 +545,7 @@ func waitForWorkflowSuccess(kubeconfigPath, namespace, workflowName string) erro
 			return false, fmt.Errorf("Status field not found in the custom resource")
 		}
 
-		log.Printf("Workflow state: %s", statusField)
+		log.Printf("Workflow %s state: %s", workflowName, statusField)
 
 		// Check if the workflow has reached STATE_SUCCESS
 		if strings.ToUpper(statusField) == "STATE_SUCCESS" {
@@ -554,10 +563,9 @@ func waitForWorkflowSuccess(kubeconfigPath, namespace, workflowName string) erro
 			return false, nil
 		}
 		if success {
-			log.Printf("Workflow has reached STATE_SUCCESS")
+			log.Printf("Workflow %s has reached STATE_SUCCESS", workflowName)
 			return true, nil
 		}
-		log.Printf("Workflow is still in STATE_PENDING")
 		return false, nil
 	})
 

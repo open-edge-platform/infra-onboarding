@@ -53,11 +53,11 @@ data:
     fi
     
     if [ ! -f $4/azure_dps_installer.sh ]; then
-      cp $5/internal/provisioningservice/azure_env/azure_dps_installer.sh $4
+      cp $5/internal/provisioningservice/azur_iot_edge_installer/azure_dps_installer.sh $4
     fi
     
     if [ ! -f $4/log.sh ]; then
-      cp $5/internal/provisioningservice/azure_env/log.sh $4
+      cp $5/internal/provisioningservice/azur_iot_edge_installer/log.sh $4
     fi
 
     # Copying the all node Azure credential files into /opt/hook
