@@ -1,0 +1,33 @@
+##Sample yaml file for creating artifact
+- name: bios
+  version: 1
+  platform: adl
+  category: 2
+  description: This is a sample artifact.
+  package_url: http://example.com/package/sample-package.tar.gz
+  author: John Doe
+  state: true
+  license: Apache 2.0
+  vendor: Example Vendor
+  manufacturer: Example Manufacturer
+  release_date: 2023-08-07
+  details_name: A
+  details_url: http://example.com/supplier
+  details_contact: supplier@example.com
+
+- name: ubuntu
+  version: 2.1.0
+  platform: adl
+  category: 3
+  description: Another sample artifact.
+  package_url: http://example.com/package/sample-package.zip
+  author: Jane Smith
+  state: false
+  license: MIT
+  vendor: Another Vendor
+  manufacturer: Another Manufacturer
+  release_date: 2023-08-15
+  details_name: B
+  details_url: http://example.com/another-supplier
+  details_contact: another-supplier@example.com
+

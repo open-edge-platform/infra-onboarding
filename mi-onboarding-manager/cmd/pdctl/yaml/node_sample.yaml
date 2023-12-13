@@ -1,0 +1,17 @@
+##sample yaml file for creating nodes.
+- hwid: "1234"
+  platformtype: "ADL"
+  fwartifactid: "2"
+  osartifactid: "12"
+  appartifactid: "56"
+  platartifactid: "87"
+  devicetype: "node"
+
+- hwid: "5678"
+  platformtype: "ADL-P"
+  fwartifactid: "23"
+  osartifactid: "42"
+  appartifactid: "34"
+  platartifactid: "80"
+  devicetype: "node"
+
