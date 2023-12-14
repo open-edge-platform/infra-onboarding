@@ -20,45 +20,45 @@ ENV NO_PROXY=$NO_PROXY
 
 ARG --global registry=amr-registry.caas.intel.com
 ARG --global repository=one-intel-edge/maestro-i
-ARG --global image_name=provisioningservice
+ARG --global image_name=onboardingmgr
 ARG --global tag=latest
 
 all:
     BUILD +build-onboarding-stack
 
 build-onboarding-stack:
-    BUILD +build-provisioningservice
-    BUILD +docker-provisioningservice
-    BUILD +helm-provisioningservice
+    BUILD +build-onboardingmgr
+    BUILD +docker-onboardingmgr
+    BUILD +helm-onboardingmgr
     BUILD +build-onboardingcli
     BUILD +build-pdctl
 
-build-provisioningservice:
+build-onboardingmgr:
     ARG version='0.0.0-unknown'
     WORKDIR /work
     COPY . .
     RUN --mount=type=cache,target=/root/.cache/go-build --ssh CGO_ENABLED=0 GOARCH=amd64 GOOS=linux \
-        go build -trimpath -o build/provisioningservice \
+        go build -trimpath -o build/onboardingmgr \
             -ldflags "-s -w -extldflags '-static' -X main.Version=$version" \
-            ./cmd/provisioningservice
-    SAVE ARTIFACT build/provisioningservice
+            ./cmd/onboardingmgr
+    SAVE ARTIFACT build/onboardingmgr
 
-docker-provisioningservice:
+docker-onboardingmgr:
     FROM scratch
     ARG version='0.0.0-unknown'
-    COPY (+build-provisioningservice/provisioningservice --version=$version) .
-    ENTRYPOINT ["/provisioningservice"]
+    COPY (+build-onboardingmgr/onboardingmgr --version=$version) .
+    ENTRYPOINT ["/onboardingmgr"]
     SAVE IMAGE --push $registry/$repository/$image_name:$tag
 
-helm-provisioningservice:
+helm-onboardingmgr:
     FROM alpine/helm:3.12.3
-    COPY deployments/helm/onboarding-manager /provisioningservice
-    RUN helm package /provisioningservice
-    SAVE ARTIFACT onboarding-*.tgz AS LOCAL ./build/
+    COPY deployments/helm/onboarding-manager /onboardingmgr
+    RUN helm package /onboardingmgr
+    SAVE ARTIFACT onboarding*.tgz AS LOCAL ./build/
 	IF [ "$tag" != "ci" ]
 		RUN --push --secret HARBOR_USER --secret HARBOR_PASSWD \
 		helm registry login --insecure -u $HARBOR_USER -p $HARBOR_PASSWD $registry \
-		&& helm push --insecure-skip-tls-verify provisioningservice-*.tgz oci://$registry/$repository/$image_name:$tag
+		&& helm push --insecure-skip-tls-verify onboardingmgr-*.tgz oci://$registry/$repository/$image_name:$tag
 	END
 
 build-onboardingcli:
@@ -68,7 +68,7 @@ build-onboardingcli:
     RUN --mount=type=cache,target=/root/.cache/go-build --ssh CGO_ENABLED=0 GOARCH=amd64 GOOS=linux \
         go build -trimpath -o build/onboardingcli \
             -ldflags "-s -w -extldflags '-static' -X main.Version=$version" \
-            ./internal/provisioningservice/test/client/client_eb.go
+            ./internal/onboardingmgr/test/client/client_eb.go
     SAVE ARTIFACT build/onboardingcli AS LOCAL build/onboardingcli
 
 build-pdctl:

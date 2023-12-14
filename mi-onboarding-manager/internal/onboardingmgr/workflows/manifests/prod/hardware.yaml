@@ -1,0 +1,39 @@
+# Copyright (C) 2023 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: "tinkerbell.org/v1alpha1"
+kind: Hardware
+metadata:
+  name: machine-$TINKERBELL_CLIENT_UID
+  namespace: tink-system
+spec:
+  disks:
+    - device: $DISK_DEVICE
+  metadata:
+    facility:
+      facility_code: onboarding
+    instance:
+      hostname: "machine-$TINKERBELL_CLIENT_UID"
+      id: "$TINKERBELL_CLIENT_MAC"
+      operating_system:
+        distro: "ubuntu"
+        os_slug: "ubuntu_20_04"
+        version: "20.04"
+  interfaces:
+    - dhcp:
+        arch: x86_64
+        hostname: machine-$TINKERBELL_CLIENT_UID
+        ip:
+          address: $TINKERBELL_CLIENT_IP
+          gateway: $TINKERBELL_CLIENT_GW
+          netmask: 255.255.255.0
+        lease_time: 86400
+        mac: $TINKERBELL_CLIENT_MAC
+        name_servers:
+          - 10.248.2.1
+          - 172.30.90.4
+          - 10.223.45.36
+        uefi: true
+      netboot:
+        allowPXE: true
+        allowWorkflow: true

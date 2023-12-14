@@ -525,7 +525,7 @@ func getNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*
 func updateNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*nodeData, error) {
 	fmt.Println("PDCTL entry point - Update Host by ID - INV ...")
 
-	resp, err := pbinv.NewNodeArtifactServiceNBClient(cc).UpdateNodesbyId(ctx, &pbinv.NodeRequest{Payload: []*pbinv.NodeData{node}})
+	resp, err := pbinv.NewNodeArtifactServiceNBClient(cc).UpdateNodes(ctx, &pbinv.NodeRequest{Payload: []*pbinv.NodeData{node}})
 	if err != nil {
 		return nil, err
 	}

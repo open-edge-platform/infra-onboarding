@@ -3,6 +3,7 @@ package maestro
 import (
 	"context"
 	"sync"
+	"time"
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
@@ -41,13 +42,16 @@ func NewInventoryClient(ctx context.Context, wg *sync.WaitGroup, termChan chan b
 			Insecure: true,
 		},
 	}
-
-	client, err := inv_client.NewInventoryClient(ctx, cfg)
-	if err != nil {
-		log.Errorf("Failed to create new inventory client %v", err)
-		return nil, nil, err
+	for {
+		client, err := inv_client.NewInventoryClient(ctx, cfg)
+		if err != nil {
+			log.Infof("Failed to create new inventory client %v,Retry after 5 seconds", err)
+			time.Sleep(5 * time.Second)
+		}
+		if err == nil {
+			return client, eventCh, nil
+		}
 	}
-	return client, eventCh, nil
 }
 
 func FindAllResources(ctx context.Context, c inv_client.InventoryClient, kind inv_v1.ResourceKind) ([]string, error) {

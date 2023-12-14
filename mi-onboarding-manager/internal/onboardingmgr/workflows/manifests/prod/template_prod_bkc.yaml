@@ -1,0 +1,194 @@
+# Copyright (C) 2023 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: "tinkerbell.org/v1alpha1"
+kind: Template
+metadata:
+  name: bkc-$TINKERBELL_CLIENT_UID-prod
+  namespace: tink-system
+spec:
+  data: |
+    version: "0.1"
+    name: bkc-$TINKERBELL_CLIENT_UID-prod
+    global_timeout: 9800
+    tasks:
+      - name: "os-installation"
+        worker: "{{.device_1}}"
+        volumes:
+          - /dev:/dev
+          - /dev/console:/dev/console
+          - /lib/firmware:/lib/firmware:ro
+        actions:
+          - name: "stream-ubuntu-image"
+            image: quay.io/tinkerbell-actions/image2disk:v1.0.0
+            timeout: 9600
+            environment:
+              DEST_DISK: {{ index .Hardware.Disks 0 }}
+              IMG_URL: "http://$TINKERBELL_HOST_IP:8080/$TINKERBELL_CLIENT_IMG"
+              COMPRESSED: true
+              #download the base software pkg
+          - name: "base-pkg-install-script-download"
+            image: quay.io/tinkerbell-actions/cexec:v1.0.0
+            timeout: 200
+            environment:
+              BLOCK_DEVICE: {{ index .Hardware.Disks 0 }}$ROOTFS_PARTITION
+              FS_TYPE: ext4
+              CHROOT: y
+              SCRIPT_URL: "http://$TINKERBELL_HOST_IP:8080/base_installer.sh"
+              DEFAULT_INTERPRETER: "/bin/sh -c"
+              #TODO:Need to remove hardcoded path
+              CMD_LINE: "mkdir -p /home/user/Setup;chown user:user /home/user/Setup;wget -P /home/user/Setup http://$TINKERBELL_HOST_IP:8080/base_installer.sh; chmod 755 /home/user/Setup/base_installer.sh"
+              #Add a service script for installing the base pkg script
+          - name: "service-script-for-base-pkg-install"
+            image: quay.io/tinkerbell-actions/writefile:v1.0.0
+            timeout: 90
+            environment:
+              DEST_DISK: {{ index .Hardware.Disks 0 }}$ROOTFS_PARTITION
+              FS_TYPE: ext4
+              DEST_PATH:  /etc/systemd/system/install-base-pkgs.service
+              CONTENTS: |
+                [Unit]
+                Description=Base Package Installation
+                After=network.target
+                ConditionPathExists = !/home/user/Setup/.base_pkg_install_done
+
+                [Service]
+                ExecStartPre=/bin/sleep 60
+                WorkingDirectory=/home/user/Setup
+                ExecStart=/home/user/Setup/base_installer.sh
+                Restart=always
+
+                [Install]
+                WantedBy=multi-user.target
+              UID: 0
+              GID: 0
+              MODE: 0644
+              DIRMODE: 0755
+             #enable the service script
+          - name: "enable-service-script"
+            image: quay.io/tinkerbell-actions/cexec:v1.0.0
+            timeout: 90
+            environment:
+              BLOCK_DEVICE: {{ index .Hardware.Disks 0 }}$ROOTFS_PARTITION
+              FS_TYPE: ext4
+              CHROOT: y
+              DEFAULT_INTERPRETER: "/bin/sh -c"
+              CMD_LINE: "systemctl enable install-base-pkgs.service"
+            #add edge node agents env variables
+          - name: "add-dynamic-env-variables-on-node"
+            image: quay.io/tinkerbell-actions/cexec:v1.0.0
+            timeout: 200
+            environment:
+              BLOCK_DEVICE: {{ index .Hardware.Disks 0 }}$ROOTFS_PARTITION
+              FS_TYPE: ext4
+              CHROOT: y
+              ENV_SCRIPT_URL: "http://$TINKERBELL_HOST_IP:8080/agent_node_env.txt"
+              DEFAULT_INTERPRETER: "/bin/sh -c"
+              CMD_LINE: "wget -P /home/user/Setup http://$TINKERBELL_HOST_IP:8080/agent_node_env.txt ;chmod 755 /home/user/Setup/agent_node_env.txt"
+            #add the node env variable to .bashrc profile
+          - name: "add-agent-env-to-bashrc"
+            image: quay.io/tinkerbell-actions/cexec:v1.0.0
+            timeout: 90
+            environment:
+              BLOCK_DEVICE: {{ index .Hardware.Disks 0 }}$ROOTFS_PARTITION
+              FS_TYPE: ext4
+              CHROOT: y
+              DEFAULT_INTERPRETER: "/bin/sh -c"
+              CMD_LINE: "cat /home/user/Setup/agent_node_env.txt >>/home/user/.bashrc;chown user:user /home/user/.bashrc"
+           #download the edge node agent installer file 
+          - name: "download-edge-agent-installer-file"
+            image: quay.io/tinkerbell-actions/cexec:v1.0.0
+            timeout: 90
+            environment:
+              BLOCK_DEVICE: {{ index .Hardware.Disks 0 }}$ROOTFS_PARTITION
+              FS_TYPE: ext4
+              CHROOT: y
+              SCRIPT_URL: "http://$TINKERBELL_HOST_IP:8080/edge_node_installer.sh"
+              DEFAULT_INTERPRETER: "/bin/sh -c"
+              CMD_LINE: "wget -P /home/user/Setup http://$TINKERBELL_HOST_IP:8080/edge_node_installer.sh; cd /home/user/Setup && chmod 755 edge_node_installer.sh"
+
+            #download the inventory agent docker file to edge node
+          - name: "download-inventory-agent-docker-file"
+            image: quay.io/tinkerbell-actions/cexec:v1.0.0
+            timeout: 90
+            environment:
+              BLOCK_DEVICE: {{ index .Hardware.Disks 0 }}$ROOTFS_PARTITION
+              FS_TYPE: ext4
+              CHROOT: y
+              SCRIPT_URL: "http://$TINKERBELL_HOST_IP:8080/docker-compose-inv.yml"
+              DEFAULT_INTERPRETER: "/bin/sh -c"
+              CMD_LINE: "mkdir -p /home/user/Setup/inv_agent;wget -P /home/user/Setup/inv_agent http://$TINKERBELL_HOST_IP:8080/docker-compose-inv.yml; cd /home/user/Setup/inv_agent && mv docker-compose-inv.yml docker-compose.yml"
+            #download the inventory agent docker file to edge node
+          - name: "download-update-mgr-agent-docker-file"
+            image: quay.io/tinkerbell-actions/cexec:v1.0.0
+            timeout: 90
+            environment:
+              BLOCK_DEVICE: {{ index .Hardware.Disks 0 }}$ROOTFS_PARTITION
+              FS_TYPE: ext4
+              CHROOT: y
+              SCRIPT_URL: "http://$TINKERBELL_HOST_IP:8080/docker-compose-upd.yml"
+              DEFAULT_INTERPRETER: "/bin/sh -c"
+              CMD_LINE: "mkdir -p /home/user/Setup/upd_mgr_agent;wget -P /home/user/Setup/upd_mgr_agent http://$TINKERBELL_HOST_IP:8080/docker-compose-upd.yml; cd /home/user/Setup/upd_mgr_agent && mv docker-compose-upd.yml docker-compose.yml"
+
+           #download the telemetry agent docker file to edge node
+          - name: "download-telemetry-agent-file"
+            image: quay.io/tinkerbell-actions/cexec:v1.0.0
+            timeout: 90
+            environment:
+              BLOCK_DEVICE: {{ index .Hardware.Disks 0 }}$ROOTFS_PARTITION
+              FS_TYPE: ext4
+              CHROOT: y
+              SCRIPT_URL: "http://$TINKERBELL_HOST_IP:8080/telemetry_agent_files.tar"
+              DEFAULT_INTERPRETER: "/bin/sh -c"
+              CMD_LINE: "mkdir -p /home/user/Setup/telmtry_agent;wget -P /home/user/Setup/telmtry_agent http://$TINKERBELL_HOST_IP:8080/telemetry_agent_files.tar;cd /home/user/Setup/telmtry_agent;chmod 755 *"  
+
+             #Add a service script for installing the node agents 
+          - name: "service-script-for-node-agents-install"
+            image: quay.io/tinkerbell-actions/writefile:v1.0.0
+            timeout: 90
+            environment:
+              DEST_DISK: {{ index .Hardware.Disks 0 }}$ROOTFS_PARTITION
+              FS_TYPE: ext4
+              DEST_PATH:  /etc/systemd/system/install-edge-node-agents.service
+              CONTENTS: |
+                [Unit]
+                Description=edge node agents Installation
+                After=network.target
+                ConditionPathExists = /home/user/Setup/.base_pkg_install_done
+                ConditionPathExists = !/home/user/Setup/.agent_install_done
+
+                [Service]
+                ExecStartPre=/bin/sleep 10
+                WorkingDirectory=/home/user/Setup
+                ExecStart=/home/user/Setup/edge_node_installer.sh
+
+                [Install]
+                WantedBy=multi-user.target
+              UID: 0
+              GID: 0
+              MODE: 0644
+              DIRMODE: 0755
+             #enable the service script
+          - name: "enable-agent-service-script"
+            image: quay.io/tinkerbell-actions/cexec:v1.0.0
+            timeout: 90
+            environment:
+              BLOCK_DEVICE: {{ index .Hardware.Disks 0 }}$ROOTFS_PARTITION
+              FS_TYPE: ext4
+              CHROOT: y
+              DEFAULT_INTERPRETER: "/bin/sh -c"
+              CMD_LINE: "systemctl enable install-edge-node-agents.service"
+
+           #TODO:Place holder for MS Azure script
+
+            #reboot the system
+          - name: "reboot"
+            image: public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest
+            timeout: 90
+            volumes:
+              - /worker:/worker
+
+
+          
+
+

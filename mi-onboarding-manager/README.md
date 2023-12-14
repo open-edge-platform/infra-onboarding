@@ -102,14 +102,14 @@ Update config file which holds all the configuration details needed for the setu
    earthly +build-onboardingcli
    ```
 
-2. Update `internal/provisioningservice/test/client/profile_sample.yaml` with OS profile and node details. Update `macid` with edge node mac ID, `sutip` with IP address of the node, `pdip` with provisioning service IP and `loadbalancerip`.
+2. Update `internal/onboardingmgr/test/client/profile_sample.yaml` with OS profile and node details. Update `macid` with edge node mac ID, `sutip` with IP address of the node, `pdip` with provisioning service IP and `loadbalancerip`.
 
 3. Set ENV variables `MGR_HOST` to IP of provisioning system and `ONBMGR_PORT` to 32000 which is node port of onboarding manager service.
 
 4. Run onboardingcli
 
     ```bash
-    cd internal/provisioningservice/test/client/
+    cd internal/onboardingmgr/test/client/
     ../../../../build/onboardingcli
     ```
 

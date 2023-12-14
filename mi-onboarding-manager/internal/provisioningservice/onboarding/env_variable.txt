@@ -1,1 +1,0 @@
-TINKER_CLIENT_IMG=ubuntu-22.04-desktop-amd64+intel-iot-37-custom.img.raw.gz

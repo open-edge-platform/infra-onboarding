@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/logger"
 	"k8s.io/client-go/rest"
@@ -52,24 +51,6 @@ type (
 
 	ArtifactCategory string
 
-	ProfileData struct {
-		ID               string `json:"id" db:"id"`
-		Name             string `json:"name" db:"name"`
-		OsArtID          string `json:"os_art_id" db:"os_art_id"`
-		FwArtID          string `json:"fw_art_id" db:"fw_art_id"`
-		ImgArtID         string `json:"img_art_id" db:"img_art_id"`
-		AppArtID         string `json:"app_art_id" db:"app_art_id"`
-		HwData           string `json:"hw_data" db:"hw_data"`
-		OnboardingParams string `json:"onboard_params" db:"onboard_params"`
-		CustomerParams   string `json:"customer_params" db:"customer_params"`
-		StartOnboarding  bool   `json:"start_onboard" db:"start_onboard"`
-	}
-
-	GroupData struct {
-		ID      string `json:"id" db:"id"`
-		Name    string `json:"name" db:"name"`
-		NodeIDs string `json:"node_ids" db:"node_ids"`
-	}
 )
 
 const (
@@ -95,15 +76,6 @@ type Repository interface {
 	GetArtifacts(ctx context.Context, data ArtifactData) ([]*ArtifactData, error)
 	DeleteArtifacts(ctx context.Context, ids []string) error
 
-	CreateProfiles(ctx context.Context, data []ProfileData) ([]ProfileData, error)
-	UpdateProfiles(ctx context.Context, data []ProfileData) error
-	GetProfiles(ctx context.Context, data ProfileData) ([]*ProfileData, error)
-	DeleteProfiles(ctx context.Context, ids []string) error
-
-	CreateGroups(ctx context.Context, data []GroupData) ([]GroupData, error)
-	UpdateGroups(ctx context.Context, data []GroupData) error
-	GetGroups(ctx context.Context, data GroupData) ([]*GroupData, error)
-	DeleteGroups(ctx context.Context, ids []string) error
 
 	Close() error
 }
@@ -230,47 +202,6 @@ func MarshalToStr(data interface{}) (string, error) {
 	return b.String(), nil
 }
 
-func UnmarshalOnboardingParams(data string) (*pb.OnboardingParams, error) {
-	if data == "" {
-		return nil, nil
-	}
-	r := strings.NewReader(data)
-	decoder := json.NewDecoder(r)
-	var p pb.OnboardingParams
-	err := decoder.Decode(&p)
-	if err != nil {
-		return nil, err
-	}
-	return &p, nil
-}
-
-func UnmarshalCustomerParams(data string) (*pb.CustomerParams, error) {
-	if data == "" {
-		return nil, nil
-	}
-	r := strings.NewReader(data)
-	decoder := json.NewDecoder(r)
-	var p pb.CustomerParams
-	err := decoder.Decode(&p)
-	if err != nil {
-		return nil, err
-	}
-	return &p, nil
-}
-
-func UnmarshalHwData(data string) ([]*pb.HwData, error) {
-	if data == "" {
-		return nil, nil
-	}
-	r := strings.NewReader(data)
-	decoder := json.NewDecoder(r)
-	var p []*pb.HwData
-	err := decoder.Decode(&p)
-	if err != nil {
-		return nil, err
-	}
-	return p, nil
-}
 
 func UnmarshalStrArray(data string) ([]string, error) {
 	if data == "" {

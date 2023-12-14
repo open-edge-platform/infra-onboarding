@@ -1,0 +1,145 @@
+# Copyright (C) 2023 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: download-bkc-pkg-agents
+  namespace: tink-system
+data:
+  entrypoint.sh: |-
+    #!/usr/bin/env bash
+    # This script is designed to download a cloud image file (.img) and then convert it to a .raw.gz file.
+    # This is purpose built so non-raw cloud image files can be used with the "image2disk" action.
+    # See https://artifacthub.io/packages/tbaction/tinkerbell-community/image2disk.
+    set -euxo pipefail
+    echo "nameserver 10.248.2.1" >> /etc/resolv.conf
+    echo "nameserver 172.30.90.4" >> /etc/resolv.conf
+    echo "nameserver 10.223.45.36" >> /etc/resolv.conf
+    export http_proxy=http://proxy-dmz.intel.com:911
+    export https_proxy=http://proxy-dmz.intel.com:912
+    export no_proxy=localhost,.intel.com,devtools.intel.com,127.0.0.0/8,172.16.0.0/20,192.168.0.0/16,10.0.0.0/8
+    if ! which pigz qemu-img &>/dev/null; then
+      apk add --update pigz qemu-img wget bzip2 tar
+    fi
+    
+    base_pkg_script_url=$1
+    script_name=${base_pkg_script_url##*/}
+    if [ -f $script_name ]; then
+      rm $script_name
+    fi
+    wget --no-proxy $base_pkg_script_url
+    cp $script_name $2/base_installer.sh
+
+    # TODO: Need to Remove dummy files creation
+    touch $2/edge_node_installer.sh
+    touch $2/docker-compose-inv.yml
+    touch $2/docker-compose-upd.yml
+    touch $2/telemetry_agent_files.tar
+    touch $2/agent_node_env.txt
+
+    # cp $3/scripts/edge-iaas-platform/platform-director/onboarding/tinker_workflows/edge_node_installer.sh $2
+    # if [  -d $3/docker/edge-iaas-platform/agents ]; then
+    #     docker_file_dir=$3/docker/edge-iaas-platform/agents
+    # else
+    #     docker_file_dir=$3/docker/edge-iaas-platform/platform-manager
+    # fi
+    # cp $docker_file_dir/inventory-agent/docker-compose.yml $2/docker-compose-inv.yml
+    # cp $docker_file_dir/update-agent/docker-compose.yml $2/docker-compose-upd.yml
+
+    # #telemetry code changes
+
+    # if [ ! -f $2/telemetry_agent_files.tar ]; then
+    #     if [ -d telemetry_agent_files ]; then
+    #       rm -rf telemetry_agent_files
+    #       rm -rf telemetry_agent_files.tar
+    #     fi
+    #     mkdir telemetry_agent_files
+    #     cd telemetry_agent_files
+
+    #     #copy the files for otelcol_agent
+    #     mkdir otelcol_agent
+    #     cp $3/bkc/edge-iaas-telemetry/platform-manager/telemetry/onboarding_deployment/deploy-iaas-telemetry otelcol_agent
+    #     cp $3/docker/edge-iaas-platform/platform-director/telemetry/otelcol/config-edge-agent.yaml otelcol_agent
+    #     cp $3/docker/edge-iaas-platform/platform-director/telemetry/otelcol/docker-compose.yml otelcol_agent
+    #     #copy the files for telemetry_agent
+    #     mkdir telemetry_agent
+
+    #     cp $3/bkc/edge-iaas-telemetry/platform-manager/telemetry/onboarding_deployment/deploy-iaas-telemetry telemetry_agent
+    #     cp $3/docker/edge-iaas-platform/platform-manager/telemetry/telemetry-agent/docker-compose.yml telemetry_agent
+    #     cp $3/cmd/telemetryagent/config.yaml telemetry_agent
+    #     cd telemetry_agent && mkdir iaas-telemetry 
+    #     cp $3/docker/edge-iaas-platform/platform-manager/telemetry/fluentbit/configuration/fluent-bit-common.conf iaas-telemetry
+    #     cp $3/docker/edge-iaas-platform/platform-manager/telemetry/telegraf/configuration/telegraf-iaas-default.conf iaas-telemetry
+    #     cd iaas-telemetry && mkdir iaas-telemetry
+    #     cd iaas-telemetry 
+    #     mkdir fluentbit
+    #     cp $3/docker/edge-iaas-platform/platform-manager/telemetry/fluentbit/docker-compose.yaml fluentbit
+    #     mkdir telegraf
+    #     cp $3/docker/edge-iaas-platform/platform-manager/telemetry/telegraf/docker-compose.yml telegraf
+    #     #tar the telemetry-agent files and copy to /opt/hook folder
+    #     cd ../../../../
+    #     tar -cvf telemetry_agent_files.tar telemetry_agent_files
+    #     cp telemetry_agent_files.tar $2/
+    # fi
+
+    # PRODUCT_UUID_FILE=$5
+    # AGENT_HARDWARE_ID=$(cat "$PRODUCT_UUID_FILE/product_uuid")
+
+    # if [ $? -ne 0 ]; then
+    #   echo "Error: $PRODUCT_UUID_FILE does not exist or cannot be read."
+    #   AGENT_HARDWARE_ID="NODE-CANNOT-READ-HARDWARE-ID"
+    # fi
+
+    # if [ ! -f $2/agent_node_env.txt ]; then
+    #   #export port numbers and host_ip for the aganets to start on edge node
+    #   echo "export MGR_HOST=$4" >>agent_node_env.txt
+    #   echo "export NO_PROXY=$4" >>agent_node_env.txt
+    #   echo "export INVMGR_PORT=31846" >>agent_node_env.txt
+    #   echo "export UPDATEMGR_PORT=31845" >>agent_node_env.txt
+    #   echo "export UPDATEMGR_HOST=$4" >>agent_node_env.txt
+    #   echo "export AGENT_HARDWARE_ID=$AGENT_HARDWARE_ID" >>agent_node_env.txt
+    #   cp agent_node_env.txt $2
+    #   rm agent_node_env.txt
+    # fi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: download-ubuntu-bkc-pkg-agents
+  namespace: tink-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: download-ubuntu-bkc-pkg-agents
+        image: bash:5.2.2
+        command: ["/script/entrypoint.sh"]
+        args: ["BKC_BASEPKG_URL", "/output","/repo","HOST_IP","/productuuid"]
+        volumeMounts:
+        - mountPath: /output
+          name: hook-artifacts
+        - mountPath: /script
+          name: configmap-volume
+        - mountPath: /repo
+          name: code-repo
+        - mountPath: /productuuid
+          name: product-uuid
+      restartPolicy: OnFailure
+      volumes:
+      - name: hook-artifacts
+        hostPath:
+          path: /opt/hook
+          type: DirectoryOrCreate
+      - name: code-repo
+        hostPath:
+          path: "CurrentRepoPath"
+          type: DirectoryOrCreate
+      - name: product-uuid
+        hostPath:
+          path: "/sys/class/dmi/id"
+          type: DirectoryOrCreate
+      - name: configmap-volume
+        configMap:
+          defaultMode: 0700
+          name: download-bkc-pkg-agents

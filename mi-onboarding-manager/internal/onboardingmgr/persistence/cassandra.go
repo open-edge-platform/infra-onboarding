@@ -50,38 +50,12 @@ func getArtifactTableMetadata(keyspace string) table.Metadata {
 	}
 }
 
-func getProfileTableColumns() []string {
-	return common.GetFields(ProfileData{})
-}
-
-func getProfileTableMetadata(keyspace string) table.Metadata {
-	return table.Metadata{
-		Name:    fmt.Sprintf("%s.profile", keyspace),
-		Columns: getProfileTableColumns(),
-		PartKey: []string{"id"},
-		SortKey: []string{"name"},
-	}
-}
-
-func getGroupTableColumns() []string {
-	return common.GetFields(GroupData{})
-}
-
-func getGroupTableMetadata(keyspace string) table.Metadata {
-	return table.Metadata{
-		Name:    fmt.Sprintf("%s.group", keyspace),
-		Columns: getGroupTableColumns(),
-		PartKey: []string{"id"},
-		SortKey: []string{"name"},
-	}
-}
 
 type Cassandra struct {
 	keyspace      string
 	session       gocqlx.Session
 	nodeTable     *table.Table
 	artifactTable *table.Table
-	profileTable  *table.Table
 }
 
 func newCassandra(eps []string, user, pass string, createTable bool, keyspace, replica string) (Repository, error) {
@@ -107,7 +81,6 @@ func newCassandra(eps []string, user, pass string, createTable bool, keyspace, r
 		session:       session,
 		nodeTable:     table.New(getNodeTableMetadata(keyspace)),
 		artifactTable: table.New(getArtifactTableMetadata(keyspace)),
-		profileTable:  table.New(getProfileTableMetadata(keyspace)),
 	}
 
 	return ca, nil
@@ -262,131 +235,6 @@ func (c *Cassandra) Close() error {
 	return nil
 }
 
-func (c *Cassandra) CreateProfiles(ctx context.Context, data []ProfileData) ([]ProfileData, error) {
-	qrys := make([]batchQry, 0, len(data))
-	for i := range data {
-		id := gocql.TimeUUID()
-		data[i].ID = id.String()
-		qrys = append(qrys, profileInsertQry(c.keyspace, data[i]))
-	}
-	b := c.session.NewBatch(gocql.LoggedBatch).WithContext(ctx)
-	for _, qry := range qrys {
-		b.Query(qry.qry, qry.arg...)
-	}
-	if err := c.session.ExecuteBatch(b); err != nil {
-		return nil, errors.Wrap(err, "CreateProfiles batch execution")
-	}
-	return data, nil
-}
-
-func (c *Cassandra) UpdateProfiles(ctx context.Context, data []ProfileData) error {
-	qrys := make([]batchQry, 0, len(data))
-	for _, d := range data {
-		if d.ID == "" {
-			return ErrInvalidKey
-		}
-		qrys = append(qrys, profileUpdateQry(c.keyspace, d))
-	}
-	b := c.session.NewBatch(gocql.LoggedBatch).WithContext(ctx)
-	for _, qry := range qrys {
-		b.Query(qry.qry, qry.arg...)
-	}
-	if err := c.session.ExecuteBatch(b); err != nil {
-		return errors.Wrap(err, "UpdateProfiles batch execution")
-	}
-	return nil
-}
-
-func (c *Cassandra) GetProfiles(ctx context.Context, data ProfileData) ([]*ProfileData, error) {
-	get := c.session.Query(profileSelQry(c.keyspace, data))
-	get.BindStruct(data)
-	var items []*ProfileData
-	if err := get.SelectRelease(&items); err != nil {
-		return nil, errors.Wrap(err, "GetProfiles")
-	}
-	return items, nil
-}
-
-func (c *Cassandra) DeleteProfiles(ctx context.Context, ids []string) error {
-	qrys := make([]batchQry, 0, len(ids))
-	for _, id := range ids {
-		if id == "" {
-			return ErrInvalidKey
-		}
-		qrys = append(qrys, profileDelQry(c.keyspace, ProfileData{ID: id}))
-	}
-	b := c.session.NewBatch(gocql.LoggedBatch).WithContext(ctx)
-	for _, qry := range qrys {
-		b.Query(qry.qry, qry.arg...)
-	}
-	if err := c.session.ExecuteBatch(b); err != nil {
-		return errors.Wrap(err, "DeleteProfiles batch execution")
-	}
-	return nil
-}
-
-func (c *Cassandra) CreateGroups(ctx context.Context, data []GroupData) ([]GroupData, error) {
-	qrys := make([]batchQry, 0, len(data))
-	for i := range data {
-		id := gocql.TimeUUID()
-		data[i].ID = id.String()
-		qrys = append(qrys, groupInsertQry(c.keyspace, data[i]))
-	}
-	b := c.session.NewBatch(gocql.LoggedBatch).WithContext(ctx)
-	for _, qry := range qrys {
-		b.Query(qry.qry, qry.arg...)
-	}
-	if err := c.session.ExecuteBatch(b); err != nil {
-		return nil, errors.Wrap(err, "CreateGroups batch execution")
-	}
-	return data, nil
-}
-
-func (c *Cassandra) UpdateGroups(ctx context.Context, data []GroupData) error {
-	qrys := make([]batchQry, 0, len(data))
-	for _, d := range data {
-		if d.ID == "" {
-			return ErrInvalidKey
-		}
-		qrys = append(qrys, groupUpdateQry(c.keyspace, d))
-	}
-	b := c.session.NewBatch(gocql.LoggedBatch).WithContext(ctx)
-	for _, qry := range qrys {
-		b.Query(qry.qry, qry.arg...)
-	}
-	if err := c.session.ExecuteBatch(b); err != nil {
-		return errors.Wrap(err, "UpdateGroups batch execution")
-	}
-	return nil
-}
-
-func (c *Cassandra) GetGroups(ctx context.Context, data GroupData) ([]*GroupData, error) {
-	get := c.session.Query(groupSelQry(c.keyspace, data))
-	get.BindStruct(data)
-	var items []*GroupData
-	if err := get.SelectRelease(&items); err != nil {
-		return nil, errors.Wrap(err, "GetGroups")
-	}
-	return items, nil
-}
-
-func (c *Cassandra) DeleteGroups(ctx context.Context, ids []string) error {
-	qrys := make([]batchQry, 0, len(ids))
-	for _, id := range ids {
-		if id == "" {
-			return ErrInvalidKey
-		}
-		qrys = append(qrys, groupDelQry(c.keyspace, GroupData{ID: id}))
-	}
-	b := c.session.NewBatch(gocql.LoggedBatch).WithContext(ctx)
-	for _, qry := range qrys {
-		b.Query(qry.qry, qry.arg...)
-	}
-	if err := c.session.ExecuteBatch(b); err != nil {
-		return errors.Wrap(err, "DeleteGroups batch execution")
-	}
-	return nil
-}
 
 func createKeyspaceAndTable(session gocqlx.Session, keyspace, replica string, createTable bool) error {
 	err := session.ExecStmt(fmt.Sprintf(
@@ -587,110 +435,3 @@ func artifactSelQry(keyspace string, data ArtifactData) (stmt string, names []st
 		Where(w...).AllowFiltering().ToCql()
 }
 
-func profileInsertQry(keyspace string, data ProfileData) batchQry {
-	qry, _ := qb.Insert(fmt.Sprintf("%s.profile", keyspace)).
-		Columns(getProfileTableColumns()...).ToCql()
-	arg := common.GetValues(data)
-	return batchQry{qry, arg}
-}
-
-func profileUpdateQry(keyspace string, data ProfileData) batchQry {
-	c := getProfileTableColumns()
-	for i := 0; i < len(c); i++ {
-		// can NOT update id column
-		if c[i] == "id" {
-			c[i] = c[len(c)-1]
-			c = c[:len(c)-1]
-		}
-	}
-
-	qry, _ := qb.Update(fmt.Sprintf("%s.profile", keyspace)).
-		Set(c...).Where(qb.Eq("id")).ToCql()
-	vv := common.GetMapValues(data)
-	arg := make([]interface{}, 0, len(vv))
-	for _, k := range c {
-		if v, ok := vv[k]; ok {
-			arg = append(arg, v)
-		}
-	}
-	if v, ok := vv["id"]; ok {
-		arg = append(arg, v)
-	}
-
-	return batchQry{qry, arg}
-}
-
-func profileDelQry(keyspace string, data ProfileData) batchQry {
-	qry, _ := qb.Delete(fmt.Sprintf("%s.profile", keyspace)).
-		Where(qb.Eq("id")).ToCql()
-	arg := []interface{}{data.ID}
-	return batchQry{qry, arg}
-}
-
-func profileSelQry(keyspace string, data ProfileData) (stmt string, names []string) {
-	f, v := common.GetFields(data), common.GetValues(data)
-	w := make([]qb.Cmp, 0, len(v))
-	for i := range v {
-		u, ok := v[i].(string)
-		n, ko := v[i].(fmt.Stringer)
-		if (ok && u != "") || (ko && n.String() != "") {
-			w = append(w, qb.Eq(f[i]))
-		}
-	}
-	return qb.Select(fmt.Sprintf("%s.profile", keyspace)).
-		Where(w...).AllowFiltering().ToCql()
-}
-
-func groupInsertQry(keyspace string, data GroupData) batchQry {
-	qry, _ := qb.Insert(fmt.Sprintf("%s.group", keyspace)).
-		Columns(getGroupTableColumns()...).ToCql()
-	arg := common.GetValues(data)
-	return batchQry{qry, arg}
-}
-
-func groupUpdateQry(keyspace string, data GroupData) batchQry {
-	c := getGroupTableColumns()
-	for i := 0; i < len(c); i++ {
-		// can NOT update id column
-		if c[i] == "id" {
-			c[i] = c[len(c)-1]
-			c = c[:len(c)-1]
-		}
-	}
-
-	qry, _ := qb.Update(fmt.Sprintf("%s.group", keyspace)).
-		Set(c...).Where(qb.Eq("id")).ToCql()
-	vv := common.GetMapValues(data)
-	arg := make([]interface{}, 0, len(vv))
-	for _, k := range c {
-		if v, ok := vv[k]; ok {
-			arg = append(arg, v)
-		}
-	}
-	if v, ok := vv["id"]; ok {
-		arg = append(arg, v)
-	}
-
-	return batchQry{qry, arg}
-}
-
-func groupDelQry(keyspace string, data GroupData) batchQry {
-	qry, _ := qb.Delete(fmt.Sprintf("%s.group", keyspace)).
-		Where(qb.Eq("id")).ToCql()
-	arg := []interface{}{data.ID}
-	return batchQry{qry, arg}
-}
-
-func groupSelQry(keyspace string, data GroupData) (stmt string, names []string) {
-	f, v := common.GetFields(data), common.GetValues(data)
-	w := make([]qb.Cmp, 0, len(v))
-	for i := range v {
-		u, ok := v[i].(string)
-		n, ko := v[i].(fmt.Stringer)
-		if (ok && u != "") || (ko && n.String() != "") {
-			w = append(w, qb.Eq(f[i]))
-		}
-	}
-	return qb.Select(fmt.Sprintf("%s.group", keyspace)).
-		Where(w...).AllowFiltering().ToCql()
-}
