@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: (C) 2023 Intel Corporation
+//
+// SPDX-License-Identifier: LicenseRef-Intel
+
 module github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding
 
 go 1.21

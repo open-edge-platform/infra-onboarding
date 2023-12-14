@@ -1,9 +1,9 @@
 def getEnvFromBranch(branch) {
     if (branch ==~ /main/) {
-        return 'virus,protex'
+        return 'virus,protex,hadolint,checkmarx'
     }
     else {
-        return 'virus'
+        return 'virus,checkmarx,hadolint'
         // PR checks can be extended with checkmarx, bandit, snyk but source code has to available for them to pass. Protex should be kept only at branch level scanning.
     }
 }
@@ -15,64 +15,93 @@ pipeline {
     }
     agent {
         docker {
-            label 'docker'
-            image 'amr-registry.caas.intel.com/one-intel-edge/rrp-devops/oie_ci_testing:latest'
+            label 'oie_spot_executor'
+            image 'amr-registry.caas.intel.com/one-intel-edge/rrp-devops/oie_ci_testing:2.9.63'
             alwaysPull true
         }
     }
     environment {
         GIT_SHORT_URL=env.GIT_URL.split('/')[4].toString().replaceAll('.git','')
-        SUB_PROJECT_NAME='maestro-a'          //update the sub project name based on your repo, eg:maestro-a/i, springboard
+        SUB_PROJECT_NAME='maestro-i'          //update the sub project name based on your repo, eg:maestro-a/i, springboard
     }
     stages {
-        stage('Scan Sources'){
-            environment {
-                PROJECT_NAME               = "oie-${GIT_SHORT_URL}"
-                SCANNERS                   = getEnvFromBranch(env.BRANCH_NAME)
+        stage('Scan Source') {
+            parallel {
+                stage('Scan Virus, Checkmarx, Protex, Trivy'){
+                    environment {
+                        PROJECT_NAME                 = "oie-${GIT_SHORT_URL}"
+                        SCANNERS                     = getEnvFromBranch(env.BRANCH_NAME)
 
-                // publishArtifacts details
-                ARTIFACT_RETENTION_PERIOD  = ''
-                ARTIFACTORY_URL            = 'https://ubit-artifactory-or.intel.com/artifactory'
-                ARTIFACTS_REPO             = "one-intel-edge-or-local/${SUB_PROJECT_NAME}"
-                PUBLISH_TO_ARTIFACTORY     = true
-                ARTIFACTORY_CREDENTIAL_ID  = 'sys_oie_devops_ubit-artifactory-or.intel.com'
+                        // publishArtifacts details
+                        ARTIFACT_RETENTION_PERIOD    = ''
+                        ARTIFACTORY_URL              = 'https://ubit-artifactory-or.intel.com/artifactory'
+                        ARTIFACTS_REPO               = "one-intel-edge-or-local/${SUB_PROJECT_NAME}"
+                        PUBLISH_TO_ARTIFACTORY       = true
+                        ARTIFACTORY_CREDENTIAL_ID    = 'sys_oie_devops_ubit-artifactory-or.intel.com'
+                        ARTIFACTORY_BYPASS_PROXY     = true
 
-                CHECKMARX_FORCE_SCAN       = true
-                CHECKMARX_USER_AUTH_DOMAIN = 'GER'
-                
-                //protex project has to be create before running the scan and the faceless user added to it
-                PROTEX_PROJECT_NAME        = "${GIT_SHORT_URL}"
-                
-                VIRUS_SCAN_DIR             = "."
+                        CHECKMARX_FORCE_SCAN         = true
+                        CHECKMARX_USER_AUTH_DOMAIN   = 'GER'
 
-                SNYK_PRE_SCAN_SCRIPT = '''\
-                    env
-                    echo 'Adding GitHub credentials to ~/.netrc'
-                    umask 077
-                    echo 'machine github.com' >> ~/.netrc
-                    echo "login $GITHUB_USER" >> ~/.netrc
-                    echo "password $GITHUB_TOKEN" >> ~/.netrc
-                    echo 'machine api.github.com' >> ~/.netrc
-                    echo "login $GITHUB_USER" >> ~/.netrc
-                    echo "password $GITHUB_TOKEN" >> ~/.netrc
-                    umask 022
-                '''.stripIndent()
-            }
-            when {
-                anyOf {
-                    branch 'main';
-                    changeRequest();
+                        PROTEX_PROJECT_NAME          = "${GIT_SHORT_URL}"
+
+                        VIRUS_SCAN_DIR               = "."
+                    }
+                    when {
+                        anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
+                    }
+                    steps {
+                        withCredentials([
+                            usernamePassword(
+                                credentialsId: 'sys_oie_devops_github_api',
+                                usernameVariable: 'GITHUB_USER',
+                                passwordVariable: 'GITHUB_TOKEN',
+                            ),
+                        ]){
+                        rbheStaticCodeScan()
+                        }
+                    }
+                }
+                stage('Trivy config scan') {
+                    when {
+                        anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
+                    }
+                    steps {
+                        script {
+                            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                sh '''
+                                trivy conf --exit-code 1 --severity HIGH,CRITICAL . 2>&1 > trivy_conf.log
+                                '''
+                            }
+                            sh '''
+                            [ -d "artifacts" ] && mkdir artifacts/Trivy_conf || mkdir -p artifacts/Trivy_conf
+                            mv trivy_conf.log artifacts/Trivy_conf
+                            '''
+                            archiveArtifacts artifacts: 'artifacts/Trivy_conf/*.log',
+                            fingerprint: true,
+                            onlyIfSuccessful: false
+                            publishArtifacts([artifactsRepo: 'one-intel-edge-or-local/${SUB_PROJECT_NAME}',
+                                        credentialId: 'sys_oie_devops_ubit-artifactory-or.intel.com',
+                                        bypassProxy: true])
+                        }
+                    }
                 }
             }
+        }
+        stage('Setup') {
             steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'sys_oie_devops_github_api',
-                        usernameVariable: 'GITHUB_USER',
-                        passwordVariable: 'GITHUB_TOKEN',
-                    ),
-                ]){
-                    rbheStaticCodeScan()
+                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
+                {
+                    sh '''
+                    echo "Setup Build environment"
+                    apt update && apt install python3-venv -y
+                    echo "machine github.com" >> $HOME/.netrc
+                    echo "    login not-used" >> $HOME/.netrc
+                    echo "    password $PASSWORD" >> $HOME/.netrc
+                    echo "machine api.github.com" >> $HOME/.netrc
+                    echo "    login not-used" >> $HOME/.netrc
+                    echo "    password $PASSWORD" >> $HOME/.netrc
+                    '''
                 }
             }
         }
@@ -86,66 +115,56 @@ pipeline {
                 '''
             }        
         }
+        stage('Lint Code') {
+            steps {
+                sh '''
+                echo "Linting the code"
+                make lint-ci
+                '''
+            }
+        }
         stage('Build') {
             steps {
-                echo "Hi, I'm a pipeline, doing build step"
                 sh '''
+                eval \$(ssh-agent) > /dev/null
                 make build
                 '''
             }
         }
-        stage('Lint') {
+        /*stage('Test Code') {
             steps {
-                echo "Hi, I'm a pipeline, doing lint step"
-                sh '''
-                make lint
-                '''
-            }
-        }
-        stage('Test') {
-            steps {
-                echo "Hi, I'm a pipeline, doing test step"
+                echo "Test the code"
                 sh '''
                 make test
-                make coverage
                 '''
-                // Coverage template for Java 
-                //step([$class: 'JacocoPublisher', 
-                //               exclusionPattern: '**/com/intel/auth/**,**/com/intel/cloud/**,**/com/intel/test/**,**/com/intel/producer/model/**', 
-                //               inclusionPattern: '**/*.class',
-                //               changeBuildStatus: true,
-                //               minimumInstructionCoverage: '50',
-                //              maximumInstructionCoverage: '51',
-                //               sourcePattern: '**/src/test/java/**'])
-                
-                // Coverage and Allure for Python
-                // python -m coverage run -m pytest --alluredir allure_reports
-                //  python -m coverage xml -o ./reports/coverage.xml 
-                //
-                // step([$class: 'CoberturaPublisher',
-                //                   autoUpdateHealth: false,
-                //                   autoUpdateStability: false,
-                //                  coberturaReportFile: 'reports/coverage.xml',
-                //                   failNoReports: false,
-                //                   failUnhealthy: false,
-                //                   failUnstable: false,
-                //                   maxNumberOfBuilds: 10,
-                //                  onlyStable: false,
-                //                   sourceEncoding: 'ASCII',
-                //                  zoomCoverageChart: false])
-                //    allure([
-                 //       includeProperties: false,
-                 //       properties: [],
-                 //       reportBuildPolicy: 'ALWAYS',
-                 //       results: [[path: 'allure_reports']]
-                 //   ])
-                 
-                 // Python lint using flake8
-                // flake8 --format=pylint --exit-zero /home/jenkins/agent/workspace/e.devops-staging_python_coverage/ >flake8-output.txt
-                // recordIssues enabledForFailure: true, tools: [flake8(name: 'Lint - Flake8', pattern: 'flake8-output.txt', skipSymbolicLinks: true)]
-                
+            }
+            post{
+                success{
+                    cobertura coberturaReportFile: 'build/coverage.xml', 
+                        conditionalCoverageTargets: "${env.cobertura_healthy}, ${env.cobertura_unhealthy}, ${env.cobertura_unstable}", 
+                        failNoReports: true,
+                        failUnhealthy: true,
+                        failUnstable: true,
+                        lineCoverageTargets: "${env.cobertura_healthy}, ${env.cobertura_unhealthy}, ${env.cobertura_unstable}",
+                        maxNumberOfBuilds: 0,
+                        methodCoverageTargets: "${env.cobertura_healthy}, ${env.cobertura_unhealthy}, ${env.cobertura_unstable}",
+                        onlyStable: false,
+                        sourceEncoding: 'ASCII',
+                        autoUpdateHealth: false,
+                        autoUpdateStability: false
+                    junit 'build/report.xml'
+                }
+            }
+        }*/
+
+        stage('Validate clean repo') {
+            steps {
+                sh '''
+                bash -c "diff -u <(echo -n) <(git diff)"
+                '''
             }
         }
+
         // This stage is required for service/agent repos only
         // Please remove it for chart repos
         stage('Version Tag') {
@@ -170,38 +189,131 @@ pipeline {
                 }
             }
         }
-        /*stage('Scan Binary'){
-            environment {
-                PROJECT_NAME                 = "oie-${GIT_SHORT_URL}"
-                SCANNERS                     = 'bdba'
 
-                // publishArtifacts details
-                ARTIFACT_RETENTION_PERIOD    = ''
-                ARTIFACTORY_URL              = 'https://ubit-artifactory-or.intel.com/artifactory'
-                ARTIFACTS_REPO               = "one-intel-edge-or-local/${SUB_PROJECT_NAME}"
-                PUBLISH_TO_ARTIFACTORY       = true
-                ARTIFACTORY_CREDENTIAL_ID    = 'sys_oie_devops_ubit-artifactory-or.intel.com'
-		        ARTIFACTORY_BYPASS_PROXY   = true
-
-	            BDBA_BIN_DIR                 = "BDBA"
-            }
+        stage ('Scan Containers') {
             when {
                 anyOf {
-                    branch 'main';
-                    changeRequest();
+                    anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest() }
                 }
             }
+            environment {
+                PROJECT_NAME                 = "oie-${GIT_SHORT_URL}"
+                SCANNERS                     = 'trivy'
+
+    		    TRIVY_SEVERITY_THRESHOLD_CVE = 'CRITICAL'
+            }
             steps {
-               script{
+                script {
+                    DOCKER_IMAGES=sh(script: '''
+                    docker images --format '{{.Repository}}:{{.Tag}}' | grep -v -e "rrp-devops" -e "rbhe-public" -e "earthly/buildkitd" | awk 'BEGIN {ORS=","} {print $0} END {if (NR) print "\\n"}' | sed 's/,$//'
+                    ''', returnStdout: true).trim()
+
                     sh """
-	                [ -d "BDBA" ] || mkdir BDBA
-		            tar -zcvf BDBA/${GIT_SHORT_URL}.tar.gz build
-                    //replace build directory with the directory where binaries are stored
+                    echo $DOCKER_IMAGES
                     """
+
+                    withEnv(["TRIVY_TARGET_DOCKER_IMAGE=${DOCKER_IMAGES}"]) {
                     rbheStaticCodeScan()
+                    }
+                }
+            }
+        }
+
+        stage('Deploy Docker image') {
+            when {
+                anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; expression{ common.isMatchingCommit(/.*\[push-docker-image\]*/) }; }
+            }
+            steps {
+                script {
+                    miDocker.push()
+                }
+            }
+        }
+
+        stage('Version dev') {
+            when {
+                anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; }
+            }
+            steps {
+                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
+                {
+                echo "Start new development cycle if needed"
+                sh '''
+                # Use writable user for git
+                echo "machine github.com" >> $HOME/.netrc
+                echo "  login not-used" >> $HOME/.netrc
+                echo "  password $PASSWORD" >> $HOME/.netrc
+                echo "machine api.github.com" >> $HOME/.netrc
+                echo "  login not-used" >> $HOME/.netrc
+                echo "  password $PASSWORD" >> $HOME/.netrc
+
+                # Append -dev
+                REVIEWER_1="raphaelvrosa" REVIEWER_2="daniele-moro" /opt/ci/version-dev.sh
+                '''
+                }
+            }
+        }
+
+        /*stage('Scan Binary') {
+            parallel {             
+                stage('Scan BDBA'){
+                    environment {
+                        PROJECT_NAME                 = "oie-${GIT_SHORT_URL}"
+                        SCANNERS                     = 'bdba'
+
+                        SDLE_UPLOAD_PROJECT_ID        = '17032'
+                        SDLE_UPLOAD_USER_IDSID         = 'sys_pmce_git'
+                        SDLE_UPLOAD_CREDENTIAL_ID  = 'lp.credentials.sdleUpload'
+
+                        // publishArtifacts details
+                        ARTIFACT_RETENTION_PERIOD    = ''
+                        ARTIFACTORY_URL              = 'https://ubit-artifactory-or.intel.com/artifactory'
+                        ARTIFACTS_REPO               = "one-intel-edge-or-local/${SUB_PROJECT_NAME}"
+                        PUBLISH_TO_ARTIFACTORY       = true
+                        ARTIFACTORY_CREDENTIAL_ID    = 'sys_oie_devops_ubit-artifactory-or.intel.com'
+                        ARTIFACTORY_BYPASS_PROXY   = true
+
+                        BDBA_BIN_DIR                 = "BDBA"
+                    }
+                    when {
+                        anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
+                    }
+                    steps {
+                        withCredentials([
+                            usernamePassword(
+                                credentialsId: 'sys_oie_devops_github_api',
+                                usernameVariable: 'GITHUB_USER',
+                                passwordVariable: 'GITHUB_TOKEN',
+                            ),
+                        ]) {
+                            sh """
+                            [ -d "BDBA" ] || mkdir BDBA
+                        tar -zcvf BDBA/${GIT_SHORT_URL}.tar.gz build 
+                            """
+                            rbheStaticCodeScan()
+                        }
+                    }
+                }
+                stage('Scan Binary SSCB') {
+                    when {
+                            anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
+                        }
+                    steps {
+                    sh'''
+                    mkdir SSCB
+                    sscb run --path BDBA/${GIT_SHORT_URL}.tar.gz --outpath SSCB/
+                    '''
+                    archiveArtifacts artifacts: 'SSCB/*',
+                        fingerprint: true,
+                        onlyIfSuccessful: false
+                        publishArtifacts([artifactsRepo: 'one-intel-edge-or-local/${SUB_PROJECT_NAME}',
+                        credentialId: 'sys_oie_devops_ubit-artifactory-or.intel.com',
+                                bypassProxy: true])
+                    }
                 }
             }
         }*/
+
         stage('Artifact') {
             steps {
                 sh '''
@@ -212,20 +324,33 @@ pipeline {
                 fingerprint: true,
                 onlyIfSuccessful: true
                 sh '''
-                [ -d "artifacts" ] || mkdir -p artifacts
-                mv  *.tar.gz artifacts/
+                    [ -d "artifacts" ] || mkdir -p artifacts
+                    mv  *.tar.gz build/* artifacts/
                 '''
-                //in case your projects is mastro-i or springbord replace "maestro-a" from bellow accordingly
                 publishArtifacts([artifactsRepo: "one-intel-edge-or-local/${SUB_PROJECT_NAME}",
-                                  credentialId: 'sys_oie_devops_ubit-artifactory-or.intel.com'])
+                                  credentialId: 'sys_oie_devops_ubit-artifactory-or.intel.com',
+                                  bypassProxy: true])
             }
         }
-
     }
+    
     post {
         always {
-	    jcpSummaryReport()
+            jcpSummaryReport()
             cleanWs()
         }
+        failure {
+		    script {
+		        def currentBranch = env.BRANCH_NAME
+                if (currentBranch ==~ env.branchPattern && authorEmail) {
+                    emailext(
+                    subject: "Build failed on main branch for ${GIT_SHORT_URL}",
+                    body: "The build on the main branch failed. Please check the logs for more details. Your PR was the last change, this is why you're receiving this email",
+                    to: authorEmail,
+                    attachLog: true
+                    )
+                }
+            }
+	    }
     }
 }

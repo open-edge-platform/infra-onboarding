@@ -1,29 +1,64 @@
-#****************************************************************************
-#
-# Copyright (C) 2022 Intel Corporation
-# 
-# THIS SOFTWARE AND THE RELATED DOCUMENTS ARE INTEL COPYRIGHTED MATERIALS,
-# AND YOUR USE OF THEM IS GOVERNED BY THE EXPRESS LICENSE UNDER WHICH THEY
-# WERE PROVIDED TO YOU ("LICENSE"). UNLESS THE LICENSE PROVIDES OTHERWISE, 
-# YOU MAY NOT USE, MODIFY, COPY, PUBLISH, DISTRIBUTE, DISCLOSE OR TRANSMIT
-# THIS SOFTWARE OR THE RELATED DOCUMENTS WITHOUT INTEL'S PRIOR 
-# WRITTEN PERMISSION.
-#
-# This software and the related documents are provided as is, with no express 
-# or implied warranties, other than those that are expressly stated in 
-# the License.
-#
-#****************************************************************************
+# Maestro-I API Makefile
+
+# SPDX-FileCopyrightText: (C) 2022 Intel Corporation
+# SPDX-License-Identifier: LicenseRef-Intel
+
+.DEFAULT_GOAL := help
+.PHONY: build test lint license help generate
+
+##### Variables #####
+
+# Defining the shell, users and groups
+SHELL       := bash -e -o pipefail
+CURRENT_UID := $(shell id -u)
+CURRENT_GID := $(shell id -g)
+
+# Project variables
+PROJECT_NAME := api
+BINARY_NAME  := mionboarding
+
+# Code versions, tags, and so on
+VERSION       := $(shell cat VERSION)
+VERSION_MAJOR := $(shell cut -c 1 VERSION)
+IMG_NAME      := ${PROJECT_NAME}
+IMG_VERSION   ?= main
+GIT_COMMIT    ?= $(shell git rev-parse HEAD)
+
+# Tools versions
+GOLINTVERSION_HAVE        := $(shell golangci-lint version | sed 's/.*version //' | sed 's/ .*//')
+
+# Create the virtualenv with python tools installed
+VENV_NAME = venv_mionboarding
+
+$(VENV_NAME): requirements.txt
+	echo "Creating virtualenv $@"
+	python3 -m venv $@;\
+	. ./$@/bin/activate; set -u;\
+	python3 -m pip install --upgrade pip;\
+	python3 -m pip install -r requirements.txt
+
+##### CI Targets #####
 
 all: 
-	@# Help: Runs build, lint, test stages
+	@# Help: Runs build, lint, test stage
 	build lint test 	
 	
 build:
-	@# Help: Runs build stage
-	@echo "---MAKEFILE BUILD---"
-	echo $@
-	@echo "---END MAKEFILE Build---"
+	earthly -V +all
+
+#lint-ci: license go-lint
+
+lint-ci: go-lint license
+
+# Maintenance and lint targets
+license: $(VENV_NAME) ## Check licensing with the reuse tool.
+	. ./$</bin/activate; set -u;\
+	reuse --version;\
+	reuse --root . lint
+
+go-lint: ## run go lint
+	golangci-lint linters
+
 
 lint:
 	@# Help: Runs lint stage
