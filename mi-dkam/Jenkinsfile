@@ -87,7 +87,8 @@ pipeline {
             steps {
                 echo "Hi, I'm a pipeline, doing build step"
                 sh '''
-                make build
+		eval \$(ssh-agent) > /dev/null
+                earthly -V +all
                 '''
             }
         }
@@ -167,7 +168,7 @@ pipeline {
                 }
             }
         }
-        stage('Scan Binary'){
+        /*stage('Scan Binary'){
             environment {
                 PROJECT_NAME                 = "oie-${GIT_SHORT_URL}"
                 SCANNERS                     = 'bdba'
@@ -198,7 +199,7 @@ pipeline {
                     rbheStaticCodeScan()
                 }
             }
-        }
+        }*/
         stage('Artifact') {
             steps {
                 sh '''

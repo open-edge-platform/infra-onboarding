@@ -1,0 +1,73 @@
+# SPDX-FileCopyrightText: (C) 2023 Intel Corporation
+# SPDX-License-Identifier: LicenseRef-Intel
+VERSION 0.7
+
+LOCALLY
+ARG http_proxy=$(echo $http_proxy)
+ARG https_proxy=$(echo $https_proxy)
+ARG no_proxy=$(echo $no_proxy)
+ARG HTTP_PROXY=$(echo $HTTP_PROXY)
+ARG HTTPS_PROXY=$(echo $HTTPS_PROXY)
+ARG NO_PROXY=$(echo $NO_PROXY)
+
+FROM golang:1.20.2-alpine3.17
+ENV http_proxy=$http_proxy
+ENV https_proxy=$https_proxy
+ENV no_proxy=$no_proxy
+ENV HTTP_PROXY=$HTTP_PROXY
+ENV HTTPS_PROXY=$HTTPS_PROXY
+ENV NO_PROXY=$NO_PROXY
+
+ARG --global registry=amr-registry.caas.intel.com
+ARG --global repository=one-intel-edge/maestro-i
+ARG --global image_name=dkammgr
+ARG --global tag=latest
+
+all:
+    BUILD +build-dkam-stack
+
+build-dkam-stack:
+    BUILD +build-dkammgr
+    BUILD +docker-dkammgr
+    BUILD +helm-dkammgr
+    BUILD +build-dkamcli
+
+build-dkammgr:
+    ARG version='0.0.0-unknown'
+    WORKDIR /work
+    COPY . .
+    #RUN --mount=type=cache,target=/root/.cache/go-build --ssh CGO_ENABLED=0 GOARCH=amd64 GOOS=linux \
+    RUN --mount=type=cache,target=/root/.cache/go-build  \
+        go build -trimpath -o build/dkammgr \
+            -ldflags "-s -w -extldflags '-static' -X main.Version=$version" \
+            ./cmd/dkammgr
+    SAVE ARTIFACT build/dkammgr AS LOCAL ./build/dkammgr
+
+docker-dkammgr:
+    FROM scratch
+    ARG version='0.0.0-unknown'
+    COPY (+build-dkammgr/dkammgr --version=$version) .
+    ENTRYPOINT ["/dkammgr"]
+    SAVE IMAGE --push $registry/$repository/$image_name:$tag
+
+helm-dkammgr:
+    FROM alpine/helm:3.12.3
+    COPY deployments/helm/dkam-manager /dkam-manager
+    RUN helm package /dkam-manager
+    SAVE ARTIFACT dkam-manager-*.tgz AS LOCAL ./build/
+	IF [ "$tag" != "ci" ]
+		RUN --push --secret HARBOR_USER --secret HARBOR_PASSWD \
+		helm registry login --insecure -u $HARBOR_USER -p $HARBOR_PASSWD $registry \
+		&& helm push --insecure-skip-tls-verify dkam-manager-*.tgz oci://$registry/$repository/$image_name:$tag
+	END
+
+build-dkamcli:
+    ARG version='0.0.0-unknown'
+    WORKDIR /work
+    COPY . .
+    #RUN --mount=type=cache,target=/root/.cache/go-build --ssh CGO_ENABLED=0 GOARCH=amd64 GOOS=linux \
+    RUN --mount=type=cache,target=/root/.cache/go-build \
+        go build -trimpath -o build/dkamcli \
+            -ldflags "-s -w -extldflags '-static' -X main.Version=$version" \
+            ./internal/dkammgr/test/client/main.go
+    SAVE ARTIFACT build/dkamcli AS LOCAL build/dkamcli

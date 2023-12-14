@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dkam-service
+spec:
+  type: NodePort
+  ports:
+    - port: {{ .Values.service.servicePort }}
+      targetPort: 5581
+    
+  selector:
+    app: dkammgr-app
