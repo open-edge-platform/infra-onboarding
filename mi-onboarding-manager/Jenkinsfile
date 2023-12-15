@@ -254,7 +254,7 @@ pipeline {
             }
         }
 
-        /*stage('Scan Binary') {
+        stage('Scan Binary') {
             parallel {             
                 stage('Scan BDBA'){
                     environment {
@@ -312,7 +312,7 @@ pipeline {
                     }
                 }
             }
-        }*/
+        }
 
         stage('Artifact') {
             steps {
