@@ -9,6 +9,10 @@ ARG no_proxy=$(echo $no_proxy)
 ARG HTTP_PROXY=$(echo $HTTP_PROXY)
 ARG HTTPS_PROXY=$(echo $HTTPS_PROXY)
 ARG NO_PROXY=$(echo $NO_PROXY)
+ARG DOCKER_REGISTRY=$(echo $DOCKER_REGISTRY)
+ARG DOCKER_REPOSITORY=$(echo $DOCKER_REPOSITORY)
+ARG IMG_NAME=$(echo $IMG_NAME)
+ARG VERSION=$(echo $VERSION)
 
 FROM golang:1.20.2-alpine3.17
 ENV http_proxy=$http_proxy
@@ -17,11 +21,15 @@ ENV no_proxy=$no_proxy
 ENV HTTP_PROXY=$HTTP_PROXY
 ENV HTTPS_PROXY=$HTTPS_PROXY
 ENV NO_PROXY=$NO_PROXY
+ENV DOCKER_REGISTRY=$DOCKER_REGISTRY
+ENV DOCKER_REPOSITORY=$DOCKER_REPOSITORY
+ENV IMG_NAME=$IMG_NAME
+ENV VERSION=$VERSION
 
-ARG --global registry=amr-registry.caas.intel.com
-ARG --global repository=one-intel-edge/maestro-i
-ARG --global image_name=onboardingmgr
-ARG --global tag=latest
+ARG --global DOCKER_REGISTRY=$(echo $DOCKER_REGISTRY)
+ARG --global DOCKER_REPOSITORY=$(echo $DOCKER_REPOSITORY)
+ARG --global IMG_NAME=$(echo $IMG_NAME)
+ARG --global VERSION=$(echo $VERSION)
 
 all:
     BUILD +build-onboarding-stack
@@ -48,7 +56,7 @@ docker-onboardingmgr:
     ARG version='0.0.0-unknown'
     COPY (+build-onboardingmgr/onboardingmgr --version=$version) .
     ENTRYPOINT ["/onboardingmgr"]
-    SAVE IMAGE --push $registry/$repository/$image_name:$tag
+    SAVE IMAGE $DOCKER_REGISTRY/$DOCKER_REPOSITORY/$IMG_NAME:$VERSION
 
 helm-onboardingmgr:
     FROM alpine/helm:3.12.3
