@@ -13,7 +13,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"os/user"
 	"path/filepath"
 	"strings"
@@ -222,49 +221,22 @@ func DeviceOnboardingManagerNzt(deviceDetails utils.DeviceInfo, artifactDetails 
 	// TODO: Delete the hardware workflow remaining
 }
 
-func DeviceOnboardingManager(deviceInfoList []utils.DeviceInfo, artifactinfo utils.ArtifactData, kubeconfigPath string, onbtype string) error {
-	// for each device profile it will run
-	//take the old directory
+func DeviceOnboardingManager(deviceInfoList []utils.DeviceInfo, artifactinfo utils.ArtifactData, kubeconfigPath string) error {
+	// take the old directory
 	oldWorkingDir, errolddir := os.Getwd()
 	if errolddir != nil {
 		return errolddir
 	}
+
 	log.Printf("oldWorkingDir-: %s", oldWorkingDir)
-	//based on profile changing directory
-	log.Printf("Onbtype: %s", onbtype)
-	if onbtype == "ZT" {
-		targetDir := "../../scripts/edge-iaas-platform/platform-director/onboarding"
-		if err := utils.ChangeWorkingDirectory(targetDir); err != nil {
-			log.Fatalf("Failed to change working directory: %v", err)
-		}
 
-		//cleans up the file and add the header
-		errcleanup := utils.ClearFileAndWriteHeader("sut_onboarding_list.txt")
-		if errcleanup != nil {
-
-			return fmt.Errorf("cleanup error: %v", errcleanup)
-		}
-
-		currDir, errDIR := os.Getwd()
-		if errDIR != nil {
-			return errDIR
-		}
-		log.Printf("Onboarding ZT: %s", currDir)
-	} else if onbtype == "NZT" {
-		targetDir := "../../internal/onboardingmgr/onboarding/"
-		if err := utils.ChangeWorkingDirectory(targetDir); err != nil {
-			log.Fatalf("Failed to change working directory: %v", err)
-		}
-
-		currDir, errDIR := os.Getwd()
-		if errDIR != nil {
-			return errDIR
-		}
-		log.Printf("Onboarding NZT: %s", currDir)
-	} else {
-		log.Printf("onbtype not correct %s", onbtype)
+	// change working directory for NZT
+	targetDir := "../../internal/onboardingmgr/onboarding/"
+	if err := utils.ChangeWorkingDirectory(targetDir); err != nil {
+		log.Fatalf("Failed to change working directory: %v", err)
 	}
-	//setup the sutonboaridng file
+
+	// setup the sutonboarding file
 	var (
 		bkcImgDdLock     sync.Mutex
 		focalImgDdLock   sync.Mutex
@@ -274,52 +246,29 @@ func DeviceOnboardingManager(deviceInfoList []utils.DeviceInfo, artifactinfo uti
 	var CurrentDeviceList = make(map[string]string)
 	nodeExistCount := 0
 	ErrCh := make(chan error, len(deviceInfoList))
-	for i, deviceInfo := range deviceInfoList {
-		if onbtype == "NZT" {
-			if _, found := CurrentDeviceList[deviceInfo.HwMacID]; !found {
-				CurrentDeviceList[deviceInfo.HwMacID] = deviceInfo.HwIP
-				DeviceOnboardingManagerNzt(deviceInfo, artifactinfo, kubeconfigPath, &nodeExistCount, len(deviceInfoList), ErrCh, &bkcImgDdLock, &focalImgDdLock, &jammyImgDdLock, &focalMsImgDdLock)
-			} else {
-				nodeExistCount += 1
-				log.Println("Duplicate Device from ther profile request", deviceInfo.HwIP)
-			}
-		} else if onbtype == "ZT" {
-			sutLabel := fmt.Sprintf("SUT%d", i+1)
-			err := DeviceOnboardingManagerZt(deviceInfo, kubeconfigPath, sutLabel)
-			// Run the shell script with arguments
-			if err != nil {
-				return err
-			}
+	for _, deviceInfo := range deviceInfoList {
+		if _, found := CurrentDeviceList[deviceInfo.HwMacID]; !found {
+			CurrentDeviceList[deviceInfo.HwMacID] = deviceInfo.HwIP
+			DeviceOnboardingManagerNzt(deviceInfo, artifactinfo, kubeconfigPath, &nodeExistCount, len(deviceInfoList), ErrCh, &bkcImgDdLock, &focalImgDdLock, &jammyImgDdLock, &focalMsImgDdLock)
+		} else {
+			nodeExistCount += 1
+			log.Println("Duplicate Device from ther profile request", deviceInfo.HwIP)
 		}
 	}
+
 	log.Println("Handling DeviceOnboardingManagerNzt errors if present----")
 	for err := range ErrCh {
 		log.Printf("Error while onboarding Node/SUT IP is %v\n", err)
 	}
-	// TODO: Delete the hardware workflow remaining
-
-	//running zerotouch
-	if onbtype == "ZT" {
-		cmdChmod := exec.Command("chmod", "+x", "zero_touch_onboarding_installation.sh")
-		if err := cmdChmod.Run(); err != nil {
-			return err
-		}
-
-		cmdExtendUpload := exec.Command("./zero_touch_onboarding_installation.sh")
-		output, err := cmdExtendUpload.CombinedOutput()
-		// Change back the directory once the call is finished
-		if errold := os.Chdir(oldWorkingDir); errold != nil {
-			return errold
-		}
-		log.Printf("Onboarding Completed")
-		if err != nil {
-			return fmt.Errorf("Error executing script: %v, Output: %s", err, output)
-		}
-	} else {
-		log.Printf("Onboarding is NZT:")
+	//change back to old working dir
+	if errold := os.Chdir(oldWorkingDir); errold != nil {
+		return errold
 	}
+
+	log.Printf("Onboarding is completed")
 	return nil
 }
+
 func MakeGETRequestWithRetry(serialNumber, pdip string, caCertPath, certPath string, guid string) error {
 	timeout := 5 * time.Minute
 	startTime := time.Now()
@@ -403,9 +352,7 @@ func (s *OnboardingManager) StartOnboarding(ctx context.Context, req *pb.Onboard
 	artifactinfo = parseNGetBkcUrl(copyOfRequest)
 
 	// Call the DeviceOnboardingManager function to manage the onboarding of devices
-	onbtype := copyOfRequest.OnbParams.Env
-	log.Printf("Onbtype first function: %s", onbtype)
-	err = DeviceOnboardingManager(deviceInfoList, artifactinfo, kubeconfigPath, onbtype)
+	err = DeviceOnboardingManager(deviceInfoList, artifactinfo, kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}

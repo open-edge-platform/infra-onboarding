@@ -1,3 +1,0 @@
-# Copyright (C) 2023 Intel Corporation
-# SPDX-License-Identifier: Apache-2.0
-TINKER_CLIENT_IMG=ubuntu-22.04-desktop-amd64+intel-iot-37-custom.img.raw.gz
