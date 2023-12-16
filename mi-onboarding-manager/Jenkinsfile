@@ -1,6 +1,8 @@
 def getEnvFromBranch(branch) {
     if (branch ==~ /main/) {
-        return 'virus,protex,hadolint,checkmarx'
+        // Removing protex for now. It has some issue. Ticket raised with IT.
+        //return 'virus,protex,hadolint,checkmarx'
+        return 'virus,hadolint,checkmarx'
     }
     else {
         return 'virus,checkmarx,hadolint'
