@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# Copyright (C) 2023 Intel Corporation
+# SPDX-License-Identifier: BSD-3-Clause
+
+set -e
+
+run() {
+	echo "Starting Nginx..."
+	php-fpm8.0 && chmod 777 /var/run/php/php8.0-fpm.sock && chmod 755 /usr/share/nginx/html/* && nginx -g 'daemon off;'
+}
+
+run
