@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: (C) 2023 Intel Corporation
+//
+// SPDX-License-Identifier: LicenseRef-Intel
 module github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service
 
 go 1.21
@@ -19,3 +22,4 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+

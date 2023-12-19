@@ -1,5 +1,9 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 
-Files: Jenkinsfile Makefile README.md placeholder.txt .github/*
+Files: VERSION Jenkinsfile README.md placeholder.txt .github/* api/grpc/dkammgr/* api/openapi/* cmd/dkammgr/* deployments/* internal/dkammgr/* artifacts/* go.sum
 Copyright: 2023 Intel Corporation
 License: LicenseRef-Intel
+
+Files: vendor/*
+Copyright: Apache 2.0
+License: Apache-2.0
