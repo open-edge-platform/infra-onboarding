@@ -13,6 +13,13 @@ export GOPATH=$(go env GOPATH)
 export MGR_HOST=localhost/IP
 export ONBMGR_PORT=50054
 ```
+### 1.1 Exporting Onboarding Parameters
+```
+export PD_IP=<pd_ip>
+export DISK_PARTITION=/da/sda
+export LOAD_BALANCER_IP=<load_balancer_ip>
+export IMAGE_TYPE= prod_bkc
+```
 ## 2. Run Onboarding manager 
 ```
 go run main.go
@@ -37,63 +44,35 @@ Note: This will start the server please use the another terminal to trigger pdct
 ```
 How to run Onboaridng manager and trigger command from pdctl to start onboarding for the profile 
 
-step 1) Navigate to the 'infrastructure.edge.iaas.platform` directory
+step 1) Navigate to the 'frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service` directory
 
-step 3) check if onboaridng manager and inventory manager  is running 
-
-```
-### 3.1. To Run MS Workflow
-````
-    step 1) change the profil_sample.yaml  present in /cmd/pdctl/commands/yaml/profile_sample.yaml
-        1. Add Hw serial id 
-        2. Add HW macid 
-            note: hw mac format should be ip-mac  10.xx.xx.113-1c:xx:7a:xx:xx 
-        3. Add pd ip ,loadbalacer ip,diskpartition 
-        4. For ms workflow just define prod_focal-ms in platformtype
-        5. For zeroTouch/Non zero touch ZT/NZT in env
-        6. make the start  startonboarding: true to start onbaording
-    step 2) Trigger Pdctl commands
-           1. create the articate  pdctl artifact create --addr=localhost:50052 --insecure --input_file=./cmd/pdctl/commands/yaml/artifact_sample.yaml
-           2. replace the osartid with above genrated artifact value under ubuntu similarly for fwartids under bios 
-           3. Run pdctl profile create command to create the profile
-                pdctl profile create --addr=inventorymgrip:<port to communicate> --insecure --input_file=./commands/yaml/profile_sample.yaml
-           4. Run pdctl onboard command
-                pdctl onboard --addr=onboardingmgrip:<port>--profile-name=<Name used in profile_sample> --inv_addr=inventorymgrip:<port to communicate>  --insecure
-
-            
-       Example:
-        pdctl artifact create --addr=localhost:31846 --insecure --input_file=./cmd/pdctl/commands/yaml/artifact_sample.yaml
-        pdctl profile create --addr=localhost:31846 --insecure --input_file=./cmd/pdctl/commands/yaml/profile_sample.yaml
-        pdctl onboard --addr=onboardingmgrip:<port>--profile-name=<Name used in profile_sample> --inv_addr=inventorymgrip:<port to communicate>  --insecure`
+step 3) check if onboarding manager and inventory service  is running 
 
 ```
-### 3.2. To Run BKC Workflow
+### 3.1 Pdctl for End to End flow
 ````
-    step 1) change the profil_sample.yaml  present in /cmd/pdctl/commands/yaml/profile_sample.yaml
-        1. Add Hw serial id 
-        2. Add HW macid 
-            note: hw mac format should be ip-mac  10.xx.xx.113-1c:xx:7a:xx:xx 
-        3. Add pd ip ,loadbalacer ip,diskpartition 
-        4. For ms workflow just define prod_bkc in platformtype
-        5. For zeroTouch/Non zero touch ZT/NZT in env
-        6. make the start  startonboarding: true to start onbaording
-    step 2) Trigger Pdctl commands
-           1. create the articate  pdctl artifact create --addr=localhost:50052 --insecure --input_file=./cmd/pdctl/commands/yaml/artifact_sample.yaml
-           2. replace the osartid with above genrated artifact value under ubuntu similarly for fwartids under bios 
-           3. Run pdctl profile create command to create the profile
-                pdctl profile create --addr=inventorymgrip:<port to communicate> --insecure --input_file=./commands/yaml/profile_sample.yaml
-           4. Run pdctl onboard command
-                pdctl onboard --addr=onboardingmgrip:<port>--profile-name=<Name used in profile_sample> --inv_addr=inventorymgrip:<port to communicate>  --insecure
+    1) Navigate to frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/cmd/pdctl/
+    
+    2) Create a Host resource 
 
-            
-       Example:
-        pdctl artifact create --addr=localhost:31846 --insecure --input_file=./cmd/pdctl/commands/yaml/artifact_sample.yaml
-        pdctl profile create --addr=localhost:31846 --insecure --input_file=./cmd/pdctl/commands/yaml/profile_sample.yaml
-        pdctl onboard --addr=onboardingmgrip:<port>--profile-name=<Name used in profile_sample> --inv_addr=inventorymgrip:<port to communicate>  --insecure`
+    3) Create a Instance resource and associate it with host-id
+
+    4) Once onboarding manager is running, it will reconcile with the Instance state and onboarding process will start.
+
+    Examples:
+
+        1.  pdctl host-res create --addr=localhost:50051 --insecure  --hostname=OS  --bmc-kind=BAREMETAL_CONTROLLER_KIND_PDU  --uuid=9fa8a788-f9f8-434a-8620-bbed2a12b0ad -s=10.49.76.113 -x=1c:69:7a:a8:12:af -c=INSTANCE_STATE_UNSPECIFIED --bmc-ip=10.223.87.65
+    
+        Note : The output of above command will generate a Host ID = host-1234ab
+
+        2. pdctl instance-res create --addr=localhost:50051 --insecure --hostID=host-1234ab --kind=RESOURCE_KIND_INSTANCE -c=INSTANCE_STATE_INSTALLED 
+
+
 
 Note: make sure your dkam is running to get the urls 
+      Make sure your inventory service is running mentioned in step 5.1
 
-```
+````
 ## 4. Limitation and Caveats :
     Limitation :
         1) we can now only run one worklow for per profile either MS or BKC for multiple devices 
@@ -111,13 +90,13 @@ Note: make sure your dkam is running to get the urls
         5)Make sure to  add all the profile details in profile sample.yaml /cmd/pdctl
 
 
-====================================================================================================================================================
-====================================================================================================================================================
+===============================================================================================================================
+===============================================================================================================================
 
 # 5. Test Node Operations : Create, Get, Update, and Delete nodes using gRPC client
 
 ## 5.1 Run the Maestro Inventory Service
-```
+````
 git clone https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory
 
 cd frameworks.edge.one-intel-edge.maestro-infra.services.inventory/
@@ -138,7 +117,7 @@ curl -sSf https://atlasgo.sh | sh
 sudo cp -avr internal/ent/migrate/migrations /usr/share/
 
 ./build/miinv --policyBundle=./build/policy_bundle.tar.gz
-```
+````
 
 ## 5.2 Run the Onboarding service
 ```
@@ -153,3 +132,39 @@ go run cmd/pdctl/main.go nodes add --addr=localhost:50052 --insecure --hw-id=123
 
 go run cmd/pdctl/main.go nodes delete --addr=localhost:50052 --insecure --hw-id=123
 ```
+
+### End to End flow with PDCTL
+
+```mermaid
+sequenceDiagram
+%%{wrap}%%
+  autonumber
+  actor User as Trusted SI User/PDCTL
+  box NavajoWhite FMaaS
+    participant DKAM as DKAM
+    participant OM as Onboarding Manager
+    participant IM as Inventory Service
+  end
+  box Edge Node
+    participant Node as Node
+  end
+  note over IM,User: PDCTL registers as Inventory Client.Creates Host & associates Host to OS instance. 
+  User ->> IM : Create Host with Serial Number,UUID,MAC & IP
+  IM ->> User : Return unique Resource ID for the Host
+  User ->> IM : Create Instance Resource with Resource ID of Host
+  note over OM,IM : Inventory Service issues a Intent towards onboarding manager(Registered as Resource manager) after Instance is created.
+  IM ->>+ OM : Report when Instance Desired state - Onboarding Success
+  OM ->>+IM : GetInstancebyResourceID(ID) 
+  IM ->>+ OM : Return Instance resource with Host ID
+  OM ->>+ IM : GetHostDetails(Host ID)
+  OM ->>+ DKAM : GetOSDetails(Profile)
+  DKAM ->>+ OM : Return manifest.yaml with OS & Overlays
+  OM ->>+ OM : StartOnboarding(Profile + HW Details)
+  note over OM,IM: Onboarding process continues to FDO & OS Provisioning 
+```
+
+### Opens
+
+1. Need to create OS resource as a first step & populate with the manifest from DKAM. 
+2. While creating instance resource, OS resource also needs to be associated along with Host Resource.
+3. Integration with CDN boots.

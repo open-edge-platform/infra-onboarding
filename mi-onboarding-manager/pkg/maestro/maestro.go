@@ -1,3 +1,7 @@
+/*
+Copyright (C) 2023 Intel Corporation
+SPDX-License-Identifier: Apache-2.0
+*/
 package maestro
 
 import (
@@ -84,7 +88,14 @@ func CreateHostResource(ctx context.Context, c inv_client.InventoryClient, uuid 
 	return res.ResourceId, nil
 }
 
-func CreateInstanceResource(ctx context.Context, c inv_client.InventoryClient, inst *computev1.InstanceResource) (string, error) {
+func CreateInstanceResource(ctx context.Context, c inv_client.InventoryClient, inst *computev1.InstanceResource, hostID string) (string, error) {
+
+	// Set the host ID in the instance resource's Host field
+	inst.Host = &computev1.HostResource{
+
+		ResourceId: hostID,
+	}
+
 	resreq := &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Instance{
 			Instance: inst,

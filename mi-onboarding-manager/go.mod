@@ -9,6 +9,7 @@ go 1.21
 require (
 	github.com/apex/log v1.9.0
 	github.com/gocql/gocql v1.6.0
+	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.0.1
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory v0.7.3
 	github.com/jinzhu/configor v1.2.1
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826

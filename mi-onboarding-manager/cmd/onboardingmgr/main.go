@@ -9,12 +9,11 @@ import (
 	"context"
 	"flag"
 	"net"
-	"sync"
-	"time"
-
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
+	"time"
 
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/config"

@@ -9,16 +9,22 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/user"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
 
+	"google.golang.org/grpc"
+
+	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
+	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/onbworkflowclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/utils"
@@ -33,6 +39,8 @@ type ResponseData struct {
 	To0Expiry      string `json:"to0Expiry"`
 }
 
+var dkamAddr = flag.String("dkamaddr", "localhost:5581", "DKAM server address to connect to")
+
 func generateGatewayFromBaseIP(baseIP string) string {
 	// Extract the last part of the base IP and replace it with "1" to get the gateway
 	lastPart := strings.Split(baseIP, ".")[3]
@@ -41,22 +49,24 @@ func generateGatewayFromBaseIP(baseIP string) string {
 
 func createDeviceInfoListNAzureEnv(copyOfRequest *pb.OnboardingRequest) ([]utils.DeviceInfo, error) {
 	var deviceInfoList []utils.DeviceInfo
-	baseIP := copyOfRequest.OnbParams.PdIp
+
+	//TODO : Exported PDIP/LOAD_BALANCER_IP/DISK_PARITION instead of passing as parameters
+	baseIP := os.Getenv("PD_IP")
 	gateway := generateGatewayFromBaseIP(baseIP)
 
 	for _, hw := range copyOfRequest.Hwdata {
 		deviceInfo := utils.DeviceInfo{
-			HwSerialID:        hw.HwId,
-			HwMacID:           hw.MacId,
-			HwIP:              hw.SutIp,
-			DiskType:          hw.DiskPartition,
-			LoadBalancerIP:    copyOfRequest.OnbParams.LoadBalancerIp,
-			Gateway:           gateway,
-			ProvisionerIp:     copyOfRequest.OnbParams.PdIp,
-			ImType:            hw.PlatformType,
-			DpsScopeId:        hw.CusParams.DpsScopeId,
+			HwSerialID:     hw.HwId,
+			HwMacID:        hw.MacId,
+			HwIP:           hw.SutIp,
+			DiskType:       os.Getenv("DISK_PARTITION"),
+			LoadBalancerIP: os.Getenv("LOAD_BALANCER_IP"),
+			Gateway:        gateway,
+			ProvisionerIp:  os.Getenv("PD_IP"),
+			ImType:         os.Getenv("IMAGE_TYPE"),
+			/* DpsScopeId:        hw.CusParams.DpsScopeId,
 			DpsRegistrationId: hw.CusParams.DpsRegistrationId,
-			DpsSymmKey:        hw.CusParams.DpsEnrollmentSymKey,
+			DpsSymmKey:        hw.CusParams.DpsEnrollmentSymKey, */
 		}
 		deviceInfoList = append(deviceInfoList, deviceInfo)
 
@@ -317,10 +327,124 @@ func readUIDFromFile(filePath string) (string, error) {
 	return string(data), nil
 }
 
+// Temporary extraction of manifest file from DKAM using hostname
+func extractUrlsFromManifest(manifest string) (osUrl, overlayUrl string, err error) {
+	// Define regular expressions to match the URLs
+	osUrlRegex := regexp.MustCompile(`osurl:\s*(.*?)\n`)
+	overlayUrlRegex := regexp.MustCompile(`overlayscripturl:\s*(.*?)\n`)
+
+	// Find matches using the regular expressions
+	osUrlMatches := osUrlRegex.FindStringSubmatch(manifest)
+	overlayUrlMatches := overlayUrlRegex.FindStringSubmatch(manifest)
+
+	if len(osUrlMatches) < 2 || len(overlayUrlMatches) < 2 {
+		return "", "", fmt.Errorf("could not extract URLs from manifest")
+	}
+
+	return osUrlMatches[1], overlayUrlMatches[1], nil
+}
+
+func ConvertInstanceForOnboarding(instances []*computev1.InstanceResource, host *computev1.HostResource, response *dkam.GetArtifactsResponse) ([]*pb.OnboardingRequest, error) {
+	// Check if response or host is nil
+	if response == nil || host == nil {
+		log.Printf("DKAM response or host is nil")
+		return nil, errors.New("DKAM response or host is nil")
+	}
+
+	osUrl, overlayUrl, err := extractUrlsFromManifest(response.ManifestFile)
+	if err != nil {
+		log.Printf("Failed to extract URLs from manifest file: %v", err)
+		return nil, err
+	}
+
+	var onboardingRequests []*pb.OnboardingRequest
+	for range instances {
+
+		// Create an instance of OnboardingRequest and populate it
+		onboardingRequest := &pb.OnboardingRequest{
+			ArtifactData: []*pb.ArtifactData{
+				{
+					Name:       "OS", // TODO Harcoding it for now , will extract from OS resource
+					PackageUrl: osUrl,
+					Category:   1,
+				},
+				{
+					Name:       "PLATFORM", //TODO Hardcoding it for now
+					PackageUrl: overlayUrl,
+					Category:   1,
+				},
+			},
+			Hwdata: []*pb.HwData{
+				{
+					HwId:          host.GetUuid(),
+					MacId:         host.GetPxeMac(),
+					SutIp:         host.GetMgmtIp(),
+					DiskPartition: "123", // Adjust these accordingly
+					PlatformType:  host.GetHardwareKind(),
+					// Add other hardware data if needed
+				},
+				// Add other hardware data if needed
+			},
+			//TODO : parameters has to be mapped accordingly
+			/* CusParams: &pb.CustomerParams{
+				DpsScopeId:          "DPS12345",
+				DpsRegistrationId:   "REG45656",
+				DpsEnrollmentSymKey: "SecretKey123456",
+			}, */
+			/* OnbParams: &pb.OnboardingParams{
+			PdIp:           host.GetMgmtIp(),
+			PdMac:          "123",
+			LoadBalancerIp: "192.168.1.200", // Adjust this accordingly
+			DiskPartition:  "12", // Adjust this accordingly
+			Env:            "NZT",
+			// Add other parameters...
+			}, */
+		}
+
+		onboardingRequests = append(onboardingRequests, onboardingRequest)
+	}
+
+	// Return the onboarding request
+	return onboardingRequests, nil
+}
+
+type GetArtifactsResponse struct {
+	StatusCode   bool   `protobuf:"varint,1,opt,name=statusCode,proto3" json:"statusCode,omitempty"`
+	ManifestFile string `protobuf:"bytes,2,opt,name=manifest_file,json=manifestFile,proto3" json:"manifest_file,omitempty"`
+}
+
+func GetOSResourceFromDkam(ctx context.Context, inst *computev1.InstanceResource) (*dkam.GetArtifactsResponse, error) {
+	// Create a gRPC connection to DKAM server
+	dkamConn, err := grpc.Dial(*dkamAddr, grpc.WithInsecure())
+	if err != nil {
+		log.Fatalf("Failed to connect to DKAM server: %v", err)
+		return nil, err
+	}
+	defer dkamConn.Close()
+
+	// Create an instance of DkamServiceClient using the connection
+	dkamClient := dkam.NewDkamServiceClient(dkamConn)
+	response, err := dkamClient.GetArtifacts(ctx, &dkam.GetArtifactsRequest{
+		// TODO: Pass relevant parameters
+	})
+	if err != nil {
+		log.Fatalf("Failed to get software details from DKAM: %v", err)
+		return nil, err
+	}
+	if response == nil {
+		log.Fatalf("DKAM response is nil")
+		return nil, errors.New("DKAM response is nil")
+	}
+	log.Printf("DKAM Response: %v", response)
+
+	return response, nil
+}
+
 var mu sync.Mutex
 var requestCounter int
 
-func (s *OnboardingManager) StartOnboarding(ctx context.Context, req *pb.OnboardingRequest) (*pb.OnboardingResponse, error) {
+func StartOnboard(req *pb.OnboardingRequest) (*pb.OnboardingResponse, error) {
+
 	// Lock to ensure only one request is processed at a time
 	mu.Lock()
 	defer mu.Unlock()
@@ -358,4 +482,11 @@ func (s *OnboardingManager) StartOnboarding(ctx context.Context, req *pb.Onboard
 	}
 	result := fmt.Sprintf("Exited with Success:")
 	return &pb.OnboardingResponse{Status: result}, nil
+}
+
+func (s *OnboardingManager) StartOnboarding(ctx context.Context, req *pb.OnboardingRequest) (*pb.OnboardingResponse, error) {
+
+	//Moving changes to seperate function to enable both gRPC endpoint and onboarding manager to call from Instance Reconsile
+	return StartOnboard(req)
+
 }

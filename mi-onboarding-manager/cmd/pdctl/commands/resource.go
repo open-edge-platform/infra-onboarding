@@ -1,3 +1,7 @@
+/*
+Copyright (C) 2023 Intel Corporation
+SPDX-License-Identifier: Apache-2.0
+*/
 package commands
 
 import (
@@ -7,11 +11,8 @@ import (
 	"sync"
 	"time"
 
-	maestro "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/maestro"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
-	location_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/location/v1"
-	provider_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/provider/v1"
-	tenant_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/tenant/v1"
+	maestro "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/maestro"
 	"github.com/spf13/cobra"
 )
 
@@ -69,12 +70,14 @@ func InstanceResCmds() *cobra.Command {
 	}
 
 	createCmd.Flags().StringP("kind", "k", "", "Kind of instance (required)")
+	createCmd.Flags().StringP("hostID", "y", "", "host id (required)")
 	createCmd.Flags().StringP("desired-state", "d", "", "Desired state of the instance")
 	createCmd.Flags().StringP("current-state", "c", "", "Current state of the instance")
 	createCmd.Flags().Uint64("vm-memory-bytes", 0, "Quantity of memory in the system, in bytes")
 	createCmd.Flags().Uint32("vm-cpu-cores", 0, "Number of CPU cores")
 	createCmd.Flags().Uint64("vm-storage-bytes", 0, "Storage quantity (primary), in bytes")
 	must(createCmd.MarkFlagRequired("kind"))
+	must(createCmd.MarkFlagRequired("hostID"))
 
 	updateCmd := &cobra.Command{
 		Use:   "update",
@@ -173,6 +176,7 @@ func createInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 		vmMemoryBytes, _ := cmd.Flags().GetUint64("vm-memory-bytes")
 		vmCpuCores, _ := cmd.Flags().GetUint32("vm-cpu-cores")
 		vmStorageBytes, _ := cmd.Flags().GetUint64("vm-storage-bytes")
+		hostID, _ := cmd.Flags().GetString("hostID")
 
 		termChan := make(chan bool)
 
@@ -189,6 +193,7 @@ func createInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 			VmMemoryBytes:  vmMemoryBytes,
 			VmCpuCores:     vmCpuCores,
 			VmStorageBytes: vmStorageBytes,
+
 			// Set other fields based on parameters
 		}
 
@@ -197,7 +202,7 @@ func createInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 			return err
 		}
 
-		instanceID, err := maestro.CreateInstanceResource(ctx, client, instance)
+		instanceID, err := maestro.CreateInstanceResource(ctx, client, instance, hostID)
 		if err != nil {
 			return err
 		}
@@ -333,11 +338,6 @@ func HostResCmds() *cobra.Command {
 		RunE:  createResource(context.Background(), &dialer),
 	}
 
-	createCmd.Flags().StringP("project-id", "p", "", "Project ID")
-	createCmd.Flags().StringP("provider-id", "r", "", "Provider ID")
-	createCmd.Flags().StringP("site-id", "s", "", "Site ID")
-	createCmd.Flags().StringP("user-id", "y", "", "User ID")
-	createCmd.Flags().StringP("serial-number", "n", "", "Serial Number")
 	createCmd.Flags().StringP("bmc-kind", "b", "", "BMC Kind")
 	createCmd.Flags().StringP("bmc-ip", "i", "", "BMC IP")
 	createCmd.Flags().StringP("bmc-username", "u", "", "BMC Username")
@@ -346,7 +346,13 @@ func HostResCmds() *cobra.Command {
 	createCmd.Flags().StringP("hostname", "w", "", "Hostname")
 	createCmd.Flags().StringP("kind", "k", "", "Kind of instance")
 	createCmd.Flags().StringP("uuid", "d", "", "UUID (required)")
+	createCmd.Flags().StringP("serial-number", "s", "", "serial number (required)")
+	createCmd.Flags().StringP("sut-ip", "t", "", "Sut-ip")
+	createCmd.Flags().StringP("desired-state", "e", "", "Desired state of the host")
+	createCmd.Flags().StringP("current-state", "c", "", "Current state of the host")
 	createCmd.MarkFlagRequired("uuid")
+	createCmd.MarkFlagRequired("hostname")
+	createCmd.MarkFlagRequired("sut-ip")
 
 	updateCmd := &cobra.Command{
 		Use:   "update",
@@ -363,6 +369,9 @@ func HostResCmds() *cobra.Command {
 	updateCmd.Flags().StringP("hostname", "w", "", "Hostname")
 	updateCmd.Flags().StringP("kind", "k", "", "Kind of instance")
 	updateCmd.Flags().StringP("current-state", "c", "", "Current state")
+	updateCmd.Flags().StringP("desired-state", "d", "", "desired state")
+
+	updateCmd.Flags().StringP("sut-ip", "t", "", "Sut ip")
 
 	deleteCmd := &cobra.Command{
 		Use:   "delete",
@@ -385,11 +394,6 @@ func createResource(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 		}
 		defer cc.Close()
 
-		projectID, _ := cmd.Flags().GetString("project-id")
-		providerID, _ := cmd.Flags().GetString("provider-id")
-		siteID, _ := cmd.Flags().GetString("site-id")
-		userID, _ := cmd.Flags().GetString("user-id")
-		serialNumber, _ := cmd.Flags().GetString("serial-number")
 		bmcKind, _ := cmd.Flags().GetString("bmc-kind")
 		bmcIP, _ := cmd.Flags().GetString("bmc-ip")
 		bmcUsername, _ := cmd.Flags().GetString("bmc-username")
@@ -398,6 +402,10 @@ func createResource(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 		hostname, _ := cmd.Flags().GetString("hostname")
 		kind, _ := cmd.Flags().GetString("kind")
 		uuid, _ := cmd.Flags().GetString("uuid")
+		serialNumber, _ := cmd.Flags().GetString("serial-number")
+		mgmtIp, _ := cmd.Flags().GetString("sut-ip")
+		desiredState, _ := cmd.Flags().GetString("desired-state")
+		currentState, _ := cmd.Flags().GetString("current-state")
 
 		termChan := make(chan bool)
 
@@ -408,18 +416,6 @@ func createResource(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 		defer close(eventCh)
 
 		hostResource := &computev1.HostResource{
-			Project: &tenant_v1.ProjectResource{
-				ResourceId: projectID,
-			},
-			Provider: &provider_v1.ProviderResource{
-				ResourceId: providerID,
-			},
-			Site: &location_v1.SiteResource{
-				ResourceId: siteID,
-			},
-			User: &tenant_v1.UserResource{
-				ResourceId: userID,
-			},
 			SerialNumber: serialNumber,
 			BmcKind:      computev1.BaremetalControllerKind(computev1.BaremetalControllerKind_value[bmcKind]),
 			BmcIp:        bmcIP,
@@ -428,6 +424,9 @@ func createResource(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 			PxeMac:       pxeMAC,
 			Hostname:     hostname,
 			Kind:         kind,
+			MgmtIp:       mgmtIp,
+			DesiredState: computev1.HostState(computev1.HostState_value[desiredState]),
+			CurrentState: computev1.HostState(computev1.HostState_value[currentState]),
 		}
 
 		// Validate the host resource
@@ -611,6 +610,15 @@ func updateHost(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command
 		}
 		if hostname, _ := cmd.Flags().GetString("hostname"); hostname != "" {
 			host.Hostname = hostname
+		}
+		if mgmtIp, _ := cmd.Flags().GetString("sut-ip"); mgmtIp != "" {
+			host.MgmtIp = mgmtIp
+		}
+		if desiredState, _ := cmd.Flags().GetString("desired-state"); desiredState != "" {
+			host.DesiredState = computev1.HostState(computev1.HostState_value[desiredState])
+		}
+		if currentState, _ := cmd.Flags().GetString("current-state"); currentState != "" {
+			host.CurrentState = computev1.HostState(computev1.HostState_value[currentState])
 		}
 
 		err = maestro.UpdateHostResource(ctx, client, host)

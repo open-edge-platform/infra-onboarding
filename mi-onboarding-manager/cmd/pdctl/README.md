@@ -82,6 +82,17 @@ Note: Connect to Inventory service (add parameters accordingly)
 
 	6. pdctl host-res update --addr=<ip or localhost>:<port> --insecure -r=<resource_id> --bmc-username=<updated_value> 
 
+## Examples of Mapping Instances and Host resource Commands:
+
+	1. pdctl host-res create --addr=<ip or localhost>:<port> --insecure  --hostname=<name> --bmc-kind=<value> --bmc-ip=<bmc_ip> --bmc-username=<username> --bmc-password=<password> --uuid=<id> --sut-ip=<mgmt_ip>
+
+	Note : Create Instance with host ID generated from above command
+
+	2. pdctl instance-res create --addr=<ip or localhost>:<port> --kind=RESOURCE_KIND_INSTANCE --vm-cpu-cores=<value> --insecure --hostID=<host-id from above step 1>
+
+	Note : Once the reconcliation starts, DKAM will send the response for respective resource and onboarding will be started.
+
+
 
 
 

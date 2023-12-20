@@ -183,6 +183,9 @@ github.com/imdario/mergo
 # github.com/inconshreveable/mousetrap v1.1.0
 ## explicit; go 1.18
 github.com/inconshreveable/mousetrap
+# github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.0.1
+## explicit; go 1.21
+github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr
 # github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory v0.7.3
 ## explicit; go 1.21
 github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent
