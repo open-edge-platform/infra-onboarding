@@ -95,26 +95,101 @@ Update config file which holds all the configuration details needed for the setu
 ## How to test
 
 >Note: Install earthly
+### Clone Repo
+```
+git clone https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service.git
 
-1. Build provisioning CLI tool using Earthfile
+cd frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service
 
-   ```bash
-   earthly +build-onboardingcli
-   ```
+```
+### Build PDCTL CLI tool
 
-2. Update `internal/onboardingmgr/test/client/profile_sample.yaml` with OS profile and node details. Update `macid` with edge node mac ID, `sutip` with IP address of the node, `pdip` with provisioning service IP and `loadbalancerip`.
+```
+   cd cmd/pdctl/
+   go install
+```
 
-3. Set ENV variables `MGR_HOST` to IP of provisioning system and `ONBMGR_PORT` to 32000 which is node port of onboarding manager service.
+### Exporting Onboarding Parameters
+```
+export PD_IP=<pd_ip>
+export DISK_PARTITION=/da/sda
+export LOAD_BALANCER_IP=<load_balancer_ip>
+export IMAGE_TYPE= prod_bkc
+```
 
-4. Run onboardingcli
+## Run Onboarding manager
 
-    ```bash
-    cd internal/onboardingmgr/test/client/
-    ../../../../build/onboardingcli
-    ```
+```
+cd cmd/onboardingmgr
+go run main.go
+```
 
-5. On edge node complete the configuring the secure boot and HTTPS boot using KVM console/ Dell idRAC. Refer to step
+## Run the Maestro Inventory Service in new window
+
+```
+git clone https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory
+cd frameworks.edge.one-intel-edge.maestro-infra.services.inventory/
+	@@ -138,7 +116,7 @@ curl -sSf https://atlasgo.sh | sh
+sudo cp -avr internal/ent/migrate/migrations /usr/share/
+./build/miinv --policyBundle=./build/policy_bundle.tar.gz
+
+```
+
+## PDCTL based E-E onboarding flow
+
+### 1) Create a Host resource 
+
+```
+pdctl host-res create --addr=<inventory_service>:<port> --insecure --hostname=<name> --bmc-kind=BAREMETAL_CONTROLLER_KIND_PDU --uuid=<uuid> --sut-ip=<sut-ip> --pxe-mac=<mac> -c=INSTANCE_STATE_UNSPECIFIED --bmc-ip=<bmc_ip>
+
+Note : The output of above command will give Host ID = <>
+```
+
+### 2) Create a Instance resource and associate it with host-id
+
+```
+pdctl instance-res create --addr=<inventory_service>:<port> --insecure --hostID=<host-id from above output> --kind=RESOURCE_KIND_INSTANCE -c=INSTANCE_STATE_INSTALLED
+```
+
+3) Once onboarding manager is running, it will reconcile with the Instance state and onboarding process will start.
 
 6. Choose boot option to boot from UEFI HTTP
 
 7. After this on the node side operations will happen without intervention. Monitor the logs of onboarding manager service and tinker boots log.
+
+### End to End flow with PDCTL
+
+```mermaid
+sequenceDiagram
+%%{wrap}%%
+  autonumber
+  actor User as Trusted SI User/PDCTL
+  box NavajoWhite FMaaS
+    participant DKAM as DKAM
+    participant OM as Onboarding Manager
+    participant IM as Inventory Service
+  end
+  box Edge Node
+    participant Node as Node
+  end
+  note over IM,User: PDCTL registers as Inventory Client.Creates Host & associates Host to OS instance. 
+  User ->> IM : Create Host with Serial Number,UUID,MAC & IP
+  IM ->> User : Return unique Resource ID for the Host
+  User ->> IM : Create Instance Resource with Resource ID of Host
+  note over OM,IM : Inventory Service issues a Intent towards onboarding manager(Registered as Resource manager) after Instance is created.
+  IM ->>+ OM : Report when Instance Desired state - Onboarding Success
+  OM ->>+IM : GetInstancebyResourceID(ID) 
+  IM ->>+ OM : Return Instance resource with Host ID
+  OM ->>+ IM : GetHostDetails(Host ID)
+  OM ->>+ DKAM : GetOSDetails(Profile)
+  DKAM ->>+ OM : Return manifest.yaml with OS & Overlays
+  OM ->>+ OM : StartOnboarding(Profile + HW Details)
+  note over OM,IM: Onboarding process continues to FDO & OS Provisioning 
+```
+
+### Next Steps
+
+1. Need to create OS resource as a first step & populate with the manifest from DKAM. 
+2. While creating instance resource, OS resource also needs to be associated along with Host Resource.
+3. Integration with CDN boots.
+4. Need to test by deploying onboarding manager & inventory service.
