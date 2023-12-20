@@ -30,7 +30,7 @@ func (server *Service) GetArtifacts(ctx context.Context, req *pb.GetArtifactsReq
     log.Println("Platform:", platform)
 
     data := Data{
-		OsUrl: "https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu-base/20230911-1844/default/ubuntu-22.04-desktop-amd64+intel-iot-37-custom.qcow2.bz2",
+		OsUrl: "https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu-base/20230911-1844/default/ubuntu-22.04-desktop-amd64+intel-iot-37-custom.img.bz2",
 		OverlayScriptUrl:"https://ubit-artifactory-sh.intel.com/artifactory/sed-dgn-local/yocto/dev-test-image/DKAM/IAAS/ADL/installer23WW44.4_2148.sh",
 	}
 
