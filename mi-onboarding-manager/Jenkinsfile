@@ -1,8 +1,6 @@
 def getEnvFromBranch(branch) {
     if (branch ==~ /main/) {
-        // Removing protex for now. It has some issue. Ticket raised with IT.
-        //return 'virus,protex,hadolint,checkmarx'
-        return 'virus,hadolint,checkmarx'
+        return 'virus,protex,hadolint,checkmarx'
     }
     else {
         return 'virus,checkmarx,hadolint'
@@ -348,8 +346,7 @@ pipeline {
         }
         failure {
 		    script {
-		        def currentBranch = env.BRANCH_NAME
-                if (currentBranch ==~ env.branchPattern && authorEmail) {
+                if (authorEmail) {
                     emailext(
                     subject: "Build failed on main branch for ${GIT_SHORT_URL}",
                     body: "The build on the main branch failed. Please check the logs for more details. Your PR was the last change, this is why you're receiving this email",
