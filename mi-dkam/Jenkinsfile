@@ -1,6 +1,6 @@
 def getEnvFromBranch(branch) {
     if (branch ==~ /main/) {
-        return 'virus,hadolint,checkmarx'
+        return 'virus,protex,hadolint,checkmarx'
     }
     else {
         return 'virus,checkmarx,hadolint'
@@ -10,7 +10,7 @@ def getEnvFromBranch(branch) {
 
 pipeline {
     triggers {
-        // nightly build between 23:00 a.m. - 23:59 a.m.(Etc/UTC), Monday - Friday:
+        // nightly build between 23:00 a.m. - 23:59 a.m.(Etc/UTC), Monday - Friday: 
         cron(env.BRANCH_NAME =~ /main/ ? 'H 23 * * 1-5' : '')
     }
     agent {
@@ -364,7 +364,6 @@ pipeline {
         }
         failure {
 		    script {
-		        //def currentBranch = env.BRANCH_NAME
                 if (authorEmail) {
                     emailext(
                     subject: "Build failed on main branch for ${GIT_SHORT_URL}",
