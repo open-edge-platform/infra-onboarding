@@ -27,7 +27,6 @@ spec:
               - key: node-role.kubernetes.io/control-plane
                 operator: In
                 values: [ "true", "" ]
-      hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: dkammgr-container

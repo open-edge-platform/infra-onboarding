@@ -32,6 +32,7 @@ ARG --global IMG_NAME=$(echo $IMG_NAME)
 ARG --global VERSION=$(echo $VERSION)
 
 all:
+    BUILD +test
     BUILD +build-dkam-stack
 
 build-dkam-stack:
@@ -39,6 +40,13 @@ build-dkam-stack:
     BUILD +docker-dkammgr
     BUILD +helm-dkammgr
     BUILD +build-dkamcli
+
+test:
+    RUN go install github.com/magefile/mage@latest && \
+        go install github.com/onsi/ginkgo/v2/ginkgo@v2.9.7
+    WORKDIR /work
+    COPY . .
+    RUN mage -v test:go
 
 build-dkammgr:
     ARG version='0.0.0-unknown'
