@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/logger"
 	"k8s.io/client-go/rest"
@@ -50,7 +51,6 @@ type (
 	}
 
 	ArtifactCategory string
-
 )
 
 const (
@@ -75,7 +75,6 @@ type Repository interface {
 	UpdateArtifacts(ctx context.Context, data []ArtifactData) error
 	GetArtifacts(ctx context.Context, data ArtifactData) ([]*ArtifactData, error)
 	DeleteArtifacts(ctx context.Context, ids []string) error
-
 
 	Close() error
 }
@@ -202,7 +201,6 @@ func MarshalToStr(data interface{}) (string, error) {
 	return b.String(), nil
 }
 
-
 func UnmarshalStrArray(data string) ([]string, error) {
 	if data == "" {
 		return nil, nil
@@ -215,4 +213,18 @@ func UnmarshalStrArray(data string) ([]string, error) {
 		return nil, err
 	}
 	return p, nil
+}
+
+func UnmarshalOnboardingParams(data string) (*pb.OnboardingParams, error) {
+	if data == "" {
+		return nil, nil
+	}
+	r := strings.NewReader(data)
+	decoder := json.NewDecoder(r)
+	var p pb.OnboardingParams
+	err := decoder.Decode(&p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
 }

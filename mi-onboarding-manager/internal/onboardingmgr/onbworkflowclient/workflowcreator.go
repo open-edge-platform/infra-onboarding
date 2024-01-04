@@ -27,14 +27,19 @@ import (
 	"time"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/utils"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/tinkerbell"
+	tinkv1alpha1 "github.com/tinkerbell/tink/api/v1alpha1"
 	"gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func ConvertToJSONSerializable(input interface{}) interface{} {
@@ -288,6 +293,23 @@ func checkJobStatus(kubeconfigPath, namespace, jobName, HwId string) error {
 	}
 
 	return nil
+}
+
+func newK8SClient(kubeconfigPath string) (client.Client, error) {
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tinkv1alpha1.AddToScheme(scheme.Scheme); err != nil {
+		return nil, err
+	}
+
+	client, err := client.New(config, client.Options{Scheme: scheme.Scheme})
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
 }
 
 func CreateTemplateWorkflow(deviceInfo utils.DeviceInfo, kubeconfigPath string, workflowName string) (string, error) {
@@ -1024,115 +1046,171 @@ func ToWorkflowCreation(deviceInfo utils.DeviceInfo, kubeconfigpath string) erro
 }
 
 func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, kubeconfigpath string, imgtype string) error {
+	client, err := newK8SClient(kubeconfigpath)
+	if err != nil {
+		return err
+	}
 
-	//TODO: Remove hardcoding of the filename decide based on input
-	// // data.WorkflowName = "template_widi.yaml"
-	var templatepath string
-	var workflowpath string
+	var (
+		ctx      = context.Background()
+		ns       = "tink-system"
+		id       = GenerateMacIdString(deviceInfo.HwMacID)
+		tmplName string
+		tmplData []byte
+	)
 
 	if imgtype == "prod_bkc" {
-		templatepath = "/manifests/prod/template_prod_bkc.yaml"
-		workflowpath = "/manifests/prod/workflow.yaml"
+		tmplName = fmt.Sprintf("bkc-%s-prod", id)
 		deviceInfo.ImType = "bkc"
+		deviceInfo.Rootfspart, deviceInfo.RootfspartNo = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
+		tmplData, err = tinkerbell.NewTemplateDataProdBKC(tmplName, deviceInfo.Rootfspart,
+			deviceInfo.LoadBalancerIP, deviceInfo.ClientImgName)
+		if err != nil {
+			return err
+		}
 	} else if imgtype == "prod_focal" {
-
-		templatepath = "/manifests/prod/template_prod.yaml"
-		workflowpath = "/manifests/prod/workflow.yaml"
+		tmplName = fmt.Sprintf("focal-%s-prod", id)
 		deviceInfo.ClientImgName = "focal-server-cloudimg-amd64.raw.gz"
 		deviceInfo.ImType = "focal"
-
+		deviceInfo.Rootfspart, deviceInfo.RootfspartNo = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
+		tmplData, err = tinkerbell.NewTemplateDataProd(tmplName, deviceInfo.Rootfspart,
+			deviceInfo.RootfspartNo, deviceInfo.LoadBalancerIP)
+		if err != nil {
+			return err
+		}
 	} else if imgtype == "prod_focal-ms" {
-		log.Printf("Device Serial number---------------inside ms")
-		templatepath = "/manifests/prod/template_prod_ms.yaml"
-		workflowpath = "/manifests/prod/workflow.yaml"
+		tmplName = fmt.Sprintf("focal-ms-%s-prod", id)
 		deviceInfo.ImType = "focal-ms"
-
+		deviceInfo.Rootfspart, deviceInfo.RootfspartNo = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
+		tmplData, err = tinkerbell.NewTemplateDataProdMS(tmplName, deviceInfo.Rootfspart, deviceInfo.RootfspartNo,
+			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.HwMacID)
+		if err != nil {
+			return err
+		}
 	} else {
-		templatepath = "/manifests/prod/template_prod.yaml"
-		workflowpath = "/manifests/prod/workflow.yaml"
+		tmplName = fmt.Sprintf("focal-%s-prod", id)
 		deviceInfo.ClientImgName = "jammy-server-cloudimg-amd64.raw.gz"
 		deviceInfo.ImType = "jammy"
-
+		deviceInfo.Rootfspart, deviceInfo.RootfspartNo = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
+		tmplData, err = tinkerbell.NewTemplateDataProd(tmplName, deviceInfo.Rootfspart,
+			deviceInfo.RootfspartNo, deviceInfo.LoadBalancerIP)
+		if err != nil {
+			return err
+		}
 	}
 
 	fmt.Println("production workflow started.......................................")
 	// have notification from sut
-	ROOTFS_PARTITION, ROOTFS_PART_NO := CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
-	log.Printf("ROOTFS_PART_NO %s /// ROOTFS_PARTITION %s", ROOTFS_PART_NO, ROOTFS_PARTITION)
-	deviceInfo.RootfspartNo = ROOTFS_PART_NO
-	deviceInfo.Rootfspart = ROOTFS_PARTITION
+	log.Printf("ROOTFS_PART_NO %s /// ROOTFS_PARTITION %s", deviceInfo.RootfspartNo, deviceInfo.Rootfspart)
 
-	prodtemplatename, tempale_err := CreateTemplateWorkflow(deviceInfo, kubeconfigpath, templatepath)
-	if tempale_err != nil {
-		// Handle the error, for example, log it or return an error response
-		return tempale_err
+	tmpl := tinkerbell.NewTemplate(string(tmplData), tmplName, ns)
+	if err := client.Create(ctx, tmpl); err != nil {
+		return err
 	}
-	fmt.Printf("template workflow applied workflowname:%s", prodtemplatename)
-	// fmt.Println("Tempalte Workflow applied")
+	fmt.Printf("template workflow applied workflowname:%s", tmpl.Name)
 
-	// // data.WorkflowName = "workflow.yaml"
-	prodworkflowname, err4 := CreateTemplateWorkflow(deviceInfo, kubeconfigpath, workflowpath)
-	if err4 != nil {
-		// Handle the error, for example, log it or return an error response
-		return err4
+	wf := tinkerbell.NewWorkflow(fmt.Sprintf("workflow-%s-prod", id), ns, deviceInfo.HwMacID)
+	wf.Spec.HardwareRef = "machine-" + id
+	wf.Spec.TemplateRef = fmt.Sprintf("%s-%s-prod", deviceInfo.ImType, id)
+	if err := client.Create(ctx, wf); err != nil {
+		return err
 	}
-	fmt.Printf("workflow applied workflowname:%s", prodworkflowname)
+	fmt.Printf("workflow applied workflowname:%s", wf.Name)
 
-	err5 := waitForWorkflowSuccess(kubeconfigpath, "tink-system", prodworkflowname)
-	if err5 != nil {
-		log.Fatalf("Error waiting for workflow success: %v", err5)
-		return err5
+	check := func() (bool, error) {
+		err := client.Get(ctx, types.NamespacedName{Namespace: wf.Namespace, Name: wf.Name}, wf)
+		if err != nil {
+			return false, err
+		}
+		log.Printf("Workflow %s state: %s\n", wf.Name, wf.Status.State)
+		return strings.ToUpper(string(wf.Status.State)) == "STATE_SUCCESS", nil
 	}
-	fmt.Println("workflow-1c697a0eb228 has reached STATE_SUCCESS")
+
+	if err := wait.PollUntilContextTimeout(ctx, 20*time.Second, time.Hour, false, func(_ context.Context) (bool, error) {
+		success, err := check()
+		if err != nil {
+			log.Printf("Error checking workflow status: %v", err)
+			return false, err
+		}
+		if success {
+			log.Printf("Workflow %s has reached STATE_SUCCESS", wf.Name)
+		}
+		return success, nil
+	}); err != nil {
+		return fmt.Errorf("Workflow did not reach STATE_SUCCESS: %v", err)
+	}
 
 	////////////////////////////////To workflow Cleanup//////////////////////////
-	//TODO:replace the namespace other info from Groupinfo struct
-	template_to_delete_err := DeleteWorkflow(kubeconfigpath, "tink-system", prodtemplatename, "templates")
-	if template_to_delete_err != nil {
-		fmt.Printf("Error: %v\n", template_to_delete_err)
+	if err := client.Delete(ctx, tmpl); err != nil {
+		return err
 	}
-	workflow_to_delete_err := DeleteWorkflow(kubeconfigpath, "tink-system", prodworkflowname, "workflows")
-	if workflow_to_delete_err != nil {
-		fmt.Printf("Error: %v\n", workflow_to_delete_err)
+
+	if err := client.Delete(ctx, wf); err != nil {
+		return err
 	}
+
 	return nil
 }
 
-//function to create To workflow
-
 func DiWorkflowCreation(deviceInfo utils.DeviceInfo, kubeconfigpath string) (string, error) {
-
-	//TODO: Remove hardcoding of the filename decide based on input
-	dihardwarename, hardware_err4 := CreateTemplateWorkflow(deviceInfo, kubeconfigpath, "/manifests/di/hardware.yaml")
-	if hardware_err4 != nil {
-		// Handle the error, for example, log it or return an error response
-		return "", hardware_err4
+	client, err := newK8SClient(kubeconfigpath)
+	if err != nil {
+		return "", err
 	}
-	fmt.Printf("hardware workflow applied hardwarename:%s", dihardwarename)
 
-	// // data.WorkflowName = "template_widi.yaml"
-	ditemplatename, tempale_err := CreateTemplateWorkflow(deviceInfo, kubeconfigpath, "/manifests/di/template_di.yaml")
-	if tempale_err != nil {
-		// Handle the error, for example, log it or return an error response
-		return "", tempale_err
-	}
-	fmt.Printf("template workflow applied workflowname:%s", ditemplatename)
-	// fmt.Println("Tempalte Workflow applied")
+	ctx := context.Background()
+	ns := "tink-system"
+	id := GenerateMacIdString(deviceInfo.HwMacID)
 
-	// // data.WorkflowName = "workflow.yaml"
-	diworkflowname, err4 := CreateTemplateWorkflow(deviceInfo, kubeconfigpath, "/manifests/di/workflow.yaml")
-	if err4 != nil {
-		// Handle the error, for example, log it or return an error response
-		return "", err4
+	hw := tinkerbell.NewHardware("machine-"+id, ns, deviceInfo.HwMacID,
+		deviceInfo.DiskType, deviceInfo.HwIP, deviceInfo.Gateway)
+	if err := client.Create(ctx, hw); err != nil {
+		return "", err
 	}
-	fmt.Printf("workflow applied workflowname:%s", diworkflowname)
+	fmt.Printf("hardware workflow applied hardwarename:%s", hw.Name)
 
-	err5 := waitForWorkflowSuccess(kubeconfigpath, "tink-system", diworkflowname)
-	if err5 != nil {
-		log.Fatalf("Error waiting for workflow success: %v", err5)
-		return "", err5
+	tmplName := "fdodi-" + id
+	tmplData, err := tinkerbell.NewTemplateData(tmplName, deviceInfo.ProvisionerIp, "CLIENT-SDK-TPM",
+		deviceInfo.DiskType, deviceInfo.HwSerialID)
+	if err != nil {
+		return "", err
 	}
-	fmt.Printf("%s has reached STATE_SUCCESS\n", diworkflowname)
+	tmpl := tinkerbell.NewTemplate(string(tmplData), tmplName, ns)
+	if err := client.Create(ctx, tmpl); err != nil {
+		return "", err
+	}
+	fmt.Printf("template workflow applied workflowname:%s", tmpl.Name)
+
+	wf := tinkerbell.NewWorkflow("workflow-"+id, ns, deviceInfo.HwMacID)
+	wf.Spec.HardwareRef = hw.Name
+	wf.Spec.TemplateRef = tmpl.Name
+	if err := client.Create(ctx, wf); err != nil {
+		return "", err
+	}
+	fmt.Printf("workflow applied workflowname:%s", wf.Name)
+
+	check := func() (bool, error) {
+		err := client.Get(ctx, types.NamespacedName{Namespace: wf.Namespace, Name: wf.Name}, wf)
+		if err != nil {
+			return false, err
+		}
+		log.Printf("Workflow %s state: %s\n", wf.Name, wf.Status.State)
+		return strings.ToUpper(string(wf.Status.State)) == "STATE_SUCCESS", nil
+	}
+
+	if err := wait.PollUntilContextTimeout(ctx, 20*time.Second, time.Hour, false, func(_ context.Context) (bool, error) {
+		success, err := check()
+		if err != nil {
+			log.Printf("Error checking workflow status: %v", err)
+			return false, err
+		}
+		if success {
+			log.Printf("Workflow %s has reached STATE_SUCCESS", wf.Name)
+		}
+		return success, nil
+	}); err != nil {
+		return "", fmt.Errorf("Workflow did not reach STATE_SUCCESS: %v", err)
+	}
 
 	/////////////////////Voucher extension//////////////////////
 	guid, err := VoucherScript(deviceInfo.ProvisionerIp, deviceInfo.HwSerialID)
@@ -1141,15 +1219,15 @@ func DiWorkflowCreation(deviceInfo utils.DeviceInfo, kubeconfigpath string) (str
 	} else {
 		fmt.Printf("GUID: %s\n", guid)
 	}
+
 	////////////////////////////////Di workflow Cleanup//////////////////////////
-	//TODO:replace the namespace other info from Groupinfo struct
-	template_delete_err := DeleteWorkflow(kubeconfigpath, "tink-system", ditemplatename, "templates")
-	if template_delete_err != nil {
-		fmt.Printf("Error: %v\n", template_delete_err)
+	if err := client.Delete(ctx, tmpl); err != nil {
+		return "", err
 	}
-	workflo_di_delete_err := DeleteWorkflow(kubeconfigpath, "tink-system", diworkflowname, "workflows")
-	if workflo_di_delete_err != nil {
-		fmt.Printf("Error: %v\n", workflo_di_delete_err)
+
+	if err := client.Delete(ctx, wf); err != nil {
+		return "", err
 	}
+
 	return guid, nil
 }
