@@ -149,14 +149,14 @@ pipeline {
             }
         }
         
-      /*stage('Test Code') {
+      stage('Test Code') {
             steps {
                 echo "Test the code"
                 sh '''
                 make test
                 '''
             }
-            post{
+        /*    post{
                 success{
                     cobertura coberturaReportFile: 'build/coverage.xml', 
                         conditionalCoverageTargets: "${env.cobertura_healthy}, ${env.cobertura_unhealthy}, ${env.cobertura_unstable}", 
@@ -172,8 +172,8 @@ pipeline {
                         autoUpdateStability: false
                     junit 'build/report.xml'
                 }
-            }
-        }*/
+            } */
+        }
 
         stage('Validate clean repo') {
             steps {
@@ -288,7 +288,7 @@ pipeline {
                         SDLE_UPLOAD_USER_IDSID         = 'sys_pmce_git'
                         SDLE_UPLOAD_CREDENTIAL_ID  = 'lp.credentials.sdleUpload'
 
-                        // publishArtifacts details
+                        // publishArtifacts details 
                         ARTIFACT_RETENTION_PERIOD    = ''
                         ARTIFACTORY_URL              = 'https://ubit-artifactory-or.intel.com/artifactory'
                         ARTIFACTS_REPO               = "one-intel-edge-or-local/${SUB_PROJECT_NAME}"

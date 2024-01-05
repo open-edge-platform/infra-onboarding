@@ -28,9 +28,19 @@ DOCKER_REGISTRY         ?= amr-registry.caas.intel.com
 DOCKER_REPOSITORY       ?= one-intel-edge/maestro-i
 DOCKER_TAG              := ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}
 
+# Postgres DB configuration and credentials for testing. This mimics the Aurora
+# production environment.
+export PGUSER=admin
+export PGHOST=localhost
+export PGDATABASE=postgres
+export PGPORT=5432
+export PGPASSWORD=pass
+export PGSSLMODE=disable
+
+
 # Tools versions
 GOLINTVERSION_HAVE        := $(shell golangci-lint version | sed 's/.*version //' | sed 's/ .*//')
-
+POSTGRES_VERSION          := 14.9
 # Create the virtualenv with python tools installed
 VENV_NAME = venv_midkammgr
 
@@ -74,10 +84,7 @@ lint:
 	@echo "---END MAKEFILE LINT---"
 
 test:
-	@# Help: Runs test stage
-	@echo "---MAKEFILE TEST---"
-	echo $@
-	@echo "---END MAKEFILE TEST---"
+	earthly +test
 	
 coverage:
 	@# Help: Runs coverage stage
