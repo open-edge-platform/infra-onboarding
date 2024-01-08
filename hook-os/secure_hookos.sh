@@ -19,7 +19,7 @@ GPG_KEY_DIR=$PWD/gpg_key
 SB_KEYS_DIR=$PWD/sb_keys
 PROXY=1
 public_gpg_key=$PWD/boot.key
-STORE_ALPINE=$PWD/alpine_image_secureboot/
+STORE_ALPINE_SECUREBOOT=$PWD/alpine_image_secureboot/
 GRUB_CFG_LOC=${PWD}/grub.cfg
 GRUB_SRC=$PWD/grub_source
 BOOTX_LOC=$PWD/BOOTX64.efi
@@ -85,14 +85,14 @@ Expire-Date:0
 sign_all_components() {
 
     #temp untar to sign images only
-    rm -rf $STORE_ALPINE/hook_sign_temp
-    mkdir -p $STORE_ALPINE/hook_sign_temp
+    rm -rf $STORE_ALPINE_SECUREBOOT/hook_sign_temp
+    mkdir -p $STORE_ALPINE_SECUREBOOT/hook_sign_temp
 
-    tar -xvf $STORE_ALPINE/hook_x86_64.tar.gz -C $STORE_ALPINE/hook_sign_temp
+    tar -xvf $STORE_ALPINE_SECUREBOOT/hook_x86_64.tar.gz -C $STORE_ALPINE_SECUREBOOT/hook_sign_temp
 
     mkdir -p $GPG_KEY_DIR
 
-    pushd $STORE_ALPINE/hook_sign_temp
+    pushd $STORE_ALPINE_SECUREBOOT/hook_sign_temp
 
     KEY_ID=$(gpg --homedir $GPG_KEY_DIR --list-secret-keys --keyid-format LONG | grep sec | awk '{print $2}' | cut -d '/' -f2)
 
@@ -136,14 +136,14 @@ sign_all_components() {
 
 uefi_sign_grub_vmlinuz() {
 
-    sbsign --key $SB_KEYS_DIR/db.key --cert $SB_KEYS_DIR/db.crt --output $STORE_ALPINE/hook_sign_temp/BOOTX64.efi $BOOTX_LOC
+    sbsign --key $SB_KEYS_DIR/db.key --cert $SB_KEYS_DIR/db.crt --output $STORE_ALPINE_SECUREBOOT/hook_sign_temp/BOOTX64.efi $BOOTX_LOC
     if [ $? != 0 ];
     then
         echo "Failed to sign grub image"
         exit
     fi
 
-    sbsign --key $SB_KEYS_DIR/db.key --cert $SB_KEYS_DIR/db.crt --output $STORE_ALPINE/hook_sign_temp/vmlinuz-x86_64 $STORE_ALPINE/hook_sign_temp/vmlinuz-x86_64
+    sbsign --key $SB_KEYS_DIR/db.key --cert $SB_KEYS_DIR/db.crt --output $STORE_ALPINE_SECUREBOOT/hook_sign_temp/vmlinuz-x86_64 $STORE_ALPINE_SECUREBOOT/hook_sign_temp/vmlinuz-x86_64
     if [ $? != 0 ];
     then
         echo "Failed to sign vmlinuz image"
@@ -195,13 +195,13 @@ generate_pk_kek_db() {
 package_signed_hookOS(){
 
     # make one tar which has all signatures and efi binaries
-    pushd $STORE_ALPINE/hook_sign_temp
+    pushd $STORE_ALPINE_SECUREBOOT/hook_sign_temp
 
     sync
 
     tar -czvf hook_x86_64.tar.gz .
 
-    #mv $STORE_ALPINE/hook_sign_temp/hook_x86_64.tar.gz $STORE_ALPINE/hook_x86_64.tar.gz
+    mv $STORE_ALPINE_SECUREBOOT/hook_sign_temp/hook_x86_64.tar.gz $STORE_ALPINE_SECUREBOOT/hook_x86_64.tar.gz
 
     popd
 
@@ -224,7 +224,7 @@ secure_hookos() {
     sudo apt install -y autoconf automake make gcc m4 git gettext autopoint pkg-config autoconf-archive python3 bison flex gawk efitools
     #container/host setup done
 
-    mkdir -p $STORE_ALPINE
+    mkdir -p $STORE_ALPINE_SECUREBOOT
     create_grub_cfg
     compile_grub
     create_gpg_key
