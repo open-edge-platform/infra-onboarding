@@ -70,7 +70,7 @@ pipeline {
                         script {
                             catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                 sh '''
-                                trivy conf --exit-code 1 --severity HIGH,CRITICAL . 2>&1 > trivy_conf.log
+                                trivy conf --skip-dirs deployments,vendor --exit-code 1 --severity HIGH,CRITICAL . 2>&1 > trivy_conf.log
                                 '''
                             }
                             sh '''

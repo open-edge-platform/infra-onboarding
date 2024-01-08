@@ -1,5 +1,29 @@
 # SPDX-FileCopyrightText: (C) 2023 Intel Corporation
-#
 # SPDX-License-Identifier: LicenseRef-Intel
 
-venv_mionboarding
+*.swp
+venv*
+build/*
+**/_output
+**/build-tools
+.idea
+.vscode
+.DS_Store
+
+## From https://github.com/github/gitignore/blob/main/Go.gitignore
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Go workspace file
+go.work
+
+# Ignore Snyk reports
+artifacts
