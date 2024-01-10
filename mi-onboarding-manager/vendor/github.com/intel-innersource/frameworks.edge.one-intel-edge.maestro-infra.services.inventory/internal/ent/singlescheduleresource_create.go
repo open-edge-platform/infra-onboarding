@@ -42,16 +42,16 @@ func (ssrc *SingleScheduleResourceCreate) SetNillableScheduleStatus(ss *singlesc
 	return ssrc
 }
 
-// SetDescription sets the "description" field.
-func (ssrc *SingleScheduleResourceCreate) SetDescription(s string) *SingleScheduleResourceCreate {
-	ssrc.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (ssrc *SingleScheduleResourceCreate) SetName(s string) *SingleScheduleResourceCreate {
+	ssrc.mutation.SetName(s)
 	return ssrc
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (ssrc *SingleScheduleResourceCreate) SetNillableDescription(s *string) *SingleScheduleResourceCreate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (ssrc *SingleScheduleResourceCreate) SetNillableName(s *string) *SingleScheduleResourceCreate {
 	if s != nil {
-		ssrc.SetDescription(*s)
+		ssrc.SetName(*s)
 	}
 	return ssrc
 }
@@ -212,9 +212,9 @@ func (ssrc *SingleScheduleResourceCreate) createSpec() (*SingleScheduleResource,
 		_spec.SetField(singlescheduleresource.FieldScheduleStatus, field.TypeEnum, value)
 		_node.ScheduleStatus = value
 	}
-	if value, ok := ssrc.mutation.Description(); ok {
-		_spec.SetField(singlescheduleresource.FieldDescription, field.TypeString, value)
-		_node.Description = value
+	if value, ok := ssrc.mutation.Name(); ok {
+		_spec.SetField(singlescheduleresource.FieldName, field.TypeString, value)
+		_node.Name = value
 	}
 	if value, ok := ssrc.mutation.StartSeconds(); ok {
 		_spec.SetField(singlescheduleresource.FieldStartSeconds, field.TypeUint64, value)

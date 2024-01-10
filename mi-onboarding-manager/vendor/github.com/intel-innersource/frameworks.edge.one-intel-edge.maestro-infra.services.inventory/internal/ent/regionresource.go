@@ -18,8 +18,8 @@ type RegionResource struct {
 	ID int `json:"id,omitempty"`
 	// ResourceID holds the value of the "resource_id" field.
 	ResourceID string `json:"resource_id,omitempty"`
-	// Description holds the value of the "description" field.
-	Description string `json:"description,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
 	// RegionKind holds the value of the "region_kind" field.
 	RegionKind string `json:"region_kind,omitempty"`
 	// Metadata holds the value of the "metadata" field.
@@ -71,7 +71,7 @@ func (*RegionResource) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case regionresource.FieldID:
 			values[i] = new(sql.NullInt64)
-		case regionresource.FieldResourceID, regionresource.FieldDescription, regionresource.FieldRegionKind, regionresource.FieldMetadata:
+		case regionresource.FieldResourceID, regionresource.FieldName, regionresource.FieldRegionKind, regionresource.FieldMetadata:
 			values[i] = new(sql.NullString)
 		case regionresource.ForeignKeys[0]: // region_resource_parent_region
 			values[i] = new(sql.NullInt64)
@@ -102,11 +102,11 @@ func (rr *RegionResource) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				rr.ResourceID = value.String
 			}
-		case regionresource.FieldDescription:
+		case regionresource.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field description", values[i])
+				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				rr.Description = value.String
+				rr.Name = value.String
 			}
 		case regionresource.FieldRegionKind:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -176,8 +176,8 @@ func (rr *RegionResource) String() string {
 	builder.WriteString("resource_id=")
 	builder.WriteString(rr.ResourceID)
 	builder.WriteString(", ")
-	builder.WriteString("description=")
-	builder.WriteString(rr.Description)
+	builder.WriteString("name=")
+	builder.WriteString(rr.Name)
 	builder.WriteString(", ")
 	builder.WriteString("region_kind=")
 	builder.WriteString(rr.RegionKind)

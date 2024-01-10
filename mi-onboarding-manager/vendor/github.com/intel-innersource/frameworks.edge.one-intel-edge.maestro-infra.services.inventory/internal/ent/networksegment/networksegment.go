@@ -14,8 +14,8 @@ const (
 	FieldID = "id"
 	// FieldResourceID holds the string denoting the resource_id field in the database.
 	FieldResourceID = "resource_id"
-	// FieldDescription holds the string denoting the description field in the database.
-	FieldDescription = "description"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
 	// FieldVlanID holds the string denoting the vlan_id field in the database.
 	FieldVlanID = "vlan_id"
 	// EdgeSite holds the string denoting the site edge name in mutations.
@@ -35,7 +35,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldResourceID,
-	FieldDescription,
+	FieldName,
 	FieldVlanID,
 }
 
@@ -73,9 +73,9 @@ func ByResourceID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldResourceID, opts...).ToFunc()
 }
 
-// ByDescription orders the results by the description field.
-func ByDescription(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldDescription, opts...).ToFunc()
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
 }
 
 // ByVlanID orders the results by the vlan_id field.

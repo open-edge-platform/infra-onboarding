@@ -18,8 +18,8 @@ const (
 	FieldResourceID = "resource_id"
 	// FieldKind holds the string denoting the kind field in the database.
 	FieldKind = "kind"
-	// FieldDescription holds the string denoting the description field in the database.
-	FieldDescription = "description"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
 	// FieldDesiredState holds the string denoting the desired_state field in the database.
 	FieldDesiredState = "desired_state"
 	// FieldCurrentState holds the string denoting the current_state field in the database.
@@ -32,8 +32,6 @@ const (
 	FieldProviderStatusDetail = "provider_status_detail"
 	// FieldNote holds the string denoting the note field in the database.
 	FieldNote = "note"
-	// FieldConsumerID holds the string denoting the consumer_id field in the database.
-	FieldConsumerID = "consumer_id"
 	// FieldHardwareKind holds the string denoting the hardware_kind field in the database.
 	FieldHardwareKind = "hardware_kind"
 	// FieldSerialNumber holds the string denoting the serial_number field in the database.
@@ -54,12 +52,6 @@ const (
 	FieldCPUArchitecture = "cpu_architecture"
 	// FieldCPUThreads holds the string denoting the cpu_threads field in the database.
 	FieldCPUThreads = "cpu_threads"
-	// FieldGpuPciID holds the string denoting the gpu_pci_id field in the database.
-	FieldGpuPciID = "gpu_pci_id"
-	// FieldGpuProduct holds the string denoting the gpu_product field in the database.
-	FieldGpuProduct = "gpu_product"
-	// FieldGpuVendor holds the string denoting the gpu_vendor field in the database.
-	FieldGpuVendor = "gpu_vendor"
 	// FieldMgmtIP holds the string denoting the mgmt_ip field in the database.
 	FieldMgmtIP = "mgmt_ip"
 	// FieldBmcKind holds the string denoting the bmc_kind field in the database.
@@ -102,6 +94,8 @@ const (
 	EdgeHostNics = "host_nics"
 	// EdgeHostUsbs holds the string denoting the host_usbs edge name in mutations.
 	EdgeHostUsbs = "host_usbs"
+	// EdgeHostGpus holds the string denoting the host_gpus edge name in mutations.
+	EdgeHostGpus = "host_gpus"
 	// EdgeInstance holds the string denoting the instance edge name in mutations.
 	EdgeInstance = "instance"
 	// Table holds the table name of the hostresource in the database.
@@ -155,6 +149,13 @@ const (
 	HostUsbsInverseTable = "hostusb_resources"
 	// HostUsbsColumn is the table column denoting the host_usbs relation/edge.
 	HostUsbsColumn = "hostusb_resource_host"
+	// HostGpusTable is the table that holds the host_gpus relation/edge.
+	HostGpusTable = "hostgpu_resources"
+	// HostGpusInverseTable is the table name for the HostgpuResource entity.
+	// It exists in this package in order to avoid circular dependency with the "hostgpuresource" package.
+	HostGpusInverseTable = "hostgpu_resources"
+	// HostGpusColumn is the table column denoting the host_gpus relation/edge.
+	HostGpusColumn = "hostgpu_resource_host"
 	// InstanceTable is the table that holds the instance relation/edge.
 	InstanceTable = "host_resources"
 	// InstanceInverseTable is the table name for the InstanceResource entity.
@@ -169,14 +170,13 @@ var Columns = []string{
 	FieldID,
 	FieldResourceID,
 	FieldKind,
-	FieldDescription,
+	FieldName,
 	FieldDesiredState,
 	FieldCurrentState,
 	FieldProviderStatus,
 	FieldHostStatus,
 	FieldProviderStatusDetail,
 	FieldNote,
-	FieldConsumerID,
 	FieldHardwareKind,
 	FieldSerialNumber,
 	FieldUUID,
@@ -187,9 +187,6 @@ var Columns = []string{
 	FieldCPUCapabilities,
 	FieldCPUArchitecture,
 	FieldCPUThreads,
-	FieldGpuPciID,
-	FieldGpuProduct,
-	FieldGpuVendor,
 	FieldMgmtIP,
 	FieldBmcKind,
 	FieldBmcIP,
@@ -417,9 +414,9 @@ func ByKind(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldKind, opts...).ToFunc()
 }
 
-// ByDescription orders the results by the description field.
-func ByDescription(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldDescription, opts...).ToFunc()
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
 }
 
 // ByDesiredState orders the results by the desired_state field.
@@ -450,11 +447,6 @@ func ByProviderStatusDetail(opts ...sql.OrderTermOption) OrderOption {
 // ByNote orders the results by the note field.
 func ByNote(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNote, opts...).ToFunc()
-}
-
-// ByConsumerID orders the results by the consumer_id field.
-func ByConsumerID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldConsumerID, opts...).ToFunc()
 }
 
 // ByHardwareKind orders the results by the hardware_kind field.
@@ -505,21 +497,6 @@ func ByCPUArchitecture(opts ...sql.OrderTermOption) OrderOption {
 // ByCPUThreads orders the results by the cpu_threads field.
 func ByCPUThreads(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCPUThreads, opts...).ToFunc()
-}
-
-// ByGpuPciID orders the results by the gpu_pci_id field.
-func ByGpuPciID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldGpuPciID, opts...).ToFunc()
-}
-
-// ByGpuProduct orders the results by the gpu_product field.
-func ByGpuProduct(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldGpuProduct, opts...).ToFunc()
-}
-
-// ByGpuVendor orders the results by the gpu_vendor field.
-func ByGpuVendor(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldGpuVendor, opts...).ToFunc()
 }
 
 // ByMgmtIP orders the results by the mgmt_ip field.
@@ -662,6 +639,20 @@ func ByHostUsbs(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// ByHostGpusCount orders the results by host_gpus count.
+func ByHostGpusCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newHostGpusStep(), opts...)
+	}
+}
+
+// ByHostGpus orders the results by host_gpus terms.
+func ByHostGpus(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newHostGpusStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByInstanceField orders the results by instance field.
 func ByInstanceField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -715,6 +706,13 @@ func newHostUsbsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(HostUsbsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, true, HostUsbsTable, HostUsbsColumn),
+	)
+}
+func newHostGpusStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(HostGpusInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, true, HostGpusTable, HostGpusColumn),
 	)
 }
 func newInstanceStep() *sqlgraph.Step {

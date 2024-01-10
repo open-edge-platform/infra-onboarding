@@ -32,16 +32,16 @@ func (wrc *WorkloadResourceCreate) SetKind(w workloadresource.Kind) *WorkloadRes
 	return wrc
 }
 
-// SetDescription sets the "description" field.
-func (wrc *WorkloadResourceCreate) SetDescription(s string) *WorkloadResourceCreate {
-	wrc.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (wrc *WorkloadResourceCreate) SetName(s string) *WorkloadResourceCreate {
+	wrc.mutation.SetName(s)
 	return wrc
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (wrc *WorkloadResourceCreate) SetNillableDescription(s *string) *WorkloadResourceCreate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (wrc *WorkloadResourceCreate) SetNillableName(s *string) *WorkloadResourceCreate {
 	if s != nil {
-		wrc.SetDescription(*s)
+		wrc.SetName(*s)
 	}
 	return wrc
 }
@@ -215,9 +215,9 @@ func (wrc *WorkloadResourceCreate) createSpec() (*WorkloadResource, *sqlgraph.Cr
 		_spec.SetField(workloadresource.FieldKind, field.TypeEnum, value)
 		_node.Kind = value
 	}
-	if value, ok := wrc.mutation.Description(); ok {
-		_spec.SetField(workloadresource.FieldDescription, field.TypeString, value)
-		_node.Description = value
+	if value, ok := wrc.mutation.Name(); ok {
+		_spec.SetField(workloadresource.FieldName, field.TypeString, value)
+		_node.Name = value
 	}
 	if value, ok := wrc.mutation.ExternalID(); ok {
 		_spec.SetField(workloadresource.FieldExternalID, field.TypeString, value)

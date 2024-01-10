@@ -25,16 +25,16 @@ func (orc *OuResourceCreate) SetResourceID(s string) *OuResourceCreate {
 	return orc
 }
 
-// SetDescription sets the "description" field.
-func (orc *OuResourceCreate) SetDescription(s string) *OuResourceCreate {
-	orc.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (orc *OuResourceCreate) SetName(s string) *OuResourceCreate {
+	orc.mutation.SetName(s)
 	return orc
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (orc *OuResourceCreate) SetNillableDescription(s *string) *OuResourceCreate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (orc *OuResourceCreate) SetNillableName(s *string) *OuResourceCreate {
 	if s != nil {
-		orc.SetDescription(*s)
+		orc.SetName(*s)
 	}
 	return orc
 }
@@ -168,9 +168,9 @@ func (orc *OuResourceCreate) createSpec() (*OuResource, *sqlgraph.CreateSpec) {
 		_spec.SetField(ouresource.FieldResourceID, field.TypeString, value)
 		_node.ResourceID = value
 	}
-	if value, ok := orc.mutation.Description(); ok {
-		_spec.SetField(ouresource.FieldDescription, field.TypeString, value)
-		_node.Description = value
+	if value, ok := orc.mutation.Name(); ok {
+		_spec.SetField(ouresource.FieldName, field.TypeString, value)
+		_node.Name = value
 	}
 	if value, ok := orc.mutation.OuKind(); ok {
 		_spec.SetField(ouresource.FieldOuKind, field.TypeString, value)

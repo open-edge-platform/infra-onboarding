@@ -13,8 +13,8 @@ const (
 	FieldID = "id"
 	// FieldResourceID holds the string denoting the resource_id field in the database.
 	FieldResourceID = "resource_id"
-	// FieldDescription holds the string denoting the description field in the database.
-	FieldDescription = "description"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
 	// FieldArchitecture holds the string denoting the architecture field in the database.
 	FieldArchitecture = "architecture"
 	// FieldKernelCommand holds the string denoting the kernel_command field in the database.
@@ -35,7 +35,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldResourceID,
-	FieldDescription,
+	FieldName,
 	FieldArchitecture,
 	FieldKernelCommand,
 	FieldUpdateSources,
@@ -67,9 +67,9 @@ func ByResourceID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldResourceID, opts...).ToFunc()
 }
 
-// ByDescription orders the results by the description field.
-func ByDescription(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldDescription, opts...).ToFunc()
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
 }
 
 // ByArchitecture orders the results by the architecture field.

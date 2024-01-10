@@ -15,8 +15,8 @@ const (
 	FieldResourceID = "resource_id"
 	// FieldKind holds the string denoting the kind field in the database.
 	FieldKind = "kind"
-	// FieldDescription holds the string denoting the description field in the database.
-	FieldDescription = "description"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
 	// FieldUsername holds the string denoting the username field in the database.
 	FieldUsername = "username"
 	// FieldSSHPubkey holds the string denoting the ssh_pubkey field in the database.
@@ -30,7 +30,7 @@ var Columns = []string{
 	FieldID,
 	FieldResourceID,
 	FieldKind,
-	FieldDescription,
+	FieldName,
 	FieldUsername,
 	FieldSSHPubkey,
 }
@@ -63,9 +63,9 @@ func ByKind(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldKind, opts...).ToFunc()
 }
 
-// ByDescription orders the results by the description field.
-func ByDescription(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldDescription, opts...).ToFunc()
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
 }
 
 // ByUsername orders the results by the username field.

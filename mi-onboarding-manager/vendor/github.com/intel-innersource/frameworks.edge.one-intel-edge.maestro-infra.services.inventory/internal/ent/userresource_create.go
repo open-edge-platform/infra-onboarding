@@ -39,16 +39,16 @@ func (urc *UserResourceCreate) SetNillableKind(s *string) *UserResourceCreate {
 	return urc
 }
 
-// SetDescription sets the "description" field.
-func (urc *UserResourceCreate) SetDescription(s string) *UserResourceCreate {
-	urc.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (urc *UserResourceCreate) SetName(s string) *UserResourceCreate {
+	urc.mutation.SetName(s)
 	return urc
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (urc *UserResourceCreate) SetNillableDescription(s *string) *UserResourceCreate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (urc *UserResourceCreate) SetNillableName(s *string) *UserResourceCreate {
 	if s != nil {
-		urc.SetDescription(*s)
+		urc.SetName(*s)
 	}
 	return urc
 }
@@ -152,9 +152,9 @@ func (urc *UserResourceCreate) createSpec() (*UserResource, *sqlgraph.CreateSpec
 		_spec.SetField(userresource.FieldKind, field.TypeString, value)
 		_node.Kind = value
 	}
-	if value, ok := urc.mutation.Description(); ok {
-		_spec.SetField(userresource.FieldDescription, field.TypeString, value)
-		_node.Description = value
+	if value, ok := urc.mutation.Name(); ok {
+		_spec.SetField(userresource.FieldName, field.TypeString, value)
+		_node.Name = value
 	}
 	if value, ok := urc.mutation.Username(); ok {
 		_spec.SetField(userresource.FieldUsername, field.TypeString, value)

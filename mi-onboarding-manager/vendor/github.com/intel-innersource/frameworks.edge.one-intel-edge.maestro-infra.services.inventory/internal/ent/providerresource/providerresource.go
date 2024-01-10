@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"entgo.io/ent/dialect/sql"
-	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -16,47 +15,29 @@ const (
 	FieldID = "id"
 	// FieldResourceID holds the string denoting the resource_id field in the database.
 	FieldResourceID = "resource_id"
-	// FieldKind holds the string denoting the kind field in the database.
-	FieldKind = "kind"
-	// FieldDescription holds the string denoting the description field in the database.
-	FieldDescription = "description"
-	// FieldDesiredState holds the string denoting the desired_state field in the database.
-	FieldDesiredState = "desired_state"
-	// FieldCurrentState holds the string denoting the current_state field in the database.
-	FieldCurrentState = "current_state"
-	// FieldEndpoint holds the string denoting the endpoint field in the database.
-	FieldEndpoint = "endpoint"
-	// FieldToken holds the string denoting the token field in the database.
-	FieldToken = "token"
-	// EdgeSite holds the string denoting the site edge name in mutations.
-	EdgeSite = "site"
+	// FieldProviderKind holds the string denoting the provider_kind field in the database.
+	FieldProviderKind = "provider_kind"
+	// FieldProviderVendor holds the string denoting the provider_vendor field in the database.
+	FieldProviderVendor = "provider_vendor"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
+	// FieldAPIEndpoint holds the string denoting the api_endpoint field in the database.
+	FieldAPIEndpoint = "api_endpoint"
+	// FieldAPICredentials holds the string denoting the api_credentials field in the database.
+	FieldAPICredentials = "api_credentials"
 	// Table holds the table name of the providerresource in the database.
 	Table = "provider_resources"
-	// SiteTable is the table that holds the site relation/edge.
-	SiteTable = "provider_resources"
-	// SiteInverseTable is the table name for the SiteResource entity.
-	// It exists in this package in order to avoid circular dependency with the "siteresource" package.
-	SiteInverseTable = "site_resources"
-	// SiteColumn is the table column denoting the site relation/edge.
-	SiteColumn = "provider_resource_site"
 )
 
 // Columns holds all SQL columns for providerresource fields.
 var Columns = []string{
 	FieldID,
 	FieldResourceID,
-	FieldKind,
-	FieldDescription,
-	FieldDesiredState,
-	FieldCurrentState,
-	FieldEndpoint,
-	FieldToken,
-}
-
-// ForeignKeys holds the SQL foreign-keys that are owned by the "provider_resources"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"provider_resource_site",
+	FieldProviderKind,
+	FieldProviderVendor,
+	FieldName,
+	FieldAPIEndpoint,
+	FieldAPICredentials,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -66,87 +47,53 @@ func ValidColumn(column string) bool {
 			return true
 		}
 	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
-			return true
-		}
-	}
 	return false
 }
 
-// Kind defines the type for the "kind" enum field.
-type Kind string
+// ProviderKind defines the type for the "provider_kind" enum field.
+type ProviderKind string
 
-// Kind values.
+// ProviderKind values.
 const (
-	KindPROVIDER_KIND_UNSPECIFIED Kind = "PROVIDER_KIND_UNSPECIFIED"
-	KindPROVIDER_KIND_HARVESTER   Kind = "PROVIDER_KIND_HARVESTER"
-	KindPROVIDER_KIND_METAL       Kind = "PROVIDER_KIND_METAL"
+	ProviderKindPROVIDER_KIND_UNSPECIFIED ProviderKind = "PROVIDER_KIND_UNSPECIFIED"
+	ProviderKindPROVIDER_KIND_BAREMETAL   ProviderKind = "PROVIDER_KIND_BAREMETAL"
 )
 
-func (k Kind) String() string {
-	return string(k)
+func (pk ProviderKind) String() string {
+	return string(pk)
 }
 
-// KindValidator is a validator for the "kind" field enum values. It is called by the builders before save.
-func KindValidator(k Kind) error {
-	switch k {
-	case KindPROVIDER_KIND_UNSPECIFIED, KindPROVIDER_KIND_HARVESTER, KindPROVIDER_KIND_METAL:
+// ProviderKindValidator is a validator for the "provider_kind" field enum values. It is called by the builders before save.
+func ProviderKindValidator(pk ProviderKind) error {
+	switch pk {
+	case ProviderKindPROVIDER_KIND_UNSPECIFIED, ProviderKindPROVIDER_KIND_BAREMETAL:
 		return nil
 	default:
-		return fmt.Errorf("providerresource: invalid enum value for kind field: %q", k)
+		return fmt.Errorf("providerresource: invalid enum value for provider_kind field: %q", pk)
 	}
 }
 
-// DesiredState defines the type for the "desired_state" enum field.
-type DesiredState string
+// ProviderVendor defines the type for the "provider_vendor" enum field.
+type ProviderVendor string
 
-// DesiredState values.
+// ProviderVendor values.
 const (
-	DesiredStatePROVIDER_STATE_UNSPECIFIED DesiredState = "PROVIDER_STATE_UNSPECIFIED"
-	DesiredStatePROVIDER_STATE_ERROR       DesiredState = "PROVIDER_STATE_ERROR"
-	DesiredStatePROVIDER_STATE_DELETED     DesiredState = "PROVIDER_STATE_DELETED"
-	DesiredStatePROVIDER_STATE_ENABLED     DesiredState = "PROVIDER_STATE_ENABLED"
-	DesiredStatePROVIDER_STATE_DISABLED    DesiredState = "PROVIDER_STATE_DISABLED"
+	ProviderVendorPROVIDER_VENDOR_UNSPECIFIED ProviderVendor = "PROVIDER_VENDOR_UNSPECIFIED"
+	ProviderVendorPROVIDER_VENDOR_LENOVO_LXCA ProviderVendor = "PROVIDER_VENDOR_LENOVO_LXCA"
+	ProviderVendorPROVIDER_VENDOR_LENOVO_LOCA ProviderVendor = "PROVIDER_VENDOR_LENOVO_LOCA"
 )
 
-func (ds DesiredState) String() string {
-	return string(ds)
+func (pv ProviderVendor) String() string {
+	return string(pv)
 }
 
-// DesiredStateValidator is a validator for the "desired_state" field enum values. It is called by the builders before save.
-func DesiredStateValidator(ds DesiredState) error {
-	switch ds {
-	case DesiredStatePROVIDER_STATE_UNSPECIFIED, DesiredStatePROVIDER_STATE_ERROR, DesiredStatePROVIDER_STATE_DELETED, DesiredStatePROVIDER_STATE_ENABLED, DesiredStatePROVIDER_STATE_DISABLED:
+// ProviderVendorValidator is a validator for the "provider_vendor" field enum values. It is called by the builders before save.
+func ProviderVendorValidator(pv ProviderVendor) error {
+	switch pv {
+	case ProviderVendorPROVIDER_VENDOR_UNSPECIFIED, ProviderVendorPROVIDER_VENDOR_LENOVO_LXCA, ProviderVendorPROVIDER_VENDOR_LENOVO_LOCA:
 		return nil
 	default:
-		return fmt.Errorf("providerresource: invalid enum value for desired_state field: %q", ds)
-	}
-}
-
-// CurrentState defines the type for the "current_state" enum field.
-type CurrentState string
-
-// CurrentState values.
-const (
-	CurrentStatePROVIDER_STATE_UNSPECIFIED CurrentState = "PROVIDER_STATE_UNSPECIFIED"
-	CurrentStatePROVIDER_STATE_ERROR       CurrentState = "PROVIDER_STATE_ERROR"
-	CurrentStatePROVIDER_STATE_DELETED     CurrentState = "PROVIDER_STATE_DELETED"
-	CurrentStatePROVIDER_STATE_ENABLED     CurrentState = "PROVIDER_STATE_ENABLED"
-	CurrentStatePROVIDER_STATE_DISABLED    CurrentState = "PROVIDER_STATE_DISABLED"
-)
-
-func (cs CurrentState) String() string {
-	return string(cs)
-}
-
-// CurrentStateValidator is a validator for the "current_state" field enum values. It is called by the builders before save.
-func CurrentStateValidator(cs CurrentState) error {
-	switch cs {
-	case CurrentStatePROVIDER_STATE_UNSPECIFIED, CurrentStatePROVIDER_STATE_ERROR, CurrentStatePROVIDER_STATE_DELETED, CurrentStatePROVIDER_STATE_ENABLED, CurrentStatePROVIDER_STATE_DISABLED:
-		return nil
-	default:
-		return fmt.Errorf("providerresource: invalid enum value for current_state field: %q", cs)
+		return fmt.Errorf("providerresource: invalid enum value for provider_vendor field: %q", pv)
 	}
 }
 
@@ -163,46 +110,27 @@ func ByResourceID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldResourceID, opts...).ToFunc()
 }
 
-// ByKind orders the results by the kind field.
-func ByKind(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldKind, opts...).ToFunc()
+// ByProviderKind orders the results by the provider_kind field.
+func ByProviderKind(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProviderKind, opts...).ToFunc()
 }
 
-// ByDescription orders the results by the description field.
-func ByDescription(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldDescription, opts...).ToFunc()
+// ByProviderVendor orders the results by the provider_vendor field.
+func ByProviderVendor(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProviderVendor, opts...).ToFunc()
 }
 
-// ByDesiredState orders the results by the desired_state field.
-func ByDesiredState(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldDesiredState, opts...).ToFunc()
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
 }
 
-// ByCurrentState orders the results by the current_state field.
-func ByCurrentState(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCurrentState, opts...).ToFunc()
+// ByAPIEndpoint orders the results by the api_endpoint field.
+func ByAPIEndpoint(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAPIEndpoint, opts...).ToFunc()
 }
 
-// ByEndpoint orders the results by the endpoint field.
-func ByEndpoint(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldEndpoint, opts...).ToFunc()
-}
-
-// ByToken orders the results by the token field.
-func ByToken(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldToken, opts...).ToFunc()
-}
-
-// BySiteField orders the results by site field.
-func BySiteField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newSiteStep(), sql.OrderByField(field, opts...))
-	}
-}
-func newSiteStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(SiteInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, false, SiteTable, SiteColumn),
-	)
+// ByAPICredentials orders the results by the api_credentials field.
+func ByAPICredentials(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAPICredentials, opts...).ToFunc()
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/instanceresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/operatingsystemresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/predicate"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/providerresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/userresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/workloadmember"
 )
@@ -57,23 +58,23 @@ func (iru *InstanceResourceUpdate) ClearKind() *InstanceResourceUpdate {
 	return iru
 }
 
-// SetDescription sets the "description" field.
-func (iru *InstanceResourceUpdate) SetDescription(s string) *InstanceResourceUpdate {
-	iru.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (iru *InstanceResourceUpdate) SetName(s string) *InstanceResourceUpdate {
+	iru.mutation.SetName(s)
 	return iru
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (iru *InstanceResourceUpdate) SetNillableDescription(s *string) *InstanceResourceUpdate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (iru *InstanceResourceUpdate) SetNillableName(s *string) *InstanceResourceUpdate {
 	if s != nil {
-		iru.SetDescription(*s)
+		iru.SetName(*s)
 	}
 	return iru
 }
 
-// ClearDescription clears the value of the "description" field.
-func (iru *InstanceResourceUpdate) ClearDescription() *InstanceResourceUpdate {
-	iru.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (iru *InstanceResourceUpdate) ClearName() *InstanceResourceUpdate {
+	iru.mutation.ClearName()
 	return iru
 }
 
@@ -282,14 +283,6 @@ func (iru *InstanceResourceUpdate) SetOsID(id int) *InstanceResourceUpdate {
 	return iru
 }
 
-// SetNillableOsID sets the "os" edge to the OperatingSystemResource entity by ID if the given value is not nil.
-func (iru *InstanceResourceUpdate) SetNillableOsID(id *int) *InstanceResourceUpdate {
-	if id != nil {
-		iru = iru.SetOsID(*id)
-	}
-	return iru
-}
-
 // SetOs sets the "os" edge to the OperatingSystemResource entity.
 func (iru *InstanceResourceUpdate) SetOs(o *OperatingSystemResource) *InstanceResourceUpdate {
 	return iru.SetOsID(o.ID)
@@ -308,6 +301,25 @@ func (iru *InstanceResourceUpdate) AddWorkloadMembers(w ...*WorkloadMember) *Ins
 		ids[i] = w[i].ID
 	}
 	return iru.AddWorkloadMemberIDs(ids...)
+}
+
+// SetProviderID sets the "provider" edge to the ProviderResource entity by ID.
+func (iru *InstanceResourceUpdate) SetProviderID(id int) *InstanceResourceUpdate {
+	iru.mutation.SetProviderID(id)
+	return iru
+}
+
+// SetNillableProviderID sets the "provider" edge to the ProviderResource entity by ID if the given value is not nil.
+func (iru *InstanceResourceUpdate) SetNillableProviderID(id *int) *InstanceResourceUpdate {
+	if id != nil {
+		iru = iru.SetProviderID(*id)
+	}
+	return iru
+}
+
+// SetProvider sets the "provider" edge to the ProviderResource entity.
+func (iru *InstanceResourceUpdate) SetProvider(p *ProviderResource) *InstanceResourceUpdate {
+	return iru.SetProviderID(p.ID)
 }
 
 // Mutation returns the InstanceResourceMutation object of the builder.
@@ -352,6 +364,12 @@ func (iru *InstanceResourceUpdate) RemoveWorkloadMembers(w ...*WorkloadMember) *
 		ids[i] = w[i].ID
 	}
 	return iru.RemoveWorkloadMemberIDs(ids...)
+}
+
+// ClearProvider clears the "provider" edge to the ProviderResource entity.
+func (iru *InstanceResourceUpdate) ClearProvider() *InstanceResourceUpdate {
+	iru.mutation.ClearProvider()
+	return iru
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -403,6 +421,9 @@ func (iru *InstanceResourceUpdate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "InstanceResource.status": %w`, err)}
 		}
 	}
+	if _, ok := iru.mutation.OsID(); iru.mutation.OsCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "InstanceResource.os"`)
+	}
 	return nil
 }
 
@@ -427,11 +448,11 @@ func (iru *InstanceResourceUpdate) sqlSave(ctx context.Context) (n int, err erro
 	if iru.mutation.KindCleared() {
 		_spec.ClearField(instanceresource.FieldKind, field.TypeEnum)
 	}
-	if value, ok := iru.mutation.Description(); ok {
-		_spec.SetField(instanceresource.FieldDescription, field.TypeString, value)
+	if value, ok := iru.mutation.Name(); ok {
+		_spec.SetField(instanceresource.FieldName, field.TypeString, value)
 	}
-	if iru.mutation.DescriptionCleared() {
-		_spec.ClearField(instanceresource.FieldDescription, field.TypeString)
+	if iru.mutation.NameCleared() {
+		_spec.ClearField(instanceresource.FieldName, field.TypeString)
 	}
 	if value, ok := iru.mutation.DesiredState(); ok {
 		_spec.SetField(instanceresource.FieldDesiredState, field.TypeEnum, value)
@@ -616,6 +637,35 @@ func (iru *InstanceResourceUpdate) sqlSave(ctx context.Context) (n int, err erro
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if iru.mutation.ProviderCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   instanceresource.ProviderTable,
+			Columns: []string{instanceresource.ProviderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerresource.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := iru.mutation.ProviderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   instanceresource.ProviderTable,
+			Columns: []string{instanceresource.ProviderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerresource.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, iru.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{instanceresource.Label}
@@ -662,23 +712,23 @@ func (iruo *InstanceResourceUpdateOne) ClearKind() *InstanceResourceUpdateOne {
 	return iruo
 }
 
-// SetDescription sets the "description" field.
-func (iruo *InstanceResourceUpdateOne) SetDescription(s string) *InstanceResourceUpdateOne {
-	iruo.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (iruo *InstanceResourceUpdateOne) SetName(s string) *InstanceResourceUpdateOne {
+	iruo.mutation.SetName(s)
 	return iruo
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (iruo *InstanceResourceUpdateOne) SetNillableDescription(s *string) *InstanceResourceUpdateOne {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (iruo *InstanceResourceUpdateOne) SetNillableName(s *string) *InstanceResourceUpdateOne {
 	if s != nil {
-		iruo.SetDescription(*s)
+		iruo.SetName(*s)
 	}
 	return iruo
 }
 
-// ClearDescription clears the value of the "description" field.
-func (iruo *InstanceResourceUpdateOne) ClearDescription() *InstanceResourceUpdateOne {
-	iruo.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (iruo *InstanceResourceUpdateOne) ClearName() *InstanceResourceUpdateOne {
+	iruo.mutation.ClearName()
 	return iruo
 }
 
@@ -887,14 +937,6 @@ func (iruo *InstanceResourceUpdateOne) SetOsID(id int) *InstanceResourceUpdateOn
 	return iruo
 }
 
-// SetNillableOsID sets the "os" edge to the OperatingSystemResource entity by ID if the given value is not nil.
-func (iruo *InstanceResourceUpdateOne) SetNillableOsID(id *int) *InstanceResourceUpdateOne {
-	if id != nil {
-		iruo = iruo.SetOsID(*id)
-	}
-	return iruo
-}
-
 // SetOs sets the "os" edge to the OperatingSystemResource entity.
 func (iruo *InstanceResourceUpdateOne) SetOs(o *OperatingSystemResource) *InstanceResourceUpdateOne {
 	return iruo.SetOsID(o.ID)
@@ -913,6 +955,25 @@ func (iruo *InstanceResourceUpdateOne) AddWorkloadMembers(w ...*WorkloadMember) 
 		ids[i] = w[i].ID
 	}
 	return iruo.AddWorkloadMemberIDs(ids...)
+}
+
+// SetProviderID sets the "provider" edge to the ProviderResource entity by ID.
+func (iruo *InstanceResourceUpdateOne) SetProviderID(id int) *InstanceResourceUpdateOne {
+	iruo.mutation.SetProviderID(id)
+	return iruo
+}
+
+// SetNillableProviderID sets the "provider" edge to the ProviderResource entity by ID if the given value is not nil.
+func (iruo *InstanceResourceUpdateOne) SetNillableProviderID(id *int) *InstanceResourceUpdateOne {
+	if id != nil {
+		iruo = iruo.SetProviderID(*id)
+	}
+	return iruo
+}
+
+// SetProvider sets the "provider" edge to the ProviderResource entity.
+func (iruo *InstanceResourceUpdateOne) SetProvider(p *ProviderResource) *InstanceResourceUpdateOne {
+	return iruo.SetProviderID(p.ID)
 }
 
 // Mutation returns the InstanceResourceMutation object of the builder.
@@ -957,6 +1018,12 @@ func (iruo *InstanceResourceUpdateOne) RemoveWorkloadMembers(w ...*WorkloadMembe
 		ids[i] = w[i].ID
 	}
 	return iruo.RemoveWorkloadMemberIDs(ids...)
+}
+
+// ClearProvider clears the "provider" edge to the ProviderResource entity.
+func (iruo *InstanceResourceUpdateOne) ClearProvider() *InstanceResourceUpdateOne {
+	iruo.mutation.ClearProvider()
+	return iruo
 }
 
 // Where appends a list predicates to the InstanceResourceUpdate builder.
@@ -1021,6 +1088,9 @@ func (iruo *InstanceResourceUpdateOne) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "InstanceResource.status": %w`, err)}
 		}
 	}
+	if _, ok := iruo.mutation.OsID(); iruo.mutation.OsCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "InstanceResource.os"`)
+	}
 	return nil
 }
 
@@ -1062,11 +1132,11 @@ func (iruo *InstanceResourceUpdateOne) sqlSave(ctx context.Context) (_node *Inst
 	if iruo.mutation.KindCleared() {
 		_spec.ClearField(instanceresource.FieldKind, field.TypeEnum)
 	}
-	if value, ok := iruo.mutation.Description(); ok {
-		_spec.SetField(instanceresource.FieldDescription, field.TypeString, value)
+	if value, ok := iruo.mutation.Name(); ok {
+		_spec.SetField(instanceresource.FieldName, field.TypeString, value)
 	}
-	if iruo.mutation.DescriptionCleared() {
-		_spec.ClearField(instanceresource.FieldDescription, field.TypeString)
+	if iruo.mutation.NameCleared() {
+		_spec.ClearField(instanceresource.FieldName, field.TypeString)
 	}
 	if value, ok := iruo.mutation.DesiredState(); ok {
 		_spec.SetField(instanceresource.FieldDesiredState, field.TypeEnum, value)
@@ -1244,6 +1314,35 @@ func (iruo *InstanceResourceUpdateOne) sqlSave(ctx context.Context) (_node *Inst
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(workloadmember.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if iruo.mutation.ProviderCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   instanceresource.ProviderTable,
+			Columns: []string{instanceresource.ProviderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerresource.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := iruo.mutation.ProviderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   instanceresource.ProviderTable,
+			Columns: []string{instanceresource.ProviderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerresource.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

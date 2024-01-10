@@ -24,16 +24,10 @@ type HostnicResource struct {
 	ResourceID string `json:"resource_id,omitempty"`
 	// Kind holds the value of the "kind" field.
 	Kind string `json:"kind,omitempty"`
-	// Description holds the value of the "description" field.
-	Description string `json:"description,omitempty"`
-	// DesiredState holds the value of the "desired_state" field.
-	DesiredState hostnicresource.DesiredState `json:"desired_state,omitempty"`
-	// CurrentState holds the value of the "current_state" field.
-	CurrentState hostnicresource.CurrentState `json:"current_state,omitempty"`
 	// ProviderStatus holds the value of the "provider_status" field.
 	ProviderStatus string `json:"provider_status,omitempty"`
-	// Name holds the value of the "name" field.
-	Name string `json:"name,omitempty"`
+	// DeviceName holds the value of the "device_name" field.
+	DeviceName string `json:"device_name,omitempty"`
 	// PciIdentifier holds the value of the "pci_identifier" field.
 	PciIdentifier string `json:"pci_identifier,omitempty"`
 	// MACAddr holds the value of the "mac_addr" field.
@@ -156,7 +150,7 @@ func (*HostnicResource) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case hostnicresource.FieldID, hostnicresource.FieldSriovVfsNum, hostnicresource.FieldSriovVfsTotal, hostnicresource.FieldCurrentSpeedBps, hostnicresource.FieldMtu:
 			values[i] = new(sql.NullInt64)
-		case hostnicresource.FieldResourceID, hostnicresource.FieldKind, hostnicresource.FieldDescription, hostnicresource.FieldDesiredState, hostnicresource.FieldCurrentState, hostnicresource.FieldProviderStatus, hostnicresource.FieldName, hostnicresource.FieldPciIdentifier, hostnicresource.FieldMACAddr, hostnicresource.FieldPeerName, hostnicresource.FieldPeerDescription, hostnicresource.FieldPeerMAC, hostnicresource.FieldPeerMgmtIP, hostnicresource.FieldPeerPort, hostnicresource.FieldSupportedLinkMode, hostnicresource.FieldAdvertisingLinkMode, hostnicresource.FieldCurrentDuplex, hostnicresource.FieldFeatures, hostnicresource.FieldLinkState:
+		case hostnicresource.FieldResourceID, hostnicresource.FieldKind, hostnicresource.FieldProviderStatus, hostnicresource.FieldDeviceName, hostnicresource.FieldPciIdentifier, hostnicresource.FieldMACAddr, hostnicresource.FieldPeerName, hostnicresource.FieldPeerDescription, hostnicresource.FieldPeerMAC, hostnicresource.FieldPeerMgmtIP, hostnicresource.FieldPeerPort, hostnicresource.FieldSupportedLinkMode, hostnicresource.FieldAdvertisingLinkMode, hostnicresource.FieldCurrentDuplex, hostnicresource.FieldFeatures, hostnicresource.FieldLinkState:
 			values[i] = new(sql.NullString)
 		case hostnicresource.ForeignKeys[0]: // hostnic_resource_site
 			values[i] = new(sql.NullInt64)
@@ -199,35 +193,17 @@ func (hr *HostnicResource) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				hr.Kind = value.String
 			}
-		case hostnicresource.FieldDescription:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field description", values[i])
-			} else if value.Valid {
-				hr.Description = value.String
-			}
-		case hostnicresource.FieldDesiredState:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field desired_state", values[i])
-			} else if value.Valid {
-				hr.DesiredState = hostnicresource.DesiredState(value.String)
-			}
-		case hostnicresource.FieldCurrentState:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field current_state", values[i])
-			} else if value.Valid {
-				hr.CurrentState = hostnicresource.CurrentState(value.String)
-			}
 		case hostnicresource.FieldProviderStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field provider_status", values[i])
 			} else if value.Valid {
 				hr.ProviderStatus = value.String
 			}
-		case hostnicresource.FieldName:
+		case hostnicresource.FieldDeviceName:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name", values[i])
+				return fmt.Errorf("unexpected type %T for field device_name", values[i])
 			} else if value.Valid {
-				hr.Name = value.String
+				hr.DeviceName = value.String
 			}
 		case hostnicresource.FieldPciIdentifier:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -427,20 +403,11 @@ func (hr *HostnicResource) String() string {
 	builder.WriteString("kind=")
 	builder.WriteString(hr.Kind)
 	builder.WriteString(", ")
-	builder.WriteString("description=")
-	builder.WriteString(hr.Description)
-	builder.WriteString(", ")
-	builder.WriteString("desired_state=")
-	builder.WriteString(fmt.Sprintf("%v", hr.DesiredState))
-	builder.WriteString(", ")
-	builder.WriteString("current_state=")
-	builder.WriteString(fmt.Sprintf("%v", hr.CurrentState))
-	builder.WriteString(", ")
 	builder.WriteString("provider_status=")
 	builder.WriteString(hr.ProviderStatus)
 	builder.WriteString(", ")
-	builder.WriteString("name=")
-	builder.WriteString(hr.Name)
+	builder.WriteString("device_name=")
+	builder.WriteString(hr.DeviceName)
 	builder.WriteString(", ")
 	builder.WriteString("pci_identifier=")
 	builder.WriteString(hr.PciIdentifier)

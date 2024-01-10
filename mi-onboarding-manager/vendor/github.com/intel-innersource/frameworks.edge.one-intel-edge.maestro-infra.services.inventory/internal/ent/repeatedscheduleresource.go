@@ -23,8 +23,8 @@ type RepeatedScheduleResource struct {
 	ResourceID string `json:"resource_id,omitempty"`
 	// ScheduleStatus holds the value of the "schedule_status" field.
 	ScheduleStatus repeatedscheduleresource.ScheduleStatus `json:"schedule_status,omitempty"`
-	// Description holds the value of the "description" field.
-	Description string `json:"description,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
 	// DurationSeconds holds the value of the "duration_seconds" field.
 	DurationSeconds uint32 `json:"duration_seconds,omitempty"`
 	// CronMinutes holds the value of the "cron_minutes" field.
@@ -105,7 +105,7 @@ func (*RepeatedScheduleResource) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case repeatedscheduleresource.FieldID, repeatedscheduleresource.FieldDurationSeconds:
 			values[i] = new(sql.NullInt64)
-		case repeatedscheduleresource.FieldResourceID, repeatedscheduleresource.FieldScheduleStatus, repeatedscheduleresource.FieldDescription, repeatedscheduleresource.FieldCronMinutes, repeatedscheduleresource.FieldCronHours, repeatedscheduleresource.FieldCronDayMonth, repeatedscheduleresource.FieldCronMonth, repeatedscheduleresource.FieldCronDayWeek:
+		case repeatedscheduleresource.FieldResourceID, repeatedscheduleresource.FieldScheduleStatus, repeatedscheduleresource.FieldName, repeatedscheduleresource.FieldCronMinutes, repeatedscheduleresource.FieldCronHours, repeatedscheduleresource.FieldCronDayMonth, repeatedscheduleresource.FieldCronMonth, repeatedscheduleresource.FieldCronDayWeek:
 			values[i] = new(sql.NullString)
 		case repeatedscheduleresource.ForeignKeys[0]: // repeated_schedule_resource_target_site
 			values[i] = new(sql.NullInt64)
@@ -146,11 +146,11 @@ func (rsr *RepeatedScheduleResource) assignValues(columns []string, values []any
 			} else if value.Valid {
 				rsr.ScheduleStatus = repeatedscheduleresource.ScheduleStatus(value.String)
 			}
-		case repeatedscheduleresource.FieldDescription:
+		case repeatedscheduleresource.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field description", values[i])
+				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				rsr.Description = value.String
+				rsr.Name = value.String
 			}
 		case repeatedscheduleresource.FieldDurationSeconds:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -266,8 +266,8 @@ func (rsr *RepeatedScheduleResource) String() string {
 	builder.WriteString("schedule_status=")
 	builder.WriteString(fmt.Sprintf("%v", rsr.ScheduleStatus))
 	builder.WriteString(", ")
-	builder.WriteString("description=")
-	builder.WriteString(rsr.Description)
+	builder.WriteString("name=")
+	builder.WriteString(rsr.Name)
 	builder.WriteString(", ")
 	builder.WriteString("duration_seconds=")
 	builder.WriteString(fmt.Sprintf("%v", rsr.DurationSeconds))

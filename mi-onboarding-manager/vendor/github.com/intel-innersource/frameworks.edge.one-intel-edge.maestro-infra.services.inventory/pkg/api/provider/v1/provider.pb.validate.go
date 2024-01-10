@@ -83,46 +83,24 @@ func (m *ProviderResource) validate(all bool) error {
 
 	}
 
-	// no validation rules for Kind
+	// no validation rules for ProviderKind
 
-	// no validation rules for Description
+	// no validation rules for ProviderVendor
 
-	// no validation rules for DesiredState
-
-	// no validation rules for CurrentState
-
-	if all {
-		switch v := interface{}(m.GetSite()).(type) {
-		case interface{ ValidateAll() error }:
-			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, ProviderResourceValidationError{
-					field:  "Site",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		case interface{ Validate() error }:
-			if err := v.Validate(); err != nil {
-				errors = append(errors, ProviderResourceValidationError{
-					field:  "Site",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
+	if len(m.GetName()) > 40 {
+		err := ProviderResourceValidationError{
+			field:  "Name",
+			reason: "value length must be at most 40 bytes",
 		}
-	} else if v, ok := interface{}(m.GetSite()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ProviderResourceValidationError{
-				field:  "Site",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
+		if !all {
+			return err
 		}
+		errors = append(errors, err)
 	}
 
-	if _, err := url.Parse(m.GetEndpoint()); err != nil {
+	if _, err := url.Parse(m.GetApiEndpoint()); err != nil {
 		err = ProviderResourceValidationError{
-			field:  "Endpoint",
+			field:  "ApiEndpoint",
 			reason: "value must be a valid URI",
 			cause:  err,
 		}
@@ -132,7 +110,21 @@ func (m *ProviderResource) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	// no validation rules for Token
+	for idx, item := range m.GetApiCredentials() {
+		_, _ = idx, item
+
+		if !_ProviderResource_ApiCredentials_Pattern.MatchString(item) {
+			err := ProviderResourceValidationError{
+				field:  fmt.Sprintf("ApiCredentials[%v]", idx),
+				reason: "value does not match regex pattern \"^[^|]*$\"",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
 
 	if len(errors) > 0 {
 		return ProviderResourceMultiError(errors)
@@ -213,3 +205,5 @@ var _ interface {
 } = ProviderResourceValidationError{}
 
 var _ProviderResource_ResourceId_Pattern = regexp.MustCompile("^provider-[0-9a-f]{8}$")
+
+var _ProviderResource_ApiCredentials_Pattern = regexp.MustCompile("^[^|]*$")

@@ -25,16 +25,16 @@ func (rrc *RegionResourceCreate) SetResourceID(s string) *RegionResourceCreate {
 	return rrc
 }
 
-// SetDescription sets the "description" field.
-func (rrc *RegionResourceCreate) SetDescription(s string) *RegionResourceCreate {
-	rrc.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (rrc *RegionResourceCreate) SetName(s string) *RegionResourceCreate {
+	rrc.mutation.SetName(s)
 	return rrc
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (rrc *RegionResourceCreate) SetNillableDescription(s *string) *RegionResourceCreate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (rrc *RegionResourceCreate) SetNillableName(s *string) *RegionResourceCreate {
 	if s != nil {
-		rrc.SetDescription(*s)
+		rrc.SetName(*s)
 	}
 	return rrc
 }
@@ -168,9 +168,9 @@ func (rrc *RegionResourceCreate) createSpec() (*RegionResource, *sqlgraph.Create
 		_spec.SetField(regionresource.FieldResourceID, field.TypeString, value)
 		_node.ResourceID = value
 	}
-	if value, ok := rrc.mutation.Description(); ok {
-		_spec.SetField(regionresource.FieldDescription, field.TypeString, value)
-		_node.Description = value
+	if value, ok := rrc.mutation.Name(); ok {
+		_spec.SetField(regionresource.FieldName, field.TypeString, value)
+		_node.Name = value
 	}
 	if value, ok := rrc.mutation.RegionKind(); ok {
 		_spec.SetField(regionresource.FieldRegionKind, field.TypeString, value)

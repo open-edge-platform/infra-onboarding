@@ -18,8 +18,8 @@ const (
 	FieldResourceID = "resource_id"
 	// FieldScheduleStatus holds the string denoting the schedule_status field in the database.
 	FieldScheduleStatus = "schedule_status"
-	// FieldDescription holds the string denoting the description field in the database.
-	FieldDescription = "description"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
 	// FieldDurationSeconds holds the string denoting the duration_seconds field in the database.
 	FieldDurationSeconds = "duration_seconds"
 	// FieldCronMinutes holds the string denoting the cron_minutes field in the database.
@@ -68,7 +68,7 @@ var Columns = []string{
 	FieldID,
 	FieldResourceID,
 	FieldScheduleStatus,
-	FieldDescription,
+	FieldName,
 	FieldDurationSeconds,
 	FieldCronMinutes,
 	FieldCronHours,
@@ -145,9 +145,9 @@ func ByScheduleStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldScheduleStatus, opts...).ToFunc()
 }
 
-// ByDescription orders the results by the description field.
-func ByDescription(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldDescription, opts...).ToFunc()
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
 }
 
 // ByDurationSeconds orders the results by the duration_seconds field.

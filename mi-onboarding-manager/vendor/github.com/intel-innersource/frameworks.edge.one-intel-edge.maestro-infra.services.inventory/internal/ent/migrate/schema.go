@@ -13,7 +13,7 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "resource_id", Type: field.TypeString, Unique: true},
 		{Name: "kind", Type: field.TypeString, Nullable: true},
-		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "name", Type: field.TypeString, Nullable: true},
 		{Name: "endpoint_resource_host", Type: field.TypeInt, Nullable: true},
 	}
 	// EndpointResourcesTable holds the schema information for the "endpoint_resources" table.
@@ -35,14 +35,13 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "resource_id", Type: field.TypeString, Unique: true},
 		{Name: "kind", Type: field.TypeString, Nullable: true},
-		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "name", Type: field.TypeString, Nullable: true},
 		{Name: "desired_state", Type: field.TypeEnum, Nullable: true, Enums: []string{"HOST_STATE_UNSPECIFIED", "HOST_STATE_ERROR", "HOST_STATE_DELETING", "HOST_STATE_DELETED", "HOST_STATE_ONBOARDED", "HOST_STATE_PROVISIONED", "HOST_STATE_UNTRUSTED"}},
 		{Name: "current_state", Type: field.TypeEnum, Nullable: true, Enums: []string{"HOST_STATE_UNSPECIFIED", "HOST_STATE_ERROR", "HOST_STATE_DELETING", "HOST_STATE_DELETED", "HOST_STATE_ONBOARDED", "HOST_STATE_PROVISIONED", "HOST_STATE_UNTRUSTED"}},
 		{Name: "provider_status", Type: field.TypeString, Nullable: true},
 		{Name: "host_status", Type: field.TypeEnum, Nullable: true, Enums: []string{"HOST_STATUS_UNSPECIFIED", "HOST_STATUS_BOOTING", "HOST_STATUS_BOOT_FAILED", "HOST_STATUS_PROVISIONING", "HOST_STATUS_PROVISIONED", "HOST_STATUS_PROVISION_FAILED", "HOST_STATUS_RUNNING", "HOST_STATUS_ERROR", "HOST_STATUS_REGISTERING", "HOST_STATUS_UPDATING", "HOST_STATUS_UPDATE_FAILED", "HOST_STATUS_CONNECTION_LOST", "HOST_STATUS_INVALIDATING", "HOST_STATUS_INVALIDATED"}},
 		{Name: "provider_status_detail", Type: field.TypeString, Nullable: true},
 		{Name: "note", Type: field.TypeString, Nullable: true},
-		{Name: "consumer_id", Type: field.TypeString, Nullable: true},
 		{Name: "hardware_kind", Type: field.TypeString, Nullable: true},
 		{Name: "serial_number", Type: field.TypeString, Nullable: true},
 		{Name: "uuid", Type: field.TypeString, Nullable: true},
@@ -53,9 +52,6 @@ var (
 		{Name: "cpu_capabilities", Type: field.TypeString, Nullable: true},
 		{Name: "cpu_architecture", Type: field.TypeString, Nullable: true},
 		{Name: "cpu_threads", Type: field.TypeUint32, Nullable: true},
-		{Name: "gpu_pci_id", Type: field.TypeString, Nullable: true},
-		{Name: "gpu_product", Type: field.TypeString, Nullable: true},
-		{Name: "gpu_vendor", Type: field.TypeString, Nullable: true},
 		{Name: "mgmt_ip", Type: field.TypeString, Nullable: true},
 		{Name: "bmc_kind", Type: field.TypeEnum, Nullable: true, Enums: []string{"BAREMETAL_CONTROLLER_KIND_UNSPECIFIED", "BAREMETAL_CONTROLLER_KIND_NONE", "BAREMETAL_CONTROLLER_KIND_IPMI", "BAREMETAL_CONTROLLER_KIND_VPRO", "BAREMETAL_CONTROLLER_KIND_PDU", "BAREMETAL_CONTROLLER_KIND_FDO"}},
 		{Name: "bmc_ip", Type: field.TypeString, Nullable: true},
@@ -84,33 +80,58 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "host_resources_site_resources_site",
-				Columns:    []*schema.Column{HostResourcesColumns[38]},
+				Columns:    []*schema.Column{HostResourcesColumns[34]},
 				RefColumns: []*schema.Column{SiteResourcesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "host_resources_provider_resources_provider",
-				Columns:    []*schema.Column{HostResourcesColumns[39]},
+				Columns:    []*schema.Column{HostResourcesColumns[35]},
 				RefColumns: []*schema.Column{ProviderResourcesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "host_resources_project_resources_project",
-				Columns:    []*schema.Column{HostResourcesColumns[40]},
+				Columns:    []*schema.Column{HostResourcesColumns[36]},
 				RefColumns: []*schema.Column{ProjectResourcesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "host_resources_user_resources_user",
-				Columns:    []*schema.Column{HostResourcesColumns[41]},
+				Columns:    []*schema.Column{HostResourcesColumns[37]},
 				RefColumns: []*schema.Column{UserResourcesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "host_resources_instance_resources_host",
-				Columns:    []*schema.Column{HostResourcesColumns[42]},
+				Columns:    []*schema.Column{HostResourcesColumns[38]},
 				RefColumns: []*schema.Column{InstanceResourcesColumns[0]},
 				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// HostgpuResourcesColumns holds the columns for the "hostgpu_resources" table.
+	HostgpuResourcesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "resource_id", Type: field.TypeString, Unique: true},
+		{Name: "pci_id", Type: field.TypeString, Nullable: true},
+		{Name: "product", Type: field.TypeString, Nullable: true},
+		{Name: "vendor", Type: field.TypeString, Nullable: true},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "device_name", Type: field.TypeString, Nullable: true},
+		{Name: "hostgpu_resource_host", Type: field.TypeInt},
+	}
+	// HostgpuResourcesTable holds the schema information for the "hostgpu_resources" table.
+	HostgpuResourcesTable = &schema.Table{
+		Name:       "hostgpu_resources",
+		Columns:    HostgpuResourcesColumns,
+		PrimaryKey: []*schema.Column{HostgpuResourcesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "hostgpu_resources_host_resources_host",
+				Columns:    []*schema.Column{HostgpuResourcesColumns[7]},
+				RefColumns: []*schema.Column{HostResourcesColumns[0]},
+				OnDelete:   schema.NoAction,
 			},
 		},
 	}
@@ -119,11 +140,8 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "resource_id", Type: field.TypeString, Unique: true},
 		{Name: "kind", Type: field.TypeString, Nullable: true},
-		{Name: "description", Type: field.TypeString, Nullable: true},
-		{Name: "desired_state", Type: field.TypeEnum, Nullable: true, Enums: []string{"HOST_COMPONENT_STATE_UNSPECIFIED", "HOST_COMPONENT_STATE_ERROR", "HOST_COMPONENT_STATE_DELETED", "HOST_COMPONENT_STATE_EXISTS"}},
-		{Name: "current_state", Type: field.TypeEnum, Nullable: true, Enums: []string{"HOST_COMPONENT_STATE_UNSPECIFIED", "HOST_COMPONENT_STATE_ERROR", "HOST_COMPONENT_STATE_DELETED", "HOST_COMPONENT_STATE_EXISTS"}},
 		{Name: "provider_status", Type: field.TypeString, Nullable: true},
-		{Name: "name", Type: field.TypeString, Nullable: true},
+		{Name: "device_name", Type: field.TypeString, Nullable: true},
 		{Name: "pci_identifier", Type: field.TypeString, Nullable: true},
 		{Name: "mac_addr", Type: field.TypeString, Nullable: true},
 		{Name: "sriov_enabled", Type: field.TypeBool, Nullable: true},
@@ -155,25 +173,25 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "hostnic_resources_site_resources_site",
-				Columns:    []*schema.Column{HostnicResourcesColumns[26]},
+				Columns:    []*schema.Column{HostnicResourcesColumns[23]},
 				RefColumns: []*schema.Column{SiteResourcesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "hostnic_resources_provider_resources_provider",
-				Columns:    []*schema.Column{HostnicResourcesColumns[27]},
+				Columns:    []*schema.Column{HostnicResourcesColumns[24]},
 				RefColumns: []*schema.Column{ProviderResourcesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "hostnic_resources_project_resources_project",
-				Columns:    []*schema.Column{HostnicResourcesColumns[28]},
+				Columns:    []*schema.Column{HostnicResourcesColumns[25]},
 				RefColumns: []*schema.Column{ProjectResourcesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "hostnic_resources_host_resources_host",
-				Columns:    []*schema.Column{HostnicResourcesColumns[29]},
+				Columns:    []*schema.Column{HostnicResourcesColumns[26]},
 				RefColumns: []*schema.Column{HostResourcesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -184,16 +202,13 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "resource_id", Type: field.TypeString, Unique: true},
 		{Name: "kind", Type: field.TypeString, Nullable: true},
-		{Name: "description", Type: field.TypeString, Nullable: true},
-		{Name: "desired_state", Type: field.TypeEnum, Nullable: true, Enums: []string{"HOST_COMPONENT_STATE_UNSPECIFIED", "HOST_COMPONENT_STATE_ERROR", "HOST_COMPONENT_STATE_DELETED", "HOST_COMPONENT_STATE_EXISTS"}},
-		{Name: "current_state", Type: field.TypeEnum, Nullable: true, Enums: []string{"HOST_COMPONENT_STATE_UNSPECIFIED", "HOST_COMPONENT_STATE_ERROR", "HOST_COMPONENT_STATE_DELETED", "HOST_COMPONENT_STATE_EXISTS"}},
 		{Name: "provider_status", Type: field.TypeString, Nullable: true},
 		{Name: "wwid", Type: field.TypeString, Nullable: true},
 		{Name: "serial", Type: field.TypeString, Nullable: true},
 		{Name: "vendor", Type: field.TypeString, Nullable: true},
 		{Name: "model", Type: field.TypeString, Nullable: true},
 		{Name: "capacity_bytes", Type: field.TypeUint64, Nullable: true},
-		{Name: "name", Type: field.TypeString, Nullable: true},
+		{Name: "device_name", Type: field.TypeString, Nullable: true},
 		{Name: "hoststorage_resource_site", Type: field.TypeInt, Nullable: true},
 		{Name: "hoststorage_resource_provider", Type: field.TypeInt, Nullable: true},
 		{Name: "hoststorage_resource_project", Type: field.TypeInt, Nullable: true},
@@ -207,25 +222,25 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "hoststorage_resources_site_resources_site",
-				Columns:    []*schema.Column{HoststorageResourcesColumns[13]},
+				Columns:    []*schema.Column{HoststorageResourcesColumns[10]},
 				RefColumns: []*schema.Column{SiteResourcesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "hoststorage_resources_provider_resources_provider",
-				Columns:    []*schema.Column{HoststorageResourcesColumns[14]},
+				Columns:    []*schema.Column{HoststorageResourcesColumns[11]},
 				RefColumns: []*schema.Column{ProviderResourcesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "hoststorage_resources_project_resources_project",
-				Columns:    []*schema.Column{HoststorageResourcesColumns[15]},
+				Columns:    []*schema.Column{HoststorageResourcesColumns[12]},
 				RefColumns: []*schema.Column{ProjectResourcesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "hoststorage_resources_host_resources_host",
-				Columns:    []*schema.Column{HoststorageResourcesColumns[16]},
+				Columns:    []*schema.Column{HoststorageResourcesColumns[13]},
 				RefColumns: []*schema.Column{HostResourcesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -236,9 +251,6 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "resource_id", Type: field.TypeString, Unique: true},
 		{Name: "kind", Type: field.TypeString, Nullable: true},
-		{Name: "description", Type: field.TypeString, Nullable: true},
-		{Name: "current_state", Type: field.TypeEnum, Nullable: true, Enums: []string{"HOST_COMPONENT_STATE_UNSPECIFIED", "HOST_COMPONENT_STATE_ERROR", "HOST_COMPONENT_STATE_DELETED", "HOST_COMPONENT_STATE_EXISTS"}},
-		{Name: "desired_state", Type: field.TypeEnum, Nullable: true, Enums: []string{"HOST_COMPONENT_STATE_UNSPECIFIED", "HOST_COMPONENT_STATE_ERROR", "HOST_COMPONENT_STATE_DELETED", "HOST_COMPONENT_STATE_EXISTS"}},
 		{Name: "owner_id", Type: field.TypeString, Nullable: true},
 		{Name: "idvendor", Type: field.TypeString, Nullable: true},
 		{Name: "idproduct", Type: field.TypeString, Nullable: true},
@@ -246,6 +258,7 @@ var (
 		{Name: "addr", Type: field.TypeUint32, Nullable: true},
 		{Name: "class", Type: field.TypeString, Nullable: true},
 		{Name: "serial", Type: field.TypeString, Nullable: true},
+		{Name: "device_name", Type: field.TypeString, Nullable: true},
 		{Name: "hostusb_resource_host", Type: field.TypeInt},
 	}
 	// HostusbResourcesTable holds the schema information for the "hostusb_resources" table.
@@ -256,7 +269,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "hostusb_resources_host_resources_host",
-				Columns:    []*schema.Column{HostusbResourcesColumns[13]},
+				Columns:    []*schema.Column{HostusbResourcesColumns[11]},
 				RefColumns: []*schema.Column{HostResourcesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -293,7 +306,7 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "resource_id", Type: field.TypeString, Unique: true},
 		{Name: "kind", Type: field.TypeEnum, Nullable: true, Enums: []string{"INSTANCE_KIND_UNSPECIFIED", "INSTANCE_KIND_VM", "INSTANCE_KIND_METAL"}},
-		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "name", Type: field.TypeString, Nullable: true},
 		{Name: "desired_state", Type: field.TypeEnum, Nullable: true, Enums: []string{"INSTANCE_STATE_UNSPECIFIED", "INSTANCE_STATE_ERROR", "INSTANCE_STATE_INSTALLED", "INSTANCE_STATE_RUNNING", "INSTANCE_STATE_STOPPED", "INSTANCE_STATE_DELETED"}},
 		{Name: "current_state", Type: field.TypeEnum, Nullable: true, Enums: []string{"INSTANCE_STATE_UNSPECIFIED", "INSTANCE_STATE_ERROR", "INSTANCE_STATE_INSTALLED", "INSTANCE_STATE_RUNNING", "INSTANCE_STATE_STOPPED", "INSTANCE_STATE_DELETED"}},
 		{Name: "vm_memory_bytes", Type: field.TypeUint64, Nullable: true},
@@ -302,7 +315,8 @@ var (
 		{Name: "status", Type: field.TypeEnum, Nullable: true, Enums: []string{"INSTANCE_STATUS_UNSPECIFIED", "INSTANCE_STATUS_BOOTING", "INSTANCE_STATUS_BOOT_FAILED", "INSTANCE_STATUS_PROVISIONING", "INSTANCE_STATUS_PROVISIONED", "INSTANCE_STATUS_PROVISION_FAILED", "INSTANCE_STATUS_RUNNING", "INSTANCE_STATUS_ERROR", "INSTANCE_STATUS_UPDATING", "INSTANCE_STATUS_UPDATE_FAILED"}},
 		{Name: "status_detail", Type: field.TypeString, Nullable: true},
 		{Name: "instance_resource_user", Type: field.TypeInt, Nullable: true},
-		{Name: "instance_resource_os", Type: field.TypeInt, Nullable: true},
+		{Name: "instance_resource_os", Type: field.TypeInt},
+		{Name: "instance_resource_provider", Type: field.TypeInt, Nullable: true},
 	}
 	// InstanceResourcesTable holds the schema information for the "instance_resources" table.
 	InstanceResourcesTable = &schema.Table{
@@ -320,6 +334,12 @@ var (
 				Symbol:     "instance_resources_operating_system_resources_os",
 				Columns:    []*schema.Column{InstanceResourcesColumns[12]},
 				RefColumns: []*schema.Column{OperatingSystemResourcesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "instance_resources_provider_resources_provider",
+				Columns:    []*schema.Column{InstanceResourcesColumns[13]},
+				RefColumns: []*schema.Column{ProviderResourcesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
@@ -329,7 +349,7 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "resource_id", Type: field.TypeString, Unique: true},
 		{Name: "kind", Type: field.TypeString, Nullable: true},
-		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "name", Type: field.TypeString, Nullable: true},
 		{Name: "desired_state", Type: field.TypeEnum, Enums: []string{"NETLINK_STATE_UNSPECIFIED", "NETLINK_STATE_DELETED", "NETLINK_STATE_ONLINE", "NETLINK_STATE_OFFLINE", "NETLINK_STATE_ERROR"}},
 		{Name: "current_state", Type: field.TypeEnum, Nullable: true, Enums: []string{"NETLINK_STATE_UNSPECIFIED", "NETLINK_STATE_DELETED", "NETLINK_STATE_ONLINE", "NETLINK_STATE_OFFLINE", "NETLINK_STATE_ERROR"}},
 		{Name: "provider_status", Type: field.TypeString, Nullable: true},
@@ -360,7 +380,7 @@ var (
 	NetworkSegmentsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "resource_id", Type: field.TypeString, Unique: true},
-		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "name", Type: field.TypeString, Nullable: true},
 		{Name: "vlan_id", Type: field.TypeInt32, Nullable: true},
 		{Name: "network_segment_site", Type: field.TypeInt},
 	}
@@ -382,7 +402,7 @@ var (
 	OperatingSystemResourcesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "resource_id", Type: field.TypeString, Unique: true},
-		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "name", Type: field.TypeString, Nullable: true},
 		{Name: "architecture", Type: field.TypeString, Nullable: true},
 		{Name: "kernel_command", Type: field.TypeString, Nullable: true},
 		{Name: "update_sources", Type: field.TypeString},
@@ -400,7 +420,7 @@ var (
 	OuResourcesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "resource_id", Type: field.TypeString, Unique: true},
-		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "name", Type: field.TypeString, Nullable: true},
 		{Name: "ou_kind", Type: field.TypeString, Nullable: true},
 		{Name: "metadata", Type: field.TypeString, Nullable: true},
 		{Name: "ou_resource_parent_ou", Type: field.TypeInt, Nullable: true},
@@ -424,7 +444,7 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "resource_id", Type: field.TypeString, Unique: true},
 		{Name: "kind", Type: field.TypeString, Nullable: true},
-		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "name", Type: field.TypeString, Nullable: true},
 	}
 	// ProjectResourcesTable holds the schema information for the "project_resources" table.
 	ProjectResourcesTable = &schema.Table{
@@ -436,33 +456,23 @@ var (
 	ProviderResourcesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "resource_id", Type: field.TypeString, Unique: true},
-		{Name: "kind", Type: field.TypeEnum, Nullable: true, Enums: []string{"PROVIDER_KIND_UNSPECIFIED", "PROVIDER_KIND_HARVESTER", "PROVIDER_KIND_METAL"}},
-		{Name: "description", Type: field.TypeString, Nullable: true},
-		{Name: "desired_state", Type: field.TypeEnum, Enums: []string{"PROVIDER_STATE_UNSPECIFIED", "PROVIDER_STATE_ERROR", "PROVIDER_STATE_DELETED", "PROVIDER_STATE_ENABLED", "PROVIDER_STATE_DISABLED"}},
-		{Name: "current_state", Type: field.TypeEnum, Nullable: true, Enums: []string{"PROVIDER_STATE_UNSPECIFIED", "PROVIDER_STATE_ERROR", "PROVIDER_STATE_DELETED", "PROVIDER_STATE_ENABLED", "PROVIDER_STATE_DISABLED"}},
-		{Name: "endpoint", Type: field.TypeString, Nullable: true},
-		{Name: "token", Type: field.TypeString, Nullable: true},
-		{Name: "provider_resource_site", Type: field.TypeInt, Nullable: true},
+		{Name: "provider_kind", Type: field.TypeEnum, Enums: []string{"PROVIDER_KIND_UNSPECIFIED", "PROVIDER_KIND_BAREMETAL"}},
+		{Name: "provider_vendor", Type: field.TypeEnum, Nullable: true, Enums: []string{"PROVIDER_VENDOR_UNSPECIFIED", "PROVIDER_VENDOR_LENOVO_LXCA", "PROVIDER_VENDOR_LENOVO_LOCA"}},
+		{Name: "name", Type: field.TypeString, Unique: true},
+		{Name: "api_endpoint", Type: field.TypeString},
+		{Name: "api_credentials", Type: field.TypeString, Nullable: true},
 	}
 	// ProviderResourcesTable holds the schema information for the "provider_resources" table.
 	ProviderResourcesTable = &schema.Table{
 		Name:       "provider_resources",
 		Columns:    ProviderResourcesColumns,
 		PrimaryKey: []*schema.Column{ProviderResourcesColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "provider_resources_site_resources_site",
-				Columns:    []*schema.Column{ProviderResourcesColumns[8]},
-				RefColumns: []*schema.Column{SiteResourcesColumns[0]},
-				OnDelete:   schema.SetNull,
-			},
-		},
 	}
 	// RegionResourcesColumns holds the columns for the "region_resources" table.
 	RegionResourcesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "resource_id", Type: field.TypeString, Unique: true},
-		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "name", Type: field.TypeString, Nullable: true},
 		{Name: "region_kind", Type: field.TypeString, Nullable: true},
 		{Name: "metadata", Type: field.TypeString, Nullable: true},
 		{Name: "region_resource_parent_region", Type: field.TypeInt, Nullable: true},
@@ -486,7 +496,7 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "resource_id", Type: field.TypeString, Unique: true},
 		{Name: "schedule_status", Type: field.TypeEnum, Nullable: true, Enums: []string{"SCHEDULE_STATUS_UNSPECIFIED", "SCHEDULE_STATUS_MAINTENANCE", "SCHEDULE_STATUS_SHIPPING", "SCHEDULE_STATUS_OS_UPDATE", "SCHEDULE_STATUS_FIRMWARE_UPDATE", "SCHEDULE_STATUS_CLUSTER_UPDATE"}},
-		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "name", Type: field.TypeString, Nullable: true},
 		{Name: "duration_seconds", Type: field.TypeUint32, Nullable: true},
 		{Name: "cron_minutes", Type: field.TypeString},
 		{Name: "cron_hours", Type: field.TypeString},
@@ -528,7 +538,7 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "resource_id", Type: field.TypeString, Unique: true},
 		{Name: "schedule_status", Type: field.TypeEnum, Nullable: true, Enums: []string{"SCHEDULE_STATUS_UNSPECIFIED", "SCHEDULE_STATUS_MAINTENANCE", "SCHEDULE_STATUS_SHIPPING", "SCHEDULE_STATUS_OS_UPDATE", "SCHEDULE_STATUS_FIRMWARE_UPDATE", "SCHEDULE_STATUS_CLUSTER_UPDATE"}},
-		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "name", Type: field.TypeString, Nullable: true},
 		{Name: "start_seconds", Type: field.TypeUint64},
 		{Name: "end_seconds", Type: field.TypeUint64, Nullable: true},
 		{Name: "single_schedule_resource_target_site", Type: field.TypeInt, Nullable: true},
@@ -565,8 +575,7 @@ var (
 	SiteResourcesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "resource_id", Type: field.TypeString, Unique: true},
-		{Name: "description", Type: field.TypeString, Nullable: true},
-		{Name: "site_kind", Type: field.TypeString, Nullable: true},
+		{Name: "name", Type: field.TypeString, Nullable: true},
 		{Name: "address", Type: field.TypeString, Nullable: true},
 		{Name: "site_lat", Type: field.TypeInt32, Nullable: true},
 		{Name: "site_lng", Type: field.TypeInt32, Nullable: true},
@@ -589,15 +598,74 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "site_resources_region_resources_region",
-				Columns:    []*schema.Column{SiteResourcesColumns[15]},
+				Columns:    []*schema.Column{SiteResourcesColumns[14]},
 				RefColumns: []*schema.Column{RegionResourcesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "site_resources_ou_resources_ou",
-				Columns:    []*schema.Column{SiteResourcesColumns[16]},
+				Columns:    []*schema.Column{SiteResourcesColumns[15]},
 				RefColumns: []*schema.Column{OuResourcesColumns[0]},
 				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// TelemetryGroupResourcesColumns holds the columns for the "telemetry_group_resources" table.
+	TelemetryGroupResourcesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "resource_id", Type: field.TypeString, Unique: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "kind", Type: field.TypeEnum, Enums: []string{"TELEMETRY_RESOURCE_KIND_UNSPECIFIED", "TELEMETRY_RESOURCE_KIND_METRICS", "TELEMETRY_RESOURCE_KIND_LOGS"}},
+		{Name: "collector_kind", Type: field.TypeEnum, Enums: []string{"COLLECTOR_KIND_UNSPECIFIED", "COLLECTOR_KIND_HOST", "COLLECTOR_KIND_CLUSTER"}},
+		{Name: "groups", Type: field.TypeString},
+	}
+	// TelemetryGroupResourcesTable holds the schema information for the "telemetry_group_resources" table.
+	TelemetryGroupResourcesTable = &schema.Table{
+		Name:       "telemetry_group_resources",
+		Columns:    TelemetryGroupResourcesColumns,
+		PrimaryKey: []*schema.Column{TelemetryGroupResourcesColumns[0]},
+	}
+	// TelemetryProfilesColumns holds the columns for the "telemetry_profiles" table.
+	TelemetryProfilesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "resource_id", Type: field.TypeString, Unique: true},
+		{Name: "kind", Type: field.TypeEnum, Enums: []string{"TELEMETRY_RESOURCE_KIND_UNSPECIFIED", "TELEMETRY_RESOURCE_KIND_METRICS", "TELEMETRY_RESOURCE_KIND_LOGS"}},
+		{Name: "metrics_interval", Type: field.TypeUint32, Nullable: true},
+		{Name: "log_level", Type: field.TypeEnum, Nullable: true, Enums: []string{"SEVERITY_LEVEL_UNSPECIFIED", "SEVERITY_LEVEL_CRITICAL", "SEVERITY_LEVEL_ERROR", "SEVERITY_LEVEL_WARN", "SEVERITY_LEVEL_INFO", "SEVERITY_LEVEL_DEBUG"}},
+		{Name: "telemetry_profile_region", Type: field.TypeInt, Nullable: true},
+		{Name: "telemetry_profile_site", Type: field.TypeInt, Nullable: true},
+		{Name: "telemetry_profile_instance", Type: field.TypeInt, Nullable: true},
+		{Name: "telemetry_profile_group", Type: field.TypeInt},
+	}
+	// TelemetryProfilesTable holds the schema information for the "telemetry_profiles" table.
+	TelemetryProfilesTable = &schema.Table{
+		Name:       "telemetry_profiles",
+		Columns:    TelemetryProfilesColumns,
+		PrimaryKey: []*schema.Column{TelemetryProfilesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "telemetry_profiles_region_resources_region",
+				Columns:    []*schema.Column{TelemetryProfilesColumns[5]},
+				RefColumns: []*schema.Column{RegionResourcesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "telemetry_profiles_site_resources_site",
+				Columns:    []*schema.Column{TelemetryProfilesColumns[6]},
+				RefColumns: []*schema.Column{SiteResourcesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "telemetry_profiles_instance_resources_instance",
+				Columns:    []*schema.Column{TelemetryProfilesColumns[7]},
+				RefColumns: []*schema.Column{InstanceResourcesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "telemetry_profiles_telemetry_group_resources_group",
+				Columns:    []*schema.Column{TelemetryProfilesColumns[8]},
+				RefColumns: []*schema.Column{TelemetryGroupResourcesColumns[0]},
+				OnDelete:   schema.NoAction,
 			},
 		},
 	}
@@ -606,7 +674,7 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "resource_id", Type: field.TypeString, Unique: true},
 		{Name: "kind", Type: field.TypeString, Nullable: true},
-		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "name", Type: field.TypeString, Nullable: true},
 		{Name: "username", Type: field.TypeString, Nullable: true},
 		{Name: "ssh_pubkey", Type: field.TypeString, Nullable: true},
 	}
@@ -649,7 +717,7 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "resource_id", Type: field.TypeString, Unique: true},
 		{Name: "kind", Type: field.TypeEnum, Enums: []string{"WORKLOAD_KIND_UNSPECIFIED", "WORKLOAD_KIND_CLUSTER", "WORKLOAD_KIND_DHCP"}},
-		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "name", Type: field.TypeString, Nullable: true},
 		{Name: "external_id", Type: field.TypeString, Unique: true, Nullable: true},
 		{Name: "desired_state", Type: field.TypeEnum, Enums: []string{"WORKLOAD_STATE_UNSPECIFIED", "WORKLOAD_STATE_ERROR", "WORKLOAD_STATE_DELETING", "WORKLOAD_STATE_DELETED", "WORKLOAD_STATE_PROVISIONED"}},
 		{Name: "current_state", Type: field.TypeEnum, Nullable: true, Enums: []string{"WORKLOAD_STATE_UNSPECIFIED", "WORKLOAD_STATE_ERROR", "WORKLOAD_STATE_DELETING", "WORKLOAD_STATE_DELETED", "WORKLOAD_STATE_PROVISIONED"}},
@@ -666,6 +734,7 @@ var (
 	Tables = []*schema.Table{
 		EndpointResourcesTable,
 		HostResourcesTable,
+		HostgpuResourcesTable,
 		HostnicResourcesTable,
 		HoststorageResourcesTable,
 		HostusbResourcesTable,
@@ -681,6 +750,8 @@ var (
 		RepeatedScheduleResourcesTable,
 		SingleScheduleResourcesTable,
 		SiteResourcesTable,
+		TelemetryGroupResourcesTable,
+		TelemetryProfilesTable,
 		UserResourcesTable,
 		WorkloadMembersTable,
 		WorkloadResourcesTable,
@@ -694,6 +765,7 @@ func init() {
 	HostResourcesTable.ForeignKeys[2].RefTable = ProjectResourcesTable
 	HostResourcesTable.ForeignKeys[3].RefTable = UserResourcesTable
 	HostResourcesTable.ForeignKeys[4].RefTable = InstanceResourcesTable
+	HostgpuResourcesTable.ForeignKeys[0].RefTable = HostResourcesTable
 	HostnicResourcesTable.ForeignKeys[0].RefTable = SiteResourcesTable
 	HostnicResourcesTable.ForeignKeys[1].RefTable = ProviderResourcesTable
 	HostnicResourcesTable.ForeignKeys[2].RefTable = ProjectResourcesTable
@@ -706,11 +778,11 @@ func init() {
 	IPAddressResourcesTable.ForeignKeys[0].RefTable = HostnicResourcesTable
 	InstanceResourcesTable.ForeignKeys[0].RefTable = UserResourcesTable
 	InstanceResourcesTable.ForeignKeys[1].RefTable = OperatingSystemResourcesTable
+	InstanceResourcesTable.ForeignKeys[2].RefTable = ProviderResourcesTable
 	NetlinkResourcesTable.ForeignKeys[0].RefTable = EndpointResourcesTable
 	NetlinkResourcesTable.ForeignKeys[1].RefTable = EndpointResourcesTable
 	NetworkSegmentsTable.ForeignKeys[0].RefTable = SiteResourcesTable
 	OuResourcesTable.ForeignKeys[0].RefTable = OuResourcesTable
-	ProviderResourcesTable.ForeignKeys[0].RefTable = SiteResourcesTable
 	RegionResourcesTable.ForeignKeys[0].RefTable = RegionResourcesTable
 	RepeatedScheduleResourcesTable.ForeignKeys[0].RefTable = SiteResourcesTable
 	RepeatedScheduleResourcesTable.ForeignKeys[1].RefTable = HostResourcesTable
@@ -720,6 +792,10 @@ func init() {
 	SingleScheduleResourcesTable.ForeignKeys[2].RefTable = WorkloadResourcesTable
 	SiteResourcesTable.ForeignKeys[0].RefTable = RegionResourcesTable
 	SiteResourcesTable.ForeignKeys[1].RefTable = OuResourcesTable
+	TelemetryProfilesTable.ForeignKeys[0].RefTable = RegionResourcesTable
+	TelemetryProfilesTable.ForeignKeys[1].RefTable = SiteResourcesTable
+	TelemetryProfilesTable.ForeignKeys[2].RefTable = InstanceResourcesTable
+	TelemetryProfilesTable.ForeignKeys[3].RefTable = TelemetryGroupResourcesTable
 	WorkloadMembersTable.ForeignKeys[0].RefTable = WorkloadResourcesTable
 	WorkloadMembersTable.ForeignKeys[1].RefTable = InstanceResourcesTable
 }

@@ -24,12 +24,6 @@ type HoststorageResource struct {
 	ResourceID string `json:"resource_id,omitempty"`
 	// Kind holds the value of the "kind" field.
 	Kind string `json:"kind,omitempty"`
-	// Description holds the value of the "description" field.
-	Description string `json:"description,omitempty"`
-	// DesiredState holds the value of the "desired_state" field.
-	DesiredState hoststorageresource.DesiredState `json:"desired_state,omitempty"`
-	// CurrentState holds the value of the "current_state" field.
-	CurrentState hoststorageresource.CurrentState `json:"current_state,omitempty"`
 	// ProviderStatus holds the value of the "provider_status" field.
 	ProviderStatus string `json:"provider_status,omitempty"`
 	// Wwid holds the value of the "wwid" field.
@@ -42,8 +36,8 @@ type HoststorageResource struct {
 	Model string `json:"model,omitempty"`
 	// CapacityBytes holds the value of the "capacity_bytes" field.
 	CapacityBytes uint64 `json:"capacity_bytes,omitempty"`
-	// Name holds the value of the "name" field.
-	Name string `json:"name,omitempty"`
+	// DeviceName holds the value of the "device_name" field.
+	DeviceName string `json:"device_name,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the HoststorageResourceQuery when eager-loading is set.
 	Edges                         HoststorageResourceEdges `json:"edges"`
@@ -128,7 +122,7 @@ func (*HoststorageResource) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case hoststorageresource.FieldID, hoststorageresource.FieldCapacityBytes:
 			values[i] = new(sql.NullInt64)
-		case hoststorageresource.FieldResourceID, hoststorageresource.FieldKind, hoststorageresource.FieldDescription, hoststorageresource.FieldDesiredState, hoststorageresource.FieldCurrentState, hoststorageresource.FieldProviderStatus, hoststorageresource.FieldWwid, hoststorageresource.FieldSerial, hoststorageresource.FieldVendor, hoststorageresource.FieldModel, hoststorageresource.FieldName:
+		case hoststorageresource.FieldResourceID, hoststorageresource.FieldKind, hoststorageresource.FieldProviderStatus, hoststorageresource.FieldWwid, hoststorageresource.FieldSerial, hoststorageresource.FieldVendor, hoststorageresource.FieldModel, hoststorageresource.FieldDeviceName:
 			values[i] = new(sql.NullString)
 		case hoststorageresource.ForeignKeys[0]: // hoststorage_resource_site
 			values[i] = new(sql.NullInt64)
@@ -171,24 +165,6 @@ func (hr *HoststorageResource) assignValues(columns []string, values []any) erro
 			} else if value.Valid {
 				hr.Kind = value.String
 			}
-		case hoststorageresource.FieldDescription:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field description", values[i])
-			} else if value.Valid {
-				hr.Description = value.String
-			}
-		case hoststorageresource.FieldDesiredState:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field desired_state", values[i])
-			} else if value.Valid {
-				hr.DesiredState = hoststorageresource.DesiredState(value.String)
-			}
-		case hoststorageresource.FieldCurrentState:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field current_state", values[i])
-			} else if value.Valid {
-				hr.CurrentState = hoststorageresource.CurrentState(value.String)
-			}
 		case hoststorageresource.FieldProviderStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field provider_status", values[i])
@@ -225,11 +201,11 @@ func (hr *HoststorageResource) assignValues(columns []string, values []any) erro
 			} else if value.Valid {
 				hr.CapacityBytes = uint64(value.Int64)
 			}
-		case hoststorageresource.FieldName:
+		case hoststorageresource.FieldDeviceName:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name", values[i])
+				return fmt.Errorf("unexpected type %T for field device_name", values[i])
 			} else if value.Valid {
-				hr.Name = value.String
+				hr.DeviceName = value.String
 			}
 		case hoststorageresource.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -321,15 +297,6 @@ func (hr *HoststorageResource) String() string {
 	builder.WriteString("kind=")
 	builder.WriteString(hr.Kind)
 	builder.WriteString(", ")
-	builder.WriteString("description=")
-	builder.WriteString(hr.Description)
-	builder.WriteString(", ")
-	builder.WriteString("desired_state=")
-	builder.WriteString(fmt.Sprintf("%v", hr.DesiredState))
-	builder.WriteString(", ")
-	builder.WriteString("current_state=")
-	builder.WriteString(fmt.Sprintf("%v", hr.CurrentState))
-	builder.WriteString(", ")
 	builder.WriteString("provider_status=")
 	builder.WriteString(hr.ProviderStatus)
 	builder.WriteString(", ")
@@ -348,8 +315,8 @@ func (hr *HoststorageResource) String() string {
 	builder.WriteString("capacity_bytes=")
 	builder.WriteString(fmt.Sprintf("%v", hr.CapacityBytes))
 	builder.WriteString(", ")
-	builder.WriteString("name=")
-	builder.WriteString(hr.Name)
+	builder.WriteString("device_name=")
+	builder.WriteString(hr.DeviceName)
 	builder.WriteByte(')')
 	return builder.String()
 }

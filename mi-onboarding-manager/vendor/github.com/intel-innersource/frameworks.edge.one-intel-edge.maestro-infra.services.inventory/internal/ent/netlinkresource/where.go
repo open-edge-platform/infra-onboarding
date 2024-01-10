@@ -63,9 +63,9 @@ func Kind(v string) predicate.NetlinkResource {
 	return predicate.NetlinkResource(sql.FieldEQ(FieldKind, v))
 }
 
-// Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
-func Description(v string) predicate.NetlinkResource {
-	return predicate.NetlinkResource(sql.FieldEQ(FieldDescription, v))
+// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
+func Name(v string) predicate.NetlinkResource {
+	return predicate.NetlinkResource(sql.FieldEQ(FieldName, v))
 }
 
 // ProviderStatus applies equality check predicate on the "provider_status" field. It's identical to ProviderStatusEQ.
@@ -213,79 +213,79 @@ func KindContainsFold(v string) predicate.NetlinkResource {
 	return predicate.NetlinkResource(sql.FieldContainsFold(FieldKind, v))
 }
 
-// DescriptionEQ applies the EQ predicate on the "description" field.
-func DescriptionEQ(v string) predicate.NetlinkResource {
-	return predicate.NetlinkResource(sql.FieldEQ(FieldDescription, v))
+// NameEQ applies the EQ predicate on the "name" field.
+func NameEQ(v string) predicate.NetlinkResource {
+	return predicate.NetlinkResource(sql.FieldEQ(FieldName, v))
 }
 
-// DescriptionNEQ applies the NEQ predicate on the "description" field.
-func DescriptionNEQ(v string) predicate.NetlinkResource {
-	return predicate.NetlinkResource(sql.FieldNEQ(FieldDescription, v))
+// NameNEQ applies the NEQ predicate on the "name" field.
+func NameNEQ(v string) predicate.NetlinkResource {
+	return predicate.NetlinkResource(sql.FieldNEQ(FieldName, v))
 }
 
-// DescriptionIn applies the In predicate on the "description" field.
-func DescriptionIn(vs ...string) predicate.NetlinkResource {
-	return predicate.NetlinkResource(sql.FieldIn(FieldDescription, vs...))
+// NameIn applies the In predicate on the "name" field.
+func NameIn(vs ...string) predicate.NetlinkResource {
+	return predicate.NetlinkResource(sql.FieldIn(FieldName, vs...))
 }
 
-// DescriptionNotIn applies the NotIn predicate on the "description" field.
-func DescriptionNotIn(vs ...string) predicate.NetlinkResource {
-	return predicate.NetlinkResource(sql.FieldNotIn(FieldDescription, vs...))
+// NameNotIn applies the NotIn predicate on the "name" field.
+func NameNotIn(vs ...string) predicate.NetlinkResource {
+	return predicate.NetlinkResource(sql.FieldNotIn(FieldName, vs...))
 }
 
-// DescriptionGT applies the GT predicate on the "description" field.
-func DescriptionGT(v string) predicate.NetlinkResource {
-	return predicate.NetlinkResource(sql.FieldGT(FieldDescription, v))
+// NameGT applies the GT predicate on the "name" field.
+func NameGT(v string) predicate.NetlinkResource {
+	return predicate.NetlinkResource(sql.FieldGT(FieldName, v))
 }
 
-// DescriptionGTE applies the GTE predicate on the "description" field.
-func DescriptionGTE(v string) predicate.NetlinkResource {
-	return predicate.NetlinkResource(sql.FieldGTE(FieldDescription, v))
+// NameGTE applies the GTE predicate on the "name" field.
+func NameGTE(v string) predicate.NetlinkResource {
+	return predicate.NetlinkResource(sql.FieldGTE(FieldName, v))
 }
 
-// DescriptionLT applies the LT predicate on the "description" field.
-func DescriptionLT(v string) predicate.NetlinkResource {
-	return predicate.NetlinkResource(sql.FieldLT(FieldDescription, v))
+// NameLT applies the LT predicate on the "name" field.
+func NameLT(v string) predicate.NetlinkResource {
+	return predicate.NetlinkResource(sql.FieldLT(FieldName, v))
 }
 
-// DescriptionLTE applies the LTE predicate on the "description" field.
-func DescriptionLTE(v string) predicate.NetlinkResource {
-	return predicate.NetlinkResource(sql.FieldLTE(FieldDescription, v))
+// NameLTE applies the LTE predicate on the "name" field.
+func NameLTE(v string) predicate.NetlinkResource {
+	return predicate.NetlinkResource(sql.FieldLTE(FieldName, v))
 }
 
-// DescriptionContains applies the Contains predicate on the "description" field.
-func DescriptionContains(v string) predicate.NetlinkResource {
-	return predicate.NetlinkResource(sql.FieldContains(FieldDescription, v))
+// NameContains applies the Contains predicate on the "name" field.
+func NameContains(v string) predicate.NetlinkResource {
+	return predicate.NetlinkResource(sql.FieldContains(FieldName, v))
 }
 
-// DescriptionHasPrefix applies the HasPrefix predicate on the "description" field.
-func DescriptionHasPrefix(v string) predicate.NetlinkResource {
-	return predicate.NetlinkResource(sql.FieldHasPrefix(FieldDescription, v))
+// NameHasPrefix applies the HasPrefix predicate on the "name" field.
+func NameHasPrefix(v string) predicate.NetlinkResource {
+	return predicate.NetlinkResource(sql.FieldHasPrefix(FieldName, v))
 }
 
-// DescriptionHasSuffix applies the HasSuffix predicate on the "description" field.
-func DescriptionHasSuffix(v string) predicate.NetlinkResource {
-	return predicate.NetlinkResource(sql.FieldHasSuffix(FieldDescription, v))
+// NameHasSuffix applies the HasSuffix predicate on the "name" field.
+func NameHasSuffix(v string) predicate.NetlinkResource {
+	return predicate.NetlinkResource(sql.FieldHasSuffix(FieldName, v))
 }
 
-// DescriptionIsNil applies the IsNil predicate on the "description" field.
-func DescriptionIsNil() predicate.NetlinkResource {
-	return predicate.NetlinkResource(sql.FieldIsNull(FieldDescription))
+// NameIsNil applies the IsNil predicate on the "name" field.
+func NameIsNil() predicate.NetlinkResource {
+	return predicate.NetlinkResource(sql.FieldIsNull(FieldName))
 }
 
-// DescriptionNotNil applies the NotNil predicate on the "description" field.
-func DescriptionNotNil() predicate.NetlinkResource {
-	return predicate.NetlinkResource(sql.FieldNotNull(FieldDescription))
+// NameNotNil applies the NotNil predicate on the "name" field.
+func NameNotNil() predicate.NetlinkResource {
+	return predicate.NetlinkResource(sql.FieldNotNull(FieldName))
 }
 
-// DescriptionEqualFold applies the EqualFold predicate on the "description" field.
-func DescriptionEqualFold(v string) predicate.NetlinkResource {
-	return predicate.NetlinkResource(sql.FieldEqualFold(FieldDescription, v))
+// NameEqualFold applies the EqualFold predicate on the "name" field.
+func NameEqualFold(v string) predicate.NetlinkResource {
+	return predicate.NetlinkResource(sql.FieldEqualFold(FieldName, v))
 }
 
-// DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
-func DescriptionContainsFold(v string) predicate.NetlinkResource {
-	return predicate.NetlinkResource(sql.FieldContainsFold(FieldDescription, v))
+// NameContainsFold applies the ContainsFold predicate on the "name" field.
+func NameContainsFold(v string) predicate.NetlinkResource {
+	return predicate.NetlinkResource(sql.FieldContainsFold(FieldName, v))
 }
 
 // DesiredStateEQ applies the EQ predicate on the "desired_state" field.

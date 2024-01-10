@@ -23,8 +23,8 @@ type SingleScheduleResource struct {
 	ResourceID string `json:"resource_id,omitempty"`
 	// ScheduleStatus holds the value of the "schedule_status" field.
 	ScheduleStatus singlescheduleresource.ScheduleStatus `json:"schedule_status,omitempty"`
-	// Description holds the value of the "description" field.
-	Description string `json:"description,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
 	// StartSeconds holds the value of the "start_seconds" field.
 	StartSeconds uint64 `json:"start_seconds,omitempty"`
 	// EndSeconds holds the value of the "end_seconds" field.
@@ -97,7 +97,7 @@ func (*SingleScheduleResource) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case singlescheduleresource.FieldID, singlescheduleresource.FieldStartSeconds, singlescheduleresource.FieldEndSeconds:
 			values[i] = new(sql.NullInt64)
-		case singlescheduleresource.FieldResourceID, singlescheduleresource.FieldScheduleStatus, singlescheduleresource.FieldDescription:
+		case singlescheduleresource.FieldResourceID, singlescheduleresource.FieldScheduleStatus, singlescheduleresource.FieldName:
 			values[i] = new(sql.NullString)
 		case singlescheduleresource.ForeignKeys[0]: // single_schedule_resource_target_site
 			values[i] = new(sql.NullInt64)
@@ -138,11 +138,11 @@ func (ssr *SingleScheduleResource) assignValues(columns []string, values []any) 
 			} else if value.Valid {
 				ssr.ScheduleStatus = singlescheduleresource.ScheduleStatus(value.String)
 			}
-		case singlescheduleresource.FieldDescription:
+		case singlescheduleresource.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field description", values[i])
+				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				ssr.Description = value.String
+				ssr.Name = value.String
 			}
 		case singlescheduleresource.FieldStartSeconds:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -234,8 +234,8 @@ func (ssr *SingleScheduleResource) String() string {
 	builder.WriteString("schedule_status=")
 	builder.WriteString(fmt.Sprintf("%v", ssr.ScheduleStatus))
 	builder.WriteString(", ")
-	builder.WriteString("description=")
-	builder.WriteString(ssr.Description)
+	builder.WriteString("name=")
+	builder.WriteString(ssr.Name)
 	builder.WriteString(", ")
 	builder.WriteString("start_seconds=")
 	builder.WriteString(fmt.Sprintf("%v", ssr.StartSeconds))

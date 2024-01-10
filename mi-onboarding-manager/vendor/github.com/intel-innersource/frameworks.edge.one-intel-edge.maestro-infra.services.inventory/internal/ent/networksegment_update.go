@@ -34,23 +34,23 @@ func (nsu *NetworkSegmentUpdate) SetResourceID(s string) *NetworkSegmentUpdate {
 	return nsu
 }
 
-// SetDescription sets the "description" field.
-func (nsu *NetworkSegmentUpdate) SetDescription(s string) *NetworkSegmentUpdate {
-	nsu.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (nsu *NetworkSegmentUpdate) SetName(s string) *NetworkSegmentUpdate {
+	nsu.mutation.SetName(s)
 	return nsu
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (nsu *NetworkSegmentUpdate) SetNillableDescription(s *string) *NetworkSegmentUpdate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (nsu *NetworkSegmentUpdate) SetNillableName(s *string) *NetworkSegmentUpdate {
 	if s != nil {
-		nsu.SetDescription(*s)
+		nsu.SetName(*s)
 	}
 	return nsu
 }
 
-// ClearDescription clears the value of the "description" field.
-func (nsu *NetworkSegmentUpdate) ClearDescription() *NetworkSegmentUpdate {
-	nsu.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (nsu *NetworkSegmentUpdate) ClearName() *NetworkSegmentUpdate {
+	nsu.mutation.ClearName()
 	return nsu
 }
 
@@ -153,11 +153,11 @@ func (nsu *NetworkSegmentUpdate) sqlSave(ctx context.Context) (n int, err error)
 	if value, ok := nsu.mutation.ResourceID(); ok {
 		_spec.SetField(networksegment.FieldResourceID, field.TypeString, value)
 	}
-	if value, ok := nsu.mutation.Description(); ok {
-		_spec.SetField(networksegment.FieldDescription, field.TypeString, value)
+	if value, ok := nsu.mutation.Name(); ok {
+		_spec.SetField(networksegment.FieldName, field.TypeString, value)
 	}
-	if nsu.mutation.DescriptionCleared() {
-		_spec.ClearField(networksegment.FieldDescription, field.TypeString)
+	if nsu.mutation.NameCleared() {
+		_spec.ClearField(networksegment.FieldName, field.TypeString)
 	}
 	if value, ok := nsu.mutation.VlanID(); ok {
 		_spec.SetField(networksegment.FieldVlanID, field.TypeInt32, value)
@@ -223,23 +223,23 @@ func (nsuo *NetworkSegmentUpdateOne) SetResourceID(s string) *NetworkSegmentUpda
 	return nsuo
 }
 
-// SetDescription sets the "description" field.
-func (nsuo *NetworkSegmentUpdateOne) SetDescription(s string) *NetworkSegmentUpdateOne {
-	nsuo.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (nsuo *NetworkSegmentUpdateOne) SetName(s string) *NetworkSegmentUpdateOne {
+	nsuo.mutation.SetName(s)
 	return nsuo
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (nsuo *NetworkSegmentUpdateOne) SetNillableDescription(s *string) *NetworkSegmentUpdateOne {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (nsuo *NetworkSegmentUpdateOne) SetNillableName(s *string) *NetworkSegmentUpdateOne {
 	if s != nil {
-		nsuo.SetDescription(*s)
+		nsuo.SetName(*s)
 	}
 	return nsuo
 }
 
-// ClearDescription clears the value of the "description" field.
-func (nsuo *NetworkSegmentUpdateOne) ClearDescription() *NetworkSegmentUpdateOne {
-	nsuo.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (nsuo *NetworkSegmentUpdateOne) ClearName() *NetworkSegmentUpdateOne {
+	nsuo.mutation.ClearName()
 	return nsuo
 }
 
@@ -372,11 +372,11 @@ func (nsuo *NetworkSegmentUpdateOne) sqlSave(ctx context.Context) (_node *Networ
 	if value, ok := nsuo.mutation.ResourceID(); ok {
 		_spec.SetField(networksegment.FieldResourceID, field.TypeString, value)
 	}
-	if value, ok := nsuo.mutation.Description(); ok {
-		_spec.SetField(networksegment.FieldDescription, field.TypeString, value)
+	if value, ok := nsuo.mutation.Name(); ok {
+		_spec.SetField(networksegment.FieldName, field.TypeString, value)
 	}
-	if nsuo.mutation.DescriptionCleared() {
-		_spec.ClearField(networksegment.FieldDescription, field.TypeString)
+	if nsuo.mutation.NameCleared() {
+		_spec.ClearField(networksegment.FieldName, field.TypeString)
 	}
 	if value, ok := nsuo.mutation.VlanID(); ok {
 		_spec.SetField(networksegment.FieldVlanID, field.TypeInt32, value)

@@ -25,8 +25,8 @@ type HostResource struct {
 	ResourceID string `json:"resource_id,omitempty"`
 	// Kind holds the value of the "kind" field.
 	Kind string `json:"kind,omitempty"`
-	// Description holds the value of the "description" field.
-	Description string `json:"description,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
 	// DesiredState holds the value of the "desired_state" field.
 	DesiredState hostresource.DesiredState `json:"desired_state,omitempty"`
 	// CurrentState holds the value of the "current_state" field.
@@ -39,8 +39,6 @@ type HostResource struct {
 	ProviderStatusDetail string `json:"provider_status_detail,omitempty"`
 	// Note holds the value of the "note" field.
 	Note string `json:"note,omitempty"`
-	// ConsumerID holds the value of the "consumer_id" field.
-	ConsumerID string `json:"consumer_id,omitempty"`
 	// HardwareKind holds the value of the "hardware_kind" field.
 	HardwareKind string `json:"hardware_kind,omitempty"`
 	// SerialNumber holds the value of the "serial_number" field.
@@ -61,12 +59,6 @@ type HostResource struct {
 	CPUArchitecture string `json:"cpu_architecture,omitempty"`
 	// CPUThreads holds the value of the "cpu_threads" field.
 	CPUThreads uint32 `json:"cpu_threads,omitempty"`
-	// GpuPciID holds the value of the "gpu_pci_id" field.
-	GpuPciID string `json:"gpu_pci_id,omitempty"`
-	// GpuProduct holds the value of the "gpu_product" field.
-	GpuProduct string `json:"gpu_product,omitempty"`
-	// GpuVendor holds the value of the "gpu_vendor" field.
-	GpuVendor string `json:"gpu_vendor,omitempty"`
 	// MgmtIP holds the value of the "mgmt_ip" field.
 	MgmtIP string `json:"mgmt_ip,omitempty"`
 	// BmcKind holds the value of the "bmc_kind" field.
@@ -122,11 +114,13 @@ type HostResourceEdges struct {
 	HostNics []*HostnicResource `json:"host_nics,omitempty"`
 	// HostUsbs holds the value of the host_usbs edge.
 	HostUsbs []*HostusbResource `json:"host_usbs,omitempty"`
+	// HostGpus holds the value of the host_gpus edge.
+	HostGpus []*HostgpuResource `json:"host_gpus,omitempty"`
 	// Instance holds the value of the instance edge.
 	Instance *InstanceResource `json:"instance,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [8]bool
+	loadedTypes [9]bool
 }
 
 // SiteOrErr returns the Site value or an error if the edge
@@ -208,10 +202,19 @@ func (e HostResourceEdges) HostUsbsOrErr() ([]*HostusbResource, error) {
 	return nil, &NotLoadedError{edge: "host_usbs"}
 }
 
+// HostGpusOrErr returns the HostGpus value or an error if the edge
+// was not loaded in eager-loading.
+func (e HostResourceEdges) HostGpusOrErr() ([]*HostgpuResource, error) {
+	if e.loadedTypes[7] {
+		return e.HostGpus, nil
+	}
+	return nil, &NotLoadedError{edge: "host_gpus"}
+}
+
 // InstanceOrErr returns the Instance value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e HostResourceEdges) InstanceOrErr() (*InstanceResource, error) {
-	if e.loadedTypes[7] {
+	if e.loadedTypes[8] {
 		if e.Instance == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: instanceresource.Label}
@@ -228,7 +231,7 @@ func (*HostResource) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case hostresource.FieldID, hostresource.FieldMemoryBytes, hostresource.FieldCPUSockets, hostresource.FieldCPUCores, hostresource.FieldCPUThreads:
 			values[i] = new(sql.NullInt64)
-		case hostresource.FieldResourceID, hostresource.FieldKind, hostresource.FieldDescription, hostresource.FieldDesiredState, hostresource.FieldCurrentState, hostresource.FieldProviderStatus, hostresource.FieldHostStatus, hostresource.FieldProviderStatusDetail, hostresource.FieldNote, hostresource.FieldConsumerID, hostresource.FieldHardwareKind, hostresource.FieldSerialNumber, hostresource.FieldUUID, hostresource.FieldCPUModel, hostresource.FieldCPUCapabilities, hostresource.FieldCPUArchitecture, hostresource.FieldGpuPciID, hostresource.FieldGpuProduct, hostresource.FieldGpuVendor, hostresource.FieldMgmtIP, hostresource.FieldBmcKind, hostresource.FieldBmcIP, hostresource.FieldBmcUsername, hostresource.FieldBmcPassword, hostresource.FieldPxeMAC, hostresource.FieldHostname, hostresource.FieldProductName, hostresource.FieldBiosVersion, hostresource.FieldBiosReleaseDate, hostresource.FieldBiosVendor, hostresource.FieldMetadata, hostresource.FieldDesiredPowerState, hostresource.FieldCurrentPowerState:
+		case hostresource.FieldResourceID, hostresource.FieldKind, hostresource.FieldName, hostresource.FieldDesiredState, hostresource.FieldCurrentState, hostresource.FieldProviderStatus, hostresource.FieldHostStatus, hostresource.FieldProviderStatusDetail, hostresource.FieldNote, hostresource.FieldHardwareKind, hostresource.FieldSerialNumber, hostresource.FieldUUID, hostresource.FieldCPUModel, hostresource.FieldCPUCapabilities, hostresource.FieldCPUArchitecture, hostresource.FieldMgmtIP, hostresource.FieldBmcKind, hostresource.FieldBmcIP, hostresource.FieldBmcUsername, hostresource.FieldBmcPassword, hostresource.FieldPxeMAC, hostresource.FieldHostname, hostresource.FieldProductName, hostresource.FieldBiosVersion, hostresource.FieldBiosReleaseDate, hostresource.FieldBiosVendor, hostresource.FieldMetadata, hostresource.FieldDesiredPowerState, hostresource.FieldCurrentPowerState:
 			values[i] = new(sql.NullString)
 		case hostresource.ForeignKeys[0]: // host_resource_site
 			values[i] = new(sql.NullInt64)
@@ -273,11 +276,11 @@ func (hr *HostResource) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				hr.Kind = value.String
 			}
-		case hostresource.FieldDescription:
+		case hostresource.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field description", values[i])
+				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				hr.Description = value.String
+				hr.Name = value.String
 			}
 		case hostresource.FieldDesiredState:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -314,12 +317,6 @@ func (hr *HostResource) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field note", values[i])
 			} else if value.Valid {
 				hr.Note = value.String
-			}
-		case hostresource.FieldConsumerID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field consumer_id", values[i])
-			} else if value.Valid {
-				hr.ConsumerID = value.String
 			}
 		case hostresource.FieldHardwareKind:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -380,24 +377,6 @@ func (hr *HostResource) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field cpu_threads", values[i])
 			} else if value.Valid {
 				hr.CPUThreads = uint32(value.Int64)
-			}
-		case hostresource.FieldGpuPciID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field gpu_pci_id", values[i])
-			} else if value.Valid {
-				hr.GpuPciID = value.String
-			}
-		case hostresource.FieldGpuProduct:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field gpu_product", values[i])
-			} else if value.Valid {
-				hr.GpuProduct = value.String
-			}
-		case hostresource.FieldGpuVendor:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field gpu_vendor", values[i])
-			} else if value.Valid {
-				hr.GpuVendor = value.String
 			}
 		case hostresource.FieldMgmtIP:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -566,6 +545,11 @@ func (hr *HostResource) QueryHostUsbs() *HostusbResourceQuery {
 	return NewHostResourceClient(hr.config).QueryHostUsbs(hr)
 }
 
+// QueryHostGpus queries the "host_gpus" edge of the HostResource entity.
+func (hr *HostResource) QueryHostGpus() *HostgpuResourceQuery {
+	return NewHostResourceClient(hr.config).QueryHostGpus(hr)
+}
+
 // QueryInstance queries the "instance" edge of the HostResource entity.
 func (hr *HostResource) QueryInstance() *InstanceResourceQuery {
 	return NewHostResourceClient(hr.config).QueryInstance(hr)
@@ -600,8 +584,8 @@ func (hr *HostResource) String() string {
 	builder.WriteString("kind=")
 	builder.WriteString(hr.Kind)
 	builder.WriteString(", ")
-	builder.WriteString("description=")
-	builder.WriteString(hr.Description)
+	builder.WriteString("name=")
+	builder.WriteString(hr.Name)
 	builder.WriteString(", ")
 	builder.WriteString("desired_state=")
 	builder.WriteString(fmt.Sprintf("%v", hr.DesiredState))
@@ -620,9 +604,6 @@ func (hr *HostResource) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("note=")
 	builder.WriteString(hr.Note)
-	builder.WriteString(", ")
-	builder.WriteString("consumer_id=")
-	builder.WriteString(hr.ConsumerID)
 	builder.WriteString(", ")
 	builder.WriteString("hardware_kind=")
 	builder.WriteString(hr.HardwareKind)
@@ -653,15 +634,6 @@ func (hr *HostResource) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("cpu_threads=")
 	builder.WriteString(fmt.Sprintf("%v", hr.CPUThreads))
-	builder.WriteString(", ")
-	builder.WriteString("gpu_pci_id=")
-	builder.WriteString(hr.GpuPciID)
-	builder.WriteString(", ")
-	builder.WriteString("gpu_product=")
-	builder.WriteString(hr.GpuProduct)
-	builder.WriteString(", ")
-	builder.WriteString("gpu_vendor=")
-	builder.WriteString(hr.GpuVendor)
 	builder.WriteString(", ")
 	builder.WriteString("mgmt_ip=")
 	builder.WriteString(hr.MgmtIP)

@@ -63,11 +63,6 @@ func Kind(v string) predicate.HostusbResource {
 	return predicate.HostusbResource(sql.FieldEQ(FieldKind, v))
 }
 
-// Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
-func Description(v string) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldEQ(FieldDescription, v))
-}
-
 // OwnerID applies equality check predicate on the "owner_id" field. It's identical to OwnerIDEQ.
 func OwnerID(v string) predicate.HostusbResource {
 	return predicate.HostusbResource(sql.FieldEQ(FieldOwnerID, v))
@@ -101,6 +96,11 @@ func Class(v string) predicate.HostusbResource {
 // Serial applies equality check predicate on the "serial" field. It's identical to SerialEQ.
 func Serial(v string) predicate.HostusbResource {
 	return predicate.HostusbResource(sql.FieldEQ(FieldSerial, v))
+}
+
+// DeviceName applies equality check predicate on the "device_name" field. It's identical to DeviceNameEQ.
+func DeviceName(v string) predicate.HostusbResource {
+	return predicate.HostusbResource(sql.FieldEQ(FieldDeviceName, v))
 }
 
 // ResourceIDEQ applies the EQ predicate on the "resource_id" field.
@@ -241,141 +241,6 @@ func KindEqualFold(v string) predicate.HostusbResource {
 // KindContainsFold applies the ContainsFold predicate on the "kind" field.
 func KindContainsFold(v string) predicate.HostusbResource {
 	return predicate.HostusbResource(sql.FieldContainsFold(FieldKind, v))
-}
-
-// DescriptionEQ applies the EQ predicate on the "description" field.
-func DescriptionEQ(v string) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldEQ(FieldDescription, v))
-}
-
-// DescriptionNEQ applies the NEQ predicate on the "description" field.
-func DescriptionNEQ(v string) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldNEQ(FieldDescription, v))
-}
-
-// DescriptionIn applies the In predicate on the "description" field.
-func DescriptionIn(vs ...string) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldIn(FieldDescription, vs...))
-}
-
-// DescriptionNotIn applies the NotIn predicate on the "description" field.
-func DescriptionNotIn(vs ...string) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldNotIn(FieldDescription, vs...))
-}
-
-// DescriptionGT applies the GT predicate on the "description" field.
-func DescriptionGT(v string) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldGT(FieldDescription, v))
-}
-
-// DescriptionGTE applies the GTE predicate on the "description" field.
-func DescriptionGTE(v string) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldGTE(FieldDescription, v))
-}
-
-// DescriptionLT applies the LT predicate on the "description" field.
-func DescriptionLT(v string) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldLT(FieldDescription, v))
-}
-
-// DescriptionLTE applies the LTE predicate on the "description" field.
-func DescriptionLTE(v string) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldLTE(FieldDescription, v))
-}
-
-// DescriptionContains applies the Contains predicate on the "description" field.
-func DescriptionContains(v string) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldContains(FieldDescription, v))
-}
-
-// DescriptionHasPrefix applies the HasPrefix predicate on the "description" field.
-func DescriptionHasPrefix(v string) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldHasPrefix(FieldDescription, v))
-}
-
-// DescriptionHasSuffix applies the HasSuffix predicate on the "description" field.
-func DescriptionHasSuffix(v string) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldHasSuffix(FieldDescription, v))
-}
-
-// DescriptionIsNil applies the IsNil predicate on the "description" field.
-func DescriptionIsNil() predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldIsNull(FieldDescription))
-}
-
-// DescriptionNotNil applies the NotNil predicate on the "description" field.
-func DescriptionNotNil() predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldNotNull(FieldDescription))
-}
-
-// DescriptionEqualFold applies the EqualFold predicate on the "description" field.
-func DescriptionEqualFold(v string) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldEqualFold(FieldDescription, v))
-}
-
-// DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
-func DescriptionContainsFold(v string) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldContainsFold(FieldDescription, v))
-}
-
-// CurrentStateEQ applies the EQ predicate on the "current_state" field.
-func CurrentStateEQ(v CurrentState) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldEQ(FieldCurrentState, v))
-}
-
-// CurrentStateNEQ applies the NEQ predicate on the "current_state" field.
-func CurrentStateNEQ(v CurrentState) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldNEQ(FieldCurrentState, v))
-}
-
-// CurrentStateIn applies the In predicate on the "current_state" field.
-func CurrentStateIn(vs ...CurrentState) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldIn(FieldCurrentState, vs...))
-}
-
-// CurrentStateNotIn applies the NotIn predicate on the "current_state" field.
-func CurrentStateNotIn(vs ...CurrentState) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldNotIn(FieldCurrentState, vs...))
-}
-
-// CurrentStateIsNil applies the IsNil predicate on the "current_state" field.
-func CurrentStateIsNil() predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldIsNull(FieldCurrentState))
-}
-
-// CurrentStateNotNil applies the NotNil predicate on the "current_state" field.
-func CurrentStateNotNil() predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldNotNull(FieldCurrentState))
-}
-
-// DesiredStateEQ applies the EQ predicate on the "desired_state" field.
-func DesiredStateEQ(v DesiredState) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldEQ(FieldDesiredState, v))
-}
-
-// DesiredStateNEQ applies the NEQ predicate on the "desired_state" field.
-func DesiredStateNEQ(v DesiredState) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldNEQ(FieldDesiredState, v))
-}
-
-// DesiredStateIn applies the In predicate on the "desired_state" field.
-func DesiredStateIn(vs ...DesiredState) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldIn(FieldDesiredState, vs...))
-}
-
-// DesiredStateNotIn applies the NotIn predicate on the "desired_state" field.
-func DesiredStateNotIn(vs ...DesiredState) predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldNotIn(FieldDesiredState, vs...))
-}
-
-// DesiredStateIsNil applies the IsNil predicate on the "desired_state" field.
-func DesiredStateIsNil() predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldIsNull(FieldDesiredState))
-}
-
-// DesiredStateNotNil applies the NotNil predicate on the "desired_state" field.
-func DesiredStateNotNil() predicate.HostusbResource {
-	return predicate.HostusbResource(sql.FieldNotNull(FieldDesiredState))
 }
 
 // OwnerIDEQ applies the EQ predicate on the "owner_id" field.
@@ -851,6 +716,81 @@ func SerialEqualFold(v string) predicate.HostusbResource {
 // SerialContainsFold applies the ContainsFold predicate on the "serial" field.
 func SerialContainsFold(v string) predicate.HostusbResource {
 	return predicate.HostusbResource(sql.FieldContainsFold(FieldSerial, v))
+}
+
+// DeviceNameEQ applies the EQ predicate on the "device_name" field.
+func DeviceNameEQ(v string) predicate.HostusbResource {
+	return predicate.HostusbResource(sql.FieldEQ(FieldDeviceName, v))
+}
+
+// DeviceNameNEQ applies the NEQ predicate on the "device_name" field.
+func DeviceNameNEQ(v string) predicate.HostusbResource {
+	return predicate.HostusbResource(sql.FieldNEQ(FieldDeviceName, v))
+}
+
+// DeviceNameIn applies the In predicate on the "device_name" field.
+func DeviceNameIn(vs ...string) predicate.HostusbResource {
+	return predicate.HostusbResource(sql.FieldIn(FieldDeviceName, vs...))
+}
+
+// DeviceNameNotIn applies the NotIn predicate on the "device_name" field.
+func DeviceNameNotIn(vs ...string) predicate.HostusbResource {
+	return predicate.HostusbResource(sql.FieldNotIn(FieldDeviceName, vs...))
+}
+
+// DeviceNameGT applies the GT predicate on the "device_name" field.
+func DeviceNameGT(v string) predicate.HostusbResource {
+	return predicate.HostusbResource(sql.FieldGT(FieldDeviceName, v))
+}
+
+// DeviceNameGTE applies the GTE predicate on the "device_name" field.
+func DeviceNameGTE(v string) predicate.HostusbResource {
+	return predicate.HostusbResource(sql.FieldGTE(FieldDeviceName, v))
+}
+
+// DeviceNameLT applies the LT predicate on the "device_name" field.
+func DeviceNameLT(v string) predicate.HostusbResource {
+	return predicate.HostusbResource(sql.FieldLT(FieldDeviceName, v))
+}
+
+// DeviceNameLTE applies the LTE predicate on the "device_name" field.
+func DeviceNameLTE(v string) predicate.HostusbResource {
+	return predicate.HostusbResource(sql.FieldLTE(FieldDeviceName, v))
+}
+
+// DeviceNameContains applies the Contains predicate on the "device_name" field.
+func DeviceNameContains(v string) predicate.HostusbResource {
+	return predicate.HostusbResource(sql.FieldContains(FieldDeviceName, v))
+}
+
+// DeviceNameHasPrefix applies the HasPrefix predicate on the "device_name" field.
+func DeviceNameHasPrefix(v string) predicate.HostusbResource {
+	return predicate.HostusbResource(sql.FieldHasPrefix(FieldDeviceName, v))
+}
+
+// DeviceNameHasSuffix applies the HasSuffix predicate on the "device_name" field.
+func DeviceNameHasSuffix(v string) predicate.HostusbResource {
+	return predicate.HostusbResource(sql.FieldHasSuffix(FieldDeviceName, v))
+}
+
+// DeviceNameIsNil applies the IsNil predicate on the "device_name" field.
+func DeviceNameIsNil() predicate.HostusbResource {
+	return predicate.HostusbResource(sql.FieldIsNull(FieldDeviceName))
+}
+
+// DeviceNameNotNil applies the NotNil predicate on the "device_name" field.
+func DeviceNameNotNil() predicate.HostusbResource {
+	return predicate.HostusbResource(sql.FieldNotNull(FieldDeviceName))
+}
+
+// DeviceNameEqualFold applies the EqualFold predicate on the "device_name" field.
+func DeviceNameEqualFold(v string) predicate.HostusbResource {
+	return predicate.HostusbResource(sql.FieldEqualFold(FieldDeviceName, v))
+}
+
+// DeviceNameContainsFold applies the ContainsFold predicate on the "device_name" field.
+func DeviceNameContainsFold(v string) predicate.HostusbResource {
+	return predicate.HostusbResource(sql.FieldContainsFold(FieldDeviceName, v))
 }
 
 // HasHost applies the HasEdge predicate on the "host" edge.

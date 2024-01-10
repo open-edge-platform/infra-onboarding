@@ -18,8 +18,8 @@ const (
 	FieldResourceID = "resource_id"
 	// FieldKind holds the string denoting the kind field in the database.
 	FieldKind = "kind"
-	// FieldDescription holds the string denoting the description field in the database.
-	FieldDescription = "description"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
 	// FieldDesiredState holds the string denoting the desired_state field in the database.
 	FieldDesiredState = "desired_state"
 	// FieldCurrentState holds the string denoting the current_state field in the database.
@@ -42,6 +42,8 @@ const (
 	EdgeOs = "os"
 	// EdgeWorkloadMembers holds the string denoting the workload_members edge name in mutations.
 	EdgeWorkloadMembers = "workload_members"
+	// EdgeProvider holds the string denoting the provider edge name in mutations.
+	EdgeProvider = "provider"
 	// Table holds the table name of the instanceresource in the database.
 	Table = "instance_resources"
 	// HostTable is the table that holds the host relation/edge.
@@ -72,6 +74,13 @@ const (
 	WorkloadMembersInverseTable = "workload_members"
 	// WorkloadMembersColumn is the table column denoting the workload_members relation/edge.
 	WorkloadMembersColumn = "workload_member_instance"
+	// ProviderTable is the table that holds the provider relation/edge.
+	ProviderTable = "instance_resources"
+	// ProviderInverseTable is the table name for the ProviderResource entity.
+	// It exists in this package in order to avoid circular dependency with the "providerresource" package.
+	ProviderInverseTable = "provider_resources"
+	// ProviderColumn is the table column denoting the provider relation/edge.
+	ProviderColumn = "instance_resource_provider"
 )
 
 // Columns holds all SQL columns for instanceresource fields.
@@ -79,7 +88,7 @@ var Columns = []string{
 	FieldID,
 	FieldResourceID,
 	FieldKind,
-	FieldDescription,
+	FieldName,
 	FieldDesiredState,
 	FieldCurrentState,
 	FieldVMMemoryBytes,
@@ -94,6 +103,7 @@ var Columns = []string{
 var ForeignKeys = []string{
 	"instance_resource_user",
 	"instance_resource_os",
+	"instance_resource_provider",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -238,9 +248,9 @@ func ByKind(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldKind, opts...).ToFunc()
 }
 
-// ByDescription orders the results by the description field.
-func ByDescription(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldDescription, opts...).ToFunc()
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
 }
 
 // ByDesiredState orders the results by the desired_state field.
@@ -312,6 +322,13 @@ func ByWorkloadMembers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newWorkloadMembersStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByProviderField orders the results by provider field.
+func ByProviderField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newProviderStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newHostStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -338,5 +355,12 @@ func newWorkloadMembersStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(WorkloadMembersInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, true, WorkloadMembersTable, WorkloadMembersColumn),
+	)
+}
+func newProviderStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ProviderInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, ProviderTable, ProviderColumn),
 	)
 }

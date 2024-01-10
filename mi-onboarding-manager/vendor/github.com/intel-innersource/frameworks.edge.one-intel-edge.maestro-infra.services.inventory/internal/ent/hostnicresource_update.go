@@ -57,66 +57,6 @@ func (hru *HostnicResourceUpdate) ClearKind() *HostnicResourceUpdate {
 	return hru
 }
 
-// SetDescription sets the "description" field.
-func (hru *HostnicResourceUpdate) SetDescription(s string) *HostnicResourceUpdate {
-	hru.mutation.SetDescription(s)
-	return hru
-}
-
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (hru *HostnicResourceUpdate) SetNillableDescription(s *string) *HostnicResourceUpdate {
-	if s != nil {
-		hru.SetDescription(*s)
-	}
-	return hru
-}
-
-// ClearDescription clears the value of the "description" field.
-func (hru *HostnicResourceUpdate) ClearDescription() *HostnicResourceUpdate {
-	hru.mutation.ClearDescription()
-	return hru
-}
-
-// SetDesiredState sets the "desired_state" field.
-func (hru *HostnicResourceUpdate) SetDesiredState(hs hostnicresource.DesiredState) *HostnicResourceUpdate {
-	hru.mutation.SetDesiredState(hs)
-	return hru
-}
-
-// SetNillableDesiredState sets the "desired_state" field if the given value is not nil.
-func (hru *HostnicResourceUpdate) SetNillableDesiredState(hs *hostnicresource.DesiredState) *HostnicResourceUpdate {
-	if hs != nil {
-		hru.SetDesiredState(*hs)
-	}
-	return hru
-}
-
-// ClearDesiredState clears the value of the "desired_state" field.
-func (hru *HostnicResourceUpdate) ClearDesiredState() *HostnicResourceUpdate {
-	hru.mutation.ClearDesiredState()
-	return hru
-}
-
-// SetCurrentState sets the "current_state" field.
-func (hru *HostnicResourceUpdate) SetCurrentState(hs hostnicresource.CurrentState) *HostnicResourceUpdate {
-	hru.mutation.SetCurrentState(hs)
-	return hru
-}
-
-// SetNillableCurrentState sets the "current_state" field if the given value is not nil.
-func (hru *HostnicResourceUpdate) SetNillableCurrentState(hs *hostnicresource.CurrentState) *HostnicResourceUpdate {
-	if hs != nil {
-		hru.SetCurrentState(*hs)
-	}
-	return hru
-}
-
-// ClearCurrentState clears the value of the "current_state" field.
-func (hru *HostnicResourceUpdate) ClearCurrentState() *HostnicResourceUpdate {
-	hru.mutation.ClearCurrentState()
-	return hru
-}
-
 // SetProviderStatus sets the "provider_status" field.
 func (hru *HostnicResourceUpdate) SetProviderStatus(s string) *HostnicResourceUpdate {
 	hru.mutation.SetProviderStatus(s)
@@ -137,23 +77,23 @@ func (hru *HostnicResourceUpdate) ClearProviderStatus() *HostnicResourceUpdate {
 	return hru
 }
 
-// SetName sets the "name" field.
-func (hru *HostnicResourceUpdate) SetName(s string) *HostnicResourceUpdate {
-	hru.mutation.SetName(s)
+// SetDeviceName sets the "device_name" field.
+func (hru *HostnicResourceUpdate) SetDeviceName(s string) *HostnicResourceUpdate {
+	hru.mutation.SetDeviceName(s)
 	return hru
 }
 
-// SetNillableName sets the "name" field if the given value is not nil.
-func (hru *HostnicResourceUpdate) SetNillableName(s *string) *HostnicResourceUpdate {
+// SetNillableDeviceName sets the "device_name" field if the given value is not nil.
+func (hru *HostnicResourceUpdate) SetNillableDeviceName(s *string) *HostnicResourceUpdate {
 	if s != nil {
-		hru.SetName(*s)
+		hru.SetDeviceName(*s)
 	}
 	return hru
 }
 
-// ClearName clears the value of the "name" field.
-func (hru *HostnicResourceUpdate) ClearName() *HostnicResourceUpdate {
-	hru.mutation.ClearName()
+// ClearDeviceName clears the value of the "device_name" field.
+func (hru *HostnicResourceUpdate) ClearDeviceName() *HostnicResourceUpdate {
+	hru.mutation.ClearDeviceName()
 	return hru
 }
 
@@ -671,16 +611,6 @@ func (hru *HostnicResourceUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (hru *HostnicResourceUpdate) check() error {
-	if v, ok := hru.mutation.DesiredState(); ok {
-		if err := hostnicresource.DesiredStateValidator(v); err != nil {
-			return &ValidationError{Name: "desired_state", err: fmt.Errorf(`ent: validator failed for field "HostnicResource.desired_state": %w`, err)}
-		}
-	}
-	if v, ok := hru.mutation.CurrentState(); ok {
-		if err := hostnicresource.CurrentStateValidator(v); err != nil {
-			return &ValidationError{Name: "current_state", err: fmt.Errorf(`ent: validator failed for field "HostnicResource.current_state": %w`, err)}
-		}
-	}
 	if v, ok := hru.mutation.LinkState(); ok {
 		if err := hostnicresource.LinkStateValidator(v); err != nil {
 			return &ValidationError{Name: "link_state", err: fmt.Errorf(`ent: validator failed for field "HostnicResource.link_state": %w`, err)}
@@ -713,35 +643,17 @@ func (hru *HostnicResourceUpdate) sqlSave(ctx context.Context) (n int, err error
 	if hru.mutation.KindCleared() {
 		_spec.ClearField(hostnicresource.FieldKind, field.TypeString)
 	}
-	if value, ok := hru.mutation.Description(); ok {
-		_spec.SetField(hostnicresource.FieldDescription, field.TypeString, value)
-	}
-	if hru.mutation.DescriptionCleared() {
-		_spec.ClearField(hostnicresource.FieldDescription, field.TypeString)
-	}
-	if value, ok := hru.mutation.DesiredState(); ok {
-		_spec.SetField(hostnicresource.FieldDesiredState, field.TypeEnum, value)
-	}
-	if hru.mutation.DesiredStateCleared() {
-		_spec.ClearField(hostnicresource.FieldDesiredState, field.TypeEnum)
-	}
-	if value, ok := hru.mutation.CurrentState(); ok {
-		_spec.SetField(hostnicresource.FieldCurrentState, field.TypeEnum, value)
-	}
-	if hru.mutation.CurrentStateCleared() {
-		_spec.ClearField(hostnicresource.FieldCurrentState, field.TypeEnum)
-	}
 	if value, ok := hru.mutation.ProviderStatus(); ok {
 		_spec.SetField(hostnicresource.FieldProviderStatus, field.TypeString, value)
 	}
 	if hru.mutation.ProviderStatusCleared() {
 		_spec.ClearField(hostnicresource.FieldProviderStatus, field.TypeString)
 	}
-	if value, ok := hru.mutation.Name(); ok {
-		_spec.SetField(hostnicresource.FieldName, field.TypeString, value)
+	if value, ok := hru.mutation.DeviceName(); ok {
+		_spec.SetField(hostnicresource.FieldDeviceName, field.TypeString, value)
 	}
-	if hru.mutation.NameCleared() {
-		_spec.ClearField(hostnicresource.FieldName, field.TypeString)
+	if hru.mutation.DeviceNameCleared() {
+		_spec.ClearField(hostnicresource.FieldDeviceName, field.TypeString)
 	}
 	if value, ok := hru.mutation.PciIdentifier(); ok {
 		_spec.SetField(hostnicresource.FieldPciIdentifier, field.TypeString, value)
@@ -1025,66 +937,6 @@ func (hruo *HostnicResourceUpdateOne) ClearKind() *HostnicResourceUpdateOne {
 	return hruo
 }
 
-// SetDescription sets the "description" field.
-func (hruo *HostnicResourceUpdateOne) SetDescription(s string) *HostnicResourceUpdateOne {
-	hruo.mutation.SetDescription(s)
-	return hruo
-}
-
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (hruo *HostnicResourceUpdateOne) SetNillableDescription(s *string) *HostnicResourceUpdateOne {
-	if s != nil {
-		hruo.SetDescription(*s)
-	}
-	return hruo
-}
-
-// ClearDescription clears the value of the "description" field.
-func (hruo *HostnicResourceUpdateOne) ClearDescription() *HostnicResourceUpdateOne {
-	hruo.mutation.ClearDescription()
-	return hruo
-}
-
-// SetDesiredState sets the "desired_state" field.
-func (hruo *HostnicResourceUpdateOne) SetDesiredState(hs hostnicresource.DesiredState) *HostnicResourceUpdateOne {
-	hruo.mutation.SetDesiredState(hs)
-	return hruo
-}
-
-// SetNillableDesiredState sets the "desired_state" field if the given value is not nil.
-func (hruo *HostnicResourceUpdateOne) SetNillableDesiredState(hs *hostnicresource.DesiredState) *HostnicResourceUpdateOne {
-	if hs != nil {
-		hruo.SetDesiredState(*hs)
-	}
-	return hruo
-}
-
-// ClearDesiredState clears the value of the "desired_state" field.
-func (hruo *HostnicResourceUpdateOne) ClearDesiredState() *HostnicResourceUpdateOne {
-	hruo.mutation.ClearDesiredState()
-	return hruo
-}
-
-// SetCurrentState sets the "current_state" field.
-func (hruo *HostnicResourceUpdateOne) SetCurrentState(hs hostnicresource.CurrentState) *HostnicResourceUpdateOne {
-	hruo.mutation.SetCurrentState(hs)
-	return hruo
-}
-
-// SetNillableCurrentState sets the "current_state" field if the given value is not nil.
-func (hruo *HostnicResourceUpdateOne) SetNillableCurrentState(hs *hostnicresource.CurrentState) *HostnicResourceUpdateOne {
-	if hs != nil {
-		hruo.SetCurrentState(*hs)
-	}
-	return hruo
-}
-
-// ClearCurrentState clears the value of the "current_state" field.
-func (hruo *HostnicResourceUpdateOne) ClearCurrentState() *HostnicResourceUpdateOne {
-	hruo.mutation.ClearCurrentState()
-	return hruo
-}
-
 // SetProviderStatus sets the "provider_status" field.
 func (hruo *HostnicResourceUpdateOne) SetProviderStatus(s string) *HostnicResourceUpdateOne {
 	hruo.mutation.SetProviderStatus(s)
@@ -1105,23 +957,23 @@ func (hruo *HostnicResourceUpdateOne) ClearProviderStatus() *HostnicResourceUpda
 	return hruo
 }
 
-// SetName sets the "name" field.
-func (hruo *HostnicResourceUpdateOne) SetName(s string) *HostnicResourceUpdateOne {
-	hruo.mutation.SetName(s)
+// SetDeviceName sets the "device_name" field.
+func (hruo *HostnicResourceUpdateOne) SetDeviceName(s string) *HostnicResourceUpdateOne {
+	hruo.mutation.SetDeviceName(s)
 	return hruo
 }
 
-// SetNillableName sets the "name" field if the given value is not nil.
-func (hruo *HostnicResourceUpdateOne) SetNillableName(s *string) *HostnicResourceUpdateOne {
+// SetNillableDeviceName sets the "device_name" field if the given value is not nil.
+func (hruo *HostnicResourceUpdateOne) SetNillableDeviceName(s *string) *HostnicResourceUpdateOne {
 	if s != nil {
-		hruo.SetName(*s)
+		hruo.SetDeviceName(*s)
 	}
 	return hruo
 }
 
-// ClearName clears the value of the "name" field.
-func (hruo *HostnicResourceUpdateOne) ClearName() *HostnicResourceUpdateOne {
-	hruo.mutation.ClearName()
+// ClearDeviceName clears the value of the "device_name" field.
+func (hruo *HostnicResourceUpdateOne) ClearDeviceName() *HostnicResourceUpdateOne {
+	hruo.mutation.ClearDeviceName()
 	return hruo
 }
 
@@ -1652,16 +1504,6 @@ func (hruo *HostnicResourceUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (hruo *HostnicResourceUpdateOne) check() error {
-	if v, ok := hruo.mutation.DesiredState(); ok {
-		if err := hostnicresource.DesiredStateValidator(v); err != nil {
-			return &ValidationError{Name: "desired_state", err: fmt.Errorf(`ent: validator failed for field "HostnicResource.desired_state": %w`, err)}
-		}
-	}
-	if v, ok := hruo.mutation.CurrentState(); ok {
-		if err := hostnicresource.CurrentStateValidator(v); err != nil {
-			return &ValidationError{Name: "current_state", err: fmt.Errorf(`ent: validator failed for field "HostnicResource.current_state": %w`, err)}
-		}
-	}
 	if v, ok := hruo.mutation.LinkState(); ok {
 		if err := hostnicresource.LinkStateValidator(v); err != nil {
 			return &ValidationError{Name: "link_state", err: fmt.Errorf(`ent: validator failed for field "HostnicResource.link_state": %w`, err)}
@@ -1711,35 +1553,17 @@ func (hruo *HostnicResourceUpdateOne) sqlSave(ctx context.Context) (_node *Hostn
 	if hruo.mutation.KindCleared() {
 		_spec.ClearField(hostnicresource.FieldKind, field.TypeString)
 	}
-	if value, ok := hruo.mutation.Description(); ok {
-		_spec.SetField(hostnicresource.FieldDescription, field.TypeString, value)
-	}
-	if hruo.mutation.DescriptionCleared() {
-		_spec.ClearField(hostnicresource.FieldDescription, field.TypeString)
-	}
-	if value, ok := hruo.mutation.DesiredState(); ok {
-		_spec.SetField(hostnicresource.FieldDesiredState, field.TypeEnum, value)
-	}
-	if hruo.mutation.DesiredStateCleared() {
-		_spec.ClearField(hostnicresource.FieldDesiredState, field.TypeEnum)
-	}
-	if value, ok := hruo.mutation.CurrentState(); ok {
-		_spec.SetField(hostnicresource.FieldCurrentState, field.TypeEnum, value)
-	}
-	if hruo.mutation.CurrentStateCleared() {
-		_spec.ClearField(hostnicresource.FieldCurrentState, field.TypeEnum)
-	}
 	if value, ok := hruo.mutation.ProviderStatus(); ok {
 		_spec.SetField(hostnicresource.FieldProviderStatus, field.TypeString, value)
 	}
 	if hruo.mutation.ProviderStatusCleared() {
 		_spec.ClearField(hostnicresource.FieldProviderStatus, field.TypeString)
 	}
-	if value, ok := hruo.mutation.Name(); ok {
-		_spec.SetField(hostnicresource.FieldName, field.TypeString, value)
+	if value, ok := hruo.mutation.DeviceName(); ok {
+		_spec.SetField(hostnicresource.FieldDeviceName, field.TypeString, value)
 	}
-	if hruo.mutation.NameCleared() {
-		_spec.ClearField(hostnicresource.FieldName, field.TypeString)
+	if hruo.mutation.DeviceNameCleared() {
+		_spec.ClearField(hostnicresource.FieldDeviceName, field.TypeString)
 	}
 	if value, ok := hruo.mutation.PciIdentifier(); ok {
 		_spec.SetField(hostnicresource.FieldPciIdentifier, field.TypeString, value)

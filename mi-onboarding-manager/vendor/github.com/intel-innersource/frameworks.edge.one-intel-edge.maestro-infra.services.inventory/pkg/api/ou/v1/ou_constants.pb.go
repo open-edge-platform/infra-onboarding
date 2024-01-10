@@ -6,10 +6,10 @@ package ouv1
 
 const (
 	// Fields and Edges constants for "OuResource"
-	OuResourceFieldResourceId  = "resource_id"
-	OuResourceFieldDescription = "description"
-	OuResourceFieldOuKind      = "ou_kind"
-	OuResourceEdgeParentOu     = "parent_ou"
-	OuResourceEdgeChildren     = "children"
-	OuResourceFieldMetadata    = "metadata"
+	OuResourceFieldResourceId = "resource_id"
+	OuResourceFieldName       = "name"
+	OuResourceFieldOuKind     = "ou_kind"
+	OuResourceEdgeParentOu    = "parent_ou"
+	OuResourceEdgeChildren    = "children"
+	OuResourceFieldMetadata   = "metadata"
 )

@@ -186,6 +186,35 @@ func (m *SubscribeEventsResponse) validate(all bool) error {
 
 	// no validation rules for ResourceId
 
+	if all {
+		switch v := interface{}(m.GetResource()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, SubscribeEventsResponseValidationError{
+					field:  "Resource",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, SubscribeEventsResponseValidationError{
+					field:  "Resource",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetResource()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return SubscribeEventsResponseValidationError{
+				field:  "Resource",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	// no validation rules for EventKind
 
 	if len(errors) > 0 {
@@ -276,6 +305,236 @@ var _ interface {
 	ErrorName() string
 } = SubscribeEventsResponseValidationError{}
 
+// Validate checks the field values on ChangeSubscribeEventsRequest with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ChangeSubscribeEventsRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ChangeSubscribeEventsRequest with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ChangeSubscribeEventsRequestMultiError, or nil if none found.
+func (m *ChangeSubscribeEventsRequest) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ChangeSubscribeEventsRequest) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if m.GetClientUuid() != "" {
+
+		if err := m._validateUuid(m.GetClientUuid()); err != nil {
+			err = ChangeSubscribeEventsRequestValidationError{
+				field:  "ClientUuid",
+				reason: "value must be a valid UUID",
+				cause:  err,
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
+	if len(errors) > 0 {
+		return ChangeSubscribeEventsRequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *ChangeSubscribeEventsRequest) _validateUuid(uuid string) error {
+	if matched := _inventory_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// ChangeSubscribeEventsRequestMultiError is an error wrapping multiple
+// validation errors returned by ChangeSubscribeEventsRequest.ValidateAll() if
+// the designated constraints aren't met.
+type ChangeSubscribeEventsRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ChangeSubscribeEventsRequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ChangeSubscribeEventsRequestMultiError) AllErrors() []error { return m }
+
+// ChangeSubscribeEventsRequestValidationError is the validation error returned
+// by ChangeSubscribeEventsRequest.Validate if the designated constraints
+// aren't met.
+type ChangeSubscribeEventsRequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ChangeSubscribeEventsRequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ChangeSubscribeEventsRequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ChangeSubscribeEventsRequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ChangeSubscribeEventsRequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ChangeSubscribeEventsRequestValidationError) ErrorName() string {
+	return "ChangeSubscribeEventsRequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ChangeSubscribeEventsRequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sChangeSubscribeEventsRequest.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ChangeSubscribeEventsRequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ChangeSubscribeEventsRequestValidationError{}
+
+// Validate checks the field values on ChangeSubscribeEventsResponse with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ChangeSubscribeEventsResponse) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ChangeSubscribeEventsResponse with
+// the rules defined in the proto definition for this message. If any rules
+// are violated, the result is a list of violation errors wrapped in
+// ChangeSubscribeEventsResponseMultiError, or nil if none found.
+func (m *ChangeSubscribeEventsResponse) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ChangeSubscribeEventsResponse) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return ChangeSubscribeEventsResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// ChangeSubscribeEventsResponseMultiError is an error wrapping multiple
+// validation errors returned by ChangeSubscribeEventsResponse.ValidateAll()
+// if the designated constraints aren't met.
+type ChangeSubscribeEventsResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ChangeSubscribeEventsResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ChangeSubscribeEventsResponseMultiError) AllErrors() []error { return m }
+
+// ChangeSubscribeEventsResponseValidationError is the validation error
+// returned by ChangeSubscribeEventsResponse.Validate if the designated
+// constraints aren't met.
+type ChangeSubscribeEventsResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ChangeSubscribeEventsResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ChangeSubscribeEventsResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ChangeSubscribeEventsResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ChangeSubscribeEventsResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ChangeSubscribeEventsResponseValidationError) ErrorName() string {
+	return "ChangeSubscribeEventsResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ChangeSubscribeEventsResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sChangeSubscribeEventsResponse.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ChangeSubscribeEventsResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ChangeSubscribeEventsResponseValidationError{}
+
 // Validate checks the field values on CreateResourceRequest with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
@@ -309,8 +568,6 @@ func (m *CreateResourceRequest) validate(all bool) error {
 		}
 		errors = append(errors, err)
 	}
-
-	// no validation rules for SiteId
 
 	if all {
 		switch v := interface{}(m.GetResource()).(type) {
@@ -966,6 +1223,47 @@ func (m *Resource) validate(all bool) error {
 			}
 		}
 
+	case *Resource_Hostgpu:
+		if v == nil {
+			err := ResourceValidationError{
+				field:  "Resource",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+		if all {
+			switch v := interface{}(m.GetHostgpu()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, ResourceValidationError{
+						field:  "Hostgpu",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, ResourceValidationError{
+						field:  "Hostgpu",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetHostgpu()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ResourceValidationError{
+					field:  "Hostgpu",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
 	case *Resource_Instance:
 		if v == nil {
 			err := ResourceValidationError{
@@ -1376,6 +1674,88 @@ func (m *Resource) validate(all bool) error {
 			}
 		}
 
+	case *Resource_TelemetryGroup:
+		if v == nil {
+			err := ResourceValidationError{
+				field:  "Resource",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+		if all {
+			switch v := interface{}(m.GetTelemetryGroup()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, ResourceValidationError{
+						field:  "TelemetryGroup",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, ResourceValidationError{
+						field:  "TelemetryGroup",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetTelemetryGroup()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ResourceValidationError{
+					field:  "TelemetryGroup",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	case *Resource_TelemetryProfile:
+		if v == nil {
+			err := ResourceValidationError{
+				field:  "Resource",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+		if all {
+			switch v := interface{}(m.GetTelemetryProfile()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, ResourceValidationError{
+						field:  "TelemetryProfile",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, ResourceValidationError{
+						field:  "TelemetryProfile",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetTelemetryProfile()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ResourceValidationError{
+					field:  "TelemetryProfile",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
 	default:
 		_ = v // ensures v is used
 	}
@@ -1508,17 +1888,6 @@ func (m *ResourceFilter) validate(all bool) error {
 		}
 	}
 
-	if m.GetResource() == nil {
-		err := ResourceFilterValidationError{
-			field:  "Resource",
-			reason: "value is required",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
 	if all {
 		switch v := interface{}(m.GetResource()).(type) {
 		case interface{ ValidateAll() error }:
@@ -1551,6 +1920,10 @@ func (m *ResourceFilter) validate(all bool) error {
 	// no validation rules for Limit
 
 	// no validation rules for Offset
+
+	// no validation rules for Filter
+
+	// no validation rules for OrderBy
 
 	if len(errors) > 0 {
 		return ResourceFilterMultiError(errors)
@@ -1804,6 +2177,8 @@ func (m *FindResourcesResponse) validate(all bool) error {
 	var errors []error
 
 	// no validation rules for HasNext
+
+	// no validation rules for TotalElements
 
 	if len(errors) > 0 {
 		return FindResourcesResponseMultiError(errors)
@@ -2093,6 +2468,8 @@ func (m *ListResourcesResponse) validate(all bool) error {
 	}
 
 	// no validation rules for HasNext
+
+	// no validation rules for TotalElements
 
 	if len(errors) > 0 {
 		return ListResourcesResponseMultiError(errors)
@@ -2493,6 +2870,17 @@ func (m *UpdateResourceRequest) validate(all bool) error {
 	}
 
 	// no validation rules for ResourceId
+
+	if m.GetFieldMask() == nil {
+		err := UpdateResourceRequestValidationError{
+			field:  "FieldMask",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if all {
 		switch v := interface{}(m.GetFieldMask()).(type) {

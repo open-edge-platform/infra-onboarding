@@ -14,10 +14,8 @@ const (
 	FieldID = "id"
 	// FieldResourceID holds the string denoting the resource_id field in the database.
 	FieldResourceID = "resource_id"
-	// FieldDescription holds the string denoting the description field in the database.
-	FieldDescription = "description"
-	// FieldSiteKind holds the string denoting the site_kind field in the database.
-	FieldSiteKind = "site_kind"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
 	// FieldAddress holds the string denoting the address field in the database.
 	FieldAddress = "address"
 	// FieldSiteLat holds the string denoting the site_lat field in the database.
@@ -66,8 +64,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldResourceID,
-	FieldDescription,
-	FieldSiteKind,
+	FieldName,
 	FieldAddress,
 	FieldSiteLat,
 	FieldSiteLng,
@@ -116,14 +113,9 @@ func ByResourceID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldResourceID, opts...).ToFunc()
 }
 
-// ByDescription orders the results by the description field.
-func ByDescription(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldDescription, opts...).ToFunc()
-}
-
-// BySiteKind orders the results by the site_kind field.
-func BySiteKind(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldSiteKind, opts...).ToFunc()
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
 }
 
 // ByAddress orders the results by the address field.

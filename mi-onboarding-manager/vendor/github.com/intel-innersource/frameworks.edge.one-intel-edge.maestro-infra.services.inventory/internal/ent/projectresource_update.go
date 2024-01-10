@@ -53,23 +53,23 @@ func (pru *ProjectResourceUpdate) ClearKind() *ProjectResourceUpdate {
 	return pru
 }
 
-// SetDescription sets the "description" field.
-func (pru *ProjectResourceUpdate) SetDescription(s string) *ProjectResourceUpdate {
-	pru.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (pru *ProjectResourceUpdate) SetName(s string) *ProjectResourceUpdate {
+	pru.mutation.SetName(s)
 	return pru
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (pru *ProjectResourceUpdate) SetNillableDescription(s *string) *ProjectResourceUpdate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (pru *ProjectResourceUpdate) SetNillableName(s *string) *ProjectResourceUpdate {
 	if s != nil {
-		pru.SetDescription(*s)
+		pru.SetName(*s)
 	}
 	return pru
 }
 
-// ClearDescription clears the value of the "description" field.
-func (pru *ProjectResourceUpdate) ClearDescription() *ProjectResourceUpdate {
-	pru.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (pru *ProjectResourceUpdate) ClearName() *ProjectResourceUpdate {
+	pru.mutation.ClearName()
 	return pru
 }
 
@@ -123,11 +123,11 @@ func (pru *ProjectResourceUpdate) sqlSave(ctx context.Context) (n int, err error
 	if pru.mutation.KindCleared() {
 		_spec.ClearField(projectresource.FieldKind, field.TypeString)
 	}
-	if value, ok := pru.mutation.Description(); ok {
-		_spec.SetField(projectresource.FieldDescription, field.TypeString, value)
+	if value, ok := pru.mutation.Name(); ok {
+		_spec.SetField(projectresource.FieldName, field.TypeString, value)
 	}
-	if pru.mutation.DescriptionCleared() {
-		_spec.ClearField(projectresource.FieldDescription, field.TypeString)
+	if pru.mutation.NameCleared() {
+		_spec.ClearField(projectresource.FieldName, field.TypeString)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, pru.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -175,23 +175,23 @@ func (pruo *ProjectResourceUpdateOne) ClearKind() *ProjectResourceUpdateOne {
 	return pruo
 }
 
-// SetDescription sets the "description" field.
-func (pruo *ProjectResourceUpdateOne) SetDescription(s string) *ProjectResourceUpdateOne {
-	pruo.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (pruo *ProjectResourceUpdateOne) SetName(s string) *ProjectResourceUpdateOne {
+	pruo.mutation.SetName(s)
 	return pruo
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (pruo *ProjectResourceUpdateOne) SetNillableDescription(s *string) *ProjectResourceUpdateOne {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (pruo *ProjectResourceUpdateOne) SetNillableName(s *string) *ProjectResourceUpdateOne {
 	if s != nil {
-		pruo.SetDescription(*s)
+		pruo.SetName(*s)
 	}
 	return pruo
 }
 
-// ClearDescription clears the value of the "description" field.
-func (pruo *ProjectResourceUpdateOne) ClearDescription() *ProjectResourceUpdateOne {
-	pruo.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (pruo *ProjectResourceUpdateOne) ClearName() *ProjectResourceUpdateOne {
+	pruo.mutation.ClearName()
 	return pruo
 }
 
@@ -275,11 +275,11 @@ func (pruo *ProjectResourceUpdateOne) sqlSave(ctx context.Context) (_node *Proje
 	if pruo.mutation.KindCleared() {
 		_spec.ClearField(projectresource.FieldKind, field.TypeString)
 	}
-	if value, ok := pruo.mutation.Description(); ok {
-		_spec.SetField(projectresource.FieldDescription, field.TypeString, value)
+	if value, ok := pruo.mutation.Name(); ok {
+		_spec.SetField(projectresource.FieldName, field.TypeString, value)
 	}
-	if pruo.mutation.DescriptionCleared() {
-		_spec.ClearField(projectresource.FieldDescription, field.TypeString)
+	if pruo.mutation.NameCleared() {
+		_spec.ClearField(projectresource.FieldName, field.TypeString)
 	}
 	_node = &ProjectResource{config: pruo.config}
 	_spec.Assign = _node.assignValues

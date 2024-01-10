@@ -85,7 +85,7 @@ func (m *EndpointResource) validate(all bool) error {
 
 	// no validation rules for Kind
 
-	// no validation rules for Description
+	// no validation rules for Name
 
 	if all {
 		switch v := interface{}(m.GetHost()).(type) {
@@ -246,7 +246,7 @@ func (m *NetlinkResource) validate(all bool) error {
 
 	// no validation rules for Kind
 
-	// no validation rules for Description
+	// no validation rules for Name
 
 	// no validation rules for DesiredState
 
@@ -440,7 +440,7 @@ func (m *NetworkSegment) validate(all bool) error {
 
 	}
 
-	// no validation rules for Description
+	// no validation rules for Name
 
 	if val := m.GetVlanId(); val < 0 || val >= 4095 {
 		err := NetworkSegmentValidationError{

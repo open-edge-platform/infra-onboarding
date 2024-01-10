@@ -25,16 +25,16 @@ func (osrc *OperatingSystemResourceCreate) SetResourceID(s string) *OperatingSys
 	return osrc
 }
 
-// SetDescription sets the "description" field.
-func (osrc *OperatingSystemResourceCreate) SetDescription(s string) *OperatingSystemResourceCreate {
-	osrc.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (osrc *OperatingSystemResourceCreate) SetName(s string) *OperatingSystemResourceCreate {
+	osrc.mutation.SetName(s)
 	return osrc
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (osrc *OperatingSystemResourceCreate) SetNillableDescription(s *string) *OperatingSystemResourceCreate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (osrc *OperatingSystemResourceCreate) SetNillableName(s *string) *OperatingSystemResourceCreate {
 	if s != nil {
-		osrc.SetDescription(*s)
+		osrc.SetName(*s)
 	}
 	return osrc
 }
@@ -175,9 +175,9 @@ func (osrc *OperatingSystemResourceCreate) createSpec() (*OperatingSystemResourc
 		_spec.SetField(operatingsystemresource.FieldResourceID, field.TypeString, value)
 		_node.ResourceID = value
 	}
-	if value, ok := osrc.mutation.Description(); ok {
-		_spec.SetField(operatingsystemresource.FieldDescription, field.TypeString, value)
-		_node.Description = value
+	if value, ok := osrc.mutation.Name(); ok {
+		_spec.SetField(operatingsystemresource.FieldName, field.TypeString, value)
+		_node.Name = value
 	}
 	if value, ok := osrc.mutation.Architecture(); ok {
 		_spec.SetField(operatingsystemresource.FieldArchitecture, field.TypeString, value)

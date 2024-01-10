@@ -21,12 +21,6 @@ type HostusbResource struct {
 	ResourceID string `json:"resource_id,omitempty"`
 	// Kind holds the value of the "kind" field.
 	Kind string `json:"kind,omitempty"`
-	// Description holds the value of the "description" field.
-	Description string `json:"description,omitempty"`
-	// CurrentState holds the value of the "current_state" field.
-	CurrentState hostusbresource.CurrentState `json:"current_state,omitempty"`
-	// DesiredState holds the value of the "desired_state" field.
-	DesiredState hostusbresource.DesiredState `json:"desired_state,omitempty"`
 	// OwnerID holds the value of the "owner_id" field.
 	OwnerID string `json:"owner_id,omitempty"`
 	// Idvendor holds the value of the "idvendor" field.
@@ -41,6 +35,8 @@ type HostusbResource struct {
 	Class string `json:"class,omitempty"`
 	// Serial holds the value of the "serial" field.
 	Serial string `json:"serial,omitempty"`
+	// DeviceName holds the value of the "device_name" field.
+	DeviceName string `json:"device_name,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the HostusbResourceQuery when eager-loading is set.
 	Edges                 HostusbResourceEdges `json:"edges"`
@@ -77,7 +73,7 @@ func (*HostusbResource) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case hostusbresource.FieldID, hostusbresource.FieldBus, hostusbresource.FieldAddr:
 			values[i] = new(sql.NullInt64)
-		case hostusbresource.FieldResourceID, hostusbresource.FieldKind, hostusbresource.FieldDescription, hostusbresource.FieldCurrentState, hostusbresource.FieldDesiredState, hostusbresource.FieldOwnerID, hostusbresource.FieldIdvendor, hostusbresource.FieldIdproduct, hostusbresource.FieldClass, hostusbresource.FieldSerial:
+		case hostusbresource.FieldResourceID, hostusbresource.FieldKind, hostusbresource.FieldOwnerID, hostusbresource.FieldIdvendor, hostusbresource.FieldIdproduct, hostusbresource.FieldClass, hostusbresource.FieldSerial, hostusbresource.FieldDeviceName:
 			values[i] = new(sql.NullString)
 		case hostusbresource.ForeignKeys[0]: // hostusb_resource_host
 			values[i] = new(sql.NullInt64)
@@ -113,24 +109,6 @@ func (hr *HostusbResource) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field kind", values[i])
 			} else if value.Valid {
 				hr.Kind = value.String
-			}
-		case hostusbresource.FieldDescription:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field description", values[i])
-			} else if value.Valid {
-				hr.Description = value.String
-			}
-		case hostusbresource.FieldCurrentState:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field current_state", values[i])
-			} else if value.Valid {
-				hr.CurrentState = hostusbresource.CurrentState(value.String)
-			}
-		case hostusbresource.FieldDesiredState:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field desired_state", values[i])
-			} else if value.Valid {
-				hr.DesiredState = hostusbresource.DesiredState(value.String)
 			}
 		case hostusbresource.FieldOwnerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -173,6 +151,12 @@ func (hr *HostusbResource) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field serial", values[i])
 			} else if value.Valid {
 				hr.Serial = value.String
+			}
+		case hostusbresource.FieldDeviceName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field device_name", values[i])
+			} else if value.Valid {
+				hr.DeviceName = value.String
 			}
 		case hostusbresource.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -228,15 +212,6 @@ func (hr *HostusbResource) String() string {
 	builder.WriteString("kind=")
 	builder.WriteString(hr.Kind)
 	builder.WriteString(", ")
-	builder.WriteString("description=")
-	builder.WriteString(hr.Description)
-	builder.WriteString(", ")
-	builder.WriteString("current_state=")
-	builder.WriteString(fmt.Sprintf("%v", hr.CurrentState))
-	builder.WriteString(", ")
-	builder.WriteString("desired_state=")
-	builder.WriteString(fmt.Sprintf("%v", hr.DesiredState))
-	builder.WriteString(", ")
 	builder.WriteString("owner_id=")
 	builder.WriteString(hr.OwnerID)
 	builder.WriteString(", ")
@@ -257,6 +232,9 @@ func (hr *HostusbResource) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("serial=")
 	builder.WriteString(hr.Serial)
+	builder.WriteString(", ")
+	builder.WriteString("device_name=")
+	builder.WriteString(hr.DeviceName)
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -25,6 +25,13 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 )
 
+const (
+	EnableTracing            = "enableTracing"
+	EnableTracingDescription = "Flag to enable tracing"
+	TraceURL                 = "traceURL"
+	TraceURLDescription      = "Tracing URL for OTLP protocol"
+)
+
 var log = logging.GetLogger("tracing")
 
 func newTraceResources(service string, attribs map[string]string) (*resource.Resource, error) {

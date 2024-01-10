@@ -26,16 +26,16 @@ func (nsc *NetworkSegmentCreate) SetResourceID(s string) *NetworkSegmentCreate {
 	return nsc
 }
 
-// SetDescription sets the "description" field.
-func (nsc *NetworkSegmentCreate) SetDescription(s string) *NetworkSegmentCreate {
-	nsc.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (nsc *NetworkSegmentCreate) SetName(s string) *NetworkSegmentCreate {
+	nsc.mutation.SetName(s)
 	return nsc
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (nsc *NetworkSegmentCreate) SetNillableDescription(s *string) *NetworkSegmentCreate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (nsc *NetworkSegmentCreate) SetNillableName(s *string) *NetworkSegmentCreate {
 	if s != nil {
-		nsc.SetDescription(*s)
+		nsc.SetName(*s)
 	}
 	return nsc
 }
@@ -135,9 +135,9 @@ func (nsc *NetworkSegmentCreate) createSpec() (*NetworkSegment, *sqlgraph.Create
 		_spec.SetField(networksegment.FieldResourceID, field.TypeString, value)
 		_node.ResourceID = value
 	}
-	if value, ok := nsc.mutation.Description(); ok {
-		_spec.SetField(networksegment.FieldDescription, field.TypeString, value)
-		_node.Description = value
+	if value, ok := nsc.mutation.Name(); ok {
+		_spec.SetField(networksegment.FieldName, field.TypeString, value)
+		_node.Name = value
 	}
 	if value, ok := nsc.mutation.VlanID(); ok {
 		_spec.SetField(networksegment.FieldVlanID, field.TypeInt32, value)

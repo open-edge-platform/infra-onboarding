@@ -19,7 +19,16 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
+	compute_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
+	location_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/location/v1"
+	network_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/network/v1"
+	os_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
+	ou_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/ou/v1"
+	provider_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/provider/v1"
+	schedule_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/schedule/v1"
+	telemetry_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/telemetry/v1"
+	tenant_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/tenant/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 )
@@ -43,6 +52,7 @@ const (
 	ResourcePrefixHoststorage      ResourcePrefix = "hoststorage"
 	ResourcePrefixHostnic          ResourcePrefix = "hostnic"
 	ResourcePrefixHostusb          ResourcePrefix = "hostusb"
+	ResourcePrefixHostgpu          ResourcePrefix = "hostgpu"
 	ResourcePrefixNetworkSegment   ResourcePrefix = "netseg"
 	ResourcePrefixNetlink          ResourcePrefix = "netlink"
 	ResourcePrefixEndpoint         ResourcePrefix = "endpoint"
@@ -55,33 +65,38 @@ const (
 	ResourcePrefixOs               ResourcePrefix = "os"
 	ResourcePrefixSingleSchedule   ResourcePrefix = "singlesche"
 	ResourcePrefixRepeatedSchedule ResourcePrefix = "repeatedsche"
+	ResourcePrefixTelemetryGroup   ResourcePrefix = "telemetrygroup"
+	ResourcePrefixTelemetryProfile ResourcePrefix = "telemetryprofile"
 	ResourcePrefixWorkload         ResourcePrefix = "workload"
-	ResourcePrefixWorkloadMember   ResourcePrefix = "workloadMember"
+	ResourcePrefixWorkloadMember   ResourcePrefix = "workloadmember"
 	ResourcePrefixIPAddress        ResourcePrefix = "ipaddr"
 )
 
 func ResourceKindToPrefix(kind inv_v1.ResourceKind) ResourcePrefix {
 	mapResourceKindToPrefix := map[inv_v1.ResourceKind]ResourcePrefix{
-		inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE:         ResourcePrefixInstance,
-		inv_v1.ResourceKind_RESOURCE_KIND_HOST:             ResourcePrefixHost,
-		inv_v1.ResourceKind_RESOURCE_KIND_HOSTSTORAGE:      ResourcePrefixHoststorage,
-		inv_v1.ResourceKind_RESOURCE_KIND_HOSTNIC:          ResourcePrefixHostnic,
-		inv_v1.ResourceKind_RESOURCE_KIND_HOSTUSB:          ResourcePrefixHostusb,
-		inv_v1.ResourceKind_RESOURCE_KIND_NETWORKSEGMENT:   ResourcePrefixNetworkSegment,
-		inv_v1.ResourceKind_RESOURCE_KIND_NETLINK:          ResourcePrefixNetlink,
-		inv_v1.ResourceKind_RESOURCE_KIND_ENDPOINT:         ResourcePrefixEndpoint,
-		inv_v1.ResourceKind_RESOURCE_KIND_SITE:             ResourcePrefixSite,
-		inv_v1.ResourceKind_RESOURCE_KIND_REGION:           ResourcePrefixRegion,
-		inv_v1.ResourceKind_RESOURCE_KIND_OU:               ResourcePrefixOu,
-		inv_v1.ResourceKind_RESOURCE_KIND_PROJECT:          ResourcePrefixProject,
-		inv_v1.ResourceKind_RESOURCE_KIND_USER:             ResourcePrefixUser,
-		inv_v1.ResourceKind_RESOURCE_KIND_PROVIDER:         ResourcePrefixProvider,
-		inv_v1.ResourceKind_RESOURCE_KIND_OS:               ResourcePrefixOs,
-		inv_v1.ResourceKind_RESOURCE_KIND_SINGLESCHEDULE:   ResourcePrefixSingleSchedule,
-		inv_v1.ResourceKind_RESOURCE_KIND_REPEATEDSCHEDULE: ResourcePrefixRepeatedSchedule,
-		inv_v1.ResourceKind_RESOURCE_KIND_WORKLOAD:         ResourcePrefixWorkload,
-		inv_v1.ResourceKind_RESOURCE_KIND_WORKLOAD_MEMBER:  ResourcePrefixWorkloadMember,
-		inv_v1.ResourceKind_RESOURCE_KIND_IPADDRESS:        ResourcePrefixIPAddress,
+		inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE:          ResourcePrefixInstance,
+		inv_v1.ResourceKind_RESOURCE_KIND_HOST:              ResourcePrefixHost,
+		inv_v1.ResourceKind_RESOURCE_KIND_HOSTSTORAGE:       ResourcePrefixHoststorage,
+		inv_v1.ResourceKind_RESOURCE_KIND_HOSTNIC:           ResourcePrefixHostnic,
+		inv_v1.ResourceKind_RESOURCE_KIND_HOSTUSB:           ResourcePrefixHostusb,
+		inv_v1.ResourceKind_RESOURCE_KIND_HOSTGPU:           ResourcePrefixHostgpu,
+		inv_v1.ResourceKind_RESOURCE_KIND_NETWORKSEGMENT:    ResourcePrefixNetworkSegment,
+		inv_v1.ResourceKind_RESOURCE_KIND_NETLINK:           ResourcePrefixNetlink,
+		inv_v1.ResourceKind_RESOURCE_KIND_ENDPOINT:          ResourcePrefixEndpoint,
+		inv_v1.ResourceKind_RESOURCE_KIND_SITE:              ResourcePrefixSite,
+		inv_v1.ResourceKind_RESOURCE_KIND_REGION:            ResourcePrefixRegion,
+		inv_v1.ResourceKind_RESOURCE_KIND_OU:                ResourcePrefixOu,
+		inv_v1.ResourceKind_RESOURCE_KIND_PROJECT:           ResourcePrefixProject,
+		inv_v1.ResourceKind_RESOURCE_KIND_USER:              ResourcePrefixUser,
+		inv_v1.ResourceKind_RESOURCE_KIND_PROVIDER:          ResourcePrefixProvider,
+		inv_v1.ResourceKind_RESOURCE_KIND_OS:                ResourcePrefixOs,
+		inv_v1.ResourceKind_RESOURCE_KIND_SINGLESCHEDULE:    ResourcePrefixSingleSchedule,
+		inv_v1.ResourceKind_RESOURCE_KIND_REPEATEDSCHEDULE:  ResourcePrefixRepeatedSchedule,
+		inv_v1.ResourceKind_RESOURCE_KIND_TELEMETRY_GROUP:   ResourcePrefixTelemetryGroup,
+		inv_v1.ResourceKind_RESOURCE_KIND_TELEMETRY_PROFILE: ResourcePrefixTelemetryProfile,
+		inv_v1.ResourceKind_RESOURCE_KIND_WORKLOAD:          ResourcePrefixWorkload,
+		inv_v1.ResourceKind_RESOURCE_KIND_WORKLOAD_MEMBER:   ResourcePrefixWorkloadMember,
+		inv_v1.ResourceKind_RESOURCE_KIND_IPADDRESS:         ResourcePrefixIPAddress,
 	}
 
 	prefix, ok := mapResourceKindToPrefix[kind]
@@ -107,6 +122,8 @@ func GetResourceKindFromResource(resource *inv_v1.Resource) inv_v1.ResourceKind 
 		return inv_v1.ResourceKind_RESOURCE_KIND_HOSTNIC
 	case *inv_v1.Resource_Hostusb:
 		return inv_v1.ResourceKind_RESOURCE_KIND_HOSTUSB
+	case *inv_v1.Resource_Hostgpu:
+		return inv_v1.ResourceKind_RESOURCE_KIND_HOSTGPU
 	case *inv_v1.Resource_NetworkSegment:
 		return inv_v1.ResourceKind_RESOURCE_KIND_NETWORKSEGMENT
 	case *inv_v1.Resource_Netlink:
@@ -131,6 +148,10 @@ func GetResourceKindFromResource(resource *inv_v1.Resource) inv_v1.ResourceKind 
 		return inv_v1.ResourceKind_RESOURCE_KIND_SINGLESCHEDULE
 	case *inv_v1.Resource_Repeatedschedule:
 		return inv_v1.ResourceKind_RESOURCE_KIND_REPEATEDSCHEDULE
+	case *inv_v1.Resource_TelemetryGroup:
+		return inv_v1.ResourceKind_RESOURCE_KIND_TELEMETRY_GROUP
+	case *inv_v1.Resource_TelemetryProfile:
+		return inv_v1.ResourceKind_RESOURCE_KIND_TELEMETRY_PROFILE
 	case *inv_v1.Resource_Workload:
 		return inv_v1.ResourceKind_RESOURCE_KIND_WORKLOAD
 	case *inv_v1.Resource_WorkloadMember:
@@ -149,6 +170,7 @@ func PrefixToResourceKind(prefix ResourcePrefix) inv_v1.ResourceKind {
 		ResourcePrefixHoststorage:      inv_v1.ResourceKind_RESOURCE_KIND_HOSTSTORAGE,
 		ResourcePrefixHostnic:          inv_v1.ResourceKind_RESOURCE_KIND_HOSTNIC,
 		ResourcePrefixHostusb:          inv_v1.ResourceKind_RESOURCE_KIND_HOSTUSB,
+		ResourcePrefixHostgpu:          inv_v1.ResourceKind_RESOURCE_KIND_HOSTGPU,
 		ResourcePrefixNetworkSegment:   inv_v1.ResourceKind_RESOURCE_KIND_NETWORKSEGMENT,
 		ResourcePrefixNetlink:          inv_v1.ResourceKind_RESOURCE_KIND_NETLINK,
 		ResourcePrefixEndpoint:         inv_v1.ResourceKind_RESOURCE_KIND_ENDPOINT,
@@ -161,6 +183,8 @@ func PrefixToResourceKind(prefix ResourcePrefix) inv_v1.ResourceKind {
 		ResourcePrefixOs:               inv_v1.ResourceKind_RESOURCE_KIND_OS,
 		ResourcePrefixSingleSchedule:   inv_v1.ResourceKind_RESOURCE_KIND_SINGLESCHEDULE,
 		ResourcePrefixRepeatedSchedule: inv_v1.ResourceKind_RESOURCE_KIND_REPEATEDSCHEDULE,
+		ResourcePrefixTelemetryGroup:   inv_v1.ResourceKind_RESOURCE_KIND_TELEMETRY_GROUP,
+		ResourcePrefixTelemetryProfile: inv_v1.ResourceKind_RESOURCE_KIND_TELEMETRY_PROFILE,
 		ResourcePrefixWorkload:         inv_v1.ResourceKind_RESOURCE_KIND_WORKLOAD,
 		ResourcePrefixWorkloadMember:   inv_v1.ResourceKind_RESOURCE_KIND_WORKLOAD_MEMBER,
 		ResourcePrefixIPAddress:        inv_v1.ResourceKind_RESOURCE_KIND_IPADDRESS,
@@ -182,6 +206,7 @@ func stringToPrefix(s string) (ResourcePrefix, error) {
 		string(ResourcePrefixHoststorage):      ResourcePrefixHoststorage,
 		string(ResourcePrefixHostnic):          ResourcePrefixHostnic,
 		string(ResourcePrefixHostusb):          ResourcePrefixHostusb,
+		string(ResourcePrefixHostgpu):          ResourcePrefixHostgpu,
 		string(ResourcePrefixNetworkSegment):   ResourcePrefixNetworkSegment,
 		string(ResourcePrefixNetlink):          ResourcePrefixNetlink,
 		string(ResourcePrefixEndpoint):         ResourcePrefixEndpoint,
@@ -194,6 +219,8 @@ func stringToPrefix(s string) (ResourcePrefix, error) {
 		string(ResourcePrefixOs):               ResourcePrefixOs,
 		string(ResourcePrefixSingleSchedule):   ResourcePrefixSingleSchedule,
 		string(ResourcePrefixRepeatedSchedule): ResourcePrefixRepeatedSchedule,
+		string(ResourcePrefixTelemetryGroup):   ResourcePrefixTelemetryGroup,
+		string(ResourcePrefixTelemetryProfile): ResourcePrefixTelemetryProfile,
 		string(ResourcePrefixWorkload):         ResourcePrefixWorkload,
 		string(ResourcePrefixWorkloadMember):   ResourcePrefixWorkloadMember,
 		string(ResourcePrefixIPAddress):        ResourcePrefixIPAddress,
@@ -226,6 +253,144 @@ func GetResourceKindFromResourceID(resID string) (inv_v1.ResourceKind, error) {
 	return PrefixToResourceKind(typedPrefix), nil
 }
 
+// GetResourceIDFromResource extracts the resource ID from a wrapped resource.
+//
+//nolint:cyclop // high cyclomatic complexity due to the switch
+func GetResourceIDFromResource(resource *inv_v1.Resource) (string, error) {
+	switch resource.GetResource().(type) {
+	case *inv_v1.Resource_Region:
+		return resource.GetRegion().GetResourceId(), nil
+	case *inv_v1.Resource_Site:
+		return resource.GetSite().GetResourceId(), nil
+	case *inv_v1.Resource_Ou:
+		return resource.GetOu().GetResourceId(), nil
+	case *inv_v1.Resource_Instance:
+		return resource.GetInstance().GetResourceId(), nil
+	case *inv_v1.Resource_Host:
+		return resource.GetHost().GetResourceId(), nil
+	case *inv_v1.Resource_Hoststorage:
+		return resource.GetHoststorage().GetResourceId(), nil
+	case *inv_v1.Resource_Hostnic:
+		return resource.GetHostnic().GetResourceId(), nil
+	case *inv_v1.Resource_Hostusb:
+		return resource.GetHostusb().GetResourceId(), nil
+	case *inv_v1.Resource_Hostgpu:
+		return resource.GetHostgpu().GetResourceId(), nil
+	case *inv_v1.Resource_NetworkSegment:
+		return resource.GetNetworkSegment().GetResourceId(), nil
+	case *inv_v1.Resource_Netlink:
+		return resource.GetNetlink().GetResourceId(), nil
+	case *inv_v1.Resource_Endpoint:
+		return resource.GetEndpoint().GetResourceId(), nil
+	case *inv_v1.Resource_Ipaddress:
+		return resource.GetIpaddress().GetResourceId(), nil
+	case *inv_v1.Resource_Project:
+		return resource.GetProject().GetResourceId(), nil
+	case *inv_v1.Resource_User:
+		return resource.GetUser().GetResourceId(), nil
+	case *inv_v1.Resource_Provider:
+		return resource.GetProvider().GetResourceId(), nil
+	case *inv_v1.Resource_Os:
+		return resource.GetOs().GetResourceId(), nil
+	case *inv_v1.Resource_Singleschedule:
+		return resource.GetSingleschedule().GetResourceId(), nil
+	case *inv_v1.Resource_Repeatedschedule:
+		return resource.GetRepeatedschedule().GetResourceId(), nil
+	case *inv_v1.Resource_TelemetryGroup:
+		return resource.GetTelemetryGroup().GetResourceId(), nil
+	case *inv_v1.Resource_TelemetryProfile:
+		return resource.GetTelemetryProfile().GetResourceId(), nil
+	case *inv_v1.Resource_Workload:
+		return resource.GetWorkload().GetResourceId(), nil
+	case *inv_v1.Resource_WorkloadMember:
+		return resource.GetWorkloadMember().GetResourceId(), nil
+	default:
+		zlog.MiSec().MiError("unknown Resource type: %T", resource.GetResource()).Msg("")
+		return "", errors.Errorfc(codes.InvalidArgument, "unknown Resource type: %T", resource.GetResource())
+	}
+}
+
+// WrapResource takes a resource and returns it in the generic form.
+//
+//nolint:cyclop,funlen // high cyclomatic complexity and long function due to the switch
+func WrapResource(resource proto.Message) (*inv_v1.Resource, error) {
+	wrap := &inv_v1.Resource{}
+	switch r := resource.(type) {
+	case *location_v1.RegionResource:
+		wrap.Resource = &inv_v1.Resource_Region{Region: r}
+	case *location_v1.SiteResource:
+		wrap.Resource = &inv_v1.Resource_Site{Site: r}
+	case *ou_v1.OuResource:
+		wrap.Resource = &inv_v1.Resource_Ou{Ou: r}
+	case *compute_v1.InstanceResource:
+		wrap.Resource = &inv_v1.Resource_Instance{Instance: r}
+	case *compute_v1.HostResource:
+		wrap.Resource = &inv_v1.Resource_Host{Host: r}
+	case *compute_v1.HoststorageResource:
+		wrap.Resource = &inv_v1.Resource_Hoststorage{Hoststorage: r}
+	case *compute_v1.HostnicResource:
+		wrap.Resource = &inv_v1.Resource_Hostnic{Hostnic: r}
+	case *compute_v1.HostusbResource:
+		wrap.Resource = &inv_v1.Resource_Hostusb{Hostusb: r}
+	case *compute_v1.HostgpuResource:
+		wrap.Resource = &inv_v1.Resource_Hostgpu{Hostgpu: r}
+	case *compute_v1.WorkloadResource:
+		wrap.Resource = &inv_v1.Resource_Workload{Workload: r}
+	case *compute_v1.WorkloadMember:
+		wrap.Resource = &inv_v1.Resource_WorkloadMember{WorkloadMember: r}
+	case *network_v1.NetworkSegment:
+		wrap.Resource = &inv_v1.Resource_NetworkSegment{NetworkSegment: r}
+	case *network_v1.NetlinkResource:
+		wrap.Resource = &inv_v1.Resource_Netlink{Netlink: r}
+	case *network_v1.EndpointResource:
+		wrap.Resource = &inv_v1.Resource_Endpoint{Endpoint: r}
+	case *network_v1.IPAddressResource:
+		wrap.Resource = &inv_v1.Resource_Ipaddress{Ipaddress: r}
+	case *tenant_v1.ProjectResource:
+		wrap.Resource = &inv_v1.Resource_Project{Project: r}
+	case *tenant_v1.UserResource:
+		wrap.Resource = &inv_v1.Resource_User{User: r}
+	case *provider_v1.ProviderResource:
+		wrap.Resource = &inv_v1.Resource_Provider{Provider: r}
+	case *os_v1.OperatingSystemResource:
+		wrap.Resource = &inv_v1.Resource_Os{Os: r}
+	case *schedule_v1.SingleScheduleResource:
+		wrap.Resource = &inv_v1.Resource_Singleschedule{Singleschedule: r}
+	case *schedule_v1.RepeatedScheduleResource:
+		wrap.Resource = &inv_v1.Resource_Repeatedschedule{Repeatedschedule: r}
+	case *telemetry_v1.TelemetryGroupResource:
+		wrap.Resource = &inv_v1.Resource_TelemetryGroup{TelemetryGroup: r}
+	case *telemetry_v1.TelemetryProfile:
+		wrap.Resource = &inv_v1.Resource_TelemetryProfile{TelemetryProfile: r}
+	default:
+		zlog.MiSec().MiError("unknown Resource type: %T", resource).Msg("")
+		return nil, errors.Errorfc(codes.InvalidArgument, "unknown Resource type: %T", resource)
+	}
+
+	return wrap, nil
+}
+
+// UnwrapResource returns the underlying resource given a generic Resource.
+// If you don't need a concrete resource as return type, you can still get the
+// inner resource as a generic proto message:
+//
+//	msg, err := UnwrapResource[proto.Message](resource)
+func UnwrapResource[T proto.Message](resource *inv_v1.Resource) (T, error) {
+	var zero T // Used to return a 'nil' like default object on errors
+	rk, err := getResourceProtoMessage(resource)
+	if err != nil {
+		// This should never happen
+		return zero, err
+	}
+	r, ok := rk.(T)
+	if !ok {
+		// This should never happen
+		zlog.MiSec().Error().Msgf("error while extracting concrete type")
+		return zero, errors.Errorfc(codes.Internal, "error while extracting concrete type")
+	}
+	return r, nil
+}
+
 func GetResourceKindFromMessage(message proto.Message) (inv_v1.ResourceKind, error) {
 	mapStringToPrefix := map[string]inv_v1.ResourceKind{
 		"unspecified":              inv_v1.ResourceKind_RESOURCE_KIND_UNSPECIFIED,
@@ -234,6 +399,7 @@ func GetResourceKindFromMessage(message proto.Message) (inv_v1.ResourceKind, err
 		"HoststorageResource":      inv_v1.ResourceKind_RESOURCE_KIND_HOSTSTORAGE,
 		"HostnicResource":          inv_v1.ResourceKind_RESOURCE_KIND_HOSTNIC,
 		"HostusbResource":          inv_v1.ResourceKind_RESOURCE_KIND_HOSTUSB,
+		"HostgpuResource":          inv_v1.ResourceKind_RESOURCE_KIND_HOSTGPU,
 		"NetworkSegment":           inv_v1.ResourceKind_RESOURCE_KIND_NETWORKSEGMENT,
 		"NetlinkResource":          inv_v1.ResourceKind_RESOURCE_KIND_NETLINK,
 		"EndpointResource":         inv_v1.ResourceKind_RESOURCE_KIND_ENDPOINT,
@@ -246,6 +412,8 @@ func GetResourceKindFromMessage(message proto.Message) (inv_v1.ResourceKind, err
 		"OperatingSystemResource":  inv_v1.ResourceKind_RESOURCE_KIND_OS,
 		"SingleScheduleResource":   inv_v1.ResourceKind_RESOURCE_KIND_SINGLESCHEDULE,
 		"RepeatedScheduleResource": inv_v1.ResourceKind_RESOURCE_KIND_REPEATEDSCHEDULE,
+		"TelemetryGroupResource":   inv_v1.ResourceKind_RESOURCE_KIND_TELEMETRY_GROUP,
+		"TelemetryProfile":         inv_v1.ResourceKind_RESOURCE_KIND_TELEMETRY_PROFILE,
 		"WorkloadResource":         inv_v1.ResourceKind_RESOURCE_KIND_WORKLOAD,
 		"WorkloadMember":           inv_v1.ResourceKind_RESOURCE_KIND_WORKLOAD_MEMBER,
 		"IPAddressResource":        inv_v1.ResourceKind_RESOURCE_KIND_IPADDRESS,
@@ -471,6 +639,7 @@ func GetResourceFromKind(resourceType inv_v1.ResourceKind) (*inv_v1.Resource, er
 		inv_v1.ResourceKind_RESOURCE_KIND_HOSTSTORAGE: {Resource: &inv_v1.Resource_Hoststorage{}},
 		inv_v1.ResourceKind_RESOURCE_KIND_HOSTNIC:     {Resource: &inv_v1.Resource_Hostnic{}},
 		inv_v1.ResourceKind_RESOURCE_KIND_HOSTUSB:     {Resource: &inv_v1.Resource_Hostusb{}},
+		inv_v1.ResourceKind_RESOURCE_KIND_HOSTGPU:     {Resource: &inv_v1.Resource_Hostgpu{}},
 
 		inv_v1.ResourceKind_RESOURCE_KIND_NETWORKSEGMENT: {Resource: &inv_v1.Resource_NetworkSegment{}},
 		inv_v1.ResourceKind_RESOURCE_KIND_NETLINK:        {Resource: &inv_v1.Resource_Netlink{}},
@@ -486,6 +655,9 @@ func GetResourceFromKind(resourceType inv_v1.ResourceKind) (*inv_v1.Resource, er
 
 		inv_v1.ResourceKind_RESOURCE_KIND_SINGLESCHEDULE:   {Resource: &inv_v1.Resource_Singleschedule{}},
 		inv_v1.ResourceKind_RESOURCE_KIND_REPEATEDSCHEDULE: {Resource: &inv_v1.Resource_Repeatedschedule{}},
+
+		inv_v1.ResourceKind_RESOURCE_KIND_TELEMETRY_GROUP:   {Resource: &inv_v1.Resource_TelemetryGroup{}},
+		inv_v1.ResourceKind_RESOURCE_KIND_TELEMETRY_PROFILE: {Resource: &inv_v1.Resource_TelemetryProfile{}},
 
 		inv_v1.ResourceKind_RESOURCE_KIND_WORKLOAD:        {Resource: &inv_v1.Resource_Workload{}},
 		inv_v1.ResourceKind_RESOURCE_KIND_WORKLOAD_MEMBER: {Resource: &inv_v1.Resource_WorkloadMember{}},
@@ -523,6 +695,9 @@ func GetSetResource(resource *inv_v1.Resource) (proto.Message, error) {
 		inv_v1.ResourceKind_RESOURCE_KIND_HOSTUSB: func(r *inv_v1.Resource) proto.Message {
 			return r.GetHostusb()
 		},
+		inv_v1.ResourceKind_RESOURCE_KIND_HOSTGPU: func(r *inv_v1.Resource) proto.Message {
+			return r.GetHostgpu()
+		},
 
 		inv_v1.ResourceKind_RESOURCE_KIND_NETWORKSEGMENT: func(r *inv_v1.Resource) proto.Message {
 			return r.GetNetworkSegment()
@@ -549,6 +724,13 @@ func GetSetResource(resource *inv_v1.Resource) (proto.Message, error) {
 		},
 		inv_v1.ResourceKind_RESOURCE_KIND_REPEATEDSCHEDULE: func(r *inv_v1.Resource) proto.Message {
 			return r.GetRepeatedschedule()
+		},
+
+		inv_v1.ResourceKind_RESOURCE_KIND_TELEMETRY_GROUP: func(r *inv_v1.Resource) proto.Message {
+			return r.GetTelemetryGroup()
+		},
+		inv_v1.ResourceKind_RESOURCE_KIND_TELEMETRY_PROFILE: func(r *inv_v1.Resource) proto.Message {
+			return r.GetTelemetryProfile()
 		},
 
 		inv_v1.ResourceKind_RESOURCE_KIND_WORKLOAD: func(r *inv_v1.Resource) proto.Message {
@@ -584,11 +766,11 @@ func GetFilterFromSetResource(resource *inv_v1.Resource) (*inv_v1.ResourceFilter
 	return &inv_v1.ResourceFilter{Resource: resource, FieldMask: fieldMask}, nil
 }
 
-// GetResourceProtoMessage returns "oneof" the proto message given
+// getResourceProtoMessage returns "oneof" the proto message given
 // the generic resource message provided as input.
 //
-//nolint:cyclop // high cyclomatic complexity due to the switch
-func GetResourceProtoMessage(resource *inv_v1.Resource) (proto.Message, error) {
+//nolint:cyclop,funlen // high cyclomatic complexity and long function due to the switch
+func getResourceProtoMessage(resource *inv_v1.Resource) (proto.Message, error) {
 	var message proto.Message
 	switch resource.GetResource().(type) {
 	case *inv_v1.Resource_Region:
@@ -607,6 +789,8 @@ func GetResourceProtoMessage(resource *inv_v1.Resource) (proto.Message, error) {
 		message = resource.GetHostnic()
 	case *inv_v1.Resource_Hostusb:
 		message = resource.GetHostusb()
+	case *inv_v1.Resource_Hostgpu:
+		message = resource.GetHostgpu()
 	case *inv_v1.Resource_NetworkSegment:
 		message = resource.GetNetworkSegment()
 	case *inv_v1.Resource_Netlink:
@@ -627,13 +811,17 @@ func GetResourceProtoMessage(resource *inv_v1.Resource) (proto.Message, error) {
 		message = resource.GetSingleschedule()
 	case *inv_v1.Resource_Repeatedschedule:
 		message = resource.GetRepeatedschedule()
+	case *inv_v1.Resource_TelemetryGroup:
+		message = resource.GetTelemetryGroup()
+	case *inv_v1.Resource_TelemetryProfile:
+		message = resource.GetTelemetryProfile()
 	case *inv_v1.Resource_Workload:
 		message = resource.GetWorkload()
 	case *inv_v1.Resource_WorkloadMember:
 		message = resource.GetWorkloadMember()
 	default:
-		zlog.MiSec().MiError("unknown Resource Kind: %T", resource.GetResource()).Msg("")
-		return nil, errors.Errorfc(codes.InvalidArgument, "unknown Resource Kind: %T", resource.GetResource())
+		zlog.MiSec().MiError("unknown Resource type: %T", resource.GetResource()).Msg("")
+		return nil, errors.Errorfc(codes.InvalidArgument, "unknown Resource type: %T", resource.GetResource())
 	}
 
 	return message, nil
@@ -643,19 +831,11 @@ func GetResourceProtoMessage(resource *inv_v1.Resource) (proto.Message, error) {
 func GetSpecificResourceList[T proto.Message](resources []*inv_v1.Resource) ([]T, error) {
 	resRet := make([]T, 0, len(resources))
 	for _, res := range resources {
-		rk, err := GetResourceProtoMessage(res)
+		r, err := UnwrapResource[T](res)
 		if err != nil {
-			// This should never happen
 			return nil, err
 		}
-
-		if r, ok := rk.(T); ok {
-			resRet = append(resRet, r)
-		} else {
-			// This should never happen
-			zlog.MiSec().Error().Msgf("error while extracting concrete type")
-			return nil, errors.Errorfc(codes.Internal, "error while extracting concrete type")
-		}
+		resRet = append(resRet, r)
 	}
 	return resRet, nil
 }
@@ -663,4 +843,16 @@ func GetSpecificResourceList[T proto.Message](resources []*inv_v1.Resource) ([]T
 // BuildNestedFieldMaskFromFields joins the given fields with "." to build a nested field mask.
 func BuildNestedFieldMaskFromFields(fields ...string) string {
 	return strings.Join(fields, ".")
+}
+
+// CheckListOutputIsSingular checks if result returned by list function contains single entry.
+// If not, it generates appropriate error with correct code.
+func CheckListOutputIsSingular[T any](res []*T) error {
+	if len(res) == 0 {
+		return errors.Errorfc(codes.NotFound, "No Resources found")
+	}
+	if len(res) != 1 {
+		return errors.Errorfc(codes.Internal, "Obtained multiple (%d) Resources, but expected a single one", len(res))
+	}
+	return nil
 }

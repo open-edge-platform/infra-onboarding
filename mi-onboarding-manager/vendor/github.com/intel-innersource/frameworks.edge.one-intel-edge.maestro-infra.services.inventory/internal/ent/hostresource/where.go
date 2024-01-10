@@ -63,9 +63,9 @@ func Kind(v string) predicate.HostResource {
 	return predicate.HostResource(sql.FieldEQ(FieldKind, v))
 }
 
-// Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
-func Description(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldEQ(FieldDescription, v))
+// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
+func Name(v string) predicate.HostResource {
+	return predicate.HostResource(sql.FieldEQ(FieldName, v))
 }
 
 // ProviderStatus applies equality check predicate on the "provider_status" field. It's identical to ProviderStatusEQ.
@@ -81,11 +81,6 @@ func ProviderStatusDetail(v string) predicate.HostResource {
 // Note applies equality check predicate on the "note" field. It's identical to NoteEQ.
 func Note(v string) predicate.HostResource {
 	return predicate.HostResource(sql.FieldEQ(FieldNote, v))
-}
-
-// ConsumerID applies equality check predicate on the "consumer_id" field. It's identical to ConsumerIDEQ.
-func ConsumerID(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldEQ(FieldConsumerID, v))
 }
 
 // HardwareKind applies equality check predicate on the "hardware_kind" field. It's identical to HardwareKindEQ.
@@ -136,21 +131,6 @@ func CPUArchitecture(v string) predicate.HostResource {
 // CPUThreads applies equality check predicate on the "cpu_threads" field. It's identical to CPUThreadsEQ.
 func CPUThreads(v uint32) predicate.HostResource {
 	return predicate.HostResource(sql.FieldEQ(FieldCPUThreads, v))
-}
-
-// GpuPciID applies equality check predicate on the "gpu_pci_id" field. It's identical to GpuPciIDEQ.
-func GpuPciID(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldEQ(FieldGpuPciID, v))
-}
-
-// GpuProduct applies equality check predicate on the "gpu_product" field. It's identical to GpuProductEQ.
-func GpuProduct(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldEQ(FieldGpuProduct, v))
-}
-
-// GpuVendor applies equality check predicate on the "gpu_vendor" field. It's identical to GpuVendorEQ.
-func GpuVendor(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldEQ(FieldGpuVendor, v))
 }
 
 // MgmtIP applies equality check predicate on the "mgmt_ip" field. It's identical to MgmtIPEQ.
@@ -348,79 +328,79 @@ func KindContainsFold(v string) predicate.HostResource {
 	return predicate.HostResource(sql.FieldContainsFold(FieldKind, v))
 }
 
-// DescriptionEQ applies the EQ predicate on the "description" field.
-func DescriptionEQ(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldEQ(FieldDescription, v))
+// NameEQ applies the EQ predicate on the "name" field.
+func NameEQ(v string) predicate.HostResource {
+	return predicate.HostResource(sql.FieldEQ(FieldName, v))
 }
 
-// DescriptionNEQ applies the NEQ predicate on the "description" field.
-func DescriptionNEQ(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldNEQ(FieldDescription, v))
+// NameNEQ applies the NEQ predicate on the "name" field.
+func NameNEQ(v string) predicate.HostResource {
+	return predicate.HostResource(sql.FieldNEQ(FieldName, v))
 }
 
-// DescriptionIn applies the In predicate on the "description" field.
-func DescriptionIn(vs ...string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldIn(FieldDescription, vs...))
+// NameIn applies the In predicate on the "name" field.
+func NameIn(vs ...string) predicate.HostResource {
+	return predicate.HostResource(sql.FieldIn(FieldName, vs...))
 }
 
-// DescriptionNotIn applies the NotIn predicate on the "description" field.
-func DescriptionNotIn(vs ...string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldNotIn(FieldDescription, vs...))
+// NameNotIn applies the NotIn predicate on the "name" field.
+func NameNotIn(vs ...string) predicate.HostResource {
+	return predicate.HostResource(sql.FieldNotIn(FieldName, vs...))
 }
 
-// DescriptionGT applies the GT predicate on the "description" field.
-func DescriptionGT(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldGT(FieldDescription, v))
+// NameGT applies the GT predicate on the "name" field.
+func NameGT(v string) predicate.HostResource {
+	return predicate.HostResource(sql.FieldGT(FieldName, v))
 }
 
-// DescriptionGTE applies the GTE predicate on the "description" field.
-func DescriptionGTE(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldGTE(FieldDescription, v))
+// NameGTE applies the GTE predicate on the "name" field.
+func NameGTE(v string) predicate.HostResource {
+	return predicate.HostResource(sql.FieldGTE(FieldName, v))
 }
 
-// DescriptionLT applies the LT predicate on the "description" field.
-func DescriptionLT(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldLT(FieldDescription, v))
+// NameLT applies the LT predicate on the "name" field.
+func NameLT(v string) predicate.HostResource {
+	return predicate.HostResource(sql.FieldLT(FieldName, v))
 }
 
-// DescriptionLTE applies the LTE predicate on the "description" field.
-func DescriptionLTE(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldLTE(FieldDescription, v))
+// NameLTE applies the LTE predicate on the "name" field.
+func NameLTE(v string) predicate.HostResource {
+	return predicate.HostResource(sql.FieldLTE(FieldName, v))
 }
 
-// DescriptionContains applies the Contains predicate on the "description" field.
-func DescriptionContains(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldContains(FieldDescription, v))
+// NameContains applies the Contains predicate on the "name" field.
+func NameContains(v string) predicate.HostResource {
+	return predicate.HostResource(sql.FieldContains(FieldName, v))
 }
 
-// DescriptionHasPrefix applies the HasPrefix predicate on the "description" field.
-func DescriptionHasPrefix(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldHasPrefix(FieldDescription, v))
+// NameHasPrefix applies the HasPrefix predicate on the "name" field.
+func NameHasPrefix(v string) predicate.HostResource {
+	return predicate.HostResource(sql.FieldHasPrefix(FieldName, v))
 }
 
-// DescriptionHasSuffix applies the HasSuffix predicate on the "description" field.
-func DescriptionHasSuffix(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldHasSuffix(FieldDescription, v))
+// NameHasSuffix applies the HasSuffix predicate on the "name" field.
+func NameHasSuffix(v string) predicate.HostResource {
+	return predicate.HostResource(sql.FieldHasSuffix(FieldName, v))
 }
 
-// DescriptionIsNil applies the IsNil predicate on the "description" field.
-func DescriptionIsNil() predicate.HostResource {
-	return predicate.HostResource(sql.FieldIsNull(FieldDescription))
+// NameIsNil applies the IsNil predicate on the "name" field.
+func NameIsNil() predicate.HostResource {
+	return predicate.HostResource(sql.FieldIsNull(FieldName))
 }
 
-// DescriptionNotNil applies the NotNil predicate on the "description" field.
-func DescriptionNotNil() predicate.HostResource {
-	return predicate.HostResource(sql.FieldNotNull(FieldDescription))
+// NameNotNil applies the NotNil predicate on the "name" field.
+func NameNotNil() predicate.HostResource {
+	return predicate.HostResource(sql.FieldNotNull(FieldName))
 }
 
-// DescriptionEqualFold applies the EqualFold predicate on the "description" field.
-func DescriptionEqualFold(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldEqualFold(FieldDescription, v))
+// NameEqualFold applies the EqualFold predicate on the "name" field.
+func NameEqualFold(v string) predicate.HostResource {
+	return predicate.HostResource(sql.FieldEqualFold(FieldName, v))
 }
 
-// DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
-func DescriptionContainsFold(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldContainsFold(FieldDescription, v))
+// NameContainsFold applies the ContainsFold predicate on the "name" field.
+func NameContainsFold(v string) predicate.HostResource {
+	return predicate.HostResource(sql.FieldContainsFold(FieldName, v))
 }
 
 // DesiredStateEQ applies the EQ predicate on the "desired_state" field.
@@ -736,81 +716,6 @@ func NoteEqualFold(v string) predicate.HostResource {
 // NoteContainsFold applies the ContainsFold predicate on the "note" field.
 func NoteContainsFold(v string) predicate.HostResource {
 	return predicate.HostResource(sql.FieldContainsFold(FieldNote, v))
-}
-
-// ConsumerIDEQ applies the EQ predicate on the "consumer_id" field.
-func ConsumerIDEQ(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldEQ(FieldConsumerID, v))
-}
-
-// ConsumerIDNEQ applies the NEQ predicate on the "consumer_id" field.
-func ConsumerIDNEQ(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldNEQ(FieldConsumerID, v))
-}
-
-// ConsumerIDIn applies the In predicate on the "consumer_id" field.
-func ConsumerIDIn(vs ...string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldIn(FieldConsumerID, vs...))
-}
-
-// ConsumerIDNotIn applies the NotIn predicate on the "consumer_id" field.
-func ConsumerIDNotIn(vs ...string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldNotIn(FieldConsumerID, vs...))
-}
-
-// ConsumerIDGT applies the GT predicate on the "consumer_id" field.
-func ConsumerIDGT(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldGT(FieldConsumerID, v))
-}
-
-// ConsumerIDGTE applies the GTE predicate on the "consumer_id" field.
-func ConsumerIDGTE(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldGTE(FieldConsumerID, v))
-}
-
-// ConsumerIDLT applies the LT predicate on the "consumer_id" field.
-func ConsumerIDLT(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldLT(FieldConsumerID, v))
-}
-
-// ConsumerIDLTE applies the LTE predicate on the "consumer_id" field.
-func ConsumerIDLTE(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldLTE(FieldConsumerID, v))
-}
-
-// ConsumerIDContains applies the Contains predicate on the "consumer_id" field.
-func ConsumerIDContains(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldContains(FieldConsumerID, v))
-}
-
-// ConsumerIDHasPrefix applies the HasPrefix predicate on the "consumer_id" field.
-func ConsumerIDHasPrefix(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldHasPrefix(FieldConsumerID, v))
-}
-
-// ConsumerIDHasSuffix applies the HasSuffix predicate on the "consumer_id" field.
-func ConsumerIDHasSuffix(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldHasSuffix(FieldConsumerID, v))
-}
-
-// ConsumerIDIsNil applies the IsNil predicate on the "consumer_id" field.
-func ConsumerIDIsNil() predicate.HostResource {
-	return predicate.HostResource(sql.FieldIsNull(FieldConsumerID))
-}
-
-// ConsumerIDNotNil applies the NotNil predicate on the "consumer_id" field.
-func ConsumerIDNotNil() predicate.HostResource {
-	return predicate.HostResource(sql.FieldNotNull(FieldConsumerID))
-}
-
-// ConsumerIDEqualFold applies the EqualFold predicate on the "consumer_id" field.
-func ConsumerIDEqualFold(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldEqualFold(FieldConsumerID, v))
-}
-
-// ConsumerIDContainsFold applies the ContainsFold predicate on the "consumer_id" field.
-func ConsumerIDContainsFold(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldContainsFold(FieldConsumerID, v))
 }
 
 // HardwareKindEQ applies the EQ predicate on the "hardware_kind" field.
@@ -1461,231 +1366,6 @@ func CPUThreadsIsNil() predicate.HostResource {
 // CPUThreadsNotNil applies the NotNil predicate on the "cpu_threads" field.
 func CPUThreadsNotNil() predicate.HostResource {
 	return predicate.HostResource(sql.FieldNotNull(FieldCPUThreads))
-}
-
-// GpuPciIDEQ applies the EQ predicate on the "gpu_pci_id" field.
-func GpuPciIDEQ(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldEQ(FieldGpuPciID, v))
-}
-
-// GpuPciIDNEQ applies the NEQ predicate on the "gpu_pci_id" field.
-func GpuPciIDNEQ(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldNEQ(FieldGpuPciID, v))
-}
-
-// GpuPciIDIn applies the In predicate on the "gpu_pci_id" field.
-func GpuPciIDIn(vs ...string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldIn(FieldGpuPciID, vs...))
-}
-
-// GpuPciIDNotIn applies the NotIn predicate on the "gpu_pci_id" field.
-func GpuPciIDNotIn(vs ...string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldNotIn(FieldGpuPciID, vs...))
-}
-
-// GpuPciIDGT applies the GT predicate on the "gpu_pci_id" field.
-func GpuPciIDGT(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldGT(FieldGpuPciID, v))
-}
-
-// GpuPciIDGTE applies the GTE predicate on the "gpu_pci_id" field.
-func GpuPciIDGTE(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldGTE(FieldGpuPciID, v))
-}
-
-// GpuPciIDLT applies the LT predicate on the "gpu_pci_id" field.
-func GpuPciIDLT(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldLT(FieldGpuPciID, v))
-}
-
-// GpuPciIDLTE applies the LTE predicate on the "gpu_pci_id" field.
-func GpuPciIDLTE(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldLTE(FieldGpuPciID, v))
-}
-
-// GpuPciIDContains applies the Contains predicate on the "gpu_pci_id" field.
-func GpuPciIDContains(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldContains(FieldGpuPciID, v))
-}
-
-// GpuPciIDHasPrefix applies the HasPrefix predicate on the "gpu_pci_id" field.
-func GpuPciIDHasPrefix(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldHasPrefix(FieldGpuPciID, v))
-}
-
-// GpuPciIDHasSuffix applies the HasSuffix predicate on the "gpu_pci_id" field.
-func GpuPciIDHasSuffix(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldHasSuffix(FieldGpuPciID, v))
-}
-
-// GpuPciIDIsNil applies the IsNil predicate on the "gpu_pci_id" field.
-func GpuPciIDIsNil() predicate.HostResource {
-	return predicate.HostResource(sql.FieldIsNull(FieldGpuPciID))
-}
-
-// GpuPciIDNotNil applies the NotNil predicate on the "gpu_pci_id" field.
-func GpuPciIDNotNil() predicate.HostResource {
-	return predicate.HostResource(sql.FieldNotNull(FieldGpuPciID))
-}
-
-// GpuPciIDEqualFold applies the EqualFold predicate on the "gpu_pci_id" field.
-func GpuPciIDEqualFold(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldEqualFold(FieldGpuPciID, v))
-}
-
-// GpuPciIDContainsFold applies the ContainsFold predicate on the "gpu_pci_id" field.
-func GpuPciIDContainsFold(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldContainsFold(FieldGpuPciID, v))
-}
-
-// GpuProductEQ applies the EQ predicate on the "gpu_product" field.
-func GpuProductEQ(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldEQ(FieldGpuProduct, v))
-}
-
-// GpuProductNEQ applies the NEQ predicate on the "gpu_product" field.
-func GpuProductNEQ(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldNEQ(FieldGpuProduct, v))
-}
-
-// GpuProductIn applies the In predicate on the "gpu_product" field.
-func GpuProductIn(vs ...string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldIn(FieldGpuProduct, vs...))
-}
-
-// GpuProductNotIn applies the NotIn predicate on the "gpu_product" field.
-func GpuProductNotIn(vs ...string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldNotIn(FieldGpuProduct, vs...))
-}
-
-// GpuProductGT applies the GT predicate on the "gpu_product" field.
-func GpuProductGT(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldGT(FieldGpuProduct, v))
-}
-
-// GpuProductGTE applies the GTE predicate on the "gpu_product" field.
-func GpuProductGTE(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldGTE(FieldGpuProduct, v))
-}
-
-// GpuProductLT applies the LT predicate on the "gpu_product" field.
-func GpuProductLT(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldLT(FieldGpuProduct, v))
-}
-
-// GpuProductLTE applies the LTE predicate on the "gpu_product" field.
-func GpuProductLTE(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldLTE(FieldGpuProduct, v))
-}
-
-// GpuProductContains applies the Contains predicate on the "gpu_product" field.
-func GpuProductContains(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldContains(FieldGpuProduct, v))
-}
-
-// GpuProductHasPrefix applies the HasPrefix predicate on the "gpu_product" field.
-func GpuProductHasPrefix(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldHasPrefix(FieldGpuProduct, v))
-}
-
-// GpuProductHasSuffix applies the HasSuffix predicate on the "gpu_product" field.
-func GpuProductHasSuffix(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldHasSuffix(FieldGpuProduct, v))
-}
-
-// GpuProductIsNil applies the IsNil predicate on the "gpu_product" field.
-func GpuProductIsNil() predicate.HostResource {
-	return predicate.HostResource(sql.FieldIsNull(FieldGpuProduct))
-}
-
-// GpuProductNotNil applies the NotNil predicate on the "gpu_product" field.
-func GpuProductNotNil() predicate.HostResource {
-	return predicate.HostResource(sql.FieldNotNull(FieldGpuProduct))
-}
-
-// GpuProductEqualFold applies the EqualFold predicate on the "gpu_product" field.
-func GpuProductEqualFold(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldEqualFold(FieldGpuProduct, v))
-}
-
-// GpuProductContainsFold applies the ContainsFold predicate on the "gpu_product" field.
-func GpuProductContainsFold(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldContainsFold(FieldGpuProduct, v))
-}
-
-// GpuVendorEQ applies the EQ predicate on the "gpu_vendor" field.
-func GpuVendorEQ(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldEQ(FieldGpuVendor, v))
-}
-
-// GpuVendorNEQ applies the NEQ predicate on the "gpu_vendor" field.
-func GpuVendorNEQ(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldNEQ(FieldGpuVendor, v))
-}
-
-// GpuVendorIn applies the In predicate on the "gpu_vendor" field.
-func GpuVendorIn(vs ...string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldIn(FieldGpuVendor, vs...))
-}
-
-// GpuVendorNotIn applies the NotIn predicate on the "gpu_vendor" field.
-func GpuVendorNotIn(vs ...string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldNotIn(FieldGpuVendor, vs...))
-}
-
-// GpuVendorGT applies the GT predicate on the "gpu_vendor" field.
-func GpuVendorGT(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldGT(FieldGpuVendor, v))
-}
-
-// GpuVendorGTE applies the GTE predicate on the "gpu_vendor" field.
-func GpuVendorGTE(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldGTE(FieldGpuVendor, v))
-}
-
-// GpuVendorLT applies the LT predicate on the "gpu_vendor" field.
-func GpuVendorLT(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldLT(FieldGpuVendor, v))
-}
-
-// GpuVendorLTE applies the LTE predicate on the "gpu_vendor" field.
-func GpuVendorLTE(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldLTE(FieldGpuVendor, v))
-}
-
-// GpuVendorContains applies the Contains predicate on the "gpu_vendor" field.
-func GpuVendorContains(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldContains(FieldGpuVendor, v))
-}
-
-// GpuVendorHasPrefix applies the HasPrefix predicate on the "gpu_vendor" field.
-func GpuVendorHasPrefix(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldHasPrefix(FieldGpuVendor, v))
-}
-
-// GpuVendorHasSuffix applies the HasSuffix predicate on the "gpu_vendor" field.
-func GpuVendorHasSuffix(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldHasSuffix(FieldGpuVendor, v))
-}
-
-// GpuVendorIsNil applies the IsNil predicate on the "gpu_vendor" field.
-func GpuVendorIsNil() predicate.HostResource {
-	return predicate.HostResource(sql.FieldIsNull(FieldGpuVendor))
-}
-
-// GpuVendorNotNil applies the NotNil predicate on the "gpu_vendor" field.
-func GpuVendorNotNil() predicate.HostResource {
-	return predicate.HostResource(sql.FieldNotNull(FieldGpuVendor))
-}
-
-// GpuVendorEqualFold applies the EqualFold predicate on the "gpu_vendor" field.
-func GpuVendorEqualFold(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldEqualFold(FieldGpuVendor, v))
-}
-
-// GpuVendorContainsFold applies the ContainsFold predicate on the "gpu_vendor" field.
-func GpuVendorContainsFold(v string) predicate.HostResource {
-	return predicate.HostResource(sql.FieldContainsFold(FieldGpuVendor, v))
 }
 
 // MgmtIPEQ applies the EQ predicate on the "mgmt_ip" field.
@@ -2756,6 +2436,29 @@ func HasHostUsbs() predicate.HostResource {
 func HasHostUsbsWith(preds ...predicate.HostusbResource) predicate.HostResource {
 	return predicate.HostResource(func(s *sql.Selector) {
 		step := newHostUsbsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasHostGpus applies the HasEdge predicate on the "host_gpus" edge.
+func HasHostGpus() predicate.HostResource {
+	return predicate.HostResource(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, HostGpusTable, HostGpusColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasHostGpusWith applies the HasEdge predicate on the "host_gpus" edge with a given conditions (other predicates).
+func HasHostGpusWith(preds ...predicate.HostgpuResource) predicate.HostResource {
+	return predicate.HostResource(func(s *sql.Selector) {
+		step := newHostGpusStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

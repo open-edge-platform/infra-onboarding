@@ -7,7 +7,7 @@ package osv1
 const (
 	// Fields and Edges constants for "OperatingSystemResource"
 	OperatingSystemResourceFieldResourceId    = "resource_id"
-	OperatingSystemResourceFieldDescription   = "description"
+	OperatingSystemResourceFieldName          = "name"
 	OperatingSystemResourceFieldArchitecture  = "architecture"
 	OperatingSystemResourceFieldKernelCommand = "kernel_command"
 	OperatingSystemResourceFieldUpdateSources = "update_sources"

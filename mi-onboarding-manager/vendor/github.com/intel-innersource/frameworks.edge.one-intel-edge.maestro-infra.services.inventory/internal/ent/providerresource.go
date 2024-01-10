@@ -9,7 +9,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/providerresource"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/siteresource"
 )
 
 // ProviderResource is the model entity for the ProviderResource schema.
@@ -19,45 +18,17 @@ type ProviderResource struct {
 	ID int `json:"id,omitempty"`
 	// ResourceID holds the value of the "resource_id" field.
 	ResourceID string `json:"resource_id,omitempty"`
-	// Kind holds the value of the "kind" field.
-	Kind providerresource.Kind `json:"kind,omitempty"`
-	// Description holds the value of the "description" field.
-	Description string `json:"description,omitempty"`
-	// DesiredState holds the value of the "desired_state" field.
-	DesiredState providerresource.DesiredState `json:"desired_state,omitempty"`
-	// CurrentState holds the value of the "current_state" field.
-	CurrentState providerresource.CurrentState `json:"current_state,omitempty"`
-	// Endpoint holds the value of the "endpoint" field.
-	Endpoint string `json:"endpoint,omitempty"`
-	// Token holds the value of the "token" field.
-	Token string `json:"token,omitempty"`
-	// Edges holds the relations/edges for other nodes in the graph.
-	// The values are being populated by the ProviderResourceQuery when eager-loading is set.
-	Edges                  ProviderResourceEdges `json:"edges"`
-	provider_resource_site *int
-	selectValues           sql.SelectValues
-}
-
-// ProviderResourceEdges holds the relations/edges for other nodes in the graph.
-type ProviderResourceEdges struct {
-	// Site holds the value of the site edge.
-	Site *SiteResource `json:"site,omitempty"`
-	// loadedTypes holds the information for reporting if a
-	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
-}
-
-// SiteOrErr returns the Site value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e ProviderResourceEdges) SiteOrErr() (*SiteResource, error) {
-	if e.loadedTypes[0] {
-		if e.Site == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: siteresource.Label}
-		}
-		return e.Site, nil
-	}
-	return nil, &NotLoadedError{edge: "site"}
+	// ProviderKind holds the value of the "provider_kind" field.
+	ProviderKind providerresource.ProviderKind `json:"provider_kind,omitempty"`
+	// ProviderVendor holds the value of the "provider_vendor" field.
+	ProviderVendor providerresource.ProviderVendor `json:"provider_vendor,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
+	// APIEndpoint holds the value of the "api_endpoint" field.
+	APIEndpoint string `json:"api_endpoint,omitempty"`
+	// APICredentials holds the value of the "api_credentials" field.
+	APICredentials string `json:"api_credentials,omitempty"`
+	selectValues   sql.SelectValues
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -67,10 +38,8 @@ func (*ProviderResource) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case providerresource.FieldID:
 			values[i] = new(sql.NullInt64)
-		case providerresource.FieldResourceID, providerresource.FieldKind, providerresource.FieldDescription, providerresource.FieldDesiredState, providerresource.FieldCurrentState, providerresource.FieldEndpoint, providerresource.FieldToken:
+		case providerresource.FieldResourceID, providerresource.FieldProviderKind, providerresource.FieldProviderVendor, providerresource.FieldName, providerresource.FieldAPIEndpoint, providerresource.FieldAPICredentials:
 			values[i] = new(sql.NullString)
-		case providerresource.ForeignKeys[0]: // provider_resource_site
-			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -98,48 +67,35 @@ func (pr *ProviderResource) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				pr.ResourceID = value.String
 			}
-		case providerresource.FieldKind:
+		case providerresource.FieldProviderKind:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field kind", values[i])
+				return fmt.Errorf("unexpected type %T for field provider_kind", values[i])
 			} else if value.Valid {
-				pr.Kind = providerresource.Kind(value.String)
+				pr.ProviderKind = providerresource.ProviderKind(value.String)
 			}
-		case providerresource.FieldDescription:
+		case providerresource.FieldProviderVendor:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field description", values[i])
+				return fmt.Errorf("unexpected type %T for field provider_vendor", values[i])
 			} else if value.Valid {
-				pr.Description = value.String
+				pr.ProviderVendor = providerresource.ProviderVendor(value.String)
 			}
-		case providerresource.FieldDesiredState:
+		case providerresource.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field desired_state", values[i])
+				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				pr.DesiredState = providerresource.DesiredState(value.String)
+				pr.Name = value.String
 			}
-		case providerresource.FieldCurrentState:
+		case providerresource.FieldAPIEndpoint:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field current_state", values[i])
+				return fmt.Errorf("unexpected type %T for field api_endpoint", values[i])
 			} else if value.Valid {
-				pr.CurrentState = providerresource.CurrentState(value.String)
+				pr.APIEndpoint = value.String
 			}
-		case providerresource.FieldEndpoint:
+		case providerresource.FieldAPICredentials:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field endpoint", values[i])
+				return fmt.Errorf("unexpected type %T for field api_credentials", values[i])
 			} else if value.Valid {
-				pr.Endpoint = value.String
-			}
-		case providerresource.FieldToken:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field token", values[i])
-			} else if value.Valid {
-				pr.Token = value.String
-			}
-		case providerresource.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field provider_resource_site", value)
-			} else if value.Valid {
-				pr.provider_resource_site = new(int)
-				*pr.provider_resource_site = int(value.Int64)
+				pr.APICredentials = value.String
 			}
 		default:
 			pr.selectValues.Set(columns[i], values[i])
@@ -152,11 +108,6 @@ func (pr *ProviderResource) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (pr *ProviderResource) Value(name string) (ent.Value, error) {
 	return pr.selectValues.Get(name)
-}
-
-// QuerySite queries the "site" edge of the ProviderResource entity.
-func (pr *ProviderResource) QuerySite() *SiteResourceQuery {
-	return NewProviderResourceClient(pr.config).QuerySite(pr)
 }
 
 // Update returns a builder for updating this ProviderResource.
@@ -185,23 +136,20 @@ func (pr *ProviderResource) String() string {
 	builder.WriteString("resource_id=")
 	builder.WriteString(pr.ResourceID)
 	builder.WriteString(", ")
-	builder.WriteString("kind=")
-	builder.WriteString(fmt.Sprintf("%v", pr.Kind))
+	builder.WriteString("provider_kind=")
+	builder.WriteString(fmt.Sprintf("%v", pr.ProviderKind))
 	builder.WriteString(", ")
-	builder.WriteString("description=")
-	builder.WriteString(pr.Description)
+	builder.WriteString("provider_vendor=")
+	builder.WriteString(fmt.Sprintf("%v", pr.ProviderVendor))
 	builder.WriteString(", ")
-	builder.WriteString("desired_state=")
-	builder.WriteString(fmt.Sprintf("%v", pr.DesiredState))
+	builder.WriteString("name=")
+	builder.WriteString(pr.Name)
 	builder.WriteString(", ")
-	builder.WriteString("current_state=")
-	builder.WriteString(fmt.Sprintf("%v", pr.CurrentState))
+	builder.WriteString("api_endpoint=")
+	builder.WriteString(pr.APIEndpoint)
 	builder.WriteString(", ")
-	builder.WriteString("endpoint=")
-	builder.WriteString(pr.Endpoint)
-	builder.WriteString(", ")
-	builder.WriteString("token=")
-	builder.WriteString(pr.Token)
+	builder.WriteString("api_credentials=")
+	builder.WriteString(pr.APICredentials)
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/endpointresource"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hostgpuresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hostnicresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hostresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hoststorageresource"
@@ -31,6 +32,8 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/repeatedscheduleresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/singlescheduleresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/siteresource"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/telemetrygroupresource"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/telemetryprofile"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/userresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/workloadmember"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/workloadresource"
@@ -45,6 +48,8 @@ type Client struct {
 	EndpointResource *EndpointResourceClient
 	// HostResource is the client for interacting with the HostResource builders.
 	HostResource *HostResourceClient
+	// HostgpuResource is the client for interacting with the HostgpuResource builders.
+	HostgpuResource *HostgpuResourceClient
 	// HostnicResource is the client for interacting with the HostnicResource builders.
 	HostnicResource *HostnicResourceClient
 	// HoststorageResource is the client for interacting with the HoststorageResource builders.
@@ -75,6 +80,10 @@ type Client struct {
 	SingleScheduleResource *SingleScheduleResourceClient
 	// SiteResource is the client for interacting with the SiteResource builders.
 	SiteResource *SiteResourceClient
+	// TelemetryGroupResource is the client for interacting with the TelemetryGroupResource builders.
+	TelemetryGroupResource *TelemetryGroupResourceClient
+	// TelemetryProfile is the client for interacting with the TelemetryProfile builders.
+	TelemetryProfile *TelemetryProfileClient
 	// UserResource is the client for interacting with the UserResource builders.
 	UserResource *UserResourceClient
 	// WorkloadMember is the client for interacting with the WorkloadMember builders.
@@ -96,6 +105,7 @@ func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.EndpointResource = NewEndpointResourceClient(c.config)
 	c.HostResource = NewHostResourceClient(c.config)
+	c.HostgpuResource = NewHostgpuResourceClient(c.config)
 	c.HostnicResource = NewHostnicResourceClient(c.config)
 	c.HoststorageResource = NewHoststorageResourceClient(c.config)
 	c.HostusbResource = NewHostusbResourceClient(c.config)
@@ -111,6 +121,8 @@ func (c *Client) init() {
 	c.RepeatedScheduleResource = NewRepeatedScheduleResourceClient(c.config)
 	c.SingleScheduleResource = NewSingleScheduleResourceClient(c.config)
 	c.SiteResource = NewSiteResourceClient(c.config)
+	c.TelemetryGroupResource = NewTelemetryGroupResourceClient(c.config)
+	c.TelemetryProfile = NewTelemetryProfileClient(c.config)
 	c.UserResource = NewUserResourceClient(c.config)
 	c.WorkloadMember = NewWorkloadMemberClient(c.config)
 	c.WorkloadResource = NewWorkloadResourceClient(c.config)
@@ -198,6 +210,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		config:                   cfg,
 		EndpointResource:         NewEndpointResourceClient(cfg),
 		HostResource:             NewHostResourceClient(cfg),
+		HostgpuResource:          NewHostgpuResourceClient(cfg),
 		HostnicResource:          NewHostnicResourceClient(cfg),
 		HoststorageResource:      NewHoststorageResourceClient(cfg),
 		HostusbResource:          NewHostusbResourceClient(cfg),
@@ -213,6 +226,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		RepeatedScheduleResource: NewRepeatedScheduleResourceClient(cfg),
 		SingleScheduleResource:   NewSingleScheduleResourceClient(cfg),
 		SiteResource:             NewSiteResourceClient(cfg),
+		TelemetryGroupResource:   NewTelemetryGroupResourceClient(cfg),
+		TelemetryProfile:         NewTelemetryProfileClient(cfg),
 		UserResource:             NewUserResourceClient(cfg),
 		WorkloadMember:           NewWorkloadMemberClient(cfg),
 		WorkloadResource:         NewWorkloadResourceClient(cfg),
@@ -237,6 +252,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		config:                   cfg,
 		EndpointResource:         NewEndpointResourceClient(cfg),
 		HostResource:             NewHostResourceClient(cfg),
+		HostgpuResource:          NewHostgpuResourceClient(cfg),
 		HostnicResource:          NewHostnicResourceClient(cfg),
 		HoststorageResource:      NewHoststorageResourceClient(cfg),
 		HostusbResource:          NewHostusbResourceClient(cfg),
@@ -252,6 +268,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		RepeatedScheduleResource: NewRepeatedScheduleResourceClient(cfg),
 		SingleScheduleResource:   NewSingleScheduleResourceClient(cfg),
 		SiteResource:             NewSiteResourceClient(cfg),
+		TelemetryGroupResource:   NewTelemetryGroupResourceClient(cfg),
+		TelemetryProfile:         NewTelemetryProfileClient(cfg),
 		UserResource:             NewUserResourceClient(cfg),
 		WorkloadMember:           NewWorkloadMemberClient(cfg),
 		WorkloadResource:         NewWorkloadResourceClient(cfg),
@@ -284,12 +302,13 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.EndpointResource, c.HostResource, c.HostnicResource, c.HoststorageResource,
-		c.HostusbResource, c.IPAddressResource, c.InstanceResource, c.NetlinkResource,
-		c.NetworkSegment, c.OperatingSystemResource, c.OuResource, c.ProjectResource,
-		c.ProviderResource, c.RegionResource, c.RepeatedScheduleResource,
-		c.SingleScheduleResource, c.SiteResource, c.UserResource, c.WorkloadMember,
-		c.WorkloadResource,
+		c.EndpointResource, c.HostResource, c.HostgpuResource, c.HostnicResource,
+		c.HoststorageResource, c.HostusbResource, c.IPAddressResource,
+		c.InstanceResource, c.NetlinkResource, c.NetworkSegment,
+		c.OperatingSystemResource, c.OuResource, c.ProjectResource, c.ProviderResource,
+		c.RegionResource, c.RepeatedScheduleResource, c.SingleScheduleResource,
+		c.SiteResource, c.TelemetryGroupResource, c.TelemetryProfile, c.UserResource,
+		c.WorkloadMember, c.WorkloadResource,
 	} {
 		n.Use(hooks...)
 	}
@@ -299,12 +318,13 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.EndpointResource, c.HostResource, c.HostnicResource, c.HoststorageResource,
-		c.HostusbResource, c.IPAddressResource, c.InstanceResource, c.NetlinkResource,
-		c.NetworkSegment, c.OperatingSystemResource, c.OuResource, c.ProjectResource,
-		c.ProviderResource, c.RegionResource, c.RepeatedScheduleResource,
-		c.SingleScheduleResource, c.SiteResource, c.UserResource, c.WorkloadMember,
-		c.WorkloadResource,
+		c.EndpointResource, c.HostResource, c.HostgpuResource, c.HostnicResource,
+		c.HoststorageResource, c.HostusbResource, c.IPAddressResource,
+		c.InstanceResource, c.NetlinkResource, c.NetworkSegment,
+		c.OperatingSystemResource, c.OuResource, c.ProjectResource, c.ProviderResource,
+		c.RegionResource, c.RepeatedScheduleResource, c.SingleScheduleResource,
+		c.SiteResource, c.TelemetryGroupResource, c.TelemetryProfile, c.UserResource,
+		c.WorkloadMember, c.WorkloadResource,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -317,6 +337,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.EndpointResource.mutate(ctx, m)
 	case *HostResourceMutation:
 		return c.HostResource.mutate(ctx, m)
+	case *HostgpuResourceMutation:
+		return c.HostgpuResource.mutate(ctx, m)
 	case *HostnicResourceMutation:
 		return c.HostnicResource.mutate(ctx, m)
 	case *HoststorageResourceMutation:
@@ -347,6 +369,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.SingleScheduleResource.mutate(ctx, m)
 	case *SiteResourceMutation:
 		return c.SiteResource.mutate(ctx, m)
+	case *TelemetryGroupResourceMutation:
+		return c.TelemetryGroupResource.mutate(ctx, m)
+	case *TelemetryProfileMutation:
+		return c.TelemetryProfile.mutate(ctx, m)
 	case *UserResourceMutation:
 		return c.UserResource.mutate(ctx, m)
 	case *WorkloadMemberMutation:
@@ -697,6 +723,22 @@ func (c *HostResourceClient) QueryHostUsbs(hr *HostResource) *HostusbResourceQue
 	return query
 }
 
+// QueryHostGpus queries the host_gpus edge of a HostResource.
+func (c *HostResourceClient) QueryHostGpus(hr *HostResource) *HostgpuResourceQuery {
+	query := (&HostgpuResourceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := hr.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(hostresource.Table, hostresource.FieldID, id),
+			sqlgraph.To(hostgpuresource.Table, hostgpuresource.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, hostresource.HostGpusTable, hostresource.HostGpusColumn),
+		)
+		fromV = sqlgraph.Neighbors(hr.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryInstance queries the instance edge of a HostResource.
 func (c *HostResourceClient) QueryInstance(hr *HostResource) *InstanceResourceQuery {
 	query := (&InstanceResourceClient{config: c.config}).Query()
@@ -735,6 +777,140 @@ func (c *HostResourceClient) mutate(ctx context.Context, m *HostResourceMutation
 		return (&HostResourceDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown HostResource mutation op: %q", m.Op())
+	}
+}
+
+// HostgpuResourceClient is a client for the HostgpuResource schema.
+type HostgpuResourceClient struct {
+	config
+}
+
+// NewHostgpuResourceClient returns a client for the HostgpuResource from the given config.
+func NewHostgpuResourceClient(c config) *HostgpuResourceClient {
+	return &HostgpuResourceClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `hostgpuresource.Hooks(f(g(h())))`.
+func (c *HostgpuResourceClient) Use(hooks ...Hook) {
+	c.hooks.HostgpuResource = append(c.hooks.HostgpuResource, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `hostgpuresource.Intercept(f(g(h())))`.
+func (c *HostgpuResourceClient) Intercept(interceptors ...Interceptor) {
+	c.inters.HostgpuResource = append(c.inters.HostgpuResource, interceptors...)
+}
+
+// Create returns a builder for creating a HostgpuResource entity.
+func (c *HostgpuResourceClient) Create() *HostgpuResourceCreate {
+	mutation := newHostgpuResourceMutation(c.config, OpCreate)
+	return &HostgpuResourceCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of HostgpuResource entities.
+func (c *HostgpuResourceClient) CreateBulk(builders ...*HostgpuResourceCreate) *HostgpuResourceCreateBulk {
+	return &HostgpuResourceCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for HostgpuResource.
+func (c *HostgpuResourceClient) Update() *HostgpuResourceUpdate {
+	mutation := newHostgpuResourceMutation(c.config, OpUpdate)
+	return &HostgpuResourceUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *HostgpuResourceClient) UpdateOne(hr *HostgpuResource) *HostgpuResourceUpdateOne {
+	mutation := newHostgpuResourceMutation(c.config, OpUpdateOne, withHostgpuResource(hr))
+	return &HostgpuResourceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *HostgpuResourceClient) UpdateOneID(id int) *HostgpuResourceUpdateOne {
+	mutation := newHostgpuResourceMutation(c.config, OpUpdateOne, withHostgpuResourceID(id))
+	return &HostgpuResourceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for HostgpuResource.
+func (c *HostgpuResourceClient) Delete() *HostgpuResourceDelete {
+	mutation := newHostgpuResourceMutation(c.config, OpDelete)
+	return &HostgpuResourceDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *HostgpuResourceClient) DeleteOne(hr *HostgpuResource) *HostgpuResourceDeleteOne {
+	return c.DeleteOneID(hr.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *HostgpuResourceClient) DeleteOneID(id int) *HostgpuResourceDeleteOne {
+	builder := c.Delete().Where(hostgpuresource.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &HostgpuResourceDeleteOne{builder}
+}
+
+// Query returns a query builder for HostgpuResource.
+func (c *HostgpuResourceClient) Query() *HostgpuResourceQuery {
+	return &HostgpuResourceQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeHostgpuResource},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a HostgpuResource entity by its id.
+func (c *HostgpuResourceClient) Get(ctx context.Context, id int) (*HostgpuResource, error) {
+	return c.Query().Where(hostgpuresource.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *HostgpuResourceClient) GetX(ctx context.Context, id int) *HostgpuResource {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryHost queries the host edge of a HostgpuResource.
+func (c *HostgpuResourceClient) QueryHost(hr *HostgpuResource) *HostResourceQuery {
+	query := (&HostResourceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := hr.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(hostgpuresource.Table, hostgpuresource.FieldID, id),
+			sqlgraph.To(hostresource.Table, hostresource.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, hostgpuresource.HostTable, hostgpuresource.HostColumn),
+		)
+		fromV = sqlgraph.Neighbors(hr.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *HostgpuResourceClient) Hooks() []Hook {
+	return c.hooks.HostgpuResource
+}
+
+// Interceptors returns the client interceptors.
+func (c *HostgpuResourceClient) Interceptors() []Interceptor {
+	return c.inters.HostgpuResource
+}
+
+func (c *HostgpuResourceClient) mutate(ctx context.Context, m *HostgpuResourceMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&HostgpuResourceCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&HostgpuResourceUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&HostgpuResourceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&HostgpuResourceDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown HostgpuResource mutation op: %q", m.Op())
 	}
 }
 
@@ -1520,6 +1696,22 @@ func (c *InstanceResourceClient) QueryWorkloadMembers(ir *InstanceResource) *Wor
 			sqlgraph.From(instanceresource.Table, instanceresource.FieldID, id),
 			sqlgraph.To(workloadmember.Table, workloadmember.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, true, instanceresource.WorkloadMembersTable, instanceresource.WorkloadMembersColumn),
+		)
+		fromV = sqlgraph.Neighbors(ir.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryProvider queries the provider edge of a InstanceResource.
+func (c *InstanceResourceClient) QueryProvider(ir *InstanceResource) *ProviderResourceQuery {
+	query := (&ProviderResourceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ir.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(instanceresource.Table, instanceresource.FieldID, id),
+			sqlgraph.To(providerresource.Table, providerresource.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, instanceresource.ProviderTable, instanceresource.ProviderColumn),
 		)
 		fromV = sqlgraph.Neighbors(ir.driver.Dialect(), step)
 		return fromV, nil
@@ -2315,22 +2507,6 @@ func (c *ProviderResourceClient) GetX(ctx context.Context, id int) *ProviderReso
 	return obj
 }
 
-// QuerySite queries the site edge of a ProviderResource.
-func (c *ProviderResourceClient) QuerySite(pr *ProviderResource) *SiteResourceQuery {
-	query := (&SiteResourceClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := pr.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(providerresource.Table, providerresource.FieldID, id),
-			sqlgraph.To(siteresource.Table, siteresource.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, providerresource.SiteTable, providerresource.SiteColumn),
-		)
-		fromV = sqlgraph.Neighbors(pr.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // Hooks returns the client hooks.
 func (c *ProviderResourceClient) Hooks() []Hook {
 	return c.hooks.ProviderResource
@@ -2988,6 +3164,322 @@ func (c *SiteResourceClient) mutate(ctx context.Context, m *SiteResourceMutation
 	}
 }
 
+// TelemetryGroupResourceClient is a client for the TelemetryGroupResource schema.
+type TelemetryGroupResourceClient struct {
+	config
+}
+
+// NewTelemetryGroupResourceClient returns a client for the TelemetryGroupResource from the given config.
+func NewTelemetryGroupResourceClient(c config) *TelemetryGroupResourceClient {
+	return &TelemetryGroupResourceClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `telemetrygroupresource.Hooks(f(g(h())))`.
+func (c *TelemetryGroupResourceClient) Use(hooks ...Hook) {
+	c.hooks.TelemetryGroupResource = append(c.hooks.TelemetryGroupResource, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `telemetrygroupresource.Intercept(f(g(h())))`.
+func (c *TelemetryGroupResourceClient) Intercept(interceptors ...Interceptor) {
+	c.inters.TelemetryGroupResource = append(c.inters.TelemetryGroupResource, interceptors...)
+}
+
+// Create returns a builder for creating a TelemetryGroupResource entity.
+func (c *TelemetryGroupResourceClient) Create() *TelemetryGroupResourceCreate {
+	mutation := newTelemetryGroupResourceMutation(c.config, OpCreate)
+	return &TelemetryGroupResourceCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of TelemetryGroupResource entities.
+func (c *TelemetryGroupResourceClient) CreateBulk(builders ...*TelemetryGroupResourceCreate) *TelemetryGroupResourceCreateBulk {
+	return &TelemetryGroupResourceCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for TelemetryGroupResource.
+func (c *TelemetryGroupResourceClient) Update() *TelemetryGroupResourceUpdate {
+	mutation := newTelemetryGroupResourceMutation(c.config, OpUpdate)
+	return &TelemetryGroupResourceUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TelemetryGroupResourceClient) UpdateOne(tgr *TelemetryGroupResource) *TelemetryGroupResourceUpdateOne {
+	mutation := newTelemetryGroupResourceMutation(c.config, OpUpdateOne, withTelemetryGroupResource(tgr))
+	return &TelemetryGroupResourceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TelemetryGroupResourceClient) UpdateOneID(id int) *TelemetryGroupResourceUpdateOne {
+	mutation := newTelemetryGroupResourceMutation(c.config, OpUpdateOne, withTelemetryGroupResourceID(id))
+	return &TelemetryGroupResourceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for TelemetryGroupResource.
+func (c *TelemetryGroupResourceClient) Delete() *TelemetryGroupResourceDelete {
+	mutation := newTelemetryGroupResourceMutation(c.config, OpDelete)
+	return &TelemetryGroupResourceDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TelemetryGroupResourceClient) DeleteOne(tgr *TelemetryGroupResource) *TelemetryGroupResourceDeleteOne {
+	return c.DeleteOneID(tgr.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TelemetryGroupResourceClient) DeleteOneID(id int) *TelemetryGroupResourceDeleteOne {
+	builder := c.Delete().Where(telemetrygroupresource.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TelemetryGroupResourceDeleteOne{builder}
+}
+
+// Query returns a query builder for TelemetryGroupResource.
+func (c *TelemetryGroupResourceClient) Query() *TelemetryGroupResourceQuery {
+	return &TelemetryGroupResourceQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTelemetryGroupResource},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a TelemetryGroupResource entity by its id.
+func (c *TelemetryGroupResourceClient) Get(ctx context.Context, id int) (*TelemetryGroupResource, error) {
+	return c.Query().Where(telemetrygroupresource.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TelemetryGroupResourceClient) GetX(ctx context.Context, id int) *TelemetryGroupResource {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryProfiles queries the profiles edge of a TelemetryGroupResource.
+func (c *TelemetryGroupResourceClient) QueryProfiles(tgr *TelemetryGroupResource) *TelemetryProfileQuery {
+	query := (&TelemetryProfileClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := tgr.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(telemetrygroupresource.Table, telemetrygroupresource.FieldID, id),
+			sqlgraph.To(telemetryprofile.Table, telemetryprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, telemetrygroupresource.ProfilesTable, telemetrygroupresource.ProfilesColumn),
+		)
+		fromV = sqlgraph.Neighbors(tgr.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *TelemetryGroupResourceClient) Hooks() []Hook {
+	return c.hooks.TelemetryGroupResource
+}
+
+// Interceptors returns the client interceptors.
+func (c *TelemetryGroupResourceClient) Interceptors() []Interceptor {
+	return c.inters.TelemetryGroupResource
+}
+
+func (c *TelemetryGroupResourceClient) mutate(ctx context.Context, m *TelemetryGroupResourceMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TelemetryGroupResourceCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TelemetryGroupResourceUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TelemetryGroupResourceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TelemetryGroupResourceDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown TelemetryGroupResource mutation op: %q", m.Op())
+	}
+}
+
+// TelemetryProfileClient is a client for the TelemetryProfile schema.
+type TelemetryProfileClient struct {
+	config
+}
+
+// NewTelemetryProfileClient returns a client for the TelemetryProfile from the given config.
+func NewTelemetryProfileClient(c config) *TelemetryProfileClient {
+	return &TelemetryProfileClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `telemetryprofile.Hooks(f(g(h())))`.
+func (c *TelemetryProfileClient) Use(hooks ...Hook) {
+	c.hooks.TelemetryProfile = append(c.hooks.TelemetryProfile, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `telemetryprofile.Intercept(f(g(h())))`.
+func (c *TelemetryProfileClient) Intercept(interceptors ...Interceptor) {
+	c.inters.TelemetryProfile = append(c.inters.TelemetryProfile, interceptors...)
+}
+
+// Create returns a builder for creating a TelemetryProfile entity.
+func (c *TelemetryProfileClient) Create() *TelemetryProfileCreate {
+	mutation := newTelemetryProfileMutation(c.config, OpCreate)
+	return &TelemetryProfileCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of TelemetryProfile entities.
+func (c *TelemetryProfileClient) CreateBulk(builders ...*TelemetryProfileCreate) *TelemetryProfileCreateBulk {
+	return &TelemetryProfileCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for TelemetryProfile.
+func (c *TelemetryProfileClient) Update() *TelemetryProfileUpdate {
+	mutation := newTelemetryProfileMutation(c.config, OpUpdate)
+	return &TelemetryProfileUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TelemetryProfileClient) UpdateOne(tp *TelemetryProfile) *TelemetryProfileUpdateOne {
+	mutation := newTelemetryProfileMutation(c.config, OpUpdateOne, withTelemetryProfile(tp))
+	return &TelemetryProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TelemetryProfileClient) UpdateOneID(id int) *TelemetryProfileUpdateOne {
+	mutation := newTelemetryProfileMutation(c.config, OpUpdateOne, withTelemetryProfileID(id))
+	return &TelemetryProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for TelemetryProfile.
+func (c *TelemetryProfileClient) Delete() *TelemetryProfileDelete {
+	mutation := newTelemetryProfileMutation(c.config, OpDelete)
+	return &TelemetryProfileDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TelemetryProfileClient) DeleteOne(tp *TelemetryProfile) *TelemetryProfileDeleteOne {
+	return c.DeleteOneID(tp.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TelemetryProfileClient) DeleteOneID(id int) *TelemetryProfileDeleteOne {
+	builder := c.Delete().Where(telemetryprofile.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TelemetryProfileDeleteOne{builder}
+}
+
+// Query returns a query builder for TelemetryProfile.
+func (c *TelemetryProfileClient) Query() *TelemetryProfileQuery {
+	return &TelemetryProfileQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTelemetryProfile},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a TelemetryProfile entity by its id.
+func (c *TelemetryProfileClient) Get(ctx context.Context, id int) (*TelemetryProfile, error) {
+	return c.Query().Where(telemetryprofile.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TelemetryProfileClient) GetX(ctx context.Context, id int) *TelemetryProfile {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryRegion queries the region edge of a TelemetryProfile.
+func (c *TelemetryProfileClient) QueryRegion(tp *TelemetryProfile) *RegionResourceQuery {
+	query := (&RegionResourceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := tp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(telemetryprofile.Table, telemetryprofile.FieldID, id),
+			sqlgraph.To(regionresource.Table, regionresource.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, telemetryprofile.RegionTable, telemetryprofile.RegionColumn),
+		)
+		fromV = sqlgraph.Neighbors(tp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySite queries the site edge of a TelemetryProfile.
+func (c *TelemetryProfileClient) QuerySite(tp *TelemetryProfile) *SiteResourceQuery {
+	query := (&SiteResourceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := tp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(telemetryprofile.Table, telemetryprofile.FieldID, id),
+			sqlgraph.To(siteresource.Table, siteresource.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, telemetryprofile.SiteTable, telemetryprofile.SiteColumn),
+		)
+		fromV = sqlgraph.Neighbors(tp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryInstance queries the instance edge of a TelemetryProfile.
+func (c *TelemetryProfileClient) QueryInstance(tp *TelemetryProfile) *InstanceResourceQuery {
+	query := (&InstanceResourceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := tp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(telemetryprofile.Table, telemetryprofile.FieldID, id),
+			sqlgraph.To(instanceresource.Table, instanceresource.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, telemetryprofile.InstanceTable, telemetryprofile.InstanceColumn),
+		)
+		fromV = sqlgraph.Neighbors(tp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryGroup queries the group edge of a TelemetryProfile.
+func (c *TelemetryProfileClient) QueryGroup(tp *TelemetryProfile) *TelemetryGroupResourceQuery {
+	query := (&TelemetryGroupResourceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := tp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(telemetryprofile.Table, telemetryprofile.FieldID, id),
+			sqlgraph.To(telemetrygroupresource.Table, telemetrygroupresource.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, telemetryprofile.GroupTable, telemetryprofile.GroupColumn),
+		)
+		fromV = sqlgraph.Neighbors(tp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *TelemetryProfileClient) Hooks() []Hook {
+	return c.hooks.TelemetryProfile
+}
+
+// Interceptors returns the client interceptors.
+func (c *TelemetryProfileClient) Interceptors() []Interceptor {
+	return c.inters.TelemetryProfile
+}
+
+func (c *TelemetryProfileClient) mutate(ctx context.Context, m *TelemetryProfileMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TelemetryProfileCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TelemetryProfileUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TelemetryProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TelemetryProfileDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown TelemetryProfile mutation op: %q", m.Op())
+	}
+}
+
 // UserResourceClient is a client for the UserResource schema.
 type UserResourceClient struct {
 	config
@@ -3393,19 +3885,19 @@ func (c *WorkloadResourceClient) mutate(ctx context.Context, m *WorkloadResource
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		EndpointResource, HostResource, HostnicResource, HoststorageResource,
-		HostusbResource, IPAddressResource, InstanceResource, NetlinkResource,
-		NetworkSegment, OperatingSystemResource, OuResource, ProjectResource,
-		ProviderResource, RegionResource, RepeatedScheduleResource,
-		SingleScheduleResource, SiteResource, UserResource, WorkloadMember,
-		WorkloadResource []ent.Hook
+		EndpointResource, HostResource, HostgpuResource, HostnicResource,
+		HoststorageResource, HostusbResource, IPAddressResource, InstanceResource,
+		NetlinkResource, NetworkSegment, OperatingSystemResource, OuResource,
+		ProjectResource, ProviderResource, RegionResource, RepeatedScheduleResource,
+		SingleScheduleResource, SiteResource, TelemetryGroupResource, TelemetryProfile,
+		UserResource, WorkloadMember, WorkloadResource []ent.Hook
 	}
 	inters struct {
-		EndpointResource, HostResource, HostnicResource, HoststorageResource,
-		HostusbResource, IPAddressResource, InstanceResource, NetlinkResource,
-		NetworkSegment, OperatingSystemResource, OuResource, ProjectResource,
-		ProviderResource, RegionResource, RepeatedScheduleResource,
-		SingleScheduleResource, SiteResource, UserResource, WorkloadMember,
-		WorkloadResource []ent.Interceptor
+		EndpointResource, HostResource, HostgpuResource, HostnicResource,
+		HoststorageResource, HostusbResource, IPAddressResource, InstanceResource,
+		NetlinkResource, NetworkSegment, OperatingSystemResource, OuResource,
+		ProjectResource, ProviderResource, RegionResource, RepeatedScheduleResource,
+		SingleScheduleResource, SiteResource, TelemetryGroupResource, TelemetryProfile,
+		UserResource, WorkloadMember, WorkloadResource []ent.Interceptor
 	}
 )

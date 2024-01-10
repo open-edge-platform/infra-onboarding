@@ -58,14 +58,9 @@ func ResourceID(v string) predicate.SiteResource {
 	return predicate.SiteResource(sql.FieldEQ(FieldResourceID, v))
 }
 
-// Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
-func Description(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldEQ(FieldDescription, v))
-}
-
-// SiteKind applies equality check predicate on the "site_kind" field. It's identical to SiteKindEQ.
-func SiteKind(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldEQ(FieldSiteKind, v))
+// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
+func Name(v string) predicate.SiteResource {
+	return predicate.SiteResource(sql.FieldEQ(FieldName, v))
 }
 
 // Address applies equality check predicate on the "address" field. It's identical to AddressEQ.
@@ -188,154 +183,79 @@ func ResourceIDContainsFold(v string) predicate.SiteResource {
 	return predicate.SiteResource(sql.FieldContainsFold(FieldResourceID, v))
 }
 
-// DescriptionEQ applies the EQ predicate on the "description" field.
-func DescriptionEQ(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldEQ(FieldDescription, v))
+// NameEQ applies the EQ predicate on the "name" field.
+func NameEQ(v string) predicate.SiteResource {
+	return predicate.SiteResource(sql.FieldEQ(FieldName, v))
 }
 
-// DescriptionNEQ applies the NEQ predicate on the "description" field.
-func DescriptionNEQ(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldNEQ(FieldDescription, v))
+// NameNEQ applies the NEQ predicate on the "name" field.
+func NameNEQ(v string) predicate.SiteResource {
+	return predicate.SiteResource(sql.FieldNEQ(FieldName, v))
 }
 
-// DescriptionIn applies the In predicate on the "description" field.
-func DescriptionIn(vs ...string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldIn(FieldDescription, vs...))
+// NameIn applies the In predicate on the "name" field.
+func NameIn(vs ...string) predicate.SiteResource {
+	return predicate.SiteResource(sql.FieldIn(FieldName, vs...))
 }
 
-// DescriptionNotIn applies the NotIn predicate on the "description" field.
-func DescriptionNotIn(vs ...string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldNotIn(FieldDescription, vs...))
+// NameNotIn applies the NotIn predicate on the "name" field.
+func NameNotIn(vs ...string) predicate.SiteResource {
+	return predicate.SiteResource(sql.FieldNotIn(FieldName, vs...))
 }
 
-// DescriptionGT applies the GT predicate on the "description" field.
-func DescriptionGT(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldGT(FieldDescription, v))
+// NameGT applies the GT predicate on the "name" field.
+func NameGT(v string) predicate.SiteResource {
+	return predicate.SiteResource(sql.FieldGT(FieldName, v))
 }
 
-// DescriptionGTE applies the GTE predicate on the "description" field.
-func DescriptionGTE(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldGTE(FieldDescription, v))
+// NameGTE applies the GTE predicate on the "name" field.
+func NameGTE(v string) predicate.SiteResource {
+	return predicate.SiteResource(sql.FieldGTE(FieldName, v))
 }
 
-// DescriptionLT applies the LT predicate on the "description" field.
-func DescriptionLT(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldLT(FieldDescription, v))
+// NameLT applies the LT predicate on the "name" field.
+func NameLT(v string) predicate.SiteResource {
+	return predicate.SiteResource(sql.FieldLT(FieldName, v))
 }
 
-// DescriptionLTE applies the LTE predicate on the "description" field.
-func DescriptionLTE(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldLTE(FieldDescription, v))
+// NameLTE applies the LTE predicate on the "name" field.
+func NameLTE(v string) predicate.SiteResource {
+	return predicate.SiteResource(sql.FieldLTE(FieldName, v))
 }
 
-// DescriptionContains applies the Contains predicate on the "description" field.
-func DescriptionContains(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldContains(FieldDescription, v))
+// NameContains applies the Contains predicate on the "name" field.
+func NameContains(v string) predicate.SiteResource {
+	return predicate.SiteResource(sql.FieldContains(FieldName, v))
 }
 
-// DescriptionHasPrefix applies the HasPrefix predicate on the "description" field.
-func DescriptionHasPrefix(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldHasPrefix(FieldDescription, v))
+// NameHasPrefix applies the HasPrefix predicate on the "name" field.
+func NameHasPrefix(v string) predicate.SiteResource {
+	return predicate.SiteResource(sql.FieldHasPrefix(FieldName, v))
 }
 
-// DescriptionHasSuffix applies the HasSuffix predicate on the "description" field.
-func DescriptionHasSuffix(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldHasSuffix(FieldDescription, v))
+// NameHasSuffix applies the HasSuffix predicate on the "name" field.
+func NameHasSuffix(v string) predicate.SiteResource {
+	return predicate.SiteResource(sql.FieldHasSuffix(FieldName, v))
 }
 
-// DescriptionIsNil applies the IsNil predicate on the "description" field.
-func DescriptionIsNil() predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldIsNull(FieldDescription))
+// NameIsNil applies the IsNil predicate on the "name" field.
+func NameIsNil() predicate.SiteResource {
+	return predicate.SiteResource(sql.FieldIsNull(FieldName))
 }
 
-// DescriptionNotNil applies the NotNil predicate on the "description" field.
-func DescriptionNotNil() predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldNotNull(FieldDescription))
+// NameNotNil applies the NotNil predicate on the "name" field.
+func NameNotNil() predicate.SiteResource {
+	return predicate.SiteResource(sql.FieldNotNull(FieldName))
 }
 
-// DescriptionEqualFold applies the EqualFold predicate on the "description" field.
-func DescriptionEqualFold(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldEqualFold(FieldDescription, v))
+// NameEqualFold applies the EqualFold predicate on the "name" field.
+func NameEqualFold(v string) predicate.SiteResource {
+	return predicate.SiteResource(sql.FieldEqualFold(FieldName, v))
 }
 
-// DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
-func DescriptionContainsFold(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldContainsFold(FieldDescription, v))
-}
-
-// SiteKindEQ applies the EQ predicate on the "site_kind" field.
-func SiteKindEQ(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldEQ(FieldSiteKind, v))
-}
-
-// SiteKindNEQ applies the NEQ predicate on the "site_kind" field.
-func SiteKindNEQ(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldNEQ(FieldSiteKind, v))
-}
-
-// SiteKindIn applies the In predicate on the "site_kind" field.
-func SiteKindIn(vs ...string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldIn(FieldSiteKind, vs...))
-}
-
-// SiteKindNotIn applies the NotIn predicate on the "site_kind" field.
-func SiteKindNotIn(vs ...string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldNotIn(FieldSiteKind, vs...))
-}
-
-// SiteKindGT applies the GT predicate on the "site_kind" field.
-func SiteKindGT(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldGT(FieldSiteKind, v))
-}
-
-// SiteKindGTE applies the GTE predicate on the "site_kind" field.
-func SiteKindGTE(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldGTE(FieldSiteKind, v))
-}
-
-// SiteKindLT applies the LT predicate on the "site_kind" field.
-func SiteKindLT(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldLT(FieldSiteKind, v))
-}
-
-// SiteKindLTE applies the LTE predicate on the "site_kind" field.
-func SiteKindLTE(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldLTE(FieldSiteKind, v))
-}
-
-// SiteKindContains applies the Contains predicate on the "site_kind" field.
-func SiteKindContains(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldContains(FieldSiteKind, v))
-}
-
-// SiteKindHasPrefix applies the HasPrefix predicate on the "site_kind" field.
-func SiteKindHasPrefix(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldHasPrefix(FieldSiteKind, v))
-}
-
-// SiteKindHasSuffix applies the HasSuffix predicate on the "site_kind" field.
-func SiteKindHasSuffix(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldHasSuffix(FieldSiteKind, v))
-}
-
-// SiteKindIsNil applies the IsNil predicate on the "site_kind" field.
-func SiteKindIsNil() predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldIsNull(FieldSiteKind))
-}
-
-// SiteKindNotNil applies the NotNil predicate on the "site_kind" field.
-func SiteKindNotNil() predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldNotNull(FieldSiteKind))
-}
-
-// SiteKindEqualFold applies the EqualFold predicate on the "site_kind" field.
-func SiteKindEqualFold(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldEqualFold(FieldSiteKind, v))
-}
-
-// SiteKindContainsFold applies the ContainsFold predicate on the "site_kind" field.
-func SiteKindContainsFold(v string) predicate.SiteResource {
-	return predicate.SiteResource(sql.FieldContainsFold(FieldSiteKind, v))
+// NameContainsFold applies the ContainsFold predicate on the "name" field.
+func NameContainsFold(v string) predicate.SiteResource {
+	return predicate.SiteResource(sql.FieldContainsFold(FieldName, v))
 }
 
 // AddressEQ applies the EQ predicate on the "address" field.

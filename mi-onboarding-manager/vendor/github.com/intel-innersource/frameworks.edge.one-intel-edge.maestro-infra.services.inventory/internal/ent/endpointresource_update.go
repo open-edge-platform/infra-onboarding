@@ -54,23 +54,23 @@ func (eru *EndpointResourceUpdate) ClearKind() *EndpointResourceUpdate {
 	return eru
 }
 
-// SetDescription sets the "description" field.
-func (eru *EndpointResourceUpdate) SetDescription(s string) *EndpointResourceUpdate {
-	eru.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (eru *EndpointResourceUpdate) SetName(s string) *EndpointResourceUpdate {
+	eru.mutation.SetName(s)
 	return eru
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (eru *EndpointResourceUpdate) SetNillableDescription(s *string) *EndpointResourceUpdate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (eru *EndpointResourceUpdate) SetNillableName(s *string) *EndpointResourceUpdate {
 	if s != nil {
-		eru.SetDescription(*s)
+		eru.SetName(*s)
 	}
 	return eru
 }
 
-// ClearDescription clears the value of the "description" field.
-func (eru *EndpointResourceUpdate) ClearDescription() *EndpointResourceUpdate {
-	eru.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (eru *EndpointResourceUpdate) ClearName() *EndpointResourceUpdate {
+	eru.mutation.ClearName()
 	return eru
 }
 
@@ -149,11 +149,11 @@ func (eru *EndpointResourceUpdate) sqlSave(ctx context.Context) (n int, err erro
 	if eru.mutation.KindCleared() {
 		_spec.ClearField(endpointresource.FieldKind, field.TypeString)
 	}
-	if value, ok := eru.mutation.Description(); ok {
-		_spec.SetField(endpointresource.FieldDescription, field.TypeString, value)
+	if value, ok := eru.mutation.Name(); ok {
+		_spec.SetField(endpointresource.FieldName, field.TypeString, value)
 	}
-	if eru.mutation.DescriptionCleared() {
-		_spec.ClearField(endpointresource.FieldDescription, field.TypeString)
+	if eru.mutation.NameCleared() {
+		_spec.ClearField(endpointresource.FieldName, field.TypeString)
 	}
 	if eru.mutation.HostCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -230,23 +230,23 @@ func (eruo *EndpointResourceUpdateOne) ClearKind() *EndpointResourceUpdateOne {
 	return eruo
 }
 
-// SetDescription sets the "description" field.
-func (eruo *EndpointResourceUpdateOne) SetDescription(s string) *EndpointResourceUpdateOne {
-	eruo.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (eruo *EndpointResourceUpdateOne) SetName(s string) *EndpointResourceUpdateOne {
+	eruo.mutation.SetName(s)
 	return eruo
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (eruo *EndpointResourceUpdateOne) SetNillableDescription(s *string) *EndpointResourceUpdateOne {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (eruo *EndpointResourceUpdateOne) SetNillableName(s *string) *EndpointResourceUpdateOne {
 	if s != nil {
-		eruo.SetDescription(*s)
+		eruo.SetName(*s)
 	}
 	return eruo
 }
 
-// ClearDescription clears the value of the "description" field.
-func (eruo *EndpointResourceUpdateOne) ClearDescription() *EndpointResourceUpdateOne {
-	eruo.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (eruo *EndpointResourceUpdateOne) ClearName() *EndpointResourceUpdateOne {
+	eruo.mutation.ClearName()
 	return eruo
 }
 
@@ -355,11 +355,11 @@ func (eruo *EndpointResourceUpdateOne) sqlSave(ctx context.Context) (_node *Endp
 	if eruo.mutation.KindCleared() {
 		_spec.ClearField(endpointresource.FieldKind, field.TypeString)
 	}
-	if value, ok := eruo.mutation.Description(); ok {
-		_spec.SetField(endpointresource.FieldDescription, field.TypeString, value)
+	if value, ok := eruo.mutation.Name(); ok {
+		_spec.SetField(endpointresource.FieldName, field.TypeString, value)
 	}
-	if eruo.mutation.DescriptionCleared() {
-		_spec.ClearField(endpointresource.FieldDescription, field.TypeString)
+	if eruo.mutation.NameCleared() {
+		_spec.ClearField(endpointresource.FieldName, field.TypeString)
 	}
 	if eruo.mutation.HostCleared() {
 		edge := &sqlgraph.EdgeSpec{

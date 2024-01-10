@@ -14,11 +14,17 @@ const (
 	// Fields and Edges constants for "SubscribeEventsResponse"
 	SubscribeEventsResponseFieldClientUuid = "client_uuid"
 	SubscribeEventsResponseFieldResourceId = "resource_id"
+	SubscribeEventsResponseEdgeResource    = "resource"
 	SubscribeEventsResponseFieldEventKind  = "event_kind"
+
+	// Fields and Edges constants for "ChangeSubscribeEventsRequest"
+	ChangeSubscribeEventsRequestFieldClientUuid              = "client_uuid"
+	ChangeSubscribeEventsRequestFieldSubscribedResourceKinds = "subscribed_resource_kinds"
+
+	// Fields and Edges constants for "ChangeSubscribeEventsResponse"
 
 	// Fields and Edges constants for "CreateResourceRequest"
 	CreateResourceRequestFieldClientUuid = "client_uuid"
-	CreateResourceRequestFieldSiteId     = "site_id"
 	CreateResourceRequestEdgeResource    = "resource"
 
 	// Fields and Edges constants for "CreateResourceResponse"
@@ -35,6 +41,7 @@ const (
 	ResourceEdgeHoststorage      = "hoststorage"
 	ResourceEdgeHostnic          = "hostnic"
 	ResourceEdgeHostusb          = "hostusb"
+	ResourceEdgeHostgpu          = "hostgpu"
 	ResourceEdgeInstance         = "instance"
 	ResourceEdgeIpaddress        = "ipaddress"
 	ResourceEdgeNetworkSegment   = "network_segment"
@@ -45,28 +52,34 @@ const (
 	ResourceEdgeRepeatedschedule = "repeatedschedule"
 	ResourceEdgeWorkload         = "workload"
 	ResourceEdgeWorkloadMember   = "workload_member"
+	ResourceEdgeTelemetryGroup   = "telemetry_group"
+	ResourceEdgeTelemetryProfile = "telemetry_profile"
 
 	// Fields and Edges constants for "ResourceFilter"
 	ResourceFilterEdgeFieldMask = "field_mask"
 	ResourceFilterEdgeResource  = "resource"
 	ResourceFilterFieldLimit    = "limit"
 	ResourceFilterFieldOffset   = "offset"
+	ResourceFilterFieldFilter   = "filter"
+	ResourceFilterFieldOrderBy  = "order_by"
 
 	// Fields and Edges constants for "FindResourcesRequest"
 	FindResourcesRequestFieldClientUuid = "client_uuid"
 	FindResourcesRequestEdgeFilter      = "filter"
 
 	// Fields and Edges constants for "FindResourcesResponse"
-	FindResourcesResponseFieldResourceId = "resource_id"
-	FindResourcesResponseFieldHasNext    = "has_next"
+	FindResourcesResponseFieldResourceId    = "resource_id"
+	FindResourcesResponseFieldHasNext       = "has_next"
+	FindResourcesResponseFieldTotalElements = "total_elements"
 
 	// Fields and Edges constants for "ListResourcesRequest"
 	ListResourcesRequestFieldClientUuid = "client_uuid"
 	ListResourcesRequestEdgeFilter      = "filter"
 
 	// Fields and Edges constants for "ListResourcesResponse"
-	ListResourcesResponseEdgeResources = "resources"
-	ListResourcesResponseFieldHasNext  = "has_next"
+	ListResourcesResponseEdgeResources      = "resources"
+	ListResourcesResponseFieldHasNext       = "has_next"
+	ListResourcesResponseFieldTotalElements = "total_elements"
 
 	// Fields and Edges constants for "GetResourceRequest"
 	GetResourceRequestFieldClientUuid = "client_uuid"

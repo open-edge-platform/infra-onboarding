@@ -26,16 +26,19 @@ type InventoryServiceClient interface {
 	// must open and maintain this stream before making any other requests.
 	// Closing this stream de-registers the client.
 	SubscribeEvents(ctx context.Context, in *SubscribeEventsRequest, opts ...grpc.CallOption) (InventoryService_SubscribeEventsClient, error)
-	// Create a new resource, returning an ID (or error).
+	// Changes the resource kinds the given client will receive events for. See SubscribeEvents.
+	ChangeSubscribeEvents(ctx context.Context, in *ChangeSubscribeEventsRequest, opts ...grpc.CallOption) (*ChangeSubscribeEventsResponse, error)
+	// Create a new resource, returning it (or error).
 	// Returns UNKNOWN_CLIENT error if the UUID is not known. See SubscribeEvents.
-	CreateResource(ctx context.Context, in *CreateResourceRequest, opts ...grpc.CallOption) (*CreateResourceResponse, error)
+	CreateResource(ctx context.Context, in *CreateResourceRequest, opts ...grpc.CallOption) (*Resource, error)
 	// Find resource IDs given criteria.
 	FindResources(ctx context.Context, in *FindResourcesRequest, opts ...grpc.CallOption) (*FindResourcesResponse, error)
 	// Get information about a single resource given resource ID.
 	GetResource(ctx context.Context, in *GetResourceRequest, opts ...grpc.CallOption) (*GetResourceResponse, error)
-	// Update a resource with a given ID.
+	// Update a resource with a given ID, returning the updated resource.
+	// If the update results in a hard-delete, the resource is returned in its last state before deletion.
 	// Returns UNKNOWN_CLIENT error if the UUID is not known. See SubscribeEvents.
-	UpdateResource(ctx context.Context, in *UpdateResourceRequest, opts ...grpc.CallOption) (*UpdateResourceResponse, error)
+	UpdateResource(ctx context.Context, in *UpdateResourceRequest, opts ...grpc.CallOption) (*Resource, error)
 	// Delete a resource with a given ID.
 	// Returns UNKNOWN_CLIENT error if the UUID is not known. See SubscribeEvents.
 	DeleteResource(ctx context.Context, in *DeleteResourceRequest, opts ...grpc.CallOption) (*DeleteResourceResponse, error)
@@ -83,8 +86,17 @@ func (x *inventoryServiceSubscribeEventsClient) Recv() (*SubscribeEventsResponse
 	return m, nil
 }
 
-func (c *inventoryServiceClient) CreateResource(ctx context.Context, in *CreateResourceRequest, opts ...grpc.CallOption) (*CreateResourceResponse, error) {
-	out := new(CreateResourceResponse)
+func (c *inventoryServiceClient) ChangeSubscribeEvents(ctx context.Context, in *ChangeSubscribeEventsRequest, opts ...grpc.CallOption) (*ChangeSubscribeEventsResponse, error) {
+	out := new(ChangeSubscribeEventsResponse)
+	err := c.cc.Invoke(ctx, "/inventory.v1.InventoryService/ChangeSubscribeEvents", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *inventoryServiceClient) CreateResource(ctx context.Context, in *CreateResourceRequest, opts ...grpc.CallOption) (*Resource, error) {
+	out := new(Resource)
 	err := c.cc.Invoke(ctx, "/inventory.v1.InventoryService/CreateResource", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -110,8 +122,8 @@ func (c *inventoryServiceClient) GetResource(ctx context.Context, in *GetResourc
 	return out, nil
 }
 
-func (c *inventoryServiceClient) UpdateResource(ctx context.Context, in *UpdateResourceRequest, opts ...grpc.CallOption) (*UpdateResourceResponse, error) {
-	out := new(UpdateResourceResponse)
+func (c *inventoryServiceClient) UpdateResource(ctx context.Context, in *UpdateResourceRequest, opts ...grpc.CallOption) (*Resource, error) {
+	out := new(Resource)
 	err := c.cc.Invoke(ctx, "/inventory.v1.InventoryService/UpdateResource", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -145,16 +157,19 @@ type InventoryServiceServer interface {
 	// must open and maintain this stream before making any other requests.
 	// Closing this stream de-registers the client.
 	SubscribeEvents(*SubscribeEventsRequest, InventoryService_SubscribeEventsServer) error
-	// Create a new resource, returning an ID (or error).
+	// Changes the resource kinds the given client will receive events for. See SubscribeEvents.
+	ChangeSubscribeEvents(context.Context, *ChangeSubscribeEventsRequest) (*ChangeSubscribeEventsResponse, error)
+	// Create a new resource, returning it (or error).
 	// Returns UNKNOWN_CLIENT error if the UUID is not known. See SubscribeEvents.
-	CreateResource(context.Context, *CreateResourceRequest) (*CreateResourceResponse, error)
+	CreateResource(context.Context, *CreateResourceRequest) (*Resource, error)
 	// Find resource IDs given criteria.
 	FindResources(context.Context, *FindResourcesRequest) (*FindResourcesResponse, error)
 	// Get information about a single resource given resource ID.
 	GetResource(context.Context, *GetResourceRequest) (*GetResourceResponse, error)
-	// Update a resource with a given ID.
+	// Update a resource with a given ID, returning the updated resource.
+	// If the update results in a hard-delete, the resource is returned in its last state before deletion.
 	// Returns UNKNOWN_CLIENT error if the UUID is not known. See SubscribeEvents.
-	UpdateResource(context.Context, *UpdateResourceRequest) (*UpdateResourceResponse, error)
+	UpdateResource(context.Context, *UpdateResourceRequest) (*Resource, error)
 	// Delete a resource with a given ID.
 	// Returns UNKNOWN_CLIENT error if the UUID is not known. See SubscribeEvents.
 	DeleteResource(context.Context, *DeleteResourceRequest) (*DeleteResourceResponse, error)
@@ -169,7 +184,10 @@ type UnimplementedInventoryServiceServer struct {
 func (UnimplementedInventoryServiceServer) SubscribeEvents(*SubscribeEventsRequest, InventoryService_SubscribeEventsServer) error {
 	return status.Errorf(codes.Unimplemented, "method SubscribeEvents not implemented")
 }
-func (UnimplementedInventoryServiceServer) CreateResource(context.Context, *CreateResourceRequest) (*CreateResourceResponse, error) {
+func (UnimplementedInventoryServiceServer) ChangeSubscribeEvents(context.Context, *ChangeSubscribeEventsRequest) (*ChangeSubscribeEventsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChangeSubscribeEvents not implemented")
+}
+func (UnimplementedInventoryServiceServer) CreateResource(context.Context, *CreateResourceRequest) (*Resource, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateResource not implemented")
 }
 func (UnimplementedInventoryServiceServer) FindResources(context.Context, *FindResourcesRequest) (*FindResourcesResponse, error) {
@@ -178,7 +196,7 @@ func (UnimplementedInventoryServiceServer) FindResources(context.Context, *FindR
 func (UnimplementedInventoryServiceServer) GetResource(context.Context, *GetResourceRequest) (*GetResourceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetResource not implemented")
 }
-func (UnimplementedInventoryServiceServer) UpdateResource(context.Context, *UpdateResourceRequest) (*UpdateResourceResponse, error) {
+func (UnimplementedInventoryServiceServer) UpdateResource(context.Context, *UpdateResourceRequest) (*Resource, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateResource not implemented")
 }
 func (UnimplementedInventoryServiceServer) DeleteResource(context.Context, *DeleteResourceRequest) (*DeleteResourceResponse, error) {
@@ -218,6 +236,24 @@ type inventoryServiceSubscribeEventsServer struct {
 
 func (x *inventoryServiceSubscribeEventsServer) Send(m *SubscribeEventsResponse) error {
 	return x.ServerStream.SendMsg(m)
+}
+
+func _InventoryService_ChangeSubscribeEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChangeSubscribeEventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).ChangeSubscribeEvents(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/inventory.v1.InventoryService/ChangeSubscribeEvents",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).ChangeSubscribeEvents(ctx, req.(*ChangeSubscribeEventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _InventoryService_CreateResource_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -335,6 +371,10 @@ var InventoryService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "inventory.v1.InventoryService",
 	HandlerType: (*InventoryServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ChangeSubscribeEvents",
+			Handler:    _InventoryService_ChangeSubscribeEvents_Handler,
+		},
 		{
 			MethodName: "CreateResource",
 			Handler:    _InventoryService_CreateResource_Handler,

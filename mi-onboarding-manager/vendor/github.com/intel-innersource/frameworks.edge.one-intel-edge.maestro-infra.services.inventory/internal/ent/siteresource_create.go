@@ -27,30 +27,16 @@ func (src *SiteResourceCreate) SetResourceID(s string) *SiteResourceCreate {
 	return src
 }
 
-// SetDescription sets the "description" field.
-func (src *SiteResourceCreate) SetDescription(s string) *SiteResourceCreate {
-	src.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (src *SiteResourceCreate) SetName(s string) *SiteResourceCreate {
+	src.mutation.SetName(s)
 	return src
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (src *SiteResourceCreate) SetNillableDescription(s *string) *SiteResourceCreate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (src *SiteResourceCreate) SetNillableName(s *string) *SiteResourceCreate {
 	if s != nil {
-		src.SetDescription(*s)
-	}
-	return src
-}
-
-// SetSiteKind sets the "site_kind" field.
-func (src *SiteResourceCreate) SetSiteKind(s string) *SiteResourceCreate {
-	src.mutation.SetSiteKind(s)
-	return src
-}
-
-// SetNillableSiteKind sets the "site_kind" field if the given value is not nil.
-func (src *SiteResourceCreate) SetNillableSiteKind(s *string) *SiteResourceCreate {
-	if s != nil {
-		src.SetSiteKind(*s)
+		src.SetName(*s)
 	}
 	return src
 }
@@ -314,13 +300,9 @@ func (src *SiteResourceCreate) createSpec() (*SiteResource, *sqlgraph.CreateSpec
 		_spec.SetField(siteresource.FieldResourceID, field.TypeString, value)
 		_node.ResourceID = value
 	}
-	if value, ok := src.mutation.Description(); ok {
-		_spec.SetField(siteresource.FieldDescription, field.TypeString, value)
-		_node.Description = value
-	}
-	if value, ok := src.mutation.SiteKind(); ok {
-		_spec.SetField(siteresource.FieldSiteKind, field.TypeString, value)
-		_node.SiteKind = value
+	if value, ok := src.mutation.Name(); ok {
+		_spec.SetField(siteresource.FieldName, field.TypeString, value)
+		_node.Name = value
 	}
 	if value, ok := src.mutation.Address(); ok {
 		_spec.SetField(siteresource.FieldAddress, field.TypeString, value)

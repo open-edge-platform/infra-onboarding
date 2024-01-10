@@ -6,15 +6,15 @@ package networkv1
 
 const (
 	// Fields and Edges constants for "EndpointResource"
-	EndpointResourceFieldResourceId  = "resource_id"
-	EndpointResourceFieldKind        = "kind"
-	EndpointResourceFieldDescription = "description"
-	EndpointResourceEdgeHost         = "host"
+	EndpointResourceFieldResourceId = "resource_id"
+	EndpointResourceFieldKind       = "kind"
+	EndpointResourceFieldName       = "name"
+	EndpointResourceEdgeHost        = "host"
 
 	// Fields and Edges constants for "NetlinkResource"
 	NetlinkResourceFieldResourceId     = "resource_id"
 	NetlinkResourceFieldKind           = "kind"
-	NetlinkResourceFieldDescription    = "description"
+	NetlinkResourceFieldName           = "name"
 	NetlinkResourceFieldDesiredState   = "desired_state"
 	NetlinkResourceFieldCurrentState   = "current_state"
 	NetlinkResourceFieldProviderStatus = "provider_status"
@@ -22,10 +22,10 @@ const (
 	NetlinkResourceEdgeDst             = "dst"
 
 	// Fields and Edges constants for "NetworkSegment"
-	NetworkSegmentFieldResourceId  = "resource_id"
-	NetworkSegmentFieldDescription = "description"
-	NetworkSegmentFieldVlanId      = "vlan_id"
-	NetworkSegmentEdgeSite         = "site"
+	NetworkSegmentFieldResourceId = "resource_id"
+	NetworkSegmentFieldName       = "name"
+	NetworkSegmentFieldVlanId     = "vlan_id"
+	NetworkSegmentEdgeSite        = "site"
 
 	// Fields and Edges constants for "IPAddressResource"
 	IPAddressResourceFieldResourceId   = "resource_id"

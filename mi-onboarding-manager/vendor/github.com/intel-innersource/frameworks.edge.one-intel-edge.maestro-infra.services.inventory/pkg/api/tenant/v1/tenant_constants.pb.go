@@ -6,14 +6,14 @@ package tenantv1
 
 const (
 	// Fields and Edges constants for "ProjectResource"
-	ProjectResourceFieldResourceId  = "resource_id"
-	ProjectResourceFieldKind        = "kind"
-	ProjectResourceFieldDescription = "description"
+	ProjectResourceFieldResourceId = "resource_id"
+	ProjectResourceFieldKind       = "kind"
+	ProjectResourceFieldName       = "name"
 
 	// Fields and Edges constants for "UserResource"
-	UserResourceFieldResourceId  = "resource_id"
-	UserResourceFieldKind        = "kind"
-	UserResourceFieldDescription = "description"
-	UserResourceFieldUsername    = "username"
-	UserResourceFieldSshPubkey   = "ssh_pubkey"
+	UserResourceFieldResourceId = "resource_id"
+	UserResourceFieldKind       = "kind"
+	UserResourceFieldName       = "name"
+	UserResourceFieldUsername   = "username"
+	UserResourceFieldSshPubkey  = "ssh_pubkey"
 )

@@ -85,7 +85,7 @@ func (m *SingleScheduleResource) validate(all bool) error {
 
 	// no validation rules for ScheduleStatus
 
-	// no validation rules for Description
+	// no validation rules for Name
 
 	if all {
 		switch v := interface{}(m.GetTargetSite()).(type) {
@@ -310,7 +310,7 @@ func (m *RepeatedScheduleResource) validate(all bool) error {
 
 	// no validation rules for ScheduleStatus
 
-	// no validation rules for Description
+	// no validation rules for Name
 
 	if all {
 		switch v := interface{}(m.GetTargetSite()).(type) {
@@ -419,7 +419,7 @@ func (m *RepeatedScheduleResource) validate(all bool) error {
 		if !_RepeatedScheduleResource_CronMinutes_Pattern.MatchString(m.GetCronMinutes()) {
 			err := RepeatedScheduleResourceValidationError{
 				field:  "CronMinutes",
-				reason: "value does not match regex pattern \"^([0-9*/,-]|[1-5][0-9])$\"",
+				reason: "value does not match regex pattern \"^([*]|([0-9]|([1-5][0-9]))((,([0-9]|([1-5][0-9])))*))$\"",
 			}
 			if !all {
 				return err
@@ -434,7 +434,7 @@ func (m *RepeatedScheduleResource) validate(all bool) error {
 		if !_RepeatedScheduleResource_CronHours_Pattern.MatchString(m.GetCronHours()) {
 			err := RepeatedScheduleResourceValidationError{
 				field:  "CronHours",
-				reason: "value does not match regex pattern \"^([0-9*/,-]|1[0-9]|2[0-3])$\"",
+				reason: "value does not match regex pattern \"^([*]|([0-9]|1[0-9]|2[0-3])((,([0-9]|1[0-9]|2[0-3]))*))$\"",
 			}
 			if !all {
 				return err
@@ -449,7 +449,7 @@ func (m *RepeatedScheduleResource) validate(all bool) error {
 		if !_RepeatedScheduleResource_CronDayMonth_Pattern.MatchString(m.GetCronDayMonth()) {
 			err := RepeatedScheduleResourceValidationError{
 				field:  "CronDayMonth",
-				reason: "value does not match regex pattern \"^([1-9*/,-?]|[12][0-9]|3[01])$\"",
+				reason: "value does not match regex pattern \"^([*]|([1-9]|([12][0-9])|3[01])((,([1-9]|([12][0-9])|3[01]))*))$\"",
 			}
 			if !all {
 				return err
@@ -464,7 +464,7 @@ func (m *RepeatedScheduleResource) validate(all bool) error {
 		if !_RepeatedScheduleResource_CronMonth_Pattern.MatchString(m.GetCronMonth()) {
 			err := RepeatedScheduleResourceValidationError{
 				field:  "CronMonth",
-				reason: "value does not match regex pattern \"^([1-9*/,-]|1[0-2])$\"",
+				reason: "value does not match regex pattern \"^([*]|([1-9]|1[012])((,([1-9]|1[012]))*))$\"",
 			}
 			if !all {
 				return err
@@ -479,7 +479,7 @@ func (m *RepeatedScheduleResource) validate(all bool) error {
 		if !_RepeatedScheduleResource_CronDayWeek_Pattern.MatchString(m.GetCronDayWeek()) {
 			err := RepeatedScheduleResourceValidationError{
 				field:  "CronDayWeek",
-				reason: "value does not match regex pattern \"^[0-6*/,-]$\"",
+				reason: "value does not match regex pattern \"^([*]|([0-6])((,([0-6]))*))$\"",
 			}
 			if !all {
 				return err
@@ -571,12 +571,12 @@ var _ interface {
 
 var _RepeatedScheduleResource_ResourceId_Pattern = regexp.MustCompile("^repeatedsche-[0-9a-f]{8}$")
 
-var _RepeatedScheduleResource_CronMinutes_Pattern = regexp.MustCompile("^([0-9*/,-]|[1-5][0-9])$")
+var _RepeatedScheduleResource_CronMinutes_Pattern = regexp.MustCompile("^([*]|([0-9]|([1-5][0-9]))((,([0-9]|([1-5][0-9])))*))$")
 
-var _RepeatedScheduleResource_CronHours_Pattern = regexp.MustCompile("^([0-9*/,-]|1[0-9]|2[0-3])$")
+var _RepeatedScheduleResource_CronHours_Pattern = regexp.MustCompile("^([*]|([0-9]|1[0-9]|2[0-3])((,([0-9]|1[0-9]|2[0-3]))*))$")
 
-var _RepeatedScheduleResource_CronDayMonth_Pattern = regexp.MustCompile("^([1-9*/,-?]|[12][0-9]|3[01])$")
+var _RepeatedScheduleResource_CronDayMonth_Pattern = regexp.MustCompile("^([*]|([1-9]|([12][0-9])|3[01])((,([1-9]|([12][0-9])|3[01]))*))$")
 
-var _RepeatedScheduleResource_CronMonth_Pattern = regexp.MustCompile("^([1-9*/,-]|1[0-2])$")
+var _RepeatedScheduleResource_CronMonth_Pattern = regexp.MustCompile("^([*]|([1-9]|1[012])((,([1-9]|1[012]))*))$")
 
-var _RepeatedScheduleResource_CronDayWeek_Pattern = regexp.MustCompile("^[0-6*/,-]$")
+var _RepeatedScheduleResource_CronDayWeek_Pattern = regexp.MustCompile("^([*]|([0-6])((,([0-6]))*))$")

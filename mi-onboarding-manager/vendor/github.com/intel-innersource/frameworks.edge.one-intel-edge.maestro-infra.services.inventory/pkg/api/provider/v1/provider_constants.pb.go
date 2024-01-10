@@ -6,12 +6,10 @@ package providerv1
 
 const (
 	// Fields and Edges constants for "ProviderResource"
-	ProviderResourceFieldResourceId   = "resource_id"
-	ProviderResourceFieldKind         = "kind"
-	ProviderResourceFieldDescription  = "description"
-	ProviderResourceFieldDesiredState = "desired_state"
-	ProviderResourceFieldCurrentState = "current_state"
-	ProviderResourceEdgeSite          = "site"
-	ProviderResourceFieldEndpoint     = "endpoint"
-	ProviderResourceFieldToken        = "token"
+	ProviderResourceFieldResourceId     = "resource_id"
+	ProviderResourceFieldProviderKind   = "provider_kind"
+	ProviderResourceFieldProviderVendor = "provider_vendor"
+	ProviderResourceFieldName           = "name"
+	ProviderResourceFieldApiEndpoint    = "api_endpoint"
+	ProviderResourceFieldApiCredentials = "api_credentials"
 )

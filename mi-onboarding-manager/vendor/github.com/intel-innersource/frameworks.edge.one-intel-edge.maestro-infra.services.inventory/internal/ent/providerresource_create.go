@@ -10,7 +10,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/providerresource"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/siteresource"
 )
 
 // ProviderResourceCreate is the builder for creating a ProviderResource entity.
@@ -26,99 +25,50 @@ func (prc *ProviderResourceCreate) SetResourceID(s string) *ProviderResourceCrea
 	return prc
 }
 
-// SetKind sets the "kind" field.
-func (prc *ProviderResourceCreate) SetKind(pr providerresource.Kind) *ProviderResourceCreate {
-	prc.mutation.SetKind(pr)
+// SetProviderKind sets the "provider_kind" field.
+func (prc *ProviderResourceCreate) SetProviderKind(pk providerresource.ProviderKind) *ProviderResourceCreate {
+	prc.mutation.SetProviderKind(pk)
 	return prc
 }
 
-// SetNillableKind sets the "kind" field if the given value is not nil.
-func (prc *ProviderResourceCreate) SetNillableKind(pr *providerresource.Kind) *ProviderResourceCreate {
-	if pr != nil {
-		prc.SetKind(*pr)
+// SetProviderVendor sets the "provider_vendor" field.
+func (prc *ProviderResourceCreate) SetProviderVendor(pv providerresource.ProviderVendor) *ProviderResourceCreate {
+	prc.mutation.SetProviderVendor(pv)
+	return prc
+}
+
+// SetNillableProviderVendor sets the "provider_vendor" field if the given value is not nil.
+func (prc *ProviderResourceCreate) SetNillableProviderVendor(pv *providerresource.ProviderVendor) *ProviderResourceCreate {
+	if pv != nil {
+		prc.SetProviderVendor(*pv)
 	}
 	return prc
 }
 
-// SetDescription sets the "description" field.
-func (prc *ProviderResourceCreate) SetDescription(s string) *ProviderResourceCreate {
-	prc.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (prc *ProviderResourceCreate) SetName(s string) *ProviderResourceCreate {
+	prc.mutation.SetName(s)
 	return prc
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (prc *ProviderResourceCreate) SetNillableDescription(s *string) *ProviderResourceCreate {
+// SetAPIEndpoint sets the "api_endpoint" field.
+func (prc *ProviderResourceCreate) SetAPIEndpoint(s string) *ProviderResourceCreate {
+	prc.mutation.SetAPIEndpoint(s)
+	return prc
+}
+
+// SetAPICredentials sets the "api_credentials" field.
+func (prc *ProviderResourceCreate) SetAPICredentials(s string) *ProviderResourceCreate {
+	prc.mutation.SetAPICredentials(s)
+	return prc
+}
+
+// SetNillableAPICredentials sets the "api_credentials" field if the given value is not nil.
+func (prc *ProviderResourceCreate) SetNillableAPICredentials(s *string) *ProviderResourceCreate {
 	if s != nil {
-		prc.SetDescription(*s)
+		prc.SetAPICredentials(*s)
 	}
 	return prc
-}
-
-// SetDesiredState sets the "desired_state" field.
-func (prc *ProviderResourceCreate) SetDesiredState(ps providerresource.DesiredState) *ProviderResourceCreate {
-	prc.mutation.SetDesiredState(ps)
-	return prc
-}
-
-// SetCurrentState sets the "current_state" field.
-func (prc *ProviderResourceCreate) SetCurrentState(ps providerresource.CurrentState) *ProviderResourceCreate {
-	prc.mutation.SetCurrentState(ps)
-	return prc
-}
-
-// SetNillableCurrentState sets the "current_state" field if the given value is not nil.
-func (prc *ProviderResourceCreate) SetNillableCurrentState(ps *providerresource.CurrentState) *ProviderResourceCreate {
-	if ps != nil {
-		prc.SetCurrentState(*ps)
-	}
-	return prc
-}
-
-// SetEndpoint sets the "endpoint" field.
-func (prc *ProviderResourceCreate) SetEndpoint(s string) *ProviderResourceCreate {
-	prc.mutation.SetEndpoint(s)
-	return prc
-}
-
-// SetNillableEndpoint sets the "endpoint" field if the given value is not nil.
-func (prc *ProviderResourceCreate) SetNillableEndpoint(s *string) *ProviderResourceCreate {
-	if s != nil {
-		prc.SetEndpoint(*s)
-	}
-	return prc
-}
-
-// SetToken sets the "token" field.
-func (prc *ProviderResourceCreate) SetToken(s string) *ProviderResourceCreate {
-	prc.mutation.SetToken(s)
-	return prc
-}
-
-// SetNillableToken sets the "token" field if the given value is not nil.
-func (prc *ProviderResourceCreate) SetNillableToken(s *string) *ProviderResourceCreate {
-	if s != nil {
-		prc.SetToken(*s)
-	}
-	return prc
-}
-
-// SetSiteID sets the "site" edge to the SiteResource entity by ID.
-func (prc *ProviderResourceCreate) SetSiteID(id int) *ProviderResourceCreate {
-	prc.mutation.SetSiteID(id)
-	return prc
-}
-
-// SetNillableSiteID sets the "site" edge to the SiteResource entity by ID if the given value is not nil.
-func (prc *ProviderResourceCreate) SetNillableSiteID(id *int) *ProviderResourceCreate {
-	if id != nil {
-		prc = prc.SetSiteID(*id)
-	}
-	return prc
-}
-
-// SetSite sets the "site" edge to the SiteResource entity.
-func (prc *ProviderResourceCreate) SetSite(s *SiteResource) *ProviderResourceCreate {
-	return prc.SetSiteID(s.ID)
 }
 
 // Mutation returns the ProviderResourceMutation object of the builder.
@@ -158,23 +108,24 @@ func (prc *ProviderResourceCreate) check() error {
 	if _, ok := prc.mutation.ResourceID(); !ok {
 		return &ValidationError{Name: "resource_id", err: errors.New(`ent: missing required field "ProviderResource.resource_id"`)}
 	}
-	if v, ok := prc.mutation.Kind(); ok {
-		if err := providerresource.KindValidator(v); err != nil {
-			return &ValidationError{Name: "kind", err: fmt.Errorf(`ent: validator failed for field "ProviderResource.kind": %w`, err)}
+	if _, ok := prc.mutation.ProviderKind(); !ok {
+		return &ValidationError{Name: "provider_kind", err: errors.New(`ent: missing required field "ProviderResource.provider_kind"`)}
+	}
+	if v, ok := prc.mutation.ProviderKind(); ok {
+		if err := providerresource.ProviderKindValidator(v); err != nil {
+			return &ValidationError{Name: "provider_kind", err: fmt.Errorf(`ent: validator failed for field "ProviderResource.provider_kind": %w`, err)}
 		}
 	}
-	if _, ok := prc.mutation.DesiredState(); !ok {
-		return &ValidationError{Name: "desired_state", err: errors.New(`ent: missing required field "ProviderResource.desired_state"`)}
-	}
-	if v, ok := prc.mutation.DesiredState(); ok {
-		if err := providerresource.DesiredStateValidator(v); err != nil {
-			return &ValidationError{Name: "desired_state", err: fmt.Errorf(`ent: validator failed for field "ProviderResource.desired_state": %w`, err)}
+	if v, ok := prc.mutation.ProviderVendor(); ok {
+		if err := providerresource.ProviderVendorValidator(v); err != nil {
+			return &ValidationError{Name: "provider_vendor", err: fmt.Errorf(`ent: validator failed for field "ProviderResource.provider_vendor": %w`, err)}
 		}
 	}
-	if v, ok := prc.mutation.CurrentState(); ok {
-		if err := providerresource.CurrentStateValidator(v); err != nil {
-			return &ValidationError{Name: "current_state", err: fmt.Errorf(`ent: validator failed for field "ProviderResource.current_state": %w`, err)}
-		}
+	if _, ok := prc.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "ProviderResource.name"`)}
+	}
+	if _, ok := prc.mutation.APIEndpoint(); !ok {
+		return &ValidationError{Name: "api_endpoint", err: errors.New(`ent: missing required field "ProviderResource.api_endpoint"`)}
 	}
 	return nil
 }
@@ -206,46 +157,25 @@ func (prc *ProviderResourceCreate) createSpec() (*ProviderResource, *sqlgraph.Cr
 		_spec.SetField(providerresource.FieldResourceID, field.TypeString, value)
 		_node.ResourceID = value
 	}
-	if value, ok := prc.mutation.Kind(); ok {
-		_spec.SetField(providerresource.FieldKind, field.TypeEnum, value)
-		_node.Kind = value
+	if value, ok := prc.mutation.ProviderKind(); ok {
+		_spec.SetField(providerresource.FieldProviderKind, field.TypeEnum, value)
+		_node.ProviderKind = value
 	}
-	if value, ok := prc.mutation.Description(); ok {
-		_spec.SetField(providerresource.FieldDescription, field.TypeString, value)
-		_node.Description = value
+	if value, ok := prc.mutation.ProviderVendor(); ok {
+		_spec.SetField(providerresource.FieldProviderVendor, field.TypeEnum, value)
+		_node.ProviderVendor = value
 	}
-	if value, ok := prc.mutation.DesiredState(); ok {
-		_spec.SetField(providerresource.FieldDesiredState, field.TypeEnum, value)
-		_node.DesiredState = value
+	if value, ok := prc.mutation.Name(); ok {
+		_spec.SetField(providerresource.FieldName, field.TypeString, value)
+		_node.Name = value
 	}
-	if value, ok := prc.mutation.CurrentState(); ok {
-		_spec.SetField(providerresource.FieldCurrentState, field.TypeEnum, value)
-		_node.CurrentState = value
+	if value, ok := prc.mutation.APIEndpoint(); ok {
+		_spec.SetField(providerresource.FieldAPIEndpoint, field.TypeString, value)
+		_node.APIEndpoint = value
 	}
-	if value, ok := prc.mutation.Endpoint(); ok {
-		_spec.SetField(providerresource.FieldEndpoint, field.TypeString, value)
-		_node.Endpoint = value
-	}
-	if value, ok := prc.mutation.Token(); ok {
-		_spec.SetField(providerresource.FieldToken, field.TypeString, value)
-		_node.Token = value
-	}
-	if nodes := prc.mutation.SiteIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: false,
-			Table:   providerresource.SiteTable,
-			Columns: []string{providerresource.SiteColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(siteresource.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.provider_resource_site = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
+	if value, ok := prc.mutation.APICredentials(); ok {
+		_spec.SetField(providerresource.FieldAPICredentials, field.TypeString, value)
+		_node.APICredentials = value
 	}
 	return _node, _spec
 }

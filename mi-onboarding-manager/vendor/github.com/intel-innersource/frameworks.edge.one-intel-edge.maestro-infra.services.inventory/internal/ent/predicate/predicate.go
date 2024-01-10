@@ -12,6 +12,9 @@ type EndpointResource func(*sql.Selector)
 // HostResource is the predicate function for hostresource builders.
 type HostResource func(*sql.Selector)
 
+// HostgpuResource is the predicate function for hostgpuresource builders.
+type HostgpuResource func(*sql.Selector)
+
 // HostnicResource is the predicate function for hostnicresource builders.
 type HostnicResource func(*sql.Selector)
 
@@ -56,6 +59,12 @@ type SingleScheduleResource func(*sql.Selector)
 
 // SiteResource is the predicate function for siteresource builders.
 type SiteResource func(*sql.Selector)
+
+// TelemetryGroupResource is the predicate function for telemetrygroupresource builders.
+type TelemetryGroupResource func(*sql.Selector)
+
+// TelemetryProfile is the predicate function for telemetryprofile builders.
+type TelemetryProfile func(*sql.Selector)
 
 // UserResource is the predicate function for userresource builders.
 type UserResource func(*sql.Selector)

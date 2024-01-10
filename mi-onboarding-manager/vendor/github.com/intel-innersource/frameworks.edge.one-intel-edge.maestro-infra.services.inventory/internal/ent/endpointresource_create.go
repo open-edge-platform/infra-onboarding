@@ -40,16 +40,16 @@ func (erc *EndpointResourceCreate) SetNillableKind(s *string) *EndpointResourceC
 	return erc
 }
 
-// SetDescription sets the "description" field.
-func (erc *EndpointResourceCreate) SetDescription(s string) *EndpointResourceCreate {
-	erc.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (erc *EndpointResourceCreate) SetName(s string) *EndpointResourceCreate {
+	erc.mutation.SetName(s)
 	return erc
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (erc *EndpointResourceCreate) SetNillableDescription(s *string) *EndpointResourceCreate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (erc *EndpointResourceCreate) SetNillableName(s *string) *EndpointResourceCreate {
 	if s != nil {
-		erc.SetDescription(*s)
+		erc.SetName(*s)
 	}
 	return erc
 }
@@ -144,9 +144,9 @@ func (erc *EndpointResourceCreate) createSpec() (*EndpointResource, *sqlgraph.Cr
 		_spec.SetField(endpointresource.FieldKind, field.TypeString, value)
 		_node.Kind = value
 	}
-	if value, ok := erc.mutation.Description(); ok {
-		_spec.SetField(endpointresource.FieldDescription, field.TypeString, value)
-		_node.Description = value
+	if value, ok := erc.mutation.Name(); ok {
+		_spec.SetField(endpointresource.FieldName, field.TypeString, value)
+		_node.Name = value
 	}
 	if nodes := erc.mutation.HostIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

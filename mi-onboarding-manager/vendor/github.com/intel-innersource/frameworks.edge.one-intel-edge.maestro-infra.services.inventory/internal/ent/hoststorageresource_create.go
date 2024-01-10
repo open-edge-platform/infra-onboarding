@@ -43,48 +43,6 @@ func (hrc *HoststorageResourceCreate) SetNillableKind(s *string) *HoststorageRes
 	return hrc
 }
 
-// SetDescription sets the "description" field.
-func (hrc *HoststorageResourceCreate) SetDescription(s string) *HoststorageResourceCreate {
-	hrc.mutation.SetDescription(s)
-	return hrc
-}
-
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (hrc *HoststorageResourceCreate) SetNillableDescription(s *string) *HoststorageResourceCreate {
-	if s != nil {
-		hrc.SetDescription(*s)
-	}
-	return hrc
-}
-
-// SetDesiredState sets the "desired_state" field.
-func (hrc *HoststorageResourceCreate) SetDesiredState(hs hoststorageresource.DesiredState) *HoststorageResourceCreate {
-	hrc.mutation.SetDesiredState(hs)
-	return hrc
-}
-
-// SetNillableDesiredState sets the "desired_state" field if the given value is not nil.
-func (hrc *HoststorageResourceCreate) SetNillableDesiredState(hs *hoststorageresource.DesiredState) *HoststorageResourceCreate {
-	if hs != nil {
-		hrc.SetDesiredState(*hs)
-	}
-	return hrc
-}
-
-// SetCurrentState sets the "current_state" field.
-func (hrc *HoststorageResourceCreate) SetCurrentState(hs hoststorageresource.CurrentState) *HoststorageResourceCreate {
-	hrc.mutation.SetCurrentState(hs)
-	return hrc
-}
-
-// SetNillableCurrentState sets the "current_state" field if the given value is not nil.
-func (hrc *HoststorageResourceCreate) SetNillableCurrentState(hs *hoststorageresource.CurrentState) *HoststorageResourceCreate {
-	if hs != nil {
-		hrc.SetCurrentState(*hs)
-	}
-	return hrc
-}
-
 // SetProviderStatus sets the "provider_status" field.
 func (hrc *HoststorageResourceCreate) SetProviderStatus(s string) *HoststorageResourceCreate {
 	hrc.mutation.SetProviderStatus(s)
@@ -169,16 +127,16 @@ func (hrc *HoststorageResourceCreate) SetNillableCapacityBytes(u *uint64) *Hosts
 	return hrc
 }
 
-// SetName sets the "name" field.
-func (hrc *HoststorageResourceCreate) SetName(s string) *HoststorageResourceCreate {
-	hrc.mutation.SetName(s)
+// SetDeviceName sets the "device_name" field.
+func (hrc *HoststorageResourceCreate) SetDeviceName(s string) *HoststorageResourceCreate {
+	hrc.mutation.SetDeviceName(s)
 	return hrc
 }
 
-// SetNillableName sets the "name" field if the given value is not nil.
-func (hrc *HoststorageResourceCreate) SetNillableName(s *string) *HoststorageResourceCreate {
+// SetNillableDeviceName sets the "device_name" field if the given value is not nil.
+func (hrc *HoststorageResourceCreate) SetNillableDeviceName(s *string) *HoststorageResourceCreate {
 	if s != nil {
-		hrc.SetName(*s)
+		hrc.SetDeviceName(*s)
 	}
 	return hrc
 }
@@ -288,16 +246,6 @@ func (hrc *HoststorageResourceCreate) check() error {
 	if _, ok := hrc.mutation.ResourceID(); !ok {
 		return &ValidationError{Name: "resource_id", err: errors.New(`ent: missing required field "HoststorageResource.resource_id"`)}
 	}
-	if v, ok := hrc.mutation.DesiredState(); ok {
-		if err := hoststorageresource.DesiredStateValidator(v); err != nil {
-			return &ValidationError{Name: "desired_state", err: fmt.Errorf(`ent: validator failed for field "HoststorageResource.desired_state": %w`, err)}
-		}
-	}
-	if v, ok := hrc.mutation.CurrentState(); ok {
-		if err := hoststorageresource.CurrentStateValidator(v); err != nil {
-			return &ValidationError{Name: "current_state", err: fmt.Errorf(`ent: validator failed for field "HoststorageResource.current_state": %w`, err)}
-		}
-	}
 	if _, ok := hrc.mutation.HostID(); !ok {
 		return &ValidationError{Name: "host", err: errors.New(`ent: missing required edge "HoststorageResource.host"`)}
 	}
@@ -335,18 +283,6 @@ func (hrc *HoststorageResourceCreate) createSpec() (*HoststorageResource, *sqlgr
 		_spec.SetField(hoststorageresource.FieldKind, field.TypeString, value)
 		_node.Kind = value
 	}
-	if value, ok := hrc.mutation.Description(); ok {
-		_spec.SetField(hoststorageresource.FieldDescription, field.TypeString, value)
-		_node.Description = value
-	}
-	if value, ok := hrc.mutation.DesiredState(); ok {
-		_spec.SetField(hoststorageresource.FieldDesiredState, field.TypeEnum, value)
-		_node.DesiredState = value
-	}
-	if value, ok := hrc.mutation.CurrentState(); ok {
-		_spec.SetField(hoststorageresource.FieldCurrentState, field.TypeEnum, value)
-		_node.CurrentState = value
-	}
 	if value, ok := hrc.mutation.ProviderStatus(); ok {
 		_spec.SetField(hoststorageresource.FieldProviderStatus, field.TypeString, value)
 		_node.ProviderStatus = value
@@ -371,9 +307,9 @@ func (hrc *HoststorageResourceCreate) createSpec() (*HoststorageResource, *sqlgr
 		_spec.SetField(hoststorageresource.FieldCapacityBytes, field.TypeUint64, value)
 		_node.CapacityBytes = value
 	}
-	if value, ok := hrc.mutation.Name(); ok {
-		_spec.SetField(hoststorageresource.FieldName, field.TypeString, value)
-		_node.Name = value
+	if value, ok := hrc.mutation.DeviceName(); ok {
+		_spec.SetField(hoststorageresource.FieldDeviceName, field.TypeString, value)
+		_node.DeviceName = value
 	}
 	if nodes := hrc.mutation.SiteIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

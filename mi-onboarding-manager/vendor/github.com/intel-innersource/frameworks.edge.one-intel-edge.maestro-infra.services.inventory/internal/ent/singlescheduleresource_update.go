@@ -56,23 +56,23 @@ func (ssru *SingleScheduleResourceUpdate) ClearScheduleStatus() *SingleScheduleR
 	return ssru
 }
 
-// SetDescription sets the "description" field.
-func (ssru *SingleScheduleResourceUpdate) SetDescription(s string) *SingleScheduleResourceUpdate {
-	ssru.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (ssru *SingleScheduleResourceUpdate) SetName(s string) *SingleScheduleResourceUpdate {
+	ssru.mutation.SetName(s)
 	return ssru
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (ssru *SingleScheduleResourceUpdate) SetNillableDescription(s *string) *SingleScheduleResourceUpdate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (ssru *SingleScheduleResourceUpdate) SetNillableName(s *string) *SingleScheduleResourceUpdate {
 	if s != nil {
-		ssru.SetDescription(*s)
+		ssru.SetName(*s)
 	}
 	return ssru
 }
 
-// ClearDescription clears the value of the "description" field.
-func (ssru *SingleScheduleResourceUpdate) ClearDescription() *SingleScheduleResourceUpdate {
-	ssru.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (ssru *SingleScheduleResourceUpdate) ClearName() *SingleScheduleResourceUpdate {
+	ssru.mutation.ClearName()
 	return ssru
 }
 
@@ -254,11 +254,11 @@ func (ssru *SingleScheduleResourceUpdate) sqlSave(ctx context.Context) (n int, e
 	if ssru.mutation.ScheduleStatusCleared() {
 		_spec.ClearField(singlescheduleresource.FieldScheduleStatus, field.TypeEnum)
 	}
-	if value, ok := ssru.mutation.Description(); ok {
-		_spec.SetField(singlescheduleresource.FieldDescription, field.TypeString, value)
+	if value, ok := ssru.mutation.Name(); ok {
+		_spec.SetField(singlescheduleresource.FieldName, field.TypeString, value)
 	}
-	if ssru.mutation.DescriptionCleared() {
-		_spec.ClearField(singlescheduleresource.FieldDescription, field.TypeString)
+	if ssru.mutation.NameCleared() {
+		_spec.ClearField(singlescheduleresource.FieldName, field.TypeString)
 	}
 	if value, ok := ssru.mutation.StartSeconds(); ok {
 		_spec.SetField(singlescheduleresource.FieldStartSeconds, field.TypeUint64, value)
@@ -408,23 +408,23 @@ func (ssruo *SingleScheduleResourceUpdateOne) ClearScheduleStatus() *SingleSched
 	return ssruo
 }
 
-// SetDescription sets the "description" field.
-func (ssruo *SingleScheduleResourceUpdateOne) SetDescription(s string) *SingleScheduleResourceUpdateOne {
-	ssruo.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (ssruo *SingleScheduleResourceUpdateOne) SetName(s string) *SingleScheduleResourceUpdateOne {
+	ssruo.mutation.SetName(s)
 	return ssruo
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (ssruo *SingleScheduleResourceUpdateOne) SetNillableDescription(s *string) *SingleScheduleResourceUpdateOne {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (ssruo *SingleScheduleResourceUpdateOne) SetNillableName(s *string) *SingleScheduleResourceUpdateOne {
 	if s != nil {
-		ssruo.SetDescription(*s)
+		ssruo.SetName(*s)
 	}
 	return ssruo
 }
 
-// ClearDescription clears the value of the "description" field.
-func (ssruo *SingleScheduleResourceUpdateOne) ClearDescription() *SingleScheduleResourceUpdateOne {
-	ssruo.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (ssruo *SingleScheduleResourceUpdateOne) ClearName() *SingleScheduleResourceUpdateOne {
+	ssruo.mutation.ClearName()
 	return ssruo
 }
 
@@ -636,11 +636,11 @@ func (ssruo *SingleScheduleResourceUpdateOne) sqlSave(ctx context.Context) (_nod
 	if ssruo.mutation.ScheduleStatusCleared() {
 		_spec.ClearField(singlescheduleresource.FieldScheduleStatus, field.TypeEnum)
 	}
-	if value, ok := ssruo.mutation.Description(); ok {
-		_spec.SetField(singlescheduleresource.FieldDescription, field.TypeString, value)
+	if value, ok := ssruo.mutation.Name(); ok {
+		_spec.SetField(singlescheduleresource.FieldName, field.TypeString, value)
 	}
-	if ssruo.mutation.DescriptionCleared() {
-		_spec.ClearField(singlescheduleresource.FieldDescription, field.TypeString)
+	if ssruo.mutation.NameCleared() {
+		_spec.ClearField(singlescheduleresource.FieldName, field.TypeString)
 	}
 	if value, ok := ssruo.mutation.StartSeconds(); ok {
 		_spec.SetField(singlescheduleresource.FieldStartSeconds, field.TypeUint64, value)

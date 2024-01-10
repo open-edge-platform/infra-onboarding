@@ -33,23 +33,23 @@ func (oru *OuResourceUpdate) SetResourceID(s string) *OuResourceUpdate {
 	return oru
 }
 
-// SetDescription sets the "description" field.
-func (oru *OuResourceUpdate) SetDescription(s string) *OuResourceUpdate {
-	oru.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (oru *OuResourceUpdate) SetName(s string) *OuResourceUpdate {
+	oru.mutation.SetName(s)
 	return oru
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (oru *OuResourceUpdate) SetNillableDescription(s *string) *OuResourceUpdate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (oru *OuResourceUpdate) SetNillableName(s *string) *OuResourceUpdate {
 	if s != nil {
-		oru.SetDescription(*s)
+		oru.SetName(*s)
 	}
 	return oru
 }
 
-// ClearDescription clears the value of the "description" field.
-func (oru *OuResourceUpdate) ClearDescription() *OuResourceUpdate {
-	oru.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (oru *OuResourceUpdate) ClearName() *OuResourceUpdate {
+	oru.mutation.ClearName()
 	return oru
 }
 
@@ -198,11 +198,11 @@ func (oru *OuResourceUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := oru.mutation.ResourceID(); ok {
 		_spec.SetField(ouresource.FieldResourceID, field.TypeString, value)
 	}
-	if value, ok := oru.mutation.Description(); ok {
-		_spec.SetField(ouresource.FieldDescription, field.TypeString, value)
+	if value, ok := oru.mutation.Name(); ok {
+		_spec.SetField(ouresource.FieldName, field.TypeString, value)
 	}
-	if oru.mutation.DescriptionCleared() {
-		_spec.ClearField(ouresource.FieldDescription, field.TypeString)
+	if oru.mutation.NameCleared() {
+		_spec.ClearField(ouresource.FieldName, field.TypeString)
 	}
 	if value, ok := oru.mutation.OuKind(); ok {
 		_spec.SetField(ouresource.FieldOuKind, field.TypeString, value)
@@ -316,23 +316,23 @@ func (oruo *OuResourceUpdateOne) SetResourceID(s string) *OuResourceUpdateOne {
 	return oruo
 }
 
-// SetDescription sets the "description" field.
-func (oruo *OuResourceUpdateOne) SetDescription(s string) *OuResourceUpdateOne {
-	oruo.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (oruo *OuResourceUpdateOne) SetName(s string) *OuResourceUpdateOne {
+	oruo.mutation.SetName(s)
 	return oruo
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (oruo *OuResourceUpdateOne) SetNillableDescription(s *string) *OuResourceUpdateOne {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (oruo *OuResourceUpdateOne) SetNillableName(s *string) *OuResourceUpdateOne {
 	if s != nil {
-		oruo.SetDescription(*s)
+		oruo.SetName(*s)
 	}
 	return oruo
 }
 
-// ClearDescription clears the value of the "description" field.
-func (oruo *OuResourceUpdateOne) ClearDescription() *OuResourceUpdateOne {
-	oruo.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (oruo *OuResourceUpdateOne) ClearName() *OuResourceUpdateOne {
+	oruo.mutation.ClearName()
 	return oruo
 }
 
@@ -511,11 +511,11 @@ func (oruo *OuResourceUpdateOne) sqlSave(ctx context.Context) (_node *OuResource
 	if value, ok := oruo.mutation.ResourceID(); ok {
 		_spec.SetField(ouresource.FieldResourceID, field.TypeString, value)
 	}
-	if value, ok := oruo.mutation.Description(); ok {
-		_spec.SetField(ouresource.FieldDescription, field.TypeString, value)
+	if value, ok := oruo.mutation.Name(); ok {
+		_spec.SetField(ouresource.FieldName, field.TypeString, value)
 	}
-	if oruo.mutation.DescriptionCleared() {
-		_spec.ClearField(ouresource.FieldDescription, field.TypeString)
+	if oruo.mutation.NameCleared() {
+		_spec.ClearField(ouresource.FieldName, field.TypeString)
 	}
 	if value, ok := oruo.mutation.OuKind(); ok {
 		_spec.SetField(ouresource.FieldOuKind, field.TypeString, value)

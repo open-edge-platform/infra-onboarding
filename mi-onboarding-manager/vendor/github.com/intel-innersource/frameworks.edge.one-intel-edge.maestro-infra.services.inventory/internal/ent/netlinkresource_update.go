@@ -54,23 +54,23 @@ func (nru *NetlinkResourceUpdate) ClearKind() *NetlinkResourceUpdate {
 	return nru
 }
 
-// SetDescription sets the "description" field.
-func (nru *NetlinkResourceUpdate) SetDescription(s string) *NetlinkResourceUpdate {
-	nru.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (nru *NetlinkResourceUpdate) SetName(s string) *NetlinkResourceUpdate {
+	nru.mutation.SetName(s)
 	return nru
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (nru *NetlinkResourceUpdate) SetNillableDescription(s *string) *NetlinkResourceUpdate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (nru *NetlinkResourceUpdate) SetNillableName(s *string) *NetlinkResourceUpdate {
 	if s != nil {
-		nru.SetDescription(*s)
+		nru.SetName(*s)
 	}
 	return nru
 }
 
-// ClearDescription clears the value of the "description" field.
-func (nru *NetlinkResourceUpdate) ClearDescription() *NetlinkResourceUpdate {
-	nru.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (nru *NetlinkResourceUpdate) ClearName() *NetlinkResourceUpdate {
+	nru.mutation.ClearName()
 	return nru
 }
 
@@ -238,11 +238,11 @@ func (nru *NetlinkResourceUpdate) sqlSave(ctx context.Context) (n int, err error
 	if nru.mutation.KindCleared() {
 		_spec.ClearField(netlinkresource.FieldKind, field.TypeString)
 	}
-	if value, ok := nru.mutation.Description(); ok {
-		_spec.SetField(netlinkresource.FieldDescription, field.TypeString, value)
+	if value, ok := nru.mutation.Name(); ok {
+		_spec.SetField(netlinkresource.FieldName, field.TypeString, value)
 	}
-	if nru.mutation.DescriptionCleared() {
-		_spec.ClearField(netlinkresource.FieldDescription, field.TypeString)
+	if nru.mutation.NameCleared() {
+		_spec.ClearField(netlinkresource.FieldName, field.TypeString)
 	}
 	if value, ok := nru.mutation.DesiredState(); ok {
 		_spec.SetField(netlinkresource.FieldDesiredState, field.TypeEnum, value)
@@ -363,23 +363,23 @@ func (nruo *NetlinkResourceUpdateOne) ClearKind() *NetlinkResourceUpdateOne {
 	return nruo
 }
 
-// SetDescription sets the "description" field.
-func (nruo *NetlinkResourceUpdateOne) SetDescription(s string) *NetlinkResourceUpdateOne {
-	nruo.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (nruo *NetlinkResourceUpdateOne) SetName(s string) *NetlinkResourceUpdateOne {
+	nruo.mutation.SetName(s)
 	return nruo
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (nruo *NetlinkResourceUpdateOne) SetNillableDescription(s *string) *NetlinkResourceUpdateOne {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (nruo *NetlinkResourceUpdateOne) SetNillableName(s *string) *NetlinkResourceUpdateOne {
 	if s != nil {
-		nruo.SetDescription(*s)
+		nruo.SetName(*s)
 	}
 	return nruo
 }
 
-// ClearDescription clears the value of the "description" field.
-func (nruo *NetlinkResourceUpdateOne) ClearDescription() *NetlinkResourceUpdateOne {
-	nruo.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (nruo *NetlinkResourceUpdateOne) ClearName() *NetlinkResourceUpdateOne {
+	nruo.mutation.ClearName()
 	return nruo
 }
 
@@ -577,11 +577,11 @@ func (nruo *NetlinkResourceUpdateOne) sqlSave(ctx context.Context) (_node *Netli
 	if nruo.mutation.KindCleared() {
 		_spec.ClearField(netlinkresource.FieldKind, field.TypeString)
 	}
-	if value, ok := nruo.mutation.Description(); ok {
-		_spec.SetField(netlinkresource.FieldDescription, field.TypeString, value)
+	if value, ok := nruo.mutation.Name(); ok {
+		_spec.SetField(netlinkresource.FieldName, field.TypeString, value)
 	}
-	if nruo.mutation.DescriptionCleared() {
-		_spec.ClearField(netlinkresource.FieldDescription, field.TypeString)
+	if nruo.mutation.NameCleared() {
+		_spec.ClearField(netlinkresource.FieldName, field.TypeString)
 	}
 	if value, ok := nruo.mutation.DesiredState(); ok {
 		_spec.SetField(netlinkresource.FieldDesiredState, field.TypeEnum, value)

@@ -53,23 +53,23 @@ func (uru *UserResourceUpdate) ClearKind() *UserResourceUpdate {
 	return uru
 }
 
-// SetDescription sets the "description" field.
-func (uru *UserResourceUpdate) SetDescription(s string) *UserResourceUpdate {
-	uru.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (uru *UserResourceUpdate) SetName(s string) *UserResourceUpdate {
+	uru.mutation.SetName(s)
 	return uru
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (uru *UserResourceUpdate) SetNillableDescription(s *string) *UserResourceUpdate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (uru *UserResourceUpdate) SetNillableName(s *string) *UserResourceUpdate {
 	if s != nil {
-		uru.SetDescription(*s)
+		uru.SetName(*s)
 	}
 	return uru
 }
 
-// ClearDescription clears the value of the "description" field.
-func (uru *UserResourceUpdate) ClearDescription() *UserResourceUpdate {
-	uru.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (uru *UserResourceUpdate) ClearName() *UserResourceUpdate {
+	uru.mutation.ClearName()
 	return uru
 }
 
@@ -163,11 +163,11 @@ func (uru *UserResourceUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if uru.mutation.KindCleared() {
 		_spec.ClearField(userresource.FieldKind, field.TypeString)
 	}
-	if value, ok := uru.mutation.Description(); ok {
-		_spec.SetField(userresource.FieldDescription, field.TypeString, value)
+	if value, ok := uru.mutation.Name(); ok {
+		_spec.SetField(userresource.FieldName, field.TypeString, value)
 	}
-	if uru.mutation.DescriptionCleared() {
-		_spec.ClearField(userresource.FieldDescription, field.TypeString)
+	if uru.mutation.NameCleared() {
+		_spec.ClearField(userresource.FieldName, field.TypeString)
 	}
 	if value, ok := uru.mutation.Username(); ok {
 		_spec.SetField(userresource.FieldUsername, field.TypeString, value)
@@ -227,23 +227,23 @@ func (uruo *UserResourceUpdateOne) ClearKind() *UserResourceUpdateOne {
 	return uruo
 }
 
-// SetDescription sets the "description" field.
-func (uruo *UserResourceUpdateOne) SetDescription(s string) *UserResourceUpdateOne {
-	uruo.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (uruo *UserResourceUpdateOne) SetName(s string) *UserResourceUpdateOne {
+	uruo.mutation.SetName(s)
 	return uruo
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (uruo *UserResourceUpdateOne) SetNillableDescription(s *string) *UserResourceUpdateOne {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (uruo *UserResourceUpdateOne) SetNillableName(s *string) *UserResourceUpdateOne {
 	if s != nil {
-		uruo.SetDescription(*s)
+		uruo.SetName(*s)
 	}
 	return uruo
 }
 
-// ClearDescription clears the value of the "description" field.
-func (uruo *UserResourceUpdateOne) ClearDescription() *UserResourceUpdateOne {
-	uruo.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (uruo *UserResourceUpdateOne) ClearName() *UserResourceUpdateOne {
+	uruo.mutation.ClearName()
 	return uruo
 }
 
@@ -367,11 +367,11 @@ func (uruo *UserResourceUpdateOne) sqlSave(ctx context.Context) (_node *UserReso
 	if uruo.mutation.KindCleared() {
 		_spec.ClearField(userresource.FieldKind, field.TypeString)
 	}
-	if value, ok := uruo.mutation.Description(); ok {
-		_spec.SetField(userresource.FieldDescription, field.TypeString, value)
+	if value, ok := uruo.mutation.Name(); ok {
+		_spec.SetField(userresource.FieldName, field.TypeString, value)
 	}
-	if uruo.mutation.DescriptionCleared() {
-		_spec.ClearField(userresource.FieldDescription, field.TypeString)
+	if uruo.mutation.NameCleared() {
+		_spec.ClearField(userresource.FieldName, field.TypeString)
 	}
 	if value, ok := uruo.mutation.Username(); ok {
 		_spec.SetField(userresource.FieldUsername, field.TypeString, value)

@@ -20,10 +20,8 @@ type SiteResource struct {
 	ID int `json:"id,omitempty"`
 	// ResourceID holds the value of the "resource_id" field.
 	ResourceID string `json:"resource_id,omitempty"`
-	// Description holds the value of the "description" field.
-	Description string `json:"description,omitempty"`
-	// SiteKind holds the value of the "site_kind" field.
-	SiteKind string `json:"site_kind,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
 	// Address holds the value of the "address" field.
 	Address string `json:"address,omitempty"`
 	// SiteLat holds the value of the "site_lat" field.
@@ -98,7 +96,7 @@ func (*SiteResource) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case siteresource.FieldID, siteresource.FieldSiteLat, siteresource.FieldSiteLng:
 			values[i] = new(sql.NullInt64)
-		case siteresource.FieldResourceID, siteresource.FieldDescription, siteresource.FieldSiteKind, siteresource.FieldAddress, siteresource.FieldDNSServers, siteresource.FieldDockerRegistries, siteresource.FieldMetricsEndpoint, siteresource.FieldHTTPProxy, siteresource.FieldHTTPSProxy, siteresource.FieldFtpProxy, siteresource.FieldNoProxy, siteresource.FieldMetadata:
+		case siteresource.FieldResourceID, siteresource.FieldName, siteresource.FieldAddress, siteresource.FieldDNSServers, siteresource.FieldDockerRegistries, siteresource.FieldMetricsEndpoint, siteresource.FieldHTTPProxy, siteresource.FieldHTTPSProxy, siteresource.FieldFtpProxy, siteresource.FieldNoProxy, siteresource.FieldMetadata:
 			values[i] = new(sql.NullString)
 		case siteresource.ForeignKeys[0]: // site_resource_region
 			values[i] = new(sql.NullInt64)
@@ -131,17 +129,11 @@ func (sr *SiteResource) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				sr.ResourceID = value.String
 			}
-		case siteresource.FieldDescription:
+		case siteresource.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field description", values[i])
+				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				sr.Description = value.String
-			}
-		case siteresource.FieldSiteKind:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field site_kind", values[i])
-			} else if value.Valid {
-				sr.SiteKind = value.String
+				sr.Name = value.String
 			}
 		case siteresource.FieldAddress:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -272,11 +264,8 @@ func (sr *SiteResource) String() string {
 	builder.WriteString("resource_id=")
 	builder.WriteString(sr.ResourceID)
 	builder.WriteString(", ")
-	builder.WriteString("description=")
-	builder.WriteString(sr.Description)
-	builder.WriteString(", ")
-	builder.WriteString("site_kind=")
-	builder.WriteString(sr.SiteKind)
+	builder.WriteString("name=")
+	builder.WriteString(sr.Name)
 	builder.WriteString(", ")
 	builder.WriteString("address=")
 	builder.WriteString(sr.Address)

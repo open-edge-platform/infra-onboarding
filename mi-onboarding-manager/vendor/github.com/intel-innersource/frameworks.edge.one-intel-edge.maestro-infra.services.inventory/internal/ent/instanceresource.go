@@ -11,6 +11,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hostresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/instanceresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/operatingsystemresource"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/providerresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/userresource"
 )
 
@@ -23,8 +24,8 @@ type InstanceResource struct {
 	ResourceID string `json:"resource_id,omitempty"`
 	// Kind holds the value of the "kind" field.
 	Kind instanceresource.Kind `json:"kind,omitempty"`
-	// Description holds the value of the "description" field.
-	Description string `json:"description,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
 	// DesiredState holds the value of the "desired_state" field.
 	DesiredState instanceresource.DesiredState `json:"desired_state,omitempty"`
 	// CurrentState holds the value of the "current_state" field.
@@ -41,10 +42,11 @@ type InstanceResource struct {
 	StatusDetail string `json:"status_detail,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the InstanceResourceQuery when eager-loading is set.
-	Edges                  InstanceResourceEdges `json:"edges"`
-	instance_resource_user *int
-	instance_resource_os   *int
-	selectValues           sql.SelectValues
+	Edges                      InstanceResourceEdges `json:"edges"`
+	instance_resource_user     *int
+	instance_resource_os       *int
+	instance_resource_provider *int
+	selectValues               sql.SelectValues
 }
 
 // InstanceResourceEdges holds the relations/edges for other nodes in the graph.
@@ -57,9 +59,11 @@ type InstanceResourceEdges struct {
 	Os *OperatingSystemResource `json:"os,omitempty"`
 	// WorkloadMembers holds the value of the workload_members edge.
 	WorkloadMembers []*WorkloadMember `json:"workload_members,omitempty"`
+	// Provider holds the value of the provider edge.
+	Provider *ProviderResource `json:"provider,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
 }
 
 // HostOrErr returns the Host value or an error if the edge
@@ -110,6 +114,19 @@ func (e InstanceResourceEdges) WorkloadMembersOrErr() ([]*WorkloadMember, error)
 	return nil, &NotLoadedError{edge: "workload_members"}
 }
 
+// ProviderOrErr returns the Provider value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e InstanceResourceEdges) ProviderOrErr() (*ProviderResource, error) {
+	if e.loadedTypes[4] {
+		if e.Provider == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: providerresource.Label}
+		}
+		return e.Provider, nil
+	}
+	return nil, &NotLoadedError{edge: "provider"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*InstanceResource) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -117,11 +134,13 @@ func (*InstanceResource) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case instanceresource.FieldID, instanceresource.FieldVMMemoryBytes, instanceresource.FieldVMCPUCores, instanceresource.FieldVMStorageBytes:
 			values[i] = new(sql.NullInt64)
-		case instanceresource.FieldResourceID, instanceresource.FieldKind, instanceresource.FieldDescription, instanceresource.FieldDesiredState, instanceresource.FieldCurrentState, instanceresource.FieldStatus, instanceresource.FieldStatusDetail:
+		case instanceresource.FieldResourceID, instanceresource.FieldKind, instanceresource.FieldName, instanceresource.FieldDesiredState, instanceresource.FieldCurrentState, instanceresource.FieldStatus, instanceresource.FieldStatusDetail:
 			values[i] = new(sql.NullString)
 		case instanceresource.ForeignKeys[0]: // instance_resource_user
 			values[i] = new(sql.NullInt64)
 		case instanceresource.ForeignKeys[1]: // instance_resource_os
+			values[i] = new(sql.NullInt64)
+		case instanceresource.ForeignKeys[2]: // instance_resource_provider
 			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -156,11 +175,11 @@ func (ir *InstanceResource) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				ir.Kind = instanceresource.Kind(value.String)
 			}
-		case instanceresource.FieldDescription:
+		case instanceresource.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field description", values[i])
+				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				ir.Description = value.String
+				ir.Name = value.String
 			}
 		case instanceresource.FieldDesiredState:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -218,6 +237,13 @@ func (ir *InstanceResource) assignValues(columns []string, values []any) error {
 				ir.instance_resource_os = new(int)
 				*ir.instance_resource_os = int(value.Int64)
 			}
+		case instanceresource.ForeignKeys[2]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field instance_resource_provider", value)
+			} else if value.Valid {
+				ir.instance_resource_provider = new(int)
+				*ir.instance_resource_provider = int(value.Int64)
+			}
 		default:
 			ir.selectValues.Set(columns[i], values[i])
 		}
@@ -251,6 +277,11 @@ func (ir *InstanceResource) QueryWorkloadMembers() *WorkloadMemberQuery {
 	return NewInstanceResourceClient(ir.config).QueryWorkloadMembers(ir)
 }
 
+// QueryProvider queries the "provider" edge of the InstanceResource entity.
+func (ir *InstanceResource) QueryProvider() *ProviderResourceQuery {
+	return NewInstanceResourceClient(ir.config).QueryProvider(ir)
+}
+
 // Update returns a builder for updating this InstanceResource.
 // Note that you need to call InstanceResource.Unwrap() before calling this method if this InstanceResource
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -280,8 +311,8 @@ func (ir *InstanceResource) String() string {
 	builder.WriteString("kind=")
 	builder.WriteString(fmt.Sprintf("%v", ir.Kind))
 	builder.WriteString(", ")
-	builder.WriteString("description=")
-	builder.WriteString(ir.Description)
+	builder.WriteString("name=")
+	builder.WriteString(ir.Name)
 	builder.WriteString(", ")
 	builder.WriteString("desired_state=")
 	builder.WriteString(fmt.Sprintf("%v", ir.DesiredState))

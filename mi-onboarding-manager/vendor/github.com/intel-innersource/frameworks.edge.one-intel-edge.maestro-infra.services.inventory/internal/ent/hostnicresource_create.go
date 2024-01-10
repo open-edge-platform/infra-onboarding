@@ -43,48 +43,6 @@ func (hrc *HostnicResourceCreate) SetNillableKind(s *string) *HostnicResourceCre
 	return hrc
 }
 
-// SetDescription sets the "description" field.
-func (hrc *HostnicResourceCreate) SetDescription(s string) *HostnicResourceCreate {
-	hrc.mutation.SetDescription(s)
-	return hrc
-}
-
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (hrc *HostnicResourceCreate) SetNillableDescription(s *string) *HostnicResourceCreate {
-	if s != nil {
-		hrc.SetDescription(*s)
-	}
-	return hrc
-}
-
-// SetDesiredState sets the "desired_state" field.
-func (hrc *HostnicResourceCreate) SetDesiredState(hs hostnicresource.DesiredState) *HostnicResourceCreate {
-	hrc.mutation.SetDesiredState(hs)
-	return hrc
-}
-
-// SetNillableDesiredState sets the "desired_state" field if the given value is not nil.
-func (hrc *HostnicResourceCreate) SetNillableDesiredState(hs *hostnicresource.DesiredState) *HostnicResourceCreate {
-	if hs != nil {
-		hrc.SetDesiredState(*hs)
-	}
-	return hrc
-}
-
-// SetCurrentState sets the "current_state" field.
-func (hrc *HostnicResourceCreate) SetCurrentState(hs hostnicresource.CurrentState) *HostnicResourceCreate {
-	hrc.mutation.SetCurrentState(hs)
-	return hrc
-}
-
-// SetNillableCurrentState sets the "current_state" field if the given value is not nil.
-func (hrc *HostnicResourceCreate) SetNillableCurrentState(hs *hostnicresource.CurrentState) *HostnicResourceCreate {
-	if hs != nil {
-		hrc.SetCurrentState(*hs)
-	}
-	return hrc
-}
-
 // SetProviderStatus sets the "provider_status" field.
 func (hrc *HostnicResourceCreate) SetProviderStatus(s string) *HostnicResourceCreate {
 	hrc.mutation.SetProviderStatus(s)
@@ -99,16 +57,16 @@ func (hrc *HostnicResourceCreate) SetNillableProviderStatus(s *string) *HostnicR
 	return hrc
 }
 
-// SetName sets the "name" field.
-func (hrc *HostnicResourceCreate) SetName(s string) *HostnicResourceCreate {
-	hrc.mutation.SetName(s)
+// SetDeviceName sets the "device_name" field.
+func (hrc *HostnicResourceCreate) SetDeviceName(s string) *HostnicResourceCreate {
+	hrc.mutation.SetDeviceName(s)
 	return hrc
 }
 
-// SetNillableName sets the "name" field if the given value is not nil.
-func (hrc *HostnicResourceCreate) SetNillableName(s *string) *HostnicResourceCreate {
+// SetNillableDeviceName sets the "device_name" field if the given value is not nil.
+func (hrc *HostnicResourceCreate) SetNillableDeviceName(s *string) *HostnicResourceCreate {
 	if s != nil {
-		hrc.SetName(*s)
+		hrc.SetDeviceName(*s)
 	}
 	return hrc
 }
@@ -470,16 +428,6 @@ func (hrc *HostnicResourceCreate) check() error {
 	if _, ok := hrc.mutation.ResourceID(); !ok {
 		return &ValidationError{Name: "resource_id", err: errors.New(`ent: missing required field "HostnicResource.resource_id"`)}
 	}
-	if v, ok := hrc.mutation.DesiredState(); ok {
-		if err := hostnicresource.DesiredStateValidator(v); err != nil {
-			return &ValidationError{Name: "desired_state", err: fmt.Errorf(`ent: validator failed for field "HostnicResource.desired_state": %w`, err)}
-		}
-	}
-	if v, ok := hrc.mutation.CurrentState(); ok {
-		if err := hostnicresource.CurrentStateValidator(v); err != nil {
-			return &ValidationError{Name: "current_state", err: fmt.Errorf(`ent: validator failed for field "HostnicResource.current_state": %w`, err)}
-		}
-	}
 	if v, ok := hrc.mutation.LinkState(); ok {
 		if err := hostnicresource.LinkStateValidator(v); err != nil {
 			return &ValidationError{Name: "link_state", err: fmt.Errorf(`ent: validator failed for field "HostnicResource.link_state": %w`, err)}
@@ -522,25 +470,13 @@ func (hrc *HostnicResourceCreate) createSpec() (*HostnicResource, *sqlgraph.Crea
 		_spec.SetField(hostnicresource.FieldKind, field.TypeString, value)
 		_node.Kind = value
 	}
-	if value, ok := hrc.mutation.Description(); ok {
-		_spec.SetField(hostnicresource.FieldDescription, field.TypeString, value)
-		_node.Description = value
-	}
-	if value, ok := hrc.mutation.DesiredState(); ok {
-		_spec.SetField(hostnicresource.FieldDesiredState, field.TypeEnum, value)
-		_node.DesiredState = value
-	}
-	if value, ok := hrc.mutation.CurrentState(); ok {
-		_spec.SetField(hostnicresource.FieldCurrentState, field.TypeEnum, value)
-		_node.CurrentState = value
-	}
 	if value, ok := hrc.mutation.ProviderStatus(); ok {
 		_spec.SetField(hostnicresource.FieldProviderStatus, field.TypeString, value)
 		_node.ProviderStatus = value
 	}
-	if value, ok := hrc.mutation.Name(); ok {
-		_spec.SetField(hostnicresource.FieldName, field.TypeString, value)
-		_node.Name = value
+	if value, ok := hrc.mutation.DeviceName(); ok {
+		_spec.SetField(hostnicresource.FieldDeviceName, field.TypeString, value)
+		_node.DeviceName = value
 	}
 	if value, ok := hrc.mutation.PciIdentifier(); ok {
 		_spec.SetField(hostnicresource.FieldPciIdentifier, field.TypeString, value)

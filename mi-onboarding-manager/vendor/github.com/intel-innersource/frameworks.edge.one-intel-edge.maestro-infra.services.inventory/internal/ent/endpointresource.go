@@ -21,8 +21,8 @@ type EndpointResource struct {
 	ResourceID string `json:"resource_id,omitempty"`
 	// Kind holds the value of the "kind" field.
 	Kind string `json:"kind,omitempty"`
-	// Description holds the value of the "description" field.
-	Description string `json:"description,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the EndpointResourceQuery when eager-loading is set.
 	Edges                  EndpointResourceEdges `json:"edges"`
@@ -59,7 +59,7 @@ func (*EndpointResource) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case endpointresource.FieldID:
 			values[i] = new(sql.NullInt64)
-		case endpointresource.FieldResourceID, endpointresource.FieldKind, endpointresource.FieldDescription:
+		case endpointresource.FieldResourceID, endpointresource.FieldKind, endpointresource.FieldName:
 			values[i] = new(sql.NullString)
 		case endpointresource.ForeignKeys[0]: // endpoint_resource_host
 			values[i] = new(sql.NullInt64)
@@ -96,11 +96,11 @@ func (er *EndpointResource) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				er.Kind = value.String
 			}
-		case endpointresource.FieldDescription:
+		case endpointresource.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field description", values[i])
+				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				er.Description = value.String
+				er.Name = value.String
 			}
 		case endpointresource.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -156,8 +156,8 @@ func (er *EndpointResource) String() string {
 	builder.WriteString("kind=")
 	builder.WriteString(er.Kind)
 	builder.WriteString(", ")
-	builder.WriteString("description=")
-	builder.WriteString(er.Description)
+	builder.WriteString("name=")
+	builder.WriteString(er.Name)
 	builder.WriteByte(')')
 	return builder.String()
 }

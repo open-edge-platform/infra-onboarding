@@ -7,6 +7,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"sync"
 	"time"
 
@@ -14,19 +15,21 @@ import (
 	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/logger"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/maestro"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/maestro/reconciler"
 	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
 	"github.com/pkg/errors"
 )
 
+var (
+	loggerName = "OnboardingNBHandler"
+	zlog       = logging.GetLogger(loggerName)
+)
+
 const (
 	defaultTickerPeriod = 30 * time.Second
 	parallelism         = 1
 )
-
-var log = logger.GetLogger()
 
 type Filter func(event *inv_v1.SubscribeEventsResponse) bool
 
@@ -77,7 +80,7 @@ func (nbh *NBHandler) Start() error {
 	nbh.wg.Add(1)
 	go nbh.controlLoop(ctx)
 
-	log.Info("NBHandler started")
+	zlog.MiSec().Info().Msgf("NB handler started")
 	return nil
 }
 
@@ -87,7 +90,7 @@ func (nbh *NBHandler) Stop() {
 	for _, ctrl := range nbh.controllers {
 		ctrl.Stop()
 	}
-	log.Info("NBHndler stopped")
+	zlog.MiSec().Info().Msgf("NB handler stopped")
 }
 
 func (nbh *NBHandler) controlLoop(ctx context.Context) {
@@ -98,16 +101,17 @@ func (nbh *NBHandler) controlLoop(ctx context.Context) {
 		select {
 		case ev, ok := <-nbh.invEvents:
 			if !ok {
-				log.Info("GRPC inventory event stream closed")
+				zlog.MiSec().Fatal().Msg("gRPC stream with inventory closed")
 				return
 			}
 			if !nbh.filterEvent(ev.Event) {
+				zlog.Debug().Msgf("Event %v is not allowed by filter", ev.Event)
 				continue
 			}
 			nbh.reconcileResource(ev.Event.ResourceId)
 		case <-ticker.C:
 			if err := nbh.reconcileAll(ctx); err != nil {
-				log.Errorf("full reconciliation failed %v", err)
+				zlog.MiSec().MiErr(err).Msgf("full reconciliation failed")
 			}
 		case <-nbh.stop:
 			nbh.wg.Done()
@@ -117,27 +121,27 @@ func (nbh *NBHandler) controlLoop(ctx context.Context) {
 }
 
 func (nbh *NBHandler) filterEvent(event *inv_v1.SubscribeEventsResponse) bool {
-	log.Infof("New inventory event received with ID=%v kind=%s", event.ResourceId, event.EventKind)
+	zlog.Debug().Msgf("New inventory event received. ResourceID=%v, Kind=%s", event.ResourceId, event.EventKind)
 	if err := event.ValidateAll(); err != nil {
-		log.Errorf("invalid event received with ID=%s %s", event.ResourceId, err)
+		zlog.MiSec().MiErr(err).Msgf("Invalid event received: %s", event.ResourceId)
 		return false
 	}
 
 	expectedKind, err := util.GetResourceKindFromResourceID(event.ResourceId)
 	if err != nil {
-		log.Errorf("unknown resource kind for ID %s", event.ResourceId)
+		zlog.MiSec().MiErr(err).Msgf("Unknown resource kind for ID %s.", event.ResourceId)
 		return false
 	}
 	filter, ok := nbh.filters[expectedKind]
 	if !ok {
-		log.Infof("No filter found for resource kind %s", expectedKind)
+		zlog.Debug().Msgf("No filter found for resource kind %s, accepting all events", expectedKind)
 		return true
 	}
 	return filter(event)
 }
 
 func (nbh *NBHandler) reconcileAll(ctx context.Context) error {
-	log.Info("Reconciling all instances")
+	zlog.Info().Msg("Reconciling all instances")
 	ids, err := maestro.FindAllResources(ctx, nbh.invClient, inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE)
 	if err != nil && !inv_errors.IsNotFound(err) {
 		return err
@@ -159,7 +163,7 @@ func (nbh *NBHandler) reconcileResource(resourceID string) error {
 		return errors.Wrap(err, fmt.Sprintf("unknown resource kind for resource ID %s", resourceID))
 	}
 
-	log.Infof("Reconciling resource %s of kind %s", resourceID, expectedKind)
+	zlog.Debug().Msgf("Reconciling resource (%s) of kind=%s", resourceID, expectedKind)
 
 	controller, ok := nbh.controllers[expectedKind]
 	if !ok {

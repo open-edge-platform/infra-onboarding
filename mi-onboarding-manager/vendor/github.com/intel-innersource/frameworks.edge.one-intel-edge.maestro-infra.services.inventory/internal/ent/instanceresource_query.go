@@ -15,6 +15,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/instanceresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/operatingsystemresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/predicate"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/providerresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/userresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/workloadmember"
 )
@@ -30,6 +31,7 @@ type InstanceResourceQuery struct {
 	withUser            *UserResourceQuery
 	withOs              *OperatingSystemResourceQuery
 	withWorkloadMembers *WorkloadMemberQuery
+	withProvider        *ProviderResourceQuery
 	withFKs             bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -148,6 +150,28 @@ func (irq *InstanceResourceQuery) QueryWorkloadMembers() *WorkloadMemberQuery {
 			sqlgraph.From(instanceresource.Table, instanceresource.FieldID, selector),
 			sqlgraph.To(workloadmember.Table, workloadmember.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, true, instanceresource.WorkloadMembersTable, instanceresource.WorkloadMembersColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(irq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryProvider chains the current query on the "provider" edge.
+func (irq *InstanceResourceQuery) QueryProvider() *ProviderResourceQuery {
+	query := (&ProviderResourceClient{config: irq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := irq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := irq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(instanceresource.Table, instanceresource.FieldID, selector),
+			sqlgraph.To(providerresource.Table, providerresource.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, instanceresource.ProviderTable, instanceresource.ProviderColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(irq.driver.Dialect(), step)
 		return fromU, nil
@@ -351,6 +375,7 @@ func (irq *InstanceResourceQuery) Clone() *InstanceResourceQuery {
 		withUser:            irq.withUser.Clone(),
 		withOs:              irq.withOs.Clone(),
 		withWorkloadMembers: irq.withWorkloadMembers.Clone(),
+		withProvider:        irq.withProvider.Clone(),
 		// clone intermediate query.
 		sql:  irq.sql.Clone(),
 		path: irq.path,
@@ -398,6 +423,17 @@ func (irq *InstanceResourceQuery) WithWorkloadMembers(opts ...func(*WorkloadMemb
 		opt(query)
 	}
 	irq.withWorkloadMembers = query
+	return irq
+}
+
+// WithProvider tells the query-builder to eager-load the nodes that are connected to
+// the "provider" edge. The optional arguments are used to configure the query builder of the edge.
+func (irq *InstanceResourceQuery) WithProvider(opts ...func(*ProviderResourceQuery)) *InstanceResourceQuery {
+	query := (&ProviderResourceClient{config: irq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	irq.withProvider = query
 	return irq
 }
 
@@ -480,14 +516,15 @@ func (irq *InstanceResourceQuery) sqlAll(ctx context.Context, hooks ...queryHook
 		nodes       = []*InstanceResource{}
 		withFKs     = irq.withFKs
 		_spec       = irq.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [5]bool{
 			irq.withHost != nil,
 			irq.withUser != nil,
 			irq.withOs != nil,
 			irq.withWorkloadMembers != nil,
+			irq.withProvider != nil,
 		}
 	)
-	if irq.withUser != nil || irq.withOs != nil {
+	if irq.withUser != nil || irq.withOs != nil || irq.withProvider != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -535,6 +572,12 @@ func (irq *InstanceResourceQuery) sqlAll(ctx context.Context, hooks ...queryHook
 			func(n *InstanceResource, e *WorkloadMember) {
 				n.Edges.WorkloadMembers = append(n.Edges.WorkloadMembers, e)
 			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := irq.withProvider; query != nil {
+		if err := irq.loadProvider(ctx, query, nodes, nil,
+			func(n *InstanceResource, e *ProviderResource) { n.Edges.Provider = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -661,6 +704,38 @@ func (irq *InstanceResourceQuery) loadWorkloadMembers(ctx context.Context, query
 			return fmt.Errorf(`unexpected referenced foreign-key "workload_member_instance" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
+	}
+	return nil
+}
+func (irq *InstanceResourceQuery) loadProvider(ctx context.Context, query *ProviderResourceQuery, nodes []*InstanceResource, init func(*InstanceResource), assign func(*InstanceResource, *ProviderResource)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*InstanceResource)
+	for i := range nodes {
+		if nodes[i].instance_resource_provider == nil {
+			continue
+		}
+		fk := *nodes[i].instance_resource_provider
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(providerresource.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "instance_resource_provider" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }

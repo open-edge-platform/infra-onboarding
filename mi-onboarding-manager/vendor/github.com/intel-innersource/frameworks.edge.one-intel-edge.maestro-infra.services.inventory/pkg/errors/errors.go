@@ -118,7 +118,9 @@ func Wrap(err error) error {
 		}
 		// Parse validate errors.
 		switch {
-		case errors.As(err, &computev1.HostResourceMultiError{}),
+		case errors.As(err, &inv_v1.UpdateResourceRequestMultiError{}),
+			errors.As(err, &inv_v1.UpdateResourceRequestValidationError{}),
+			errors.As(err, &computev1.HostResourceMultiError{}),
 			errors.As(err, &computev1.HostResourceValidationError{}),
 			errors.As(err, &computev1.HoststorageResourceMultiError{}),
 			errors.As(err, &computev1.HoststorageResourceValidationError{}),
@@ -155,7 +157,11 @@ func Wrap(err error) error {
 			errors.As(err, &computev1.WorkloadMemberMultiError{}),
 			errors.As(err, &computev1.WorkloadMemberValidationError{}),
 			errors.As(err, &inv_v1.ResourceFilterMultiError{}),
-			errors.As(err, &inv_v1.ResourceFilterValidationError{}):
+			errors.As(err, &inv_v1.ResourceFilterValidationError{}),
+			errors.As(err, &inv_v1.FindResourcesRequestMultiError{}),
+			errors.As(err, &inv_v1.FindResourcesRequestValidationError{}),
+			errors.As(err, &inv_v1.ListResourcesRequestMultiError{}),
+			errors.As(err, &inv_v1.ListResourcesRequestValidationError{}):
 			return build(Reason(codes.InvalidArgument), errors.Errorf("%s", err.Error()))
 		}
 		// Check if context was canceled

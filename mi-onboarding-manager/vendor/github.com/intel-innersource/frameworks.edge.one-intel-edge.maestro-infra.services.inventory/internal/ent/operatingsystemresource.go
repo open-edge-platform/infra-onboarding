@@ -18,8 +18,8 @@ type OperatingSystemResource struct {
 	ID int `json:"id,omitempty"`
 	// ResourceID holds the value of the "resource_id" field.
 	ResourceID string `json:"resource_id,omitempty"`
-	// Description holds the value of the "description" field.
-	Description string `json:"description,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
 	// Architecture holds the value of the "architecture" field.
 	Architecture string `json:"architecture,omitempty"`
 	// KernelCommand holds the value of the "kernel_command" field.
@@ -42,7 +42,7 @@ func (*OperatingSystemResource) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case operatingsystemresource.FieldID:
 			values[i] = new(sql.NullInt64)
-		case operatingsystemresource.FieldResourceID, operatingsystemresource.FieldDescription, operatingsystemresource.FieldArchitecture, operatingsystemresource.FieldKernelCommand, operatingsystemresource.FieldUpdateSources, operatingsystemresource.FieldRepoURL, operatingsystemresource.FieldSha256, operatingsystemresource.FieldProfileName:
+		case operatingsystemresource.FieldResourceID, operatingsystemresource.FieldName, operatingsystemresource.FieldArchitecture, operatingsystemresource.FieldKernelCommand, operatingsystemresource.FieldUpdateSources, operatingsystemresource.FieldRepoURL, operatingsystemresource.FieldSha256, operatingsystemresource.FieldProfileName:
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -71,11 +71,11 @@ func (osr *OperatingSystemResource) assignValues(columns []string, values []any)
 			} else if value.Valid {
 				osr.ResourceID = value.String
 			}
-		case operatingsystemresource.FieldDescription:
+		case operatingsystemresource.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field description", values[i])
+				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				osr.Description = value.String
+				osr.Name = value.String
 			}
 		case operatingsystemresource.FieldArchitecture:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -152,8 +152,8 @@ func (osr *OperatingSystemResource) String() string {
 	builder.WriteString("resource_id=")
 	builder.WriteString(osr.ResourceID)
 	builder.WriteString(", ")
-	builder.WriteString("description=")
-	builder.WriteString(osr.Description)
+	builder.WriteString("name=")
+	builder.WriteString(osr.Name)
 	builder.WriteString(", ")
 	builder.WriteString("architecture=")
 	builder.WriteString(osr.Architecture)

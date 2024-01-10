@@ -18,8 +18,8 @@ type OuResource struct {
 	ID int `json:"id,omitempty"`
 	// ResourceID holds the value of the "resource_id" field.
 	ResourceID string `json:"resource_id,omitempty"`
-	// Description holds the value of the "description" field.
-	Description string `json:"description,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
 	// OuKind holds the value of the "ou_kind" field.
 	OuKind string `json:"ou_kind,omitempty"`
 	// Metadata holds the value of the "metadata" field.
@@ -71,7 +71,7 @@ func (*OuResource) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case ouresource.FieldID:
 			values[i] = new(sql.NullInt64)
-		case ouresource.FieldResourceID, ouresource.FieldDescription, ouresource.FieldOuKind, ouresource.FieldMetadata:
+		case ouresource.FieldResourceID, ouresource.FieldName, ouresource.FieldOuKind, ouresource.FieldMetadata:
 			values[i] = new(sql.NullString)
 		case ouresource.ForeignKeys[0]: // ou_resource_parent_ou
 			values[i] = new(sql.NullInt64)
@@ -102,11 +102,11 @@ func (or *OuResource) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				or.ResourceID = value.String
 			}
-		case ouresource.FieldDescription:
+		case ouresource.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field description", values[i])
+				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				or.Description = value.String
+				or.Name = value.String
 			}
 		case ouresource.FieldOuKind:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -176,8 +176,8 @@ func (or *OuResource) String() string {
 	builder.WriteString("resource_id=")
 	builder.WriteString(or.ResourceID)
 	builder.WriteString(", ")
-	builder.WriteString("description=")
-	builder.WriteString(or.Description)
+	builder.WriteString("name=")
+	builder.WriteString(or.Name)
 	builder.WriteString(", ")
 	builder.WriteString("ou_kind=")
 	builder.WriteString(or.OuKind)

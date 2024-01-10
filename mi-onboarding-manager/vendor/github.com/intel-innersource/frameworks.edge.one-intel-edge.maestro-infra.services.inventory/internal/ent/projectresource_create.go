@@ -39,16 +39,16 @@ func (prc *ProjectResourceCreate) SetNillableKind(s *string) *ProjectResourceCre
 	return prc
 }
 
-// SetDescription sets the "description" field.
-func (prc *ProjectResourceCreate) SetDescription(s string) *ProjectResourceCreate {
-	prc.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (prc *ProjectResourceCreate) SetName(s string) *ProjectResourceCreate {
+	prc.mutation.SetName(s)
 	return prc
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (prc *ProjectResourceCreate) SetNillableDescription(s *string) *ProjectResourceCreate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (prc *ProjectResourceCreate) SetNillableName(s *string) *ProjectResourceCreate {
 	if s != nil {
-		prc.SetDescription(*s)
+		prc.SetName(*s)
 	}
 	return prc
 }
@@ -124,9 +124,9 @@ func (prc *ProjectResourceCreate) createSpec() (*ProjectResource, *sqlgraph.Crea
 		_spec.SetField(projectresource.FieldKind, field.TypeString, value)
 		_node.Kind = value
 	}
-	if value, ok := prc.mutation.Description(); ok {
-		_spec.SetField(projectresource.FieldDescription, field.TypeString, value)
-		_node.Description = value
+	if value, ok := prc.mutation.Name(); ok {
+		_spec.SetField(projectresource.FieldName, field.TypeString, value)
+		_node.Name = value
 	}
 	return _node, _spec
 }

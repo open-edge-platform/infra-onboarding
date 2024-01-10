@@ -6,24 +6,25 @@ package maestro
 
 import (
 	"context"
-	"sync"
-	"time"
-
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/logger"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
+	"sync"
 )
 
-var log = logger.GetLogger()
+var (
+	clientName = "OnboardingInventoryClient"
+	zlog       = logging.GetLogger(clientName)
+)
 
-func NewInventoryClient(ctx context.Context, wg *sync.WaitGroup, termChan chan bool, addr string) (inv_client.InventoryClient, chan *inv_client.WatchEvents, error) {
-	log.Info("Init Inv client")
+func NewInventoryClient(wg *sync.WaitGroup, addr string) (inv_client.InventoryClient, chan *inv_client.WatchEvents, error) {
+	ctx := context.Background()
 	resourceKinds := []inv_v1.ResourceKind{
 		inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE,
 		inv_v1.ResourceKind_RESOURCE_KIND_HOST,
@@ -32,7 +33,7 @@ func NewInventoryClient(ctx context.Context, wg *sync.WaitGroup, termChan chan b
 	eventCh := make(chan *inv_client.WatchEvents)
 
 	cfg := inv_client.InventoryClientConfig{
-		Name:                      "onboarding_manager",
+		Name:                      clientName,
 		Address:                   addr,
 		Events:                    eventCh,
 		EnableRegisterRetry:       false,
@@ -41,21 +42,18 @@ func NewInventoryClient(ctx context.Context, wg *sync.WaitGroup, termChan chan b
 		ResourceKinds:             resourceKinds,
 		EnableTracing:             true,
 		Wg:                        wg,
-		TermChan:                  termChan,
 		SecurityCfg: &inv_client.SecurityConfig{
 			Insecure: true,
 		},
 	}
-	for {
-		client, err := inv_client.NewInventoryClient(ctx, cfg)
-		if err != nil {
-			log.Infof("Failed to create new inventory client %v,Retry after 5 seconds", err)
-			time.Sleep(5 * time.Second)
-		}
-		if err == nil {
-			return client, eventCh, nil
-		}
+
+	invClient, err := inv_client.NewInventoryClient(ctx, cfg)
+	if err != nil {
+		return nil, eventCh, err
 	}
+
+	zlog.MiSec().Info().Msgf("Inventory client started")
+	return invClient, eventCh, nil
 }
 
 func FindAllResources(ctx context.Context, c inv_client.InventoryClient, kind inv_v1.ResourceKind) ([]string, error) {

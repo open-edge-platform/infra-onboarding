@@ -21,8 +21,8 @@ type NetlinkResource struct {
 	ResourceID string `json:"resource_id,omitempty"`
 	// Kind holds the value of the "kind" field.
 	Kind string `json:"kind,omitempty"`
-	// Description holds the value of the "description" field.
-	Description string `json:"description,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
 	// DesiredState holds the value of the "desired_state" field.
 	DesiredState netlinkresource.DesiredState `json:"desired_state,omitempty"`
 	// CurrentState holds the value of the "current_state" field.
@@ -81,7 +81,7 @@ func (*NetlinkResource) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case netlinkresource.FieldID:
 			values[i] = new(sql.NullInt64)
-		case netlinkresource.FieldResourceID, netlinkresource.FieldKind, netlinkresource.FieldDescription, netlinkresource.FieldDesiredState, netlinkresource.FieldCurrentState, netlinkresource.FieldProviderStatus:
+		case netlinkresource.FieldResourceID, netlinkresource.FieldKind, netlinkresource.FieldName, netlinkresource.FieldDesiredState, netlinkresource.FieldCurrentState, netlinkresource.FieldProviderStatus:
 			values[i] = new(sql.NullString)
 		case netlinkresource.ForeignKeys[0]: // netlink_resource_src
 			values[i] = new(sql.NullInt64)
@@ -120,11 +120,11 @@ func (nr *NetlinkResource) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				nr.Kind = value.String
 			}
-		case netlinkresource.FieldDescription:
+		case netlinkresource.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field description", values[i])
+				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				nr.Description = value.String
+				nr.Name = value.String
 			}
 		case netlinkresource.FieldDesiredState:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -210,8 +210,8 @@ func (nr *NetlinkResource) String() string {
 	builder.WriteString("kind=")
 	builder.WriteString(nr.Kind)
 	builder.WriteString(", ")
-	builder.WriteString("description=")
-	builder.WriteString(nr.Description)
+	builder.WriteString("name=")
+	builder.WriteString(nr.Name)
 	builder.WriteString(", ")
 	builder.WriteString("desired_state=")
 	builder.WriteString(fmt.Sprintf("%v", nr.DesiredState))

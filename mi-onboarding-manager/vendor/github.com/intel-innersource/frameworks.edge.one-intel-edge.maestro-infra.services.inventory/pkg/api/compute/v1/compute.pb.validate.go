@@ -88,7 +88,7 @@ func (m *HostResource) validate(all bool) error {
 
 	// no validation rules for Kind
 
-	// no validation rules for Description
+	// no validation rules for Name
 
 	// no validation rules for DesiredState
 
@@ -231,8 +231,6 @@ func (m *HostResource) validate(all bool) error {
 
 	}
 
-	// no validation rules for ConsumerId
-
 	// no validation rules for HardwareKind
 
 	// no validation rules for SerialNumber
@@ -277,12 +275,6 @@ func (m *HostResource) validate(all bool) error {
 	// no validation rules for CpuArchitecture
 
 	// no validation rules for CpuThreads
-
-	// no validation rules for GpuPciId
-
-	// no validation rules for GpuProduct
-
-	// no validation rules for GpuVendor
 
 	// no validation rules for MgmtIp
 
@@ -406,6 +398,40 @@ func (m *HostResource) validate(all bool) error {
 			if err := v.Validate(); err != nil {
 				return HostResourceValidationError{
 					field:  fmt.Sprintf("HostUsbs[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	for idx, item := range m.GetHostGpus() {
+		_, _ = idx, item
+
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, HostResourceValidationError{
+						field:  fmt.Sprintf("HostGpus[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, HostResourceValidationError{
+						field:  fmt.Sprintf("HostGpus[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return HostResourceValidationError{
+					field:  fmt.Sprintf("HostGpus[%v]", idx),
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
@@ -580,12 +606,6 @@ func (m *HoststorageResource) validate(all bool) error {
 
 	// no validation rules for Kind
 
-	// no validation rules for Description
-
-	// no validation rules for DesiredState
-
-	// no validation rules for CurrentState
-
 	// no validation rules for ProviderStatus
 
 	if all {
@@ -714,7 +734,7 @@ func (m *HoststorageResource) validate(all bool) error {
 
 	// no validation rules for CapacityBytes
 
-	// no validation rules for Name
+	// no validation rules for DeviceName
 
 	if len(errors) > 0 {
 		return HoststorageResourceMultiError(errors)
@@ -848,12 +868,6 @@ func (m *HostnicResource) validate(all bool) error {
 
 	// no validation rules for Kind
 
-	// no validation rules for Description
-
-	// no validation rules for DesiredState
-
-	// no validation rules for CurrentState
-
 	// no validation rules for ProviderStatus
 
 	if all {
@@ -972,7 +986,7 @@ func (m *HostnicResource) validate(all bool) error {
 		}
 	}
 
-	// no validation rules for Name
+	// no validation rules for DeviceName
 
 	// no validation rules for PciIdentifier
 
@@ -1140,12 +1154,6 @@ func (m *HostusbResource) validate(all bool) error {
 
 	// no validation rules for Kind
 
-	// no validation rules for Description
-
-	// no validation rules for CurrentState
-
-	// no validation rules for DesiredState
-
 	if all {
 		switch v := interface{}(m.GetHost()).(type) {
 		case interface{ ValidateAll() error }:
@@ -1188,6 +1196,8 @@ func (m *HostusbResource) validate(all bool) error {
 	// no validation rules for Class
 
 	// no validation rules for Serial
+
+	// no validation rules for DeviceName
 
 	if len(errors) > 0 {
 		return HostusbResourceMultiError(errors)
@@ -1269,6 +1279,173 @@ var _ interface {
 
 var _HostusbResource_ResourceId_Pattern = regexp.MustCompile("^hostusb-[0-9a-f]{8}$")
 
+// Validate checks the field values on HostgpuResource with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *HostgpuResource) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on HostgpuResource with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// HostgpuResourceMultiError, or nil if none found.
+func (m *HostgpuResource) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *HostgpuResource) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if m.GetResourceId() != "" {
+
+		if len(m.GetResourceId()) > 16 {
+			err := HostgpuResourceValidationError{
+				field:  "ResourceId",
+				reason: "value length must be at most 16 bytes",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+		if !_HostgpuResource_ResourceId_Pattern.MatchString(m.GetResourceId()) {
+			err := HostgpuResourceValidationError{
+				field:  "ResourceId",
+				reason: "value does not match regex pattern \"^hostgpu-[0-9a-f]{8}$\"",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
+	if all {
+		switch v := interface{}(m.GetHost()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, HostgpuResourceValidationError{
+					field:  "Host",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, HostgpuResourceValidationError{
+					field:  "Host",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetHost()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return HostgpuResourceValidationError{
+				field:  "Host",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	// no validation rules for PciId
+
+	// no validation rules for Product
+
+	// no validation rules for Vendor
+
+	// no validation rules for Description
+
+	// no validation rules for DeviceName
+
+	if len(errors) > 0 {
+		return HostgpuResourceMultiError(errors)
+	}
+
+	return nil
+}
+
+// HostgpuResourceMultiError is an error wrapping multiple validation errors
+// returned by HostgpuResource.ValidateAll() if the designated constraints
+// aren't met.
+type HostgpuResourceMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m HostgpuResourceMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m HostgpuResourceMultiError) AllErrors() []error { return m }
+
+// HostgpuResourceValidationError is the validation error returned by
+// HostgpuResource.Validate if the designated constraints aren't met.
+type HostgpuResourceValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e HostgpuResourceValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e HostgpuResourceValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e HostgpuResourceValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e HostgpuResourceValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e HostgpuResourceValidationError) ErrorName() string { return "HostgpuResourceValidationError" }
+
+// Error satisfies the builtin error interface
+func (e HostgpuResourceValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sHostgpuResource.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = HostgpuResourceValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = HostgpuResourceValidationError{}
+
+var _HostgpuResource_ResourceId_Pattern = regexp.MustCompile("^hostgpu-[0-9a-f]{8}$")
+
 // Validate checks the field values on InstanceResource with the rules defined
 // in the proto definition for this message. If any rules are violated, the
 // first error encountered is returned, or nil if there are no violations.
@@ -1319,7 +1496,7 @@ func (m *InstanceResource) validate(all bool) error {
 
 	// no validation rules for Kind
 
-	// no validation rules for Description
+	// no validation rules for Name
 
 	// no validation rules for DesiredState
 
@@ -1456,6 +1633,35 @@ func (m *InstanceResource) validate(all bool) error {
 
 	}
 
+	if all {
+		switch v := interface{}(m.GetProvider()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, InstanceResourceValidationError{
+					field:  "Provider",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, InstanceResourceValidationError{
+					field:  "Provider",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetProvider()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return InstanceResourceValidationError{
+				field:  "Provider",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	if len(errors) > 0 {
 		return InstanceResourceMultiError(errors)
 	}
@@ -1586,7 +1792,7 @@ func (m *WorkloadResource) validate(all bool) error {
 
 	// no validation rules for Kind
 
-	// no validation rules for Description
+	// no validation rules for Name
 
 	if m.GetExternalId() != "" {
 
@@ -1763,7 +1969,7 @@ func (m *WorkloadMember) validate(all bool) error {
 		if !_WorkloadMember_ResourceId_Pattern.MatchString(m.GetResourceId()) {
 			err := WorkloadMemberValidationError{
 				field:  "ResourceId",
-				reason: "value does not match regex pattern \"^workloadMember-[0-9a-f]{8}$\"",
+				reason: "value does not match regex pattern \"^workloadmember-[0-9a-f]{8}$\"",
 			}
 			if !all {
 				return err
@@ -1911,4 +2117,4 @@ var _ interface {
 	ErrorName() string
 } = WorkloadMemberValidationError{}
 
-var _WorkloadMember_ResourceId_Pattern = regexp.MustCompile("^workloadMember-[0-9a-f]{8}$")
+var _WorkloadMember_ResourceId_Pattern = regexp.MustCompile("^workloadmember-[0-9a-f]{8}$")

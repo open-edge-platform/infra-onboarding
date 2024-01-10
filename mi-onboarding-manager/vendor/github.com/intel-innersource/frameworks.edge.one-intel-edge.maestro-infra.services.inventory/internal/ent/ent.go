@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/endpointresource"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hostgpuresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hostnicresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hostresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hoststorageresource"
@@ -29,6 +30,8 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/repeatedscheduleresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/singlescheduleresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/siteresource"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/telemetrygroupresource"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/telemetryprofile"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/userresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/workloadmember"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/workloadresource"
@@ -94,6 +97,7 @@ func checkColumn(table, column string) error {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			endpointresource.Table:         endpointresource.ValidColumn,
 			hostresource.Table:             hostresource.ValidColumn,
+			hostgpuresource.Table:          hostgpuresource.ValidColumn,
 			hostnicresource.Table:          hostnicresource.ValidColumn,
 			hoststorageresource.Table:      hoststorageresource.ValidColumn,
 			hostusbresource.Table:          hostusbresource.ValidColumn,
@@ -109,6 +113,8 @@ func checkColumn(table, column string) error {
 			repeatedscheduleresource.Table: repeatedscheduleresource.ValidColumn,
 			singlescheduleresource.Table:   singlescheduleresource.ValidColumn,
 			siteresource.Table:             siteresource.ValidColumn,
+			telemetrygroupresource.Table:   telemetrygroupresource.ValidColumn,
+			telemetryprofile.Table:         telemetryprofile.ValidColumn,
 			userresource.Table:             userresource.ValidColumn,
 			workloadmember.Table:           workloadmember.ValidColumn,
 			workloadresource.Table:         workloadresource.ValidColumn,

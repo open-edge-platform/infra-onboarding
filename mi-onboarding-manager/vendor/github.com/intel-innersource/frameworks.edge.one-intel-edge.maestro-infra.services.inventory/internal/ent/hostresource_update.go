@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hostgpuresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hostnicresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hostresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hoststorageresource"
@@ -61,23 +62,23 @@ func (hru *HostResourceUpdate) ClearKind() *HostResourceUpdate {
 	return hru
 }
 
-// SetDescription sets the "description" field.
-func (hru *HostResourceUpdate) SetDescription(s string) *HostResourceUpdate {
-	hru.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (hru *HostResourceUpdate) SetName(s string) *HostResourceUpdate {
+	hru.mutation.SetName(s)
 	return hru
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (hru *HostResourceUpdate) SetNillableDescription(s *string) *HostResourceUpdate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (hru *HostResourceUpdate) SetNillableName(s *string) *HostResourceUpdate {
 	if s != nil {
-		hru.SetDescription(*s)
+		hru.SetName(*s)
 	}
 	return hru
 }
 
-// ClearDescription clears the value of the "description" field.
-func (hru *HostResourceUpdate) ClearDescription() *HostResourceUpdate {
-	hru.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (hru *HostResourceUpdate) ClearName() *HostResourceUpdate {
+	hru.mutation.ClearName()
 	return hru
 }
 
@@ -198,26 +199,6 @@ func (hru *HostResourceUpdate) SetNillableNote(s *string) *HostResourceUpdate {
 // ClearNote clears the value of the "note" field.
 func (hru *HostResourceUpdate) ClearNote() *HostResourceUpdate {
 	hru.mutation.ClearNote()
-	return hru
-}
-
-// SetConsumerID sets the "consumer_id" field.
-func (hru *HostResourceUpdate) SetConsumerID(s string) *HostResourceUpdate {
-	hru.mutation.SetConsumerID(s)
-	return hru
-}
-
-// SetNillableConsumerID sets the "consumer_id" field if the given value is not nil.
-func (hru *HostResourceUpdate) SetNillableConsumerID(s *string) *HostResourceUpdate {
-	if s != nil {
-		hru.SetConsumerID(*s)
-	}
-	return hru
-}
-
-// ClearConsumerID clears the value of the "consumer_id" field.
-func (hru *HostResourceUpdate) ClearConsumerID() *HostResourceUpdate {
-	hru.mutation.ClearConsumerID()
 	return hru
 }
 
@@ -446,66 +427,6 @@ func (hru *HostResourceUpdate) AddCPUThreads(u int32) *HostResourceUpdate {
 // ClearCPUThreads clears the value of the "cpu_threads" field.
 func (hru *HostResourceUpdate) ClearCPUThreads() *HostResourceUpdate {
 	hru.mutation.ClearCPUThreads()
-	return hru
-}
-
-// SetGpuPciID sets the "gpu_pci_id" field.
-func (hru *HostResourceUpdate) SetGpuPciID(s string) *HostResourceUpdate {
-	hru.mutation.SetGpuPciID(s)
-	return hru
-}
-
-// SetNillableGpuPciID sets the "gpu_pci_id" field if the given value is not nil.
-func (hru *HostResourceUpdate) SetNillableGpuPciID(s *string) *HostResourceUpdate {
-	if s != nil {
-		hru.SetGpuPciID(*s)
-	}
-	return hru
-}
-
-// ClearGpuPciID clears the value of the "gpu_pci_id" field.
-func (hru *HostResourceUpdate) ClearGpuPciID() *HostResourceUpdate {
-	hru.mutation.ClearGpuPciID()
-	return hru
-}
-
-// SetGpuProduct sets the "gpu_product" field.
-func (hru *HostResourceUpdate) SetGpuProduct(s string) *HostResourceUpdate {
-	hru.mutation.SetGpuProduct(s)
-	return hru
-}
-
-// SetNillableGpuProduct sets the "gpu_product" field if the given value is not nil.
-func (hru *HostResourceUpdate) SetNillableGpuProduct(s *string) *HostResourceUpdate {
-	if s != nil {
-		hru.SetGpuProduct(*s)
-	}
-	return hru
-}
-
-// ClearGpuProduct clears the value of the "gpu_product" field.
-func (hru *HostResourceUpdate) ClearGpuProduct() *HostResourceUpdate {
-	hru.mutation.ClearGpuProduct()
-	return hru
-}
-
-// SetGpuVendor sets the "gpu_vendor" field.
-func (hru *HostResourceUpdate) SetGpuVendor(s string) *HostResourceUpdate {
-	hru.mutation.SetGpuVendor(s)
-	return hru
-}
-
-// SetNillableGpuVendor sets the "gpu_vendor" field if the given value is not nil.
-func (hru *HostResourceUpdate) SetNillableGpuVendor(s *string) *HostResourceUpdate {
-	if s != nil {
-		hru.SetGpuVendor(*s)
-	}
-	return hru
-}
-
-// ClearGpuVendor clears the value of the "gpu_vendor" field.
-func (hru *HostResourceUpdate) ClearGpuVendor() *HostResourceUpdate {
-	hru.mutation.ClearGpuVendor()
 	return hru
 }
 
@@ -910,6 +831,21 @@ func (hru *HostResourceUpdate) AddHostUsbs(h ...*HostusbResource) *HostResourceU
 	return hru.AddHostUsbIDs(ids...)
 }
 
+// AddHostGpuIDs adds the "host_gpus" edge to the HostgpuResource entity by IDs.
+func (hru *HostResourceUpdate) AddHostGpuIDs(ids ...int) *HostResourceUpdate {
+	hru.mutation.AddHostGpuIDs(ids...)
+	return hru
+}
+
+// AddHostGpus adds the "host_gpus" edges to the HostgpuResource entity.
+func (hru *HostResourceUpdate) AddHostGpus(h ...*HostgpuResource) *HostResourceUpdate {
+	ids := make([]int, len(h))
+	for i := range h {
+		ids[i] = h[i].ID
+	}
+	return hru.AddHostGpuIDs(ids...)
+}
+
 // SetInstanceID sets the "instance" edge to the InstanceResource entity by ID.
 func (hru *HostResourceUpdate) SetInstanceID(id int) *HostResourceUpdate {
 	hru.mutation.SetInstanceID(id)
@@ -1021,6 +957,27 @@ func (hru *HostResourceUpdate) RemoveHostUsbs(h ...*HostusbResource) *HostResour
 	return hru.RemoveHostUsbIDs(ids...)
 }
 
+// ClearHostGpus clears all "host_gpus" edges to the HostgpuResource entity.
+func (hru *HostResourceUpdate) ClearHostGpus() *HostResourceUpdate {
+	hru.mutation.ClearHostGpus()
+	return hru
+}
+
+// RemoveHostGpuIDs removes the "host_gpus" edge to HostgpuResource entities by IDs.
+func (hru *HostResourceUpdate) RemoveHostGpuIDs(ids ...int) *HostResourceUpdate {
+	hru.mutation.RemoveHostGpuIDs(ids...)
+	return hru
+}
+
+// RemoveHostGpus removes "host_gpus" edges to HostgpuResource entities.
+func (hru *HostResourceUpdate) RemoveHostGpus(h ...*HostgpuResource) *HostResourceUpdate {
+	ids := make([]int, len(h))
+	for i := range h {
+		ids[i] = h[i].ID
+	}
+	return hru.RemoveHostGpuIDs(ids...)
+}
+
 // ClearInstance clears the "instance" edge to the InstanceResource entity.
 func (hru *HostResourceUpdate) ClearInstance() *HostResourceUpdate {
 	hru.mutation.ClearInstance()
@@ -1110,11 +1067,11 @@ func (hru *HostResourceUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if hru.mutation.KindCleared() {
 		_spec.ClearField(hostresource.FieldKind, field.TypeString)
 	}
-	if value, ok := hru.mutation.Description(); ok {
-		_spec.SetField(hostresource.FieldDescription, field.TypeString, value)
+	if value, ok := hru.mutation.Name(); ok {
+		_spec.SetField(hostresource.FieldName, field.TypeString, value)
 	}
-	if hru.mutation.DescriptionCleared() {
-		_spec.ClearField(hostresource.FieldDescription, field.TypeString)
+	if hru.mutation.NameCleared() {
+		_spec.ClearField(hostresource.FieldName, field.TypeString)
 	}
 	if value, ok := hru.mutation.DesiredState(); ok {
 		_spec.SetField(hostresource.FieldDesiredState, field.TypeEnum, value)
@@ -1151,12 +1108,6 @@ func (hru *HostResourceUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if hru.mutation.NoteCleared() {
 		_spec.ClearField(hostresource.FieldNote, field.TypeString)
-	}
-	if value, ok := hru.mutation.ConsumerID(); ok {
-		_spec.SetField(hostresource.FieldConsumerID, field.TypeString, value)
-	}
-	if hru.mutation.ConsumerIDCleared() {
-		_spec.ClearField(hostresource.FieldConsumerID, field.TypeString)
 	}
 	if value, ok := hru.mutation.HardwareKind(); ok {
 		_spec.SetField(hostresource.FieldHardwareKind, field.TypeString, value)
@@ -1229,24 +1180,6 @@ func (hru *HostResourceUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if hru.mutation.CPUThreadsCleared() {
 		_spec.ClearField(hostresource.FieldCPUThreads, field.TypeUint32)
-	}
-	if value, ok := hru.mutation.GpuPciID(); ok {
-		_spec.SetField(hostresource.FieldGpuPciID, field.TypeString, value)
-	}
-	if hru.mutation.GpuPciIDCleared() {
-		_spec.ClearField(hostresource.FieldGpuPciID, field.TypeString)
-	}
-	if value, ok := hru.mutation.GpuProduct(); ok {
-		_spec.SetField(hostresource.FieldGpuProduct, field.TypeString, value)
-	}
-	if hru.mutation.GpuProductCleared() {
-		_spec.ClearField(hostresource.FieldGpuProduct, field.TypeString)
-	}
-	if value, ok := hru.mutation.GpuVendor(); ok {
-		_spec.SetField(hostresource.FieldGpuVendor, field.TypeString, value)
-	}
-	if hru.mutation.GpuVendorCleared() {
-		_spec.ClearField(hostresource.FieldGpuVendor, field.TypeString)
 	}
 	if value, ok := hru.mutation.MgmtIP(); ok {
 		_spec.SetField(hostresource.FieldMgmtIP, field.TypeString, value)
@@ -1583,6 +1516,51 @@ func (hru *HostResourceUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if hru.mutation.HostGpusCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   hostresource.HostGpusTable,
+			Columns: []string{hostresource.HostGpusColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(hostgpuresource.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := hru.mutation.RemovedHostGpusIDs(); len(nodes) > 0 && !hru.mutation.HostGpusCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   hostresource.HostGpusTable,
+			Columns: []string{hostresource.HostGpusColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(hostgpuresource.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := hru.mutation.HostGpusIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   hostresource.HostGpusTable,
+			Columns: []string{hostresource.HostGpusColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(hostgpuresource.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if hru.mutation.InstanceCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
@@ -1658,23 +1636,23 @@ func (hruo *HostResourceUpdateOne) ClearKind() *HostResourceUpdateOne {
 	return hruo
 }
 
-// SetDescription sets the "description" field.
-func (hruo *HostResourceUpdateOne) SetDescription(s string) *HostResourceUpdateOne {
-	hruo.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (hruo *HostResourceUpdateOne) SetName(s string) *HostResourceUpdateOne {
+	hruo.mutation.SetName(s)
 	return hruo
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (hruo *HostResourceUpdateOne) SetNillableDescription(s *string) *HostResourceUpdateOne {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (hruo *HostResourceUpdateOne) SetNillableName(s *string) *HostResourceUpdateOne {
 	if s != nil {
-		hruo.SetDescription(*s)
+		hruo.SetName(*s)
 	}
 	return hruo
 }
 
-// ClearDescription clears the value of the "description" field.
-func (hruo *HostResourceUpdateOne) ClearDescription() *HostResourceUpdateOne {
-	hruo.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (hruo *HostResourceUpdateOne) ClearName() *HostResourceUpdateOne {
+	hruo.mutation.ClearName()
 	return hruo
 }
 
@@ -1795,26 +1773,6 @@ func (hruo *HostResourceUpdateOne) SetNillableNote(s *string) *HostResourceUpdat
 // ClearNote clears the value of the "note" field.
 func (hruo *HostResourceUpdateOne) ClearNote() *HostResourceUpdateOne {
 	hruo.mutation.ClearNote()
-	return hruo
-}
-
-// SetConsumerID sets the "consumer_id" field.
-func (hruo *HostResourceUpdateOne) SetConsumerID(s string) *HostResourceUpdateOne {
-	hruo.mutation.SetConsumerID(s)
-	return hruo
-}
-
-// SetNillableConsumerID sets the "consumer_id" field if the given value is not nil.
-func (hruo *HostResourceUpdateOne) SetNillableConsumerID(s *string) *HostResourceUpdateOne {
-	if s != nil {
-		hruo.SetConsumerID(*s)
-	}
-	return hruo
-}
-
-// ClearConsumerID clears the value of the "consumer_id" field.
-func (hruo *HostResourceUpdateOne) ClearConsumerID() *HostResourceUpdateOne {
-	hruo.mutation.ClearConsumerID()
 	return hruo
 }
 
@@ -2043,66 +2001,6 @@ func (hruo *HostResourceUpdateOne) AddCPUThreads(u int32) *HostResourceUpdateOne
 // ClearCPUThreads clears the value of the "cpu_threads" field.
 func (hruo *HostResourceUpdateOne) ClearCPUThreads() *HostResourceUpdateOne {
 	hruo.mutation.ClearCPUThreads()
-	return hruo
-}
-
-// SetGpuPciID sets the "gpu_pci_id" field.
-func (hruo *HostResourceUpdateOne) SetGpuPciID(s string) *HostResourceUpdateOne {
-	hruo.mutation.SetGpuPciID(s)
-	return hruo
-}
-
-// SetNillableGpuPciID sets the "gpu_pci_id" field if the given value is not nil.
-func (hruo *HostResourceUpdateOne) SetNillableGpuPciID(s *string) *HostResourceUpdateOne {
-	if s != nil {
-		hruo.SetGpuPciID(*s)
-	}
-	return hruo
-}
-
-// ClearGpuPciID clears the value of the "gpu_pci_id" field.
-func (hruo *HostResourceUpdateOne) ClearGpuPciID() *HostResourceUpdateOne {
-	hruo.mutation.ClearGpuPciID()
-	return hruo
-}
-
-// SetGpuProduct sets the "gpu_product" field.
-func (hruo *HostResourceUpdateOne) SetGpuProduct(s string) *HostResourceUpdateOne {
-	hruo.mutation.SetGpuProduct(s)
-	return hruo
-}
-
-// SetNillableGpuProduct sets the "gpu_product" field if the given value is not nil.
-func (hruo *HostResourceUpdateOne) SetNillableGpuProduct(s *string) *HostResourceUpdateOne {
-	if s != nil {
-		hruo.SetGpuProduct(*s)
-	}
-	return hruo
-}
-
-// ClearGpuProduct clears the value of the "gpu_product" field.
-func (hruo *HostResourceUpdateOne) ClearGpuProduct() *HostResourceUpdateOne {
-	hruo.mutation.ClearGpuProduct()
-	return hruo
-}
-
-// SetGpuVendor sets the "gpu_vendor" field.
-func (hruo *HostResourceUpdateOne) SetGpuVendor(s string) *HostResourceUpdateOne {
-	hruo.mutation.SetGpuVendor(s)
-	return hruo
-}
-
-// SetNillableGpuVendor sets the "gpu_vendor" field if the given value is not nil.
-func (hruo *HostResourceUpdateOne) SetNillableGpuVendor(s *string) *HostResourceUpdateOne {
-	if s != nil {
-		hruo.SetGpuVendor(*s)
-	}
-	return hruo
-}
-
-// ClearGpuVendor clears the value of the "gpu_vendor" field.
-func (hruo *HostResourceUpdateOne) ClearGpuVendor() *HostResourceUpdateOne {
-	hruo.mutation.ClearGpuVendor()
 	return hruo
 }
 
@@ -2507,6 +2405,21 @@ func (hruo *HostResourceUpdateOne) AddHostUsbs(h ...*HostusbResource) *HostResou
 	return hruo.AddHostUsbIDs(ids...)
 }
 
+// AddHostGpuIDs adds the "host_gpus" edge to the HostgpuResource entity by IDs.
+func (hruo *HostResourceUpdateOne) AddHostGpuIDs(ids ...int) *HostResourceUpdateOne {
+	hruo.mutation.AddHostGpuIDs(ids...)
+	return hruo
+}
+
+// AddHostGpus adds the "host_gpus" edges to the HostgpuResource entity.
+func (hruo *HostResourceUpdateOne) AddHostGpus(h ...*HostgpuResource) *HostResourceUpdateOne {
+	ids := make([]int, len(h))
+	for i := range h {
+		ids[i] = h[i].ID
+	}
+	return hruo.AddHostGpuIDs(ids...)
+}
+
 // SetInstanceID sets the "instance" edge to the InstanceResource entity by ID.
 func (hruo *HostResourceUpdateOne) SetInstanceID(id int) *HostResourceUpdateOne {
 	hruo.mutation.SetInstanceID(id)
@@ -2616,6 +2529,27 @@ func (hruo *HostResourceUpdateOne) RemoveHostUsbs(h ...*HostusbResource) *HostRe
 		ids[i] = h[i].ID
 	}
 	return hruo.RemoveHostUsbIDs(ids...)
+}
+
+// ClearHostGpus clears all "host_gpus" edges to the HostgpuResource entity.
+func (hruo *HostResourceUpdateOne) ClearHostGpus() *HostResourceUpdateOne {
+	hruo.mutation.ClearHostGpus()
+	return hruo
+}
+
+// RemoveHostGpuIDs removes the "host_gpus" edge to HostgpuResource entities by IDs.
+func (hruo *HostResourceUpdateOne) RemoveHostGpuIDs(ids ...int) *HostResourceUpdateOne {
+	hruo.mutation.RemoveHostGpuIDs(ids...)
+	return hruo
+}
+
+// RemoveHostGpus removes "host_gpus" edges to HostgpuResource entities.
+func (hruo *HostResourceUpdateOne) RemoveHostGpus(h ...*HostgpuResource) *HostResourceUpdateOne {
+	ids := make([]int, len(h))
+	for i := range h {
+		ids[i] = h[i].ID
+	}
+	return hruo.RemoveHostGpuIDs(ids...)
 }
 
 // ClearInstance clears the "instance" edge to the InstanceResource entity.
@@ -2737,11 +2671,11 @@ func (hruo *HostResourceUpdateOne) sqlSave(ctx context.Context) (_node *HostReso
 	if hruo.mutation.KindCleared() {
 		_spec.ClearField(hostresource.FieldKind, field.TypeString)
 	}
-	if value, ok := hruo.mutation.Description(); ok {
-		_spec.SetField(hostresource.FieldDescription, field.TypeString, value)
+	if value, ok := hruo.mutation.Name(); ok {
+		_spec.SetField(hostresource.FieldName, field.TypeString, value)
 	}
-	if hruo.mutation.DescriptionCleared() {
-		_spec.ClearField(hostresource.FieldDescription, field.TypeString)
+	if hruo.mutation.NameCleared() {
+		_spec.ClearField(hostresource.FieldName, field.TypeString)
 	}
 	if value, ok := hruo.mutation.DesiredState(); ok {
 		_spec.SetField(hostresource.FieldDesiredState, field.TypeEnum, value)
@@ -2778,12 +2712,6 @@ func (hruo *HostResourceUpdateOne) sqlSave(ctx context.Context) (_node *HostReso
 	}
 	if hruo.mutation.NoteCleared() {
 		_spec.ClearField(hostresource.FieldNote, field.TypeString)
-	}
-	if value, ok := hruo.mutation.ConsumerID(); ok {
-		_spec.SetField(hostresource.FieldConsumerID, field.TypeString, value)
-	}
-	if hruo.mutation.ConsumerIDCleared() {
-		_spec.ClearField(hostresource.FieldConsumerID, field.TypeString)
 	}
 	if value, ok := hruo.mutation.HardwareKind(); ok {
 		_spec.SetField(hostresource.FieldHardwareKind, field.TypeString, value)
@@ -2856,24 +2784,6 @@ func (hruo *HostResourceUpdateOne) sqlSave(ctx context.Context) (_node *HostReso
 	}
 	if hruo.mutation.CPUThreadsCleared() {
 		_spec.ClearField(hostresource.FieldCPUThreads, field.TypeUint32)
-	}
-	if value, ok := hruo.mutation.GpuPciID(); ok {
-		_spec.SetField(hostresource.FieldGpuPciID, field.TypeString, value)
-	}
-	if hruo.mutation.GpuPciIDCleared() {
-		_spec.ClearField(hostresource.FieldGpuPciID, field.TypeString)
-	}
-	if value, ok := hruo.mutation.GpuProduct(); ok {
-		_spec.SetField(hostresource.FieldGpuProduct, field.TypeString, value)
-	}
-	if hruo.mutation.GpuProductCleared() {
-		_spec.ClearField(hostresource.FieldGpuProduct, field.TypeString)
-	}
-	if value, ok := hruo.mutation.GpuVendor(); ok {
-		_spec.SetField(hostresource.FieldGpuVendor, field.TypeString, value)
-	}
-	if hruo.mutation.GpuVendorCleared() {
-		_spec.ClearField(hostresource.FieldGpuVendor, field.TypeString)
 	}
 	if value, ok := hruo.mutation.MgmtIP(); ok {
 		_spec.SetField(hostresource.FieldMgmtIP, field.TypeString, value)
@@ -3203,6 +3113,51 @@ func (hruo *HostResourceUpdateOne) sqlSave(ctx context.Context) (_node *HostReso
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(hostusbresource.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if hruo.mutation.HostGpusCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   hostresource.HostGpusTable,
+			Columns: []string{hostresource.HostGpusColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(hostgpuresource.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := hruo.mutation.RemovedHostGpusIDs(); len(nodes) > 0 && !hruo.mutation.HostGpusCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   hostresource.HostGpusTable,
+			Columns: []string{hostresource.HostGpusColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(hostgpuresource.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := hruo.mutation.HostGpusIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   hostresource.HostGpusTable,
+			Columns: []string{hostresource.HostGpusColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(hostgpuresource.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

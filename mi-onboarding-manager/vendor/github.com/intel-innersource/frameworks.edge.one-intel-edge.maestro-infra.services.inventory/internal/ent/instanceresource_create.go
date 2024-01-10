@@ -12,6 +12,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hostresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/instanceresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/operatingsystemresource"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/providerresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/userresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/workloadmember"
 )
@@ -43,16 +44,16 @@ func (irc *InstanceResourceCreate) SetNillableKind(i *instanceresource.Kind) *In
 	return irc
 }
 
-// SetDescription sets the "description" field.
-func (irc *InstanceResourceCreate) SetDescription(s string) *InstanceResourceCreate {
-	irc.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (irc *InstanceResourceCreate) SetName(s string) *InstanceResourceCreate {
+	irc.mutation.SetName(s)
 	return irc
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (irc *InstanceResourceCreate) SetNillableDescription(s *string) *InstanceResourceCreate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (irc *InstanceResourceCreate) SetNillableName(s *string) *InstanceResourceCreate {
 	if s != nil {
-		irc.SetDescription(*s)
+		irc.SetName(*s)
 	}
 	return irc
 }
@@ -199,14 +200,6 @@ func (irc *InstanceResourceCreate) SetOsID(id int) *InstanceResourceCreate {
 	return irc
 }
 
-// SetNillableOsID sets the "os" edge to the OperatingSystemResource entity by ID if the given value is not nil.
-func (irc *InstanceResourceCreate) SetNillableOsID(id *int) *InstanceResourceCreate {
-	if id != nil {
-		irc = irc.SetOsID(*id)
-	}
-	return irc
-}
-
 // SetOs sets the "os" edge to the OperatingSystemResource entity.
 func (irc *InstanceResourceCreate) SetOs(o *OperatingSystemResource) *InstanceResourceCreate {
 	return irc.SetOsID(o.ID)
@@ -225,6 +218,25 @@ func (irc *InstanceResourceCreate) AddWorkloadMembers(w ...*WorkloadMember) *Ins
 		ids[i] = w[i].ID
 	}
 	return irc.AddWorkloadMemberIDs(ids...)
+}
+
+// SetProviderID sets the "provider" edge to the ProviderResource entity by ID.
+func (irc *InstanceResourceCreate) SetProviderID(id int) *InstanceResourceCreate {
+	irc.mutation.SetProviderID(id)
+	return irc
+}
+
+// SetNillableProviderID sets the "provider" edge to the ProviderResource entity by ID if the given value is not nil.
+func (irc *InstanceResourceCreate) SetNillableProviderID(id *int) *InstanceResourceCreate {
+	if id != nil {
+		irc = irc.SetProviderID(*id)
+	}
+	return irc
+}
+
+// SetProvider sets the "provider" edge to the ProviderResource entity.
+func (irc *InstanceResourceCreate) SetProvider(p *ProviderResource) *InstanceResourceCreate {
+	return irc.SetProviderID(p.ID)
 }
 
 // Mutation returns the InstanceResourceMutation object of the builder.
@@ -284,6 +296,9 @@ func (irc *InstanceResourceCreate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "InstanceResource.status": %w`, err)}
 		}
 	}
+	if _, ok := irc.mutation.OsID(); !ok {
+		return &ValidationError{Name: "os", err: errors.New(`ent: missing required edge "InstanceResource.os"`)}
+	}
 	return nil
 }
 
@@ -318,9 +333,9 @@ func (irc *InstanceResourceCreate) createSpec() (*InstanceResource, *sqlgraph.Cr
 		_spec.SetField(instanceresource.FieldKind, field.TypeEnum, value)
 		_node.Kind = value
 	}
-	if value, ok := irc.mutation.Description(); ok {
-		_spec.SetField(instanceresource.FieldDescription, field.TypeString, value)
-		_node.Description = value
+	if value, ok := irc.mutation.Name(); ok {
+		_spec.SetField(instanceresource.FieldName, field.TypeString, value)
+		_node.Name = value
 	}
 	if value, ok := irc.mutation.DesiredState(); ok {
 		_spec.SetField(instanceresource.FieldDesiredState, field.TypeEnum, value)
@@ -414,6 +429,23 @@ func (irc *InstanceResourceCreate) createSpec() (*InstanceResource, *sqlgraph.Cr
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := irc.mutation.ProviderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   instanceresource.ProviderTable,
+			Columns: []string{instanceresource.ProviderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerresource.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.instance_resource_provider = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

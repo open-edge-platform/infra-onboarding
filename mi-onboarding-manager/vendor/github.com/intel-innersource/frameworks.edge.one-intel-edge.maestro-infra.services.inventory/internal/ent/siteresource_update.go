@@ -35,43 +35,23 @@ func (sru *SiteResourceUpdate) SetResourceID(s string) *SiteResourceUpdate {
 	return sru
 }
 
-// SetDescription sets the "description" field.
-func (sru *SiteResourceUpdate) SetDescription(s string) *SiteResourceUpdate {
-	sru.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (sru *SiteResourceUpdate) SetName(s string) *SiteResourceUpdate {
+	sru.mutation.SetName(s)
 	return sru
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (sru *SiteResourceUpdate) SetNillableDescription(s *string) *SiteResourceUpdate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (sru *SiteResourceUpdate) SetNillableName(s *string) *SiteResourceUpdate {
 	if s != nil {
-		sru.SetDescription(*s)
+		sru.SetName(*s)
 	}
 	return sru
 }
 
-// ClearDescription clears the value of the "description" field.
-func (sru *SiteResourceUpdate) ClearDescription() *SiteResourceUpdate {
-	sru.mutation.ClearDescription()
-	return sru
-}
-
-// SetSiteKind sets the "site_kind" field.
-func (sru *SiteResourceUpdate) SetSiteKind(s string) *SiteResourceUpdate {
-	sru.mutation.SetSiteKind(s)
-	return sru
-}
-
-// SetNillableSiteKind sets the "site_kind" field if the given value is not nil.
-func (sru *SiteResourceUpdate) SetNillableSiteKind(s *string) *SiteResourceUpdate {
-	if s != nil {
-		sru.SetSiteKind(*s)
-	}
-	return sru
-}
-
-// ClearSiteKind clears the value of the "site_kind" field.
-func (sru *SiteResourceUpdate) ClearSiteKind() *SiteResourceUpdate {
-	sru.mutation.ClearSiteKind()
+// ClearName clears the value of the "name" field.
+func (sru *SiteResourceUpdate) ClearName() *SiteResourceUpdate {
+	sru.mutation.ClearName()
 	return sru
 }
 
@@ -403,17 +383,11 @@ func (sru *SiteResourceUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := sru.mutation.ResourceID(); ok {
 		_spec.SetField(siteresource.FieldResourceID, field.TypeString, value)
 	}
-	if value, ok := sru.mutation.Description(); ok {
-		_spec.SetField(siteresource.FieldDescription, field.TypeString, value)
+	if value, ok := sru.mutation.Name(); ok {
+		_spec.SetField(siteresource.FieldName, field.TypeString, value)
 	}
-	if sru.mutation.DescriptionCleared() {
-		_spec.ClearField(siteresource.FieldDescription, field.TypeString)
-	}
-	if value, ok := sru.mutation.SiteKind(); ok {
-		_spec.SetField(siteresource.FieldSiteKind, field.TypeString, value)
-	}
-	if sru.mutation.SiteKindCleared() {
-		_spec.ClearField(siteresource.FieldSiteKind, field.TypeString)
+	if sru.mutation.NameCleared() {
+		_spec.ClearField(siteresource.FieldName, field.TypeString)
 	}
 	if value, ok := sru.mutation.Address(); ok {
 		_spec.SetField(siteresource.FieldAddress, field.TypeString, value)
@@ -571,43 +545,23 @@ func (sruo *SiteResourceUpdateOne) SetResourceID(s string) *SiteResourceUpdateOn
 	return sruo
 }
 
-// SetDescription sets the "description" field.
-func (sruo *SiteResourceUpdateOne) SetDescription(s string) *SiteResourceUpdateOne {
-	sruo.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (sruo *SiteResourceUpdateOne) SetName(s string) *SiteResourceUpdateOne {
+	sruo.mutation.SetName(s)
 	return sruo
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (sruo *SiteResourceUpdateOne) SetNillableDescription(s *string) *SiteResourceUpdateOne {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (sruo *SiteResourceUpdateOne) SetNillableName(s *string) *SiteResourceUpdateOne {
 	if s != nil {
-		sruo.SetDescription(*s)
+		sruo.SetName(*s)
 	}
 	return sruo
 }
 
-// ClearDescription clears the value of the "description" field.
-func (sruo *SiteResourceUpdateOne) ClearDescription() *SiteResourceUpdateOne {
-	sruo.mutation.ClearDescription()
-	return sruo
-}
-
-// SetSiteKind sets the "site_kind" field.
-func (sruo *SiteResourceUpdateOne) SetSiteKind(s string) *SiteResourceUpdateOne {
-	sruo.mutation.SetSiteKind(s)
-	return sruo
-}
-
-// SetNillableSiteKind sets the "site_kind" field if the given value is not nil.
-func (sruo *SiteResourceUpdateOne) SetNillableSiteKind(s *string) *SiteResourceUpdateOne {
-	if s != nil {
-		sruo.SetSiteKind(*s)
-	}
-	return sruo
-}
-
-// ClearSiteKind clears the value of the "site_kind" field.
-func (sruo *SiteResourceUpdateOne) ClearSiteKind() *SiteResourceUpdateOne {
-	sruo.mutation.ClearSiteKind()
+// ClearName clears the value of the "name" field.
+func (sruo *SiteResourceUpdateOne) ClearName() *SiteResourceUpdateOne {
+	sruo.mutation.ClearName()
 	return sruo
 }
 
@@ -969,17 +923,11 @@ func (sruo *SiteResourceUpdateOne) sqlSave(ctx context.Context) (_node *SiteReso
 	if value, ok := sruo.mutation.ResourceID(); ok {
 		_spec.SetField(siteresource.FieldResourceID, field.TypeString, value)
 	}
-	if value, ok := sruo.mutation.Description(); ok {
-		_spec.SetField(siteresource.FieldDescription, field.TypeString, value)
+	if value, ok := sruo.mutation.Name(); ok {
+		_spec.SetField(siteresource.FieldName, field.TypeString, value)
 	}
-	if sruo.mutation.DescriptionCleared() {
-		_spec.ClearField(siteresource.FieldDescription, field.TypeString)
-	}
-	if value, ok := sruo.mutation.SiteKind(); ok {
-		_spec.SetField(siteresource.FieldSiteKind, field.TypeString, value)
-	}
-	if sruo.mutation.SiteKindCleared() {
-		_spec.ClearField(siteresource.FieldSiteKind, field.TypeString)
+	if sruo.mutation.NameCleared() {
+		_spec.ClearField(siteresource.FieldName, field.TypeString)
 	}
 	if value, ok := sruo.mutation.Address(); ok {
 		_spec.SetField(siteresource.FieldAddress, field.TypeString, value)

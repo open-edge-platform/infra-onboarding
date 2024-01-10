@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hostgpuresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hostnicresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hostresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hoststorageresource"
@@ -37,6 +38,7 @@ type HostResourceQuery struct {
 	withHostStorages *HoststorageResourceQuery
 	withHostNics     *HostnicResourceQuery
 	withHostUsbs     *HostusbResourceQuery
+	withHostGpus     *HostgpuResourceQuery
 	withInstance     *InstanceResourceQuery
 	withFKs          bool
 	// intermediate query (i.e. traversal path).
@@ -222,6 +224,28 @@ func (hrq *HostResourceQuery) QueryHostUsbs() *HostusbResourceQuery {
 			sqlgraph.From(hostresource.Table, hostresource.FieldID, selector),
 			sqlgraph.To(hostusbresource.Table, hostusbresource.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, true, hostresource.HostUsbsTable, hostresource.HostUsbsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(hrq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryHostGpus chains the current query on the "host_gpus" edge.
+func (hrq *HostResourceQuery) QueryHostGpus() *HostgpuResourceQuery {
+	query := (&HostgpuResourceClient{config: hrq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := hrq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := hrq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(hostresource.Table, hostresource.FieldID, selector),
+			sqlgraph.To(hostgpuresource.Table, hostgpuresource.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, hostresource.HostGpusTable, hostresource.HostGpusColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(hrq.driver.Dialect(), step)
 		return fromU, nil
@@ -450,6 +474,7 @@ func (hrq *HostResourceQuery) Clone() *HostResourceQuery {
 		withHostStorages: hrq.withHostStorages.Clone(),
 		withHostNics:     hrq.withHostNics.Clone(),
 		withHostUsbs:     hrq.withHostUsbs.Clone(),
+		withHostGpus:     hrq.withHostGpus.Clone(),
 		withInstance:     hrq.withInstance.Clone(),
 		// clone intermediate query.
 		sql:  hrq.sql.Clone(),
@@ -531,6 +556,17 @@ func (hrq *HostResourceQuery) WithHostUsbs(opts ...func(*HostusbResourceQuery)) 
 		opt(query)
 	}
 	hrq.withHostUsbs = query
+	return hrq
+}
+
+// WithHostGpus tells the query-builder to eager-load the nodes that are connected to
+// the "host_gpus" edge. The optional arguments are used to configure the query builder of the edge.
+func (hrq *HostResourceQuery) WithHostGpus(opts ...func(*HostgpuResourceQuery)) *HostResourceQuery {
+	query := (&HostgpuResourceClient{config: hrq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	hrq.withHostGpus = query
 	return hrq
 }
 
@@ -624,7 +660,7 @@ func (hrq *HostResourceQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 		nodes       = []*HostResource{}
 		withFKs     = hrq.withFKs
 		_spec       = hrq.querySpec()
-		loadedTypes = [8]bool{
+		loadedTypes = [9]bool{
 			hrq.withSite != nil,
 			hrq.withProvider != nil,
 			hrq.withProject != nil,
@@ -632,6 +668,7 @@ func (hrq *HostResourceQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 			hrq.withHostStorages != nil,
 			hrq.withHostNics != nil,
 			hrq.withHostUsbs != nil,
+			hrq.withHostGpus != nil,
 			hrq.withInstance != nil,
 		}
 	)
@@ -701,6 +738,13 @@ func (hrq *HostResourceQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 		if err := hrq.loadHostUsbs(ctx, query, nodes,
 			func(n *HostResource) { n.Edges.HostUsbs = []*HostusbResource{} },
 			func(n *HostResource, e *HostusbResource) { n.Edges.HostUsbs = append(n.Edges.HostUsbs, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := hrq.withHostGpus; query != nil {
+		if err := hrq.loadHostGpus(ctx, query, nodes,
+			func(n *HostResource) { n.Edges.HostGpus = []*HostgpuResource{} },
+			func(n *HostResource, e *HostgpuResource) { n.Edges.HostGpus = append(n.Edges.HostGpus, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -929,6 +973,37 @@ func (hrq *HostResourceQuery) loadHostUsbs(ctx context.Context, query *HostusbRe
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "hostusb_resource_host" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (hrq *HostResourceQuery) loadHostGpus(ctx context.Context, query *HostgpuResourceQuery, nodes []*HostResource, init func(*HostResource), assign func(*HostResource, *HostgpuResource)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*HostResource)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.HostgpuResource(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(hostresource.HostGpusColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.hostgpu_resource_host
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "hostgpu_resource_host" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "hostgpu_resource_host" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

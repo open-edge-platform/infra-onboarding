@@ -57,66 +57,6 @@ func (hru *HoststorageResourceUpdate) ClearKind() *HoststorageResourceUpdate {
 	return hru
 }
 
-// SetDescription sets the "description" field.
-func (hru *HoststorageResourceUpdate) SetDescription(s string) *HoststorageResourceUpdate {
-	hru.mutation.SetDescription(s)
-	return hru
-}
-
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (hru *HoststorageResourceUpdate) SetNillableDescription(s *string) *HoststorageResourceUpdate {
-	if s != nil {
-		hru.SetDescription(*s)
-	}
-	return hru
-}
-
-// ClearDescription clears the value of the "description" field.
-func (hru *HoststorageResourceUpdate) ClearDescription() *HoststorageResourceUpdate {
-	hru.mutation.ClearDescription()
-	return hru
-}
-
-// SetDesiredState sets the "desired_state" field.
-func (hru *HoststorageResourceUpdate) SetDesiredState(hs hoststorageresource.DesiredState) *HoststorageResourceUpdate {
-	hru.mutation.SetDesiredState(hs)
-	return hru
-}
-
-// SetNillableDesiredState sets the "desired_state" field if the given value is not nil.
-func (hru *HoststorageResourceUpdate) SetNillableDesiredState(hs *hoststorageresource.DesiredState) *HoststorageResourceUpdate {
-	if hs != nil {
-		hru.SetDesiredState(*hs)
-	}
-	return hru
-}
-
-// ClearDesiredState clears the value of the "desired_state" field.
-func (hru *HoststorageResourceUpdate) ClearDesiredState() *HoststorageResourceUpdate {
-	hru.mutation.ClearDesiredState()
-	return hru
-}
-
-// SetCurrentState sets the "current_state" field.
-func (hru *HoststorageResourceUpdate) SetCurrentState(hs hoststorageresource.CurrentState) *HoststorageResourceUpdate {
-	hru.mutation.SetCurrentState(hs)
-	return hru
-}
-
-// SetNillableCurrentState sets the "current_state" field if the given value is not nil.
-func (hru *HoststorageResourceUpdate) SetNillableCurrentState(hs *hoststorageresource.CurrentState) *HoststorageResourceUpdate {
-	if hs != nil {
-		hru.SetCurrentState(*hs)
-	}
-	return hru
-}
-
-// ClearCurrentState clears the value of the "current_state" field.
-func (hru *HoststorageResourceUpdate) ClearCurrentState() *HoststorageResourceUpdate {
-	hru.mutation.ClearCurrentState()
-	return hru
-}
-
 // SetProviderStatus sets the "provider_status" field.
 func (hru *HoststorageResourceUpdate) SetProviderStatus(s string) *HoststorageResourceUpdate {
 	hru.mutation.SetProviderStatus(s)
@@ -244,23 +184,23 @@ func (hru *HoststorageResourceUpdate) ClearCapacityBytes() *HoststorageResourceU
 	return hru
 }
 
-// SetName sets the "name" field.
-func (hru *HoststorageResourceUpdate) SetName(s string) *HoststorageResourceUpdate {
-	hru.mutation.SetName(s)
+// SetDeviceName sets the "device_name" field.
+func (hru *HoststorageResourceUpdate) SetDeviceName(s string) *HoststorageResourceUpdate {
+	hru.mutation.SetDeviceName(s)
 	return hru
 }
 
-// SetNillableName sets the "name" field if the given value is not nil.
-func (hru *HoststorageResourceUpdate) SetNillableName(s *string) *HoststorageResourceUpdate {
+// SetNillableDeviceName sets the "device_name" field if the given value is not nil.
+func (hru *HoststorageResourceUpdate) SetNillableDeviceName(s *string) *HoststorageResourceUpdate {
 	if s != nil {
-		hru.SetName(*s)
+		hru.SetDeviceName(*s)
 	}
 	return hru
 }
 
-// ClearName clears the value of the "name" field.
-func (hru *HoststorageResourceUpdate) ClearName() *HoststorageResourceUpdate {
-	hru.mutation.ClearName()
+// ClearDeviceName clears the value of the "device_name" field.
+func (hru *HoststorageResourceUpdate) ClearDeviceName() *HoststorageResourceUpdate {
+	hru.mutation.ClearDeviceName()
 	return hru
 }
 
@@ -390,16 +330,6 @@ func (hru *HoststorageResourceUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (hru *HoststorageResourceUpdate) check() error {
-	if v, ok := hru.mutation.DesiredState(); ok {
-		if err := hoststorageresource.DesiredStateValidator(v); err != nil {
-			return &ValidationError{Name: "desired_state", err: fmt.Errorf(`ent: validator failed for field "HoststorageResource.desired_state": %w`, err)}
-		}
-	}
-	if v, ok := hru.mutation.CurrentState(); ok {
-		if err := hoststorageresource.CurrentStateValidator(v); err != nil {
-			return &ValidationError{Name: "current_state", err: fmt.Errorf(`ent: validator failed for field "HoststorageResource.current_state": %w`, err)}
-		}
-	}
 	if _, ok := hru.mutation.HostID(); hru.mutation.HostCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "HoststorageResource.host"`)
 	}
@@ -426,24 +356,6 @@ func (hru *HoststorageResourceUpdate) sqlSave(ctx context.Context) (n int, err e
 	}
 	if hru.mutation.KindCleared() {
 		_spec.ClearField(hoststorageresource.FieldKind, field.TypeString)
-	}
-	if value, ok := hru.mutation.Description(); ok {
-		_spec.SetField(hoststorageresource.FieldDescription, field.TypeString, value)
-	}
-	if hru.mutation.DescriptionCleared() {
-		_spec.ClearField(hoststorageresource.FieldDescription, field.TypeString)
-	}
-	if value, ok := hru.mutation.DesiredState(); ok {
-		_spec.SetField(hoststorageresource.FieldDesiredState, field.TypeEnum, value)
-	}
-	if hru.mutation.DesiredStateCleared() {
-		_spec.ClearField(hoststorageresource.FieldDesiredState, field.TypeEnum)
-	}
-	if value, ok := hru.mutation.CurrentState(); ok {
-		_spec.SetField(hoststorageresource.FieldCurrentState, field.TypeEnum, value)
-	}
-	if hru.mutation.CurrentStateCleared() {
-		_spec.ClearField(hoststorageresource.FieldCurrentState, field.TypeEnum)
 	}
 	if value, ok := hru.mutation.ProviderStatus(); ok {
 		_spec.SetField(hoststorageresource.FieldProviderStatus, field.TypeString, value)
@@ -484,11 +396,11 @@ func (hru *HoststorageResourceUpdate) sqlSave(ctx context.Context) (n int, err e
 	if hru.mutation.CapacityBytesCleared() {
 		_spec.ClearField(hoststorageresource.FieldCapacityBytes, field.TypeUint64)
 	}
-	if value, ok := hru.mutation.Name(); ok {
-		_spec.SetField(hoststorageresource.FieldName, field.TypeString, value)
+	if value, ok := hru.mutation.DeviceName(); ok {
+		_spec.SetField(hoststorageresource.FieldDeviceName, field.TypeString, value)
 	}
-	if hru.mutation.NameCleared() {
-		_spec.ClearField(hoststorageresource.FieldName, field.TypeString)
+	if hru.mutation.DeviceNameCleared() {
+		_spec.ClearField(hoststorageresource.FieldDeviceName, field.TypeString)
 	}
 	if hru.mutation.SiteCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -652,66 +564,6 @@ func (hruo *HoststorageResourceUpdateOne) ClearKind() *HoststorageResourceUpdate
 	return hruo
 }
 
-// SetDescription sets the "description" field.
-func (hruo *HoststorageResourceUpdateOne) SetDescription(s string) *HoststorageResourceUpdateOne {
-	hruo.mutation.SetDescription(s)
-	return hruo
-}
-
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (hruo *HoststorageResourceUpdateOne) SetNillableDescription(s *string) *HoststorageResourceUpdateOne {
-	if s != nil {
-		hruo.SetDescription(*s)
-	}
-	return hruo
-}
-
-// ClearDescription clears the value of the "description" field.
-func (hruo *HoststorageResourceUpdateOne) ClearDescription() *HoststorageResourceUpdateOne {
-	hruo.mutation.ClearDescription()
-	return hruo
-}
-
-// SetDesiredState sets the "desired_state" field.
-func (hruo *HoststorageResourceUpdateOne) SetDesiredState(hs hoststorageresource.DesiredState) *HoststorageResourceUpdateOne {
-	hruo.mutation.SetDesiredState(hs)
-	return hruo
-}
-
-// SetNillableDesiredState sets the "desired_state" field if the given value is not nil.
-func (hruo *HoststorageResourceUpdateOne) SetNillableDesiredState(hs *hoststorageresource.DesiredState) *HoststorageResourceUpdateOne {
-	if hs != nil {
-		hruo.SetDesiredState(*hs)
-	}
-	return hruo
-}
-
-// ClearDesiredState clears the value of the "desired_state" field.
-func (hruo *HoststorageResourceUpdateOne) ClearDesiredState() *HoststorageResourceUpdateOne {
-	hruo.mutation.ClearDesiredState()
-	return hruo
-}
-
-// SetCurrentState sets the "current_state" field.
-func (hruo *HoststorageResourceUpdateOne) SetCurrentState(hs hoststorageresource.CurrentState) *HoststorageResourceUpdateOne {
-	hruo.mutation.SetCurrentState(hs)
-	return hruo
-}
-
-// SetNillableCurrentState sets the "current_state" field if the given value is not nil.
-func (hruo *HoststorageResourceUpdateOne) SetNillableCurrentState(hs *hoststorageresource.CurrentState) *HoststorageResourceUpdateOne {
-	if hs != nil {
-		hruo.SetCurrentState(*hs)
-	}
-	return hruo
-}
-
-// ClearCurrentState clears the value of the "current_state" field.
-func (hruo *HoststorageResourceUpdateOne) ClearCurrentState() *HoststorageResourceUpdateOne {
-	hruo.mutation.ClearCurrentState()
-	return hruo
-}
-
 // SetProviderStatus sets the "provider_status" field.
 func (hruo *HoststorageResourceUpdateOne) SetProviderStatus(s string) *HoststorageResourceUpdateOne {
 	hruo.mutation.SetProviderStatus(s)
@@ -839,23 +691,23 @@ func (hruo *HoststorageResourceUpdateOne) ClearCapacityBytes() *HoststorageResou
 	return hruo
 }
 
-// SetName sets the "name" field.
-func (hruo *HoststorageResourceUpdateOne) SetName(s string) *HoststorageResourceUpdateOne {
-	hruo.mutation.SetName(s)
+// SetDeviceName sets the "device_name" field.
+func (hruo *HoststorageResourceUpdateOne) SetDeviceName(s string) *HoststorageResourceUpdateOne {
+	hruo.mutation.SetDeviceName(s)
 	return hruo
 }
 
-// SetNillableName sets the "name" field if the given value is not nil.
-func (hruo *HoststorageResourceUpdateOne) SetNillableName(s *string) *HoststorageResourceUpdateOne {
+// SetNillableDeviceName sets the "device_name" field if the given value is not nil.
+func (hruo *HoststorageResourceUpdateOne) SetNillableDeviceName(s *string) *HoststorageResourceUpdateOne {
 	if s != nil {
-		hruo.SetName(*s)
+		hruo.SetDeviceName(*s)
 	}
 	return hruo
 }
 
-// ClearName clears the value of the "name" field.
-func (hruo *HoststorageResourceUpdateOne) ClearName() *HoststorageResourceUpdateOne {
-	hruo.mutation.ClearName()
+// ClearDeviceName clears the value of the "device_name" field.
+func (hruo *HoststorageResourceUpdateOne) ClearDeviceName() *HoststorageResourceUpdateOne {
+	hruo.mutation.ClearDeviceName()
 	return hruo
 }
 
@@ -998,16 +850,6 @@ func (hruo *HoststorageResourceUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (hruo *HoststorageResourceUpdateOne) check() error {
-	if v, ok := hruo.mutation.DesiredState(); ok {
-		if err := hoststorageresource.DesiredStateValidator(v); err != nil {
-			return &ValidationError{Name: "desired_state", err: fmt.Errorf(`ent: validator failed for field "HoststorageResource.desired_state": %w`, err)}
-		}
-	}
-	if v, ok := hruo.mutation.CurrentState(); ok {
-		if err := hoststorageresource.CurrentStateValidator(v); err != nil {
-			return &ValidationError{Name: "current_state", err: fmt.Errorf(`ent: validator failed for field "HoststorageResource.current_state": %w`, err)}
-		}
-	}
 	if _, ok := hruo.mutation.HostID(); hruo.mutation.HostCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "HoststorageResource.host"`)
 	}
@@ -1052,24 +894,6 @@ func (hruo *HoststorageResourceUpdateOne) sqlSave(ctx context.Context) (_node *H
 	if hruo.mutation.KindCleared() {
 		_spec.ClearField(hoststorageresource.FieldKind, field.TypeString)
 	}
-	if value, ok := hruo.mutation.Description(); ok {
-		_spec.SetField(hoststorageresource.FieldDescription, field.TypeString, value)
-	}
-	if hruo.mutation.DescriptionCleared() {
-		_spec.ClearField(hoststorageresource.FieldDescription, field.TypeString)
-	}
-	if value, ok := hruo.mutation.DesiredState(); ok {
-		_spec.SetField(hoststorageresource.FieldDesiredState, field.TypeEnum, value)
-	}
-	if hruo.mutation.DesiredStateCleared() {
-		_spec.ClearField(hoststorageresource.FieldDesiredState, field.TypeEnum)
-	}
-	if value, ok := hruo.mutation.CurrentState(); ok {
-		_spec.SetField(hoststorageresource.FieldCurrentState, field.TypeEnum, value)
-	}
-	if hruo.mutation.CurrentStateCleared() {
-		_spec.ClearField(hoststorageresource.FieldCurrentState, field.TypeEnum)
-	}
 	if value, ok := hruo.mutation.ProviderStatus(); ok {
 		_spec.SetField(hoststorageresource.FieldProviderStatus, field.TypeString, value)
 	}
@@ -1109,11 +933,11 @@ func (hruo *HoststorageResourceUpdateOne) sqlSave(ctx context.Context) (_node *H
 	if hruo.mutation.CapacityBytesCleared() {
 		_spec.ClearField(hoststorageresource.FieldCapacityBytes, field.TypeUint64)
 	}
-	if value, ok := hruo.mutation.Name(); ok {
-		_spec.SetField(hoststorageresource.FieldName, field.TypeString, value)
+	if value, ok := hruo.mutation.DeviceName(); ok {
+		_spec.SetField(hoststorageresource.FieldDeviceName, field.TypeString, value)
 	}
-	if hruo.mutation.NameCleared() {
-		_spec.ClearField(hoststorageresource.FieldName, field.TypeString)
+	if hruo.mutation.DeviceNameCleared() {
+		_spec.ClearField(hoststorageresource.FieldDeviceName, field.TypeString)
 	}
 	if hruo.mutation.SiteCleared() {
 		edge := &sqlgraph.EdgeSpec{

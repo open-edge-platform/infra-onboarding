@@ -40,16 +40,16 @@ func (nrc *NetlinkResourceCreate) SetNillableKind(s *string) *NetlinkResourceCre
 	return nrc
 }
 
-// SetDescription sets the "description" field.
-func (nrc *NetlinkResourceCreate) SetDescription(s string) *NetlinkResourceCreate {
-	nrc.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (nrc *NetlinkResourceCreate) SetName(s string) *NetlinkResourceCreate {
+	nrc.mutation.SetName(s)
 	return nrc
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (nrc *NetlinkResourceCreate) SetNillableDescription(s *string) *NetlinkResourceCreate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (nrc *NetlinkResourceCreate) SetNillableName(s *string) *NetlinkResourceCreate {
 	if s != nil {
-		nrc.SetDescription(*s)
+		nrc.SetName(*s)
 	}
 	return nrc
 }
@@ -210,9 +210,9 @@ func (nrc *NetlinkResourceCreate) createSpec() (*NetlinkResource, *sqlgraph.Crea
 		_spec.SetField(netlinkresource.FieldKind, field.TypeString, value)
 		_node.Kind = value
 	}
-	if value, ok := nrc.mutation.Description(); ok {
-		_spec.SetField(netlinkresource.FieldDescription, field.TypeString, value)
-		_node.Description = value
+	if value, ok := nrc.mutation.Name(); ok {
+		_spec.SetField(netlinkresource.FieldName, field.TypeString, value)
+		_node.Name = value
 	}
 	if value, ok := nrc.mutation.DesiredState(); ok {
 		_spec.SetField(netlinkresource.FieldDesiredState, field.TypeEnum, value)

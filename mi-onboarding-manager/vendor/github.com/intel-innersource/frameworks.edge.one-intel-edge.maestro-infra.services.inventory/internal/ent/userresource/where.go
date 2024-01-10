@@ -62,9 +62,9 @@ func Kind(v string) predicate.UserResource {
 	return predicate.UserResource(sql.FieldEQ(FieldKind, v))
 }
 
-// Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
-func Description(v string) predicate.UserResource {
-	return predicate.UserResource(sql.FieldEQ(FieldDescription, v))
+// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
+func Name(v string) predicate.UserResource {
+	return predicate.UserResource(sql.FieldEQ(FieldName, v))
 }
 
 // Username applies equality check predicate on the "username" field. It's identical to UsernameEQ.
@@ -217,79 +217,79 @@ func KindContainsFold(v string) predicate.UserResource {
 	return predicate.UserResource(sql.FieldContainsFold(FieldKind, v))
 }
 
-// DescriptionEQ applies the EQ predicate on the "description" field.
-func DescriptionEQ(v string) predicate.UserResource {
-	return predicate.UserResource(sql.FieldEQ(FieldDescription, v))
+// NameEQ applies the EQ predicate on the "name" field.
+func NameEQ(v string) predicate.UserResource {
+	return predicate.UserResource(sql.FieldEQ(FieldName, v))
 }
 
-// DescriptionNEQ applies the NEQ predicate on the "description" field.
-func DescriptionNEQ(v string) predicate.UserResource {
-	return predicate.UserResource(sql.FieldNEQ(FieldDescription, v))
+// NameNEQ applies the NEQ predicate on the "name" field.
+func NameNEQ(v string) predicate.UserResource {
+	return predicate.UserResource(sql.FieldNEQ(FieldName, v))
 }
 
-// DescriptionIn applies the In predicate on the "description" field.
-func DescriptionIn(vs ...string) predicate.UserResource {
-	return predicate.UserResource(sql.FieldIn(FieldDescription, vs...))
+// NameIn applies the In predicate on the "name" field.
+func NameIn(vs ...string) predicate.UserResource {
+	return predicate.UserResource(sql.FieldIn(FieldName, vs...))
 }
 
-// DescriptionNotIn applies the NotIn predicate on the "description" field.
-func DescriptionNotIn(vs ...string) predicate.UserResource {
-	return predicate.UserResource(sql.FieldNotIn(FieldDescription, vs...))
+// NameNotIn applies the NotIn predicate on the "name" field.
+func NameNotIn(vs ...string) predicate.UserResource {
+	return predicate.UserResource(sql.FieldNotIn(FieldName, vs...))
 }
 
-// DescriptionGT applies the GT predicate on the "description" field.
-func DescriptionGT(v string) predicate.UserResource {
-	return predicate.UserResource(sql.FieldGT(FieldDescription, v))
+// NameGT applies the GT predicate on the "name" field.
+func NameGT(v string) predicate.UserResource {
+	return predicate.UserResource(sql.FieldGT(FieldName, v))
 }
 
-// DescriptionGTE applies the GTE predicate on the "description" field.
-func DescriptionGTE(v string) predicate.UserResource {
-	return predicate.UserResource(sql.FieldGTE(FieldDescription, v))
+// NameGTE applies the GTE predicate on the "name" field.
+func NameGTE(v string) predicate.UserResource {
+	return predicate.UserResource(sql.FieldGTE(FieldName, v))
 }
 
-// DescriptionLT applies the LT predicate on the "description" field.
-func DescriptionLT(v string) predicate.UserResource {
-	return predicate.UserResource(sql.FieldLT(FieldDescription, v))
+// NameLT applies the LT predicate on the "name" field.
+func NameLT(v string) predicate.UserResource {
+	return predicate.UserResource(sql.FieldLT(FieldName, v))
 }
 
-// DescriptionLTE applies the LTE predicate on the "description" field.
-func DescriptionLTE(v string) predicate.UserResource {
-	return predicate.UserResource(sql.FieldLTE(FieldDescription, v))
+// NameLTE applies the LTE predicate on the "name" field.
+func NameLTE(v string) predicate.UserResource {
+	return predicate.UserResource(sql.FieldLTE(FieldName, v))
 }
 
-// DescriptionContains applies the Contains predicate on the "description" field.
-func DescriptionContains(v string) predicate.UserResource {
-	return predicate.UserResource(sql.FieldContains(FieldDescription, v))
+// NameContains applies the Contains predicate on the "name" field.
+func NameContains(v string) predicate.UserResource {
+	return predicate.UserResource(sql.FieldContains(FieldName, v))
 }
 
-// DescriptionHasPrefix applies the HasPrefix predicate on the "description" field.
-func DescriptionHasPrefix(v string) predicate.UserResource {
-	return predicate.UserResource(sql.FieldHasPrefix(FieldDescription, v))
+// NameHasPrefix applies the HasPrefix predicate on the "name" field.
+func NameHasPrefix(v string) predicate.UserResource {
+	return predicate.UserResource(sql.FieldHasPrefix(FieldName, v))
 }
 
-// DescriptionHasSuffix applies the HasSuffix predicate on the "description" field.
-func DescriptionHasSuffix(v string) predicate.UserResource {
-	return predicate.UserResource(sql.FieldHasSuffix(FieldDescription, v))
+// NameHasSuffix applies the HasSuffix predicate on the "name" field.
+func NameHasSuffix(v string) predicate.UserResource {
+	return predicate.UserResource(sql.FieldHasSuffix(FieldName, v))
 }
 
-// DescriptionIsNil applies the IsNil predicate on the "description" field.
-func DescriptionIsNil() predicate.UserResource {
-	return predicate.UserResource(sql.FieldIsNull(FieldDescription))
+// NameIsNil applies the IsNil predicate on the "name" field.
+func NameIsNil() predicate.UserResource {
+	return predicate.UserResource(sql.FieldIsNull(FieldName))
 }
 
-// DescriptionNotNil applies the NotNil predicate on the "description" field.
-func DescriptionNotNil() predicate.UserResource {
-	return predicate.UserResource(sql.FieldNotNull(FieldDescription))
+// NameNotNil applies the NotNil predicate on the "name" field.
+func NameNotNil() predicate.UserResource {
+	return predicate.UserResource(sql.FieldNotNull(FieldName))
 }
 
-// DescriptionEqualFold applies the EqualFold predicate on the "description" field.
-func DescriptionEqualFold(v string) predicate.UserResource {
-	return predicate.UserResource(sql.FieldEqualFold(FieldDescription, v))
+// NameEqualFold applies the EqualFold predicate on the "name" field.
+func NameEqualFold(v string) predicate.UserResource {
+	return predicate.UserResource(sql.FieldEqualFold(FieldName, v))
 }
 
-// DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
-func DescriptionContainsFold(v string) predicate.UserResource {
-	return predicate.UserResource(sql.FieldContainsFold(FieldDescription, v))
+// NameContainsFold applies the ContainsFold predicate on the "name" field.
+func NameContainsFold(v string) predicate.UserResource {
+	return predicate.UserResource(sql.FieldContainsFold(FieldName, v))
 }
 
 // UsernameEQ applies the EQ predicate on the "username" field.

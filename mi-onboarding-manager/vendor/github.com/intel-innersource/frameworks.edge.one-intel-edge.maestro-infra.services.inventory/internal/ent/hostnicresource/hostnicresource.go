@@ -18,16 +18,10 @@ const (
 	FieldResourceID = "resource_id"
 	// FieldKind holds the string denoting the kind field in the database.
 	FieldKind = "kind"
-	// FieldDescription holds the string denoting the description field in the database.
-	FieldDescription = "description"
-	// FieldDesiredState holds the string denoting the desired_state field in the database.
-	FieldDesiredState = "desired_state"
-	// FieldCurrentState holds the string denoting the current_state field in the database.
-	FieldCurrentState = "current_state"
 	// FieldProviderStatus holds the string denoting the provider_status field in the database.
 	FieldProviderStatus = "provider_status"
-	// FieldName holds the string denoting the name field in the database.
-	FieldName = "name"
+	// FieldDeviceName holds the string denoting the device_name field in the database.
+	FieldDeviceName = "device_name"
 	// FieldPciIdentifier holds the string denoting the pci_identifier field in the database.
 	FieldPciIdentifier = "pci_identifier"
 	// FieldMACAddr holds the string denoting the mac_addr field in the database.
@@ -109,11 +103,8 @@ var Columns = []string{
 	FieldID,
 	FieldResourceID,
 	FieldKind,
-	FieldDescription,
-	FieldDesiredState,
-	FieldCurrentState,
 	FieldProviderStatus,
-	FieldName,
+	FieldDeviceName,
 	FieldPciIdentifier,
 	FieldMACAddr,
 	FieldSriovEnabled,
@@ -158,56 +149,6 @@ func ValidColumn(column string) bool {
 	return false
 }
 
-// DesiredState defines the type for the "desired_state" enum field.
-type DesiredState string
-
-// DesiredState values.
-const (
-	DesiredStateHOST_COMPONENT_STATE_UNSPECIFIED DesiredState = "HOST_COMPONENT_STATE_UNSPECIFIED"
-	DesiredStateHOST_COMPONENT_STATE_ERROR       DesiredState = "HOST_COMPONENT_STATE_ERROR"
-	DesiredStateHOST_COMPONENT_STATE_DELETED     DesiredState = "HOST_COMPONENT_STATE_DELETED"
-	DesiredStateHOST_COMPONENT_STATE_EXISTS      DesiredState = "HOST_COMPONENT_STATE_EXISTS"
-)
-
-func (ds DesiredState) String() string {
-	return string(ds)
-}
-
-// DesiredStateValidator is a validator for the "desired_state" field enum values. It is called by the builders before save.
-func DesiredStateValidator(ds DesiredState) error {
-	switch ds {
-	case DesiredStateHOST_COMPONENT_STATE_UNSPECIFIED, DesiredStateHOST_COMPONENT_STATE_ERROR, DesiredStateHOST_COMPONENT_STATE_DELETED, DesiredStateHOST_COMPONENT_STATE_EXISTS:
-		return nil
-	default:
-		return fmt.Errorf("hostnicresource: invalid enum value for desired_state field: %q", ds)
-	}
-}
-
-// CurrentState defines the type for the "current_state" enum field.
-type CurrentState string
-
-// CurrentState values.
-const (
-	CurrentStateHOST_COMPONENT_STATE_UNSPECIFIED CurrentState = "HOST_COMPONENT_STATE_UNSPECIFIED"
-	CurrentStateHOST_COMPONENT_STATE_ERROR       CurrentState = "HOST_COMPONENT_STATE_ERROR"
-	CurrentStateHOST_COMPONENT_STATE_DELETED     CurrentState = "HOST_COMPONENT_STATE_DELETED"
-	CurrentStateHOST_COMPONENT_STATE_EXISTS      CurrentState = "HOST_COMPONENT_STATE_EXISTS"
-)
-
-func (cs CurrentState) String() string {
-	return string(cs)
-}
-
-// CurrentStateValidator is a validator for the "current_state" field enum values. It is called by the builders before save.
-func CurrentStateValidator(cs CurrentState) error {
-	switch cs {
-	case CurrentStateHOST_COMPONENT_STATE_UNSPECIFIED, CurrentStateHOST_COMPONENT_STATE_ERROR, CurrentStateHOST_COMPONENT_STATE_DELETED, CurrentStateHOST_COMPONENT_STATE_EXISTS:
-		return nil
-	default:
-		return fmt.Errorf("hostnicresource: invalid enum value for current_state field: %q", cs)
-	}
-}
-
 // LinkState defines the type for the "link_state" enum field.
 type LinkState string
 
@@ -250,29 +191,14 @@ func ByKind(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldKind, opts...).ToFunc()
 }
 
-// ByDescription orders the results by the description field.
-func ByDescription(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldDescription, opts...).ToFunc()
-}
-
-// ByDesiredState orders the results by the desired_state field.
-func ByDesiredState(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldDesiredState, opts...).ToFunc()
-}
-
-// ByCurrentState orders the results by the current_state field.
-func ByCurrentState(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCurrentState, opts...).ToFunc()
-}
-
 // ByProviderStatus orders the results by the provider_status field.
 func ByProviderStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldProviderStatus, opts...).ToFunc()
 }
 
-// ByName orders the results by the name field.
-func ByName(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldName, opts...).ToFunc()
+// ByDeviceName orders the results by the device_name field.
+func ByDeviceName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDeviceName, opts...).ToFunc()
 }
 
 // ByPciIdentifier orders the results by the pci_identifier field.

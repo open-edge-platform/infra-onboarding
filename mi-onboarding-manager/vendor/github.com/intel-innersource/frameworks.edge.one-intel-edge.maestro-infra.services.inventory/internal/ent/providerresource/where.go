@@ -4,7 +4,6 @@ package providerresource
 
 import (
 	"entgo.io/ent/dialect/sql"
-	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/predicate"
 )
 
@@ -58,19 +57,19 @@ func ResourceID(v string) predicate.ProviderResource {
 	return predicate.ProviderResource(sql.FieldEQ(FieldResourceID, v))
 }
 
-// Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
-func Description(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldEQ(FieldDescription, v))
+// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
+func Name(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldEQ(FieldName, v))
 }
 
-// Endpoint applies equality check predicate on the "endpoint" field. It's identical to EndpointEQ.
-func Endpoint(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldEQ(FieldEndpoint, v))
+// APIEndpoint applies equality check predicate on the "api_endpoint" field. It's identical to APIEndpointEQ.
+func APIEndpoint(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldEQ(FieldAPIEndpoint, v))
 }
 
-// Token applies equality check predicate on the "token" field. It's identical to TokenEQ.
-func Token(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldEQ(FieldToken, v))
+// APICredentials applies equality check predicate on the "api_credentials" field. It's identical to APICredentialsEQ.
+func APICredentials(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldEQ(FieldAPICredentials, v))
 }
 
 // ResourceIDEQ applies the EQ predicate on the "resource_id" field.
@@ -138,332 +137,259 @@ func ResourceIDContainsFold(v string) predicate.ProviderResource {
 	return predicate.ProviderResource(sql.FieldContainsFold(FieldResourceID, v))
 }
 
-// KindEQ applies the EQ predicate on the "kind" field.
-func KindEQ(v Kind) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldEQ(FieldKind, v))
+// ProviderKindEQ applies the EQ predicate on the "provider_kind" field.
+func ProviderKindEQ(v ProviderKind) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldEQ(FieldProviderKind, v))
 }
 
-// KindNEQ applies the NEQ predicate on the "kind" field.
-func KindNEQ(v Kind) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldNEQ(FieldKind, v))
+// ProviderKindNEQ applies the NEQ predicate on the "provider_kind" field.
+func ProviderKindNEQ(v ProviderKind) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldNEQ(FieldProviderKind, v))
 }
 
-// KindIn applies the In predicate on the "kind" field.
-func KindIn(vs ...Kind) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldIn(FieldKind, vs...))
+// ProviderKindIn applies the In predicate on the "provider_kind" field.
+func ProviderKindIn(vs ...ProviderKind) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldIn(FieldProviderKind, vs...))
 }
 
-// KindNotIn applies the NotIn predicate on the "kind" field.
-func KindNotIn(vs ...Kind) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldNotIn(FieldKind, vs...))
+// ProviderKindNotIn applies the NotIn predicate on the "provider_kind" field.
+func ProviderKindNotIn(vs ...ProviderKind) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldNotIn(FieldProviderKind, vs...))
 }
 
-// KindIsNil applies the IsNil predicate on the "kind" field.
-func KindIsNil() predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldIsNull(FieldKind))
+// ProviderVendorEQ applies the EQ predicate on the "provider_vendor" field.
+func ProviderVendorEQ(v ProviderVendor) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldEQ(FieldProviderVendor, v))
 }
 
-// KindNotNil applies the NotNil predicate on the "kind" field.
-func KindNotNil() predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldNotNull(FieldKind))
+// ProviderVendorNEQ applies the NEQ predicate on the "provider_vendor" field.
+func ProviderVendorNEQ(v ProviderVendor) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldNEQ(FieldProviderVendor, v))
 }
 
-// DescriptionEQ applies the EQ predicate on the "description" field.
-func DescriptionEQ(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldEQ(FieldDescription, v))
+// ProviderVendorIn applies the In predicate on the "provider_vendor" field.
+func ProviderVendorIn(vs ...ProviderVendor) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldIn(FieldProviderVendor, vs...))
 }
 
-// DescriptionNEQ applies the NEQ predicate on the "description" field.
-func DescriptionNEQ(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldNEQ(FieldDescription, v))
+// ProviderVendorNotIn applies the NotIn predicate on the "provider_vendor" field.
+func ProviderVendorNotIn(vs ...ProviderVendor) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldNotIn(FieldProviderVendor, vs...))
 }
 
-// DescriptionIn applies the In predicate on the "description" field.
-func DescriptionIn(vs ...string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldIn(FieldDescription, vs...))
+// ProviderVendorIsNil applies the IsNil predicate on the "provider_vendor" field.
+func ProviderVendorIsNil() predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldIsNull(FieldProviderVendor))
 }
 
-// DescriptionNotIn applies the NotIn predicate on the "description" field.
-func DescriptionNotIn(vs ...string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldNotIn(FieldDescription, vs...))
+// ProviderVendorNotNil applies the NotNil predicate on the "provider_vendor" field.
+func ProviderVendorNotNil() predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldNotNull(FieldProviderVendor))
 }
 
-// DescriptionGT applies the GT predicate on the "description" field.
-func DescriptionGT(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldGT(FieldDescription, v))
+// NameEQ applies the EQ predicate on the "name" field.
+func NameEQ(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldEQ(FieldName, v))
 }
 
-// DescriptionGTE applies the GTE predicate on the "description" field.
-func DescriptionGTE(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldGTE(FieldDescription, v))
+// NameNEQ applies the NEQ predicate on the "name" field.
+func NameNEQ(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldNEQ(FieldName, v))
 }
 
-// DescriptionLT applies the LT predicate on the "description" field.
-func DescriptionLT(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldLT(FieldDescription, v))
+// NameIn applies the In predicate on the "name" field.
+func NameIn(vs ...string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldIn(FieldName, vs...))
 }
 
-// DescriptionLTE applies the LTE predicate on the "description" field.
-func DescriptionLTE(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldLTE(FieldDescription, v))
+// NameNotIn applies the NotIn predicate on the "name" field.
+func NameNotIn(vs ...string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldNotIn(FieldName, vs...))
 }
 
-// DescriptionContains applies the Contains predicate on the "description" field.
-func DescriptionContains(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldContains(FieldDescription, v))
+// NameGT applies the GT predicate on the "name" field.
+func NameGT(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldGT(FieldName, v))
 }
 
-// DescriptionHasPrefix applies the HasPrefix predicate on the "description" field.
-func DescriptionHasPrefix(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldHasPrefix(FieldDescription, v))
+// NameGTE applies the GTE predicate on the "name" field.
+func NameGTE(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldGTE(FieldName, v))
 }
 
-// DescriptionHasSuffix applies the HasSuffix predicate on the "description" field.
-func DescriptionHasSuffix(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldHasSuffix(FieldDescription, v))
+// NameLT applies the LT predicate on the "name" field.
+func NameLT(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldLT(FieldName, v))
 }
 
-// DescriptionIsNil applies the IsNil predicate on the "description" field.
-func DescriptionIsNil() predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldIsNull(FieldDescription))
+// NameLTE applies the LTE predicate on the "name" field.
+func NameLTE(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldLTE(FieldName, v))
 }
 
-// DescriptionNotNil applies the NotNil predicate on the "description" field.
-func DescriptionNotNil() predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldNotNull(FieldDescription))
+// NameContains applies the Contains predicate on the "name" field.
+func NameContains(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldContains(FieldName, v))
 }
 
-// DescriptionEqualFold applies the EqualFold predicate on the "description" field.
-func DescriptionEqualFold(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldEqualFold(FieldDescription, v))
+// NameHasPrefix applies the HasPrefix predicate on the "name" field.
+func NameHasPrefix(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldHasPrefix(FieldName, v))
 }
 
-// DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
-func DescriptionContainsFold(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldContainsFold(FieldDescription, v))
+// NameHasSuffix applies the HasSuffix predicate on the "name" field.
+func NameHasSuffix(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldHasSuffix(FieldName, v))
 }
 
-// DesiredStateEQ applies the EQ predicate on the "desired_state" field.
-func DesiredStateEQ(v DesiredState) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldEQ(FieldDesiredState, v))
+// NameEqualFold applies the EqualFold predicate on the "name" field.
+func NameEqualFold(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldEqualFold(FieldName, v))
 }
 
-// DesiredStateNEQ applies the NEQ predicate on the "desired_state" field.
-func DesiredStateNEQ(v DesiredState) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldNEQ(FieldDesiredState, v))
+// NameContainsFold applies the ContainsFold predicate on the "name" field.
+func NameContainsFold(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldContainsFold(FieldName, v))
 }
 
-// DesiredStateIn applies the In predicate on the "desired_state" field.
-func DesiredStateIn(vs ...DesiredState) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldIn(FieldDesiredState, vs...))
+// APIEndpointEQ applies the EQ predicate on the "api_endpoint" field.
+func APIEndpointEQ(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldEQ(FieldAPIEndpoint, v))
 }
 
-// DesiredStateNotIn applies the NotIn predicate on the "desired_state" field.
-func DesiredStateNotIn(vs ...DesiredState) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldNotIn(FieldDesiredState, vs...))
+// APIEndpointNEQ applies the NEQ predicate on the "api_endpoint" field.
+func APIEndpointNEQ(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldNEQ(FieldAPIEndpoint, v))
 }
 
-// CurrentStateEQ applies the EQ predicate on the "current_state" field.
-func CurrentStateEQ(v CurrentState) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldEQ(FieldCurrentState, v))
+// APIEndpointIn applies the In predicate on the "api_endpoint" field.
+func APIEndpointIn(vs ...string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldIn(FieldAPIEndpoint, vs...))
 }
 
-// CurrentStateNEQ applies the NEQ predicate on the "current_state" field.
-func CurrentStateNEQ(v CurrentState) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldNEQ(FieldCurrentState, v))
+// APIEndpointNotIn applies the NotIn predicate on the "api_endpoint" field.
+func APIEndpointNotIn(vs ...string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldNotIn(FieldAPIEndpoint, vs...))
 }
 
-// CurrentStateIn applies the In predicate on the "current_state" field.
-func CurrentStateIn(vs ...CurrentState) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldIn(FieldCurrentState, vs...))
+// APIEndpointGT applies the GT predicate on the "api_endpoint" field.
+func APIEndpointGT(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldGT(FieldAPIEndpoint, v))
 }
 
-// CurrentStateNotIn applies the NotIn predicate on the "current_state" field.
-func CurrentStateNotIn(vs ...CurrentState) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldNotIn(FieldCurrentState, vs...))
+// APIEndpointGTE applies the GTE predicate on the "api_endpoint" field.
+func APIEndpointGTE(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldGTE(FieldAPIEndpoint, v))
 }
 
-// CurrentStateIsNil applies the IsNil predicate on the "current_state" field.
-func CurrentStateIsNil() predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldIsNull(FieldCurrentState))
+// APIEndpointLT applies the LT predicate on the "api_endpoint" field.
+func APIEndpointLT(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldLT(FieldAPIEndpoint, v))
 }
 
-// CurrentStateNotNil applies the NotNil predicate on the "current_state" field.
-func CurrentStateNotNil() predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldNotNull(FieldCurrentState))
+// APIEndpointLTE applies the LTE predicate on the "api_endpoint" field.
+func APIEndpointLTE(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldLTE(FieldAPIEndpoint, v))
 }
 
-// EndpointEQ applies the EQ predicate on the "endpoint" field.
-func EndpointEQ(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldEQ(FieldEndpoint, v))
+// APIEndpointContains applies the Contains predicate on the "api_endpoint" field.
+func APIEndpointContains(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldContains(FieldAPIEndpoint, v))
 }
 
-// EndpointNEQ applies the NEQ predicate on the "endpoint" field.
-func EndpointNEQ(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldNEQ(FieldEndpoint, v))
+// APIEndpointHasPrefix applies the HasPrefix predicate on the "api_endpoint" field.
+func APIEndpointHasPrefix(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldHasPrefix(FieldAPIEndpoint, v))
 }
 
-// EndpointIn applies the In predicate on the "endpoint" field.
-func EndpointIn(vs ...string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldIn(FieldEndpoint, vs...))
+// APIEndpointHasSuffix applies the HasSuffix predicate on the "api_endpoint" field.
+func APIEndpointHasSuffix(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldHasSuffix(FieldAPIEndpoint, v))
 }
 
-// EndpointNotIn applies the NotIn predicate on the "endpoint" field.
-func EndpointNotIn(vs ...string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldNotIn(FieldEndpoint, vs...))
+// APIEndpointEqualFold applies the EqualFold predicate on the "api_endpoint" field.
+func APIEndpointEqualFold(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldEqualFold(FieldAPIEndpoint, v))
 }
 
-// EndpointGT applies the GT predicate on the "endpoint" field.
-func EndpointGT(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldGT(FieldEndpoint, v))
+// APIEndpointContainsFold applies the ContainsFold predicate on the "api_endpoint" field.
+func APIEndpointContainsFold(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldContainsFold(FieldAPIEndpoint, v))
 }
 
-// EndpointGTE applies the GTE predicate on the "endpoint" field.
-func EndpointGTE(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldGTE(FieldEndpoint, v))
+// APICredentialsEQ applies the EQ predicate on the "api_credentials" field.
+func APICredentialsEQ(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldEQ(FieldAPICredentials, v))
 }
 
-// EndpointLT applies the LT predicate on the "endpoint" field.
-func EndpointLT(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldLT(FieldEndpoint, v))
+// APICredentialsNEQ applies the NEQ predicate on the "api_credentials" field.
+func APICredentialsNEQ(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldNEQ(FieldAPICredentials, v))
 }
 
-// EndpointLTE applies the LTE predicate on the "endpoint" field.
-func EndpointLTE(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldLTE(FieldEndpoint, v))
+// APICredentialsIn applies the In predicate on the "api_credentials" field.
+func APICredentialsIn(vs ...string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldIn(FieldAPICredentials, vs...))
 }
 
-// EndpointContains applies the Contains predicate on the "endpoint" field.
-func EndpointContains(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldContains(FieldEndpoint, v))
+// APICredentialsNotIn applies the NotIn predicate on the "api_credentials" field.
+func APICredentialsNotIn(vs ...string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldNotIn(FieldAPICredentials, vs...))
 }
 
-// EndpointHasPrefix applies the HasPrefix predicate on the "endpoint" field.
-func EndpointHasPrefix(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldHasPrefix(FieldEndpoint, v))
+// APICredentialsGT applies the GT predicate on the "api_credentials" field.
+func APICredentialsGT(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldGT(FieldAPICredentials, v))
 }
 
-// EndpointHasSuffix applies the HasSuffix predicate on the "endpoint" field.
-func EndpointHasSuffix(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldHasSuffix(FieldEndpoint, v))
+// APICredentialsGTE applies the GTE predicate on the "api_credentials" field.
+func APICredentialsGTE(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldGTE(FieldAPICredentials, v))
 }
 
-// EndpointIsNil applies the IsNil predicate on the "endpoint" field.
-func EndpointIsNil() predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldIsNull(FieldEndpoint))
+// APICredentialsLT applies the LT predicate on the "api_credentials" field.
+func APICredentialsLT(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldLT(FieldAPICredentials, v))
 }
 
-// EndpointNotNil applies the NotNil predicate on the "endpoint" field.
-func EndpointNotNil() predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldNotNull(FieldEndpoint))
+// APICredentialsLTE applies the LTE predicate on the "api_credentials" field.
+func APICredentialsLTE(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldLTE(FieldAPICredentials, v))
 }
 
-// EndpointEqualFold applies the EqualFold predicate on the "endpoint" field.
-func EndpointEqualFold(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldEqualFold(FieldEndpoint, v))
+// APICredentialsContains applies the Contains predicate on the "api_credentials" field.
+func APICredentialsContains(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldContains(FieldAPICredentials, v))
 }
 
-// EndpointContainsFold applies the ContainsFold predicate on the "endpoint" field.
-func EndpointContainsFold(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldContainsFold(FieldEndpoint, v))
+// APICredentialsHasPrefix applies the HasPrefix predicate on the "api_credentials" field.
+func APICredentialsHasPrefix(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldHasPrefix(FieldAPICredentials, v))
 }
 
-// TokenEQ applies the EQ predicate on the "token" field.
-func TokenEQ(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldEQ(FieldToken, v))
+// APICredentialsHasSuffix applies the HasSuffix predicate on the "api_credentials" field.
+func APICredentialsHasSuffix(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldHasSuffix(FieldAPICredentials, v))
 }
 
-// TokenNEQ applies the NEQ predicate on the "token" field.
-func TokenNEQ(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldNEQ(FieldToken, v))
+// APICredentialsIsNil applies the IsNil predicate on the "api_credentials" field.
+func APICredentialsIsNil() predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldIsNull(FieldAPICredentials))
 }
 
-// TokenIn applies the In predicate on the "token" field.
-func TokenIn(vs ...string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldIn(FieldToken, vs...))
+// APICredentialsNotNil applies the NotNil predicate on the "api_credentials" field.
+func APICredentialsNotNil() predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldNotNull(FieldAPICredentials))
 }
 
-// TokenNotIn applies the NotIn predicate on the "token" field.
-func TokenNotIn(vs ...string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldNotIn(FieldToken, vs...))
+// APICredentialsEqualFold applies the EqualFold predicate on the "api_credentials" field.
+func APICredentialsEqualFold(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldEqualFold(FieldAPICredentials, v))
 }
 
-// TokenGT applies the GT predicate on the "token" field.
-func TokenGT(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldGT(FieldToken, v))
-}
-
-// TokenGTE applies the GTE predicate on the "token" field.
-func TokenGTE(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldGTE(FieldToken, v))
-}
-
-// TokenLT applies the LT predicate on the "token" field.
-func TokenLT(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldLT(FieldToken, v))
-}
-
-// TokenLTE applies the LTE predicate on the "token" field.
-func TokenLTE(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldLTE(FieldToken, v))
-}
-
-// TokenContains applies the Contains predicate on the "token" field.
-func TokenContains(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldContains(FieldToken, v))
-}
-
-// TokenHasPrefix applies the HasPrefix predicate on the "token" field.
-func TokenHasPrefix(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldHasPrefix(FieldToken, v))
-}
-
-// TokenHasSuffix applies the HasSuffix predicate on the "token" field.
-func TokenHasSuffix(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldHasSuffix(FieldToken, v))
-}
-
-// TokenIsNil applies the IsNil predicate on the "token" field.
-func TokenIsNil() predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldIsNull(FieldToken))
-}
-
-// TokenNotNil applies the NotNil predicate on the "token" field.
-func TokenNotNil() predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldNotNull(FieldToken))
-}
-
-// TokenEqualFold applies the EqualFold predicate on the "token" field.
-func TokenEqualFold(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldEqualFold(FieldToken, v))
-}
-
-// TokenContainsFold applies the ContainsFold predicate on the "token" field.
-func TokenContainsFold(v string) predicate.ProviderResource {
-	return predicate.ProviderResource(sql.FieldContainsFold(FieldToken, v))
-}
-
-// HasSite applies the HasEdge predicate on the "site" edge.
-func HasSite() predicate.ProviderResource {
-	return predicate.ProviderResource(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, SiteTable, SiteColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasSiteWith applies the HasEdge predicate on the "site" edge with a given conditions (other predicates).
-func HasSiteWith(preds ...predicate.SiteResource) predicate.ProviderResource {
-	return predicate.ProviderResource(func(s *sql.Selector) {
-		step := newSiteStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
+// APICredentialsContainsFold applies the ContainsFold predicate on the "api_credentials" field.
+func APICredentialsContainsFold(v string) predicate.ProviderResource {
+	return predicate.ProviderResource(sql.FieldContainsFold(FieldAPICredentials, v))
 }
 
 // And groups predicates with the AND operator between them.

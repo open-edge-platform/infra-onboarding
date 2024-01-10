@@ -20,8 +20,8 @@ type WorkloadResource struct {
 	ResourceID string `json:"resource_id,omitempty"`
 	// Kind holds the value of the "kind" field.
 	Kind workloadresource.Kind `json:"kind,omitempty"`
-	// Description holds the value of the "description" field.
-	Description string `json:"description,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
 	// ExternalID holds the value of the "external_id" field.
 	ExternalID string `json:"external_id,omitempty"`
 	// DesiredState holds the value of the "desired_state" field.
@@ -63,7 +63,7 @@ func (*WorkloadResource) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case workloadresource.FieldID:
 			values[i] = new(sql.NullInt64)
-		case workloadresource.FieldResourceID, workloadresource.FieldKind, workloadresource.FieldDescription, workloadresource.FieldExternalID, workloadresource.FieldDesiredState, workloadresource.FieldCurrentState, workloadresource.FieldStatus, workloadresource.FieldMetadata:
+		case workloadresource.FieldResourceID, workloadresource.FieldKind, workloadresource.FieldName, workloadresource.FieldExternalID, workloadresource.FieldDesiredState, workloadresource.FieldCurrentState, workloadresource.FieldStatus, workloadresource.FieldMetadata:
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -98,11 +98,11 @@ func (wr *WorkloadResource) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				wr.Kind = workloadresource.Kind(value.String)
 			}
-		case workloadresource.FieldDescription:
+		case workloadresource.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field description", values[i])
+				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				wr.Description = value.String
+				wr.Name = value.String
 			}
 		case workloadresource.FieldExternalID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -181,8 +181,8 @@ func (wr *WorkloadResource) String() string {
 	builder.WriteString("kind=")
 	builder.WriteString(fmt.Sprintf("%v", wr.Kind))
 	builder.WriteString(", ")
-	builder.WriteString("description=")
-	builder.WriteString(wr.Description)
+	builder.WriteString("name=")
+	builder.WriteString(wr.Name)
 	builder.WriteString(", ")
 	builder.WriteString("external_id=")
 	builder.WriteString(wr.ExternalID)

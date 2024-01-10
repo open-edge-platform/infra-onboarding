@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hostgpuresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hostnicresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hostresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hoststorageresource"
@@ -47,16 +48,16 @@ func (hrc *HostResourceCreate) SetNillableKind(s *string) *HostResourceCreate {
 	return hrc
 }
 
-// SetDescription sets the "description" field.
-func (hrc *HostResourceCreate) SetDescription(s string) *HostResourceCreate {
-	hrc.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (hrc *HostResourceCreate) SetName(s string) *HostResourceCreate {
+	hrc.mutation.SetName(s)
 	return hrc
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (hrc *HostResourceCreate) SetNillableDescription(s *string) *HostResourceCreate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (hrc *HostResourceCreate) SetNillableName(s *string) *HostResourceCreate {
 	if s != nil {
-		hrc.SetDescription(*s)
+		hrc.SetName(*s)
 	}
 	return hrc
 }
@@ -141,20 +142,6 @@ func (hrc *HostResourceCreate) SetNote(s string) *HostResourceCreate {
 func (hrc *HostResourceCreate) SetNillableNote(s *string) *HostResourceCreate {
 	if s != nil {
 		hrc.SetNote(*s)
-	}
-	return hrc
-}
-
-// SetConsumerID sets the "consumer_id" field.
-func (hrc *HostResourceCreate) SetConsumerID(s string) *HostResourceCreate {
-	hrc.mutation.SetConsumerID(s)
-	return hrc
-}
-
-// SetNillableConsumerID sets the "consumer_id" field if the given value is not nil.
-func (hrc *HostResourceCreate) SetNillableConsumerID(s *string) *HostResourceCreate {
-	if s != nil {
-		hrc.SetConsumerID(*s)
 	}
 	return hrc
 }
@@ -295,48 +282,6 @@ func (hrc *HostResourceCreate) SetCPUThreads(u uint32) *HostResourceCreate {
 func (hrc *HostResourceCreate) SetNillableCPUThreads(u *uint32) *HostResourceCreate {
 	if u != nil {
 		hrc.SetCPUThreads(*u)
-	}
-	return hrc
-}
-
-// SetGpuPciID sets the "gpu_pci_id" field.
-func (hrc *HostResourceCreate) SetGpuPciID(s string) *HostResourceCreate {
-	hrc.mutation.SetGpuPciID(s)
-	return hrc
-}
-
-// SetNillableGpuPciID sets the "gpu_pci_id" field if the given value is not nil.
-func (hrc *HostResourceCreate) SetNillableGpuPciID(s *string) *HostResourceCreate {
-	if s != nil {
-		hrc.SetGpuPciID(*s)
-	}
-	return hrc
-}
-
-// SetGpuProduct sets the "gpu_product" field.
-func (hrc *HostResourceCreate) SetGpuProduct(s string) *HostResourceCreate {
-	hrc.mutation.SetGpuProduct(s)
-	return hrc
-}
-
-// SetNillableGpuProduct sets the "gpu_product" field if the given value is not nil.
-func (hrc *HostResourceCreate) SetNillableGpuProduct(s *string) *HostResourceCreate {
-	if s != nil {
-		hrc.SetGpuProduct(*s)
-	}
-	return hrc
-}
-
-// SetGpuVendor sets the "gpu_vendor" field.
-func (hrc *HostResourceCreate) SetGpuVendor(s string) *HostResourceCreate {
-	hrc.mutation.SetGpuVendor(s)
-	return hrc
-}
-
-// SetNillableGpuVendor sets the "gpu_vendor" field if the given value is not nil.
-func (hrc *HostResourceCreate) SetNillableGpuVendor(s *string) *HostResourceCreate {
-	if s != nil {
-		hrc.SetGpuVendor(*s)
 	}
 	return hrc
 }
@@ -658,6 +603,21 @@ func (hrc *HostResourceCreate) AddHostUsbs(h ...*HostusbResource) *HostResourceC
 	return hrc.AddHostUsbIDs(ids...)
 }
 
+// AddHostGpuIDs adds the "host_gpus" edge to the HostgpuResource entity by IDs.
+func (hrc *HostResourceCreate) AddHostGpuIDs(ids ...int) *HostResourceCreate {
+	hrc.mutation.AddHostGpuIDs(ids...)
+	return hrc
+}
+
+// AddHostGpus adds the "host_gpus" edges to the HostgpuResource entity.
+func (hrc *HostResourceCreate) AddHostGpus(h ...*HostgpuResource) *HostResourceCreate {
+	ids := make([]int, len(h))
+	for i := range h {
+		ids[i] = h[i].ID
+	}
+	return hrc.AddHostGpuIDs(ids...)
+}
+
 // SetInstanceID sets the "instance" edge to the InstanceResource entity by ID.
 func (hrc *HostResourceCreate) SetInstanceID(id int) *HostResourceCreate {
 	hrc.mutation.SetInstanceID(id)
@@ -778,9 +738,9 @@ func (hrc *HostResourceCreate) createSpec() (*HostResource, *sqlgraph.CreateSpec
 		_spec.SetField(hostresource.FieldKind, field.TypeString, value)
 		_node.Kind = value
 	}
-	if value, ok := hrc.mutation.Description(); ok {
-		_spec.SetField(hostresource.FieldDescription, field.TypeString, value)
-		_node.Description = value
+	if value, ok := hrc.mutation.Name(); ok {
+		_spec.SetField(hostresource.FieldName, field.TypeString, value)
+		_node.Name = value
 	}
 	if value, ok := hrc.mutation.DesiredState(); ok {
 		_spec.SetField(hostresource.FieldDesiredState, field.TypeEnum, value)
@@ -805,10 +765,6 @@ func (hrc *HostResourceCreate) createSpec() (*HostResource, *sqlgraph.CreateSpec
 	if value, ok := hrc.mutation.Note(); ok {
 		_spec.SetField(hostresource.FieldNote, field.TypeString, value)
 		_node.Note = value
-	}
-	if value, ok := hrc.mutation.ConsumerID(); ok {
-		_spec.SetField(hostresource.FieldConsumerID, field.TypeString, value)
-		_node.ConsumerID = value
 	}
 	if value, ok := hrc.mutation.HardwareKind(); ok {
 		_spec.SetField(hostresource.FieldHardwareKind, field.TypeString, value)
@@ -849,18 +805,6 @@ func (hrc *HostResourceCreate) createSpec() (*HostResource, *sqlgraph.CreateSpec
 	if value, ok := hrc.mutation.CPUThreads(); ok {
 		_spec.SetField(hostresource.FieldCPUThreads, field.TypeUint32, value)
 		_node.CPUThreads = value
-	}
-	if value, ok := hrc.mutation.GpuPciID(); ok {
-		_spec.SetField(hostresource.FieldGpuPciID, field.TypeString, value)
-		_node.GpuPciID = value
-	}
-	if value, ok := hrc.mutation.GpuProduct(); ok {
-		_spec.SetField(hostresource.FieldGpuProduct, field.TypeString, value)
-		_node.GpuProduct = value
-	}
-	if value, ok := hrc.mutation.GpuVendor(); ok {
-		_spec.SetField(hostresource.FieldGpuVendor, field.TypeString, value)
-		_node.GpuVendor = value
 	}
 	if value, ok := hrc.mutation.MgmtIP(); ok {
 		_spec.SetField(hostresource.FieldMgmtIP, field.TypeString, value)
@@ -1027,6 +971,22 @@ func (hrc *HostResourceCreate) createSpec() (*HostResource, *sqlgraph.CreateSpec
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(hostusbresource.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := hrc.mutation.HostGpusIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   hostresource.HostGpusTable,
+			Columns: []string{hostresource.HostGpusColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(hostgpuresource.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

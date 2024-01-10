@@ -54,66 +54,6 @@ func (hru *HostusbResourceUpdate) ClearKind() *HostusbResourceUpdate {
 	return hru
 }
 
-// SetDescription sets the "description" field.
-func (hru *HostusbResourceUpdate) SetDescription(s string) *HostusbResourceUpdate {
-	hru.mutation.SetDescription(s)
-	return hru
-}
-
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (hru *HostusbResourceUpdate) SetNillableDescription(s *string) *HostusbResourceUpdate {
-	if s != nil {
-		hru.SetDescription(*s)
-	}
-	return hru
-}
-
-// ClearDescription clears the value of the "description" field.
-func (hru *HostusbResourceUpdate) ClearDescription() *HostusbResourceUpdate {
-	hru.mutation.ClearDescription()
-	return hru
-}
-
-// SetCurrentState sets the "current_state" field.
-func (hru *HostusbResourceUpdate) SetCurrentState(hs hostusbresource.CurrentState) *HostusbResourceUpdate {
-	hru.mutation.SetCurrentState(hs)
-	return hru
-}
-
-// SetNillableCurrentState sets the "current_state" field if the given value is not nil.
-func (hru *HostusbResourceUpdate) SetNillableCurrentState(hs *hostusbresource.CurrentState) *HostusbResourceUpdate {
-	if hs != nil {
-		hru.SetCurrentState(*hs)
-	}
-	return hru
-}
-
-// ClearCurrentState clears the value of the "current_state" field.
-func (hru *HostusbResourceUpdate) ClearCurrentState() *HostusbResourceUpdate {
-	hru.mutation.ClearCurrentState()
-	return hru
-}
-
-// SetDesiredState sets the "desired_state" field.
-func (hru *HostusbResourceUpdate) SetDesiredState(hs hostusbresource.DesiredState) *HostusbResourceUpdate {
-	hru.mutation.SetDesiredState(hs)
-	return hru
-}
-
-// SetNillableDesiredState sets the "desired_state" field if the given value is not nil.
-func (hru *HostusbResourceUpdate) SetNillableDesiredState(hs *hostusbresource.DesiredState) *HostusbResourceUpdate {
-	if hs != nil {
-		hru.SetDesiredState(*hs)
-	}
-	return hru
-}
-
-// ClearDesiredState clears the value of the "desired_state" field.
-func (hru *HostusbResourceUpdate) ClearDesiredState() *HostusbResourceUpdate {
-	hru.mutation.ClearDesiredState()
-	return hru
-}
-
 // SetOwnerID sets the "owner_id" field.
 func (hru *HostusbResourceUpdate) SetOwnerID(s string) *HostusbResourceUpdate {
 	hru.mutation.SetOwnerID(s)
@@ -268,6 +208,26 @@ func (hru *HostusbResourceUpdate) ClearSerial() *HostusbResourceUpdate {
 	return hru
 }
 
+// SetDeviceName sets the "device_name" field.
+func (hru *HostusbResourceUpdate) SetDeviceName(s string) *HostusbResourceUpdate {
+	hru.mutation.SetDeviceName(s)
+	return hru
+}
+
+// SetNillableDeviceName sets the "device_name" field if the given value is not nil.
+func (hru *HostusbResourceUpdate) SetNillableDeviceName(s *string) *HostusbResourceUpdate {
+	if s != nil {
+		hru.SetDeviceName(*s)
+	}
+	return hru
+}
+
+// ClearDeviceName clears the value of the "device_name" field.
+func (hru *HostusbResourceUpdate) ClearDeviceName() *HostusbResourceUpdate {
+	hru.mutation.ClearDeviceName()
+	return hru
+}
+
 // SetHostID sets the "host" edge to the HostResource entity by ID.
 func (hru *HostusbResourceUpdate) SetHostID(id int) *HostusbResourceUpdate {
 	hru.mutation.SetHostID(id)
@@ -319,16 +279,6 @@ func (hru *HostusbResourceUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (hru *HostusbResourceUpdate) check() error {
-	if v, ok := hru.mutation.CurrentState(); ok {
-		if err := hostusbresource.CurrentStateValidator(v); err != nil {
-			return &ValidationError{Name: "current_state", err: fmt.Errorf(`ent: validator failed for field "HostusbResource.current_state": %w`, err)}
-		}
-	}
-	if v, ok := hru.mutation.DesiredState(); ok {
-		if err := hostusbresource.DesiredStateValidator(v); err != nil {
-			return &ValidationError{Name: "desired_state", err: fmt.Errorf(`ent: validator failed for field "HostusbResource.desired_state": %w`, err)}
-		}
-	}
 	if _, ok := hru.mutation.HostID(); hru.mutation.HostCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "HostusbResource.host"`)
 	}
@@ -355,24 +305,6 @@ func (hru *HostusbResourceUpdate) sqlSave(ctx context.Context) (n int, err error
 	}
 	if hru.mutation.KindCleared() {
 		_spec.ClearField(hostusbresource.FieldKind, field.TypeString)
-	}
-	if value, ok := hru.mutation.Description(); ok {
-		_spec.SetField(hostusbresource.FieldDescription, field.TypeString, value)
-	}
-	if hru.mutation.DescriptionCleared() {
-		_spec.ClearField(hostusbresource.FieldDescription, field.TypeString)
-	}
-	if value, ok := hru.mutation.CurrentState(); ok {
-		_spec.SetField(hostusbresource.FieldCurrentState, field.TypeEnum, value)
-	}
-	if hru.mutation.CurrentStateCleared() {
-		_spec.ClearField(hostusbresource.FieldCurrentState, field.TypeEnum)
-	}
-	if value, ok := hru.mutation.DesiredState(); ok {
-		_spec.SetField(hostusbresource.FieldDesiredState, field.TypeEnum, value)
-	}
-	if hru.mutation.DesiredStateCleared() {
-		_spec.ClearField(hostusbresource.FieldDesiredState, field.TypeEnum)
 	}
 	if value, ok := hru.mutation.OwnerID(); ok {
 		_spec.SetField(hostusbresource.FieldOwnerID, field.TypeString, value)
@@ -421,6 +353,12 @@ func (hru *HostusbResourceUpdate) sqlSave(ctx context.Context) (n int, err error
 	}
 	if hru.mutation.SerialCleared() {
 		_spec.ClearField(hostusbresource.FieldSerial, field.TypeString)
+	}
+	if value, ok := hru.mutation.DeviceName(); ok {
+		_spec.SetField(hostusbresource.FieldDeviceName, field.TypeString, value)
+	}
+	if hru.mutation.DeviceNameCleared() {
+		_spec.ClearField(hostusbresource.FieldDeviceName, field.TypeString)
 	}
 	if hru.mutation.HostCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -494,66 +432,6 @@ func (hruo *HostusbResourceUpdateOne) SetNillableKind(s *string) *HostusbResourc
 // ClearKind clears the value of the "kind" field.
 func (hruo *HostusbResourceUpdateOne) ClearKind() *HostusbResourceUpdateOne {
 	hruo.mutation.ClearKind()
-	return hruo
-}
-
-// SetDescription sets the "description" field.
-func (hruo *HostusbResourceUpdateOne) SetDescription(s string) *HostusbResourceUpdateOne {
-	hruo.mutation.SetDescription(s)
-	return hruo
-}
-
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (hruo *HostusbResourceUpdateOne) SetNillableDescription(s *string) *HostusbResourceUpdateOne {
-	if s != nil {
-		hruo.SetDescription(*s)
-	}
-	return hruo
-}
-
-// ClearDescription clears the value of the "description" field.
-func (hruo *HostusbResourceUpdateOne) ClearDescription() *HostusbResourceUpdateOne {
-	hruo.mutation.ClearDescription()
-	return hruo
-}
-
-// SetCurrentState sets the "current_state" field.
-func (hruo *HostusbResourceUpdateOne) SetCurrentState(hs hostusbresource.CurrentState) *HostusbResourceUpdateOne {
-	hruo.mutation.SetCurrentState(hs)
-	return hruo
-}
-
-// SetNillableCurrentState sets the "current_state" field if the given value is not nil.
-func (hruo *HostusbResourceUpdateOne) SetNillableCurrentState(hs *hostusbresource.CurrentState) *HostusbResourceUpdateOne {
-	if hs != nil {
-		hruo.SetCurrentState(*hs)
-	}
-	return hruo
-}
-
-// ClearCurrentState clears the value of the "current_state" field.
-func (hruo *HostusbResourceUpdateOne) ClearCurrentState() *HostusbResourceUpdateOne {
-	hruo.mutation.ClearCurrentState()
-	return hruo
-}
-
-// SetDesiredState sets the "desired_state" field.
-func (hruo *HostusbResourceUpdateOne) SetDesiredState(hs hostusbresource.DesiredState) *HostusbResourceUpdateOne {
-	hruo.mutation.SetDesiredState(hs)
-	return hruo
-}
-
-// SetNillableDesiredState sets the "desired_state" field if the given value is not nil.
-func (hruo *HostusbResourceUpdateOne) SetNillableDesiredState(hs *hostusbresource.DesiredState) *HostusbResourceUpdateOne {
-	if hs != nil {
-		hruo.SetDesiredState(*hs)
-	}
-	return hruo
-}
-
-// ClearDesiredState clears the value of the "desired_state" field.
-func (hruo *HostusbResourceUpdateOne) ClearDesiredState() *HostusbResourceUpdateOne {
-	hruo.mutation.ClearDesiredState()
 	return hruo
 }
 
@@ -711,6 +589,26 @@ func (hruo *HostusbResourceUpdateOne) ClearSerial() *HostusbResourceUpdateOne {
 	return hruo
 }
 
+// SetDeviceName sets the "device_name" field.
+func (hruo *HostusbResourceUpdateOne) SetDeviceName(s string) *HostusbResourceUpdateOne {
+	hruo.mutation.SetDeviceName(s)
+	return hruo
+}
+
+// SetNillableDeviceName sets the "device_name" field if the given value is not nil.
+func (hruo *HostusbResourceUpdateOne) SetNillableDeviceName(s *string) *HostusbResourceUpdateOne {
+	if s != nil {
+		hruo.SetDeviceName(*s)
+	}
+	return hruo
+}
+
+// ClearDeviceName clears the value of the "device_name" field.
+func (hruo *HostusbResourceUpdateOne) ClearDeviceName() *HostusbResourceUpdateOne {
+	hruo.mutation.ClearDeviceName()
+	return hruo
+}
+
 // SetHostID sets the "host" edge to the HostResource entity by ID.
 func (hruo *HostusbResourceUpdateOne) SetHostID(id int) *HostusbResourceUpdateOne {
 	hruo.mutation.SetHostID(id)
@@ -775,16 +673,6 @@ func (hruo *HostusbResourceUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (hruo *HostusbResourceUpdateOne) check() error {
-	if v, ok := hruo.mutation.CurrentState(); ok {
-		if err := hostusbresource.CurrentStateValidator(v); err != nil {
-			return &ValidationError{Name: "current_state", err: fmt.Errorf(`ent: validator failed for field "HostusbResource.current_state": %w`, err)}
-		}
-	}
-	if v, ok := hruo.mutation.DesiredState(); ok {
-		if err := hostusbresource.DesiredStateValidator(v); err != nil {
-			return &ValidationError{Name: "desired_state", err: fmt.Errorf(`ent: validator failed for field "HostusbResource.desired_state": %w`, err)}
-		}
-	}
 	if _, ok := hruo.mutation.HostID(); hruo.mutation.HostCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "HostusbResource.host"`)
 	}
@@ -828,24 +716,6 @@ func (hruo *HostusbResourceUpdateOne) sqlSave(ctx context.Context) (_node *Hostu
 	}
 	if hruo.mutation.KindCleared() {
 		_spec.ClearField(hostusbresource.FieldKind, field.TypeString)
-	}
-	if value, ok := hruo.mutation.Description(); ok {
-		_spec.SetField(hostusbresource.FieldDescription, field.TypeString, value)
-	}
-	if hruo.mutation.DescriptionCleared() {
-		_spec.ClearField(hostusbresource.FieldDescription, field.TypeString)
-	}
-	if value, ok := hruo.mutation.CurrentState(); ok {
-		_spec.SetField(hostusbresource.FieldCurrentState, field.TypeEnum, value)
-	}
-	if hruo.mutation.CurrentStateCleared() {
-		_spec.ClearField(hostusbresource.FieldCurrentState, field.TypeEnum)
-	}
-	if value, ok := hruo.mutation.DesiredState(); ok {
-		_spec.SetField(hostusbresource.FieldDesiredState, field.TypeEnum, value)
-	}
-	if hruo.mutation.DesiredStateCleared() {
-		_spec.ClearField(hostusbresource.FieldDesiredState, field.TypeEnum)
 	}
 	if value, ok := hruo.mutation.OwnerID(); ok {
 		_spec.SetField(hostusbresource.FieldOwnerID, field.TypeString, value)
@@ -894,6 +764,12 @@ func (hruo *HostusbResourceUpdateOne) sqlSave(ctx context.Context) (_node *Hostu
 	}
 	if hruo.mutation.SerialCleared() {
 		_spec.ClearField(hostusbresource.FieldSerial, field.TypeString)
+	}
+	if value, ok := hruo.mutation.DeviceName(); ok {
+		_spec.SetField(hostusbresource.FieldDeviceName, field.TypeString, value)
+	}
+	if hruo.mutation.DeviceNameCleared() {
+		_spec.ClearField(hostusbresource.FieldDeviceName, field.TypeString)
 	}
 	if hruo.mutation.HostCleared() {
 		edge := &sqlgraph.EdgeSpec{

@@ -3,7 +3,7 @@ def getEnvFromBranch(branch) {
         return 'virus,protex,hadolint,checkmarx'
     }
     else {
-        return 'virus,checkmarx,hadolint'
+        return 'virus,hadolint'
         // PR checks can be extended with checkmarx, bandit, snyk but source code has to available for them to pass. Protex should be kept only at branch level scanning.
     }
 }

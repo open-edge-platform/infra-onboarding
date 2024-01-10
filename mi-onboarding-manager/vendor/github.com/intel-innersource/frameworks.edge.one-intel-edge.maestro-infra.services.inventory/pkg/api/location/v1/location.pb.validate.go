@@ -83,7 +83,7 @@ func (m *RegionResource) validate(all bool) error {
 
 	}
 
-	// no validation rules for Description
+	// no validation rules for Name
 
 	// no validation rules for RegionKind
 
@@ -280,9 +280,7 @@ func (m *SiteResource) validate(all bool) error {
 
 	}
 
-	// no validation rules for Description
-
-	// no validation rules for SiteKind
+	// no validation rules for Name
 
 	if all {
 		switch v := interface{}(m.GetRegion()).(type) {

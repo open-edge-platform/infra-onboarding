@@ -40,48 +40,6 @@ func (hrc *HostusbResourceCreate) SetNillableKind(s *string) *HostusbResourceCre
 	return hrc
 }
 
-// SetDescription sets the "description" field.
-func (hrc *HostusbResourceCreate) SetDescription(s string) *HostusbResourceCreate {
-	hrc.mutation.SetDescription(s)
-	return hrc
-}
-
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (hrc *HostusbResourceCreate) SetNillableDescription(s *string) *HostusbResourceCreate {
-	if s != nil {
-		hrc.SetDescription(*s)
-	}
-	return hrc
-}
-
-// SetCurrentState sets the "current_state" field.
-func (hrc *HostusbResourceCreate) SetCurrentState(hs hostusbresource.CurrentState) *HostusbResourceCreate {
-	hrc.mutation.SetCurrentState(hs)
-	return hrc
-}
-
-// SetNillableCurrentState sets the "current_state" field if the given value is not nil.
-func (hrc *HostusbResourceCreate) SetNillableCurrentState(hs *hostusbresource.CurrentState) *HostusbResourceCreate {
-	if hs != nil {
-		hrc.SetCurrentState(*hs)
-	}
-	return hrc
-}
-
-// SetDesiredState sets the "desired_state" field.
-func (hrc *HostusbResourceCreate) SetDesiredState(hs hostusbresource.DesiredState) *HostusbResourceCreate {
-	hrc.mutation.SetDesiredState(hs)
-	return hrc
-}
-
-// SetNillableDesiredState sets the "desired_state" field if the given value is not nil.
-func (hrc *HostusbResourceCreate) SetNillableDesiredState(hs *hostusbresource.DesiredState) *HostusbResourceCreate {
-	if hs != nil {
-		hrc.SetDesiredState(*hs)
-	}
-	return hrc
-}
-
 // SetOwnerID sets the "owner_id" field.
 func (hrc *HostusbResourceCreate) SetOwnerID(s string) *HostusbResourceCreate {
 	hrc.mutation.SetOwnerID(s)
@@ -180,6 +138,20 @@ func (hrc *HostusbResourceCreate) SetNillableSerial(s *string) *HostusbResourceC
 	return hrc
 }
 
+// SetDeviceName sets the "device_name" field.
+func (hrc *HostusbResourceCreate) SetDeviceName(s string) *HostusbResourceCreate {
+	hrc.mutation.SetDeviceName(s)
+	return hrc
+}
+
+// SetNillableDeviceName sets the "device_name" field if the given value is not nil.
+func (hrc *HostusbResourceCreate) SetNillableDeviceName(s *string) *HostusbResourceCreate {
+	if s != nil {
+		hrc.SetDeviceName(*s)
+	}
+	return hrc
+}
+
 // SetHostID sets the "host" edge to the HostResource entity by ID.
 func (hrc *HostusbResourceCreate) SetHostID(id int) *HostusbResourceCreate {
 	hrc.mutation.SetHostID(id)
@@ -228,16 +200,6 @@ func (hrc *HostusbResourceCreate) check() error {
 	if _, ok := hrc.mutation.ResourceID(); !ok {
 		return &ValidationError{Name: "resource_id", err: errors.New(`ent: missing required field "HostusbResource.resource_id"`)}
 	}
-	if v, ok := hrc.mutation.CurrentState(); ok {
-		if err := hostusbresource.CurrentStateValidator(v); err != nil {
-			return &ValidationError{Name: "current_state", err: fmt.Errorf(`ent: validator failed for field "HostusbResource.current_state": %w`, err)}
-		}
-	}
-	if v, ok := hrc.mutation.DesiredState(); ok {
-		if err := hostusbresource.DesiredStateValidator(v); err != nil {
-			return &ValidationError{Name: "desired_state", err: fmt.Errorf(`ent: validator failed for field "HostusbResource.desired_state": %w`, err)}
-		}
-	}
 	if _, ok := hrc.mutation.HostID(); !ok {
 		return &ValidationError{Name: "host", err: errors.New(`ent: missing required edge "HostusbResource.host"`)}
 	}
@@ -275,18 +237,6 @@ func (hrc *HostusbResourceCreate) createSpec() (*HostusbResource, *sqlgraph.Crea
 		_spec.SetField(hostusbresource.FieldKind, field.TypeString, value)
 		_node.Kind = value
 	}
-	if value, ok := hrc.mutation.Description(); ok {
-		_spec.SetField(hostusbresource.FieldDescription, field.TypeString, value)
-		_node.Description = value
-	}
-	if value, ok := hrc.mutation.CurrentState(); ok {
-		_spec.SetField(hostusbresource.FieldCurrentState, field.TypeEnum, value)
-		_node.CurrentState = value
-	}
-	if value, ok := hrc.mutation.DesiredState(); ok {
-		_spec.SetField(hostusbresource.FieldDesiredState, field.TypeEnum, value)
-		_node.DesiredState = value
-	}
 	if value, ok := hrc.mutation.OwnerID(); ok {
 		_spec.SetField(hostusbresource.FieldOwnerID, field.TypeString, value)
 		_node.OwnerID = value
@@ -314,6 +264,10 @@ func (hrc *HostusbResourceCreate) createSpec() (*HostusbResource, *sqlgraph.Crea
 	if value, ok := hrc.mutation.Serial(); ok {
 		_spec.SetField(hostusbresource.FieldSerial, field.TypeString, value)
 		_node.Serial = value
+	}
+	if value, ok := hrc.mutation.DeviceName(); ok {
+		_spec.SetField(hostusbresource.FieldDeviceName, field.TypeString, value)
+		_node.DeviceName = value
 	}
 	if nodes := hrc.mutation.HostIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

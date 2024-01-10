@@ -33,23 +33,23 @@ func (osru *OperatingSystemResourceUpdate) SetResourceID(s string) *OperatingSys
 	return osru
 }
 
-// SetDescription sets the "description" field.
-func (osru *OperatingSystemResourceUpdate) SetDescription(s string) *OperatingSystemResourceUpdate {
-	osru.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (osru *OperatingSystemResourceUpdate) SetName(s string) *OperatingSystemResourceUpdate {
+	osru.mutation.SetName(s)
 	return osru
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (osru *OperatingSystemResourceUpdate) SetNillableDescription(s *string) *OperatingSystemResourceUpdate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (osru *OperatingSystemResourceUpdate) SetNillableName(s *string) *OperatingSystemResourceUpdate {
 	if s != nil {
-		osru.SetDescription(*s)
+		osru.SetName(*s)
 	}
 	return osru
 }
 
-// ClearDescription clears the value of the "description" field.
-func (osru *OperatingSystemResourceUpdate) ClearDescription() *OperatingSystemResourceUpdate {
-	osru.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (osru *OperatingSystemResourceUpdate) ClearName() *OperatingSystemResourceUpdate {
+	osru.mutation.ClearName()
 	return osru
 }
 
@@ -175,11 +175,11 @@ func (osru *OperatingSystemResourceUpdate) sqlSave(ctx context.Context) (n int, 
 	if value, ok := osru.mutation.ResourceID(); ok {
 		_spec.SetField(operatingsystemresource.FieldResourceID, field.TypeString, value)
 	}
-	if value, ok := osru.mutation.Description(); ok {
-		_spec.SetField(operatingsystemresource.FieldDescription, field.TypeString, value)
+	if value, ok := osru.mutation.Name(); ok {
+		_spec.SetField(operatingsystemresource.FieldName, field.TypeString, value)
 	}
-	if osru.mutation.DescriptionCleared() {
-		_spec.ClearField(operatingsystemresource.FieldDescription, field.TypeString)
+	if osru.mutation.NameCleared() {
+		_spec.ClearField(operatingsystemresource.FieldName, field.TypeString)
 	}
 	if value, ok := osru.mutation.Architecture(); ok {
 		_spec.SetField(operatingsystemresource.FieldArchitecture, field.TypeString, value)
@@ -234,23 +234,23 @@ func (osruo *OperatingSystemResourceUpdateOne) SetResourceID(s string) *Operatin
 	return osruo
 }
 
-// SetDescription sets the "description" field.
-func (osruo *OperatingSystemResourceUpdateOne) SetDescription(s string) *OperatingSystemResourceUpdateOne {
-	osruo.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (osruo *OperatingSystemResourceUpdateOne) SetName(s string) *OperatingSystemResourceUpdateOne {
+	osruo.mutation.SetName(s)
 	return osruo
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (osruo *OperatingSystemResourceUpdateOne) SetNillableDescription(s *string) *OperatingSystemResourceUpdateOne {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (osruo *OperatingSystemResourceUpdateOne) SetNillableName(s *string) *OperatingSystemResourceUpdateOne {
 	if s != nil {
-		osruo.SetDescription(*s)
+		osruo.SetName(*s)
 	}
 	return osruo
 }
 
-// ClearDescription clears the value of the "description" field.
-func (osruo *OperatingSystemResourceUpdateOne) ClearDescription() *OperatingSystemResourceUpdateOne {
-	osruo.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (osruo *OperatingSystemResourceUpdateOne) ClearName() *OperatingSystemResourceUpdateOne {
+	osruo.mutation.ClearName()
 	return osruo
 }
 
@@ -406,11 +406,11 @@ func (osruo *OperatingSystemResourceUpdateOne) sqlSave(ctx context.Context) (_no
 	if value, ok := osruo.mutation.ResourceID(); ok {
 		_spec.SetField(operatingsystemresource.FieldResourceID, field.TypeString, value)
 	}
-	if value, ok := osruo.mutation.Description(); ok {
-		_spec.SetField(operatingsystemresource.FieldDescription, field.TypeString, value)
+	if value, ok := osruo.mutation.Name(); ok {
+		_spec.SetField(operatingsystemresource.FieldName, field.TypeString, value)
 	}
-	if osruo.mutation.DescriptionCleared() {
-		_spec.ClearField(operatingsystemresource.FieldDescription, field.TypeString)
+	if osruo.mutation.NameCleared() {
+		_spec.ClearField(operatingsystemresource.FieldName, field.TypeString)
 	}
 	if value, ok := osruo.mutation.Architecture(); ok {
 		_spec.SetField(operatingsystemresource.FieldArchitecture, field.TypeString, value)

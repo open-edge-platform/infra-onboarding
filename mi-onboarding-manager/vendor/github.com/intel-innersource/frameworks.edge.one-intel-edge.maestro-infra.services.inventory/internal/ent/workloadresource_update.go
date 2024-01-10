@@ -40,23 +40,23 @@ func (wru *WorkloadResourceUpdate) SetKind(w workloadresource.Kind) *WorkloadRes
 	return wru
 }
 
-// SetDescription sets the "description" field.
-func (wru *WorkloadResourceUpdate) SetDescription(s string) *WorkloadResourceUpdate {
-	wru.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (wru *WorkloadResourceUpdate) SetName(s string) *WorkloadResourceUpdate {
+	wru.mutation.SetName(s)
 	return wru
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (wru *WorkloadResourceUpdate) SetNillableDescription(s *string) *WorkloadResourceUpdate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (wru *WorkloadResourceUpdate) SetNillableName(s *string) *WorkloadResourceUpdate {
 	if s != nil {
-		wru.SetDescription(*s)
+		wru.SetName(*s)
 	}
 	return wru
 }
 
-// ClearDescription clears the value of the "description" field.
-func (wru *WorkloadResourceUpdate) ClearDescription() *WorkloadResourceUpdate {
-	wru.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (wru *WorkloadResourceUpdate) ClearName() *WorkloadResourceUpdate {
+	wru.mutation.ClearName()
 	return wru
 }
 
@@ -252,11 +252,11 @@ func (wru *WorkloadResourceUpdate) sqlSave(ctx context.Context) (n int, err erro
 	if value, ok := wru.mutation.Kind(); ok {
 		_spec.SetField(workloadresource.FieldKind, field.TypeEnum, value)
 	}
-	if value, ok := wru.mutation.Description(); ok {
-		_spec.SetField(workloadresource.FieldDescription, field.TypeString, value)
+	if value, ok := wru.mutation.Name(); ok {
+		_spec.SetField(workloadresource.FieldName, field.TypeString, value)
 	}
-	if wru.mutation.DescriptionCleared() {
-		_spec.ClearField(workloadresource.FieldDescription, field.TypeString)
+	if wru.mutation.NameCleared() {
+		_spec.ClearField(workloadresource.FieldName, field.TypeString)
 	}
 	if value, ok := wru.mutation.ExternalID(); ok {
 		_spec.SetField(workloadresource.FieldExternalID, field.TypeString, value)
@@ -362,23 +362,23 @@ func (wruo *WorkloadResourceUpdateOne) SetKind(w workloadresource.Kind) *Workloa
 	return wruo
 }
 
-// SetDescription sets the "description" field.
-func (wruo *WorkloadResourceUpdateOne) SetDescription(s string) *WorkloadResourceUpdateOne {
-	wruo.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (wruo *WorkloadResourceUpdateOne) SetName(s string) *WorkloadResourceUpdateOne {
+	wruo.mutation.SetName(s)
 	return wruo
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (wruo *WorkloadResourceUpdateOne) SetNillableDescription(s *string) *WorkloadResourceUpdateOne {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (wruo *WorkloadResourceUpdateOne) SetNillableName(s *string) *WorkloadResourceUpdateOne {
 	if s != nil {
-		wruo.SetDescription(*s)
+		wruo.SetName(*s)
 	}
 	return wruo
 }
 
-// ClearDescription clears the value of the "description" field.
-func (wruo *WorkloadResourceUpdateOne) ClearDescription() *WorkloadResourceUpdateOne {
-	wruo.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (wruo *WorkloadResourceUpdateOne) ClearName() *WorkloadResourceUpdateOne {
+	wruo.mutation.ClearName()
 	return wruo
 }
 
@@ -604,11 +604,11 @@ func (wruo *WorkloadResourceUpdateOne) sqlSave(ctx context.Context) (_node *Work
 	if value, ok := wruo.mutation.Kind(); ok {
 		_spec.SetField(workloadresource.FieldKind, field.TypeEnum, value)
 	}
-	if value, ok := wruo.mutation.Description(); ok {
-		_spec.SetField(workloadresource.FieldDescription, field.TypeString, value)
+	if value, ok := wruo.mutation.Name(); ok {
+		_spec.SetField(workloadresource.FieldName, field.TypeString, value)
 	}
-	if wruo.mutation.DescriptionCleared() {
-		_spec.ClearField(workloadresource.FieldDescription, field.TypeString)
+	if wruo.mutation.NameCleared() {
+		_spec.ClearField(workloadresource.FieldName, field.TypeString)
 	}
 	if value, ok := wruo.mutation.ExternalID(); ok {
 		_spec.SetField(workloadresource.FieldExternalID, field.TypeString, value)

@@ -20,8 +20,8 @@ type ProjectResource struct {
 	ResourceID string `json:"resource_id,omitempty"`
 	// Kind holds the value of the "kind" field.
 	Kind string `json:"kind,omitempty"`
-	// Description holds the value of the "description" field.
-	Description  string `json:"description,omitempty"`
+	// Name holds the value of the "name" field.
+	Name         string `json:"name,omitempty"`
 	selectValues sql.SelectValues
 }
 
@@ -32,7 +32,7 @@ func (*ProjectResource) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case projectresource.FieldID:
 			values[i] = new(sql.NullInt64)
-		case projectresource.FieldResourceID, projectresource.FieldKind, projectresource.FieldDescription:
+		case projectresource.FieldResourceID, projectresource.FieldKind, projectresource.FieldName:
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -67,11 +67,11 @@ func (pr *ProjectResource) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				pr.Kind = value.String
 			}
-		case projectresource.FieldDescription:
+		case projectresource.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field description", values[i])
+				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				pr.Description = value.String
+				pr.Name = value.String
 			}
 		default:
 			pr.selectValues.Set(columns[i], values[i])
@@ -115,8 +115,8 @@ func (pr *ProjectResource) String() string {
 	builder.WriteString("kind=")
 	builder.WriteString(pr.Kind)
 	builder.WriteString(", ")
-	builder.WriteString("description=")
-	builder.WriteString(pr.Description)
+	builder.WriteString("name=")
+	builder.WriteString(pr.Name)
 	builder.WriteByte(')')
 	return builder.String()
 }

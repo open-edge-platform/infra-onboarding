@@ -1,183 +1,151 @@
-/*
-   Copyright (C) 2023 Intel Corporation
-   SPDX-License-Identifier: Apache-2.0
-*/
+// SPDX-FileCopyrightText: (C) 2023 Intel Corporation
+// SPDX-License-Identifier: LicenseRef-Intel
 
 package main
 
 import (
 	"context"
 	"flag"
-	"net"
+	"fmt"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/flags"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/oam"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/tracing"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/handlers/southbound"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/config"
+	inventory "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/controller"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/maestro"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/maestro/controller"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
-	"time"
-
-	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/config"
-	inventory "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/controller"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/onboarding"
-	repository "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/persistence"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/logger"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/maestro"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/maestro/controller"
-
-	"google.golang.org/grpc"
 )
 
 var (
-	log        = logger.GetLogger()
-	invSvrAddr = flag.String("invsvraddr", "localhost:50051", "Inventory server address to connect to")
+	name = "MiOnboardingRM"
+	zlog = logging.GetLogger(name + "Main")
+
+	serverAddress    = flag.String(flags.ServerAddress, "0.0.0.0:50054", flags.ServerAddressDescription)
+	inventoryAddress = flag.String(client.InventoryAddress, "localhost:50051", client.InventoryAddressDescription)
+	oamServerAddress = flag.String(oam.OamServerAddress, "", oam.OamServerAddressDescription)
+	enableTracing    = flag.Bool(tracing.EnableTracing, false, tracing.EnableTracingDescription)
+	traceURL         = flag.String(tracing.TraceURL, "", tracing.TraceURLDescription)
+
+	wg        = sync.WaitGroup{}
+	readyChan = make(chan bool, 1)
+	termChan  = make(chan bool, 1)
+	sigChan   = make(chan os.Signal, 1)
 )
 var manager *inventory.InventoryManager
 
-type NodeArtifactService struct {
-	pb.UnimplementedNodeArtifactServiceNBServer
+var (
+	Project   = "frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service"
+	RepoURL   = fmt.Sprintf("https://github.com/intel-innersource/%s.git", Project)
+	Version   = "<unset>"
+	Revision  = "<unset>"
+	BuildDate = "<unset>"
+)
+
+func printSummary() {
+	zlog.Info().Msgf("Starting IFM Onboarding Manager")
+	zlog.MiSec().Info().Msgf("RepoURL: %s, Version: %s, Revision: %s, BuildDate: %s\n", RepoURL, Version, Revision, BuildDate)
 }
 
-type OnboardingEB struct {
-	pb.UnimplementedOnBoardingEBServer
-}
-
-func CopyNodeReqtoNodetData(payload []*pb.NodeData) ([]repository.NodeData, error) {
-
-	log.Info("CopyNodeReqtoNodetData")
-	log.Infof("%d", len(payload))
-	var data []repository.NodeData
-	for _, s := range payload {
-		art := repository.NodeData{
-			ID:           s.NodeId,
-			HwID:         s.HwId,
-			PlatformType: s.PlatformType,
-			DeviceType:   s.DeviceType,
-		}
-		log.Infof("HwID %d", s.HwId)
-		log.Infof("NodeId %d", s.NodeId)
-		data = append(data, art)
+func setupTracing(traceURL string) func(context.Context) error {
+	cleanup, exportErr := tracing.NewTraceExporterHTTP(traceURL, name, nil)
+	if exportErr != nil {
+		zlog.Err(exportErr).Msg("Error creating trace exporter")
 	}
-
-	log.Infof("%d", len(data))
-	return data, nil
-}
-
-func CopyNodeDatatoNodeResp(payload []repository.NodeData, result string) ([]*pb.NodeData, error) {
-	log.Info("CopyNodeDatatoNodeResp")
-	var data []*pb.NodeData
-	for _, s := range payload {
-		art2 := pb.NodeData{
-			NodeId:          s.ID,
-			HwId:            s.HwID,
-			FwArtifactId:    s.FwArtID,
-			OsArtifactId:    s.OsArtID,
-			AppArtifactId:   s.AppArtID,
-			PlatArtifactId:  s.PlatformArtID,
-			PlatformType:    s.PlatformType,
-			DeviceType:      s.DeviceType,
-			DeviceInfoAgent: s.DeviceInfoAgent,
-			DeviceStatus:    s.DeviceStatus,
-		}
-		if result == "SUCCESS" {
-			art2.Result = 0
-		} else {
-			art2.Result = 1
-		}
-		data = append(data, &art2)
+	if cleanup != nil {
+		zlog.Info().Msgf("Tracing enabled %s", traceURL)
+	} else {
+		zlog.Info().Msg("Tracing disabled")
 	}
-	return data, nil
+	return cleanup
 }
 
-func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
-
-	log.Info("CreateNodes")
-
-	return &pb.NodeResponse{Payload: req.Payload}, nil
-}
-
-func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
-	// Handle the RPC and return a response
-	//TODO to be implemented
-	return &pb.NodeResponse{Payload: req.Payload}, nil
-}
-
-func (s *NodeArtifactService) GetNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
-	// Handle the RPC and return a response
-	log.Info("GetNodes")
-
-	return &pb.NodeResponse{Payload: req.Payload}, nil
-}
-
-func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
-	// Handle the RPC and return a response
-
-	log.Info("UpdateNodes")
-
-	return &pb.NodeResponse{Payload: req.Payload}, nil
+func setupOamServerAndSetReady(enableTracing bool, oamServerAddress string) {
+	if oamServerAddress != "" {
+		// Add oam grpc server
+		wg.Add(1)
+		go func() {
+			if err := oam.StartOamGrpcServer(termChan, readyChan, &wg, oamServerAddress, enableTracing); err != nil {
+				zlog.MiSec().Fatal().Err(err).Msg("Cannot start Inventory OAM gRPC server")
+			}
+		}()
+		readyChan <- true
+	}
 }
 
 func main() {
+	// Print a summary of the build
+	printSummary()
+	flag.Parse()
+
+	// Startup order, respecting deps
+	// 1. Setup tracing
+	// 2. Start Inventory client
+	// 3. Start NBHandler and the reconcilers
+	// 4. Start southbound handler
+	// 5. Start the OAM server
+	if *enableTracing {
+		cleanup := setupTracing(*traceURL)
+		if cleanup != nil {
+			defer func() {
+				err := cleanup(context.Background())
+				if err != nil {
+					zlog.Err(err).Msg("Error in tracing cleanup")
+				}
+			}()
+		}
+	}
+
 	config.Load()
 	conf := config.GetConfig()
 	manager = inventory.NewInventoryManager(conf)
 
-	_, cancel := context.WithDeadline(context.Background(), time.Now().Add(10*time.Second))
-	defer cancel()
-
-	listenAddr := ":50054" // Set the port
-	lis, err := net.Listen("tcp", listenAddr)
+	invClient, invEvents, err := maestro.NewInventoryClient(&wg, *inventoryAddress)
 	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
-	}
-	s := grpc.NewServer()
-	pb.RegisterNodeArtifactServiceNBServer(s, &NodeArtifactService{})
-	pb.RegisterOnBoardingEBServer(s, &onboarding.OnboardingManager{})
-	//Run go routine to start the gRPC server
-	go func() {
-		if err := s.Serve(lis); err != nil {
-			log.Fatal("gRPC server failed:")
-		}
-	}()
-
-	// Set up a signal handler to catch termination signals
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
-	flag.Parse()
-	wg := &sync.WaitGroup{}
-	ctx := context.Background()
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
-
-	termChan := make(chan bool)
-
-	invClient, invEvents, err := maestro.NewInventoryClient(ctx, wg, termChan, *invSvrAddr)
-	if err != nil {
-		log.Fatalf("failed to create NewInventoryClient: %v", err)
+		zlog.MiSec().Fatal().Err(err).Msgf("failed to start inventory client")
 	}
 
 	nbHandler, err := controller.NewNBHandler(invClient, invEvents)
 	if err != nil {
-		log.Fatalf("failed to create NBHandler: %v", err)
+		zlog.MiSec().Fatal().Err(err).Msgf("Unable to create northbound handler")
 	}
 
 	err = nbHandler.Start()
 	if err != nil {
-		log.Fatalf("failed to start NBHandler: %v", err)
+		zlog.MiSec().Fatal().Err(err).Msgf("Unable to start northbound handler")
 	}
 
-	go func() {
-		<-sigChan
-		log.Info("Shutdown server")
-		close(termChan)
-		nbHandler.Stop()
-		invClient.Close()
-	}()
+	sbHandler, err := southbound.NewSBHandler(southbound.SBHandlerConfig{
+		ServerAddress: *serverAddress,
+		EnableTracing: *enableTracing,
+	})
+	if err != nil {
+		zlog.MiSec().Fatal().Err(err).Msgf("Unable to create southbound handler")
+	}
 
-	wg.Wait()
+	err = sbHandler.Start()
+	if err != nil {
+		zlog.MiSec().Fatal().Err(err).Msgf("Unable to start southbound handler")
+	}
 
-	//Gracefully stop the gRPC server
-	<-stop
-	s.GracefulStop()
+	setupOamServerAndSetReady(*enableTracing, *oamServerAddress)
 
-	log.Info("gRPC server stopped")
+	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
+	<-sigChan // blocking
+
+	// Terminate Onboarding Manager when termination signal received
+	close(termChan)
+	sbHandler.Stop()
+	nbHandler.Stop()
+	if err := invClient.Close(); err != nil {
+		zlog.MiSec().MiErr(err).Msgf("")
+	}
+
+	wg.Done()
 }

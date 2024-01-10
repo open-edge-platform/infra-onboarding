@@ -20,8 +20,8 @@ type UserResource struct {
 	ResourceID string `json:"resource_id,omitempty"`
 	// Kind holds the value of the "kind" field.
 	Kind string `json:"kind,omitempty"`
-	// Description holds the value of the "description" field.
-	Description string `json:"description,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
 	// Username holds the value of the "username" field.
 	Username string `json:"username,omitempty"`
 	// SSHPubkey holds the value of the "ssh_pubkey" field.
@@ -36,7 +36,7 @@ func (*UserResource) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case userresource.FieldID:
 			values[i] = new(sql.NullInt64)
-		case userresource.FieldResourceID, userresource.FieldKind, userresource.FieldDescription, userresource.FieldUsername, userresource.FieldSSHPubkey:
+		case userresource.FieldResourceID, userresource.FieldKind, userresource.FieldName, userresource.FieldUsername, userresource.FieldSSHPubkey:
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -71,11 +71,11 @@ func (ur *UserResource) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				ur.Kind = value.String
 			}
-		case userresource.FieldDescription:
+		case userresource.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field description", values[i])
+				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				ur.Description = value.String
+				ur.Name = value.String
 			}
 		case userresource.FieldUsername:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -131,8 +131,8 @@ func (ur *UserResource) String() string {
 	builder.WriteString("kind=")
 	builder.WriteString(ur.Kind)
 	builder.WriteString(", ")
-	builder.WriteString("description=")
-	builder.WriteString(ur.Description)
+	builder.WriteString("name=")
+	builder.WriteString(ur.Name)
 	builder.WriteString(", ")
 	builder.WriteString("username=")
 	builder.WriteString(ur.Username)

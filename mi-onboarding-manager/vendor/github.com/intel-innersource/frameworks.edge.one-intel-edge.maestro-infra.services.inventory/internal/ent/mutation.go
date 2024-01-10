@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/endpointresource"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hostgpuresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hostnicresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hostresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/hoststorageresource"
@@ -28,6 +29,8 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/repeatedscheduleresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/singlescheduleresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/siteresource"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/telemetrygroupresource"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/telemetryprofile"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/userresource"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/workloadmember"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/workloadresource"
@@ -44,6 +47,7 @@ const (
 	// Node types.
 	TypeEndpointResource         = "EndpointResource"
 	TypeHostResource             = "HostResource"
+	TypeHostgpuResource          = "HostgpuResource"
 	TypeHostnicResource          = "HostnicResource"
 	TypeHoststorageResource      = "HoststorageResource"
 	TypeHostusbResource          = "HostusbResource"
@@ -59,6 +63,8 @@ const (
 	TypeRepeatedScheduleResource = "RepeatedScheduleResource"
 	TypeSingleScheduleResource   = "SingleScheduleResource"
 	TypeSiteResource             = "SiteResource"
+	TypeTelemetryGroupResource   = "TelemetryGroupResource"
+	TypeTelemetryProfile         = "TelemetryProfile"
 	TypeUserResource             = "UserResource"
 	TypeWorkloadMember           = "WorkloadMember"
 	TypeWorkloadResource         = "WorkloadResource"
@@ -72,7 +78,7 @@ type EndpointResourceMutation struct {
 	id            *int
 	resource_id   *string
 	kind          *string
-	description   *string
+	name          *string
 	clearedFields map[string]struct{}
 	host          *int
 	clearedhost   bool
@@ -264,53 +270,53 @@ func (m *EndpointResourceMutation) ResetKind() {
 	delete(m.clearedFields, endpointresource.FieldKind)
 }
 
-// SetDescription sets the "description" field.
-func (m *EndpointResourceMutation) SetDescription(s string) {
-	m.description = &s
+// SetName sets the "name" field.
+func (m *EndpointResourceMutation) SetName(s string) {
+	m.name = &s
 }
 
-// Description returns the value of the "description" field in the mutation.
-func (m *EndpointResourceMutation) Description() (r string, exists bool) {
-	v := m.description
+// Name returns the value of the "name" field in the mutation.
+func (m *EndpointResourceMutation) Name() (r string, exists bool) {
+	v := m.name
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldDescription returns the old "description" field's value of the EndpointResource entity.
+// OldName returns the old "name" field's value of the EndpointResource entity.
 // If the EndpointResource object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *EndpointResourceMutation) OldDescription(ctx context.Context) (v string, err error) {
+func (m *EndpointResourceMutation) OldName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDescription requires an ID field in the mutation")
+		return v, errors.New("OldName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
 	}
-	return oldValue.Description, nil
+	return oldValue.Name, nil
 }
 
-// ClearDescription clears the value of the "description" field.
-func (m *EndpointResourceMutation) ClearDescription() {
-	m.description = nil
-	m.clearedFields[endpointresource.FieldDescription] = struct{}{}
+// ClearName clears the value of the "name" field.
+func (m *EndpointResourceMutation) ClearName() {
+	m.name = nil
+	m.clearedFields[endpointresource.FieldName] = struct{}{}
 }
 
-// DescriptionCleared returns if the "description" field was cleared in this mutation.
-func (m *EndpointResourceMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[endpointresource.FieldDescription]
+// NameCleared returns if the "name" field was cleared in this mutation.
+func (m *EndpointResourceMutation) NameCleared() bool {
+	_, ok := m.clearedFields[endpointresource.FieldName]
 	return ok
 }
 
-// ResetDescription resets all changes to the "description" field.
-func (m *EndpointResourceMutation) ResetDescription() {
-	m.description = nil
-	delete(m.clearedFields, endpointresource.FieldDescription)
+// ResetName resets all changes to the "name" field.
+func (m *EndpointResourceMutation) ResetName() {
+	m.name = nil
+	delete(m.clearedFields, endpointresource.FieldName)
 }
 
 // SetHostID sets the "host" edge to the HostResource entity by id.
@@ -393,8 +399,8 @@ func (m *EndpointResourceMutation) Fields() []string {
 	if m.kind != nil {
 		fields = append(fields, endpointresource.FieldKind)
 	}
-	if m.description != nil {
-		fields = append(fields, endpointresource.FieldDescription)
+	if m.name != nil {
+		fields = append(fields, endpointresource.FieldName)
 	}
 	return fields
 }
@@ -408,8 +414,8 @@ func (m *EndpointResourceMutation) Field(name string) (ent.Value, bool) {
 		return m.ResourceID()
 	case endpointresource.FieldKind:
 		return m.Kind()
-	case endpointresource.FieldDescription:
-		return m.Description()
+	case endpointresource.FieldName:
+		return m.Name()
 	}
 	return nil, false
 }
@@ -423,8 +429,8 @@ func (m *EndpointResourceMutation) OldField(ctx context.Context, name string) (e
 		return m.OldResourceID(ctx)
 	case endpointresource.FieldKind:
 		return m.OldKind(ctx)
-	case endpointresource.FieldDescription:
-		return m.OldDescription(ctx)
+	case endpointresource.FieldName:
+		return m.OldName(ctx)
 	}
 	return nil, fmt.Errorf("unknown EndpointResource field %s", name)
 }
@@ -448,12 +454,12 @@ func (m *EndpointResourceMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetKind(v)
 		return nil
-	case endpointresource.FieldDescription:
+	case endpointresource.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetDescription(v)
+		m.SetName(v)
 		return nil
 	}
 	return fmt.Errorf("unknown EndpointResource field %s", name)
@@ -488,8 +494,8 @@ func (m *EndpointResourceMutation) ClearedFields() []string {
 	if m.FieldCleared(endpointresource.FieldKind) {
 		fields = append(fields, endpointresource.FieldKind)
 	}
-	if m.FieldCleared(endpointresource.FieldDescription) {
-		fields = append(fields, endpointresource.FieldDescription)
+	if m.FieldCleared(endpointresource.FieldName) {
+		fields = append(fields, endpointresource.FieldName)
 	}
 	return fields
 }
@@ -508,8 +514,8 @@ func (m *EndpointResourceMutation) ClearField(name string) error {
 	case endpointresource.FieldKind:
 		m.ClearKind()
 		return nil
-	case endpointresource.FieldDescription:
-		m.ClearDescription()
+	case endpointresource.FieldName:
+		m.ClearName()
 		return nil
 	}
 	return fmt.Errorf("unknown EndpointResource nullable field %s", name)
@@ -525,8 +531,8 @@ func (m *EndpointResourceMutation) ResetField(name string) error {
 	case endpointresource.FieldKind:
 		m.ResetKind()
 		return nil
-	case endpointresource.FieldDescription:
-		m.ResetDescription()
+	case endpointresource.FieldName:
+		m.ResetName()
 		return nil
 	}
 	return fmt.Errorf("unknown EndpointResource field %s", name)
@@ -614,14 +620,13 @@ type HostResourceMutation struct {
 	id                     *int
 	resource_id            *string
 	kind                   *string
-	description            *string
+	name                   *string
 	desired_state          *hostresource.DesiredState
 	current_state          *hostresource.CurrentState
 	provider_status        *string
 	host_status            *hostresource.HostStatus
 	provider_status_detail *string
 	note                   *string
-	consumer_id            *string
 	hardware_kind          *string
 	serial_number          *string
 	uuid                   *string
@@ -636,9 +641,6 @@ type HostResourceMutation struct {
 	cpu_architecture       *string
 	cpu_threads            *uint32
 	addcpu_threads         *int32
-	gpu_pci_id             *string
-	gpu_product            *string
-	gpu_vendor             *string
 	mgmt_ip                *string
 	bmc_kind               *hostresource.BmcKind
 	bmc_ip                 *string
@@ -671,6 +673,9 @@ type HostResourceMutation struct {
 	host_usbs              map[int]struct{}
 	removedhost_usbs       map[int]struct{}
 	clearedhost_usbs       bool
+	host_gpus              map[int]struct{}
+	removedhost_gpus       map[int]struct{}
+	clearedhost_gpus       bool
 	instance               *int
 	clearedinstance        bool
 	done                   bool
@@ -861,53 +866,53 @@ func (m *HostResourceMutation) ResetKind() {
 	delete(m.clearedFields, hostresource.FieldKind)
 }
 
-// SetDescription sets the "description" field.
-func (m *HostResourceMutation) SetDescription(s string) {
-	m.description = &s
+// SetName sets the "name" field.
+func (m *HostResourceMutation) SetName(s string) {
+	m.name = &s
 }
 
-// Description returns the value of the "description" field in the mutation.
-func (m *HostResourceMutation) Description() (r string, exists bool) {
-	v := m.description
+// Name returns the value of the "name" field in the mutation.
+func (m *HostResourceMutation) Name() (r string, exists bool) {
+	v := m.name
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldDescription returns the old "description" field's value of the HostResource entity.
+// OldName returns the old "name" field's value of the HostResource entity.
 // If the HostResource object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *HostResourceMutation) OldDescription(ctx context.Context) (v string, err error) {
+func (m *HostResourceMutation) OldName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDescription requires an ID field in the mutation")
+		return v, errors.New("OldName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
 	}
-	return oldValue.Description, nil
+	return oldValue.Name, nil
 }
 
-// ClearDescription clears the value of the "description" field.
-func (m *HostResourceMutation) ClearDescription() {
-	m.description = nil
-	m.clearedFields[hostresource.FieldDescription] = struct{}{}
+// ClearName clears the value of the "name" field.
+func (m *HostResourceMutation) ClearName() {
+	m.name = nil
+	m.clearedFields[hostresource.FieldName] = struct{}{}
 }
 
-// DescriptionCleared returns if the "description" field was cleared in this mutation.
-func (m *HostResourceMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[hostresource.FieldDescription]
+// NameCleared returns if the "name" field was cleared in this mutation.
+func (m *HostResourceMutation) NameCleared() bool {
+	_, ok := m.clearedFields[hostresource.FieldName]
 	return ok
 }
 
-// ResetDescription resets all changes to the "description" field.
-func (m *HostResourceMutation) ResetDescription() {
-	m.description = nil
-	delete(m.clearedFields, hostresource.FieldDescription)
+// ResetName resets all changes to the "name" field.
+func (m *HostResourceMutation) ResetName() {
+	m.name = nil
+	delete(m.clearedFields, hostresource.FieldName)
 }
 
 // SetDesiredState sets the "desired_state" field.
@@ -1202,55 +1207,6 @@ func (m *HostResourceMutation) NoteCleared() bool {
 func (m *HostResourceMutation) ResetNote() {
 	m.note = nil
 	delete(m.clearedFields, hostresource.FieldNote)
-}
-
-// SetConsumerID sets the "consumer_id" field.
-func (m *HostResourceMutation) SetConsumerID(s string) {
-	m.consumer_id = &s
-}
-
-// ConsumerID returns the value of the "consumer_id" field in the mutation.
-func (m *HostResourceMutation) ConsumerID() (r string, exists bool) {
-	v := m.consumer_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldConsumerID returns the old "consumer_id" field's value of the HostResource entity.
-// If the HostResource object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *HostResourceMutation) OldConsumerID(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldConsumerID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldConsumerID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldConsumerID: %w", err)
-	}
-	return oldValue.ConsumerID, nil
-}
-
-// ClearConsumerID clears the value of the "consumer_id" field.
-func (m *HostResourceMutation) ClearConsumerID() {
-	m.consumer_id = nil
-	m.clearedFields[hostresource.FieldConsumerID] = struct{}{}
-}
-
-// ConsumerIDCleared returns if the "consumer_id" field was cleared in this mutation.
-func (m *HostResourceMutation) ConsumerIDCleared() bool {
-	_, ok := m.clearedFields[hostresource.FieldConsumerID]
-	return ok
-}
-
-// ResetConsumerID resets all changes to the "consumer_id" field.
-func (m *HostResourceMutation) ResetConsumerID() {
-	m.consumer_id = nil
-	delete(m.clearedFields, hostresource.FieldConsumerID)
 }
 
 // SetHardwareKind sets the "hardware_kind" field.
@@ -1825,153 +1781,6 @@ func (m *HostResourceMutation) ResetCPUThreads() {
 	m.cpu_threads = nil
 	m.addcpu_threads = nil
 	delete(m.clearedFields, hostresource.FieldCPUThreads)
-}
-
-// SetGpuPciID sets the "gpu_pci_id" field.
-func (m *HostResourceMutation) SetGpuPciID(s string) {
-	m.gpu_pci_id = &s
-}
-
-// GpuPciID returns the value of the "gpu_pci_id" field in the mutation.
-func (m *HostResourceMutation) GpuPciID() (r string, exists bool) {
-	v := m.gpu_pci_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldGpuPciID returns the old "gpu_pci_id" field's value of the HostResource entity.
-// If the HostResource object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *HostResourceMutation) OldGpuPciID(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldGpuPciID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldGpuPciID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldGpuPciID: %w", err)
-	}
-	return oldValue.GpuPciID, nil
-}
-
-// ClearGpuPciID clears the value of the "gpu_pci_id" field.
-func (m *HostResourceMutation) ClearGpuPciID() {
-	m.gpu_pci_id = nil
-	m.clearedFields[hostresource.FieldGpuPciID] = struct{}{}
-}
-
-// GpuPciIDCleared returns if the "gpu_pci_id" field was cleared in this mutation.
-func (m *HostResourceMutation) GpuPciIDCleared() bool {
-	_, ok := m.clearedFields[hostresource.FieldGpuPciID]
-	return ok
-}
-
-// ResetGpuPciID resets all changes to the "gpu_pci_id" field.
-func (m *HostResourceMutation) ResetGpuPciID() {
-	m.gpu_pci_id = nil
-	delete(m.clearedFields, hostresource.FieldGpuPciID)
-}
-
-// SetGpuProduct sets the "gpu_product" field.
-func (m *HostResourceMutation) SetGpuProduct(s string) {
-	m.gpu_product = &s
-}
-
-// GpuProduct returns the value of the "gpu_product" field in the mutation.
-func (m *HostResourceMutation) GpuProduct() (r string, exists bool) {
-	v := m.gpu_product
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldGpuProduct returns the old "gpu_product" field's value of the HostResource entity.
-// If the HostResource object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *HostResourceMutation) OldGpuProduct(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldGpuProduct is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldGpuProduct requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldGpuProduct: %w", err)
-	}
-	return oldValue.GpuProduct, nil
-}
-
-// ClearGpuProduct clears the value of the "gpu_product" field.
-func (m *HostResourceMutation) ClearGpuProduct() {
-	m.gpu_product = nil
-	m.clearedFields[hostresource.FieldGpuProduct] = struct{}{}
-}
-
-// GpuProductCleared returns if the "gpu_product" field was cleared in this mutation.
-func (m *HostResourceMutation) GpuProductCleared() bool {
-	_, ok := m.clearedFields[hostresource.FieldGpuProduct]
-	return ok
-}
-
-// ResetGpuProduct resets all changes to the "gpu_product" field.
-func (m *HostResourceMutation) ResetGpuProduct() {
-	m.gpu_product = nil
-	delete(m.clearedFields, hostresource.FieldGpuProduct)
-}
-
-// SetGpuVendor sets the "gpu_vendor" field.
-func (m *HostResourceMutation) SetGpuVendor(s string) {
-	m.gpu_vendor = &s
-}
-
-// GpuVendor returns the value of the "gpu_vendor" field in the mutation.
-func (m *HostResourceMutation) GpuVendor() (r string, exists bool) {
-	v := m.gpu_vendor
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldGpuVendor returns the old "gpu_vendor" field's value of the HostResource entity.
-// If the HostResource object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *HostResourceMutation) OldGpuVendor(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldGpuVendor is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldGpuVendor requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldGpuVendor: %w", err)
-	}
-	return oldValue.GpuVendor, nil
-}
-
-// ClearGpuVendor clears the value of the "gpu_vendor" field.
-func (m *HostResourceMutation) ClearGpuVendor() {
-	m.gpu_vendor = nil
-	m.clearedFields[hostresource.FieldGpuVendor] = struct{}{}
-}
-
-// GpuVendorCleared returns if the "gpu_vendor" field was cleared in this mutation.
-func (m *HostResourceMutation) GpuVendorCleared() bool {
-	_, ok := m.clearedFields[hostresource.FieldGpuVendor]
-	return ok
-}
-
-// ResetGpuVendor resets all changes to the "gpu_vendor" field.
-func (m *HostResourceMutation) ResetGpuVendor() {
-	m.gpu_vendor = nil
-	delete(m.clearedFields, hostresource.FieldGpuVendor)
 }
 
 // SetMgmtIP sets the "mgmt_ip" field.
@@ -2978,6 +2787,60 @@ func (m *HostResourceMutation) ResetHostUsbs() {
 	m.removedhost_usbs = nil
 }
 
+// AddHostGpuIDs adds the "host_gpus" edge to the HostgpuResource entity by ids.
+func (m *HostResourceMutation) AddHostGpuIDs(ids ...int) {
+	if m.host_gpus == nil {
+		m.host_gpus = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.host_gpus[ids[i]] = struct{}{}
+	}
+}
+
+// ClearHostGpus clears the "host_gpus" edge to the HostgpuResource entity.
+func (m *HostResourceMutation) ClearHostGpus() {
+	m.clearedhost_gpus = true
+}
+
+// HostGpusCleared reports if the "host_gpus" edge to the HostgpuResource entity was cleared.
+func (m *HostResourceMutation) HostGpusCleared() bool {
+	return m.clearedhost_gpus
+}
+
+// RemoveHostGpuIDs removes the "host_gpus" edge to the HostgpuResource entity by IDs.
+func (m *HostResourceMutation) RemoveHostGpuIDs(ids ...int) {
+	if m.removedhost_gpus == nil {
+		m.removedhost_gpus = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.host_gpus, ids[i])
+		m.removedhost_gpus[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedHostGpus returns the removed IDs of the "host_gpus" edge to the HostgpuResource entity.
+func (m *HostResourceMutation) RemovedHostGpusIDs() (ids []int) {
+	for id := range m.removedhost_gpus {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// HostGpusIDs returns the "host_gpus" edge IDs in the mutation.
+func (m *HostResourceMutation) HostGpusIDs() (ids []int) {
+	for id := range m.host_gpus {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetHostGpus resets all changes to the "host_gpus" edge.
+func (m *HostResourceMutation) ResetHostGpus() {
+	m.host_gpus = nil
+	m.clearedhost_gpus = false
+	m.removedhost_gpus = nil
+}
+
 // SetInstanceID sets the "instance" edge to the InstanceResource entity by id.
 func (m *HostResourceMutation) SetInstanceID(id int) {
 	m.instance = &id
@@ -3051,15 +2914,15 @@ func (m *HostResourceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *HostResourceMutation) Fields() []string {
-	fields := make([]string, 0, 37)
+	fields := make([]string, 0, 33)
 	if m.resource_id != nil {
 		fields = append(fields, hostresource.FieldResourceID)
 	}
 	if m.kind != nil {
 		fields = append(fields, hostresource.FieldKind)
 	}
-	if m.description != nil {
-		fields = append(fields, hostresource.FieldDescription)
+	if m.name != nil {
+		fields = append(fields, hostresource.FieldName)
 	}
 	if m.desired_state != nil {
 		fields = append(fields, hostresource.FieldDesiredState)
@@ -3078,9 +2941,6 @@ func (m *HostResourceMutation) Fields() []string {
 	}
 	if m.note != nil {
 		fields = append(fields, hostresource.FieldNote)
-	}
-	if m.consumer_id != nil {
-		fields = append(fields, hostresource.FieldConsumerID)
 	}
 	if m.hardware_kind != nil {
 		fields = append(fields, hostresource.FieldHardwareKind)
@@ -3111,15 +2971,6 @@ func (m *HostResourceMutation) Fields() []string {
 	}
 	if m.cpu_threads != nil {
 		fields = append(fields, hostresource.FieldCPUThreads)
-	}
-	if m.gpu_pci_id != nil {
-		fields = append(fields, hostresource.FieldGpuPciID)
-	}
-	if m.gpu_product != nil {
-		fields = append(fields, hostresource.FieldGpuProduct)
-	}
-	if m.gpu_vendor != nil {
-		fields = append(fields, hostresource.FieldGpuVendor)
 	}
 	if m.mgmt_ip != nil {
 		fields = append(fields, hostresource.FieldMgmtIP)
@@ -3175,8 +3026,8 @@ func (m *HostResourceMutation) Field(name string) (ent.Value, bool) {
 		return m.ResourceID()
 	case hostresource.FieldKind:
 		return m.Kind()
-	case hostresource.FieldDescription:
-		return m.Description()
+	case hostresource.FieldName:
+		return m.Name()
 	case hostresource.FieldDesiredState:
 		return m.DesiredState()
 	case hostresource.FieldCurrentState:
@@ -3189,8 +3040,6 @@ func (m *HostResourceMutation) Field(name string) (ent.Value, bool) {
 		return m.ProviderStatusDetail()
 	case hostresource.FieldNote:
 		return m.Note()
-	case hostresource.FieldConsumerID:
-		return m.ConsumerID()
 	case hostresource.FieldHardwareKind:
 		return m.HardwareKind()
 	case hostresource.FieldSerialNumber:
@@ -3211,12 +3060,6 @@ func (m *HostResourceMutation) Field(name string) (ent.Value, bool) {
 		return m.CPUArchitecture()
 	case hostresource.FieldCPUThreads:
 		return m.CPUThreads()
-	case hostresource.FieldGpuPciID:
-		return m.GpuPciID()
-	case hostresource.FieldGpuProduct:
-		return m.GpuProduct()
-	case hostresource.FieldGpuVendor:
-		return m.GpuVendor()
 	case hostresource.FieldMgmtIP:
 		return m.MgmtIP()
 	case hostresource.FieldBmcKind:
@@ -3258,8 +3101,8 @@ func (m *HostResourceMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldResourceID(ctx)
 	case hostresource.FieldKind:
 		return m.OldKind(ctx)
-	case hostresource.FieldDescription:
-		return m.OldDescription(ctx)
+	case hostresource.FieldName:
+		return m.OldName(ctx)
 	case hostresource.FieldDesiredState:
 		return m.OldDesiredState(ctx)
 	case hostresource.FieldCurrentState:
@@ -3272,8 +3115,6 @@ func (m *HostResourceMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldProviderStatusDetail(ctx)
 	case hostresource.FieldNote:
 		return m.OldNote(ctx)
-	case hostresource.FieldConsumerID:
-		return m.OldConsumerID(ctx)
 	case hostresource.FieldHardwareKind:
 		return m.OldHardwareKind(ctx)
 	case hostresource.FieldSerialNumber:
@@ -3294,12 +3135,6 @@ func (m *HostResourceMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldCPUArchitecture(ctx)
 	case hostresource.FieldCPUThreads:
 		return m.OldCPUThreads(ctx)
-	case hostresource.FieldGpuPciID:
-		return m.OldGpuPciID(ctx)
-	case hostresource.FieldGpuProduct:
-		return m.OldGpuProduct(ctx)
-	case hostresource.FieldGpuVendor:
-		return m.OldGpuVendor(ctx)
 	case hostresource.FieldMgmtIP:
 		return m.OldMgmtIP(ctx)
 	case hostresource.FieldBmcKind:
@@ -3351,12 +3186,12 @@ func (m *HostResourceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetKind(v)
 		return nil
-	case hostresource.FieldDescription:
+	case hostresource.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetDescription(v)
+		m.SetName(v)
 		return nil
 	case hostresource.FieldDesiredState:
 		v, ok := value.(hostresource.DesiredState)
@@ -3399,13 +3234,6 @@ func (m *HostResourceMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNote(v)
-		return nil
-	case hostresource.FieldConsumerID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetConsumerID(v)
 		return nil
 	case hostresource.FieldHardwareKind:
 		v, ok := value.(string)
@@ -3476,27 +3304,6 @@ func (m *HostResourceMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCPUThreads(v)
-		return nil
-	case hostresource.FieldGpuPciID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetGpuPciID(v)
-		return nil
-	case hostresource.FieldGpuProduct:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetGpuProduct(v)
-		return nil
-	case hostresource.FieldGpuVendor:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetGpuVendor(v)
 		return nil
 	case hostresource.FieldMgmtIP:
 		v, ok := value.(string)
@@ -3680,8 +3487,8 @@ func (m *HostResourceMutation) ClearedFields() []string {
 	if m.FieldCleared(hostresource.FieldKind) {
 		fields = append(fields, hostresource.FieldKind)
 	}
-	if m.FieldCleared(hostresource.FieldDescription) {
-		fields = append(fields, hostresource.FieldDescription)
+	if m.FieldCleared(hostresource.FieldName) {
+		fields = append(fields, hostresource.FieldName)
 	}
 	if m.FieldCleared(hostresource.FieldDesiredState) {
 		fields = append(fields, hostresource.FieldDesiredState)
@@ -3700,9 +3507,6 @@ func (m *HostResourceMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(hostresource.FieldNote) {
 		fields = append(fields, hostresource.FieldNote)
-	}
-	if m.FieldCleared(hostresource.FieldConsumerID) {
-		fields = append(fields, hostresource.FieldConsumerID)
 	}
 	if m.FieldCleared(hostresource.FieldHardwareKind) {
 		fields = append(fields, hostresource.FieldHardwareKind)
@@ -3733,15 +3537,6 @@ func (m *HostResourceMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(hostresource.FieldCPUThreads) {
 		fields = append(fields, hostresource.FieldCPUThreads)
-	}
-	if m.FieldCleared(hostresource.FieldGpuPciID) {
-		fields = append(fields, hostresource.FieldGpuPciID)
-	}
-	if m.FieldCleared(hostresource.FieldGpuProduct) {
-		fields = append(fields, hostresource.FieldGpuProduct)
-	}
-	if m.FieldCleared(hostresource.FieldGpuVendor) {
-		fields = append(fields, hostresource.FieldGpuVendor)
 	}
 	if m.FieldCleared(hostresource.FieldMgmtIP) {
 		fields = append(fields, hostresource.FieldMgmtIP)
@@ -3802,8 +3597,8 @@ func (m *HostResourceMutation) ClearField(name string) error {
 	case hostresource.FieldKind:
 		m.ClearKind()
 		return nil
-	case hostresource.FieldDescription:
-		m.ClearDescription()
+	case hostresource.FieldName:
+		m.ClearName()
 		return nil
 	case hostresource.FieldDesiredState:
 		m.ClearDesiredState()
@@ -3822,9 +3617,6 @@ func (m *HostResourceMutation) ClearField(name string) error {
 		return nil
 	case hostresource.FieldNote:
 		m.ClearNote()
-		return nil
-	case hostresource.FieldConsumerID:
-		m.ClearConsumerID()
 		return nil
 	case hostresource.FieldHardwareKind:
 		m.ClearHardwareKind()
@@ -3855,15 +3647,6 @@ func (m *HostResourceMutation) ClearField(name string) error {
 		return nil
 	case hostresource.FieldCPUThreads:
 		m.ClearCPUThreads()
-		return nil
-	case hostresource.FieldGpuPciID:
-		m.ClearGpuPciID()
-		return nil
-	case hostresource.FieldGpuProduct:
-		m.ClearGpuProduct()
-		return nil
-	case hostresource.FieldGpuVendor:
-		m.ClearGpuVendor()
 		return nil
 	case hostresource.FieldMgmtIP:
 		m.ClearMgmtIP()
@@ -3921,8 +3704,8 @@ func (m *HostResourceMutation) ResetField(name string) error {
 	case hostresource.FieldKind:
 		m.ResetKind()
 		return nil
-	case hostresource.FieldDescription:
-		m.ResetDescription()
+	case hostresource.FieldName:
+		m.ResetName()
 		return nil
 	case hostresource.FieldDesiredState:
 		m.ResetDesiredState()
@@ -3941,9 +3724,6 @@ func (m *HostResourceMutation) ResetField(name string) error {
 		return nil
 	case hostresource.FieldNote:
 		m.ResetNote()
-		return nil
-	case hostresource.FieldConsumerID:
-		m.ResetConsumerID()
 		return nil
 	case hostresource.FieldHardwareKind:
 		m.ResetHardwareKind()
@@ -3974,15 +3754,6 @@ func (m *HostResourceMutation) ResetField(name string) error {
 		return nil
 	case hostresource.FieldCPUThreads:
 		m.ResetCPUThreads()
-		return nil
-	case hostresource.FieldGpuPciID:
-		m.ResetGpuPciID()
-		return nil
-	case hostresource.FieldGpuProduct:
-		m.ResetGpuProduct()
-		return nil
-	case hostresource.FieldGpuVendor:
-		m.ResetGpuVendor()
 		return nil
 	case hostresource.FieldMgmtIP:
 		m.ResetMgmtIP()
@@ -4032,7 +3803,7 @@ func (m *HostResourceMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *HostResourceMutation) AddedEdges() []string {
-	edges := make([]string, 0, 8)
+	edges := make([]string, 0, 9)
 	if m.site != nil {
 		edges = append(edges, hostresource.EdgeSite)
 	}
@@ -4053,6 +3824,9 @@ func (m *HostResourceMutation) AddedEdges() []string {
 	}
 	if m.host_usbs != nil {
 		edges = append(edges, hostresource.EdgeHostUsbs)
+	}
+	if m.host_gpus != nil {
+		edges = append(edges, hostresource.EdgeHostGpus)
 	}
 	if m.instance != nil {
 		edges = append(edges, hostresource.EdgeInstance)
@@ -4098,6 +3872,12 @@ func (m *HostResourceMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case hostresource.EdgeHostGpus:
+		ids := make([]ent.Value, 0, len(m.host_gpus))
+		for id := range m.host_gpus {
+			ids = append(ids, id)
+		}
+		return ids
 	case hostresource.EdgeInstance:
 		if id := m.instance; id != nil {
 			return []ent.Value{*id}
@@ -4108,7 +3888,7 @@ func (m *HostResourceMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *HostResourceMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 8)
+	edges := make([]string, 0, 9)
 	if m.removedhost_storages != nil {
 		edges = append(edges, hostresource.EdgeHostStorages)
 	}
@@ -4117,6 +3897,9 @@ func (m *HostResourceMutation) RemovedEdges() []string {
 	}
 	if m.removedhost_usbs != nil {
 		edges = append(edges, hostresource.EdgeHostUsbs)
+	}
+	if m.removedhost_gpus != nil {
+		edges = append(edges, hostresource.EdgeHostGpus)
 	}
 	return edges
 }
@@ -4143,13 +3926,19 @@ func (m *HostResourceMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case hostresource.EdgeHostGpus:
+		ids := make([]ent.Value, 0, len(m.removedhost_gpus))
+		for id := range m.removedhost_gpus {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *HostResourceMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 8)
+	edges := make([]string, 0, 9)
 	if m.clearedsite {
 		edges = append(edges, hostresource.EdgeSite)
 	}
@@ -4170,6 +3959,9 @@ func (m *HostResourceMutation) ClearedEdges() []string {
 	}
 	if m.clearedhost_usbs {
 		edges = append(edges, hostresource.EdgeHostUsbs)
+	}
+	if m.clearedhost_gpus {
+		edges = append(edges, hostresource.EdgeHostGpus)
 	}
 	if m.clearedinstance {
 		edges = append(edges, hostresource.EdgeInstance)
@@ -4195,6 +3987,8 @@ func (m *HostResourceMutation) EdgeCleared(name string) bool {
 		return m.clearedhost_nics
 	case hostresource.EdgeHostUsbs:
 		return m.clearedhost_usbs
+	case hostresource.EdgeHostGpus:
+		return m.clearedhost_gpus
 	case hostresource.EdgeInstance:
 		return m.clearedinstance
 	}
@@ -4249,11 +4043,775 @@ func (m *HostResourceMutation) ResetEdge(name string) error {
 	case hostresource.EdgeHostUsbs:
 		m.ResetHostUsbs()
 		return nil
+	case hostresource.EdgeHostGpus:
+		m.ResetHostGpus()
+		return nil
 	case hostresource.EdgeInstance:
 		m.ResetInstance()
 		return nil
 	}
 	return fmt.Errorf("unknown HostResource edge %s", name)
+}
+
+// HostgpuResourceMutation represents an operation that mutates the HostgpuResource nodes in the graph.
+type HostgpuResourceMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int
+	resource_id   *string
+	pci_id        *string
+	product       *string
+	vendor        *string
+	description   *string
+	device_name   *string
+	clearedFields map[string]struct{}
+	host          *int
+	clearedhost   bool
+	done          bool
+	oldValue      func(context.Context) (*HostgpuResource, error)
+	predicates    []predicate.HostgpuResource
+}
+
+var _ ent.Mutation = (*HostgpuResourceMutation)(nil)
+
+// hostgpuresourceOption allows management of the mutation configuration using functional options.
+type hostgpuresourceOption func(*HostgpuResourceMutation)
+
+// newHostgpuResourceMutation creates new mutation for the HostgpuResource entity.
+func newHostgpuResourceMutation(c config, op Op, opts ...hostgpuresourceOption) *HostgpuResourceMutation {
+	m := &HostgpuResourceMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeHostgpuResource,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withHostgpuResourceID sets the ID field of the mutation.
+func withHostgpuResourceID(id int) hostgpuresourceOption {
+	return func(m *HostgpuResourceMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *HostgpuResource
+		)
+		m.oldValue = func(ctx context.Context) (*HostgpuResource, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().HostgpuResource.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withHostgpuResource sets the old HostgpuResource of the mutation.
+func withHostgpuResource(node *HostgpuResource) hostgpuresourceOption {
+	return func(m *HostgpuResourceMutation) {
+		m.oldValue = func(context.Context) (*HostgpuResource, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m HostgpuResourceMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m HostgpuResourceMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *HostgpuResourceMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *HostgpuResourceMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().HostgpuResource.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetResourceID sets the "resource_id" field.
+func (m *HostgpuResourceMutation) SetResourceID(s string) {
+	m.resource_id = &s
+}
+
+// ResourceID returns the value of the "resource_id" field in the mutation.
+func (m *HostgpuResourceMutation) ResourceID() (r string, exists bool) {
+	v := m.resource_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResourceID returns the old "resource_id" field's value of the HostgpuResource entity.
+// If the HostgpuResource object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *HostgpuResourceMutation) OldResourceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResourceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResourceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResourceID: %w", err)
+	}
+	return oldValue.ResourceID, nil
+}
+
+// ResetResourceID resets all changes to the "resource_id" field.
+func (m *HostgpuResourceMutation) ResetResourceID() {
+	m.resource_id = nil
+}
+
+// SetPciID sets the "pci_id" field.
+func (m *HostgpuResourceMutation) SetPciID(s string) {
+	m.pci_id = &s
+}
+
+// PciID returns the value of the "pci_id" field in the mutation.
+func (m *HostgpuResourceMutation) PciID() (r string, exists bool) {
+	v := m.pci_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPciID returns the old "pci_id" field's value of the HostgpuResource entity.
+// If the HostgpuResource object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *HostgpuResourceMutation) OldPciID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPciID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPciID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPciID: %w", err)
+	}
+	return oldValue.PciID, nil
+}
+
+// ClearPciID clears the value of the "pci_id" field.
+func (m *HostgpuResourceMutation) ClearPciID() {
+	m.pci_id = nil
+	m.clearedFields[hostgpuresource.FieldPciID] = struct{}{}
+}
+
+// PciIDCleared returns if the "pci_id" field was cleared in this mutation.
+func (m *HostgpuResourceMutation) PciIDCleared() bool {
+	_, ok := m.clearedFields[hostgpuresource.FieldPciID]
+	return ok
+}
+
+// ResetPciID resets all changes to the "pci_id" field.
+func (m *HostgpuResourceMutation) ResetPciID() {
+	m.pci_id = nil
+	delete(m.clearedFields, hostgpuresource.FieldPciID)
+}
+
+// SetProduct sets the "product" field.
+func (m *HostgpuResourceMutation) SetProduct(s string) {
+	m.product = &s
+}
+
+// Product returns the value of the "product" field in the mutation.
+func (m *HostgpuResourceMutation) Product() (r string, exists bool) {
+	v := m.product
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProduct returns the old "product" field's value of the HostgpuResource entity.
+// If the HostgpuResource object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *HostgpuResourceMutation) OldProduct(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProduct is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProduct requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProduct: %w", err)
+	}
+	return oldValue.Product, nil
+}
+
+// ClearProduct clears the value of the "product" field.
+func (m *HostgpuResourceMutation) ClearProduct() {
+	m.product = nil
+	m.clearedFields[hostgpuresource.FieldProduct] = struct{}{}
+}
+
+// ProductCleared returns if the "product" field was cleared in this mutation.
+func (m *HostgpuResourceMutation) ProductCleared() bool {
+	_, ok := m.clearedFields[hostgpuresource.FieldProduct]
+	return ok
+}
+
+// ResetProduct resets all changes to the "product" field.
+func (m *HostgpuResourceMutation) ResetProduct() {
+	m.product = nil
+	delete(m.clearedFields, hostgpuresource.FieldProduct)
+}
+
+// SetVendor sets the "vendor" field.
+func (m *HostgpuResourceMutation) SetVendor(s string) {
+	m.vendor = &s
+}
+
+// Vendor returns the value of the "vendor" field in the mutation.
+func (m *HostgpuResourceMutation) Vendor() (r string, exists bool) {
+	v := m.vendor
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVendor returns the old "vendor" field's value of the HostgpuResource entity.
+// If the HostgpuResource object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *HostgpuResourceMutation) OldVendor(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVendor is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVendor requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVendor: %w", err)
+	}
+	return oldValue.Vendor, nil
+}
+
+// ClearVendor clears the value of the "vendor" field.
+func (m *HostgpuResourceMutation) ClearVendor() {
+	m.vendor = nil
+	m.clearedFields[hostgpuresource.FieldVendor] = struct{}{}
+}
+
+// VendorCleared returns if the "vendor" field was cleared in this mutation.
+func (m *HostgpuResourceMutation) VendorCleared() bool {
+	_, ok := m.clearedFields[hostgpuresource.FieldVendor]
+	return ok
+}
+
+// ResetVendor resets all changes to the "vendor" field.
+func (m *HostgpuResourceMutation) ResetVendor() {
+	m.vendor = nil
+	delete(m.clearedFields, hostgpuresource.FieldVendor)
+}
+
+// SetDescription sets the "description" field.
+func (m *HostgpuResourceMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *HostgpuResourceMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the HostgpuResource entity.
+// If the HostgpuResource object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *HostgpuResourceMutation) OldDescription(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *HostgpuResourceMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[hostgpuresource.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *HostgpuResourceMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[hostgpuresource.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *HostgpuResourceMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, hostgpuresource.FieldDescription)
+}
+
+// SetDeviceName sets the "device_name" field.
+func (m *HostgpuResourceMutation) SetDeviceName(s string) {
+	m.device_name = &s
+}
+
+// DeviceName returns the value of the "device_name" field in the mutation.
+func (m *HostgpuResourceMutation) DeviceName() (r string, exists bool) {
+	v := m.device_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeviceName returns the old "device_name" field's value of the HostgpuResource entity.
+// If the HostgpuResource object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *HostgpuResourceMutation) OldDeviceName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeviceName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeviceName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeviceName: %w", err)
+	}
+	return oldValue.DeviceName, nil
+}
+
+// ClearDeviceName clears the value of the "device_name" field.
+func (m *HostgpuResourceMutation) ClearDeviceName() {
+	m.device_name = nil
+	m.clearedFields[hostgpuresource.FieldDeviceName] = struct{}{}
+}
+
+// DeviceNameCleared returns if the "device_name" field was cleared in this mutation.
+func (m *HostgpuResourceMutation) DeviceNameCleared() bool {
+	_, ok := m.clearedFields[hostgpuresource.FieldDeviceName]
+	return ok
+}
+
+// ResetDeviceName resets all changes to the "device_name" field.
+func (m *HostgpuResourceMutation) ResetDeviceName() {
+	m.device_name = nil
+	delete(m.clearedFields, hostgpuresource.FieldDeviceName)
+}
+
+// SetHostID sets the "host" edge to the HostResource entity by id.
+func (m *HostgpuResourceMutation) SetHostID(id int) {
+	m.host = &id
+}
+
+// ClearHost clears the "host" edge to the HostResource entity.
+func (m *HostgpuResourceMutation) ClearHost() {
+	m.clearedhost = true
+}
+
+// HostCleared reports if the "host" edge to the HostResource entity was cleared.
+func (m *HostgpuResourceMutation) HostCleared() bool {
+	return m.clearedhost
+}
+
+// HostID returns the "host" edge ID in the mutation.
+func (m *HostgpuResourceMutation) HostID() (id int, exists bool) {
+	if m.host != nil {
+		return *m.host, true
+	}
+	return
+}
+
+// HostIDs returns the "host" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// HostID instead. It exists only for internal usage by the builders.
+func (m *HostgpuResourceMutation) HostIDs() (ids []int) {
+	if id := m.host; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetHost resets all changes to the "host" edge.
+func (m *HostgpuResourceMutation) ResetHost() {
+	m.host = nil
+	m.clearedhost = false
+}
+
+// Where appends a list predicates to the HostgpuResourceMutation builder.
+func (m *HostgpuResourceMutation) Where(ps ...predicate.HostgpuResource) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the HostgpuResourceMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *HostgpuResourceMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.HostgpuResource, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *HostgpuResourceMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *HostgpuResourceMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (HostgpuResource).
+func (m *HostgpuResourceMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *HostgpuResourceMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.resource_id != nil {
+		fields = append(fields, hostgpuresource.FieldResourceID)
+	}
+	if m.pci_id != nil {
+		fields = append(fields, hostgpuresource.FieldPciID)
+	}
+	if m.product != nil {
+		fields = append(fields, hostgpuresource.FieldProduct)
+	}
+	if m.vendor != nil {
+		fields = append(fields, hostgpuresource.FieldVendor)
+	}
+	if m.description != nil {
+		fields = append(fields, hostgpuresource.FieldDescription)
+	}
+	if m.device_name != nil {
+		fields = append(fields, hostgpuresource.FieldDeviceName)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *HostgpuResourceMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case hostgpuresource.FieldResourceID:
+		return m.ResourceID()
+	case hostgpuresource.FieldPciID:
+		return m.PciID()
+	case hostgpuresource.FieldProduct:
+		return m.Product()
+	case hostgpuresource.FieldVendor:
+		return m.Vendor()
+	case hostgpuresource.FieldDescription:
+		return m.Description()
+	case hostgpuresource.FieldDeviceName:
+		return m.DeviceName()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *HostgpuResourceMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case hostgpuresource.FieldResourceID:
+		return m.OldResourceID(ctx)
+	case hostgpuresource.FieldPciID:
+		return m.OldPciID(ctx)
+	case hostgpuresource.FieldProduct:
+		return m.OldProduct(ctx)
+	case hostgpuresource.FieldVendor:
+		return m.OldVendor(ctx)
+	case hostgpuresource.FieldDescription:
+		return m.OldDescription(ctx)
+	case hostgpuresource.FieldDeviceName:
+		return m.OldDeviceName(ctx)
+	}
+	return nil, fmt.Errorf("unknown HostgpuResource field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *HostgpuResourceMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case hostgpuresource.FieldResourceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResourceID(v)
+		return nil
+	case hostgpuresource.FieldPciID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPciID(v)
+		return nil
+	case hostgpuresource.FieldProduct:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProduct(v)
+		return nil
+	case hostgpuresource.FieldVendor:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVendor(v)
+		return nil
+	case hostgpuresource.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case hostgpuresource.FieldDeviceName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeviceName(v)
+		return nil
+	}
+	return fmt.Errorf("unknown HostgpuResource field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *HostgpuResourceMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *HostgpuResourceMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *HostgpuResourceMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown HostgpuResource numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *HostgpuResourceMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(hostgpuresource.FieldPciID) {
+		fields = append(fields, hostgpuresource.FieldPciID)
+	}
+	if m.FieldCleared(hostgpuresource.FieldProduct) {
+		fields = append(fields, hostgpuresource.FieldProduct)
+	}
+	if m.FieldCleared(hostgpuresource.FieldVendor) {
+		fields = append(fields, hostgpuresource.FieldVendor)
+	}
+	if m.FieldCleared(hostgpuresource.FieldDescription) {
+		fields = append(fields, hostgpuresource.FieldDescription)
+	}
+	if m.FieldCleared(hostgpuresource.FieldDeviceName) {
+		fields = append(fields, hostgpuresource.FieldDeviceName)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *HostgpuResourceMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *HostgpuResourceMutation) ClearField(name string) error {
+	switch name {
+	case hostgpuresource.FieldPciID:
+		m.ClearPciID()
+		return nil
+	case hostgpuresource.FieldProduct:
+		m.ClearProduct()
+		return nil
+	case hostgpuresource.FieldVendor:
+		m.ClearVendor()
+		return nil
+	case hostgpuresource.FieldDescription:
+		m.ClearDescription()
+		return nil
+	case hostgpuresource.FieldDeviceName:
+		m.ClearDeviceName()
+		return nil
+	}
+	return fmt.Errorf("unknown HostgpuResource nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *HostgpuResourceMutation) ResetField(name string) error {
+	switch name {
+	case hostgpuresource.FieldResourceID:
+		m.ResetResourceID()
+		return nil
+	case hostgpuresource.FieldPciID:
+		m.ResetPciID()
+		return nil
+	case hostgpuresource.FieldProduct:
+		m.ResetProduct()
+		return nil
+	case hostgpuresource.FieldVendor:
+		m.ResetVendor()
+		return nil
+	case hostgpuresource.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case hostgpuresource.FieldDeviceName:
+		m.ResetDeviceName()
+		return nil
+	}
+	return fmt.Errorf("unknown HostgpuResource field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *HostgpuResourceMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.host != nil {
+		edges = append(edges, hostgpuresource.EdgeHost)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *HostgpuResourceMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case hostgpuresource.EdgeHost:
+		if id := m.host; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *HostgpuResourceMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *HostgpuResourceMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *HostgpuResourceMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedhost {
+		edges = append(edges, hostgpuresource.EdgeHost)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *HostgpuResourceMutation) EdgeCleared(name string) bool {
+	switch name {
+	case hostgpuresource.EdgeHost:
+		return m.clearedhost
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *HostgpuResourceMutation) ClearEdge(name string) error {
+	switch name {
+	case hostgpuresource.EdgeHost:
+		m.ClearHost()
+		return nil
+	}
+	return fmt.Errorf("unknown HostgpuResource unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *HostgpuResourceMutation) ResetEdge(name string) error {
+	switch name {
+	case hostgpuresource.EdgeHost:
+		m.ResetHost()
+		return nil
+	}
+	return fmt.Errorf("unknown HostgpuResource edge %s", name)
 }
 
 // HostnicResourceMutation represents an operation that mutates the HostnicResource nodes in the graph.
@@ -4264,11 +4822,8 @@ type HostnicResourceMutation struct {
 	id                    *int
 	resource_id           *string
 	kind                  *string
-	description           *string
-	desired_state         *hostnicresource.DesiredState
-	current_state         *hostnicresource.CurrentState
 	provider_status       *string
-	name                  *string
+	device_name           *string
 	pci_identifier        *string
 	mac_addr              *string
 	sriov_enabled         *bool
@@ -4488,153 +5043,6 @@ func (m *HostnicResourceMutation) ResetKind() {
 	delete(m.clearedFields, hostnicresource.FieldKind)
 }
 
-// SetDescription sets the "description" field.
-func (m *HostnicResourceMutation) SetDescription(s string) {
-	m.description = &s
-}
-
-// Description returns the value of the "description" field in the mutation.
-func (m *HostnicResourceMutation) Description() (r string, exists bool) {
-	v := m.description
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldDescription returns the old "description" field's value of the HostnicResource entity.
-// If the HostnicResource object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *HostnicResourceMutation) OldDescription(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDescription requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
-	}
-	return oldValue.Description, nil
-}
-
-// ClearDescription clears the value of the "description" field.
-func (m *HostnicResourceMutation) ClearDescription() {
-	m.description = nil
-	m.clearedFields[hostnicresource.FieldDescription] = struct{}{}
-}
-
-// DescriptionCleared returns if the "description" field was cleared in this mutation.
-func (m *HostnicResourceMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[hostnicresource.FieldDescription]
-	return ok
-}
-
-// ResetDescription resets all changes to the "description" field.
-func (m *HostnicResourceMutation) ResetDescription() {
-	m.description = nil
-	delete(m.clearedFields, hostnicresource.FieldDescription)
-}
-
-// SetDesiredState sets the "desired_state" field.
-func (m *HostnicResourceMutation) SetDesiredState(hs hostnicresource.DesiredState) {
-	m.desired_state = &hs
-}
-
-// DesiredState returns the value of the "desired_state" field in the mutation.
-func (m *HostnicResourceMutation) DesiredState() (r hostnicresource.DesiredState, exists bool) {
-	v := m.desired_state
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldDesiredState returns the old "desired_state" field's value of the HostnicResource entity.
-// If the HostnicResource object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *HostnicResourceMutation) OldDesiredState(ctx context.Context) (v hostnicresource.DesiredState, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDesiredState is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDesiredState requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDesiredState: %w", err)
-	}
-	return oldValue.DesiredState, nil
-}
-
-// ClearDesiredState clears the value of the "desired_state" field.
-func (m *HostnicResourceMutation) ClearDesiredState() {
-	m.desired_state = nil
-	m.clearedFields[hostnicresource.FieldDesiredState] = struct{}{}
-}
-
-// DesiredStateCleared returns if the "desired_state" field was cleared in this mutation.
-func (m *HostnicResourceMutation) DesiredStateCleared() bool {
-	_, ok := m.clearedFields[hostnicresource.FieldDesiredState]
-	return ok
-}
-
-// ResetDesiredState resets all changes to the "desired_state" field.
-func (m *HostnicResourceMutation) ResetDesiredState() {
-	m.desired_state = nil
-	delete(m.clearedFields, hostnicresource.FieldDesiredState)
-}
-
-// SetCurrentState sets the "current_state" field.
-func (m *HostnicResourceMutation) SetCurrentState(hs hostnicresource.CurrentState) {
-	m.current_state = &hs
-}
-
-// CurrentState returns the value of the "current_state" field in the mutation.
-func (m *HostnicResourceMutation) CurrentState() (r hostnicresource.CurrentState, exists bool) {
-	v := m.current_state
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCurrentState returns the old "current_state" field's value of the HostnicResource entity.
-// If the HostnicResource object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *HostnicResourceMutation) OldCurrentState(ctx context.Context) (v hostnicresource.CurrentState, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCurrentState is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCurrentState requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCurrentState: %w", err)
-	}
-	return oldValue.CurrentState, nil
-}
-
-// ClearCurrentState clears the value of the "current_state" field.
-func (m *HostnicResourceMutation) ClearCurrentState() {
-	m.current_state = nil
-	m.clearedFields[hostnicresource.FieldCurrentState] = struct{}{}
-}
-
-// CurrentStateCleared returns if the "current_state" field was cleared in this mutation.
-func (m *HostnicResourceMutation) CurrentStateCleared() bool {
-	_, ok := m.clearedFields[hostnicresource.FieldCurrentState]
-	return ok
-}
-
-// ResetCurrentState resets all changes to the "current_state" field.
-func (m *HostnicResourceMutation) ResetCurrentState() {
-	m.current_state = nil
-	delete(m.clearedFields, hostnicresource.FieldCurrentState)
-}
-
 // SetProviderStatus sets the "provider_status" field.
 func (m *HostnicResourceMutation) SetProviderStatus(s string) {
 	m.provider_status = &s
@@ -4684,53 +5092,53 @@ func (m *HostnicResourceMutation) ResetProviderStatus() {
 	delete(m.clearedFields, hostnicresource.FieldProviderStatus)
 }
 
-// SetName sets the "name" field.
-func (m *HostnicResourceMutation) SetName(s string) {
-	m.name = &s
+// SetDeviceName sets the "device_name" field.
+func (m *HostnicResourceMutation) SetDeviceName(s string) {
+	m.device_name = &s
 }
 
-// Name returns the value of the "name" field in the mutation.
-func (m *HostnicResourceMutation) Name() (r string, exists bool) {
-	v := m.name
+// DeviceName returns the value of the "device_name" field in the mutation.
+func (m *HostnicResourceMutation) DeviceName() (r string, exists bool) {
+	v := m.device_name
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldName returns the old "name" field's value of the HostnicResource entity.
+// OldDeviceName returns the old "device_name" field's value of the HostnicResource entity.
 // If the HostnicResource object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *HostnicResourceMutation) OldName(ctx context.Context) (v string, err error) {
+func (m *HostnicResourceMutation) OldDeviceName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldName is only allowed on UpdateOne operations")
+		return v, errors.New("OldDeviceName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldName requires an ID field in the mutation")
+		return v, errors.New("OldDeviceName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldName: %w", err)
+		return v, fmt.Errorf("querying old value for OldDeviceName: %w", err)
 	}
-	return oldValue.Name, nil
+	return oldValue.DeviceName, nil
 }
 
-// ClearName clears the value of the "name" field.
-func (m *HostnicResourceMutation) ClearName() {
-	m.name = nil
-	m.clearedFields[hostnicresource.FieldName] = struct{}{}
+// ClearDeviceName clears the value of the "device_name" field.
+func (m *HostnicResourceMutation) ClearDeviceName() {
+	m.device_name = nil
+	m.clearedFields[hostnicresource.FieldDeviceName] = struct{}{}
 }
 
-// NameCleared returns if the "name" field was cleared in this mutation.
-func (m *HostnicResourceMutation) NameCleared() bool {
-	_, ok := m.clearedFields[hostnicresource.FieldName]
+// DeviceNameCleared returns if the "device_name" field was cleared in this mutation.
+func (m *HostnicResourceMutation) DeviceNameCleared() bool {
+	_, ok := m.clearedFields[hostnicresource.FieldDeviceName]
 	return ok
 }
 
-// ResetName resets all changes to the "name" field.
-func (m *HostnicResourceMutation) ResetName() {
-	m.name = nil
-	delete(m.clearedFields, hostnicresource.FieldName)
+// ResetDeviceName resets all changes to the "device_name" field.
+func (m *HostnicResourceMutation) ResetDeviceName() {
+	m.device_name = nil
+	delete(m.clearedFields, hostnicresource.FieldDeviceName)
 }
 
 // SetPciIdentifier sets the "pci_identifier" field.
@@ -5889,27 +6297,18 @@ func (m *HostnicResourceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *HostnicResourceMutation) Fields() []string {
-	fields := make([]string, 0, 25)
+	fields := make([]string, 0, 22)
 	if m.resource_id != nil {
 		fields = append(fields, hostnicresource.FieldResourceID)
 	}
 	if m.kind != nil {
 		fields = append(fields, hostnicresource.FieldKind)
 	}
-	if m.description != nil {
-		fields = append(fields, hostnicresource.FieldDescription)
-	}
-	if m.desired_state != nil {
-		fields = append(fields, hostnicresource.FieldDesiredState)
-	}
-	if m.current_state != nil {
-		fields = append(fields, hostnicresource.FieldCurrentState)
-	}
 	if m.provider_status != nil {
 		fields = append(fields, hostnicresource.FieldProviderStatus)
 	}
-	if m.name != nil {
-		fields = append(fields, hostnicresource.FieldName)
+	if m.device_name != nil {
+		fields = append(fields, hostnicresource.FieldDeviceName)
 	}
 	if m.pci_identifier != nil {
 		fields = append(fields, hostnicresource.FieldPciIdentifier)
@@ -5977,16 +6376,10 @@ func (m *HostnicResourceMutation) Field(name string) (ent.Value, bool) {
 		return m.ResourceID()
 	case hostnicresource.FieldKind:
 		return m.Kind()
-	case hostnicresource.FieldDescription:
-		return m.Description()
-	case hostnicresource.FieldDesiredState:
-		return m.DesiredState()
-	case hostnicresource.FieldCurrentState:
-		return m.CurrentState()
 	case hostnicresource.FieldProviderStatus:
 		return m.ProviderStatus()
-	case hostnicresource.FieldName:
-		return m.Name()
+	case hostnicresource.FieldDeviceName:
+		return m.DeviceName()
 	case hostnicresource.FieldPciIdentifier:
 		return m.PciIdentifier()
 	case hostnicresource.FieldMACAddr:
@@ -6036,16 +6429,10 @@ func (m *HostnicResourceMutation) OldField(ctx context.Context, name string) (en
 		return m.OldResourceID(ctx)
 	case hostnicresource.FieldKind:
 		return m.OldKind(ctx)
-	case hostnicresource.FieldDescription:
-		return m.OldDescription(ctx)
-	case hostnicresource.FieldDesiredState:
-		return m.OldDesiredState(ctx)
-	case hostnicresource.FieldCurrentState:
-		return m.OldCurrentState(ctx)
 	case hostnicresource.FieldProviderStatus:
 		return m.OldProviderStatus(ctx)
-	case hostnicresource.FieldName:
-		return m.OldName(ctx)
+	case hostnicresource.FieldDeviceName:
+		return m.OldDeviceName(ctx)
 	case hostnicresource.FieldPciIdentifier:
 		return m.OldPciIdentifier(ctx)
 	case hostnicresource.FieldMACAddr:
@@ -6105,27 +6492,6 @@ func (m *HostnicResourceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetKind(v)
 		return nil
-	case hostnicresource.FieldDescription:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetDescription(v)
-		return nil
-	case hostnicresource.FieldDesiredState:
-		v, ok := value.(hostnicresource.DesiredState)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetDesiredState(v)
-		return nil
-	case hostnicresource.FieldCurrentState:
-		v, ok := value.(hostnicresource.CurrentState)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCurrentState(v)
-		return nil
 	case hostnicresource.FieldProviderStatus:
 		v, ok := value.(string)
 		if !ok {
@@ -6133,12 +6499,12 @@ func (m *HostnicResourceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetProviderStatus(v)
 		return nil
-	case hostnicresource.FieldName:
+	case hostnicresource.FieldDeviceName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetName(v)
+		m.SetDeviceName(v)
 		return nil
 	case hostnicresource.FieldPciIdentifier:
 		v, ok := value.(string)
@@ -6350,20 +6716,11 @@ func (m *HostnicResourceMutation) ClearedFields() []string {
 	if m.FieldCleared(hostnicresource.FieldKind) {
 		fields = append(fields, hostnicresource.FieldKind)
 	}
-	if m.FieldCleared(hostnicresource.FieldDescription) {
-		fields = append(fields, hostnicresource.FieldDescription)
-	}
-	if m.FieldCleared(hostnicresource.FieldDesiredState) {
-		fields = append(fields, hostnicresource.FieldDesiredState)
-	}
-	if m.FieldCleared(hostnicresource.FieldCurrentState) {
-		fields = append(fields, hostnicresource.FieldCurrentState)
-	}
 	if m.FieldCleared(hostnicresource.FieldProviderStatus) {
 		fields = append(fields, hostnicresource.FieldProviderStatus)
 	}
-	if m.FieldCleared(hostnicresource.FieldName) {
-		fields = append(fields, hostnicresource.FieldName)
+	if m.FieldCleared(hostnicresource.FieldDeviceName) {
+		fields = append(fields, hostnicresource.FieldDeviceName)
 	}
 	if m.FieldCleared(hostnicresource.FieldPciIdentifier) {
 		fields = append(fields, hostnicresource.FieldPciIdentifier)
@@ -6436,20 +6793,11 @@ func (m *HostnicResourceMutation) ClearField(name string) error {
 	case hostnicresource.FieldKind:
 		m.ClearKind()
 		return nil
-	case hostnicresource.FieldDescription:
-		m.ClearDescription()
-		return nil
-	case hostnicresource.FieldDesiredState:
-		m.ClearDesiredState()
-		return nil
-	case hostnicresource.FieldCurrentState:
-		m.ClearCurrentState()
-		return nil
 	case hostnicresource.FieldProviderStatus:
 		m.ClearProviderStatus()
 		return nil
-	case hostnicresource.FieldName:
-		m.ClearName()
+	case hostnicresource.FieldDeviceName:
+		m.ClearDeviceName()
 		return nil
 	case hostnicresource.FieldPciIdentifier:
 		m.ClearPciIdentifier()
@@ -6519,20 +6867,11 @@ func (m *HostnicResourceMutation) ResetField(name string) error {
 	case hostnicresource.FieldKind:
 		m.ResetKind()
 		return nil
-	case hostnicresource.FieldDescription:
-		m.ResetDescription()
-		return nil
-	case hostnicresource.FieldDesiredState:
-		m.ResetDesiredState()
-		return nil
-	case hostnicresource.FieldCurrentState:
-		m.ResetCurrentState()
-		return nil
 	case hostnicresource.FieldProviderStatus:
 		m.ResetProviderStatus()
 		return nil
-	case hostnicresource.FieldName:
-		m.ResetName()
+	case hostnicresource.FieldDeviceName:
+		m.ResetDeviceName()
 		return nil
 	case hostnicresource.FieldPciIdentifier:
 		m.ResetPciIdentifier()
@@ -6728,9 +7067,6 @@ type HoststorageResourceMutation struct {
 	id                *int
 	resource_id       *string
 	kind              *string
-	description       *string
-	desired_state     *hoststorageresource.DesiredState
-	current_state     *hoststorageresource.CurrentState
 	provider_status   *string
 	wwid              *string
 	serial            *string
@@ -6738,7 +7074,7 @@ type HoststorageResourceMutation struct {
 	model             *string
 	capacity_bytes    *uint64
 	addcapacity_bytes *int64
-	name              *string
+	device_name       *string
 	clearedFields     map[string]struct{}
 	site              *int
 	clearedsite       bool
@@ -6934,153 +7270,6 @@ func (m *HoststorageResourceMutation) KindCleared() bool {
 func (m *HoststorageResourceMutation) ResetKind() {
 	m.kind = nil
 	delete(m.clearedFields, hoststorageresource.FieldKind)
-}
-
-// SetDescription sets the "description" field.
-func (m *HoststorageResourceMutation) SetDescription(s string) {
-	m.description = &s
-}
-
-// Description returns the value of the "description" field in the mutation.
-func (m *HoststorageResourceMutation) Description() (r string, exists bool) {
-	v := m.description
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldDescription returns the old "description" field's value of the HoststorageResource entity.
-// If the HoststorageResource object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *HoststorageResourceMutation) OldDescription(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDescription requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
-	}
-	return oldValue.Description, nil
-}
-
-// ClearDescription clears the value of the "description" field.
-func (m *HoststorageResourceMutation) ClearDescription() {
-	m.description = nil
-	m.clearedFields[hoststorageresource.FieldDescription] = struct{}{}
-}
-
-// DescriptionCleared returns if the "description" field was cleared in this mutation.
-func (m *HoststorageResourceMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[hoststorageresource.FieldDescription]
-	return ok
-}
-
-// ResetDescription resets all changes to the "description" field.
-func (m *HoststorageResourceMutation) ResetDescription() {
-	m.description = nil
-	delete(m.clearedFields, hoststorageresource.FieldDescription)
-}
-
-// SetDesiredState sets the "desired_state" field.
-func (m *HoststorageResourceMutation) SetDesiredState(hs hoststorageresource.DesiredState) {
-	m.desired_state = &hs
-}
-
-// DesiredState returns the value of the "desired_state" field in the mutation.
-func (m *HoststorageResourceMutation) DesiredState() (r hoststorageresource.DesiredState, exists bool) {
-	v := m.desired_state
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldDesiredState returns the old "desired_state" field's value of the HoststorageResource entity.
-// If the HoststorageResource object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *HoststorageResourceMutation) OldDesiredState(ctx context.Context) (v hoststorageresource.DesiredState, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDesiredState is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDesiredState requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDesiredState: %w", err)
-	}
-	return oldValue.DesiredState, nil
-}
-
-// ClearDesiredState clears the value of the "desired_state" field.
-func (m *HoststorageResourceMutation) ClearDesiredState() {
-	m.desired_state = nil
-	m.clearedFields[hoststorageresource.FieldDesiredState] = struct{}{}
-}
-
-// DesiredStateCleared returns if the "desired_state" field was cleared in this mutation.
-func (m *HoststorageResourceMutation) DesiredStateCleared() bool {
-	_, ok := m.clearedFields[hoststorageresource.FieldDesiredState]
-	return ok
-}
-
-// ResetDesiredState resets all changes to the "desired_state" field.
-func (m *HoststorageResourceMutation) ResetDesiredState() {
-	m.desired_state = nil
-	delete(m.clearedFields, hoststorageresource.FieldDesiredState)
-}
-
-// SetCurrentState sets the "current_state" field.
-func (m *HoststorageResourceMutation) SetCurrentState(hs hoststorageresource.CurrentState) {
-	m.current_state = &hs
-}
-
-// CurrentState returns the value of the "current_state" field in the mutation.
-func (m *HoststorageResourceMutation) CurrentState() (r hoststorageresource.CurrentState, exists bool) {
-	v := m.current_state
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCurrentState returns the old "current_state" field's value of the HoststorageResource entity.
-// If the HoststorageResource object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *HoststorageResourceMutation) OldCurrentState(ctx context.Context) (v hoststorageresource.CurrentState, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCurrentState is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCurrentState requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCurrentState: %w", err)
-	}
-	return oldValue.CurrentState, nil
-}
-
-// ClearCurrentState clears the value of the "current_state" field.
-func (m *HoststorageResourceMutation) ClearCurrentState() {
-	m.current_state = nil
-	m.clearedFields[hoststorageresource.FieldCurrentState] = struct{}{}
-}
-
-// CurrentStateCleared returns if the "current_state" field was cleared in this mutation.
-func (m *HoststorageResourceMutation) CurrentStateCleared() bool {
-	_, ok := m.clearedFields[hoststorageresource.FieldCurrentState]
-	return ok
-}
-
-// ResetCurrentState resets all changes to the "current_state" field.
-func (m *HoststorageResourceMutation) ResetCurrentState() {
-	m.current_state = nil
-	delete(m.clearedFields, hoststorageresource.FieldCurrentState)
 }
 
 // SetProviderStatus sets the "provider_status" field.
@@ -7398,53 +7587,53 @@ func (m *HoststorageResourceMutation) ResetCapacityBytes() {
 	delete(m.clearedFields, hoststorageresource.FieldCapacityBytes)
 }
 
-// SetName sets the "name" field.
-func (m *HoststorageResourceMutation) SetName(s string) {
-	m.name = &s
+// SetDeviceName sets the "device_name" field.
+func (m *HoststorageResourceMutation) SetDeviceName(s string) {
+	m.device_name = &s
 }
 
-// Name returns the value of the "name" field in the mutation.
-func (m *HoststorageResourceMutation) Name() (r string, exists bool) {
-	v := m.name
+// DeviceName returns the value of the "device_name" field in the mutation.
+func (m *HoststorageResourceMutation) DeviceName() (r string, exists bool) {
+	v := m.device_name
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldName returns the old "name" field's value of the HoststorageResource entity.
+// OldDeviceName returns the old "device_name" field's value of the HoststorageResource entity.
 // If the HoststorageResource object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *HoststorageResourceMutation) OldName(ctx context.Context) (v string, err error) {
+func (m *HoststorageResourceMutation) OldDeviceName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldName is only allowed on UpdateOne operations")
+		return v, errors.New("OldDeviceName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldName requires an ID field in the mutation")
+		return v, errors.New("OldDeviceName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldName: %w", err)
+		return v, fmt.Errorf("querying old value for OldDeviceName: %w", err)
 	}
-	return oldValue.Name, nil
+	return oldValue.DeviceName, nil
 }
 
-// ClearName clears the value of the "name" field.
-func (m *HoststorageResourceMutation) ClearName() {
-	m.name = nil
-	m.clearedFields[hoststorageresource.FieldName] = struct{}{}
+// ClearDeviceName clears the value of the "device_name" field.
+func (m *HoststorageResourceMutation) ClearDeviceName() {
+	m.device_name = nil
+	m.clearedFields[hoststorageresource.FieldDeviceName] = struct{}{}
 }
 
-// NameCleared returns if the "name" field was cleared in this mutation.
-func (m *HoststorageResourceMutation) NameCleared() bool {
-	_, ok := m.clearedFields[hoststorageresource.FieldName]
+// DeviceNameCleared returns if the "device_name" field was cleared in this mutation.
+func (m *HoststorageResourceMutation) DeviceNameCleared() bool {
+	_, ok := m.clearedFields[hoststorageresource.FieldDeviceName]
 	return ok
 }
 
-// ResetName resets all changes to the "name" field.
-func (m *HoststorageResourceMutation) ResetName() {
-	m.name = nil
-	delete(m.clearedFields, hoststorageresource.FieldName)
+// ResetDeviceName resets all changes to the "device_name" field.
+func (m *HoststorageResourceMutation) ResetDeviceName() {
+	m.device_name = nil
+	delete(m.clearedFields, hoststorageresource.FieldDeviceName)
 }
 
 // SetSiteID sets the "site" edge to the SiteResource entity by id.
@@ -7637,21 +7826,12 @@ func (m *HoststorageResourceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *HoststorageResourceMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 9)
 	if m.resource_id != nil {
 		fields = append(fields, hoststorageresource.FieldResourceID)
 	}
 	if m.kind != nil {
 		fields = append(fields, hoststorageresource.FieldKind)
-	}
-	if m.description != nil {
-		fields = append(fields, hoststorageresource.FieldDescription)
-	}
-	if m.desired_state != nil {
-		fields = append(fields, hoststorageresource.FieldDesiredState)
-	}
-	if m.current_state != nil {
-		fields = append(fields, hoststorageresource.FieldCurrentState)
 	}
 	if m.provider_status != nil {
 		fields = append(fields, hoststorageresource.FieldProviderStatus)
@@ -7671,8 +7851,8 @@ func (m *HoststorageResourceMutation) Fields() []string {
 	if m.capacity_bytes != nil {
 		fields = append(fields, hoststorageresource.FieldCapacityBytes)
 	}
-	if m.name != nil {
-		fields = append(fields, hoststorageresource.FieldName)
+	if m.device_name != nil {
+		fields = append(fields, hoststorageresource.FieldDeviceName)
 	}
 	return fields
 }
@@ -7686,12 +7866,6 @@ func (m *HoststorageResourceMutation) Field(name string) (ent.Value, bool) {
 		return m.ResourceID()
 	case hoststorageresource.FieldKind:
 		return m.Kind()
-	case hoststorageresource.FieldDescription:
-		return m.Description()
-	case hoststorageresource.FieldDesiredState:
-		return m.DesiredState()
-	case hoststorageresource.FieldCurrentState:
-		return m.CurrentState()
 	case hoststorageresource.FieldProviderStatus:
 		return m.ProviderStatus()
 	case hoststorageresource.FieldWwid:
@@ -7704,8 +7878,8 @@ func (m *HoststorageResourceMutation) Field(name string) (ent.Value, bool) {
 		return m.Model()
 	case hoststorageresource.FieldCapacityBytes:
 		return m.CapacityBytes()
-	case hoststorageresource.FieldName:
-		return m.Name()
+	case hoststorageresource.FieldDeviceName:
+		return m.DeviceName()
 	}
 	return nil, false
 }
@@ -7719,12 +7893,6 @@ func (m *HoststorageResourceMutation) OldField(ctx context.Context, name string)
 		return m.OldResourceID(ctx)
 	case hoststorageresource.FieldKind:
 		return m.OldKind(ctx)
-	case hoststorageresource.FieldDescription:
-		return m.OldDescription(ctx)
-	case hoststorageresource.FieldDesiredState:
-		return m.OldDesiredState(ctx)
-	case hoststorageresource.FieldCurrentState:
-		return m.OldCurrentState(ctx)
 	case hoststorageresource.FieldProviderStatus:
 		return m.OldProviderStatus(ctx)
 	case hoststorageresource.FieldWwid:
@@ -7737,8 +7905,8 @@ func (m *HoststorageResourceMutation) OldField(ctx context.Context, name string)
 		return m.OldModel(ctx)
 	case hoststorageresource.FieldCapacityBytes:
 		return m.OldCapacityBytes(ctx)
-	case hoststorageresource.FieldName:
-		return m.OldName(ctx)
+	case hoststorageresource.FieldDeviceName:
+		return m.OldDeviceName(ctx)
 	}
 	return nil, fmt.Errorf("unknown HoststorageResource field %s", name)
 }
@@ -7761,27 +7929,6 @@ func (m *HoststorageResourceMutation) SetField(name string, value ent.Value) err
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetKind(v)
-		return nil
-	case hoststorageresource.FieldDescription:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetDescription(v)
-		return nil
-	case hoststorageresource.FieldDesiredState:
-		v, ok := value.(hoststorageresource.DesiredState)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetDesiredState(v)
-		return nil
-	case hoststorageresource.FieldCurrentState:
-		v, ok := value.(hoststorageresource.CurrentState)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCurrentState(v)
 		return nil
 	case hoststorageresource.FieldProviderStatus:
 		v, ok := value.(string)
@@ -7825,12 +7972,12 @@ func (m *HoststorageResourceMutation) SetField(name string, value ent.Value) err
 		}
 		m.SetCapacityBytes(v)
 		return nil
-	case hoststorageresource.FieldName:
+	case hoststorageresource.FieldDeviceName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetName(v)
+		m.SetDeviceName(v)
 		return nil
 	}
 	return fmt.Errorf("unknown HoststorageResource field %s", name)
@@ -7880,15 +8027,6 @@ func (m *HoststorageResourceMutation) ClearedFields() []string {
 	if m.FieldCleared(hoststorageresource.FieldKind) {
 		fields = append(fields, hoststorageresource.FieldKind)
 	}
-	if m.FieldCleared(hoststorageresource.FieldDescription) {
-		fields = append(fields, hoststorageresource.FieldDescription)
-	}
-	if m.FieldCleared(hoststorageresource.FieldDesiredState) {
-		fields = append(fields, hoststorageresource.FieldDesiredState)
-	}
-	if m.FieldCleared(hoststorageresource.FieldCurrentState) {
-		fields = append(fields, hoststorageresource.FieldCurrentState)
-	}
 	if m.FieldCleared(hoststorageresource.FieldProviderStatus) {
 		fields = append(fields, hoststorageresource.FieldProviderStatus)
 	}
@@ -7907,8 +8045,8 @@ func (m *HoststorageResourceMutation) ClearedFields() []string {
 	if m.FieldCleared(hoststorageresource.FieldCapacityBytes) {
 		fields = append(fields, hoststorageresource.FieldCapacityBytes)
 	}
-	if m.FieldCleared(hoststorageresource.FieldName) {
-		fields = append(fields, hoststorageresource.FieldName)
+	if m.FieldCleared(hoststorageresource.FieldDeviceName) {
+		fields = append(fields, hoststorageresource.FieldDeviceName)
 	}
 	return fields
 }
@@ -7926,15 +8064,6 @@ func (m *HoststorageResourceMutation) ClearField(name string) error {
 	switch name {
 	case hoststorageresource.FieldKind:
 		m.ClearKind()
-		return nil
-	case hoststorageresource.FieldDescription:
-		m.ClearDescription()
-		return nil
-	case hoststorageresource.FieldDesiredState:
-		m.ClearDesiredState()
-		return nil
-	case hoststorageresource.FieldCurrentState:
-		m.ClearCurrentState()
 		return nil
 	case hoststorageresource.FieldProviderStatus:
 		m.ClearProviderStatus()
@@ -7954,8 +8083,8 @@ func (m *HoststorageResourceMutation) ClearField(name string) error {
 	case hoststorageresource.FieldCapacityBytes:
 		m.ClearCapacityBytes()
 		return nil
-	case hoststorageresource.FieldName:
-		m.ClearName()
+	case hoststorageresource.FieldDeviceName:
+		m.ClearDeviceName()
 		return nil
 	}
 	return fmt.Errorf("unknown HoststorageResource nullable field %s", name)
@@ -7970,15 +8099,6 @@ func (m *HoststorageResourceMutation) ResetField(name string) error {
 		return nil
 	case hoststorageresource.FieldKind:
 		m.ResetKind()
-		return nil
-	case hoststorageresource.FieldDescription:
-		m.ResetDescription()
-		return nil
-	case hoststorageresource.FieldDesiredState:
-		m.ResetDesiredState()
-		return nil
-	case hoststorageresource.FieldCurrentState:
-		m.ResetCurrentState()
 		return nil
 	case hoststorageresource.FieldProviderStatus:
 		m.ResetProviderStatus()
@@ -7998,8 +8118,8 @@ func (m *HoststorageResourceMutation) ResetField(name string) error {
 	case hoststorageresource.FieldCapacityBytes:
 		m.ResetCapacityBytes()
 		return nil
-	case hoststorageresource.FieldName:
-		m.ResetName()
+	case hoststorageresource.FieldDeviceName:
+		m.ResetDeviceName()
 		return nil
 	}
 	return fmt.Errorf("unknown HoststorageResource field %s", name)
@@ -8141,9 +8261,6 @@ type HostusbResourceMutation struct {
 	id            *int
 	resource_id   *string
 	kind          *string
-	description   *string
-	current_state *hostusbresource.CurrentState
-	desired_state *hostusbresource.DesiredState
 	owner_id      *string
 	idvendor      *string
 	idproduct     *string
@@ -8153,6 +8270,7 @@ type HostusbResourceMutation struct {
 	addaddr       *int32
 	class         *string
 	serial        *string
+	device_name   *string
 	clearedFields map[string]struct{}
 	host          *int
 	clearedhost   bool
@@ -8342,153 +8460,6 @@ func (m *HostusbResourceMutation) KindCleared() bool {
 func (m *HostusbResourceMutation) ResetKind() {
 	m.kind = nil
 	delete(m.clearedFields, hostusbresource.FieldKind)
-}
-
-// SetDescription sets the "description" field.
-func (m *HostusbResourceMutation) SetDescription(s string) {
-	m.description = &s
-}
-
-// Description returns the value of the "description" field in the mutation.
-func (m *HostusbResourceMutation) Description() (r string, exists bool) {
-	v := m.description
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldDescription returns the old "description" field's value of the HostusbResource entity.
-// If the HostusbResource object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *HostusbResourceMutation) OldDescription(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDescription requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
-	}
-	return oldValue.Description, nil
-}
-
-// ClearDescription clears the value of the "description" field.
-func (m *HostusbResourceMutation) ClearDescription() {
-	m.description = nil
-	m.clearedFields[hostusbresource.FieldDescription] = struct{}{}
-}
-
-// DescriptionCleared returns if the "description" field was cleared in this mutation.
-func (m *HostusbResourceMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[hostusbresource.FieldDescription]
-	return ok
-}
-
-// ResetDescription resets all changes to the "description" field.
-func (m *HostusbResourceMutation) ResetDescription() {
-	m.description = nil
-	delete(m.clearedFields, hostusbresource.FieldDescription)
-}
-
-// SetCurrentState sets the "current_state" field.
-func (m *HostusbResourceMutation) SetCurrentState(hs hostusbresource.CurrentState) {
-	m.current_state = &hs
-}
-
-// CurrentState returns the value of the "current_state" field in the mutation.
-func (m *HostusbResourceMutation) CurrentState() (r hostusbresource.CurrentState, exists bool) {
-	v := m.current_state
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCurrentState returns the old "current_state" field's value of the HostusbResource entity.
-// If the HostusbResource object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *HostusbResourceMutation) OldCurrentState(ctx context.Context) (v hostusbresource.CurrentState, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCurrentState is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCurrentState requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCurrentState: %w", err)
-	}
-	return oldValue.CurrentState, nil
-}
-
-// ClearCurrentState clears the value of the "current_state" field.
-func (m *HostusbResourceMutation) ClearCurrentState() {
-	m.current_state = nil
-	m.clearedFields[hostusbresource.FieldCurrentState] = struct{}{}
-}
-
-// CurrentStateCleared returns if the "current_state" field was cleared in this mutation.
-func (m *HostusbResourceMutation) CurrentStateCleared() bool {
-	_, ok := m.clearedFields[hostusbresource.FieldCurrentState]
-	return ok
-}
-
-// ResetCurrentState resets all changes to the "current_state" field.
-func (m *HostusbResourceMutation) ResetCurrentState() {
-	m.current_state = nil
-	delete(m.clearedFields, hostusbresource.FieldCurrentState)
-}
-
-// SetDesiredState sets the "desired_state" field.
-func (m *HostusbResourceMutation) SetDesiredState(hs hostusbresource.DesiredState) {
-	m.desired_state = &hs
-}
-
-// DesiredState returns the value of the "desired_state" field in the mutation.
-func (m *HostusbResourceMutation) DesiredState() (r hostusbresource.DesiredState, exists bool) {
-	v := m.desired_state
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldDesiredState returns the old "desired_state" field's value of the HostusbResource entity.
-// If the HostusbResource object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *HostusbResourceMutation) OldDesiredState(ctx context.Context) (v hostusbresource.DesiredState, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDesiredState is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDesiredState requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDesiredState: %w", err)
-	}
-	return oldValue.DesiredState, nil
-}
-
-// ClearDesiredState clears the value of the "desired_state" field.
-func (m *HostusbResourceMutation) ClearDesiredState() {
-	m.desired_state = nil
-	m.clearedFields[hostusbresource.FieldDesiredState] = struct{}{}
-}
-
-// DesiredStateCleared returns if the "desired_state" field was cleared in this mutation.
-func (m *HostusbResourceMutation) DesiredStateCleared() bool {
-	_, ok := m.clearedFields[hostusbresource.FieldDesiredState]
-	return ok
-}
-
-// ResetDesiredState resets all changes to the "desired_state" field.
-func (m *HostusbResourceMutation) ResetDesiredState() {
-	m.desired_state = nil
-	delete(m.clearedFields, hostusbresource.FieldDesiredState)
 }
 
 // SetOwnerID sets the "owner_id" field.
@@ -8876,6 +8847,55 @@ func (m *HostusbResourceMutation) ResetSerial() {
 	delete(m.clearedFields, hostusbresource.FieldSerial)
 }
 
+// SetDeviceName sets the "device_name" field.
+func (m *HostusbResourceMutation) SetDeviceName(s string) {
+	m.device_name = &s
+}
+
+// DeviceName returns the value of the "device_name" field in the mutation.
+func (m *HostusbResourceMutation) DeviceName() (r string, exists bool) {
+	v := m.device_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeviceName returns the old "device_name" field's value of the HostusbResource entity.
+// If the HostusbResource object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *HostusbResourceMutation) OldDeviceName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeviceName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeviceName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeviceName: %w", err)
+	}
+	return oldValue.DeviceName, nil
+}
+
+// ClearDeviceName clears the value of the "device_name" field.
+func (m *HostusbResourceMutation) ClearDeviceName() {
+	m.device_name = nil
+	m.clearedFields[hostusbresource.FieldDeviceName] = struct{}{}
+}
+
+// DeviceNameCleared returns if the "device_name" field was cleared in this mutation.
+func (m *HostusbResourceMutation) DeviceNameCleared() bool {
+	_, ok := m.clearedFields[hostusbresource.FieldDeviceName]
+	return ok
+}
+
+// ResetDeviceName resets all changes to the "device_name" field.
+func (m *HostusbResourceMutation) ResetDeviceName() {
+	m.device_name = nil
+	delete(m.clearedFields, hostusbresource.FieldDeviceName)
+}
+
 // SetHostID sets the "host" edge to the HostResource entity by id.
 func (m *HostusbResourceMutation) SetHostID(id int) {
 	m.host = &id
@@ -8949,21 +8969,12 @@ func (m *HostusbResourceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *HostusbResourceMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 10)
 	if m.resource_id != nil {
 		fields = append(fields, hostusbresource.FieldResourceID)
 	}
 	if m.kind != nil {
 		fields = append(fields, hostusbresource.FieldKind)
-	}
-	if m.description != nil {
-		fields = append(fields, hostusbresource.FieldDescription)
-	}
-	if m.current_state != nil {
-		fields = append(fields, hostusbresource.FieldCurrentState)
-	}
-	if m.desired_state != nil {
-		fields = append(fields, hostusbresource.FieldDesiredState)
 	}
 	if m.owner_id != nil {
 		fields = append(fields, hostusbresource.FieldOwnerID)
@@ -8986,6 +8997,9 @@ func (m *HostusbResourceMutation) Fields() []string {
 	if m.serial != nil {
 		fields = append(fields, hostusbresource.FieldSerial)
 	}
+	if m.device_name != nil {
+		fields = append(fields, hostusbresource.FieldDeviceName)
+	}
 	return fields
 }
 
@@ -8998,12 +9012,6 @@ func (m *HostusbResourceMutation) Field(name string) (ent.Value, bool) {
 		return m.ResourceID()
 	case hostusbresource.FieldKind:
 		return m.Kind()
-	case hostusbresource.FieldDescription:
-		return m.Description()
-	case hostusbresource.FieldCurrentState:
-		return m.CurrentState()
-	case hostusbresource.FieldDesiredState:
-		return m.DesiredState()
 	case hostusbresource.FieldOwnerID:
 		return m.OwnerID()
 	case hostusbresource.FieldIdvendor:
@@ -9018,6 +9026,8 @@ func (m *HostusbResourceMutation) Field(name string) (ent.Value, bool) {
 		return m.Class()
 	case hostusbresource.FieldSerial:
 		return m.Serial()
+	case hostusbresource.FieldDeviceName:
+		return m.DeviceName()
 	}
 	return nil, false
 }
@@ -9031,12 +9041,6 @@ func (m *HostusbResourceMutation) OldField(ctx context.Context, name string) (en
 		return m.OldResourceID(ctx)
 	case hostusbresource.FieldKind:
 		return m.OldKind(ctx)
-	case hostusbresource.FieldDescription:
-		return m.OldDescription(ctx)
-	case hostusbresource.FieldCurrentState:
-		return m.OldCurrentState(ctx)
-	case hostusbresource.FieldDesiredState:
-		return m.OldDesiredState(ctx)
 	case hostusbresource.FieldOwnerID:
 		return m.OldOwnerID(ctx)
 	case hostusbresource.FieldIdvendor:
@@ -9051,6 +9055,8 @@ func (m *HostusbResourceMutation) OldField(ctx context.Context, name string) (en
 		return m.OldClass(ctx)
 	case hostusbresource.FieldSerial:
 		return m.OldSerial(ctx)
+	case hostusbresource.FieldDeviceName:
+		return m.OldDeviceName(ctx)
 	}
 	return nil, fmt.Errorf("unknown HostusbResource field %s", name)
 }
@@ -9073,27 +9079,6 @@ func (m *HostusbResourceMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetKind(v)
-		return nil
-	case hostusbresource.FieldDescription:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetDescription(v)
-		return nil
-	case hostusbresource.FieldCurrentState:
-		v, ok := value.(hostusbresource.CurrentState)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCurrentState(v)
-		return nil
-	case hostusbresource.FieldDesiredState:
-		v, ok := value.(hostusbresource.DesiredState)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetDesiredState(v)
 		return nil
 	case hostusbresource.FieldOwnerID:
 		v, ok := value.(string)
@@ -9143,6 +9128,13 @@ func (m *HostusbResourceMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSerial(v)
+		return nil
+	case hostusbresource.FieldDeviceName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeviceName(v)
 		return nil
 	}
 	return fmt.Errorf("unknown HostusbResource field %s", name)
@@ -9204,15 +9196,6 @@ func (m *HostusbResourceMutation) ClearedFields() []string {
 	if m.FieldCleared(hostusbresource.FieldKind) {
 		fields = append(fields, hostusbresource.FieldKind)
 	}
-	if m.FieldCleared(hostusbresource.FieldDescription) {
-		fields = append(fields, hostusbresource.FieldDescription)
-	}
-	if m.FieldCleared(hostusbresource.FieldCurrentState) {
-		fields = append(fields, hostusbresource.FieldCurrentState)
-	}
-	if m.FieldCleared(hostusbresource.FieldDesiredState) {
-		fields = append(fields, hostusbresource.FieldDesiredState)
-	}
 	if m.FieldCleared(hostusbresource.FieldOwnerID) {
 		fields = append(fields, hostusbresource.FieldOwnerID)
 	}
@@ -9234,6 +9217,9 @@ func (m *HostusbResourceMutation) ClearedFields() []string {
 	if m.FieldCleared(hostusbresource.FieldSerial) {
 		fields = append(fields, hostusbresource.FieldSerial)
 	}
+	if m.FieldCleared(hostusbresource.FieldDeviceName) {
+		fields = append(fields, hostusbresource.FieldDeviceName)
+	}
 	return fields
 }
 
@@ -9250,15 +9236,6 @@ func (m *HostusbResourceMutation) ClearField(name string) error {
 	switch name {
 	case hostusbresource.FieldKind:
 		m.ClearKind()
-		return nil
-	case hostusbresource.FieldDescription:
-		m.ClearDescription()
-		return nil
-	case hostusbresource.FieldCurrentState:
-		m.ClearCurrentState()
-		return nil
-	case hostusbresource.FieldDesiredState:
-		m.ClearDesiredState()
 		return nil
 	case hostusbresource.FieldOwnerID:
 		m.ClearOwnerID()
@@ -9281,6 +9258,9 @@ func (m *HostusbResourceMutation) ClearField(name string) error {
 	case hostusbresource.FieldSerial:
 		m.ClearSerial()
 		return nil
+	case hostusbresource.FieldDeviceName:
+		m.ClearDeviceName()
+		return nil
 	}
 	return fmt.Errorf("unknown HostusbResource nullable field %s", name)
 }
@@ -9294,15 +9274,6 @@ func (m *HostusbResourceMutation) ResetField(name string) error {
 		return nil
 	case hostusbresource.FieldKind:
 		m.ResetKind()
-		return nil
-	case hostusbresource.FieldDescription:
-		m.ResetDescription()
-		return nil
-	case hostusbresource.FieldCurrentState:
-		m.ResetCurrentState()
-		return nil
-	case hostusbresource.FieldDesiredState:
-		m.ResetDesiredState()
 		return nil
 	case hostusbresource.FieldOwnerID:
 		m.ResetOwnerID()
@@ -9324,6 +9295,9 @@ func (m *HostusbResourceMutation) ResetField(name string) error {
 		return nil
 	case hostusbresource.FieldSerial:
 		m.ResetSerial()
+		return nil
+	case hostusbresource.FieldDeviceName:
+		m.ResetDeviceName()
 		return nil
 	}
 	return fmt.Errorf("unknown HostusbResource field %s", name)
@@ -10245,7 +10219,7 @@ type InstanceResourceMutation struct {
 	id                      *int
 	resource_id             *string
 	kind                    *instanceresource.Kind
-	description             *string
+	name                    *string
 	desired_state           *instanceresource.DesiredState
 	current_state           *instanceresource.CurrentState
 	vm_memory_bytes         *uint64
@@ -10266,6 +10240,8 @@ type InstanceResourceMutation struct {
 	workload_members        map[int]struct{}
 	removedworkload_members map[int]struct{}
 	clearedworkload_members bool
+	provider                *int
+	clearedprovider         bool
 	done                    bool
 	oldValue                func(context.Context) (*InstanceResource, error)
 	predicates              []predicate.InstanceResource
@@ -10454,53 +10430,53 @@ func (m *InstanceResourceMutation) ResetKind() {
 	delete(m.clearedFields, instanceresource.FieldKind)
 }
 
-// SetDescription sets the "description" field.
-func (m *InstanceResourceMutation) SetDescription(s string) {
-	m.description = &s
+// SetName sets the "name" field.
+func (m *InstanceResourceMutation) SetName(s string) {
+	m.name = &s
 }
 
-// Description returns the value of the "description" field in the mutation.
-func (m *InstanceResourceMutation) Description() (r string, exists bool) {
-	v := m.description
+// Name returns the value of the "name" field in the mutation.
+func (m *InstanceResourceMutation) Name() (r string, exists bool) {
+	v := m.name
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldDescription returns the old "description" field's value of the InstanceResource entity.
+// OldName returns the old "name" field's value of the InstanceResource entity.
 // If the InstanceResource object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *InstanceResourceMutation) OldDescription(ctx context.Context) (v string, err error) {
+func (m *InstanceResourceMutation) OldName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDescription requires an ID field in the mutation")
+		return v, errors.New("OldName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
 	}
-	return oldValue.Description, nil
+	return oldValue.Name, nil
 }
 
-// ClearDescription clears the value of the "description" field.
-func (m *InstanceResourceMutation) ClearDescription() {
-	m.description = nil
-	m.clearedFields[instanceresource.FieldDescription] = struct{}{}
+// ClearName clears the value of the "name" field.
+func (m *InstanceResourceMutation) ClearName() {
+	m.name = nil
+	m.clearedFields[instanceresource.FieldName] = struct{}{}
 }
 
-// DescriptionCleared returns if the "description" field was cleared in this mutation.
-func (m *InstanceResourceMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[instanceresource.FieldDescription]
+// NameCleared returns if the "name" field was cleared in this mutation.
+func (m *InstanceResourceMutation) NameCleared() bool {
+	_, ok := m.clearedFields[instanceresource.FieldName]
 	return ok
 }
 
-// ResetDescription resets all changes to the "description" field.
-func (m *InstanceResourceMutation) ResetDescription() {
-	m.description = nil
-	delete(m.clearedFields, instanceresource.FieldDescription)
+// ResetName resets all changes to the "name" field.
+func (m *InstanceResourceMutation) ResetName() {
+	m.name = nil
+	delete(m.clearedFields, instanceresource.FieldName)
 }
 
 // SetDesiredState sets the "desired_state" field.
@@ -11080,6 +11056,45 @@ func (m *InstanceResourceMutation) ResetWorkloadMembers() {
 	m.removedworkload_members = nil
 }
 
+// SetProviderID sets the "provider" edge to the ProviderResource entity by id.
+func (m *InstanceResourceMutation) SetProviderID(id int) {
+	m.provider = &id
+}
+
+// ClearProvider clears the "provider" edge to the ProviderResource entity.
+func (m *InstanceResourceMutation) ClearProvider() {
+	m.clearedprovider = true
+}
+
+// ProviderCleared reports if the "provider" edge to the ProviderResource entity was cleared.
+func (m *InstanceResourceMutation) ProviderCleared() bool {
+	return m.clearedprovider
+}
+
+// ProviderID returns the "provider" edge ID in the mutation.
+func (m *InstanceResourceMutation) ProviderID() (id int, exists bool) {
+	if m.provider != nil {
+		return *m.provider, true
+	}
+	return
+}
+
+// ProviderIDs returns the "provider" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ProviderID instead. It exists only for internal usage by the builders.
+func (m *InstanceResourceMutation) ProviderIDs() (ids []int) {
+	if id := m.provider; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetProvider resets all changes to the "provider" edge.
+func (m *InstanceResourceMutation) ResetProvider() {
+	m.provider = nil
+	m.clearedprovider = false
+}
+
 // Where appends a list predicates to the InstanceResourceMutation builder.
 func (m *InstanceResourceMutation) Where(ps ...predicate.InstanceResource) {
 	m.predicates = append(m.predicates, ps...)
@@ -11121,8 +11136,8 @@ func (m *InstanceResourceMutation) Fields() []string {
 	if m.kind != nil {
 		fields = append(fields, instanceresource.FieldKind)
 	}
-	if m.description != nil {
-		fields = append(fields, instanceresource.FieldDescription)
+	if m.name != nil {
+		fields = append(fields, instanceresource.FieldName)
 	}
 	if m.desired_state != nil {
 		fields = append(fields, instanceresource.FieldDesiredState)
@@ -11157,8 +11172,8 @@ func (m *InstanceResourceMutation) Field(name string) (ent.Value, bool) {
 		return m.ResourceID()
 	case instanceresource.FieldKind:
 		return m.Kind()
-	case instanceresource.FieldDescription:
-		return m.Description()
+	case instanceresource.FieldName:
+		return m.Name()
 	case instanceresource.FieldDesiredState:
 		return m.DesiredState()
 	case instanceresource.FieldCurrentState:
@@ -11186,8 +11201,8 @@ func (m *InstanceResourceMutation) OldField(ctx context.Context, name string) (e
 		return m.OldResourceID(ctx)
 	case instanceresource.FieldKind:
 		return m.OldKind(ctx)
-	case instanceresource.FieldDescription:
-		return m.OldDescription(ctx)
+	case instanceresource.FieldName:
+		return m.OldName(ctx)
 	case instanceresource.FieldDesiredState:
 		return m.OldDesiredState(ctx)
 	case instanceresource.FieldCurrentState:
@@ -11225,12 +11240,12 @@ func (m *InstanceResourceMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetKind(v)
 		return nil
-	case instanceresource.FieldDescription:
+	case instanceresource.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetDescription(v)
+		m.SetName(v)
 		return nil
 	case instanceresource.FieldDesiredState:
 		v, ok := value.(instanceresource.DesiredState)
@@ -11353,8 +11368,8 @@ func (m *InstanceResourceMutation) ClearedFields() []string {
 	if m.FieldCleared(instanceresource.FieldKind) {
 		fields = append(fields, instanceresource.FieldKind)
 	}
-	if m.FieldCleared(instanceresource.FieldDescription) {
-		fields = append(fields, instanceresource.FieldDescription)
+	if m.FieldCleared(instanceresource.FieldName) {
+		fields = append(fields, instanceresource.FieldName)
 	}
 	if m.FieldCleared(instanceresource.FieldDesiredState) {
 		fields = append(fields, instanceresource.FieldDesiredState)
@@ -11394,8 +11409,8 @@ func (m *InstanceResourceMutation) ClearField(name string) error {
 	case instanceresource.FieldKind:
 		m.ClearKind()
 		return nil
-	case instanceresource.FieldDescription:
-		m.ClearDescription()
+	case instanceresource.FieldName:
+		m.ClearName()
 		return nil
 	case instanceresource.FieldDesiredState:
 		m.ClearDesiredState()
@@ -11432,8 +11447,8 @@ func (m *InstanceResourceMutation) ResetField(name string) error {
 	case instanceresource.FieldKind:
 		m.ResetKind()
 		return nil
-	case instanceresource.FieldDescription:
-		m.ResetDescription()
+	case instanceresource.FieldName:
+		m.ResetName()
 		return nil
 	case instanceresource.FieldDesiredState:
 		m.ResetDesiredState()
@@ -11462,7 +11477,7 @@ func (m *InstanceResourceMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *InstanceResourceMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.host != nil {
 		edges = append(edges, instanceresource.EdgeHost)
 	}
@@ -11474,6 +11489,9 @@ func (m *InstanceResourceMutation) AddedEdges() []string {
 	}
 	if m.workload_members != nil {
 		edges = append(edges, instanceresource.EdgeWorkloadMembers)
+	}
+	if m.provider != nil {
+		edges = append(edges, instanceresource.EdgeProvider)
 	}
 	return edges
 }
@@ -11500,13 +11518,17 @@ func (m *InstanceResourceMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case instanceresource.EdgeProvider:
+		if id := m.provider; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *InstanceResourceMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.removedworkload_members != nil {
 		edges = append(edges, instanceresource.EdgeWorkloadMembers)
 	}
@@ -11529,7 +11551,7 @@ func (m *InstanceResourceMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *InstanceResourceMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.clearedhost {
 		edges = append(edges, instanceresource.EdgeHost)
 	}
@@ -11541,6 +11563,9 @@ func (m *InstanceResourceMutation) ClearedEdges() []string {
 	}
 	if m.clearedworkload_members {
 		edges = append(edges, instanceresource.EdgeWorkloadMembers)
+	}
+	if m.clearedprovider {
+		edges = append(edges, instanceresource.EdgeProvider)
 	}
 	return edges
 }
@@ -11557,6 +11582,8 @@ func (m *InstanceResourceMutation) EdgeCleared(name string) bool {
 		return m.clearedos
 	case instanceresource.EdgeWorkloadMembers:
 		return m.clearedworkload_members
+	case instanceresource.EdgeProvider:
+		return m.clearedprovider
 	}
 	return false
 }
@@ -11573,6 +11600,9 @@ func (m *InstanceResourceMutation) ClearEdge(name string) error {
 		return nil
 	case instanceresource.EdgeOs:
 		m.ClearOs()
+		return nil
+	case instanceresource.EdgeProvider:
+		m.ClearProvider()
 		return nil
 	}
 	return fmt.Errorf("unknown InstanceResource unique edge %s", name)
@@ -11594,6 +11624,9 @@ func (m *InstanceResourceMutation) ResetEdge(name string) error {
 	case instanceresource.EdgeWorkloadMembers:
 		m.ResetWorkloadMembers()
 		return nil
+	case instanceresource.EdgeProvider:
+		m.ResetProvider()
+		return nil
 	}
 	return fmt.Errorf("unknown InstanceResource edge %s", name)
 }
@@ -11606,7 +11639,7 @@ type NetlinkResourceMutation struct {
 	id              *int
 	resource_id     *string
 	kind            *string
-	description     *string
+	name            *string
 	desired_state   *netlinkresource.DesiredState
 	current_state   *netlinkresource.CurrentState
 	provider_status *string
@@ -11803,53 +11836,53 @@ func (m *NetlinkResourceMutation) ResetKind() {
 	delete(m.clearedFields, netlinkresource.FieldKind)
 }
 
-// SetDescription sets the "description" field.
-func (m *NetlinkResourceMutation) SetDescription(s string) {
-	m.description = &s
+// SetName sets the "name" field.
+func (m *NetlinkResourceMutation) SetName(s string) {
+	m.name = &s
 }
 
-// Description returns the value of the "description" field in the mutation.
-func (m *NetlinkResourceMutation) Description() (r string, exists bool) {
-	v := m.description
+// Name returns the value of the "name" field in the mutation.
+func (m *NetlinkResourceMutation) Name() (r string, exists bool) {
+	v := m.name
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldDescription returns the old "description" field's value of the NetlinkResource entity.
+// OldName returns the old "name" field's value of the NetlinkResource entity.
 // If the NetlinkResource object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetlinkResourceMutation) OldDescription(ctx context.Context) (v string, err error) {
+func (m *NetlinkResourceMutation) OldName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDescription requires an ID field in the mutation")
+		return v, errors.New("OldName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
 	}
-	return oldValue.Description, nil
+	return oldValue.Name, nil
 }
 
-// ClearDescription clears the value of the "description" field.
-func (m *NetlinkResourceMutation) ClearDescription() {
-	m.description = nil
-	m.clearedFields[netlinkresource.FieldDescription] = struct{}{}
+// ClearName clears the value of the "name" field.
+func (m *NetlinkResourceMutation) ClearName() {
+	m.name = nil
+	m.clearedFields[netlinkresource.FieldName] = struct{}{}
 }
 
-// DescriptionCleared returns if the "description" field was cleared in this mutation.
-func (m *NetlinkResourceMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[netlinkresource.FieldDescription]
+// NameCleared returns if the "name" field was cleared in this mutation.
+func (m *NetlinkResourceMutation) NameCleared() bool {
+	_, ok := m.clearedFields[netlinkresource.FieldName]
 	return ok
 }
 
-// ResetDescription resets all changes to the "description" field.
-func (m *NetlinkResourceMutation) ResetDescription() {
-	m.description = nil
-	delete(m.clearedFields, netlinkresource.FieldDescription)
+// ResetName resets all changes to the "name" field.
+func (m *NetlinkResourceMutation) ResetName() {
+	m.name = nil
+	delete(m.clearedFields, netlinkresource.FieldName)
 }
 
 // SetDesiredState sets the "desired_state" field.
@@ -12105,8 +12138,8 @@ func (m *NetlinkResourceMutation) Fields() []string {
 	if m.kind != nil {
 		fields = append(fields, netlinkresource.FieldKind)
 	}
-	if m.description != nil {
-		fields = append(fields, netlinkresource.FieldDescription)
+	if m.name != nil {
+		fields = append(fields, netlinkresource.FieldName)
 	}
 	if m.desired_state != nil {
 		fields = append(fields, netlinkresource.FieldDesiredState)
@@ -12129,8 +12162,8 @@ func (m *NetlinkResourceMutation) Field(name string) (ent.Value, bool) {
 		return m.ResourceID()
 	case netlinkresource.FieldKind:
 		return m.Kind()
-	case netlinkresource.FieldDescription:
-		return m.Description()
+	case netlinkresource.FieldName:
+		return m.Name()
 	case netlinkresource.FieldDesiredState:
 		return m.DesiredState()
 	case netlinkresource.FieldCurrentState:
@@ -12150,8 +12183,8 @@ func (m *NetlinkResourceMutation) OldField(ctx context.Context, name string) (en
 		return m.OldResourceID(ctx)
 	case netlinkresource.FieldKind:
 		return m.OldKind(ctx)
-	case netlinkresource.FieldDescription:
-		return m.OldDescription(ctx)
+	case netlinkresource.FieldName:
+		return m.OldName(ctx)
 	case netlinkresource.FieldDesiredState:
 		return m.OldDesiredState(ctx)
 	case netlinkresource.FieldCurrentState:
@@ -12181,12 +12214,12 @@ func (m *NetlinkResourceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetKind(v)
 		return nil
-	case netlinkresource.FieldDescription:
+	case netlinkresource.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetDescription(v)
+		m.SetName(v)
 		return nil
 	case netlinkresource.FieldDesiredState:
 		v, ok := value.(netlinkresource.DesiredState)
@@ -12242,8 +12275,8 @@ func (m *NetlinkResourceMutation) ClearedFields() []string {
 	if m.FieldCleared(netlinkresource.FieldKind) {
 		fields = append(fields, netlinkresource.FieldKind)
 	}
-	if m.FieldCleared(netlinkresource.FieldDescription) {
-		fields = append(fields, netlinkresource.FieldDescription)
+	if m.FieldCleared(netlinkresource.FieldName) {
+		fields = append(fields, netlinkresource.FieldName)
 	}
 	if m.FieldCleared(netlinkresource.FieldCurrentState) {
 		fields = append(fields, netlinkresource.FieldCurrentState)
@@ -12268,8 +12301,8 @@ func (m *NetlinkResourceMutation) ClearField(name string) error {
 	case netlinkresource.FieldKind:
 		m.ClearKind()
 		return nil
-	case netlinkresource.FieldDescription:
-		m.ClearDescription()
+	case netlinkresource.FieldName:
+		m.ClearName()
 		return nil
 	case netlinkresource.FieldCurrentState:
 		m.ClearCurrentState()
@@ -12291,8 +12324,8 @@ func (m *NetlinkResourceMutation) ResetField(name string) error {
 	case netlinkresource.FieldKind:
 		m.ResetKind()
 		return nil
-	case netlinkresource.FieldDescription:
-		m.ResetDescription()
+	case netlinkresource.FieldName:
+		m.ResetName()
 		return nil
 	case netlinkresource.FieldDesiredState:
 		m.ResetDesiredState()
@@ -12406,7 +12439,7 @@ type NetworkSegmentMutation struct {
 	typ           string
 	id            *int
 	resource_id   *string
-	description   *string
+	name          *string
 	vlan_id       *int32
 	addvlan_id    *int32
 	clearedFields map[string]struct{}
@@ -12551,53 +12584,53 @@ func (m *NetworkSegmentMutation) ResetResourceID() {
 	m.resource_id = nil
 }
 
-// SetDescription sets the "description" field.
-func (m *NetworkSegmentMutation) SetDescription(s string) {
-	m.description = &s
+// SetName sets the "name" field.
+func (m *NetworkSegmentMutation) SetName(s string) {
+	m.name = &s
 }
 
-// Description returns the value of the "description" field in the mutation.
-func (m *NetworkSegmentMutation) Description() (r string, exists bool) {
-	v := m.description
+// Name returns the value of the "name" field in the mutation.
+func (m *NetworkSegmentMutation) Name() (r string, exists bool) {
+	v := m.name
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldDescription returns the old "description" field's value of the NetworkSegment entity.
+// OldName returns the old "name" field's value of the NetworkSegment entity.
 // If the NetworkSegment object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkSegmentMutation) OldDescription(ctx context.Context) (v string, err error) {
+func (m *NetworkSegmentMutation) OldName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDescription requires an ID field in the mutation")
+		return v, errors.New("OldName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
 	}
-	return oldValue.Description, nil
+	return oldValue.Name, nil
 }
 
-// ClearDescription clears the value of the "description" field.
-func (m *NetworkSegmentMutation) ClearDescription() {
-	m.description = nil
-	m.clearedFields[networksegment.FieldDescription] = struct{}{}
+// ClearName clears the value of the "name" field.
+func (m *NetworkSegmentMutation) ClearName() {
+	m.name = nil
+	m.clearedFields[networksegment.FieldName] = struct{}{}
 }
 
-// DescriptionCleared returns if the "description" field was cleared in this mutation.
-func (m *NetworkSegmentMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[networksegment.FieldDescription]
+// NameCleared returns if the "name" field was cleared in this mutation.
+func (m *NetworkSegmentMutation) NameCleared() bool {
+	_, ok := m.clearedFields[networksegment.FieldName]
 	return ok
 }
 
-// ResetDescription resets all changes to the "description" field.
-func (m *NetworkSegmentMutation) ResetDescription() {
-	m.description = nil
-	delete(m.clearedFields, networksegment.FieldDescription)
+// ResetName resets all changes to the "name" field.
+func (m *NetworkSegmentMutation) ResetName() {
+	m.name = nil
+	delete(m.clearedFields, networksegment.FieldName)
 }
 
 // SetVlanID sets the "vlan_id" field.
@@ -12747,8 +12780,8 @@ func (m *NetworkSegmentMutation) Fields() []string {
 	if m.resource_id != nil {
 		fields = append(fields, networksegment.FieldResourceID)
 	}
-	if m.description != nil {
-		fields = append(fields, networksegment.FieldDescription)
+	if m.name != nil {
+		fields = append(fields, networksegment.FieldName)
 	}
 	if m.vlan_id != nil {
 		fields = append(fields, networksegment.FieldVlanID)
@@ -12763,8 +12796,8 @@ func (m *NetworkSegmentMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case networksegment.FieldResourceID:
 		return m.ResourceID()
-	case networksegment.FieldDescription:
-		return m.Description()
+	case networksegment.FieldName:
+		return m.Name()
 	case networksegment.FieldVlanID:
 		return m.VlanID()
 	}
@@ -12778,8 +12811,8 @@ func (m *NetworkSegmentMutation) OldField(ctx context.Context, name string) (ent
 	switch name {
 	case networksegment.FieldResourceID:
 		return m.OldResourceID(ctx)
-	case networksegment.FieldDescription:
-		return m.OldDescription(ctx)
+	case networksegment.FieldName:
+		return m.OldName(ctx)
 	case networksegment.FieldVlanID:
 		return m.OldVlanID(ctx)
 	}
@@ -12798,12 +12831,12 @@ func (m *NetworkSegmentMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetResourceID(v)
 		return nil
-	case networksegment.FieldDescription:
+	case networksegment.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetDescription(v)
+		m.SetName(v)
 		return nil
 	case networksegment.FieldVlanID:
 		v, ok := value.(int32)
@@ -12857,8 +12890,8 @@ func (m *NetworkSegmentMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *NetworkSegmentMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(networksegment.FieldDescription) {
-		fields = append(fields, networksegment.FieldDescription)
+	if m.FieldCleared(networksegment.FieldName) {
+		fields = append(fields, networksegment.FieldName)
 	}
 	if m.FieldCleared(networksegment.FieldVlanID) {
 		fields = append(fields, networksegment.FieldVlanID)
@@ -12877,8 +12910,8 @@ func (m *NetworkSegmentMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *NetworkSegmentMutation) ClearField(name string) error {
 	switch name {
-	case networksegment.FieldDescription:
-		m.ClearDescription()
+	case networksegment.FieldName:
+		m.ClearName()
 		return nil
 	case networksegment.FieldVlanID:
 		m.ClearVlanID()
@@ -12894,8 +12927,8 @@ func (m *NetworkSegmentMutation) ResetField(name string) error {
 	case networksegment.FieldResourceID:
 		m.ResetResourceID()
 		return nil
-	case networksegment.FieldDescription:
-		m.ResetDescription()
+	case networksegment.FieldName:
+		m.ResetName()
 		return nil
 	case networksegment.FieldVlanID:
 		m.ResetVlanID()
@@ -12985,7 +13018,7 @@ type OperatingSystemResourceMutation struct {
 	typ            string
 	id             *int
 	resource_id    *string
-	description    *string
+	name           *string
 	architecture   *string
 	kernel_command *string
 	update_sources *string
@@ -13132,53 +13165,53 @@ func (m *OperatingSystemResourceMutation) ResetResourceID() {
 	m.resource_id = nil
 }
 
-// SetDescription sets the "description" field.
-func (m *OperatingSystemResourceMutation) SetDescription(s string) {
-	m.description = &s
+// SetName sets the "name" field.
+func (m *OperatingSystemResourceMutation) SetName(s string) {
+	m.name = &s
 }
 
-// Description returns the value of the "description" field in the mutation.
-func (m *OperatingSystemResourceMutation) Description() (r string, exists bool) {
-	v := m.description
+// Name returns the value of the "name" field in the mutation.
+func (m *OperatingSystemResourceMutation) Name() (r string, exists bool) {
+	v := m.name
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldDescription returns the old "description" field's value of the OperatingSystemResource entity.
+// OldName returns the old "name" field's value of the OperatingSystemResource entity.
 // If the OperatingSystemResource object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *OperatingSystemResourceMutation) OldDescription(ctx context.Context) (v string, err error) {
+func (m *OperatingSystemResourceMutation) OldName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDescription requires an ID field in the mutation")
+		return v, errors.New("OldName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
 	}
-	return oldValue.Description, nil
+	return oldValue.Name, nil
 }
 
-// ClearDescription clears the value of the "description" field.
-func (m *OperatingSystemResourceMutation) ClearDescription() {
-	m.description = nil
-	m.clearedFields[operatingsystemresource.FieldDescription] = struct{}{}
+// ClearName clears the value of the "name" field.
+func (m *OperatingSystemResourceMutation) ClearName() {
+	m.name = nil
+	m.clearedFields[operatingsystemresource.FieldName] = struct{}{}
 }
 
-// DescriptionCleared returns if the "description" field was cleared in this mutation.
-func (m *OperatingSystemResourceMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[operatingsystemresource.FieldDescription]
+// NameCleared returns if the "name" field was cleared in this mutation.
+func (m *OperatingSystemResourceMutation) NameCleared() bool {
+	_, ok := m.clearedFields[operatingsystemresource.FieldName]
 	return ok
 }
 
-// ResetDescription resets all changes to the "description" field.
-func (m *OperatingSystemResourceMutation) ResetDescription() {
-	m.description = nil
-	delete(m.clearedFields, operatingsystemresource.FieldDescription)
+// ResetName resets all changes to the "name" field.
+func (m *OperatingSystemResourceMutation) ResetName() {
+	m.name = nil
+	delete(m.clearedFields, operatingsystemresource.FieldName)
 }
 
 // SetArchitecture sets the "architecture" field.
@@ -13474,8 +13507,8 @@ func (m *OperatingSystemResourceMutation) Fields() []string {
 	if m.resource_id != nil {
 		fields = append(fields, operatingsystemresource.FieldResourceID)
 	}
-	if m.description != nil {
-		fields = append(fields, operatingsystemresource.FieldDescription)
+	if m.name != nil {
+		fields = append(fields, operatingsystemresource.FieldName)
 	}
 	if m.architecture != nil {
 		fields = append(fields, operatingsystemresource.FieldArchitecture)
@@ -13505,8 +13538,8 @@ func (m *OperatingSystemResourceMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case operatingsystemresource.FieldResourceID:
 		return m.ResourceID()
-	case operatingsystemresource.FieldDescription:
-		return m.Description()
+	case operatingsystemresource.FieldName:
+		return m.Name()
 	case operatingsystemresource.FieldArchitecture:
 		return m.Architecture()
 	case operatingsystemresource.FieldKernelCommand:
@@ -13530,8 +13563,8 @@ func (m *OperatingSystemResourceMutation) OldField(ctx context.Context, name str
 	switch name {
 	case operatingsystemresource.FieldResourceID:
 		return m.OldResourceID(ctx)
-	case operatingsystemresource.FieldDescription:
-		return m.OldDescription(ctx)
+	case operatingsystemresource.FieldName:
+		return m.OldName(ctx)
 	case operatingsystemresource.FieldArchitecture:
 		return m.OldArchitecture(ctx)
 	case operatingsystemresource.FieldKernelCommand:
@@ -13560,12 +13593,12 @@ func (m *OperatingSystemResourceMutation) SetField(name string, value ent.Value)
 		}
 		m.SetResourceID(v)
 		return nil
-	case operatingsystemresource.FieldDescription:
+	case operatingsystemresource.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetDescription(v)
+		m.SetName(v)
 		return nil
 	case operatingsystemresource.FieldArchitecture:
 		v, ok := value.(string)
@@ -13639,8 +13672,8 @@ func (m *OperatingSystemResourceMutation) AddField(name string, value ent.Value)
 // mutation.
 func (m *OperatingSystemResourceMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(operatingsystemresource.FieldDescription) {
-		fields = append(fields, operatingsystemresource.FieldDescription)
+	if m.FieldCleared(operatingsystemresource.FieldName) {
+		fields = append(fields, operatingsystemresource.FieldName)
 	}
 	if m.FieldCleared(operatingsystemresource.FieldArchitecture) {
 		fields = append(fields, operatingsystemresource.FieldArchitecture)
@@ -13665,8 +13698,8 @@ func (m *OperatingSystemResourceMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *OperatingSystemResourceMutation) ClearField(name string) error {
 	switch name {
-	case operatingsystemresource.FieldDescription:
-		m.ClearDescription()
+	case operatingsystemresource.FieldName:
+		m.ClearName()
 		return nil
 	case operatingsystemresource.FieldArchitecture:
 		m.ClearArchitecture()
@@ -13688,8 +13721,8 @@ func (m *OperatingSystemResourceMutation) ResetField(name string) error {
 	case operatingsystemresource.FieldResourceID:
 		m.ResetResourceID()
 		return nil
-	case operatingsystemresource.FieldDescription:
-		m.ResetDescription()
+	case operatingsystemresource.FieldName:
+		m.ResetName()
 		return nil
 	case operatingsystemresource.FieldArchitecture:
 		m.ResetArchitecture()
@@ -13768,7 +13801,7 @@ type OuResourceMutation struct {
 	typ              string
 	id               *int
 	resource_id      *string
-	description      *string
+	name             *string
 	ou_kind          *string
 	metadata         *string
 	clearedFields    map[string]struct{}
@@ -13916,53 +13949,53 @@ func (m *OuResourceMutation) ResetResourceID() {
 	m.resource_id = nil
 }
 
-// SetDescription sets the "description" field.
-func (m *OuResourceMutation) SetDescription(s string) {
-	m.description = &s
+// SetName sets the "name" field.
+func (m *OuResourceMutation) SetName(s string) {
+	m.name = &s
 }
 
-// Description returns the value of the "description" field in the mutation.
-func (m *OuResourceMutation) Description() (r string, exists bool) {
-	v := m.description
+// Name returns the value of the "name" field in the mutation.
+func (m *OuResourceMutation) Name() (r string, exists bool) {
+	v := m.name
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldDescription returns the old "description" field's value of the OuResource entity.
+// OldName returns the old "name" field's value of the OuResource entity.
 // If the OuResource object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *OuResourceMutation) OldDescription(ctx context.Context) (v string, err error) {
+func (m *OuResourceMutation) OldName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDescription requires an ID field in the mutation")
+		return v, errors.New("OldName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
 	}
-	return oldValue.Description, nil
+	return oldValue.Name, nil
 }
 
-// ClearDescription clears the value of the "description" field.
-func (m *OuResourceMutation) ClearDescription() {
-	m.description = nil
-	m.clearedFields[ouresource.FieldDescription] = struct{}{}
+// ClearName clears the value of the "name" field.
+func (m *OuResourceMutation) ClearName() {
+	m.name = nil
+	m.clearedFields[ouresource.FieldName] = struct{}{}
 }
 
-// DescriptionCleared returns if the "description" field was cleared in this mutation.
-func (m *OuResourceMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[ouresource.FieldDescription]
+// NameCleared returns if the "name" field was cleared in this mutation.
+func (m *OuResourceMutation) NameCleared() bool {
+	_, ok := m.clearedFields[ouresource.FieldName]
 	return ok
 }
 
-// ResetDescription resets all changes to the "description" field.
-func (m *OuResourceMutation) ResetDescription() {
-	m.description = nil
-	delete(m.clearedFields, ouresource.FieldDescription)
+// ResetName resets all changes to the "name" field.
+func (m *OuResourceMutation) ResetName() {
+	m.name = nil
+	delete(m.clearedFields, ouresource.FieldName)
 }
 
 // SetOuKind sets the "ou_kind" field.
@@ -14194,8 +14227,8 @@ func (m *OuResourceMutation) Fields() []string {
 	if m.resource_id != nil {
 		fields = append(fields, ouresource.FieldResourceID)
 	}
-	if m.description != nil {
-		fields = append(fields, ouresource.FieldDescription)
+	if m.name != nil {
+		fields = append(fields, ouresource.FieldName)
 	}
 	if m.ou_kind != nil {
 		fields = append(fields, ouresource.FieldOuKind)
@@ -14213,8 +14246,8 @@ func (m *OuResourceMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case ouresource.FieldResourceID:
 		return m.ResourceID()
-	case ouresource.FieldDescription:
-		return m.Description()
+	case ouresource.FieldName:
+		return m.Name()
 	case ouresource.FieldOuKind:
 		return m.OuKind()
 	case ouresource.FieldMetadata:
@@ -14230,8 +14263,8 @@ func (m *OuResourceMutation) OldField(ctx context.Context, name string) (ent.Val
 	switch name {
 	case ouresource.FieldResourceID:
 		return m.OldResourceID(ctx)
-	case ouresource.FieldDescription:
-		return m.OldDescription(ctx)
+	case ouresource.FieldName:
+		return m.OldName(ctx)
 	case ouresource.FieldOuKind:
 		return m.OldOuKind(ctx)
 	case ouresource.FieldMetadata:
@@ -14252,12 +14285,12 @@ func (m *OuResourceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetResourceID(v)
 		return nil
-	case ouresource.FieldDescription:
+	case ouresource.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetDescription(v)
+		m.SetName(v)
 		return nil
 	case ouresource.FieldOuKind:
 		v, ok := value.(string)
@@ -14303,8 +14336,8 @@ func (m *OuResourceMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *OuResourceMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(ouresource.FieldDescription) {
-		fields = append(fields, ouresource.FieldDescription)
+	if m.FieldCleared(ouresource.FieldName) {
+		fields = append(fields, ouresource.FieldName)
 	}
 	if m.FieldCleared(ouresource.FieldOuKind) {
 		fields = append(fields, ouresource.FieldOuKind)
@@ -14326,8 +14359,8 @@ func (m *OuResourceMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *OuResourceMutation) ClearField(name string) error {
 	switch name {
-	case ouresource.FieldDescription:
-		m.ClearDescription()
+	case ouresource.FieldName:
+		m.ClearName()
 		return nil
 	case ouresource.FieldOuKind:
 		m.ClearOuKind()
@@ -14346,8 +14379,8 @@ func (m *OuResourceMutation) ResetField(name string) error {
 	case ouresource.FieldResourceID:
 		m.ResetResourceID()
 		return nil
-	case ouresource.FieldDescription:
-		m.ResetDescription()
+	case ouresource.FieldName:
+		m.ResetName()
 		return nil
 	case ouresource.FieldOuKind:
 		m.ResetOuKind()
@@ -14469,7 +14502,7 @@ type ProjectResourceMutation struct {
 	id            *int
 	resource_id   *string
 	kind          *string
-	description   *string
+	name          *string
 	clearedFields map[string]struct{}
 	done          bool
 	oldValue      func(context.Context) (*ProjectResource, error)
@@ -14659,53 +14692,53 @@ func (m *ProjectResourceMutation) ResetKind() {
 	delete(m.clearedFields, projectresource.FieldKind)
 }
 
-// SetDescription sets the "description" field.
-func (m *ProjectResourceMutation) SetDescription(s string) {
-	m.description = &s
+// SetName sets the "name" field.
+func (m *ProjectResourceMutation) SetName(s string) {
+	m.name = &s
 }
 
-// Description returns the value of the "description" field in the mutation.
-func (m *ProjectResourceMutation) Description() (r string, exists bool) {
-	v := m.description
+// Name returns the value of the "name" field in the mutation.
+func (m *ProjectResourceMutation) Name() (r string, exists bool) {
+	v := m.name
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldDescription returns the old "description" field's value of the ProjectResource entity.
+// OldName returns the old "name" field's value of the ProjectResource entity.
 // If the ProjectResource object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProjectResourceMutation) OldDescription(ctx context.Context) (v string, err error) {
+func (m *ProjectResourceMutation) OldName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDescription requires an ID field in the mutation")
+		return v, errors.New("OldName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
 	}
-	return oldValue.Description, nil
+	return oldValue.Name, nil
 }
 
-// ClearDescription clears the value of the "description" field.
-func (m *ProjectResourceMutation) ClearDescription() {
-	m.description = nil
-	m.clearedFields[projectresource.FieldDescription] = struct{}{}
+// ClearName clears the value of the "name" field.
+func (m *ProjectResourceMutation) ClearName() {
+	m.name = nil
+	m.clearedFields[projectresource.FieldName] = struct{}{}
 }
 
-// DescriptionCleared returns if the "description" field was cleared in this mutation.
-func (m *ProjectResourceMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[projectresource.FieldDescription]
+// NameCleared returns if the "name" field was cleared in this mutation.
+func (m *ProjectResourceMutation) NameCleared() bool {
+	_, ok := m.clearedFields[projectresource.FieldName]
 	return ok
 }
 
-// ResetDescription resets all changes to the "description" field.
-func (m *ProjectResourceMutation) ResetDescription() {
-	m.description = nil
-	delete(m.clearedFields, projectresource.FieldDescription)
+// ResetName resets all changes to the "name" field.
+func (m *ProjectResourceMutation) ResetName() {
+	m.name = nil
+	delete(m.clearedFields, projectresource.FieldName)
 }
 
 // Where appends a list predicates to the ProjectResourceMutation builder.
@@ -14749,8 +14782,8 @@ func (m *ProjectResourceMutation) Fields() []string {
 	if m.kind != nil {
 		fields = append(fields, projectresource.FieldKind)
 	}
-	if m.description != nil {
-		fields = append(fields, projectresource.FieldDescription)
+	if m.name != nil {
+		fields = append(fields, projectresource.FieldName)
 	}
 	return fields
 }
@@ -14764,8 +14797,8 @@ func (m *ProjectResourceMutation) Field(name string) (ent.Value, bool) {
 		return m.ResourceID()
 	case projectresource.FieldKind:
 		return m.Kind()
-	case projectresource.FieldDescription:
-		return m.Description()
+	case projectresource.FieldName:
+		return m.Name()
 	}
 	return nil, false
 }
@@ -14779,8 +14812,8 @@ func (m *ProjectResourceMutation) OldField(ctx context.Context, name string) (en
 		return m.OldResourceID(ctx)
 	case projectresource.FieldKind:
 		return m.OldKind(ctx)
-	case projectresource.FieldDescription:
-		return m.OldDescription(ctx)
+	case projectresource.FieldName:
+		return m.OldName(ctx)
 	}
 	return nil, fmt.Errorf("unknown ProjectResource field %s", name)
 }
@@ -14804,12 +14837,12 @@ func (m *ProjectResourceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetKind(v)
 		return nil
-	case projectresource.FieldDescription:
+	case projectresource.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetDescription(v)
+		m.SetName(v)
 		return nil
 	}
 	return fmt.Errorf("unknown ProjectResource field %s", name)
@@ -14844,8 +14877,8 @@ func (m *ProjectResourceMutation) ClearedFields() []string {
 	if m.FieldCleared(projectresource.FieldKind) {
 		fields = append(fields, projectresource.FieldKind)
 	}
-	if m.FieldCleared(projectresource.FieldDescription) {
-		fields = append(fields, projectresource.FieldDescription)
+	if m.FieldCleared(projectresource.FieldName) {
+		fields = append(fields, projectresource.FieldName)
 	}
 	return fields
 }
@@ -14864,8 +14897,8 @@ func (m *ProjectResourceMutation) ClearField(name string) error {
 	case projectresource.FieldKind:
 		m.ClearKind()
 		return nil
-	case projectresource.FieldDescription:
-		m.ClearDescription()
+	case projectresource.FieldName:
+		m.ClearName()
 		return nil
 	}
 	return fmt.Errorf("unknown ProjectResource nullable field %s", name)
@@ -14881,8 +14914,8 @@ func (m *ProjectResourceMutation) ResetField(name string) error {
 	case projectresource.FieldKind:
 		m.ResetKind()
 		return nil
-	case projectresource.FieldDescription:
-		m.ResetDescription()
+	case projectresource.FieldName:
+		m.ResetName()
 		return nil
 	}
 	return fmt.Errorf("unknown ProjectResource field %s", name)
@@ -14939,22 +14972,19 @@ func (m *ProjectResourceMutation) ResetEdge(name string) error {
 // ProviderResourceMutation represents an operation that mutates the ProviderResource nodes in the graph.
 type ProviderResourceMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *int
-	resource_id   *string
-	kind          *providerresource.Kind
-	description   *string
-	desired_state *providerresource.DesiredState
-	current_state *providerresource.CurrentState
-	endpoint      *string
-	token         *string
-	clearedFields map[string]struct{}
-	site          *int
-	clearedsite   bool
-	done          bool
-	oldValue      func(context.Context) (*ProviderResource, error)
-	predicates    []predicate.ProviderResource
+	op              Op
+	typ             string
+	id              *int
+	resource_id     *string
+	provider_kind   *providerresource.ProviderKind
+	provider_vendor *providerresource.ProviderVendor
+	name            *string
+	api_endpoint    *string
+	api_credentials *string
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*ProviderResource, error)
+	predicates      []predicate.ProviderResource
 }
 
 var _ ent.Mutation = (*ProviderResourceMutation)(nil)
@@ -15091,324 +15121,210 @@ func (m *ProviderResourceMutation) ResetResourceID() {
 	m.resource_id = nil
 }
 
-// SetKind sets the "kind" field.
-func (m *ProviderResourceMutation) SetKind(pr providerresource.Kind) {
-	m.kind = &pr
+// SetProviderKind sets the "provider_kind" field.
+func (m *ProviderResourceMutation) SetProviderKind(pk providerresource.ProviderKind) {
+	m.provider_kind = &pk
 }
 
-// Kind returns the value of the "kind" field in the mutation.
-func (m *ProviderResourceMutation) Kind() (r providerresource.Kind, exists bool) {
-	v := m.kind
+// ProviderKind returns the value of the "provider_kind" field in the mutation.
+func (m *ProviderResourceMutation) ProviderKind() (r providerresource.ProviderKind, exists bool) {
+	v := m.provider_kind
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldKind returns the old "kind" field's value of the ProviderResource entity.
+// OldProviderKind returns the old "provider_kind" field's value of the ProviderResource entity.
 // If the ProviderResource object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProviderResourceMutation) OldKind(ctx context.Context) (v providerresource.Kind, err error) {
+func (m *ProviderResourceMutation) OldProviderKind(ctx context.Context) (v providerresource.ProviderKind, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldKind is only allowed on UpdateOne operations")
+		return v, errors.New("OldProviderKind is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldKind requires an ID field in the mutation")
+		return v, errors.New("OldProviderKind requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldKind: %w", err)
+		return v, fmt.Errorf("querying old value for OldProviderKind: %w", err)
 	}
-	return oldValue.Kind, nil
+	return oldValue.ProviderKind, nil
 }
 
-// ClearKind clears the value of the "kind" field.
-func (m *ProviderResourceMutation) ClearKind() {
-	m.kind = nil
-	m.clearedFields[providerresource.FieldKind] = struct{}{}
+// ResetProviderKind resets all changes to the "provider_kind" field.
+func (m *ProviderResourceMutation) ResetProviderKind() {
+	m.provider_kind = nil
 }
 
-// KindCleared returns if the "kind" field was cleared in this mutation.
-func (m *ProviderResourceMutation) KindCleared() bool {
-	_, ok := m.clearedFields[providerresource.FieldKind]
+// SetProviderVendor sets the "provider_vendor" field.
+func (m *ProviderResourceMutation) SetProviderVendor(pv providerresource.ProviderVendor) {
+	m.provider_vendor = &pv
+}
+
+// ProviderVendor returns the value of the "provider_vendor" field in the mutation.
+func (m *ProviderResourceMutation) ProviderVendor() (r providerresource.ProviderVendor, exists bool) {
+	v := m.provider_vendor
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProviderVendor returns the old "provider_vendor" field's value of the ProviderResource entity.
+// If the ProviderResource object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderResourceMutation) OldProviderVendor(ctx context.Context) (v providerresource.ProviderVendor, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProviderVendor is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProviderVendor requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProviderVendor: %w", err)
+	}
+	return oldValue.ProviderVendor, nil
+}
+
+// ClearProviderVendor clears the value of the "provider_vendor" field.
+func (m *ProviderResourceMutation) ClearProviderVendor() {
+	m.provider_vendor = nil
+	m.clearedFields[providerresource.FieldProviderVendor] = struct{}{}
+}
+
+// ProviderVendorCleared returns if the "provider_vendor" field was cleared in this mutation.
+func (m *ProviderResourceMutation) ProviderVendorCleared() bool {
+	_, ok := m.clearedFields[providerresource.FieldProviderVendor]
 	return ok
 }
 
-// ResetKind resets all changes to the "kind" field.
-func (m *ProviderResourceMutation) ResetKind() {
-	m.kind = nil
-	delete(m.clearedFields, providerresource.FieldKind)
+// ResetProviderVendor resets all changes to the "provider_vendor" field.
+func (m *ProviderResourceMutation) ResetProviderVendor() {
+	m.provider_vendor = nil
+	delete(m.clearedFields, providerresource.FieldProviderVendor)
 }
 
-// SetDescription sets the "description" field.
-func (m *ProviderResourceMutation) SetDescription(s string) {
-	m.description = &s
+// SetName sets the "name" field.
+func (m *ProviderResourceMutation) SetName(s string) {
+	m.name = &s
 }
 
-// Description returns the value of the "description" field in the mutation.
-func (m *ProviderResourceMutation) Description() (r string, exists bool) {
-	v := m.description
+// Name returns the value of the "name" field in the mutation.
+func (m *ProviderResourceMutation) Name() (r string, exists bool) {
+	v := m.name
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldDescription returns the old "description" field's value of the ProviderResource entity.
+// OldName returns the old "name" field's value of the ProviderResource entity.
 // If the ProviderResource object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProviderResourceMutation) OldDescription(ctx context.Context) (v string, err error) {
+func (m *ProviderResourceMutation) OldName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDescription requires an ID field in the mutation")
+		return v, errors.New("OldName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
 	}
-	return oldValue.Description, nil
+	return oldValue.Name, nil
 }
 
-// ClearDescription clears the value of the "description" field.
-func (m *ProviderResourceMutation) ClearDescription() {
-	m.description = nil
-	m.clearedFields[providerresource.FieldDescription] = struct{}{}
+// ResetName resets all changes to the "name" field.
+func (m *ProviderResourceMutation) ResetName() {
+	m.name = nil
 }
 
-// DescriptionCleared returns if the "description" field was cleared in this mutation.
-func (m *ProviderResourceMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[providerresource.FieldDescription]
+// SetAPIEndpoint sets the "api_endpoint" field.
+func (m *ProviderResourceMutation) SetAPIEndpoint(s string) {
+	m.api_endpoint = &s
+}
+
+// APIEndpoint returns the value of the "api_endpoint" field in the mutation.
+func (m *ProviderResourceMutation) APIEndpoint() (r string, exists bool) {
+	v := m.api_endpoint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAPIEndpoint returns the old "api_endpoint" field's value of the ProviderResource entity.
+// If the ProviderResource object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderResourceMutation) OldAPIEndpoint(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAPIEndpoint is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAPIEndpoint requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAPIEndpoint: %w", err)
+	}
+	return oldValue.APIEndpoint, nil
+}
+
+// ResetAPIEndpoint resets all changes to the "api_endpoint" field.
+func (m *ProviderResourceMutation) ResetAPIEndpoint() {
+	m.api_endpoint = nil
+}
+
+// SetAPICredentials sets the "api_credentials" field.
+func (m *ProviderResourceMutation) SetAPICredentials(s string) {
+	m.api_credentials = &s
+}
+
+// APICredentials returns the value of the "api_credentials" field in the mutation.
+func (m *ProviderResourceMutation) APICredentials() (r string, exists bool) {
+	v := m.api_credentials
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAPICredentials returns the old "api_credentials" field's value of the ProviderResource entity.
+// If the ProviderResource object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderResourceMutation) OldAPICredentials(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAPICredentials is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAPICredentials requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAPICredentials: %w", err)
+	}
+	return oldValue.APICredentials, nil
+}
+
+// ClearAPICredentials clears the value of the "api_credentials" field.
+func (m *ProviderResourceMutation) ClearAPICredentials() {
+	m.api_credentials = nil
+	m.clearedFields[providerresource.FieldAPICredentials] = struct{}{}
+}
+
+// APICredentialsCleared returns if the "api_credentials" field was cleared in this mutation.
+func (m *ProviderResourceMutation) APICredentialsCleared() bool {
+	_, ok := m.clearedFields[providerresource.FieldAPICredentials]
 	return ok
 }
 
-// ResetDescription resets all changes to the "description" field.
-func (m *ProviderResourceMutation) ResetDescription() {
-	m.description = nil
-	delete(m.clearedFields, providerresource.FieldDescription)
-}
-
-// SetDesiredState sets the "desired_state" field.
-func (m *ProviderResourceMutation) SetDesiredState(ps providerresource.DesiredState) {
-	m.desired_state = &ps
-}
-
-// DesiredState returns the value of the "desired_state" field in the mutation.
-func (m *ProviderResourceMutation) DesiredState() (r providerresource.DesiredState, exists bool) {
-	v := m.desired_state
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldDesiredState returns the old "desired_state" field's value of the ProviderResource entity.
-// If the ProviderResource object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProviderResourceMutation) OldDesiredState(ctx context.Context) (v providerresource.DesiredState, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDesiredState is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDesiredState requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDesiredState: %w", err)
-	}
-	return oldValue.DesiredState, nil
-}
-
-// ResetDesiredState resets all changes to the "desired_state" field.
-func (m *ProviderResourceMutation) ResetDesiredState() {
-	m.desired_state = nil
-}
-
-// SetCurrentState sets the "current_state" field.
-func (m *ProviderResourceMutation) SetCurrentState(ps providerresource.CurrentState) {
-	m.current_state = &ps
-}
-
-// CurrentState returns the value of the "current_state" field in the mutation.
-func (m *ProviderResourceMutation) CurrentState() (r providerresource.CurrentState, exists bool) {
-	v := m.current_state
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCurrentState returns the old "current_state" field's value of the ProviderResource entity.
-// If the ProviderResource object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProviderResourceMutation) OldCurrentState(ctx context.Context) (v providerresource.CurrentState, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCurrentState is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCurrentState requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCurrentState: %w", err)
-	}
-	return oldValue.CurrentState, nil
-}
-
-// ClearCurrentState clears the value of the "current_state" field.
-func (m *ProviderResourceMutation) ClearCurrentState() {
-	m.current_state = nil
-	m.clearedFields[providerresource.FieldCurrentState] = struct{}{}
-}
-
-// CurrentStateCleared returns if the "current_state" field was cleared in this mutation.
-func (m *ProviderResourceMutation) CurrentStateCleared() bool {
-	_, ok := m.clearedFields[providerresource.FieldCurrentState]
-	return ok
-}
-
-// ResetCurrentState resets all changes to the "current_state" field.
-func (m *ProviderResourceMutation) ResetCurrentState() {
-	m.current_state = nil
-	delete(m.clearedFields, providerresource.FieldCurrentState)
-}
-
-// SetEndpoint sets the "endpoint" field.
-func (m *ProviderResourceMutation) SetEndpoint(s string) {
-	m.endpoint = &s
-}
-
-// Endpoint returns the value of the "endpoint" field in the mutation.
-func (m *ProviderResourceMutation) Endpoint() (r string, exists bool) {
-	v := m.endpoint
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldEndpoint returns the old "endpoint" field's value of the ProviderResource entity.
-// If the ProviderResource object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProviderResourceMutation) OldEndpoint(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldEndpoint is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldEndpoint requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldEndpoint: %w", err)
-	}
-	return oldValue.Endpoint, nil
-}
-
-// ClearEndpoint clears the value of the "endpoint" field.
-func (m *ProviderResourceMutation) ClearEndpoint() {
-	m.endpoint = nil
-	m.clearedFields[providerresource.FieldEndpoint] = struct{}{}
-}
-
-// EndpointCleared returns if the "endpoint" field was cleared in this mutation.
-func (m *ProviderResourceMutation) EndpointCleared() bool {
-	_, ok := m.clearedFields[providerresource.FieldEndpoint]
-	return ok
-}
-
-// ResetEndpoint resets all changes to the "endpoint" field.
-func (m *ProviderResourceMutation) ResetEndpoint() {
-	m.endpoint = nil
-	delete(m.clearedFields, providerresource.FieldEndpoint)
-}
-
-// SetToken sets the "token" field.
-func (m *ProviderResourceMutation) SetToken(s string) {
-	m.token = &s
-}
-
-// Token returns the value of the "token" field in the mutation.
-func (m *ProviderResourceMutation) Token() (r string, exists bool) {
-	v := m.token
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldToken returns the old "token" field's value of the ProviderResource entity.
-// If the ProviderResource object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProviderResourceMutation) OldToken(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldToken is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldToken requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldToken: %w", err)
-	}
-	return oldValue.Token, nil
-}
-
-// ClearToken clears the value of the "token" field.
-func (m *ProviderResourceMutation) ClearToken() {
-	m.token = nil
-	m.clearedFields[providerresource.FieldToken] = struct{}{}
-}
-
-// TokenCleared returns if the "token" field was cleared in this mutation.
-func (m *ProviderResourceMutation) TokenCleared() bool {
-	_, ok := m.clearedFields[providerresource.FieldToken]
-	return ok
-}
-
-// ResetToken resets all changes to the "token" field.
-func (m *ProviderResourceMutation) ResetToken() {
-	m.token = nil
-	delete(m.clearedFields, providerresource.FieldToken)
-}
-
-// SetSiteID sets the "site" edge to the SiteResource entity by id.
-func (m *ProviderResourceMutation) SetSiteID(id int) {
-	m.site = &id
-}
-
-// ClearSite clears the "site" edge to the SiteResource entity.
-func (m *ProviderResourceMutation) ClearSite() {
-	m.clearedsite = true
-}
-
-// SiteCleared reports if the "site" edge to the SiteResource entity was cleared.
-func (m *ProviderResourceMutation) SiteCleared() bool {
-	return m.clearedsite
-}
-
-// SiteID returns the "site" edge ID in the mutation.
-func (m *ProviderResourceMutation) SiteID() (id int, exists bool) {
-	if m.site != nil {
-		return *m.site, true
-	}
-	return
-}
-
-// SiteIDs returns the "site" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// SiteID instead. It exists only for internal usage by the builders.
-func (m *ProviderResourceMutation) SiteIDs() (ids []int) {
-	if id := m.site; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetSite resets all changes to the "site" edge.
-func (m *ProviderResourceMutation) ResetSite() {
-	m.site = nil
-	m.clearedsite = false
+// ResetAPICredentials resets all changes to the "api_credentials" field.
+func (m *ProviderResourceMutation) ResetAPICredentials() {
+	m.api_credentials = nil
+	delete(m.clearedFields, providerresource.FieldAPICredentials)
 }
 
 // Where appends a list predicates to the ProviderResourceMutation builder.
@@ -15445,27 +15361,24 @@ func (m *ProviderResourceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProviderResourceMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 6)
 	if m.resource_id != nil {
 		fields = append(fields, providerresource.FieldResourceID)
 	}
-	if m.kind != nil {
-		fields = append(fields, providerresource.FieldKind)
+	if m.provider_kind != nil {
+		fields = append(fields, providerresource.FieldProviderKind)
 	}
-	if m.description != nil {
-		fields = append(fields, providerresource.FieldDescription)
+	if m.provider_vendor != nil {
+		fields = append(fields, providerresource.FieldProviderVendor)
 	}
-	if m.desired_state != nil {
-		fields = append(fields, providerresource.FieldDesiredState)
+	if m.name != nil {
+		fields = append(fields, providerresource.FieldName)
 	}
-	if m.current_state != nil {
-		fields = append(fields, providerresource.FieldCurrentState)
+	if m.api_endpoint != nil {
+		fields = append(fields, providerresource.FieldAPIEndpoint)
 	}
-	if m.endpoint != nil {
-		fields = append(fields, providerresource.FieldEndpoint)
-	}
-	if m.token != nil {
-		fields = append(fields, providerresource.FieldToken)
+	if m.api_credentials != nil {
+		fields = append(fields, providerresource.FieldAPICredentials)
 	}
 	return fields
 }
@@ -15477,18 +15390,16 @@ func (m *ProviderResourceMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case providerresource.FieldResourceID:
 		return m.ResourceID()
-	case providerresource.FieldKind:
-		return m.Kind()
-	case providerresource.FieldDescription:
-		return m.Description()
-	case providerresource.FieldDesiredState:
-		return m.DesiredState()
-	case providerresource.FieldCurrentState:
-		return m.CurrentState()
-	case providerresource.FieldEndpoint:
-		return m.Endpoint()
-	case providerresource.FieldToken:
-		return m.Token()
+	case providerresource.FieldProviderKind:
+		return m.ProviderKind()
+	case providerresource.FieldProviderVendor:
+		return m.ProviderVendor()
+	case providerresource.FieldName:
+		return m.Name()
+	case providerresource.FieldAPIEndpoint:
+		return m.APIEndpoint()
+	case providerresource.FieldAPICredentials:
+		return m.APICredentials()
 	}
 	return nil, false
 }
@@ -15500,18 +15411,16 @@ func (m *ProviderResourceMutation) OldField(ctx context.Context, name string) (e
 	switch name {
 	case providerresource.FieldResourceID:
 		return m.OldResourceID(ctx)
-	case providerresource.FieldKind:
-		return m.OldKind(ctx)
-	case providerresource.FieldDescription:
-		return m.OldDescription(ctx)
-	case providerresource.FieldDesiredState:
-		return m.OldDesiredState(ctx)
-	case providerresource.FieldCurrentState:
-		return m.OldCurrentState(ctx)
-	case providerresource.FieldEndpoint:
-		return m.OldEndpoint(ctx)
-	case providerresource.FieldToken:
-		return m.OldToken(ctx)
+	case providerresource.FieldProviderKind:
+		return m.OldProviderKind(ctx)
+	case providerresource.FieldProviderVendor:
+		return m.OldProviderVendor(ctx)
+	case providerresource.FieldName:
+		return m.OldName(ctx)
+	case providerresource.FieldAPIEndpoint:
+		return m.OldAPIEndpoint(ctx)
+	case providerresource.FieldAPICredentials:
+		return m.OldAPICredentials(ctx)
 	}
 	return nil, fmt.Errorf("unknown ProviderResource field %s", name)
 }
@@ -15528,47 +15437,40 @@ func (m *ProviderResourceMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetResourceID(v)
 		return nil
-	case providerresource.FieldKind:
-		v, ok := value.(providerresource.Kind)
+	case providerresource.FieldProviderKind:
+		v, ok := value.(providerresource.ProviderKind)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetKind(v)
+		m.SetProviderKind(v)
 		return nil
-	case providerresource.FieldDescription:
+	case providerresource.FieldProviderVendor:
+		v, ok := value.(providerresource.ProviderVendor)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProviderVendor(v)
+		return nil
+	case providerresource.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetDescription(v)
+		m.SetName(v)
 		return nil
-	case providerresource.FieldDesiredState:
-		v, ok := value.(providerresource.DesiredState)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetDesiredState(v)
-		return nil
-	case providerresource.FieldCurrentState:
-		v, ok := value.(providerresource.CurrentState)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCurrentState(v)
-		return nil
-	case providerresource.FieldEndpoint:
+	case providerresource.FieldAPIEndpoint:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetEndpoint(v)
+		m.SetAPIEndpoint(v)
 		return nil
-	case providerresource.FieldToken:
+	case providerresource.FieldAPICredentials:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetToken(v)
+		m.SetAPICredentials(v)
 		return nil
 	}
 	return fmt.Errorf("unknown ProviderResource field %s", name)
@@ -15600,20 +15502,11 @@ func (m *ProviderResourceMutation) AddField(name string, value ent.Value) error 
 // mutation.
 func (m *ProviderResourceMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(providerresource.FieldKind) {
-		fields = append(fields, providerresource.FieldKind)
+	if m.FieldCleared(providerresource.FieldProviderVendor) {
+		fields = append(fields, providerresource.FieldProviderVendor)
 	}
-	if m.FieldCleared(providerresource.FieldDescription) {
-		fields = append(fields, providerresource.FieldDescription)
-	}
-	if m.FieldCleared(providerresource.FieldCurrentState) {
-		fields = append(fields, providerresource.FieldCurrentState)
-	}
-	if m.FieldCleared(providerresource.FieldEndpoint) {
-		fields = append(fields, providerresource.FieldEndpoint)
-	}
-	if m.FieldCleared(providerresource.FieldToken) {
-		fields = append(fields, providerresource.FieldToken)
+	if m.FieldCleared(providerresource.FieldAPICredentials) {
+		fields = append(fields, providerresource.FieldAPICredentials)
 	}
 	return fields
 }
@@ -15629,20 +15522,11 @@ func (m *ProviderResourceMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *ProviderResourceMutation) ClearField(name string) error {
 	switch name {
-	case providerresource.FieldKind:
-		m.ClearKind()
+	case providerresource.FieldProviderVendor:
+		m.ClearProviderVendor()
 		return nil
-	case providerresource.FieldDescription:
-		m.ClearDescription()
-		return nil
-	case providerresource.FieldCurrentState:
-		m.ClearCurrentState()
-		return nil
-	case providerresource.FieldEndpoint:
-		m.ClearEndpoint()
-		return nil
-	case providerresource.FieldToken:
-		m.ClearToken()
+	case providerresource.FieldAPICredentials:
+		m.ClearAPICredentials()
 		return nil
 	}
 	return fmt.Errorf("unknown ProviderResource nullable field %s", name)
@@ -15655,23 +15539,20 @@ func (m *ProviderResourceMutation) ResetField(name string) error {
 	case providerresource.FieldResourceID:
 		m.ResetResourceID()
 		return nil
-	case providerresource.FieldKind:
-		m.ResetKind()
+	case providerresource.FieldProviderKind:
+		m.ResetProviderKind()
 		return nil
-	case providerresource.FieldDescription:
-		m.ResetDescription()
+	case providerresource.FieldProviderVendor:
+		m.ResetProviderVendor()
 		return nil
-	case providerresource.FieldDesiredState:
-		m.ResetDesiredState()
+	case providerresource.FieldName:
+		m.ResetName()
 		return nil
-	case providerresource.FieldCurrentState:
-		m.ResetCurrentState()
+	case providerresource.FieldAPIEndpoint:
+		m.ResetAPIEndpoint()
 		return nil
-	case providerresource.FieldEndpoint:
-		m.ResetEndpoint()
-		return nil
-	case providerresource.FieldToken:
-		m.ResetToken()
+	case providerresource.FieldAPICredentials:
+		m.ResetAPICredentials()
 		return nil
 	}
 	return fmt.Errorf("unknown ProviderResource field %s", name)
@@ -15679,28 +15560,19 @@ func (m *ProviderResourceMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ProviderResourceMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
-	if m.site != nil {
-		edges = append(edges, providerresource.EdgeSite)
-	}
+	edges := make([]string, 0, 0)
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *ProviderResourceMutation) AddedIDs(name string) []ent.Value {
-	switch name {
-	case providerresource.EdgeSite:
-		if id := m.site; id != nil {
-			return []ent.Value{*id}
-		}
-	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ProviderResourceMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 0)
 	return edges
 }
 
@@ -15712,42 +15584,25 @@ func (m *ProviderResourceMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ProviderResourceMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
-	if m.clearedsite {
-		edges = append(edges, providerresource.EdgeSite)
-	}
+	edges := make([]string, 0, 0)
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *ProviderResourceMutation) EdgeCleared(name string) bool {
-	switch name {
-	case providerresource.EdgeSite:
-		return m.clearedsite
-	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *ProviderResourceMutation) ClearEdge(name string) error {
-	switch name {
-	case providerresource.EdgeSite:
-		m.ClearSite()
-		return nil
-	}
 	return fmt.Errorf("unknown ProviderResource unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *ProviderResourceMutation) ResetEdge(name string) error {
-	switch name {
-	case providerresource.EdgeSite:
-		m.ResetSite()
-		return nil
-	}
 	return fmt.Errorf("unknown ProviderResource edge %s", name)
 }
 
@@ -15758,7 +15613,7 @@ type RegionResourceMutation struct {
 	typ                  string
 	id                   *int
 	resource_id          *string
-	description          *string
+	name                 *string
 	region_kind          *string
 	metadata             *string
 	clearedFields        map[string]struct{}
@@ -15906,53 +15761,53 @@ func (m *RegionResourceMutation) ResetResourceID() {
 	m.resource_id = nil
 }
 
-// SetDescription sets the "description" field.
-func (m *RegionResourceMutation) SetDescription(s string) {
-	m.description = &s
+// SetName sets the "name" field.
+func (m *RegionResourceMutation) SetName(s string) {
+	m.name = &s
 }
 
-// Description returns the value of the "description" field in the mutation.
-func (m *RegionResourceMutation) Description() (r string, exists bool) {
-	v := m.description
+// Name returns the value of the "name" field in the mutation.
+func (m *RegionResourceMutation) Name() (r string, exists bool) {
+	v := m.name
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldDescription returns the old "description" field's value of the RegionResource entity.
+// OldName returns the old "name" field's value of the RegionResource entity.
 // If the RegionResource object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *RegionResourceMutation) OldDescription(ctx context.Context) (v string, err error) {
+func (m *RegionResourceMutation) OldName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDescription requires an ID field in the mutation")
+		return v, errors.New("OldName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
 	}
-	return oldValue.Description, nil
+	return oldValue.Name, nil
 }
 
-// ClearDescription clears the value of the "description" field.
-func (m *RegionResourceMutation) ClearDescription() {
-	m.description = nil
-	m.clearedFields[regionresource.FieldDescription] = struct{}{}
+// ClearName clears the value of the "name" field.
+func (m *RegionResourceMutation) ClearName() {
+	m.name = nil
+	m.clearedFields[regionresource.FieldName] = struct{}{}
 }
 
-// DescriptionCleared returns if the "description" field was cleared in this mutation.
-func (m *RegionResourceMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[regionresource.FieldDescription]
+// NameCleared returns if the "name" field was cleared in this mutation.
+func (m *RegionResourceMutation) NameCleared() bool {
+	_, ok := m.clearedFields[regionresource.FieldName]
 	return ok
 }
 
-// ResetDescription resets all changes to the "description" field.
-func (m *RegionResourceMutation) ResetDescription() {
-	m.description = nil
-	delete(m.clearedFields, regionresource.FieldDescription)
+// ResetName resets all changes to the "name" field.
+func (m *RegionResourceMutation) ResetName() {
+	m.name = nil
+	delete(m.clearedFields, regionresource.FieldName)
 }
 
 // SetRegionKind sets the "region_kind" field.
@@ -16184,8 +16039,8 @@ func (m *RegionResourceMutation) Fields() []string {
 	if m.resource_id != nil {
 		fields = append(fields, regionresource.FieldResourceID)
 	}
-	if m.description != nil {
-		fields = append(fields, regionresource.FieldDescription)
+	if m.name != nil {
+		fields = append(fields, regionresource.FieldName)
 	}
 	if m.region_kind != nil {
 		fields = append(fields, regionresource.FieldRegionKind)
@@ -16203,8 +16058,8 @@ func (m *RegionResourceMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case regionresource.FieldResourceID:
 		return m.ResourceID()
-	case regionresource.FieldDescription:
-		return m.Description()
+	case regionresource.FieldName:
+		return m.Name()
 	case regionresource.FieldRegionKind:
 		return m.RegionKind()
 	case regionresource.FieldMetadata:
@@ -16220,8 +16075,8 @@ func (m *RegionResourceMutation) OldField(ctx context.Context, name string) (ent
 	switch name {
 	case regionresource.FieldResourceID:
 		return m.OldResourceID(ctx)
-	case regionresource.FieldDescription:
-		return m.OldDescription(ctx)
+	case regionresource.FieldName:
+		return m.OldName(ctx)
 	case regionresource.FieldRegionKind:
 		return m.OldRegionKind(ctx)
 	case regionresource.FieldMetadata:
@@ -16242,12 +16097,12 @@ func (m *RegionResourceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetResourceID(v)
 		return nil
-	case regionresource.FieldDescription:
+	case regionresource.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetDescription(v)
+		m.SetName(v)
 		return nil
 	case regionresource.FieldRegionKind:
 		v, ok := value.(string)
@@ -16293,8 +16148,8 @@ func (m *RegionResourceMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *RegionResourceMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(regionresource.FieldDescription) {
-		fields = append(fields, regionresource.FieldDescription)
+	if m.FieldCleared(regionresource.FieldName) {
+		fields = append(fields, regionresource.FieldName)
 	}
 	if m.FieldCleared(regionresource.FieldRegionKind) {
 		fields = append(fields, regionresource.FieldRegionKind)
@@ -16316,8 +16171,8 @@ func (m *RegionResourceMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *RegionResourceMutation) ClearField(name string) error {
 	switch name {
-	case regionresource.FieldDescription:
-		m.ClearDescription()
+	case regionresource.FieldName:
+		m.ClearName()
 		return nil
 	case regionresource.FieldRegionKind:
 		m.ClearRegionKind()
@@ -16336,8 +16191,8 @@ func (m *RegionResourceMutation) ResetField(name string) error {
 	case regionresource.FieldResourceID:
 		m.ResetResourceID()
 		return nil
-	case regionresource.FieldDescription:
-		m.ResetDescription()
+	case regionresource.FieldName:
+		m.ResetName()
 		return nil
 	case regionresource.FieldRegionKind:
 		m.ResetRegionKind()
@@ -16459,7 +16314,7 @@ type RepeatedScheduleResourceMutation struct {
 	id                     *int
 	resource_id            *string
 	schedule_status        *repeatedscheduleresource.ScheduleStatus
-	description            *string
+	name                   *string
 	duration_seconds       *uint32
 	addduration_seconds    *int32
 	cron_minutes           *string
@@ -16662,53 +16517,53 @@ func (m *RepeatedScheduleResourceMutation) ResetScheduleStatus() {
 	delete(m.clearedFields, repeatedscheduleresource.FieldScheduleStatus)
 }
 
-// SetDescription sets the "description" field.
-func (m *RepeatedScheduleResourceMutation) SetDescription(s string) {
-	m.description = &s
+// SetName sets the "name" field.
+func (m *RepeatedScheduleResourceMutation) SetName(s string) {
+	m.name = &s
 }
 
-// Description returns the value of the "description" field in the mutation.
-func (m *RepeatedScheduleResourceMutation) Description() (r string, exists bool) {
-	v := m.description
+// Name returns the value of the "name" field in the mutation.
+func (m *RepeatedScheduleResourceMutation) Name() (r string, exists bool) {
+	v := m.name
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldDescription returns the old "description" field's value of the RepeatedScheduleResource entity.
+// OldName returns the old "name" field's value of the RepeatedScheduleResource entity.
 // If the RepeatedScheduleResource object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *RepeatedScheduleResourceMutation) OldDescription(ctx context.Context) (v string, err error) {
+func (m *RepeatedScheduleResourceMutation) OldName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDescription requires an ID field in the mutation")
+		return v, errors.New("OldName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
 	}
-	return oldValue.Description, nil
+	return oldValue.Name, nil
 }
 
-// ClearDescription clears the value of the "description" field.
-func (m *RepeatedScheduleResourceMutation) ClearDescription() {
-	m.description = nil
-	m.clearedFields[repeatedscheduleresource.FieldDescription] = struct{}{}
+// ClearName clears the value of the "name" field.
+func (m *RepeatedScheduleResourceMutation) ClearName() {
+	m.name = nil
+	m.clearedFields[repeatedscheduleresource.FieldName] = struct{}{}
 }
 
-// DescriptionCleared returns if the "description" field was cleared in this mutation.
-func (m *RepeatedScheduleResourceMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[repeatedscheduleresource.FieldDescription]
+// NameCleared returns if the "name" field was cleared in this mutation.
+func (m *RepeatedScheduleResourceMutation) NameCleared() bool {
+	_, ok := m.clearedFields[repeatedscheduleresource.FieldName]
 	return ok
 }
 
-// ResetDescription resets all changes to the "description" field.
-func (m *RepeatedScheduleResourceMutation) ResetDescription() {
-	m.description = nil
-	delete(m.clearedFields, repeatedscheduleresource.FieldDescription)
+// ResetName resets all changes to the "name" field.
+func (m *RepeatedScheduleResourceMutation) ResetName() {
+	m.name = nil
+	delete(m.clearedFields, repeatedscheduleresource.FieldName)
 }
 
 // SetDurationSeconds sets the "duration_seconds" field.
@@ -17119,8 +16974,8 @@ func (m *RepeatedScheduleResourceMutation) Fields() []string {
 	if m.schedule_status != nil {
 		fields = append(fields, repeatedscheduleresource.FieldScheduleStatus)
 	}
-	if m.description != nil {
-		fields = append(fields, repeatedscheduleresource.FieldDescription)
+	if m.name != nil {
+		fields = append(fields, repeatedscheduleresource.FieldName)
 	}
 	if m.duration_seconds != nil {
 		fields = append(fields, repeatedscheduleresource.FieldDurationSeconds)
@@ -17152,8 +17007,8 @@ func (m *RepeatedScheduleResourceMutation) Field(name string) (ent.Value, bool) 
 		return m.ResourceID()
 	case repeatedscheduleresource.FieldScheduleStatus:
 		return m.ScheduleStatus()
-	case repeatedscheduleresource.FieldDescription:
-		return m.Description()
+	case repeatedscheduleresource.FieldName:
+		return m.Name()
 	case repeatedscheduleresource.FieldDurationSeconds:
 		return m.DurationSeconds()
 	case repeatedscheduleresource.FieldCronMinutes:
@@ -17179,8 +17034,8 @@ func (m *RepeatedScheduleResourceMutation) OldField(ctx context.Context, name st
 		return m.OldResourceID(ctx)
 	case repeatedscheduleresource.FieldScheduleStatus:
 		return m.OldScheduleStatus(ctx)
-	case repeatedscheduleresource.FieldDescription:
-		return m.OldDescription(ctx)
+	case repeatedscheduleresource.FieldName:
+		return m.OldName(ctx)
 	case repeatedscheduleresource.FieldDurationSeconds:
 		return m.OldDurationSeconds(ctx)
 	case repeatedscheduleresource.FieldCronMinutes:
@@ -17216,12 +17071,12 @@ func (m *RepeatedScheduleResourceMutation) SetField(name string, value ent.Value
 		}
 		m.SetScheduleStatus(v)
 		return nil
-	case repeatedscheduleresource.FieldDescription:
+	case repeatedscheduleresource.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetDescription(v)
+		m.SetName(v)
 		return nil
 	case repeatedscheduleresource.FieldDurationSeconds:
 		v, ok := value.(uint32)
@@ -17313,8 +17168,8 @@ func (m *RepeatedScheduleResourceMutation) ClearedFields() []string {
 	if m.FieldCleared(repeatedscheduleresource.FieldScheduleStatus) {
 		fields = append(fields, repeatedscheduleresource.FieldScheduleStatus)
 	}
-	if m.FieldCleared(repeatedscheduleresource.FieldDescription) {
-		fields = append(fields, repeatedscheduleresource.FieldDescription)
+	if m.FieldCleared(repeatedscheduleresource.FieldName) {
+		fields = append(fields, repeatedscheduleresource.FieldName)
 	}
 	if m.FieldCleared(repeatedscheduleresource.FieldDurationSeconds) {
 		fields = append(fields, repeatedscheduleresource.FieldDurationSeconds)
@@ -17336,8 +17191,8 @@ func (m *RepeatedScheduleResourceMutation) ClearField(name string) error {
 	case repeatedscheduleresource.FieldScheduleStatus:
 		m.ClearScheduleStatus()
 		return nil
-	case repeatedscheduleresource.FieldDescription:
-		m.ClearDescription()
+	case repeatedscheduleresource.FieldName:
+		m.ClearName()
 		return nil
 	case repeatedscheduleresource.FieldDurationSeconds:
 		m.ClearDurationSeconds()
@@ -17356,8 +17211,8 @@ func (m *RepeatedScheduleResourceMutation) ResetField(name string) error {
 	case repeatedscheduleresource.FieldScheduleStatus:
 		m.ResetScheduleStatus()
 		return nil
-	case repeatedscheduleresource.FieldDescription:
-		m.ResetDescription()
+	case repeatedscheduleresource.FieldName:
+		m.ResetName()
 		return nil
 	case repeatedscheduleresource.FieldDurationSeconds:
 		m.ResetDurationSeconds()
@@ -17499,7 +17354,7 @@ type SingleScheduleResourceMutation struct {
 	id                     *int
 	resource_id            *string
 	schedule_status        *singlescheduleresource.ScheduleStatus
-	description            *string
+	name                   *string
 	start_seconds          *uint64
 	addstart_seconds       *int64
 	end_seconds            *uint64
@@ -17699,53 +17554,53 @@ func (m *SingleScheduleResourceMutation) ResetScheduleStatus() {
 	delete(m.clearedFields, singlescheduleresource.FieldScheduleStatus)
 }
 
-// SetDescription sets the "description" field.
-func (m *SingleScheduleResourceMutation) SetDescription(s string) {
-	m.description = &s
+// SetName sets the "name" field.
+func (m *SingleScheduleResourceMutation) SetName(s string) {
+	m.name = &s
 }
 
-// Description returns the value of the "description" field in the mutation.
-func (m *SingleScheduleResourceMutation) Description() (r string, exists bool) {
-	v := m.description
+// Name returns the value of the "name" field in the mutation.
+func (m *SingleScheduleResourceMutation) Name() (r string, exists bool) {
+	v := m.name
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldDescription returns the old "description" field's value of the SingleScheduleResource entity.
+// OldName returns the old "name" field's value of the SingleScheduleResource entity.
 // If the SingleScheduleResource object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SingleScheduleResourceMutation) OldDescription(ctx context.Context) (v string, err error) {
+func (m *SingleScheduleResourceMutation) OldName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDescription requires an ID field in the mutation")
+		return v, errors.New("OldName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
 	}
-	return oldValue.Description, nil
+	return oldValue.Name, nil
 }
 
-// ClearDescription clears the value of the "description" field.
-func (m *SingleScheduleResourceMutation) ClearDescription() {
-	m.description = nil
-	m.clearedFields[singlescheduleresource.FieldDescription] = struct{}{}
+// ClearName clears the value of the "name" field.
+func (m *SingleScheduleResourceMutation) ClearName() {
+	m.name = nil
+	m.clearedFields[singlescheduleresource.FieldName] = struct{}{}
 }
 
-// DescriptionCleared returns if the "description" field was cleared in this mutation.
-func (m *SingleScheduleResourceMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[singlescheduleresource.FieldDescription]
+// NameCleared returns if the "name" field was cleared in this mutation.
+func (m *SingleScheduleResourceMutation) NameCleared() bool {
+	_, ok := m.clearedFields[singlescheduleresource.FieldName]
 	return ok
 }
 
-// ResetDescription resets all changes to the "description" field.
-func (m *SingleScheduleResourceMutation) ResetDescription() {
-	m.description = nil
-	delete(m.clearedFields, singlescheduleresource.FieldDescription)
+// ResetName resets all changes to the "name" field.
+func (m *SingleScheduleResourceMutation) ResetName() {
+	m.name = nil
+	delete(m.clearedFields, singlescheduleresource.FieldName)
 }
 
 // SetStartSeconds sets the "start_seconds" field.
@@ -18032,8 +17887,8 @@ func (m *SingleScheduleResourceMutation) Fields() []string {
 	if m.schedule_status != nil {
 		fields = append(fields, singlescheduleresource.FieldScheduleStatus)
 	}
-	if m.description != nil {
-		fields = append(fields, singlescheduleresource.FieldDescription)
+	if m.name != nil {
+		fields = append(fields, singlescheduleresource.FieldName)
 	}
 	if m.start_seconds != nil {
 		fields = append(fields, singlescheduleresource.FieldStartSeconds)
@@ -18053,8 +17908,8 @@ func (m *SingleScheduleResourceMutation) Field(name string) (ent.Value, bool) {
 		return m.ResourceID()
 	case singlescheduleresource.FieldScheduleStatus:
 		return m.ScheduleStatus()
-	case singlescheduleresource.FieldDescription:
-		return m.Description()
+	case singlescheduleresource.FieldName:
+		return m.Name()
 	case singlescheduleresource.FieldStartSeconds:
 		return m.StartSeconds()
 	case singlescheduleresource.FieldEndSeconds:
@@ -18072,8 +17927,8 @@ func (m *SingleScheduleResourceMutation) OldField(ctx context.Context, name stri
 		return m.OldResourceID(ctx)
 	case singlescheduleresource.FieldScheduleStatus:
 		return m.OldScheduleStatus(ctx)
-	case singlescheduleresource.FieldDescription:
-		return m.OldDescription(ctx)
+	case singlescheduleresource.FieldName:
+		return m.OldName(ctx)
 	case singlescheduleresource.FieldStartSeconds:
 		return m.OldStartSeconds(ctx)
 	case singlescheduleresource.FieldEndSeconds:
@@ -18101,12 +17956,12 @@ func (m *SingleScheduleResourceMutation) SetField(name string, value ent.Value) 
 		}
 		m.SetScheduleStatus(v)
 		return nil
-	case singlescheduleresource.FieldDescription:
+	case singlescheduleresource.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetDescription(v)
+		m.SetName(v)
 		return nil
 	case singlescheduleresource.FieldStartSeconds:
 		v, ok := value.(uint64)
@@ -18182,8 +18037,8 @@ func (m *SingleScheduleResourceMutation) ClearedFields() []string {
 	if m.FieldCleared(singlescheduleresource.FieldScheduleStatus) {
 		fields = append(fields, singlescheduleresource.FieldScheduleStatus)
 	}
-	if m.FieldCleared(singlescheduleresource.FieldDescription) {
-		fields = append(fields, singlescheduleresource.FieldDescription)
+	if m.FieldCleared(singlescheduleresource.FieldName) {
+		fields = append(fields, singlescheduleresource.FieldName)
 	}
 	if m.FieldCleared(singlescheduleresource.FieldEndSeconds) {
 		fields = append(fields, singlescheduleresource.FieldEndSeconds)
@@ -18205,8 +18060,8 @@ func (m *SingleScheduleResourceMutation) ClearField(name string) error {
 	case singlescheduleresource.FieldScheduleStatus:
 		m.ClearScheduleStatus()
 		return nil
-	case singlescheduleresource.FieldDescription:
-		m.ClearDescription()
+	case singlescheduleresource.FieldName:
+		m.ClearName()
 		return nil
 	case singlescheduleresource.FieldEndSeconds:
 		m.ClearEndSeconds()
@@ -18225,8 +18080,8 @@ func (m *SingleScheduleResourceMutation) ResetField(name string) error {
 	case singlescheduleresource.FieldScheduleStatus:
 		m.ResetScheduleStatus()
 		return nil
-	case singlescheduleresource.FieldDescription:
-		m.ResetDescription()
+	case singlescheduleresource.FieldName:
+		m.ResetName()
 		return nil
 	case singlescheduleresource.FieldStartSeconds:
 		m.ResetStartSeconds()
@@ -18355,8 +18210,7 @@ type SiteResourceMutation struct {
 	typ               string
 	id                *int
 	resource_id       *string
-	description       *string
-	site_kind         *string
+	name              *string
 	address           *string
 	site_lat          *int32
 	addsite_lat       *int32
@@ -18514,102 +18368,53 @@ func (m *SiteResourceMutation) ResetResourceID() {
 	m.resource_id = nil
 }
 
-// SetDescription sets the "description" field.
-func (m *SiteResourceMutation) SetDescription(s string) {
-	m.description = &s
+// SetName sets the "name" field.
+func (m *SiteResourceMutation) SetName(s string) {
+	m.name = &s
 }
 
-// Description returns the value of the "description" field in the mutation.
-func (m *SiteResourceMutation) Description() (r string, exists bool) {
-	v := m.description
+// Name returns the value of the "name" field in the mutation.
+func (m *SiteResourceMutation) Name() (r string, exists bool) {
+	v := m.name
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldDescription returns the old "description" field's value of the SiteResource entity.
+// OldName returns the old "name" field's value of the SiteResource entity.
 // If the SiteResource object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SiteResourceMutation) OldDescription(ctx context.Context) (v string, err error) {
+func (m *SiteResourceMutation) OldName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDescription requires an ID field in the mutation")
+		return v, errors.New("OldName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
 	}
-	return oldValue.Description, nil
+	return oldValue.Name, nil
 }
 
-// ClearDescription clears the value of the "description" field.
-func (m *SiteResourceMutation) ClearDescription() {
-	m.description = nil
-	m.clearedFields[siteresource.FieldDescription] = struct{}{}
+// ClearName clears the value of the "name" field.
+func (m *SiteResourceMutation) ClearName() {
+	m.name = nil
+	m.clearedFields[siteresource.FieldName] = struct{}{}
 }
 
-// DescriptionCleared returns if the "description" field was cleared in this mutation.
-func (m *SiteResourceMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[siteresource.FieldDescription]
+// NameCleared returns if the "name" field was cleared in this mutation.
+func (m *SiteResourceMutation) NameCleared() bool {
+	_, ok := m.clearedFields[siteresource.FieldName]
 	return ok
 }
 
-// ResetDescription resets all changes to the "description" field.
-func (m *SiteResourceMutation) ResetDescription() {
-	m.description = nil
-	delete(m.clearedFields, siteresource.FieldDescription)
-}
-
-// SetSiteKind sets the "site_kind" field.
-func (m *SiteResourceMutation) SetSiteKind(s string) {
-	m.site_kind = &s
-}
-
-// SiteKind returns the value of the "site_kind" field in the mutation.
-func (m *SiteResourceMutation) SiteKind() (r string, exists bool) {
-	v := m.site_kind
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldSiteKind returns the old "site_kind" field's value of the SiteResource entity.
-// If the SiteResource object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SiteResourceMutation) OldSiteKind(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSiteKind is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSiteKind requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSiteKind: %w", err)
-	}
-	return oldValue.SiteKind, nil
-}
-
-// ClearSiteKind clears the value of the "site_kind" field.
-func (m *SiteResourceMutation) ClearSiteKind() {
-	m.site_kind = nil
-	m.clearedFields[siteresource.FieldSiteKind] = struct{}{}
-}
-
-// SiteKindCleared returns if the "site_kind" field was cleared in this mutation.
-func (m *SiteResourceMutation) SiteKindCleared() bool {
-	_, ok := m.clearedFields[siteresource.FieldSiteKind]
-	return ok
-}
-
-// ResetSiteKind resets all changes to the "site_kind" field.
-func (m *SiteResourceMutation) ResetSiteKind() {
-	m.site_kind = nil
-	delete(m.clearedFields, siteresource.FieldSiteKind)
+// ResetName resets all changes to the "name" field.
+func (m *SiteResourceMutation) ResetName() {
+	m.name = nil
+	delete(m.clearedFields, siteresource.FieldName)
 }
 
 // SetAddress sets the "address" field.
@@ -19305,15 +19110,12 @@ func (m *SiteResourceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SiteResourceMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 13)
 	if m.resource_id != nil {
 		fields = append(fields, siteresource.FieldResourceID)
 	}
-	if m.description != nil {
-		fields = append(fields, siteresource.FieldDescription)
-	}
-	if m.site_kind != nil {
-		fields = append(fields, siteresource.FieldSiteKind)
+	if m.name != nil {
+		fields = append(fields, siteresource.FieldName)
 	}
 	if m.address != nil {
 		fields = append(fields, siteresource.FieldAddress)
@@ -19358,10 +19160,8 @@ func (m *SiteResourceMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case siteresource.FieldResourceID:
 		return m.ResourceID()
-	case siteresource.FieldDescription:
-		return m.Description()
-	case siteresource.FieldSiteKind:
-		return m.SiteKind()
+	case siteresource.FieldName:
+		return m.Name()
 	case siteresource.FieldAddress:
 		return m.Address()
 	case siteresource.FieldSiteLat:
@@ -19395,10 +19195,8 @@ func (m *SiteResourceMutation) OldField(ctx context.Context, name string) (ent.V
 	switch name {
 	case siteresource.FieldResourceID:
 		return m.OldResourceID(ctx)
-	case siteresource.FieldDescription:
-		return m.OldDescription(ctx)
-	case siteresource.FieldSiteKind:
-		return m.OldSiteKind(ctx)
+	case siteresource.FieldName:
+		return m.OldName(ctx)
 	case siteresource.FieldAddress:
 		return m.OldAddress(ctx)
 	case siteresource.FieldSiteLat:
@@ -19437,19 +19235,12 @@ func (m *SiteResourceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetResourceID(v)
 		return nil
-	case siteresource.FieldDescription:
+	case siteresource.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetDescription(v)
-		return nil
-	case siteresource.FieldSiteKind:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetSiteKind(v)
+		m.SetName(v)
 		return nil
 	case siteresource.FieldAddress:
 		v, ok := value.(string)
@@ -19585,11 +19376,8 @@ func (m *SiteResourceMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *SiteResourceMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(siteresource.FieldDescription) {
-		fields = append(fields, siteresource.FieldDescription)
-	}
-	if m.FieldCleared(siteresource.FieldSiteKind) {
-		fields = append(fields, siteresource.FieldSiteKind)
+	if m.FieldCleared(siteresource.FieldName) {
+		fields = append(fields, siteresource.FieldName)
 	}
 	if m.FieldCleared(siteresource.FieldAddress) {
 		fields = append(fields, siteresource.FieldAddress)
@@ -19638,11 +19426,8 @@ func (m *SiteResourceMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *SiteResourceMutation) ClearField(name string) error {
 	switch name {
-	case siteresource.FieldDescription:
-		m.ClearDescription()
-		return nil
-	case siteresource.FieldSiteKind:
-		m.ClearSiteKind()
+	case siteresource.FieldName:
+		m.ClearName()
 		return nil
 	case siteresource.FieldAddress:
 		m.ClearAddress()
@@ -19688,11 +19473,8 @@ func (m *SiteResourceMutation) ResetField(name string) error {
 	case siteresource.FieldResourceID:
 		m.ResetResourceID()
 		return nil
-	case siteresource.FieldDescription:
-		m.ResetDescription()
-		return nil
-	case siteresource.FieldSiteKind:
-		m.ResetSiteKind()
+	case siteresource.FieldName:
+		m.ResetName()
 		return nil
 	case siteresource.FieldAddress:
 		m.ResetAddress()
@@ -19823,6 +19605,1451 @@ func (m *SiteResourceMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown SiteResource edge %s", name)
 }
 
+// TelemetryGroupResourceMutation represents an operation that mutates the TelemetryGroupResource nodes in the graph.
+type TelemetryGroupResourceMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *int
+	resource_id     *string
+	name            *string
+	kind            *telemetrygroupresource.Kind
+	collector_kind  *telemetrygroupresource.CollectorKind
+	groups          *string
+	clearedFields   map[string]struct{}
+	profiles        map[int]struct{}
+	removedprofiles map[int]struct{}
+	clearedprofiles bool
+	done            bool
+	oldValue        func(context.Context) (*TelemetryGroupResource, error)
+	predicates      []predicate.TelemetryGroupResource
+}
+
+var _ ent.Mutation = (*TelemetryGroupResourceMutation)(nil)
+
+// telemetrygroupresourceOption allows management of the mutation configuration using functional options.
+type telemetrygroupresourceOption func(*TelemetryGroupResourceMutation)
+
+// newTelemetryGroupResourceMutation creates new mutation for the TelemetryGroupResource entity.
+func newTelemetryGroupResourceMutation(c config, op Op, opts ...telemetrygroupresourceOption) *TelemetryGroupResourceMutation {
+	m := &TelemetryGroupResourceMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeTelemetryGroupResource,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withTelemetryGroupResourceID sets the ID field of the mutation.
+func withTelemetryGroupResourceID(id int) telemetrygroupresourceOption {
+	return func(m *TelemetryGroupResourceMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *TelemetryGroupResource
+		)
+		m.oldValue = func(ctx context.Context) (*TelemetryGroupResource, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().TelemetryGroupResource.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withTelemetryGroupResource sets the old TelemetryGroupResource of the mutation.
+func withTelemetryGroupResource(node *TelemetryGroupResource) telemetrygroupresourceOption {
+	return func(m *TelemetryGroupResourceMutation) {
+		m.oldValue = func(context.Context) (*TelemetryGroupResource, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m TelemetryGroupResourceMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m TelemetryGroupResourceMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *TelemetryGroupResourceMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *TelemetryGroupResourceMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().TelemetryGroupResource.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetResourceID sets the "resource_id" field.
+func (m *TelemetryGroupResourceMutation) SetResourceID(s string) {
+	m.resource_id = &s
+}
+
+// ResourceID returns the value of the "resource_id" field in the mutation.
+func (m *TelemetryGroupResourceMutation) ResourceID() (r string, exists bool) {
+	v := m.resource_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResourceID returns the old "resource_id" field's value of the TelemetryGroupResource entity.
+// If the TelemetryGroupResource object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TelemetryGroupResourceMutation) OldResourceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResourceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResourceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResourceID: %w", err)
+	}
+	return oldValue.ResourceID, nil
+}
+
+// ResetResourceID resets all changes to the "resource_id" field.
+func (m *TelemetryGroupResourceMutation) ResetResourceID() {
+	m.resource_id = nil
+}
+
+// SetName sets the "name" field.
+func (m *TelemetryGroupResourceMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *TelemetryGroupResourceMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the TelemetryGroupResource entity.
+// If the TelemetryGroupResource object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TelemetryGroupResourceMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *TelemetryGroupResourceMutation) ResetName() {
+	m.name = nil
+}
+
+// SetKind sets the "kind" field.
+func (m *TelemetryGroupResourceMutation) SetKind(t telemetrygroupresource.Kind) {
+	m.kind = &t
+}
+
+// Kind returns the value of the "kind" field in the mutation.
+func (m *TelemetryGroupResourceMutation) Kind() (r telemetrygroupresource.Kind, exists bool) {
+	v := m.kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKind returns the old "kind" field's value of the TelemetryGroupResource entity.
+// If the TelemetryGroupResource object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TelemetryGroupResourceMutation) OldKind(ctx context.Context) (v telemetrygroupresource.Kind, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKind: %w", err)
+	}
+	return oldValue.Kind, nil
+}
+
+// ResetKind resets all changes to the "kind" field.
+func (m *TelemetryGroupResourceMutation) ResetKind() {
+	m.kind = nil
+}
+
+// SetCollectorKind sets the "collector_kind" field.
+func (m *TelemetryGroupResourceMutation) SetCollectorKind(tk telemetrygroupresource.CollectorKind) {
+	m.collector_kind = &tk
+}
+
+// CollectorKind returns the value of the "collector_kind" field in the mutation.
+func (m *TelemetryGroupResourceMutation) CollectorKind() (r telemetrygroupresource.CollectorKind, exists bool) {
+	v := m.collector_kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCollectorKind returns the old "collector_kind" field's value of the TelemetryGroupResource entity.
+// If the TelemetryGroupResource object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TelemetryGroupResourceMutation) OldCollectorKind(ctx context.Context) (v telemetrygroupresource.CollectorKind, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCollectorKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCollectorKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCollectorKind: %w", err)
+	}
+	return oldValue.CollectorKind, nil
+}
+
+// ResetCollectorKind resets all changes to the "collector_kind" field.
+func (m *TelemetryGroupResourceMutation) ResetCollectorKind() {
+	m.collector_kind = nil
+}
+
+// SetGroups sets the "groups" field.
+func (m *TelemetryGroupResourceMutation) SetGroups(s string) {
+	m.groups = &s
+}
+
+// Groups returns the value of the "groups" field in the mutation.
+func (m *TelemetryGroupResourceMutation) Groups() (r string, exists bool) {
+	v := m.groups
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGroups returns the old "groups" field's value of the TelemetryGroupResource entity.
+// If the TelemetryGroupResource object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TelemetryGroupResourceMutation) OldGroups(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGroups is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGroups requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGroups: %w", err)
+	}
+	return oldValue.Groups, nil
+}
+
+// ResetGroups resets all changes to the "groups" field.
+func (m *TelemetryGroupResourceMutation) ResetGroups() {
+	m.groups = nil
+}
+
+// AddProfileIDs adds the "profiles" edge to the TelemetryProfile entity by ids.
+func (m *TelemetryGroupResourceMutation) AddProfileIDs(ids ...int) {
+	if m.profiles == nil {
+		m.profiles = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.profiles[ids[i]] = struct{}{}
+	}
+}
+
+// ClearProfiles clears the "profiles" edge to the TelemetryProfile entity.
+func (m *TelemetryGroupResourceMutation) ClearProfiles() {
+	m.clearedprofiles = true
+}
+
+// ProfilesCleared reports if the "profiles" edge to the TelemetryProfile entity was cleared.
+func (m *TelemetryGroupResourceMutation) ProfilesCleared() bool {
+	return m.clearedprofiles
+}
+
+// RemoveProfileIDs removes the "profiles" edge to the TelemetryProfile entity by IDs.
+func (m *TelemetryGroupResourceMutation) RemoveProfileIDs(ids ...int) {
+	if m.removedprofiles == nil {
+		m.removedprofiles = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.profiles, ids[i])
+		m.removedprofiles[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedProfiles returns the removed IDs of the "profiles" edge to the TelemetryProfile entity.
+func (m *TelemetryGroupResourceMutation) RemovedProfilesIDs() (ids []int) {
+	for id := range m.removedprofiles {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ProfilesIDs returns the "profiles" edge IDs in the mutation.
+func (m *TelemetryGroupResourceMutation) ProfilesIDs() (ids []int) {
+	for id := range m.profiles {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetProfiles resets all changes to the "profiles" edge.
+func (m *TelemetryGroupResourceMutation) ResetProfiles() {
+	m.profiles = nil
+	m.clearedprofiles = false
+	m.removedprofiles = nil
+}
+
+// Where appends a list predicates to the TelemetryGroupResourceMutation builder.
+func (m *TelemetryGroupResourceMutation) Where(ps ...predicate.TelemetryGroupResource) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the TelemetryGroupResourceMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *TelemetryGroupResourceMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.TelemetryGroupResource, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *TelemetryGroupResourceMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *TelemetryGroupResourceMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (TelemetryGroupResource).
+func (m *TelemetryGroupResourceMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *TelemetryGroupResourceMutation) Fields() []string {
+	fields := make([]string, 0, 5)
+	if m.resource_id != nil {
+		fields = append(fields, telemetrygroupresource.FieldResourceID)
+	}
+	if m.name != nil {
+		fields = append(fields, telemetrygroupresource.FieldName)
+	}
+	if m.kind != nil {
+		fields = append(fields, telemetrygroupresource.FieldKind)
+	}
+	if m.collector_kind != nil {
+		fields = append(fields, telemetrygroupresource.FieldCollectorKind)
+	}
+	if m.groups != nil {
+		fields = append(fields, telemetrygroupresource.FieldGroups)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *TelemetryGroupResourceMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case telemetrygroupresource.FieldResourceID:
+		return m.ResourceID()
+	case telemetrygroupresource.FieldName:
+		return m.Name()
+	case telemetrygroupresource.FieldKind:
+		return m.Kind()
+	case telemetrygroupresource.FieldCollectorKind:
+		return m.CollectorKind()
+	case telemetrygroupresource.FieldGroups:
+		return m.Groups()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *TelemetryGroupResourceMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case telemetrygroupresource.FieldResourceID:
+		return m.OldResourceID(ctx)
+	case telemetrygroupresource.FieldName:
+		return m.OldName(ctx)
+	case telemetrygroupresource.FieldKind:
+		return m.OldKind(ctx)
+	case telemetrygroupresource.FieldCollectorKind:
+		return m.OldCollectorKind(ctx)
+	case telemetrygroupresource.FieldGroups:
+		return m.OldGroups(ctx)
+	}
+	return nil, fmt.Errorf("unknown TelemetryGroupResource field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *TelemetryGroupResourceMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case telemetrygroupresource.FieldResourceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResourceID(v)
+		return nil
+	case telemetrygroupresource.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case telemetrygroupresource.FieldKind:
+		v, ok := value.(telemetrygroupresource.Kind)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKind(v)
+		return nil
+	case telemetrygroupresource.FieldCollectorKind:
+		v, ok := value.(telemetrygroupresource.CollectorKind)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCollectorKind(v)
+		return nil
+	case telemetrygroupresource.FieldGroups:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGroups(v)
+		return nil
+	}
+	return fmt.Errorf("unknown TelemetryGroupResource field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *TelemetryGroupResourceMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *TelemetryGroupResourceMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *TelemetryGroupResourceMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown TelemetryGroupResource numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *TelemetryGroupResourceMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *TelemetryGroupResourceMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *TelemetryGroupResourceMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown TelemetryGroupResource nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *TelemetryGroupResourceMutation) ResetField(name string) error {
+	switch name {
+	case telemetrygroupresource.FieldResourceID:
+		m.ResetResourceID()
+		return nil
+	case telemetrygroupresource.FieldName:
+		m.ResetName()
+		return nil
+	case telemetrygroupresource.FieldKind:
+		m.ResetKind()
+		return nil
+	case telemetrygroupresource.FieldCollectorKind:
+		m.ResetCollectorKind()
+		return nil
+	case telemetrygroupresource.FieldGroups:
+		m.ResetGroups()
+		return nil
+	}
+	return fmt.Errorf("unknown TelemetryGroupResource field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *TelemetryGroupResourceMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.profiles != nil {
+		edges = append(edges, telemetrygroupresource.EdgeProfiles)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *TelemetryGroupResourceMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case telemetrygroupresource.EdgeProfiles:
+		ids := make([]ent.Value, 0, len(m.profiles))
+		for id := range m.profiles {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *TelemetryGroupResourceMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.removedprofiles != nil {
+		edges = append(edges, telemetrygroupresource.EdgeProfiles)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *TelemetryGroupResourceMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case telemetrygroupresource.EdgeProfiles:
+		ids := make([]ent.Value, 0, len(m.removedprofiles))
+		for id := range m.removedprofiles {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *TelemetryGroupResourceMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedprofiles {
+		edges = append(edges, telemetrygroupresource.EdgeProfiles)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *TelemetryGroupResourceMutation) EdgeCleared(name string) bool {
+	switch name {
+	case telemetrygroupresource.EdgeProfiles:
+		return m.clearedprofiles
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *TelemetryGroupResourceMutation) ClearEdge(name string) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown TelemetryGroupResource unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *TelemetryGroupResourceMutation) ResetEdge(name string) error {
+	switch name {
+	case telemetrygroupresource.EdgeProfiles:
+		m.ResetProfiles()
+		return nil
+	}
+	return fmt.Errorf("unknown TelemetryGroupResource edge %s", name)
+}
+
+// TelemetryProfileMutation represents an operation that mutates the TelemetryProfile nodes in the graph.
+type TelemetryProfileMutation struct {
+	config
+	op                  Op
+	typ                 string
+	id                  *int
+	resource_id         *string
+	kind                *telemetryprofile.Kind
+	metrics_interval    *uint32
+	addmetrics_interval *int32
+	log_level           *telemetryprofile.LogLevel
+	clearedFields       map[string]struct{}
+	region              *int
+	clearedregion       bool
+	site                *int
+	clearedsite         bool
+	instance            *int
+	clearedinstance     bool
+	group               *int
+	clearedgroup        bool
+	done                bool
+	oldValue            func(context.Context) (*TelemetryProfile, error)
+	predicates          []predicate.TelemetryProfile
+}
+
+var _ ent.Mutation = (*TelemetryProfileMutation)(nil)
+
+// telemetryprofileOption allows management of the mutation configuration using functional options.
+type telemetryprofileOption func(*TelemetryProfileMutation)
+
+// newTelemetryProfileMutation creates new mutation for the TelemetryProfile entity.
+func newTelemetryProfileMutation(c config, op Op, opts ...telemetryprofileOption) *TelemetryProfileMutation {
+	m := &TelemetryProfileMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeTelemetryProfile,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withTelemetryProfileID sets the ID field of the mutation.
+func withTelemetryProfileID(id int) telemetryprofileOption {
+	return func(m *TelemetryProfileMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *TelemetryProfile
+		)
+		m.oldValue = func(ctx context.Context) (*TelemetryProfile, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().TelemetryProfile.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withTelemetryProfile sets the old TelemetryProfile of the mutation.
+func withTelemetryProfile(node *TelemetryProfile) telemetryprofileOption {
+	return func(m *TelemetryProfileMutation) {
+		m.oldValue = func(context.Context) (*TelemetryProfile, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m TelemetryProfileMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m TelemetryProfileMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *TelemetryProfileMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *TelemetryProfileMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().TelemetryProfile.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetResourceID sets the "resource_id" field.
+func (m *TelemetryProfileMutation) SetResourceID(s string) {
+	m.resource_id = &s
+}
+
+// ResourceID returns the value of the "resource_id" field in the mutation.
+func (m *TelemetryProfileMutation) ResourceID() (r string, exists bool) {
+	v := m.resource_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResourceID returns the old "resource_id" field's value of the TelemetryProfile entity.
+// If the TelemetryProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TelemetryProfileMutation) OldResourceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResourceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResourceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResourceID: %w", err)
+	}
+	return oldValue.ResourceID, nil
+}
+
+// ResetResourceID resets all changes to the "resource_id" field.
+func (m *TelemetryProfileMutation) ResetResourceID() {
+	m.resource_id = nil
+}
+
+// SetKind sets the "kind" field.
+func (m *TelemetryProfileMutation) SetKind(t telemetryprofile.Kind) {
+	m.kind = &t
+}
+
+// Kind returns the value of the "kind" field in the mutation.
+func (m *TelemetryProfileMutation) Kind() (r telemetryprofile.Kind, exists bool) {
+	v := m.kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKind returns the old "kind" field's value of the TelemetryProfile entity.
+// If the TelemetryProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TelemetryProfileMutation) OldKind(ctx context.Context) (v telemetryprofile.Kind, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKind: %w", err)
+	}
+	return oldValue.Kind, nil
+}
+
+// ResetKind resets all changes to the "kind" field.
+func (m *TelemetryProfileMutation) ResetKind() {
+	m.kind = nil
+}
+
+// SetMetricsInterval sets the "metrics_interval" field.
+func (m *TelemetryProfileMutation) SetMetricsInterval(u uint32) {
+	m.metrics_interval = &u
+	m.addmetrics_interval = nil
+}
+
+// MetricsInterval returns the value of the "metrics_interval" field in the mutation.
+func (m *TelemetryProfileMutation) MetricsInterval() (r uint32, exists bool) {
+	v := m.metrics_interval
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetricsInterval returns the old "metrics_interval" field's value of the TelemetryProfile entity.
+// If the TelemetryProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TelemetryProfileMutation) OldMetricsInterval(ctx context.Context) (v uint32, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetricsInterval is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetricsInterval requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetricsInterval: %w", err)
+	}
+	return oldValue.MetricsInterval, nil
+}
+
+// AddMetricsInterval adds u to the "metrics_interval" field.
+func (m *TelemetryProfileMutation) AddMetricsInterval(u int32) {
+	if m.addmetrics_interval != nil {
+		*m.addmetrics_interval += u
+	} else {
+		m.addmetrics_interval = &u
+	}
+}
+
+// AddedMetricsInterval returns the value that was added to the "metrics_interval" field in this mutation.
+func (m *TelemetryProfileMutation) AddedMetricsInterval() (r int32, exists bool) {
+	v := m.addmetrics_interval
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearMetricsInterval clears the value of the "metrics_interval" field.
+func (m *TelemetryProfileMutation) ClearMetricsInterval() {
+	m.metrics_interval = nil
+	m.addmetrics_interval = nil
+	m.clearedFields[telemetryprofile.FieldMetricsInterval] = struct{}{}
+}
+
+// MetricsIntervalCleared returns if the "metrics_interval" field was cleared in this mutation.
+func (m *TelemetryProfileMutation) MetricsIntervalCleared() bool {
+	_, ok := m.clearedFields[telemetryprofile.FieldMetricsInterval]
+	return ok
+}
+
+// ResetMetricsInterval resets all changes to the "metrics_interval" field.
+func (m *TelemetryProfileMutation) ResetMetricsInterval() {
+	m.metrics_interval = nil
+	m.addmetrics_interval = nil
+	delete(m.clearedFields, telemetryprofile.FieldMetricsInterval)
+}
+
+// SetLogLevel sets the "log_level" field.
+func (m *TelemetryProfileMutation) SetLogLevel(tl telemetryprofile.LogLevel) {
+	m.log_level = &tl
+}
+
+// LogLevel returns the value of the "log_level" field in the mutation.
+func (m *TelemetryProfileMutation) LogLevel() (r telemetryprofile.LogLevel, exists bool) {
+	v := m.log_level
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLogLevel returns the old "log_level" field's value of the TelemetryProfile entity.
+// If the TelemetryProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TelemetryProfileMutation) OldLogLevel(ctx context.Context) (v telemetryprofile.LogLevel, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLogLevel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLogLevel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLogLevel: %w", err)
+	}
+	return oldValue.LogLevel, nil
+}
+
+// ClearLogLevel clears the value of the "log_level" field.
+func (m *TelemetryProfileMutation) ClearLogLevel() {
+	m.log_level = nil
+	m.clearedFields[telemetryprofile.FieldLogLevel] = struct{}{}
+}
+
+// LogLevelCleared returns if the "log_level" field was cleared in this mutation.
+func (m *TelemetryProfileMutation) LogLevelCleared() bool {
+	_, ok := m.clearedFields[telemetryprofile.FieldLogLevel]
+	return ok
+}
+
+// ResetLogLevel resets all changes to the "log_level" field.
+func (m *TelemetryProfileMutation) ResetLogLevel() {
+	m.log_level = nil
+	delete(m.clearedFields, telemetryprofile.FieldLogLevel)
+}
+
+// SetRegionID sets the "region" edge to the RegionResource entity by id.
+func (m *TelemetryProfileMutation) SetRegionID(id int) {
+	m.region = &id
+}
+
+// ClearRegion clears the "region" edge to the RegionResource entity.
+func (m *TelemetryProfileMutation) ClearRegion() {
+	m.clearedregion = true
+}
+
+// RegionCleared reports if the "region" edge to the RegionResource entity was cleared.
+func (m *TelemetryProfileMutation) RegionCleared() bool {
+	return m.clearedregion
+}
+
+// RegionID returns the "region" edge ID in the mutation.
+func (m *TelemetryProfileMutation) RegionID() (id int, exists bool) {
+	if m.region != nil {
+		return *m.region, true
+	}
+	return
+}
+
+// RegionIDs returns the "region" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// RegionID instead. It exists only for internal usage by the builders.
+func (m *TelemetryProfileMutation) RegionIDs() (ids []int) {
+	if id := m.region; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetRegion resets all changes to the "region" edge.
+func (m *TelemetryProfileMutation) ResetRegion() {
+	m.region = nil
+	m.clearedregion = false
+}
+
+// SetSiteID sets the "site" edge to the SiteResource entity by id.
+func (m *TelemetryProfileMutation) SetSiteID(id int) {
+	m.site = &id
+}
+
+// ClearSite clears the "site" edge to the SiteResource entity.
+func (m *TelemetryProfileMutation) ClearSite() {
+	m.clearedsite = true
+}
+
+// SiteCleared reports if the "site" edge to the SiteResource entity was cleared.
+func (m *TelemetryProfileMutation) SiteCleared() bool {
+	return m.clearedsite
+}
+
+// SiteID returns the "site" edge ID in the mutation.
+func (m *TelemetryProfileMutation) SiteID() (id int, exists bool) {
+	if m.site != nil {
+		return *m.site, true
+	}
+	return
+}
+
+// SiteIDs returns the "site" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SiteID instead. It exists only for internal usage by the builders.
+func (m *TelemetryProfileMutation) SiteIDs() (ids []int) {
+	if id := m.site; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSite resets all changes to the "site" edge.
+func (m *TelemetryProfileMutation) ResetSite() {
+	m.site = nil
+	m.clearedsite = false
+}
+
+// SetInstanceID sets the "instance" edge to the InstanceResource entity by id.
+func (m *TelemetryProfileMutation) SetInstanceID(id int) {
+	m.instance = &id
+}
+
+// ClearInstance clears the "instance" edge to the InstanceResource entity.
+func (m *TelemetryProfileMutation) ClearInstance() {
+	m.clearedinstance = true
+}
+
+// InstanceCleared reports if the "instance" edge to the InstanceResource entity was cleared.
+func (m *TelemetryProfileMutation) InstanceCleared() bool {
+	return m.clearedinstance
+}
+
+// InstanceID returns the "instance" edge ID in the mutation.
+func (m *TelemetryProfileMutation) InstanceID() (id int, exists bool) {
+	if m.instance != nil {
+		return *m.instance, true
+	}
+	return
+}
+
+// InstanceIDs returns the "instance" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// InstanceID instead. It exists only for internal usage by the builders.
+func (m *TelemetryProfileMutation) InstanceIDs() (ids []int) {
+	if id := m.instance; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetInstance resets all changes to the "instance" edge.
+func (m *TelemetryProfileMutation) ResetInstance() {
+	m.instance = nil
+	m.clearedinstance = false
+}
+
+// SetGroupID sets the "group" edge to the TelemetryGroupResource entity by id.
+func (m *TelemetryProfileMutation) SetGroupID(id int) {
+	m.group = &id
+}
+
+// ClearGroup clears the "group" edge to the TelemetryGroupResource entity.
+func (m *TelemetryProfileMutation) ClearGroup() {
+	m.clearedgroup = true
+}
+
+// GroupCleared reports if the "group" edge to the TelemetryGroupResource entity was cleared.
+func (m *TelemetryProfileMutation) GroupCleared() bool {
+	return m.clearedgroup
+}
+
+// GroupID returns the "group" edge ID in the mutation.
+func (m *TelemetryProfileMutation) GroupID() (id int, exists bool) {
+	if m.group != nil {
+		return *m.group, true
+	}
+	return
+}
+
+// GroupIDs returns the "group" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// GroupID instead. It exists only for internal usage by the builders.
+func (m *TelemetryProfileMutation) GroupIDs() (ids []int) {
+	if id := m.group; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetGroup resets all changes to the "group" edge.
+func (m *TelemetryProfileMutation) ResetGroup() {
+	m.group = nil
+	m.clearedgroup = false
+}
+
+// Where appends a list predicates to the TelemetryProfileMutation builder.
+func (m *TelemetryProfileMutation) Where(ps ...predicate.TelemetryProfile) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the TelemetryProfileMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *TelemetryProfileMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.TelemetryProfile, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *TelemetryProfileMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *TelemetryProfileMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (TelemetryProfile).
+func (m *TelemetryProfileMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *TelemetryProfileMutation) Fields() []string {
+	fields := make([]string, 0, 4)
+	if m.resource_id != nil {
+		fields = append(fields, telemetryprofile.FieldResourceID)
+	}
+	if m.kind != nil {
+		fields = append(fields, telemetryprofile.FieldKind)
+	}
+	if m.metrics_interval != nil {
+		fields = append(fields, telemetryprofile.FieldMetricsInterval)
+	}
+	if m.log_level != nil {
+		fields = append(fields, telemetryprofile.FieldLogLevel)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *TelemetryProfileMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case telemetryprofile.FieldResourceID:
+		return m.ResourceID()
+	case telemetryprofile.FieldKind:
+		return m.Kind()
+	case telemetryprofile.FieldMetricsInterval:
+		return m.MetricsInterval()
+	case telemetryprofile.FieldLogLevel:
+		return m.LogLevel()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *TelemetryProfileMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case telemetryprofile.FieldResourceID:
+		return m.OldResourceID(ctx)
+	case telemetryprofile.FieldKind:
+		return m.OldKind(ctx)
+	case telemetryprofile.FieldMetricsInterval:
+		return m.OldMetricsInterval(ctx)
+	case telemetryprofile.FieldLogLevel:
+		return m.OldLogLevel(ctx)
+	}
+	return nil, fmt.Errorf("unknown TelemetryProfile field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *TelemetryProfileMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case telemetryprofile.FieldResourceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResourceID(v)
+		return nil
+	case telemetryprofile.FieldKind:
+		v, ok := value.(telemetryprofile.Kind)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKind(v)
+		return nil
+	case telemetryprofile.FieldMetricsInterval:
+		v, ok := value.(uint32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetricsInterval(v)
+		return nil
+	case telemetryprofile.FieldLogLevel:
+		v, ok := value.(telemetryprofile.LogLevel)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLogLevel(v)
+		return nil
+	}
+	return fmt.Errorf("unknown TelemetryProfile field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *TelemetryProfileMutation) AddedFields() []string {
+	var fields []string
+	if m.addmetrics_interval != nil {
+		fields = append(fields, telemetryprofile.FieldMetricsInterval)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *TelemetryProfileMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case telemetryprofile.FieldMetricsInterval:
+		return m.AddedMetricsInterval()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *TelemetryProfileMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case telemetryprofile.FieldMetricsInterval:
+		v, ok := value.(int32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddMetricsInterval(v)
+		return nil
+	}
+	return fmt.Errorf("unknown TelemetryProfile numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *TelemetryProfileMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(telemetryprofile.FieldMetricsInterval) {
+		fields = append(fields, telemetryprofile.FieldMetricsInterval)
+	}
+	if m.FieldCleared(telemetryprofile.FieldLogLevel) {
+		fields = append(fields, telemetryprofile.FieldLogLevel)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *TelemetryProfileMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *TelemetryProfileMutation) ClearField(name string) error {
+	switch name {
+	case telemetryprofile.FieldMetricsInterval:
+		m.ClearMetricsInterval()
+		return nil
+	case telemetryprofile.FieldLogLevel:
+		m.ClearLogLevel()
+		return nil
+	}
+	return fmt.Errorf("unknown TelemetryProfile nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *TelemetryProfileMutation) ResetField(name string) error {
+	switch name {
+	case telemetryprofile.FieldResourceID:
+		m.ResetResourceID()
+		return nil
+	case telemetryprofile.FieldKind:
+		m.ResetKind()
+		return nil
+	case telemetryprofile.FieldMetricsInterval:
+		m.ResetMetricsInterval()
+		return nil
+	case telemetryprofile.FieldLogLevel:
+		m.ResetLogLevel()
+		return nil
+	}
+	return fmt.Errorf("unknown TelemetryProfile field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *TelemetryProfileMutation) AddedEdges() []string {
+	edges := make([]string, 0, 4)
+	if m.region != nil {
+		edges = append(edges, telemetryprofile.EdgeRegion)
+	}
+	if m.site != nil {
+		edges = append(edges, telemetryprofile.EdgeSite)
+	}
+	if m.instance != nil {
+		edges = append(edges, telemetryprofile.EdgeInstance)
+	}
+	if m.group != nil {
+		edges = append(edges, telemetryprofile.EdgeGroup)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *TelemetryProfileMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case telemetryprofile.EdgeRegion:
+		if id := m.region; id != nil {
+			return []ent.Value{*id}
+		}
+	case telemetryprofile.EdgeSite:
+		if id := m.site; id != nil {
+			return []ent.Value{*id}
+		}
+	case telemetryprofile.EdgeInstance:
+		if id := m.instance; id != nil {
+			return []ent.Value{*id}
+		}
+	case telemetryprofile.EdgeGroup:
+		if id := m.group; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *TelemetryProfileMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 4)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *TelemetryProfileMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *TelemetryProfileMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 4)
+	if m.clearedregion {
+		edges = append(edges, telemetryprofile.EdgeRegion)
+	}
+	if m.clearedsite {
+		edges = append(edges, telemetryprofile.EdgeSite)
+	}
+	if m.clearedinstance {
+		edges = append(edges, telemetryprofile.EdgeInstance)
+	}
+	if m.clearedgroup {
+		edges = append(edges, telemetryprofile.EdgeGroup)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *TelemetryProfileMutation) EdgeCleared(name string) bool {
+	switch name {
+	case telemetryprofile.EdgeRegion:
+		return m.clearedregion
+	case telemetryprofile.EdgeSite:
+		return m.clearedsite
+	case telemetryprofile.EdgeInstance:
+		return m.clearedinstance
+	case telemetryprofile.EdgeGroup:
+		return m.clearedgroup
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *TelemetryProfileMutation) ClearEdge(name string) error {
+	switch name {
+	case telemetryprofile.EdgeRegion:
+		m.ClearRegion()
+		return nil
+	case telemetryprofile.EdgeSite:
+		m.ClearSite()
+		return nil
+	case telemetryprofile.EdgeInstance:
+		m.ClearInstance()
+		return nil
+	case telemetryprofile.EdgeGroup:
+		m.ClearGroup()
+		return nil
+	}
+	return fmt.Errorf("unknown TelemetryProfile unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *TelemetryProfileMutation) ResetEdge(name string) error {
+	switch name {
+	case telemetryprofile.EdgeRegion:
+		m.ResetRegion()
+		return nil
+	case telemetryprofile.EdgeSite:
+		m.ResetSite()
+		return nil
+	case telemetryprofile.EdgeInstance:
+		m.ResetInstance()
+		return nil
+	case telemetryprofile.EdgeGroup:
+		m.ResetGroup()
+		return nil
+	}
+	return fmt.Errorf("unknown TelemetryProfile edge %s", name)
+}
+
 // UserResourceMutation represents an operation that mutates the UserResource nodes in the graph.
 type UserResourceMutation struct {
 	config
@@ -19831,7 +21058,7 @@ type UserResourceMutation struct {
 	id            *int
 	resource_id   *string
 	kind          *string
-	description   *string
+	name          *string
 	username      *string
 	ssh_pubkey    *string
 	clearedFields map[string]struct{}
@@ -20023,53 +21250,53 @@ func (m *UserResourceMutation) ResetKind() {
 	delete(m.clearedFields, userresource.FieldKind)
 }
 
-// SetDescription sets the "description" field.
-func (m *UserResourceMutation) SetDescription(s string) {
-	m.description = &s
+// SetName sets the "name" field.
+func (m *UserResourceMutation) SetName(s string) {
+	m.name = &s
 }
 
-// Description returns the value of the "description" field in the mutation.
-func (m *UserResourceMutation) Description() (r string, exists bool) {
-	v := m.description
+// Name returns the value of the "name" field in the mutation.
+func (m *UserResourceMutation) Name() (r string, exists bool) {
+	v := m.name
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldDescription returns the old "description" field's value of the UserResource entity.
+// OldName returns the old "name" field's value of the UserResource entity.
 // If the UserResource object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *UserResourceMutation) OldDescription(ctx context.Context) (v string, err error) {
+func (m *UserResourceMutation) OldName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDescription requires an ID field in the mutation")
+		return v, errors.New("OldName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
 	}
-	return oldValue.Description, nil
+	return oldValue.Name, nil
 }
 
-// ClearDescription clears the value of the "description" field.
-func (m *UserResourceMutation) ClearDescription() {
-	m.description = nil
-	m.clearedFields[userresource.FieldDescription] = struct{}{}
+// ClearName clears the value of the "name" field.
+func (m *UserResourceMutation) ClearName() {
+	m.name = nil
+	m.clearedFields[userresource.FieldName] = struct{}{}
 }
 
-// DescriptionCleared returns if the "description" field was cleared in this mutation.
-func (m *UserResourceMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[userresource.FieldDescription]
+// NameCleared returns if the "name" field was cleared in this mutation.
+func (m *UserResourceMutation) NameCleared() bool {
+	_, ok := m.clearedFields[userresource.FieldName]
 	return ok
 }
 
-// ResetDescription resets all changes to the "description" field.
-func (m *UserResourceMutation) ResetDescription() {
-	m.description = nil
-	delete(m.clearedFields, userresource.FieldDescription)
+// ResetName resets all changes to the "name" field.
+func (m *UserResourceMutation) ResetName() {
+	m.name = nil
+	delete(m.clearedFields, userresource.FieldName)
 }
 
 // SetUsername sets the "username" field.
@@ -20211,8 +21438,8 @@ func (m *UserResourceMutation) Fields() []string {
 	if m.kind != nil {
 		fields = append(fields, userresource.FieldKind)
 	}
-	if m.description != nil {
-		fields = append(fields, userresource.FieldDescription)
+	if m.name != nil {
+		fields = append(fields, userresource.FieldName)
 	}
 	if m.username != nil {
 		fields = append(fields, userresource.FieldUsername)
@@ -20232,8 +21459,8 @@ func (m *UserResourceMutation) Field(name string) (ent.Value, bool) {
 		return m.ResourceID()
 	case userresource.FieldKind:
 		return m.Kind()
-	case userresource.FieldDescription:
-		return m.Description()
+	case userresource.FieldName:
+		return m.Name()
 	case userresource.FieldUsername:
 		return m.Username()
 	case userresource.FieldSSHPubkey:
@@ -20251,8 +21478,8 @@ func (m *UserResourceMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldResourceID(ctx)
 	case userresource.FieldKind:
 		return m.OldKind(ctx)
-	case userresource.FieldDescription:
-		return m.OldDescription(ctx)
+	case userresource.FieldName:
+		return m.OldName(ctx)
 	case userresource.FieldUsername:
 		return m.OldUsername(ctx)
 	case userresource.FieldSSHPubkey:
@@ -20280,12 +21507,12 @@ func (m *UserResourceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetKind(v)
 		return nil
-	case userresource.FieldDescription:
+	case userresource.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetDescription(v)
+		m.SetName(v)
 		return nil
 	case userresource.FieldUsername:
 		v, ok := value.(string)
@@ -20334,8 +21561,8 @@ func (m *UserResourceMutation) ClearedFields() []string {
 	if m.FieldCleared(userresource.FieldKind) {
 		fields = append(fields, userresource.FieldKind)
 	}
-	if m.FieldCleared(userresource.FieldDescription) {
-		fields = append(fields, userresource.FieldDescription)
+	if m.FieldCleared(userresource.FieldName) {
+		fields = append(fields, userresource.FieldName)
 	}
 	if m.FieldCleared(userresource.FieldUsername) {
 		fields = append(fields, userresource.FieldUsername)
@@ -20360,8 +21587,8 @@ func (m *UserResourceMutation) ClearField(name string) error {
 	case userresource.FieldKind:
 		m.ClearKind()
 		return nil
-	case userresource.FieldDescription:
-		m.ClearDescription()
+	case userresource.FieldName:
+		m.ClearName()
 		return nil
 	case userresource.FieldUsername:
 		m.ClearUsername()
@@ -20383,8 +21610,8 @@ func (m *UserResourceMutation) ResetField(name string) error {
 	case userresource.FieldKind:
 		m.ResetKind()
 		return nil
-	case userresource.FieldDescription:
-		m.ResetDescription()
+	case userresource.FieldName:
+		m.ResetName()
 		return nil
 	case userresource.FieldUsername:
 		m.ResetUsername()
@@ -20958,7 +22185,7 @@ type WorkloadResourceMutation struct {
 	id             *int
 	resource_id    *string
 	kind           *workloadresource.Kind
-	description    *string
+	name           *string
 	external_id    *string
 	desired_state  *workloadresource.DesiredState
 	current_state  *workloadresource.CurrentState
@@ -21143,53 +22370,53 @@ func (m *WorkloadResourceMutation) ResetKind() {
 	m.kind = nil
 }
 
-// SetDescription sets the "description" field.
-func (m *WorkloadResourceMutation) SetDescription(s string) {
-	m.description = &s
+// SetName sets the "name" field.
+func (m *WorkloadResourceMutation) SetName(s string) {
+	m.name = &s
 }
 
-// Description returns the value of the "description" field in the mutation.
-func (m *WorkloadResourceMutation) Description() (r string, exists bool) {
-	v := m.description
+// Name returns the value of the "name" field in the mutation.
+func (m *WorkloadResourceMutation) Name() (r string, exists bool) {
+	v := m.name
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldDescription returns the old "description" field's value of the WorkloadResource entity.
+// OldName returns the old "name" field's value of the WorkloadResource entity.
 // If the WorkloadResource object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *WorkloadResourceMutation) OldDescription(ctx context.Context) (v string, err error) {
+func (m *WorkloadResourceMutation) OldName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDescription requires an ID field in the mutation")
+		return v, errors.New("OldName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
 	}
-	return oldValue.Description, nil
+	return oldValue.Name, nil
 }
 
-// ClearDescription clears the value of the "description" field.
-func (m *WorkloadResourceMutation) ClearDescription() {
-	m.description = nil
-	m.clearedFields[workloadresource.FieldDescription] = struct{}{}
+// ClearName clears the value of the "name" field.
+func (m *WorkloadResourceMutation) ClearName() {
+	m.name = nil
+	m.clearedFields[workloadresource.FieldName] = struct{}{}
 }
 
-// DescriptionCleared returns if the "description" field was cleared in this mutation.
-func (m *WorkloadResourceMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[workloadresource.FieldDescription]
+// NameCleared returns if the "name" field was cleared in this mutation.
+func (m *WorkloadResourceMutation) NameCleared() bool {
+	_, ok := m.clearedFields[workloadresource.FieldName]
 	return ok
 }
 
-// ResetDescription resets all changes to the "description" field.
-func (m *WorkloadResourceMutation) ResetDescription() {
-	m.description = nil
-	delete(m.clearedFields, workloadresource.FieldDescription)
+// ResetName resets all changes to the "name" field.
+func (m *WorkloadResourceMutation) ResetName() {
+	m.name = nil
+	delete(m.clearedFields, workloadresource.FieldName)
 }
 
 // SetExternalID sets the "external_id" field.
@@ -21519,8 +22746,8 @@ func (m *WorkloadResourceMutation) Fields() []string {
 	if m.kind != nil {
 		fields = append(fields, workloadresource.FieldKind)
 	}
-	if m.description != nil {
-		fields = append(fields, workloadresource.FieldDescription)
+	if m.name != nil {
+		fields = append(fields, workloadresource.FieldName)
 	}
 	if m.external_id != nil {
 		fields = append(fields, workloadresource.FieldExternalID)
@@ -21549,8 +22776,8 @@ func (m *WorkloadResourceMutation) Field(name string) (ent.Value, bool) {
 		return m.ResourceID()
 	case workloadresource.FieldKind:
 		return m.Kind()
-	case workloadresource.FieldDescription:
-		return m.Description()
+	case workloadresource.FieldName:
+		return m.Name()
 	case workloadresource.FieldExternalID:
 		return m.ExternalID()
 	case workloadresource.FieldDesiredState:
@@ -21574,8 +22801,8 @@ func (m *WorkloadResourceMutation) OldField(ctx context.Context, name string) (e
 		return m.OldResourceID(ctx)
 	case workloadresource.FieldKind:
 		return m.OldKind(ctx)
-	case workloadresource.FieldDescription:
-		return m.OldDescription(ctx)
+	case workloadresource.FieldName:
+		return m.OldName(ctx)
 	case workloadresource.FieldExternalID:
 		return m.OldExternalID(ctx)
 	case workloadresource.FieldDesiredState:
@@ -21609,12 +22836,12 @@ func (m *WorkloadResourceMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetKind(v)
 		return nil
-	case workloadresource.FieldDescription:
+	case workloadresource.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetDescription(v)
+		m.SetName(v)
 		return nil
 	case workloadresource.FieldExternalID:
 		v, ok := value.(string)
@@ -21681,8 +22908,8 @@ func (m *WorkloadResourceMutation) AddField(name string, value ent.Value) error 
 // mutation.
 func (m *WorkloadResourceMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(workloadresource.FieldDescription) {
-		fields = append(fields, workloadresource.FieldDescription)
+	if m.FieldCleared(workloadresource.FieldName) {
+		fields = append(fields, workloadresource.FieldName)
 	}
 	if m.FieldCleared(workloadresource.FieldExternalID) {
 		fields = append(fields, workloadresource.FieldExternalID)
@@ -21710,8 +22937,8 @@ func (m *WorkloadResourceMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *WorkloadResourceMutation) ClearField(name string) error {
 	switch name {
-	case workloadresource.FieldDescription:
-		m.ClearDescription()
+	case workloadresource.FieldName:
+		m.ClearName()
 		return nil
 	case workloadresource.FieldExternalID:
 		m.ClearExternalID()
@@ -21739,8 +22966,8 @@ func (m *WorkloadResourceMutation) ResetField(name string) error {
 	case workloadresource.FieldKind:
 		m.ResetKind()
 		return nil
-	case workloadresource.FieldDescription:
-		m.ResetDescription()
+	case workloadresource.FieldName:
+		m.ResetName()
 		return nil
 	case workloadresource.FieldExternalID:
 		m.ResetExternalID()

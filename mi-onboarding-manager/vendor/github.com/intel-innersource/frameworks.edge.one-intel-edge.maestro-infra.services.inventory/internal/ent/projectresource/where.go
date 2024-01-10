@@ -62,9 +62,9 @@ func Kind(v string) predicate.ProjectResource {
 	return predicate.ProjectResource(sql.FieldEQ(FieldKind, v))
 }
 
-// Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
-func Description(v string) predicate.ProjectResource {
-	return predicate.ProjectResource(sql.FieldEQ(FieldDescription, v))
+// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
+func Name(v string) predicate.ProjectResource {
+	return predicate.ProjectResource(sql.FieldEQ(FieldName, v))
 }
 
 // ResourceIDEQ applies the EQ predicate on the "resource_id" field.
@@ -207,79 +207,79 @@ func KindContainsFold(v string) predicate.ProjectResource {
 	return predicate.ProjectResource(sql.FieldContainsFold(FieldKind, v))
 }
 
-// DescriptionEQ applies the EQ predicate on the "description" field.
-func DescriptionEQ(v string) predicate.ProjectResource {
-	return predicate.ProjectResource(sql.FieldEQ(FieldDescription, v))
+// NameEQ applies the EQ predicate on the "name" field.
+func NameEQ(v string) predicate.ProjectResource {
+	return predicate.ProjectResource(sql.FieldEQ(FieldName, v))
 }
 
-// DescriptionNEQ applies the NEQ predicate on the "description" field.
-func DescriptionNEQ(v string) predicate.ProjectResource {
-	return predicate.ProjectResource(sql.FieldNEQ(FieldDescription, v))
+// NameNEQ applies the NEQ predicate on the "name" field.
+func NameNEQ(v string) predicate.ProjectResource {
+	return predicate.ProjectResource(sql.FieldNEQ(FieldName, v))
 }
 
-// DescriptionIn applies the In predicate on the "description" field.
-func DescriptionIn(vs ...string) predicate.ProjectResource {
-	return predicate.ProjectResource(sql.FieldIn(FieldDescription, vs...))
+// NameIn applies the In predicate on the "name" field.
+func NameIn(vs ...string) predicate.ProjectResource {
+	return predicate.ProjectResource(sql.FieldIn(FieldName, vs...))
 }
 
-// DescriptionNotIn applies the NotIn predicate on the "description" field.
-func DescriptionNotIn(vs ...string) predicate.ProjectResource {
-	return predicate.ProjectResource(sql.FieldNotIn(FieldDescription, vs...))
+// NameNotIn applies the NotIn predicate on the "name" field.
+func NameNotIn(vs ...string) predicate.ProjectResource {
+	return predicate.ProjectResource(sql.FieldNotIn(FieldName, vs...))
 }
 
-// DescriptionGT applies the GT predicate on the "description" field.
-func DescriptionGT(v string) predicate.ProjectResource {
-	return predicate.ProjectResource(sql.FieldGT(FieldDescription, v))
+// NameGT applies the GT predicate on the "name" field.
+func NameGT(v string) predicate.ProjectResource {
+	return predicate.ProjectResource(sql.FieldGT(FieldName, v))
 }
 
-// DescriptionGTE applies the GTE predicate on the "description" field.
-func DescriptionGTE(v string) predicate.ProjectResource {
-	return predicate.ProjectResource(sql.FieldGTE(FieldDescription, v))
+// NameGTE applies the GTE predicate on the "name" field.
+func NameGTE(v string) predicate.ProjectResource {
+	return predicate.ProjectResource(sql.FieldGTE(FieldName, v))
 }
 
-// DescriptionLT applies the LT predicate on the "description" field.
-func DescriptionLT(v string) predicate.ProjectResource {
-	return predicate.ProjectResource(sql.FieldLT(FieldDescription, v))
+// NameLT applies the LT predicate on the "name" field.
+func NameLT(v string) predicate.ProjectResource {
+	return predicate.ProjectResource(sql.FieldLT(FieldName, v))
 }
 
-// DescriptionLTE applies the LTE predicate on the "description" field.
-func DescriptionLTE(v string) predicate.ProjectResource {
-	return predicate.ProjectResource(sql.FieldLTE(FieldDescription, v))
+// NameLTE applies the LTE predicate on the "name" field.
+func NameLTE(v string) predicate.ProjectResource {
+	return predicate.ProjectResource(sql.FieldLTE(FieldName, v))
 }
 
-// DescriptionContains applies the Contains predicate on the "description" field.
-func DescriptionContains(v string) predicate.ProjectResource {
-	return predicate.ProjectResource(sql.FieldContains(FieldDescription, v))
+// NameContains applies the Contains predicate on the "name" field.
+func NameContains(v string) predicate.ProjectResource {
+	return predicate.ProjectResource(sql.FieldContains(FieldName, v))
 }
 
-// DescriptionHasPrefix applies the HasPrefix predicate on the "description" field.
-func DescriptionHasPrefix(v string) predicate.ProjectResource {
-	return predicate.ProjectResource(sql.FieldHasPrefix(FieldDescription, v))
+// NameHasPrefix applies the HasPrefix predicate on the "name" field.
+func NameHasPrefix(v string) predicate.ProjectResource {
+	return predicate.ProjectResource(sql.FieldHasPrefix(FieldName, v))
 }
 
-// DescriptionHasSuffix applies the HasSuffix predicate on the "description" field.
-func DescriptionHasSuffix(v string) predicate.ProjectResource {
-	return predicate.ProjectResource(sql.FieldHasSuffix(FieldDescription, v))
+// NameHasSuffix applies the HasSuffix predicate on the "name" field.
+func NameHasSuffix(v string) predicate.ProjectResource {
+	return predicate.ProjectResource(sql.FieldHasSuffix(FieldName, v))
 }
 
-// DescriptionIsNil applies the IsNil predicate on the "description" field.
-func DescriptionIsNil() predicate.ProjectResource {
-	return predicate.ProjectResource(sql.FieldIsNull(FieldDescription))
+// NameIsNil applies the IsNil predicate on the "name" field.
+func NameIsNil() predicate.ProjectResource {
+	return predicate.ProjectResource(sql.FieldIsNull(FieldName))
 }
 
-// DescriptionNotNil applies the NotNil predicate on the "description" field.
-func DescriptionNotNil() predicate.ProjectResource {
-	return predicate.ProjectResource(sql.FieldNotNull(FieldDescription))
+// NameNotNil applies the NotNil predicate on the "name" field.
+func NameNotNil() predicate.ProjectResource {
+	return predicate.ProjectResource(sql.FieldNotNull(FieldName))
 }
 
-// DescriptionEqualFold applies the EqualFold predicate on the "description" field.
-func DescriptionEqualFold(v string) predicate.ProjectResource {
-	return predicate.ProjectResource(sql.FieldEqualFold(FieldDescription, v))
+// NameEqualFold applies the EqualFold predicate on the "name" field.
+func NameEqualFold(v string) predicate.ProjectResource {
+	return predicate.ProjectResource(sql.FieldEqualFold(FieldName, v))
 }
 
-// DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
-func DescriptionContainsFold(v string) predicate.ProjectResource {
-	return predicate.ProjectResource(sql.FieldContainsFold(FieldDescription, v))
+// NameContainsFold applies the ContainsFold predicate on the "name" field.
+func NameContainsFold(v string) predicate.ProjectResource {
+	return predicate.ProjectResource(sql.FieldContainsFold(FieldName, v))
 }
 
 // And groups predicates with the AND operator between them.

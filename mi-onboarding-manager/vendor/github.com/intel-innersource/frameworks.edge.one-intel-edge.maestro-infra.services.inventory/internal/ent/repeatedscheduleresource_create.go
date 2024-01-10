@@ -42,16 +42,16 @@ func (rsrc *RepeatedScheduleResourceCreate) SetNillableScheduleStatus(rs *repeat
 	return rsrc
 }
 
-// SetDescription sets the "description" field.
-func (rsrc *RepeatedScheduleResourceCreate) SetDescription(s string) *RepeatedScheduleResourceCreate {
-	rsrc.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (rsrc *RepeatedScheduleResourceCreate) SetName(s string) *RepeatedScheduleResourceCreate {
+	rsrc.mutation.SetName(s)
 	return rsrc
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (rsrc *RepeatedScheduleResourceCreate) SetNillableDescription(s *string) *RepeatedScheduleResourceCreate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (rsrc *RepeatedScheduleResourceCreate) SetNillableName(s *string) *RepeatedScheduleResourceCreate {
 	if s != nil {
-		rsrc.SetDescription(*s)
+		rsrc.SetName(*s)
 	}
 	return rsrc
 }
@@ -248,9 +248,9 @@ func (rsrc *RepeatedScheduleResourceCreate) createSpec() (*RepeatedScheduleResou
 		_spec.SetField(repeatedscheduleresource.FieldScheduleStatus, field.TypeEnum, value)
 		_node.ScheduleStatus = value
 	}
-	if value, ok := rsrc.mutation.Description(); ok {
-		_spec.SetField(repeatedscheduleresource.FieldDescription, field.TypeString, value)
-		_node.Description = value
+	if value, ok := rsrc.mutation.Name(); ok {
+		_spec.SetField(repeatedscheduleresource.FieldName, field.TypeString, value)
+		_node.Name = value
 	}
 	if value, ok := rsrc.mutation.DurationSeconds(); ok {
 		_spec.SetField(repeatedscheduleresource.FieldDurationSeconds, field.TypeUint32, value)

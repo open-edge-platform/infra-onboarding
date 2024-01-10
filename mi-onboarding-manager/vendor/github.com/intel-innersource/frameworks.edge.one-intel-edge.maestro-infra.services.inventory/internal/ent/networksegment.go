@@ -19,8 +19,8 @@ type NetworkSegment struct {
 	ID int `json:"id,omitempty"`
 	// ResourceID holds the value of the "resource_id" field.
 	ResourceID string `json:"resource_id,omitempty"`
-	// Description holds the value of the "description" field.
-	Description string `json:"description,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
 	// VlanID holds the value of the "vlan_id" field.
 	VlanID int32 `json:"vlan_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -59,7 +59,7 @@ func (*NetworkSegment) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case networksegment.FieldID, networksegment.FieldVlanID:
 			values[i] = new(sql.NullInt64)
-		case networksegment.FieldResourceID, networksegment.FieldDescription:
+		case networksegment.FieldResourceID, networksegment.FieldName:
 			values[i] = new(sql.NullString)
 		case networksegment.ForeignKeys[0]: // network_segment_site
 			values[i] = new(sql.NullInt64)
@@ -90,11 +90,11 @@ func (ns *NetworkSegment) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				ns.ResourceID = value.String
 			}
-		case networksegment.FieldDescription:
+		case networksegment.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field description", values[i])
+				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				ns.Description = value.String
+				ns.Name = value.String
 			}
 		case networksegment.FieldVlanID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -153,8 +153,8 @@ func (ns *NetworkSegment) String() string {
 	builder.WriteString("resource_id=")
 	builder.WriteString(ns.ResourceID)
 	builder.WriteString(", ")
-	builder.WriteString("description=")
-	builder.WriteString(ns.Description)
+	builder.WriteString("name=")
+	builder.WriteString(ns.Name)
 	builder.WriteString(", ")
 	builder.WriteString("vlan_id=")
 	builder.WriteString(fmt.Sprintf("%v", ns.VlanID))

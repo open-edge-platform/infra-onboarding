@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/predicate"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/providerresource"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/ent/siteresource"
 )
 
 // ProviderResourceQuery is the builder for querying ProviderResource entities.
@@ -22,8 +21,6 @@ type ProviderResourceQuery struct {
 	order      []providerresource.OrderOption
 	inters     []Interceptor
 	predicates []predicate.ProviderResource
-	withSite   *SiteResourceQuery
-	withFKs    bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -58,28 +55,6 @@ func (prq *ProviderResourceQuery) Unique(unique bool) *ProviderResourceQuery {
 func (prq *ProviderResourceQuery) Order(o ...providerresource.OrderOption) *ProviderResourceQuery {
 	prq.order = append(prq.order, o...)
 	return prq
-}
-
-// QuerySite chains the current query on the "site" edge.
-func (prq *ProviderResourceQuery) QuerySite() *SiteResourceQuery {
-	query := (&SiteResourceClient{config: prq.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := prq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := prq.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(providerresource.Table, providerresource.FieldID, selector),
-			sqlgraph.To(siteresource.Table, siteresource.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, providerresource.SiteTable, providerresource.SiteColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(prq.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
 }
 
 // First returns the first ProviderResource entity from the query.
@@ -274,22 +249,10 @@ func (prq *ProviderResourceQuery) Clone() *ProviderResourceQuery {
 		order:      append([]providerresource.OrderOption{}, prq.order...),
 		inters:     append([]Interceptor{}, prq.inters...),
 		predicates: append([]predicate.ProviderResource{}, prq.predicates...),
-		withSite:   prq.withSite.Clone(),
 		// clone intermediate query.
 		sql:  prq.sql.Clone(),
 		path: prq.path,
 	}
-}
-
-// WithSite tells the query-builder to eager-load the nodes that are connected to
-// the "site" edge. The optional arguments are used to configure the query builder of the edge.
-func (prq *ProviderResourceQuery) WithSite(opts ...func(*SiteResourceQuery)) *ProviderResourceQuery {
-	query := (&SiteResourceClient{config: prq.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	prq.withSite = query
-	return prq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -368,26 +331,15 @@ func (prq *ProviderResourceQuery) prepareQuery(ctx context.Context) error {
 
 func (prq *ProviderResourceQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*ProviderResource, error) {
 	var (
-		nodes       = []*ProviderResource{}
-		withFKs     = prq.withFKs
-		_spec       = prq.querySpec()
-		loadedTypes = [1]bool{
-			prq.withSite != nil,
-		}
+		nodes = []*ProviderResource{}
+		_spec = prq.querySpec()
 	)
-	if prq.withSite != nil {
-		withFKs = true
-	}
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, providerresource.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*ProviderResource).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &ProviderResource{config: prq.config}
 		nodes = append(nodes, node)
-		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	for i := range hooks {
@@ -399,46 +351,7 @@ func (prq *ProviderResourceQuery) sqlAll(ctx context.Context, hooks ...queryHook
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := prq.withSite; query != nil {
-		if err := prq.loadSite(ctx, query, nodes, nil,
-			func(n *ProviderResource, e *SiteResource) { n.Edges.Site = e }); err != nil {
-			return nil, err
-		}
-	}
 	return nodes, nil
-}
-
-func (prq *ProviderResourceQuery) loadSite(ctx context.Context, query *SiteResourceQuery, nodes []*ProviderResource, init func(*ProviderResource), assign func(*ProviderResource, *SiteResource)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*ProviderResource)
-	for i := range nodes {
-		if nodes[i].provider_resource_site == nil {
-			continue
-		}
-		fk := *nodes[i].provider_resource_site
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(siteresource.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "provider_resource_site" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
 }
 
 func (prq *ProviderResourceQuery) sqlCount(ctx context.Context) (int, error) {

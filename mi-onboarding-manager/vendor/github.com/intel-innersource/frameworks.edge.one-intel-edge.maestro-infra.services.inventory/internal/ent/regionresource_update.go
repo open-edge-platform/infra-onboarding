@@ -33,23 +33,23 @@ func (rru *RegionResourceUpdate) SetResourceID(s string) *RegionResourceUpdate {
 	return rru
 }
 
-// SetDescription sets the "description" field.
-func (rru *RegionResourceUpdate) SetDescription(s string) *RegionResourceUpdate {
-	rru.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (rru *RegionResourceUpdate) SetName(s string) *RegionResourceUpdate {
+	rru.mutation.SetName(s)
 	return rru
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (rru *RegionResourceUpdate) SetNillableDescription(s *string) *RegionResourceUpdate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (rru *RegionResourceUpdate) SetNillableName(s *string) *RegionResourceUpdate {
 	if s != nil {
-		rru.SetDescription(*s)
+		rru.SetName(*s)
 	}
 	return rru
 }
 
-// ClearDescription clears the value of the "description" field.
-func (rru *RegionResourceUpdate) ClearDescription() *RegionResourceUpdate {
-	rru.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (rru *RegionResourceUpdate) ClearName() *RegionResourceUpdate {
+	rru.mutation.ClearName()
 	return rru
 }
 
@@ -198,11 +198,11 @@ func (rru *RegionResourceUpdate) sqlSave(ctx context.Context) (n int, err error)
 	if value, ok := rru.mutation.ResourceID(); ok {
 		_spec.SetField(regionresource.FieldResourceID, field.TypeString, value)
 	}
-	if value, ok := rru.mutation.Description(); ok {
-		_spec.SetField(regionresource.FieldDescription, field.TypeString, value)
+	if value, ok := rru.mutation.Name(); ok {
+		_spec.SetField(regionresource.FieldName, field.TypeString, value)
 	}
-	if rru.mutation.DescriptionCleared() {
-		_spec.ClearField(regionresource.FieldDescription, field.TypeString)
+	if rru.mutation.NameCleared() {
+		_spec.ClearField(regionresource.FieldName, field.TypeString)
 	}
 	if value, ok := rru.mutation.RegionKind(); ok {
 		_spec.SetField(regionresource.FieldRegionKind, field.TypeString, value)
@@ -316,23 +316,23 @@ func (rruo *RegionResourceUpdateOne) SetResourceID(s string) *RegionResourceUpda
 	return rruo
 }
 
-// SetDescription sets the "description" field.
-func (rruo *RegionResourceUpdateOne) SetDescription(s string) *RegionResourceUpdateOne {
-	rruo.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (rruo *RegionResourceUpdateOne) SetName(s string) *RegionResourceUpdateOne {
+	rruo.mutation.SetName(s)
 	return rruo
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (rruo *RegionResourceUpdateOne) SetNillableDescription(s *string) *RegionResourceUpdateOne {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (rruo *RegionResourceUpdateOne) SetNillableName(s *string) *RegionResourceUpdateOne {
 	if s != nil {
-		rruo.SetDescription(*s)
+		rruo.SetName(*s)
 	}
 	return rruo
 }
 
-// ClearDescription clears the value of the "description" field.
-func (rruo *RegionResourceUpdateOne) ClearDescription() *RegionResourceUpdateOne {
-	rruo.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (rruo *RegionResourceUpdateOne) ClearName() *RegionResourceUpdateOne {
+	rruo.mutation.ClearName()
 	return rruo
 }
 
@@ -511,11 +511,11 @@ func (rruo *RegionResourceUpdateOne) sqlSave(ctx context.Context) (_node *Region
 	if value, ok := rruo.mutation.ResourceID(); ok {
 		_spec.SetField(regionresource.FieldResourceID, field.TypeString, value)
 	}
-	if value, ok := rruo.mutation.Description(); ok {
-		_spec.SetField(regionresource.FieldDescription, field.TypeString, value)
+	if value, ok := rruo.mutation.Name(); ok {
+		_spec.SetField(regionresource.FieldName, field.TypeString, value)
 	}
-	if rruo.mutation.DescriptionCleared() {
-		_spec.ClearField(regionresource.FieldDescription, field.TypeString)
+	if rruo.mutation.NameCleared() {
+		_spec.ClearField(regionresource.FieldName, field.TypeString)
 	}
 	if value, ok := rruo.mutation.RegionKind(); ok {
 		_spec.SetField(regionresource.FieldRegionKind, field.TypeString, value)

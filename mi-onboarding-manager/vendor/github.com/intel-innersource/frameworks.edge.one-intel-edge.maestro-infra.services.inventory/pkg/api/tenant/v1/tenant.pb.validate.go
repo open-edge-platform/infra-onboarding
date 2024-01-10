@@ -85,7 +85,7 @@ func (m *ProjectResource) validate(all bool) error {
 
 	// no validation rules for Kind
 
-	// no validation rules for Description
+	// no validation rules for Name
 
 	if len(errors) > 0 {
 		return ProjectResourceMultiError(errors)
@@ -217,7 +217,7 @@ func (m *UserResource) validate(all bool) error {
 
 	// no validation rules for Kind
 
-	// no validation rules for Description
+	// no validation rules for Name
 
 	if m.GetUsername() != "" {
 

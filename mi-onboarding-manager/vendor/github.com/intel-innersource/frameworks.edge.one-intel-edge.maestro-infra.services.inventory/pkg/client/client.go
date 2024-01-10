@@ -24,11 +24,26 @@ import (
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/tracing"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
 )
 
 var zlog = logging.GetLogger("MIAPIClient")
 
-const BatchSize = 50
+const (
+	BatchSize               = 50
+	InsecureGrpc            = "insecureGRPC"
+	InsecureGrpcDescription = "Flag to disable secure connectivity"
+	CaCertPath              = "caCertPath"
+	CaCertPathDescription   = "Path to the Certified Authority (CA) certificate. " +
+		"It must be provided if InsecureGRPC is disabled."
+	TLSCertPath                 = "tlsCertPath"
+	TLSCertPathDescription      = "Path to the TLS certificate. It must be provided if InsecureGRPC is disabled."
+	TLSKeyPath                  = "tlsKeyPath"
+	TLSKeyPathDescription       = "Path to the TLS key. It must be provided if InsecureGRPC is disabled."
+	InventoryAddress            = "inventoryAddress"
+	InventoryAddressDescription = "Inventory service address to connect to. It should have the following " +
+		"format <IP address>:<port>."
+)
 
 type WatchEvents struct {
 	Ctx   context.Context
@@ -50,19 +65,20 @@ type inventoryClient struct {
 // must implement.
 type InventoryClient interface {
 	// Close unregisters the client from the inventory server and terminates the
-	// gRPC connection.
+	// gRPC connection. The client cannot be reused after this call. It is safe
+	// to call this multiple times and from multiple goroutines.
 	Close() error
 	// List looks for inventory resources based on a filter definition
-	// returning their objects.
+	// returning their objects. If no resources are found, an empty slice (of length 0) is returned.
 	List(context.Context, *inv_v1.ResourceFilter) (*inv_v1.ListResourcesResponse, error)
 	// ListAll looks for inventory resources based on the given filter and fieldMask
-	// returning all objects that matches the filter.
+	// returning all objects that matches the filter. If no resources are found, an empty slice (of length 0) is returned.
 	ListAll(context.Context, *inv_v1.Resource, *fieldmaskpb.FieldMask) ([]*inv_v1.Resource, error)
 	// Find looks for inventory resources based on a filter definition
-	// returning their IDs.
+	// returning their IDs. If no resources are found, an empty slice (of length 0) is returned.
 	Find(context.Context, *inv_v1.ResourceFilter) (*inv_v1.FindResourcesResponse, error)
 	// FindAll looks for inventory resources based on the given filter and fieldMask
-	// returning all the ID that matches the filter
+	// returning all the ID that matches the filter. If no resources are found, an empty slice (of length 0) is returned.
 	FindAll(context.Context, *inv_v1.Resource, *fieldmaskpb.FieldMask) ([]string, error)
 	// Get retrieves a resource from inventory based on its ID.
 	Get(context.Context, string) (*inv_v1.GetResourceResponse, error)
@@ -73,6 +89,9 @@ type InventoryClient interface {
 	Update(context.Context, string, *fieldmaskpb.FieldMask, *inv_v1.Resource) (*inv_v1.UpdateResourceResponse, error)
 	// Delete deletes a resource from inventory based on its ID.
 	Delete(context.Context, string) (*inv_v1.DeleteResourceResponse, error)
+	// UpdateSubscriptions sets the resource kinds this clients will receive
+	// events for.
+	UpdateSubscriptions(context.Context, []inv_v1.ResourceKind) error
 	// TestingOnlySetClient allows to set the internal inventory service client
 	// API for testing purposes only.
 	TestingOnlySetClient(inv_v1.InventoryServiceClient)
@@ -119,8 +138,8 @@ func (client *inventoryClient) registerRetryBackoffLoop(expbackoff *backoff.Expo
 		// Gets next backoff time and checks if it is still valid
 		d := expbackoff.NextBackOff()
 		if d == backoff.Stop {
-			err := inv_errors.Errorfc(codes.Internal, "backoff max elapsed time")
-			zlog.MiSec().MiErr(err).Msg("Register retry loop finished")
+			err := inv_errors.Errorfc(codes.DeadlineExceeded, "maximum backoff time elapsed")
+			zlog.MiSec().MiErr(err).Msg("Register retry loop terminated due to maximum time elapsed")
 			return err
 		}
 
@@ -129,16 +148,10 @@ func (client *inventoryClient) registerRetryBackoffLoop(expbackoff *backoff.Expo
 		case <-time.After(d):
 			zlog.MiSec().Debug().Msgf("Client waited on next register retry for %v", d)
 
-		// Verifies if TermChan is enabled to stop backoff inner loop.
-		case <-client.cfg.TermChan:
-			err := inv_errors.Errorfc(codes.Internal, "inventory client terminated")
-			zlog.MiSec().MiErr(err).Msg("Register retry loop finished")
-			return err
-
 		// Waits for client context to be done
 		case <-client.streamCtx.Done():
-			err := inv_errors.Errorfc(codes.Internal, "finished register retry loop")
-			zlog.MiSec().MiErr(err).Msg("inventory client stream context done")
+			err := inv_errors.Errorfc(codes.Canceled, "client context canceled")
+			zlog.MiSec().MiErr(err).Msg("Register retry loop terminated due to client context cancellation")
 			return err
 		}
 	}
@@ -148,11 +161,11 @@ func (client *inventoryClient) registerRetryBackoffLoop(expbackoff *backoff.Expo
 // retries when the client stream context is closed.
 // Once the subscription to events was interrupted or finished.
 // It uses an exponential backoff timer to wait between retries.
-// Its backoff mechanism is configured with the RegisterMaxElapsedTime of InventoryClientConfig.
+// Its backoff mechanism is configured with InventoryClientConfig.RegisterMaxElapsedTime.
 func (client *inventoryClient) registerRetry() error {
 	// Checks if register retry is enabled, otherwise returns error.
 	if !client.cfg.EnableRegisterRetry {
-		err := inv_errors.Errorfc(codes.Internal, "regiter retry not enabled")
+		err := inv_errors.Errorfc(codes.Internal, "register retry not enabled")
 		zlog.MiSec().MiErr(err).Msg("could not retry register")
 		return err
 	}
@@ -236,13 +249,12 @@ func (client *inventoryClient) eventContextTracing() context.Context {
 }
 
 // eventHandler will listen for inventory events and enqueue them internal
-// channel, which can be accessed with EventChannel. This function blocks until a
-// signal over termChan is sent or the server closes the connection. It is safe
+// channel, which can be accessed with EventChannel. This function blocks until
+// the context is canceled or the server closes the connection. It is safe
 // to have a goroutine call this function and another goroutine calling Find,
 // Get, Create or Update at the same time, but it is not safe to call eventHandler
 // in different goroutines.
 func (client *inventoryClient) eventHandler() {
-	client.cfg.Wg.Add(1)
 	defer client.cfg.Wg.Done()
 	defer close(client.cfg.Events) // Only the sender can safely close a channel.
 
@@ -275,21 +287,21 @@ func (client *inventoryClient) eventHandler() {
 
 func (client *inventoryClient) Close() error {
 	client.streamCancel()
-	err := inv_errors.Wrap(client.connection.Close())
-	return err
+	err := client.connection.Close()
+	// Close might be called multiple times, we ignore this error.
+	if s, ok := status.FromError(err); ok && s.Code() == codes.Canceled {
+		err = nil
+	}
+	return inv_errors.Wrap(err)
 }
 
-// termChanHandler waits for a termination signal over termChan.
-// If true is sent over the channel, the client will initiate stream channel
-// shutdown.
-func (client *inventoryClient) termChanHandler() {
-	client.cfg.Wg.Add(1)
+// contextDoneHandler waits until the user-provided context ctx is done and initiates
+// stream channel shutdown by calling Close.
+func (client *inventoryClient) contextDoneHandler() {
 	defer client.cfg.Wg.Done()
-	termSig := <-client.cfg.TermChan
-	if termSig {
-		err := client.Close()
-		zlog.Info().Err(err).Msg("stopping inventory client")
-	}
+	<-client.streamCtx.Done()
+	err := client.Close()
+	zlog.Info().Err(err).Msg("stopping inventory client")
 }
 
 // connect creates a gRPC connection to a server.
@@ -381,8 +393,6 @@ type InventoryClientConfig struct {
 	ResourceKinds []inv_v1.ResourceKind
 	// EnableTracing enables tracing.
 	EnableTracing bool
-	// TermChan is used to terminate the client.
-	TermChan chan bool
 	// Wg will be unblocked upon termination of client.
 	Wg *sync.WaitGroup
 	// SecurityConfig security configuration for inventoryClient.
@@ -394,10 +404,6 @@ func validateClientInput(ctx context.Context, cfg InventoryClientConfig) error {
 	if ctx == nil {
 		zlog.MiSec().MiError("context is nil").Msg("")
 		return inv_errors.Errorfc(codes.InvalidArgument, "context is nil")
-	}
-	if cfg.TermChan == nil {
-		zlog.MiSec().MiError("termChan is nil").Msg("")
-		return inv_errors.Errorfc(codes.InvalidArgument, "termChan is nil")
 	}
 	if cfg.Wg == nil {
 		zlog.MiSec().MiError("waitgroup is nil").Msg("")
@@ -415,14 +421,17 @@ func validateClientInput(ctx context.Context, cfg InventoryClientConfig) error {
 	return nil
 }
 
-// NewInventoryClient creates a new inventoryClient with a connection to inventory.
-// ctx allows passing in a custom context.Context.
-// Users should call inventoryClient.Close to terminate the gRPC connection after this function returns.
+// NewInventoryClient creates a new inventoryClient, establishes a connection to
+// inventory and registers it.
+// ctx is used for the initial connect and the later bidi stream channel to
+// inventory, and can then be used to trigger client shutdown asynchronously. In
+// addition, users can call InventoryClient.Close to terminate the gRPC
+// connection. Both methods are equivalent and may be used at the same time.
 func NewInventoryClient(
 	ctx context.Context,
 	cfg InventoryClientConfig,
 ) (InventoryClient, error) {
-	// Handle required input
+	// Handle required inputs
 	if err := validateClientInput(ctx, cfg); err != nil {
 		return nil, err
 	}
@@ -454,6 +463,7 @@ func NewInventoryClient(
 		connection: conn,
 		invAPI:     invClient,
 	}
+	cl.streamCtx, cl.streamCancel = context.WithCancel(ctx)
 
 	// registering client and obtaining UUID
 	err = cl.register()
@@ -464,9 +474,11 @@ func NewInventoryClient(
 	}
 
 	// Setup handler for user initiated shutdown.
-	go cl.termChanHandler()
+	cl.cfg.Wg.Add(1)
+	go cl.contextDoneHandler()
 
 	// Setup inventory event handler, register retry inside of it.
+	cl.cfg.Wg.Add(1)
 	go cl.eventHandler()
 
 	return cl, nil
@@ -477,33 +489,32 @@ func NewInventoryClient(
 // once the subscriptions stream context is closed by any unexpected reasons.
 // Look at RegisterRetry method for a helper example.
 func (client *inventoryClient) register() error {
-	ctx, cancel := context.WithCancel(context.Background())
-	zlog := zlog.TraceCtx(ctx)
+	zlog := zlog.TraceCtx(client.streamCtx)
 	zlog.MiSec().Info().Msgf("Register inventory client: name %s, clientkind %v, prefixes %s",
 		client.cfg.Name, client.cfg.ClientKind, client.cfg.ResourceKinds,
 	)
 
 	// Register client by setting up the stream channel.
-	req := inv_v1.SubscribeEventsRequest{
+	req := &inv_v1.SubscribeEventsRequest{
 		Name:                    client.cfg.Name,
 		Version:                 "0.1.0-dev", // TODO: pull version main.Version
 		ClientKind:              client.cfg.ClientKind,
 		SubscribedResourceKinds: client.cfg.ResourceKinds,
 	}
-	stream, err := client.invAPI.SubscribeEvents(ctx, &req)
+	stream, err := client.invAPI.SubscribeEvents(client.streamCtx, req)
 	if err != nil {
-		cancel()
+		client.streamCancel()
 		return inv_errors.Wrap(err)
 	}
 	// Get our UUID from the first response.
 	resp, err := stream.Recv()
 	if err != nil {
-		cancel()
+		client.streamCancel()
 		zlog.MiSec().MiErr(err).Msg("Unable to register inventory client")
 		return inv_errors.Wrap(err)
 	}
 	if resp.ClientUuid == "" {
-		cancel()
+		client.streamCancel()
 		zlog.MiError("Server did not allocate an UUID unable to register inventory client").Msg("")
 		return inv_errors.Errorfc(codes.Internal, "Server did not allocate an UUID unable to register inventory client")
 	}
@@ -513,8 +524,6 @@ func (client *inventoryClient) register() error {
 	}
 	client.uuidMutex.Lock()
 	client.stream = stream
-	client.streamCtx = ctx
-	client.streamCancel = cancel
 	client.clientUUID = resp.ClientUuid
 	zlog.MiSec().Info().Msgf("Registered inventory client with UUID: %s", resp.ClientUuid)
 	client.uuidMutex.Unlock()
@@ -543,6 +552,10 @@ func (client *inventoryClient) List(
 		return nil, inv_errors.Wrap(err)
 	}
 
+	if len(objs.Resources) == 0 {
+		objs.Resources = make([]*inv_v1.GetResourceResponse, 0)
+	}
+
 	return objs, nil
 }
 
@@ -568,18 +581,27 @@ func (client *inventoryClient) ListAll(
 	}
 	resources := make([]*inv_v1.Resource, 0, BatchSize) // Pre-allocate a slice of at least a batchSize
 	hasNext := true
+	firstRead := true
 	err := error(nil)
 	for hasNext {
 		var objs *inv_v1.ListResourcesResponse
 		objs, err = client.invAPI.ListResources(ctx, &filterRequest)
-		if inv_errors.IsNotFound(err) && len(resources) == 0 {
-			return nil, err
+		//nolint:gocritic // false-positive, no need for switch statement due to default option
+		if firstRead && len(objs.GetResources()) == 0 {
+			zlog.Debug().Msgf("no resources found for filter: %s", &filterRequest)
+			break
+		} else if !firstRead && len(objs.GetResources()) == 0 {
+			zlog.Warn().Msgf("no resources found for filter (%s), expect to return an incoherent state", &filterRequest)
+			break
 		} else if err != nil {
 			zlog.Debug().Err(err).Msg("on ListAll")
 			// on errors, return partial result.
 			// This covers also the case of interleaved deletes. In this case we could get a "not-found" error also when
 			// getting a page different from the first.
 			break
+		}
+		if firstRead {
+			firstRead = false
 		}
 		for _, r := range objs.GetResources() {
 			resources = append(resources, r.GetResource())
@@ -613,6 +635,10 @@ func (client *inventoryClient) Find(
 		return nil, inv_errors.Wrap(err)
 	}
 
+	if len(objs.ResourceId) == 0 {
+		objs.ResourceId = make([]string, 0)
+	}
+
 	return objs, nil
 }
 
@@ -638,18 +664,27 @@ func (client *inventoryClient) FindAll(
 	}
 	resources := make([]string, 0, BatchSize) // Pre-allocate a slice of at least a batchSize
 	hasNext := true
+	firstRead := true
 	err := error(nil)
 	for hasNext {
 		var objs *inv_v1.FindResourcesResponse
 		objs, err = client.invAPI.FindResources(ctx, &filterRequest)
-		if inv_errors.IsNotFound(err) && len(resources) == 0 {
-			return nil, err
+		//nolint:gocritic // false-positive, no need for switch statement due to default option
+		if firstRead && len(objs.GetResourceId()) == 0 {
+			zlog.Debug().Msgf("no resources found for filter: %s", &filterRequest)
+			break
+		} else if !firstRead && len(objs.GetResourceId()) == 0 {
+			zlog.Warn().Msgf("no resources found for filter (%s), expect to return an incoherent state", &filterRequest)
+			break
 		} else if err != nil {
 			zlog.Debug().Err(err).Msg("on FindAll")
 			// on errors, return partial result.
 			// This covers also the case of interleaved deletes. In this case we could get a "not-found" error also when
 			// getting a page different from the first.
 			break
+		}
+		if firstRead {
+			firstRead = false
 		}
 		resources = append(resources, objs.GetResourceId()...)
 		hasNext = objs.HasNext
@@ -704,7 +739,13 @@ func (client *inventoryClient) Create(
 		return nil, invErr
 	}
 
-	return obj, nil
+	// TODO(max): remove the response wrapper once we are ready to update
+	// 			  downstream consumers, see LPIO-1488
+	resID, err := util.GetResourceIDFromResource(obj)
+	if err != nil {
+		return nil, err
+	}
+	return &inv_v1.CreateResourceResponse{ResourceId: resID}, nil
 }
 
 func (client *inventoryClient) Update(
@@ -725,14 +766,16 @@ func (client *inventoryClient) Update(
 		FieldMask:  fieldmask,
 		Resource:   res,
 	}
-	obj, err := client.invAPI.UpdateResource(ctx, &object)
+	_, err := client.invAPI.UpdateResource(ctx, &object)
 	if err != nil {
 		zlog.Debug().Err(err).Msg("on Update")
 		invErr := client.handleInventoryError(err)
 		return nil, invErr
 	}
 
-	return obj, nil
+	// TODO(max): remove the response wrapper once we are ready to update
+	// 			  downstream consumers, see LPIO-1488
+	return &inv_v1.UpdateResourceResponse{}, nil
 }
 
 func (client *inventoryClient) Delete(
@@ -756,6 +799,30 @@ func (client *inventoryClient) Delete(
 		return nil, invErr
 	}
 	return obj, nil
+}
+
+func (client *inventoryClient) UpdateSubscriptions(
+	ctx context.Context,
+	kinds []inv_v1.ResourceKind,
+) error {
+	zlog.Debug().Msgf("Update subscriptions: %s", kinds)
+
+	if err := client.clientIsRegistered(); err != nil {
+		return err
+	}
+
+	req := &inv_v1.ChangeSubscribeEventsRequest{
+		ClientUuid:              client.clientUUID,
+		SubscribedResourceKinds: kinds,
+	}
+	_, err := client.invAPI.ChangeSubscribeEvents(ctx, req)
+	if err != nil {
+		zlog.Debug().Err(err).Msg("on change subs")
+		invErr := client.handleInventoryError(err)
+		return invErr
+	}
+
+	return nil
 }
 
 // handleInventoryError handles errors returned by inventory.

@@ -7,7 +7,7 @@ package locationv1
 const (
 	// Fields and Edges constants for "RegionResource"
 	RegionResourceFieldResourceId  = "resource_id"
-	RegionResourceFieldDescription = "description"
+	RegionResourceFieldName        = "name"
 	RegionResourceFieldRegionKind  = "region_kind"
 	RegionResourceEdgeParentRegion = "parent_region"
 	RegionResourceEdgeChildren     = "children"
@@ -15,8 +15,7 @@ const (
 
 	// Fields and Edges constants for "SiteResource"
 	SiteResourceFieldResourceId       = "resource_id"
-	SiteResourceFieldDescription      = "description"
-	SiteResourceFieldSiteKind         = "site_kind"
+	SiteResourceFieldName             = "name"
 	SiteResourceEdgeRegion            = "region"
 	SiteResourceEdgeOu                = "ou"
 	SiteResourceFieldAddress          = "address"

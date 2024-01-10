@@ -56,23 +56,23 @@ func (rsru *RepeatedScheduleResourceUpdate) ClearScheduleStatus() *RepeatedSched
 	return rsru
 }
 
-// SetDescription sets the "description" field.
-func (rsru *RepeatedScheduleResourceUpdate) SetDescription(s string) *RepeatedScheduleResourceUpdate {
-	rsru.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (rsru *RepeatedScheduleResourceUpdate) SetName(s string) *RepeatedScheduleResourceUpdate {
+	rsru.mutation.SetName(s)
 	return rsru
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (rsru *RepeatedScheduleResourceUpdate) SetNillableDescription(s *string) *RepeatedScheduleResourceUpdate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (rsru *RepeatedScheduleResourceUpdate) SetNillableName(s *string) *RepeatedScheduleResourceUpdate {
 	if s != nil {
-		rsru.SetDescription(*s)
+		rsru.SetName(*s)
 	}
 	return rsru
 }
 
-// ClearDescription clears the value of the "description" field.
-func (rsru *RepeatedScheduleResourceUpdate) ClearDescription() *RepeatedScheduleResourceUpdate {
-	rsru.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (rsru *RepeatedScheduleResourceUpdate) ClearName() *RepeatedScheduleResourceUpdate {
+	rsru.mutation.ClearName()
 	return rsru
 }
 
@@ -271,11 +271,11 @@ func (rsru *RepeatedScheduleResourceUpdate) sqlSave(ctx context.Context) (n int,
 	if rsru.mutation.ScheduleStatusCleared() {
 		_spec.ClearField(repeatedscheduleresource.FieldScheduleStatus, field.TypeEnum)
 	}
-	if value, ok := rsru.mutation.Description(); ok {
-		_spec.SetField(repeatedscheduleresource.FieldDescription, field.TypeString, value)
+	if value, ok := rsru.mutation.Name(); ok {
+		_spec.SetField(repeatedscheduleresource.FieldName, field.TypeString, value)
 	}
-	if rsru.mutation.DescriptionCleared() {
-		_spec.ClearField(repeatedscheduleresource.FieldDescription, field.TypeString)
+	if rsru.mutation.NameCleared() {
+		_spec.ClearField(repeatedscheduleresource.FieldName, field.TypeString)
 	}
 	if value, ok := rsru.mutation.DurationSeconds(); ok {
 		_spec.SetField(repeatedscheduleresource.FieldDurationSeconds, field.TypeUint32, value)
@@ -434,23 +434,23 @@ func (rsruo *RepeatedScheduleResourceUpdateOne) ClearScheduleStatus() *RepeatedS
 	return rsruo
 }
 
-// SetDescription sets the "description" field.
-func (rsruo *RepeatedScheduleResourceUpdateOne) SetDescription(s string) *RepeatedScheduleResourceUpdateOne {
-	rsruo.mutation.SetDescription(s)
+// SetName sets the "name" field.
+func (rsruo *RepeatedScheduleResourceUpdateOne) SetName(s string) *RepeatedScheduleResourceUpdateOne {
+	rsruo.mutation.SetName(s)
 	return rsruo
 }
 
-// SetNillableDescription sets the "description" field if the given value is not nil.
-func (rsruo *RepeatedScheduleResourceUpdateOne) SetNillableDescription(s *string) *RepeatedScheduleResourceUpdateOne {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (rsruo *RepeatedScheduleResourceUpdateOne) SetNillableName(s *string) *RepeatedScheduleResourceUpdateOne {
 	if s != nil {
-		rsruo.SetDescription(*s)
+		rsruo.SetName(*s)
 	}
 	return rsruo
 }
 
-// ClearDescription clears the value of the "description" field.
-func (rsruo *RepeatedScheduleResourceUpdateOne) ClearDescription() *RepeatedScheduleResourceUpdateOne {
-	rsruo.mutation.ClearDescription()
+// ClearName clears the value of the "name" field.
+func (rsruo *RepeatedScheduleResourceUpdateOne) ClearName() *RepeatedScheduleResourceUpdateOne {
+	rsruo.mutation.ClearName()
 	return rsruo
 }
 
@@ -679,11 +679,11 @@ func (rsruo *RepeatedScheduleResourceUpdateOne) sqlSave(ctx context.Context) (_n
 	if rsruo.mutation.ScheduleStatusCleared() {
 		_spec.ClearField(repeatedscheduleresource.FieldScheduleStatus, field.TypeEnum)
 	}
-	if value, ok := rsruo.mutation.Description(); ok {
-		_spec.SetField(repeatedscheduleresource.FieldDescription, field.TypeString, value)
+	if value, ok := rsruo.mutation.Name(); ok {
+		_spec.SetField(repeatedscheduleresource.FieldName, field.TypeString, value)
 	}
-	if rsruo.mutation.DescriptionCleared() {
-		_spec.ClearField(repeatedscheduleresource.FieldDescription, field.TypeString)
+	if rsruo.mutation.NameCleared() {
+		_spec.ClearField(repeatedscheduleresource.FieldName, field.TypeString)
 	}
 	if value, ok := rsruo.mutation.DurationSeconds(); ok {
 		_spec.SetField(repeatedscheduleresource.FieldDurationSeconds, field.TypeUint32, value)

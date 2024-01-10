@@ -16,6 +16,8 @@ type Tx struct {
 	EndpointResource *EndpointResourceClient
 	// HostResource is the client for interacting with the HostResource builders.
 	HostResource *HostResourceClient
+	// HostgpuResource is the client for interacting with the HostgpuResource builders.
+	HostgpuResource *HostgpuResourceClient
 	// HostnicResource is the client for interacting with the HostnicResource builders.
 	HostnicResource *HostnicResourceClient
 	// HoststorageResource is the client for interacting with the HoststorageResource builders.
@@ -46,6 +48,10 @@ type Tx struct {
 	SingleScheduleResource *SingleScheduleResourceClient
 	// SiteResource is the client for interacting with the SiteResource builders.
 	SiteResource *SiteResourceClient
+	// TelemetryGroupResource is the client for interacting with the TelemetryGroupResource builders.
+	TelemetryGroupResource *TelemetryGroupResourceClient
+	// TelemetryProfile is the client for interacting with the TelemetryProfile builders.
+	TelemetryProfile *TelemetryProfileClient
 	// UserResource is the client for interacting with the UserResource builders.
 	UserResource *UserResourceClient
 	// WorkloadMember is the client for interacting with the WorkloadMember builders.
@@ -185,6 +191,7 @@ func (tx *Tx) Client() *Client {
 func (tx *Tx) init() {
 	tx.EndpointResource = NewEndpointResourceClient(tx.config)
 	tx.HostResource = NewHostResourceClient(tx.config)
+	tx.HostgpuResource = NewHostgpuResourceClient(tx.config)
 	tx.HostnicResource = NewHostnicResourceClient(tx.config)
 	tx.HoststorageResource = NewHoststorageResourceClient(tx.config)
 	tx.HostusbResource = NewHostusbResourceClient(tx.config)
@@ -200,6 +207,8 @@ func (tx *Tx) init() {
 	tx.RepeatedScheduleResource = NewRepeatedScheduleResourceClient(tx.config)
 	tx.SingleScheduleResource = NewSingleScheduleResourceClient(tx.config)
 	tx.SiteResource = NewSiteResourceClient(tx.config)
+	tx.TelemetryGroupResource = NewTelemetryGroupResourceClient(tx.config)
+	tx.TelemetryProfile = NewTelemetryProfileClient(tx.config)
 	tx.UserResource = NewUserResourceClient(tx.config)
 	tx.WorkloadMember = NewWorkloadMemberClient(tx.config)
 	tx.WorkloadResource = NewWorkloadResourceClient(tx.config)
