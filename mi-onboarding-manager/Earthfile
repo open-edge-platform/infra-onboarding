@@ -45,7 +45,7 @@ build-onboardingmgr:
     ARG version='0.0.0-unknown'
     WORKDIR /work
     COPY . .
-    RUN --mount=type=cache,target=/root/.cache/go-build --ssh CGO_ENABLED=0 GOARCH=amd64 GOOS=linux \
+    RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOARCH=amd64 GOOS=linux \
         go build -trimpath -o build/onboardingmgr \
             -ldflags "-s -w -extldflags '-static' -X main.Version=$version" \
             ./cmd/onboardingmgr
@@ -73,7 +73,7 @@ build-onboardingcli:
     ARG version='0.0.0-unknown'
     WORKDIR /work
     COPY . .
-    RUN --mount=type=cache,target=/root/.cache/go-build --ssh CGO_ENABLED=0 GOARCH=amd64 GOOS=linux \
+    RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOARCH=amd64 GOOS=linux \
         go build -trimpath -o build/onboardingcli \
             -ldflags "-s -w -extldflags '-static' -X main.Version=$version" \
             ./internal/onboardingmgr/test/client/client_eb.go
