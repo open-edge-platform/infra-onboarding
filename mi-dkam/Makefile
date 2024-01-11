@@ -57,13 +57,11 @@ all:
 	@# Help: Runs build, lint, test stage
 	build lint test 	
 	
-build:
-	@export DOCKER_REGISTRY=${DOCKER_REGISTRY} DOCKER_REPOSITORY=${DOCKER_REPOSITORY} IMG_NAME=${IMG_NAME} VERSION=${VERSION} &&  earthly -V +all
+docker-build:
+	@export DOCKER_REGISTRY=${DOCKER_REGISTRY} DOCKER_REPOSITORY=${DOCKER_REPOSITORY} IMG_NAME=${IMG_NAME} VERSION=${IMG_VERSION} &&  earthly -V +all
 
 docker-push:
-	docker push ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}:${VERSION} && \
-        docker tag ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}:${VERSION} ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}:${IMG_VERSION} && \
-	docker push ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}:${IMG_VERSION}
+	docker push ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}:${IMG_VERSION} 
 
 #lint-ci: license go-lint
 

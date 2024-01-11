@@ -208,6 +208,17 @@ pipeline {
             }
         }
 
+	stage('Build Docker image') {
+            when {
+                anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest(); }
+            }
+            steps {
+                script {
+                    miDocker.build()
+                }
+            }
+        }
+	    
         stage ('Scan Containers') {
             when {
                 anyOf {
@@ -237,18 +248,13 @@ pipeline {
             }
         }
 
-        stage('Docker Publish') {
+        stage('Deploy Docker image') {
             when {
                 anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; expression{ common.isMatchingCommit(/.*\[push-docker-image\]*/) }; }
             }
             steps {
-                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'intel-harbor-credentials', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
-                {
-                    sh '''
-                    docker login -u $USERNAME -p $PASSWORD https://amr-registry.caas.intel.com
-                    make docker-push
-                    docker logout
-                    '''
+                script {
+                    miDocker.push()
                 }
             }
         }
