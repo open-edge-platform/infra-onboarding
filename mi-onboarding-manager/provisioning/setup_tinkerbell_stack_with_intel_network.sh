@@ -170,10 +170,8 @@ function set_rk2_proxy() {
 		https_proxy=$(sudo cat /etc/environment | grep https_proxy | awk -F "=" '{print $2}')
 		no_proxy=$(sudo cat /etc/environment | grep no_proxy | awk -F "=" '{print $2}')
 
-		if [ ! -f /etc/default/rke2-server ] || [ ! -s /etc/default/rke2-server ]; then
-
-			echo -e $rke_proxy_conf | sudo tee /etc/default/rke2-server >/dev/null
-		fi
+		echo -e $rke_proxy_conf | sudo tee /etc/default/rke2-server >/dev/null
+   
 		if [ ! -f /root/.docker/config.json ] || [ ! -s /root/.docker/config.json ]; then
 			sudo mkdir -p /root/.docker/
 			cat <<EOF | sudo tee /root/.docker/config.json
