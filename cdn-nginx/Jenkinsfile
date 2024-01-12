@@ -17,6 +17,7 @@ pipeline {
         docker {
             label 'oie_spot_executor'
             image 'amr-registry.caas.intel.com/one-intel-edge/rrp-devops/oie_ci_testing:latest'
+            args '-e http_proxy=http://proxy-dmz.intel.com:911 -e https_proxy=http://proxy-dmz.intel.com:912 -e HTTP_PROXY=http://proxy-dmz.intel.com:911 -e HTTPS_PROXY=http://proxy-dmz.intel.com:912 -e NO_PROXY=localhost,*.intel.com,intel.com,127.0.0.1 --net=host'
             alwaysPull true
         }
     }
