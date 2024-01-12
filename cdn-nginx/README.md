@@ -42,39 +42,51 @@ https://ubit-artifactory-or.intel.com/artifactory/one-intel-edge-or-local/<proje
 
 ## Build CDN NGINX container
 ```
-git clone https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.infrastructure.provisioning-cdn-boots.git cdn-boots
-cd cdn-boots
-docker build --rm --build-arg http_proxy='http://proxy-dmz.intel.com:911' --build-arg https_proxy='http://proxy-dmz.intel.com:912' --build-arg HTTP_PROXY='http://proxy-dmz.intel.com:911' --build-arg HTTPS_PROXY='http://proxy-dmz.intel.com:912' --build-arg NO_PROXY='localhost,*.intel.com,intel.com,127.0.0.1' --build-arg no_proxy='localhost,*.intel.com,intel.com,127.0.0.1' -t intel/nginx-php-debian:v1 -f cdn-nginx/Dockerfile cdn-nginx
+git clone https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.infrastructure.provisioning-cdn-nginx.git cdn-nginx
+cd cdn-nginx
+docker build --rm --build-arg http_proxy='http://proxy-dmz.intel.com:911' --build-arg https_proxy='http://proxy-dmz.intel.com:912' --build-arg HTTP_PROXY='http://proxy-dmz.intel.com:911' --build-arg HTTPS_PROXY='http://proxy-dmz.intel.com:912' --build-arg NO_PROXY='localhost,*.intel.com,intel.com,127.0.0.1' --build-arg no_proxy='localhost,*.intel.com,intel.com,127.0.0.1' -t amr-registry.caas.intel.com/one-intel-edge/maestro-i/frameworks.edge.one-intel-edge.maestro-infra.services.infrastructure.provisioning-cdn-nginx:1.0.1-dev -f cdn-nginx/Dockerfile cdn-nginx
 ```
 
+# UNIT TESTING
+# Ensure ports are available
+By running ```sudo lsof -i -P -n | grep LISTEN```, make sure that ports ```69, 80, 8080``` are free
 ## Run CDN NGINX container
 ```
-docker run -p 80:80 --network host intel/nginx-php-debian:v1
+docker run --rm -d -p 8080:8080 --network host --env BOOTS_SERVICE_URL=localhost amr-registry.caas.intel.com/one-intel-edge/maestro-i/frameworks.edge.one-intel-edge.maestro-infra.services.infrastructure.provisioning-cdn-nginx:1.0.1-dev
 ```
-## STUB to test
-The  following command will create a new folder named ```temp``` in the current directory and mount inside the container
+## Run stub CDN Boots container
 ```
-docker run -p 8095:8095 --network host -v $PWD/temp:/usr/local/cdn gar-registry.caas.intel.com/star-fw/tinkerbell/cdn-boots:v1
-
+docker run --rm -d --pull always --network host gar-registry.caas.intel.com/star-fw/tinkerbell/cdn-boots:stub
 ```
 
-
-For testing , you may run the following command
+## Test
+Run the following command
 ```
-curl -X POST "http://localhost/write.php?mac=98:4f:ee:18:55:7c&&uuid=50415a46-3131-3051-b030-4a4345a4150&&serial_id=FZAP111000JC&&en_ip=172.22.28.35&&boot_url=localhost"
-"
+curl "http://localhost:8080/chain.php?mac=02:00:00:00:00:ff&&boot_url=http://localhost:8080" --noproxy '*'
 ```
 Expected output
-
-curl response
 ```
-Write successful
+#!ipxe
+
+echo Tinkerbell Boots iPXE
+set iface  || shell
+set tinkerbell http://127.0.0.1
+set syslog_host 127.0.0.1
+set ipxe_cloud_config packet
+
+params
+param body Device connected to DHCP system
+param type provisioning.104.01
+imgfetch http://localhost/phone-home##params
+imgfree
+
+set action workflow
+set state 
+set arch x86_64
+set bootdevmac 02:00:00:00:00:ff
+set base-url http://localhost/kernels?
+kernel ${base-url}/5.0.1-fake-version ip=dhcp modules=loop,squashfs,sd-mod,usb-storage alpine_repo=${base-url}/repo-${arch}/main modloop=${base-url}/modloop-${arch} tinkerbell=${tinkerbell} syslog_host=${syslog_host} packet_action=${action} packet_state=${state} osie_vendors_url= grpc_authority=127.0.0.1 packet_base_url=http://install.ewr1.packet.net/workflow instance_id=f9f56dff-098a-4c5f-a51c-19ad35de85d1 worker_id=f9f56dff-098a-4c5f-a51c-19ad35de85d1 packet_bootdev_mac=${bootdevmac} facility= intel_iommu=on iommu=pt plan= manufacturer=fake systems incorporated slug=FakeOS 1.0:c7f0d804222d91e0ad2edd00158dbbeb initrd=initramfs.cpio.gz console=tty0 console=ttyS1,115200
+initrd ${base-url}/initramfs.cpio.gz
+boot
 ```
 
-check ```temp/setup.json``` in current directory (mounted in previous step) for data validation
-
-expected file content
-
-```
-{"mac":"98:4f:ee:18:55:7c","uuid":"50415a46-3131-3051-b030-4a4345a4150","serial_id":"FZAP111000JC","ip":"172.22.28.35"}
-```

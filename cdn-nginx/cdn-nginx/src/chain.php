@@ -1,27 +1,17 @@
 <?php
 $input_mac = filter_input(INPUT_GET, 'mac');
-$input_uuid = filter_input(INPUT_GET, 'uuid');
-$input_serial_id = filter_input(INPUT_GET, 'serial_id');
-$input_en_ip = filter_input(INPUT_GET, 'en_ip');
 $input_boot_url = filter_input(INPUT_GET, 'boot_url');
 
-
-function update_en_details($mac, $uuid, $serial_id, $ip) {
-
-  global $input_boot_url;
+function get_auto_ipxe($mac) {
   $data = array(
     'mac' => $mac,
-    'uuid' => $uuid,
-    'serial_id' => $serial_id,
-    'ip' => $ip
   );
   $post_data = json_encode($data);
-
-  
-  $api_url = "http://{$input_boot_url}:8095/UpdateEN";
+  $api_url = "http://$BOOTS_SERVICE_URL/auto.ipxe";
 
   $ch = curl_init($api_url);
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($ch, CURLOPT_HEADER, false);
   curl_setopt($ch, CURLINFO_HEADER_OUT, true);
   curl_setopt($ch, CURLOPT_POST, true);
   curl_setopt($ch, CURLOPT_POSTFIELDS, $post_data);
@@ -35,18 +25,20 @@ function update_en_details($mac, $uuid, $serial_id, $ip) {
     print_r("Curl error" . curl_error($ch));
   }
   curl_close($ch);
-  $data = json_decode($result, true);
-  return $data['status'];
+
+  return $result;
 }
 
-
-
-$response = update_en_details($input_mac, $input_uuid, $input_serial_id, $input_en_ip);
-if ( $response != "pass" ){
-    exit(); // Unable to update details
+$response = get_auto_ipxe($input_mac);
+if ( empty($response) ){
+  $custom_ipxe = <<<EOT
+#!ipxe
+echo Unable to get ipxe script for $input_mac. Retrying after 30 seconds
+sleep 30
+chain {$input_boot_url}/chain.php?mac=\${mac}&&boot_url={$input_boot_url}
+EOT;
+printf($custom_ipxe);
   }else{
-    echo "Write successful";
+printf($response);
   }
-
-
 ?>
