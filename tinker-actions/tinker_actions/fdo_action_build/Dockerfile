@@ -27,12 +27,22 @@ RUN apt-get update -y && apt-get upgrade -y && apt-get install -y --no-install-r
   libxml2-dev \
   uuid-dev \
   libcurl4-openssl-dev \
-  openssl \
-  libssl-dev \
+  python-setuptools \
+  clang-format \
+  dos2unix \
+  ruby \
   wget \
-  bsdmainutils \
-  unzip \
   libglib2.0-dev \
+  libpcap-dev \
+  autoconf \
+  libtool \
+  libproxy-dev \
+  doxygen \
+   \
+  mercurial \
+  nghttp2 \
+  libnghttp2-dev \
+  unzip \
   ca-certificates \
   xxd &&  \
   apt-get clean && \
@@ -40,9 +50,22 @@ RUN apt-get update -y && apt-get upgrade -y && apt-get install -y --no-install-r
 
 RUN mkdir build_dir
 
-# Build & Install Curl version 8.1.2
+# install OpenSSL
 WORKDIR /build_dir/
-RUN wget https://curl.se/download/curl-8.1.2.tar.gz -O - | tar -xz && cd curl-8.1.2 && ./configure --with-openssl --enable-versioned-symbols && make && make install
+RUN mkdir /tpm-fdoout
+WORKDIR /build_dir/tpm-fdoout/
+RUN git clone -b v1.1.7 https://github.com/fido-device-onboard/client-sdk-fidoiot.git client-sdk
+WORKDIR /build_dir/tpm-fdoout/client-sdk/utils
+RUN bash ./install_openssl_curl.sh -i -v 3.0.12
+# RUN apt-get remove -y --auto-remove libssl-dev libssl-dev:i386 curl libcurl4-openssl-dev
+RUN bash ./install_tpm_libs.sh -t
+
+# Build & Install Curl version 8.4.0
+WORKDIR /build_dir/
+RUN wget https://curl.se/download/curl-8.4.0.tar.gz -O - | tar -xz \
+  && cd curl-8.4.0 \
+  && ./configure --with-openssl="/opt/openssl" --with-nghttp2 --enable-versioned-symbols \
+  && make -j$(nproc) && make install
 
 # Setup safestring
 WORKDIR /build_dir
@@ -65,27 +88,21 @@ ENV METEE_ROOT /build_dir/metee
 WORKDIR ${METEE_ROOT}
 RUN cmake . && make && make install
 
-ENV OPENSSL3_ROOT /usr
-ENV CURL_ROOT /usr
+
+ENV OPENSSL3_ROOT /opt/openssl
+ENV CURL_ROOT /opt/curl
 
 # Setup client-sdk-cse.
 WORKDIR /build_dir/
 RUN mkdir /cse-fdoout
 WORKDIR /build_dir/cse-fdoout/
-RUN git clone -b v1.1.5.1 https://github.com/fido-device-onboard/client-sdk-fidoiot.git client-sdk
+RUN git clone -b v1.1.7 https://github.com/fido-device-onboard/client-sdk-fidoiot.git client-sdk
 WORKDIR /build_dir/cse-fdoout/client-sdk/
 RUN cmake -DDA=cse_ecdsa384 -DCSE_SHUTDOWN=false -DCSE_CLEAR=true .
 RUN make -j$(nproc)
 
 # Setup client-sdk and TPM libraries.
-WORKDIR /build_dir/
-RUN mkdir /tpm-fdoout
-WORKDIR /build_dir/tpm-fdoout/
-RUN git clone -b v1.1.5.1 https://github.com/fido-device-onboard/client-sdk-fidoiot.git client-sdk
 WORKDIR /build_dir/tpm-fdoout/client-sdk/
-RUN grep -rl '/opt/openssl' ./ | xargs sed -i 's/\/opt\/openssl/\/usr/g'
-RUN grep -rl '/opt/curl' ./ | xargs sed -i 's/\/opt\/curl/\/usr/g'
-RUN sed -i 's/lib64/lib\/x86_64-linux-gnu/' utils/install_tpm_libs.sh
 RUN sed -i 's/==/-eq/' utils/tpm_make_ready_ecdsa.sh
 RUN sh utils/install_tpm_libs.sh -i
 RUN cmake -DDA=tpm20_ecdsa256 -DTPM2_TCTI_TYPE=tpmrm0 .
@@ -96,7 +113,7 @@ RUN bash utils/keys_gen.sh .
 WORKDIR /build_dir/
 RUN mkdir /fdoout
 WORKDIR /build_dir/fdoout/
-RUN git clone -b v1.1.5.1 https://github.com/fido-device-onboard/client-sdk-fidoiot.git client-sdk
+RUN git clone -b v1.1.7 https://github.com/fido-device-onboard/client-sdk-fidoiot.git client-sdk
 WORKDIR /build_dir/fdoout/client-sdk/
 RUN grep -rl '/opt/openssl' ./ | xargs sed -i 's/\/opt\/openssl/\/usr/g'
 RUN grep -rl '/opt/curl' ./ | xargs sed -i 's/\/opt\/curl/\/usr/g'
@@ -118,6 +135,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
   dmidecode \
   openssl \
   wget \
+  libnghttp2-dev \
   bsdmainutils && apt-get clean
 
 # Install curl built from fdo-client-sdk-builder
