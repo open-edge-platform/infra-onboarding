@@ -38,6 +38,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -165,8 +166,9 @@ func generateUnstructuredFromYAML(filePath string, deviceInfo utils.DeviceInfo) 
 
 	return u, nil
 }
-func createDynamicClient(kubeconfigPath string) (dynamic.Interface, error) {
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+
+func createDynamicClient() (dynamic.Interface, error) {
+	config, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load kubeconfig: %v", err)
 	}
@@ -178,6 +180,7 @@ func createDynamicClient(kubeconfigPath string) (dynamic.Interface, error) {
 
 	return dynamicClient, nil
 }
+
 func createCustomResource(dynamicClient dynamic.Interface, group, version, resource, namespace string, u *unstructured.Unstructured) error {
 	_, err := dynamicClient.Resource(schema.GroupVersionResource{
 		Group:    group,
@@ -242,8 +245,8 @@ func ListPodsInNamespace(kubeconfigPath, namespace string) error {
 }
 
 // Function to check the status of a Kubernetes Job
-func checkJobStatus(kubeconfigPath, namespace, jobName, HwId string) error {
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+func checkJobStatus(namespace, jobName, HwId string) error {
+	config, err := rest.InClusterConfig()
 	if err != nil {
 		return fmt.Errorf("Failed to load kubeconfig: %v", err)
 	}
@@ -295,8 +298,8 @@ func checkJobStatus(kubeconfigPath, namespace, jobName, HwId string) error {
 	return nil
 }
 
-func newK8SClient(kubeconfigPath string) (client.Client, error) {
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+func newK8SClient() (client.Client, error) {
+	config, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -312,7 +315,7 @@ func newK8SClient(kubeconfigPath string) (client.Client, error) {
 	return client, nil
 }
 
-func CreateTemplateWorkflow(deviceInfo utils.DeviceInfo, kubeconfigPath string, workflowName string) (string, error) {
+func CreateTemplateWorkflow(deviceInfo utils.DeviceInfo, workflowName string) (string, error) {
 	// Perform your logic here based on the req parameter
 
 	// commenting the logic to list all ...........
@@ -323,7 +326,7 @@ func CreateTemplateWorkflow(deviceInfo utils.DeviceInfo, kubeconfigPath string, 
 	// 	log.Printf("Error listing pods: %v", err)
 	// }
 
-	dynamicClient, err := createDynamicClient(kubeconfigPath)
+	dynamicClient, err := createDynamicClient()
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return "", err
@@ -347,7 +350,7 @@ func CreateTemplateWorkflow(deviceInfo utils.DeviceInfo, kubeconfigPath string, 
 }
 
 // //////////////Image download logic/////////////////////////////////////
-func ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo, kubeconfigPath string, BkcImgDdLock, JammyImgDdLock, FocalImgDdLock, FocalMsImgDdLock sync.Locker) error {
+func ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo, BkcImgDdLock, JammyImgDdLock, FocalImgDdLock, FocalMsImgDdLock sync.Locker) error {
 	switch deviceInfo.ImType {
 	case "prod_bkc":
 		BkcImgDdLock.Lock()
@@ -367,7 +370,7 @@ func ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo,
 		fileName := "ubuntu-download_bkc.yaml"
 		if toDownload {
 			// TODO: Need to Remove hardcoding path
-			err := ReadingYamlNCreatingResourse(kubeconfigPath, imgurl, deviceInfo.ImType, "../../onboardingmgr/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
+			err := ReadingYamlNCreatingResourse(imgurl, deviceInfo.ImType, "../../onboardingmgr/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
 			if err != nil {
 				return err
 			}
@@ -377,7 +380,7 @@ func ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo,
 		}
 		pkgFileName := "ubuntu-download-pkg-agents_bkc.yaml"
 		// TODO: Need to Remove hardcoding path
-		err := ReadingYamlNCreatingResourse(kubeconfigPath, artifactinfo.BkcBasePkgUrl, "prod_bkc-pkg", "../../onboardingmgr/workflows/manifests/image_dload", pkgFileName, deviceInfo.HwIP)
+		err := ReadingYamlNCreatingResourse(artifactinfo.BkcBasePkgUrl, "prod_bkc-pkg", "../../onboardingmgr/workflows/manifests/image_dload", pkgFileName, deviceInfo.HwIP)
 		if err != nil {
 			return err
 		}
@@ -389,7 +392,7 @@ func ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo,
 		toDownload := !fileExists("/opt/hook/jammy-server-cloudimg-amd64.raw.gz")
 		if toDownload {
 			// TODO: Need to Remove hardcoding path
-			err := ReadingYamlNCreatingResourse(kubeconfigPath, "", deviceInfo.ImType, "../../onboardingmgr/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
+			err := ReadingYamlNCreatingResourse("", deviceInfo.ImType, "../../onboardingmgr/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
 			if err != nil {
 				return err
 			}
@@ -407,7 +410,7 @@ func ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo,
 		if toDownload {
 			log.Println("Focal image Download process is started")
 			// TODO: Need to Remove hardcoding path
-			err := ReadingYamlNCreatingResourse(kubeconfigPath, "", deviceInfo.ImType, "../../onboardingmgr/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
+			err := ReadingYamlNCreatingResourse("", deviceInfo.ImType, "../../onboardingmgr/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
 			if err != nil {
 				return err
 			}
@@ -423,7 +426,7 @@ func ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo,
 		fileName := "ubuntu-download_focal-ms.yaml"
 		if !fileExists("/opt/hook/linux-image-5.15.96-lts.deb") || !fileExists("/opt/hook/linux-headers-5.15.96-lts.deb") || !fileExists("/opt/hook/focal-server-cloudimg-amd64.raw.gz") || !fileExists("/opt/hook/azure-credentials.env_"+deviceInfo.HwMacID) || !fileExists("/opt/hook/azure_dps_installer.sh") || !fileExists("/opt/hook/log.sh") {
 			// TODO: Need to Remove hardcoding path
-			err := ReadingYamlNCreatingResourse(kubeconfigPath, "", deviceInfo.ImType, "../../onboardingmgr/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
+			err := ReadingYamlNCreatingResourse("", deviceInfo.ImType, "../../onboardingmgr/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
 			if err != nil {
 				return err
 			}
@@ -438,8 +441,8 @@ func ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo,
 	return nil
 }
 
-func ReadingYamlNCreatingResourse(kubeconfigPath, imgurl, imgType, filePath, fileName, HwId string) error {
-	dynamicClient, err := createDynamicClient(kubeconfigPath)
+func ReadingYamlNCreatingResourse(imgurl, imgType, filePath, fileName, HwId string) error {
+	dynamicClient, err := createDynamicClient()
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return err
@@ -475,7 +478,7 @@ func ReadingYamlNCreatingResourse(kubeconfigPath, imgurl, imgType, filePath, fil
 		u.Object = objectData
 
 		//Deleting the resourse if exist
-		err = DeleteCustomResource(kubeconfigPath, u)
+		err = DeleteCustomResource(u)
 		if err != nil {
 			log.Printf("warning Error msg while deleting resourse: %s is %v", strings.ToLower(u.GetKind()), err)
 		}
@@ -489,7 +492,7 @@ func ReadingYamlNCreatingResourse(kubeconfigPath, imgurl, imgType, filePath, fil
 
 		if strings.ToLower(u.GetKind()) == "job" {
 			log.Println("Checking the Job status of ", u.GetName())
-			err = checkJobStatus(kubeconfigPath, "tink-system", u.GetName(), HwId)
+			err = checkJobStatus("tink-system", u.GetName(), HwId)
 			if err != nil {
 				log.Fatalf("Error while waiting for workflow success: %v", err)
 				return err
@@ -499,9 +502,9 @@ func ReadingYamlNCreatingResourse(kubeconfigPath, imgurl, imgType, filePath, fil
 	return nil
 }
 
-func DeleteCustomResource(kubeconfigPath string, u *unstructured.Unstructured) error {
+func DeleteCustomResource(u *unstructured.Unstructured) error {
 	// Create a Kubernetes client configuration from the provided kubeconfig path
-	dynamicClient, err := createDynamicClient(kubeconfigPath)
+	dynamicClient, err := createDynamicClient()
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return err
@@ -535,8 +538,8 @@ func fileExists(filePath string) bool {
 	return !os.IsNotExist(err)
 }
 
-func waitForWorkflowSuccess(kubeconfigPath, namespace, workflowName string) error {
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+func waitForWorkflowSuccess(namespace, workflowName string) error {
+	config, err := rest.InClusterConfig()
 	if err != nil {
 		return fmt.Errorf("Failed to load kubeconfig: %v", err)
 	}
@@ -766,6 +769,7 @@ func VoucherExtension(hostIP, deviceSerial string) (string, error) {
 
 	return uid, nil
 }
+
 func VoucherScript(hostIp, deviceSerial string) (string, error) {
 	var (
 		attestationType string
@@ -913,6 +917,7 @@ func VoucherScript(hostIp, deviceSerial string) (string, error) {
 		return "", fmt.Errorf("Failure in getting owner certificate for type %s with response code: %d\n", attestationType, resp.StatusCode)
 	}
 }
+
 func apiCalls(httpMethod, url, authType, apiUser, onrApiPasswd, certPath string, bodyData []byte) (*http.Response, error) {
 	var client *http.Client
 	reader := bytes.NewReader(bodyData)
@@ -980,9 +985,9 @@ func CalculateRootFS(imageType, diskDev string) (string, string) {
 	return ROOTFS_PART_NO, ROOTFS_PART_NO
 }
 
-func DeleteWorkflow(kubeconfigPath, namespace, workflowName, resource string) error {
+func DeleteWorkflow(namespace, workflowName, resource string) error {
 	// Create a Kubernetes client configuration from the provided kubeconfig path
-	dynamicClient, err := createDynamicClient(kubeconfigPath)
+	dynamicClient, err := createDynamicClient()
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return err
@@ -1008,24 +1013,23 @@ func DeleteWorkflow(kubeconfigPath, namespace, workflowName, resource string) er
 	return nil
 }
 
-func ToWorkflowCreation(deviceInfo utils.DeviceInfo, kubeconfigpath string) error {
-
+func ToWorkflowCreation(deviceInfo utils.DeviceInfo) error {
 	//TODO: Remove hardcoding of the filename decide based on input
-	totemplatename, tempale_err := CreateTemplateWorkflow(deviceInfo, kubeconfigpath, "/manifests/to/template_to.yaml")
+	totemplatename, tempale_err := CreateTemplateWorkflow(deviceInfo, "/manifests/to/template_to.yaml")
 	if tempale_err != nil {
 		// Handle the error, for example, log it or return an error response
 		return tempale_err
 	}
 	fmt.Printf("template workflow applied workflowname:%s", totemplatename)
 	// fmt.Println("Tempalte Workflow applied")
-	toworkflowname, err4 := CreateTemplateWorkflow(deviceInfo, kubeconfigpath, "/manifests/to/workflow.yaml")
+	toworkflowname, err4 := CreateTemplateWorkflow(deviceInfo, "/manifests/to/workflow.yaml")
 	if err4 != nil {
 		// Handle the error, for example, log it or return an error response
 		return err4
 	}
 	fmt.Printf("workflow applied workflowname:%s--------------", toworkflowname)
 
-	err5 := waitForWorkflowSuccess(kubeconfigpath, "tink-system", toworkflowname)
+	err5 := waitForWorkflowSuccess("tink-system", toworkflowname)
 	if err5 != nil {
 		log.Fatalf("Error waiting for workflow success: %v", err5)
 		return err5
@@ -1034,19 +1038,19 @@ func ToWorkflowCreation(deviceInfo utils.DeviceInfo, kubeconfigpath string) erro
 
 	////////////////////////////////To workflow Cleanup//////////////////////////
 	//TODO:replace the namespace other info from Groupinfo struct
-	template_to_delete_err := DeleteWorkflow(kubeconfigpath, "tink-system", totemplatename, "templates")
+	template_to_delete_err := DeleteWorkflow("tink-system", totemplatename, "templates")
 	if template_to_delete_err != nil {
 		fmt.Printf("Error: %v\n", template_to_delete_err)
 	}
-	workflow_to_delete_err := DeleteWorkflow(kubeconfigpath, "tink-system", toworkflowname, "workflows")
+	workflow_to_delete_err := DeleteWorkflow("tink-system", toworkflowname, "workflows")
 	if workflow_to_delete_err != nil {
 		fmt.Printf("Error: %v\n", workflow_to_delete_err)
 	}
 	return nil
 }
 
-func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, kubeconfigpath string, imgtype string) error {
-	client, err := newK8SClient(kubeconfigpath)
+func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string) error {
+	client, err := newK8SClient()
 	if err != nil {
 		return err
 	}
@@ -1152,8 +1156,8 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, kubeconfigpath string, im
 	return nil
 }
 
-func DiWorkflowCreation(deviceInfo utils.DeviceInfo, kubeconfigpath string) (string, error) {
-	client, err := newK8SClient(kubeconfigpath)
+func DiWorkflowCreation(deviceInfo utils.DeviceInfo) (string, error) {
+	client, err := newK8SClient()
 	if err != nil {
 		return "", err
 	}

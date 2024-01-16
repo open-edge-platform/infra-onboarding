@@ -14,7 +14,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/user"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -135,7 +134,7 @@ func DeviceOnboardingManagerZt(deviceInfo utils.DeviceInfo, kubeconfigPath strin
 	return nil
 }
 
-func DeviceOnboardingManagerNzt(deviceDetails utils.DeviceInfo, artifactDetails utils.ArtifactData, kubeconfigPath string, nodeExistCount *int, totalNodes int, ErrCh chan error, ImgDownldLock, focalImgDdLock, jammyImgDdLock, focalMsImgDdLock *sync.Mutex) {
+func DeviceOnboardingManagerNzt(deviceDetails utils.DeviceInfo, artifactDetails utils.ArtifactData, nodeExistCount *int, totalNodes int, ErrCh chan error, ImgDownldLock, focalImgDdLock, jammyImgDdLock, focalMsImgDdLock *sync.Mutex) {
 	log.Println("Onboarding is Triggered for ", deviceDetails.HwIP, *nodeExistCount, totalNodes)
 	deviceInfo := deepcopy.Copy(deviceDetails).(utils.DeviceInfo)
 	artifactinfo := deepcopy.Copy(artifactDetails).(utils.ArtifactData)
@@ -150,7 +149,7 @@ func DeviceOnboardingManagerNzt(deviceDetails utils.DeviceInfo, artifactDetails 
 	go func() {
 		defer close(imageDownloadStatus)
 		log.Println("Image Download started for ", deviceInfo.HwIP)
-		imageDownloadErr = onbworkflowclient.ImageDownload(artifactinfo, deviceInfo, kubeconfigPath, ImgDownldLock, focalImgDdLock, jammyImgDdLock, focalMsImgDdLock)
+		imageDownloadErr = onbworkflowclient.ImageDownload(artifactinfo, deviceInfo, ImgDownldLock, focalImgDdLock, jammyImgDdLock, focalMsImgDdLock)
 		if imageDownloadErr != nil {
 			imageDownloadErr = fmt.Errorf("SutIP %s: %w", deviceInfo.HwIP, imageDownloadErr)
 			fmt.Printf("Error in ImageDownload for %v\n", imageDownloadErr)
@@ -164,7 +163,7 @@ func DeviceOnboardingManagerNzt(deviceDetails utils.DeviceInfo, artifactDetails 
 		defer close(diStatus)
 		log.Printf("Device initialization started for Device: %s", deviceInfo.HwIP)
 		var guid string
-		guid, dierror = onbworkflowclient.DiWorkflowCreation(deviceInfo, kubeconfigPath)
+		guid, dierror = onbworkflowclient.DiWorkflowCreation(deviceInfo)
 		if dierror != nil {
 			dierror = fmt.Errorf("SutIP %s: %w", deviceInfo.HwIP, dierror)
 			fmt.Printf("Error in DiWorkflowCreation for %v\n", dierror)
@@ -218,7 +217,7 @@ func DeviceOnboardingManagerNzt(deviceDetails utils.DeviceInfo, artifactDetails 
 		}
 		log.Println("ProdWorkflowCreation started for ", deviceInfo.HwIP)
 		// Production Workflow creation
-		proderror := onbworkflowclient.ProdWorkflowCreation(deviceInfo, kubeconfigPath, deviceInfo.ImType)
+		proderror := onbworkflowclient.ProdWorkflowCreation(deviceInfo, deviceInfo.ImType)
 		if proderror != nil {
 			proderror = fmt.Errorf("SutIP %s: %w", deviceInfo.HwIP, proderror)
 			ErrCh <- proderror
@@ -231,7 +230,7 @@ func DeviceOnboardingManagerNzt(deviceDetails utils.DeviceInfo, artifactDetails 
 	// TODO: Delete the hardware workflow remaining
 }
 
-func DeviceOnboardingManager(deviceInfoList []utils.DeviceInfo, artifactinfo utils.ArtifactData, kubeconfigPath string) error {
+func DeviceOnboardingManager(deviceInfoList []utils.DeviceInfo, artifactinfo utils.ArtifactData) error {
 	// take the old directory
 	oldWorkingDir, errolddir := os.Getwd()
 	if errolddir != nil {
@@ -259,7 +258,7 @@ func DeviceOnboardingManager(deviceInfoList []utils.DeviceInfo, artifactinfo uti
 	for _, deviceInfo := range deviceInfoList {
 		if _, found := CurrentDeviceList[deviceInfo.HwMacID]; !found {
 			CurrentDeviceList[deviceInfo.HwMacID] = deviceInfo.HwIP
-			DeviceOnboardingManagerNzt(deviceInfo, artifactinfo, kubeconfigPath, &nodeExistCount, len(deviceInfoList), ErrCh, &bkcImgDdLock, &focalImgDdLock, &jammyImgDdLock, &focalMsImgDdLock)
+			DeviceOnboardingManagerNzt(deviceInfo, artifactinfo, &nodeExistCount, len(deviceInfoList), ErrCh, &bkcImgDdLock, &focalImgDdLock, &jammyImgDdLock, &focalMsImgDdLock)
 		} else {
 			nodeExistCount += 1
 			log.Println("Duplicate Device from ther profile request", deviceInfo.HwIP)
@@ -444,48 +443,36 @@ var mu sync.Mutex
 var requestCounter int
 
 func StartOnboard(req *pb.OnboardingRequest) (*pb.OnboardingResponse, error) {
-
 	// Lock to ensure only one request is processed at a time
 	mu.Lock()
 	defer mu.Unlock()
+
 	// Increment the request counter for each incoming request
 	requestCounter++
 	fmt.Printf("Request Number: %d\n", requestCounter)
 
 	// Step 1: Copy all request data to a variable using the DeepCopyOnboardingRequest function.
 	copyOfRequest := utils.DeepCopyOnboardingRequest(req)
-	currentUser, err := user.Current()
-	if err != nil {
-		fmt.Println("Error:", err)
-		return nil, err
-	}
-
-	// Construct the kubeconfig path
-	kubeconfigPath := filepath.Join(currentUser.HomeDir, ".kube/config")
-
-	fmt.Printf("Kubeconfig Path: %s\n", kubeconfigPath)
 
 	var deviceInfoList []utils.DeviceInfo
 	//Create the deviceInfoList and azure env files using the createDeviceInfoListNAzureEnv function.
-	deviceInfoList, err = createDeviceInfoListNAzureEnv(copyOfRequest)
+	deviceInfoList, err := createDeviceInfoListNAzureEnv(copyOfRequest)
 	if err != nil {
 		return nil, err
 	}
 
-	var artifactinfo utils.ArtifactData
-	artifactinfo = parseNGetBkcUrl(copyOfRequest)
+	artifactinfo := parseNGetBkcUrl(copyOfRequest)
 
 	// Call the DeviceOnboardingManager function to manage the onboarding of devices
-	err = DeviceOnboardingManager(deviceInfoList, artifactinfo, kubeconfigPath)
+	err = DeviceOnboardingManager(deviceInfoList, artifactinfo)
 	if err != nil {
 		return nil, err
 	}
-	result := fmt.Sprintf("Exited with Success:")
+	result := "Exited with Success"
 	return &pb.OnboardingResponse{Status: result}, nil
 }
 
 func (s *OnboardingManager) StartOnboarding(ctx context.Context, req *pb.OnboardingRequest) (*pb.OnboardingResponse, error) {
-
 	//Moving changes to seperate function to enable both gRPC endpoint and onboarding manager to call from Instance Reconsile
 	return StartOnboard(req)
 

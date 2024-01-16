@@ -50,7 +50,6 @@ func getArtifactTableMetadata(keyspace string) table.Metadata {
 	}
 }
 
-
 type Cassandra struct {
 	keyspace      string
 	session       gocqlx.Session
@@ -234,7 +233,6 @@ func (c *Cassandra) Close() error {
 	c.session.Close()
 	return nil
 }
-
 
 func createKeyspaceAndTable(session gocqlx.Session, keyspace, replica string, createTable bool) error {
 	err := session.ExecStmt(fmt.Sprintf(
@@ -434,4 +432,3 @@ func artifactSelQry(keyspace string, data ArtifactData) (stmt string, names []st
 	return qb.Select(fmt.Sprintf("%s.artifact", keyspace)).
 		Where(w...).AllowFiltering().ToCql()
 }
-
