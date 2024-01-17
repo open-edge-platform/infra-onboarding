@@ -2,7 +2,7 @@
 
 #####################################################################################
 # INTEL CONFIDENTIAL                                                                #
-# Copyright (C) 2023 Intel Corporation                                              # 
+# Copyright (C) 2023 Intel Corporation                                              #
 # This software and the related documents are Intel copyrighted materials,          #
 # and your use of them is governed by the express license under which they          #
 # were provided to you ("License"). Unless the License provides otherwise,          #
@@ -22,10 +22,7 @@
 #source ../../config
 
 ver=latest
-imagename=store_alpine
-
-sed -i "s/tinkerbell_owner=[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+/tinkerbell_owner=$load_balancer_ip/g" store_alpine.sh
-sed -i "s/pd_host_ip=[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+/pd_host_ip=$pd_host_ip/g" store_alpine.sh
+imagename=cred_copy
 
 ## # Build the container
 docker build -f Dockerfile \

@@ -22,7 +22,7 @@
 #source ../../config
 
 ver=latest
-
+imagename=create_partition
 
 ## # Build the container
 docker build -f Dockerfile \
@@ -32,8 +32,10 @@ docker build -f Dockerfile \
 	--build-arg http_proxy=$http_proxy \
 	--build-arg https_proxy=$http_proxy \
 	--build-arg no_proxy="$no_proxy" \
-	-t localhost:5015/create_partition:$ver . --push
+	-t localhost:5015/$imagename:$ver . --push
 
 # Save the Docker image
-docker tag localhost:5015/create_partition:$ver create_partition:$ver
-printf "\rSaved the Docker image for create_partition as create_partition:$ver\n"
+docker tag localhost:5015/$imagename:$ver $imagename:$ver
+printf "\rSaved the Docker image for $(basename "$(pwd)") as $imagename:$ver\n"
+
+docker image rm localhost:5015/$imagename:$ver

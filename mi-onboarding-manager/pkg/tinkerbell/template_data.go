@@ -5,7 +5,7 @@ package tinkerbell
 
 import "fmt"
 
-func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP string) ([]byte, error) {
+func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIp string) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -27,6 +27,15 @@ func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP string) ([]byte, err
 						"DEST_DISK":  "{{ index .Hardware.Disks 0 }}",
 						"IMG_URL":    fmt.Sprintf("http://%s:8080/focal-server-cloudimg-amd64.raw.gz", hostIP),
 						"COMPRESSED": "true",
+					},
+				},
+				{
+					Name:    "copy-secrets",
+					Image:   provIp + ":5015/cred_copy:latest",
+					Timeout: 90,
+					Environment: map[string]string{
+						"BLOCK_DEVICE":  "{{ index .Hardware.Disks 0 }}",
+						"FS_TYPE":    "ext4",
 					},
 				},
 				{
@@ -126,7 +135,7 @@ func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP string) ([]byte, err
 	return marshalWorkflow(&wf)
 }
 
-func NewTemplateDataProdBKC(name, rootPart, hostIP, clientImg string) ([]byte, error) {
+func NewTemplateDataProdBKC(name, rootPart, hostIP, clientImg, provIp string) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -148,6 +157,15 @@ func NewTemplateDataProdBKC(name, rootPart, hostIP, clientImg string) ([]byte, e
 						"DEST_DISK":  "{{ index .Hardware.Disks 0 }}",
 						"IMG_URL":    fmt.Sprintf("http://%s:8080/%s", hostIP, clientImg),
 						"COMPRESSED": "true",
+					},
+				},
+				{
+					Name:    "copy-secrets",
+					Image:   provIp + ":5015/cred_copy:latest",
+					Timeout: 90,
+					Environment: map[string]string{
+						"BLOCK_DEVICE":  "{{ index .Hardware.Disks 0 }}",
+						"FS_TYPE":    "ext4",
 					},
 				},
 				{
@@ -334,7 +352,7 @@ func NewTemplateDataProdBKC(name, rootPart, hostIP, clientImg string) ([]byte, e
 	return marshalWorkflow(&wf)
 }
 
-func NewTemplateDataProdMS(name, rootPart, rootPartNo, hostIP, clientIP, gateway, mac string) ([]byte, error) {
+func NewTemplateDataProdMS(name, rootPart, rootPartNo, hostIP, clientIP, gateway, mac, provIp string) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -356,6 +374,15 @@ func NewTemplateDataProdMS(name, rootPart, rootPartNo, hostIP, clientIP, gateway
 						"DEST_DISK":  "{{ index .Hardware.Disks 0 }}",
 						"IMG_URL":    fmt.Sprintf("http://%s:8080/focal-server-cloudimg-amd64.raw.gz", hostIP),
 						"COMPRESSED": "true",
+					},
+				},
+				{
+					Name:    "copy-secrets",
+					Image:   provIp + ":5015/cred_copy:latest",
+					Timeout: 90,
+					Environment: map[string]string{
+						"BLOCK_DEVICE":  "{{ index .Hardware.Disks 0 }}",
+						"FS_TYPE":    "ext4",
 					},
 				},
 				{

@@ -22,7 +22,7 @@
 #source ../../config
 
 ver=latest
-
+imagename=efibootset
 
 ## # Build the container
 docker build -f Dockerfile \
@@ -32,8 +32,10 @@ docker build -f Dockerfile \
 	--build-arg http_proxy=$http_proxy \
 	--build-arg https_proxy=$http_proxy \
 	--build-arg no_proxy="$no_proxy" \
-	-t localhost:5015/efibootset:$ver . --push
+	-t localhost:5015/$imagename:$ver . --push
 
 # Save the Docker image
-docker tag localhost:5015/efibootset:$ver efibootset:$ver
-printf "\rSaved the Docker image for efibootset as efibootset:$ver\n"
+docker tag localhost:5015/$imagename:$ver $imagename:$ver
+printf "\rSaved the Docker image for $(basename "$(pwd)") as $imagename:$ver\n"
+
+docker image rm localhost:5015/$imagename:$ver

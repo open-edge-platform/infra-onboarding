@@ -1068,7 +1068,7 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string) error {
 		deviceInfo.ImType = "bkc"
 		deviceInfo.Rootfspart, deviceInfo.RootfspartNo = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
 		tmplData, err = tinkerbell.NewTemplateDataProdBKC(tmplName, deviceInfo.Rootfspart,
-			deviceInfo.LoadBalancerIP, deviceInfo.ClientImgName)
+			deviceInfo.LoadBalancerIP, deviceInfo.ClientImgName, deviceInfo.ProvisionerIp)
 		if err != nil {
 			return err
 		}
@@ -1078,7 +1078,7 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string) error {
 		deviceInfo.ImType = "focal"
 		deviceInfo.Rootfspart, deviceInfo.RootfspartNo = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
 		tmplData, err = tinkerbell.NewTemplateDataProd(tmplName, deviceInfo.Rootfspart,
-			deviceInfo.RootfspartNo, deviceInfo.LoadBalancerIP)
+			deviceInfo.RootfspartNo, deviceInfo.LoadBalancerIP, deviceInfo.ProvisionerIp)
 		if err != nil {
 			return err
 		}
@@ -1087,7 +1087,7 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string) error {
 		deviceInfo.ImType = "focal-ms"
 		deviceInfo.Rootfspart, deviceInfo.RootfspartNo = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
 		tmplData, err = tinkerbell.NewTemplateDataProdMS(tmplName, deviceInfo.Rootfspart, deviceInfo.RootfspartNo,
-			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.HwMacID)
+			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.HwMacID, deviceInfo.ProvisionerIp)
 		if err != nil {
 			return err
 		}
@@ -1097,7 +1097,7 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string) error {
 		deviceInfo.ImType = "jammy"
 		deviceInfo.Rootfspart, deviceInfo.RootfspartNo = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
 		tmplData, err = tinkerbell.NewTemplateDataProd(tmplName, deviceInfo.Rootfspart,
-			deviceInfo.RootfspartNo, deviceInfo.LoadBalancerIP)
+			deviceInfo.RootfspartNo, deviceInfo.LoadBalancerIP, deviceInfo.ProvisionerIp)
 		if err != nil {
 			return err
 		}

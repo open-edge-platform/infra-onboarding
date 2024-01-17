@@ -55,6 +55,7 @@ store_alpine=$PWD/../tinker_actions/store_alpine/
 fdo_action_build=$PWD/../tinker_actions/fdo_action_build/
 create_partition=$PWD/../tinker_actions/create_partition
 efibootset=$PWD/../tinker_actions/efibootset
+creds_copy=$PWD/../tinker_actions/creds_copy
 
 daemon_json="""
 {\n\"insecure-registries\" : [\"$pd_host_ip:5015\"]\n}
@@ -158,7 +159,13 @@ build_hook() {
     sudo cp $PWD/hook/out/sha-/rel/hook_x86_64.tar.gz $store_alpine
     make_local_hook_over_pxe
 }
+build_credscopy() {
+    pushd $creds_copy
 
+    bash build.sh
+
+    popd
+}
 verify_registry() {
     local docker_images=$(curl -X GET https://localhost:5015/v2/_catalog --insecure 2>&1)
     # ["create_partition","efibootset","fdoclient_action","store_alpine"]}
@@ -186,6 +193,12 @@ verify_registry() {
         exit 1
     fi
 
+    out=$(grep -i "cred_copy" <<<$docker_images)
+    if [ $? -ne 0 ]; then
+        echo "cred_copy was missing in the registry. Check again"
+        exit 1
+    fi
+
     echo "All containers are present in the registry"
 }
 
@@ -199,6 +212,8 @@ make_local_hook_over_pxe() {
     rm -rf hook_x86_64.tar.gz
     sudo cp vmlinuz-x86_64 /opt/hook
     sudo cp initramfs-x86_64 /opt/hook
+
+    rm -rf initramfs-x86_64  vmlinuz-x86_64
 }
 
 main() {
@@ -215,6 +230,7 @@ main() {
 
     store_alpine_setup
     create_partition_setup
+    build_credscopy
 
     verify_registry
 
