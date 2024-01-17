@@ -18,6 +18,7 @@ source ./secure_hookos.sh
 
 STORE_ALPINE_SECUREBOOT=$PWD/alpine_image_secureboot/
 STORE_ALPINE=$PWD/alpine_image/
+VERSION_FILE=$PWD/VERSION
 
 build_hook() {
 
@@ -33,6 +34,8 @@ build_hook() {
     cp $patch_file $new_patch_file
     sed -i "s+FIX_H_TTP_PROXY+$http_proxy+g" $new_patch_file
     sed -i "s+FIX_H_TTPS_PROXY+$https_proxy+g" $new_patch_file
+    ver=$(cat $VERSION_FILE)
+    sed -i "s/latest/$ver/g" $new_patch_file
 
     git apply $new_patch_file
     
