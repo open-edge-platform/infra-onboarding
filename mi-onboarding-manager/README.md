@@ -11,6 +11,18 @@ It will do the following things
 
 ## Setup
 
+### Hareware topology Setup
+
+![Hareware setup](/docs/image/manual-fm-0.7.0-topology.png)
+
+Prequisite:
+
+1. There are 3 servers with Internet connected acting as Ngnix server, FM server and Edge Node(DELL XR12) respectively. 
+
+2. The ngnix server and FM Server are manually installed ubuntu 22.04 server with proper network proxy setting. Ngnix server needs tool installation of openssl, docker, efitools, git, gcc, make, liblzma-dev.
+
+Note: Nginx server is the temporary solution before CDN boot is available. Release service in AWS cloud is not available for 0.7.0. and will be ready in the future.
+
 ### Create Custom HTTPS supported NGINX server
 
 1. Refer to this section [Server Certificates for HTTPS boot](https://github.com/intel-innersource/documentation.edge.one-edge.maestro/blob/762b2526abd36203f2ee5c20b45ccaea9ebb2140/content/docs/specs/secure-boot.md#server-certificates-for-htts-boot) for creating certificates. The file ```full_server.crt``` will be required in the next steps.
@@ -39,14 +51,14 @@ As seen in the docker run command example we are mounting two folders to the con
 1. Inside ```data/auto.ipxe```, replace the placeholders with real values.
 
     ```bash
-        set loadbalancer <LOADBALANCER>
-        set macaddress <MAC_ADDRESS>
-        set nginx <NGINX_IP_ADDRESS>
+    set loadbalancer <LOADBALANCER> # IP address of FM Server
+    set macaddress <MAC_ADDRESS>    # MAC address of Edge Node iPXE Boot NIC
+    set nginx <NGINX_IP_ADDRESS>
     ```
 
-2. Copy the ```vmlinuz``` and ```initramfs``` files generated in tink-stack inside the ```data``` folder.
+3. Copy the ```vmlinuz``` and ```initramfs``` files generated in tink-stack inside the ```data``` folder.
 
-3. Copy the signed ```ipxe.efi``` generated as per the [documentation](https://github.com/intel-innersource/documentation.edge.one-edge.maestro/blob/762b2526abd36203f2ee5c20b45ccaea9ebb2140/content/docs/specs/secure-boot.md#download-and-build-ipxe-image) inside the ```data``` folder.
+4. Copy the signed ```ipxe.efi``` generated as per the [documentation](https://github.com/intel-innersource/documentation.edge.one-edge.maestro/blob/762b2526abd36203f2ee5c20b45ccaea9ebb2140/content/docs/specs/secure-boot.md#download-and-build-ipxe-image) inside the ```data``` folder.
 
 ### Upload certificate to BIOS
 
@@ -62,7 +74,19 @@ The certificate file will be the ```full_server.crt``` file generated earlier.
 
 > Note: This setup instructions are meant for On-prem deployment
 
-1. Deploy the Tinkerbell services using tink-stack umbrella helm charts. If RKE2 cluster is not setup then below setup script will bring up RKE2 cluster and deploy the Tinkerbell components.
+1. Clone the code.
+
+    ```bash
+    git clone https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/releases/tag/v0.7.0-dev
+    ```
+
+2. configure config files.
+
+    ~/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service-0.7.0-dev/provisioning/config
+
+    ~/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service-0.7.0-dev/deployments/scripts/onboarding/config
+
+3. Deploy the Tinkerbell services using tink-stack umbrella helm charts. If RKE2 cluster is not setup then below setup script will bring up RKE2 cluster and deploy the Tinkerbell components.
 
    ```bash
    cd provisioning
@@ -70,7 +94,14 @@ The certificate file will be the ```full_server.crt``` file generated earlier.
    ./setup_tinkerbell_stack_with_intel_network.sh
    ```
 
-2. Build custom tinker actions docker images using script
+   If RKE2 installation takes longer time, you may have a try to speed up RKE2 installation by the below instead.
+
+   ```bash
+   ver=v1.25.10+rke2r1
+   vurl -sfL https://rancher-mirror.rancher.cn/rke2/install.sh | INSTALL_RKE2_MIRROR=cn INSTALL_RKE2_CHANNEL=$ver sh -
+   ```
+
+4. Build custom tinker actions docker images using script
 Update config file which holds all the configuration details needed for the setup. Change parameters in config file `pub_inerface_name`, `pd_host_ip` and `load_balancer_ip` and proxy settings.
 
     ```bash
@@ -84,7 +115,9 @@ Update config file which holds all the configuration details needed for the setu
     ./setup_actions.sh
     ```
 
-3. Deploy the FDO services and provisioning service using helm chart
+Note: Please double check and make sure networkproxy is set properly on secure_hooks.sh/store_alpine.sh before running setup_action.sh.
+
+5. Deploy the FDO services and provisioning service using helm chart
 
     ```bash
     cd deployments/scripts/onboarding/setup_scripts
@@ -95,12 +128,13 @@ Update config file which holds all the configuration details needed for the setu
 ## How to test
 
 >Note: Install earthly
+
 ### Clone Repo
+
 ```
 git clone https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service.git
 
 cd frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service
-
 ```
 ### Build PDCTL CLI tool
 
@@ -110,14 +144,17 @@ cd frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-s
 ```
 
 ### Exporting Onboarding Parameters
+
 ```
 export PD_IP=<pd_ip>
-export DISK_PARTITION=/da/sda
+export DISK_PARTITION=/dev/sda
 export LOAD_BALANCER_IP=<load_balancer_ip>
 export IMAGE_TYPE= prod_bkc
 ```
 
 ## Run Onboarding manager
+
+pre-requisite refers to [documentation](https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/blob/main/cmd/onboardingmgr/README.md#pre-requisite)
 
 ```
 cd cmd/onboardingmgr
@@ -126,14 +163,56 @@ go run main.go
 
 ## Run the Maestro Inventory Service in new window
 
-```
-git clone https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory
-cd frameworks.edge.one-intel-edge.maestro-infra.services.inventory/
-	@@ -138,7 +116,7 @@ curl -sSf https://atlasgo.sh | sh
-sudo cp -avr internal/ent/migrate/migrations /usr/share/
-./build/miinv --policyBundle=./build/policy_bundle.tar.gz
+    ```bash
+    git clone https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory
+    cd frameworks.edge.one-intel-edge.maestro-infra.services.inventory/
+    
+    #build tools installation
+    make go-dependency
+    curl -L -o opa https://openpolicyagent.org/downloads/v0.60.0/opa_linux_amd64_static
+    chmod +x opa
+    
+    #build
+    make go-build
+    make db-start
+    ```
 
-```
+Open one new ssh terminal.
+
+    ```
+    export PGUSER=admin
+    export PGHOST=localhost
+    export PGDATABASE=postgres
+    export PGPORT=5432
+    export PGPASSWORD=pass
+    export PGSSLMODE=disable
+
+    curl -sSf https://atlasgo.sh | sh
+
+    sudo cp -avr internal/ent/migrate/migrations /usr/share/
+
+    ./build/miinv --policyBundle=./build/policy_bundle.tar.gz
+    ```
+
+Refer to [documentation](https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/blob/v0.7.0-dev/cmd/onboardingmgr/README.md#51-run-the-maestro-inventory-service)
+
+## Run DKAM
+
+    ```
+    # enable GOLANG
+    export PATH=$PATH:/usr/local/go/bin
+    export PATH=$PATH:$(go env GOPATH)/bin
+    export GOPATH=$(go env GOPATH)
+
+    # Run DKAM Manager
+    cd ./cmd/dkammgr
+    go run ./main.go
+    
+    #Open 2nd terminal and execute following:
+    cd ./internal/dkammgr/test/client
+    go run ./main.go
+    ```
+Refer to [documentation](https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/tree/0.7.0-Dev/cmd/dkammgr)
 
 ## PDCTL based E-E onboarding flow
 
@@ -152,6 +231,8 @@ pdctl instance-res create --addr=<inventory_service>:<port> --insecure --hostID=
 ```
 
 3) Once onboarding manager is running, it will reconcile with the Instance state and onboarding process will start.
+
+refer to [documentation](https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/blob/v0.7.0-dev/cmd/pdctl/README.md) in details.
 
 6. Choose boot option to boot from UEFI HTTP
 
@@ -193,3 +274,34 @@ sequenceDiagram
 2. While creating instance resource, OS resource also needs to be associated along with Host Resource.
 3. Integration with CDN boots.
 4. Need to test by deploying onboarding manager & inventory service.
+
+## Troubleshoot
+
+### Run Inventory Service
+
+When clone https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory
+
+If the latest code doesn't work well, you can follow the below steps to fix.
+
+1) choose the right commit ID.
+
+    ```
+    cd frameworks.edge.one-intel-edge.maestro-infra.services.inventory
+    git checkout 0aeaedf
+    vim frameworks.edge.one-intel-edge.maestro-infra.services.inventory/internal/utils/migrate/util.go
+    ```
+
+line#40  change
+
+      "--dir", "file://" + migrationsDir,
+
+to
+
+    "--dir", "file://" + "internal/ent/migrate/migrations",
+
+then proceed with building process.
+    
+    ```
+    make go-build
+    make db-start
+    ```
