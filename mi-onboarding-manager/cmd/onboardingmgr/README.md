@@ -96,14 +96,17 @@ Note: make sure your dkam is running to get the urls
 # 5. Test Node Operations : Create, Get, Update, and Delete nodes using gRPC client
 
 ## 5.1 Run the Maestro Inventory Service
-````
+```
 git clone https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory
+
+git checkout 2936bdb169aa05d5e09236b6c304d54fad80eedc
 
 cd frameworks.edge.one-intel-edge.maestro-infra.services.inventory/
 
 make go-build
 
-make db-start
+If the db is already running, stop the it,
+make db-stop 
 
 export PGUSER=admin
 export PGHOST=localhost
@@ -114,23 +117,49 @@ export PGSSLMODE=disable
 
 curl -sSf https://atlasgo.sh | sh
 
+sudo rm -rf /usr/share/migrations/
 sudo cp -avr internal/ent/migrate/migrations /usr/share/
 
-./build/miinv --policyBundle=./build/policy_bundle.tar.gz
-````
+make db-start
+
+./build/miinv --policyBundlePath=./build/policy_bundle.tar.gz
+```
 
 ## 5.2 Run the Onboarding service
 ```
 git clone https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service
 
+cd  frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service
 go run cmd/onboardingmgr/main.go
 ```
 
 ## 5.3 Run the PDCTL command, client to the onboarding service
 ```
-go run cmd/pdctl/main.go nodes add --addr=localhost:50052 --insecure --hw-id=123
+NOTE : 1) Serial number is the unique number used to create the host number.
+       2)  Ensure to pass serial number as a mandatory argument in order to 
+           perform any crud operation. If any node exists with a given serial
+           number then the system reflects with a message "Node already exists"
+       3)  Create operation throws an error saying "Node already exists", when
+           same serial number is repeatedly used to create a node.
+       4)  Delete operation is not going to delete the node completely from the database,
+           it is going to set the "current_state" as "HOST_STATE_DELETED"
+        
+Create operation command :
+-------------------------
+go  run cmd/pdctl/main.go host add --addr=localhost:50054 --insecure --hw-id=123 --mac=ab:cd:ef:12:34:56 --sutip=192.168.1.654 --serial-number=98330 --uuid="14921492-1492-1492-1492-123412341249" --bmc-ip="192.168.0.125" --bmc-interface=true --host-nic-dev-name="eth0"
 
-go run cmd/pdctl/main.go nodes delete --addr=localhost:50052 --insecure --hw-id=123
+Read operation command :
+-----------------------
+go run cmd/pdctl/main.go host get --addr=localhost:50054 --insecure --hw-id=123 --serial-number=98328 --uuid="14921492-1492-1492-1492-123412341249"
+
+Update operation command : update mac, sutip, and bmc-ip
+-------------------------
+go run cmd/pdctl/main.go host update --addr=localhost:50054 --insecure --hw-id=123 --mac=ab:cd:ef:12:34:56 --sutip=192.168.1.654 --serial-number=98330 --uuid="14921492-1492-1492-1492-123412341249" --bmc-ip="192.168.0.125" --bmc-interface=true --host-nic-dev-name="eth0"
+
+Delete operation command :
+-------------------------
+go run cmd/pdctl/main.go host delete --addr=localhost:50054 --insecure --hw-id=123 --serial-number=98328 --uuid="14921492-1492-1492-1492-123412341249"
+
 ```
 
 ### End to End flow with PDCTL

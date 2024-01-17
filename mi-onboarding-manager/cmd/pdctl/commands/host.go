@@ -6,13 +6,10 @@ package commands
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 
-	"github.com/xeipuuv/gojsonschema"
 	"google.golang.org/grpc"
 
 	pbinv "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
@@ -85,19 +82,26 @@ func HostResourceCmd() *cobra.Command {
 	hostCmd.MarkFlagsMutuallyExclusive("insecure", "cacert")
 
 	var (
-		hwID            string
-		platformType    string
-		fwArtifactID    string
-		osArtifactID    string
-		appArtifactID   string
-		platArtifactID  string
-		deviceType      string
-		deviceInfoAgent string
-		deviceStatus    string
-		updateStatus    string
-		updateAvailable string
-		nodeId          string
-		inputFile       string
+		hwID              string
+		platformType      string
+		fwArtifactID      string
+		osArtifactID      string
+		appArtifactID     string
+		platArtifactID    string
+		deviceType        string
+		deviceInfoAgent   string
+		deviceStatus      string
+		updateStatus      string
+		updateAvailable   string
+		nodeId            string
+		inputFile         string
+		mac               string
+		sutip             string
+		serialnum         string
+		uuid              string
+		bmcip             string
+		bmcintfceval      *bool
+		host_nic_dev_name string
 	)
 
 	// Create a new FlagSet for addNodeCmd flags
@@ -117,6 +121,13 @@ func HostResourceCmd() *cobra.Command {
 	nodeFlags.StringVar(&updateStatus, "update-status", "", "Update status from Update Manager")
 	nodeFlags.StringVar(&updateAvailable, "update-available", "", "Update availability status from Update Manager")
 	nodeFlags.StringVar(&inputFile, "input_file", "", "Path to yaml/json file for Multiple inputs")
+	nodeFlags.StringVar(&mac, "mac", "", "mac address of the node")
+	nodeFlags.StringVar(&sutip, "sutip", "", "sutip address or node ip")
+	nodeFlags.StringVar(&serialnum, "serial-number", "", "sutip address or node ip")
+	nodeFlags.StringVar(&uuid, "uuid", "", "uuid of the node")
+	nodeFlags.StringVar(&bmcip, "bmc-ip", "", "bmc ip")
+	bmcintfceval = nodeFlags.Bool("bmc-interface", true, "set bmc interface true/false")
+	nodeFlags.StringVar(&host_nic_dev_name, "host-nic-dev-name", "", "host nic dev name")
 
 	addNodeCmd := &cobra.Command{
 		Use:   "add",
@@ -142,6 +153,18 @@ func HostResourceCmd() *cobra.Command {
 				}
 
 			} else {
+				hwdat := &pbinv.HwData{
+					MacId:          mac,
+					SutIp:          sutip,
+					Serialnum:      serialnum,
+					Uuid:           uuid,
+					BmcIp:          bmcip,
+					BmcInterface:   *bmcintfceval,
+					HostNicDevName: host_nic_dev_name,
+				}
+				var hwdata []*pbinv.HwData
+				hwdata = append(hwdata, hwdat)
+
 				nodeData := &pbinv.NodeData{
 					HwId:            hwID,
 					PlatformType:    platformType,
@@ -155,6 +178,7 @@ func HostResourceCmd() *cobra.Command {
 					UpdateStatus:    updateStatus,
 					UpdateAvailable: updateAvailable,
 					NodeId:          nodeId,
+					Hwdata:          hwdata,
 				}
 
 				nodes = append(nodes, nodeData)
@@ -183,7 +207,17 @@ func HostResourceCmd() *cobra.Command {
 				return err
 			}
 			defer cc.Close()
-
+			hwdat := &pbinv.HwData{
+				MacId:          mac,
+				SutIp:          sutip,
+				Serialnum:      serialnum,
+				Uuid:           uuid,
+				BmcIp:          bmcip,
+				BmcInterface:   *bmcintfceval,
+				HostNicDevName: host_nic_dev_name,
+			}
+			var hwdata []*pbinv.HwData
+			hwdata = append(hwdata, hwdat)
 			// Create the NodeData object from inventorymgr's Protobuf package
 			nodeData := &pbinv.NodeData{
 				HwId:            hwID,
@@ -198,194 +232,15 @@ func HostResourceCmd() *cobra.Command {
 				UpdateStatus:    updateStatus,
 				UpdateAvailable: updateAvailable,
 				NodeId:          nodeId,
+				Hwdata:          hwdata,
 			}
 
 			resp, err := getNodes(cmd.Context(), cc, nodeData)
+
 			if err != nil {
 				return err
 			}
-
-			fwart_schemaData, err := ioutil.ReadFile("../../json_schemas/FwArtifact_schema.json")
-			if err != nil {
-				log.Fatalf("FwArt: Error reading fw schema file: %v", err)
-			}
-
-			fwart_schemaLoader := gojsonschema.NewStringLoader(string(fwart_schemaData))
-
-			if resp.Payload[0].FwArtifactId == "" {
-				log.Fatalf("No Data for Fw art ")
-			}
-			fwart_documentLoader := gojsonschema.NewStringLoader(resp.Payload[0].FwArtifactId)
-
-			resultfwart, err := gojsonschema.Validate(fwart_schemaLoader, fwart_documentLoader)
-			if err != nil {
-				log.Fatalf("Error validating JSON against fwart schema: %v", err)
-			}
-
-			if !resultfwart.Valid() {
-				fmt.Println("JSON is not valid against the fwart schema.")
-				for _, err := range resultfwart.Errors() {
-					fmt.Printf("- %s\n", err)
-				}
-			}
-
-			var fwartinfo FWinstance
-			if err := json.Unmarshal([]byte(resp.Payload[0].FwArtifactId), &fwartinfo); err != nil {
-				log.Fatalf("Error unmarshaling fwart JSON: %v", err)
-			}
-
-			osart_schemaData, err := ioutil.ReadFile("../../json_schemas/OsArtifact_schema.json")
-			if err != nil {
-				log.Fatalf("OsArt: Error reading schema file: %v", err)
-			}
-
-			osart_schemaLoader := gojsonschema.NewStringLoader(string(osart_schemaData))
-
-			if resp.Payload[0].OsArtifactId == "" {
-				log.Fatalf("No Data")
-			}
-			osart_documentLoader := gojsonschema.NewStringLoader(resp.Payload[0].OsArtifactId)
-
-			resultosart, err := gojsonschema.Validate(osart_schemaLoader, osart_documentLoader)
-			if err != nil {
-				log.Fatalf("Error validating JSON against osart schema: %v", err)
-			}
-
-			if !resultosart.Valid() {
-				fmt.Println("JSON is not valid against the osart schema.")
-				for _, err := range resultosart.Errors() {
-					fmt.Printf("- %s\n", err)
-				}
-			}
-			var osartinfo OSinstance
-			if err := json.Unmarshal([]byte(resp.Payload[0].OsArtifactId), &osartinfo); err != nil {
-				log.Fatalf("Error unmarshaling osart JSON: %v", err)
-			}
-
-			imageart_schemaData, err := ioutil.ReadFile("../../json_schemas/ImageArtifact_schema.json")
-			if err != nil {
-				log.Fatalf("ImgArt: Error reading image schema file: %v", err)
-			}
-
-			imageart_schemaLoader := gojsonschema.NewStringLoader(string(imageart_schemaData))
-			//TODO: since a member is not added for Image artifact, AppArtifactId is used, this has to be changed as and when
-			//it is added
-			if resp.Payload[0].AppArtifactId == "" {
-				log.Fatalf("No Data for Image art ")
-			}
-			imageart_documentLoader := gojsonschema.NewStringLoader(resp.Payload[0].AppArtifactId)
-
-			resultimageart, err := gojsonschema.Validate(imageart_schemaLoader, imageart_documentLoader)
-			if err != nil {
-				fmt.Println("Error validating JSON against imageart schema:", err)
-			}
-
-			if !resultimageart.Valid() {
-				fmt.Println("JSON is not valid against the imageart schema.")
-				for _, err := range resultimageart.Errors() {
-					fmt.Printf("- %s\n", err)
-				}
-			}
-
-			var imageartinfo []Imageinstance
-			if err := json.Unmarshal([]byte(resp.Payload[0].AppArtifactId), &imageartinfo); err != nil {
-				fmt.Println("Error unmarshaling imageart JSON:", err)
-			}
-			schemaData, err := ioutil.ReadFile("../../json_schemas/Hbom_schema.json")
-			if err != nil {
-				log.Fatalf("Hbomsch: Error reading schema file: %v", err)
-			}
-
-			schemaLoader := gojsonschema.NewStringLoader(string(schemaData))
-			documentLoader := gojsonschema.NewStringLoader(string(resp.Payload[0].DeviceInfoAgent))
-
-			result, err := gojsonschema.Validate(schemaLoader, documentLoader)
-			if err != nil {
-				log.Fatalf("Error validating JSON against schema: %v", err)
-			}
-
-			if !result.Valid() {
-				fmt.Println("JSON is not valid against the schema.")
-				for _, err := range result.Errors() {
-					fmt.Printf("- %s\n", err)
-				}
-
-			}
-			var devinfo Hbom
-			if err := json.Unmarshal([]byte(resp.Payload[0].DeviceInfoAgent), &devinfo); err != nil {
-				log.Fatalf("Error unmarshaling JSON: %v", err)
-
-			}
-
-			// Iterate through the collection and print specific fields from each NodeData
-			fmt.Println("--------------------------Host Resource details-----------------------------")
-			for _, node := range resp.Payload {
-				// Create copies of the fields you intend to use
-				hwID := node.HwId
-				platformType := node.PlatformType
-				platArtifactID := node.PlatArtifactId
-				deviceStatus := node.DeviceStatus
-				deviceType := node.DeviceType
-				updateStatus := node.UpdateStatus
-				updateAvailable := node.UpdateAvailable
-
-				// Use the copied fields
-				fmt.Printf("HW id: %s\n", hwID)
-				fmt.Printf("Platform Type: %s\n", platformType)
-				fmt.Printf("-------FW Details-------- \n")
-				fmt.Printf("BIOSVendor\t: %s\n", fwartinfo.BIOSVendor)
-				fmt.Printf("BIOSDate\t: %s\n", fwartinfo.BIOSDate)
-				fmt.Printf("BIOSRelease\t: %s\n", fwartinfo.BIOSRelease)
-				fmt.Printf("BIOSVersion\t: %s\n", fwartinfo.BIOSVersion)
-				fmt.Printf("BMCManufacturer\t: %s\n", fwartinfo.BMCManufacturer)
-				fmt.Printf("-------OS Details-------- \n")
-				fmt.Println("Machine\t\t:", osartinfo.Machine)
-				fmt.Println("SysName\t\t:", osartinfo.SysName)
-				fmt.Println("Release\t\t:", osartinfo.Release)
-				fmt.Println("NodeName\t:", osartinfo.NodeName)
-				fmt.Println("Version\t\t:", osartinfo.Version)
-				fmt.Println("DomainName\t:", osartinfo.DomainName)
-				fmt.Println("OsDistroName\t:", osartinfo.OsDistroName)
-				fmt.Printf("-------Image Details-------- \n")
-				for _, imart := range imageartinfo {
-					fmt.Println("ContainerID\t:", imart.ContainerID)
-					fmt.Println("ContainerName\t:", imart.ContainerName)
-					fmt.Println("ContainerRegistryImage\t:", imart.ContainerRegistryImage)
-
-				}
-				fmt.Printf("-------HBOM Details-------- \n")
-				fmt.Println("BaseboardName:", devinfo.BaseboardName)
-				fmt.Println("HardwareUUID:", devinfo.HardwareUUID)
-				fmt.Println("BMCManufacturer:", devinfo.BMCManufacturer)
-				fmt.Println("BMCProductName:", devinfo.BMCProductName)
-				fmt.Println("RAMtotalMemory:", devinfo.RAMtotalMemory)
-
-				fmt.Printf("-------Host IP Address-------- \n")
-				for _, nw := range devinfo.Nwdevices {
-					fmt.Printf("Name: %s, Type: %s, Address: %s\n", nw.Name, nw.Type, nw.Address)
-				}
-				fmt.Printf("-------lspci output-------- \n")
-				for _, printPcidev := range devinfo.PciDevices {
-					fmt.Printf("%s \n", printPcidev)
-				}
-				fmt.Printf("-------CPU Info-------- \n")
-				/* for _, cpuinfo := range devinfo.CpuCoreInfo {
-					  fmt.Printf(" cpu id = %d\n", cpuinfo.ID)
-					  fmt.Printf(" cpu family = %s\n", cpuinfo.Family)
-					  fmt.Printf(" cpu vendor id = %s\n", cpuinfo.VendorID)
-					  fmt.Printf(" cpu Model = %s\n", cpuinfo.Model)
-					  fmt.Printf(" cpu ModelName = %s\n", cpuinfo.ModelName)
-					  fmt.Printf(" cpu Mhz = %f\n", cpuinfo.Mhz)
-				  } */
-				fmt.Printf("plat Instance ID: %s\n", platArtifactID)
-				fmt.Printf("Device status: %s\n", deviceStatus)
-				fmt.Printf("Device Type: %s\n", deviceType)
-				fmt.Printf("Update status: %s\n", updateStatus)
-				fmt.Printf("Update available: %s\n", updateAvailable)
-
-				fmt.Printf("-----------------------------------------------------------------\n")
-			}
-
+			fmt.Printf("%v\n", resp)
 			return nil
 		},
 	}
@@ -403,7 +258,17 @@ func HostResourceCmd() *cobra.Command {
 				return err
 			}
 			defer cc.Close()
-
+			hwdat := &pbinv.HwData{
+				MacId:          mac,
+				SutIp:          sutip,
+				Serialnum:      serialnum,
+				Uuid:           uuid,
+				BmcIp:          bmcip,
+				BmcInterface:   *bmcintfceval,
+				HostNicDevName: host_nic_dev_name,
+			}
+			var hwdata []*pbinv.HwData
+			hwdata = append(hwdata, hwdat)
 			// Create the NodeData object from inventorymgr's Protobuf package
 			nodeData := &pbinv.NodeData{
 				HwId:            hwID,
@@ -418,6 +283,7 @@ func HostResourceCmd() *cobra.Command {
 				UpdateStatus:    updateStatus,
 				UpdateAvailable: updateAvailable,
 				NodeId:          nodeId,
+				Hwdata:          hwdata,
 			}
 
 			resp, err := updateNodes(cmd.Context(), cc, nodeData)
@@ -442,6 +308,17 @@ func HostResourceCmd() *cobra.Command {
 			}
 			defer cc.Close()
 
+			hwdat := &pbinv.HwData{
+				MacId:          mac,
+				SutIp:          sutip,
+				Serialnum:      serialnum,
+				Uuid:           uuid,
+				BmcIp:          bmcip,
+				BmcInterface:   *bmcintfceval,
+				HostNicDevName: host_nic_dev_name,
+			}
+			var hwdata []*pbinv.HwData
+			hwdata = append(hwdata, hwdat)
 			// Parse the flags for node information
 			hwID, _ := cmd.Flags().GetString("hw-id")
 			platformType, _ := cmd.Flags().GetString("platform-type")
@@ -468,6 +345,7 @@ func HostResourceCmd() *cobra.Command {
 				DeviceStatus:    deviceStatus,
 				UpdateStatus:    updateStatus,
 				UpdateAvailable: updateAvailable,
+				Hwdata:          hwdata,
 			}
 
 			resp, err := deleteNodes(cmd.Context(), cc, nodeData)

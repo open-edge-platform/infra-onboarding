@@ -6,6 +6,8 @@ package maestro
 
 import (
 	"context"
+	"sync"
+
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
@@ -15,7 +17,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
-	"sync"
 )
 
 var (
@@ -76,6 +77,30 @@ func CreateHostResource(ctx context.Context, c inv_client.InventoryClient, uuid 
 	resreq := &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Host{
 			Host: hostres,
+		},
+	}
+	res, err := c.Create(ctx, resreq)
+	if err != nil {
+		zlog.MiSec().MiErr(err).Msgf("Failed create host resource with %v \n", hostres)
+		return "", err
+	}
+	zlog.Info().Msgf("New Host ID : %s \n", res.ResourceId)
+	hostres.ResourceId = res.ResourceId
+
+	return res.ResourceId, nil
+}
+
+func CreateHostnicResource(ctx context.Context, c inv_client.InventoryClient, HostResourceId string, hostNicres *computev1.HostnicResource) (string, error) {
+
+	zlog.Info().Msgf("Create Hostnic Resource is %v\n", hostNicres)
+
+	hostres, err := GetHostResourceByResourceID(ctx, c, HostResourceId)
+	zlog.Debug().Msgf("Hostresource read is %v\n", hostres)
+
+	hostNicres.Host = hostres
+	resreq := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Hostnic{
+			Hostnic: hostNicres,
 		},
 	}
 
@@ -192,6 +217,22 @@ func GetHostResourceByUUID(
 	return listOneHost(ctx, c, filter)
 }
 
+func DeleteHostResourceByResourceID(ctx context.Context, c inv_client.InventoryClient, resourceID string) error {
+	zlog.Info().Msgf("Delete Hostusb: %v", resourceID)
+
+	_, err := c.Delete(ctx, resourceID)
+	if inv_errors.IsNotFound(err) {
+		zlog.MiSec().MiErr(err).Msgf("Not found while HostResource delete, dropping err: resourceID=%s", resourceID)
+		return nil
+	}
+	if err != nil {
+		zlog.MiSec().MiErr(err).Msgf("Failed delete Host resource %s", resourceID)
+		return err
+	}
+
+	return err
+}
+
 func DeleteHostResource(ctx context.Context, c inv_client.InventoryClient, host *computev1.HostResource) error {
 	h := &computev1.HostResource{
 		ResourceId:   host.GetResourceId(),
@@ -221,36 +262,69 @@ func DeleteInstanceResource(ctx context.Context, c inv_client.InventoryClient, i
 }
 
 func UpdateHostResource(ctx context.Context, c inv_client.InventoryClient, host *computev1.HostResource) error {
+
 	return UpdateInvResourceFields(ctx, c, host, []string{
-		"kind",
-		"description",
-		"current_state",
-		"hardware_kind",
-		"memory_bytes",
-		"cpu_model",
-		"cpu_sockets",
-		"cpu_cores",
-		"cpu_capabilities",
-		"cpu_architecture",
-		"cpu_threads",
-		"gpu_pci_id",
-		"gpu_product",
-		"gpu_vendor",
-		"mgmt_ip",
-		"bmc_kind",
-		"bmc_ip",
-		"bmc_username",
-		"bmc_password",
-		"pxe_mac",
-		"hostname",
-		"product_name",
-		"bios_version",
-		"bios_release_date",
-		"bios_vendor",
-		"metadata",
+		computev1.HostResourceFieldKind,
+		computev1.HostResourceFieldCurrentState,
+		computev1.HostResourceFieldHardwareKind,
+		computev1.HostResourceFieldMemoryBytes,
+		computev1.HostResourceFieldCpuModel,
+		computev1.HostResourceFieldCpuSockets,
+		computev1.HostResourceFieldCpuCores,
+		computev1.HostResourceFieldCpuCapabilities,
+		computev1.HostResourceFieldCpuArchitecture,
+		computev1.HostResourceFieldCpuThreads,
+		computev1.HostResourceFieldMgmtIp,
+		computev1.HostResourceFieldBmcKind,
+		computev1.HostResourceFieldBmcIp,
+		computev1.HostResourceFieldBmcUsername,
+		computev1.HostResourceFieldBmcPassword,
+		computev1.HostResourceFieldPxeMac,
+		computev1.HostResourceFieldHostname,
+		computev1.HostResourceFieldProductName,
+		computev1.HostResourceFieldBiosVersion,
+		computev1.HostResourceFieldBiosReleaseDate,
+		computev1.HostResourceFieldBiosVendor,
+		computev1.HostResourceFieldMetadata,
+		computev1.HostResourceFieldSerialNumber,
+		computev1.HostResourceFieldUuid,
 	})
+
 }
 
+// UpdateHostnic updates an existing Hostnic resource info in Inventory, except state and other fields not allowed from RM.
+func UpdateHostnic(ctx context.Context, c inv_client.InventoryClient, hostNic *computev1.HostnicResource) error {
+	zlog.Debug().Msgf("Update Hostnic: %v", hostNic)
+
+	err := UpdateInvResourceFields(ctx, c, hostNic, []string{
+		computev1.HostnicResourceFieldKind,
+		computev1.HostnicResourceFieldDeviceName,
+		computev1.HostnicResourceEdgeHost,
+		computev1.HostnicResourceFieldPciIdentifier,
+		computev1.HostnicResourceFieldMacAddr,
+		computev1.HostnicResourceFieldSriovEnabled,
+		computev1.HostnicResourceFieldSriovVfsNum,
+		computev1.HostnicResourceFieldSriovVfsTotal,
+		computev1.HostnicResourceFieldPeerName,
+		computev1.HostnicResourceFieldPeerDescription,
+		computev1.HostnicResourceFieldPeerMac,
+		computev1.HostnicResourceFieldPeerMgmtIp,
+		computev1.HostnicResourceFieldPeerPort,
+		computev1.HostnicResourceFieldSupportedLinkMode,
+		computev1.HostnicResourceFieldAdvertisingLinkMode,
+		computev1.HostnicResourceFieldCurrentSpeedBps,
+		computev1.HostnicResourceFieldCurrentDuplex,
+		computev1.HostnicResourceFieldFeatures,
+		computev1.HostnicResourceFieldMtu,
+		computev1.HostnicResourceFieldLinkState,
+		computev1.HostnicResourceFieldBmcInterface,
+	})
+	if err != nil {
+		zlog.MiSec().MiError("Failed update Hostnic resource %v", hostNic).Msg("UpdateHostnic")
+		return err
+	}
+	return nil
+}
 func GetInventoryResourceAndID(resource proto.Message) (*inv_v1.Resource, string, error) {
 	var (
 		invResource   = &inv_v1.Resource{}
@@ -270,6 +344,11 @@ func GetInventoryResourceAndID(resource proto.Message) (*inv_v1.Resource, string
 	case *computev1.InstanceResource:
 		invResource.Resource = &inv_v1.Resource_Instance{
 			Instance: res,
+		}
+		invResourceID = res.GetResourceId()
+	case *computev1.HostnicResource:
+		invResource.Resource = &inv_v1.Resource_Hostnic{
+			Hostnic: res,
 		}
 		invResourceID = res.GetResourceId()
 	default:

@@ -7,20 +7,25 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/flags"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/oam"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/tracing"
+	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/handlers/southbound"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/handlers/southbound/artifact"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/config"
 	inventory "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/controller"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/maestro"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/maestro/controller"
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
 )
 
 var (
@@ -38,7 +43,17 @@ var (
 	termChan  = make(chan bool, 1)
 	sigChan   = make(chan os.Signal, 1)
 )
+
+const (
+	DefaultTimeout = 3 * time.Second
+)
+
 var manager *inventory.InventoryManager
+var hostResID string
+
+type OnboardingEB struct {
+	pb.UnimplementedOnBoardingEBServer
+}
 
 var (
 	Project   = "frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service"
@@ -110,6 +125,8 @@ func main() {
 	if err != nil {
 		zlog.MiSec().Fatal().Err(err).Msgf("failed to start inventory client")
 	}
+
+	_ = artifact.InitNodeArtifactService(invClient)
 
 	nbHandler, err := controller.NewNBHandler(invClient, invEvents)
 	if err != nil {

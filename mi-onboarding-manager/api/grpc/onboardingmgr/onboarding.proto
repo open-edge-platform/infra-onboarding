@@ -7,7 +7,6 @@ option go_package = "github.com/intel-innersource/frameworks.edge.one-intel-edge
 
 
 
-
 //Artifact & Node Endpoints towards Inventory Manager
 service NodeArtifactServiceNB {
   rpc CreateArtifacts(ArtifactRequest) returns (ArtifactResponse) {};
@@ -70,7 +69,7 @@ message ArtifactData {
     SUCCESS = 0;                      // Success
     FAILURE = 1;                      // Failure
   }
-  Response result = 15;          
+  Response result = 15;
 }
 
 message Supplier {
@@ -107,6 +106,7 @@ message NodeData {
     FAILURE = 1;                       // Failure
   }
   Response result = 14;                //Result
+  repeated  HwData hwdata = 15;
  }
 
 message HwData {
@@ -116,6 +116,11 @@ message HwData {
   CustomerParams cus_params = 4;      // Azure Specific Parameters
   string disk_partition = 5;          // Disk Partition Details
   string platform_type = 6;           // Device platform type
+  string serialnum = 7;
+  string uuid = 8;
+  string bmc_ip = 9;
+  bool bmc_interface = 10;
+  string host_nic_dev_name = 11;
 }
 
 message Proxy {
