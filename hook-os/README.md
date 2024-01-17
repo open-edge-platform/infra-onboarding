@@ -1,41 +1,47 @@
-Your new repo has been pre-propulated with this Readme and a minimal Jenkinsfile. The steps for the Jenkinsfile should be adapted to suit the build/test commands of this repo contents.
+# Hook microOS (Alpine Linuxkit)
+This repository holds the scripts needed to get a local copy of Tinkerbell HookOS which is built out of linuxkit yaml file.
+Addition functions accomplished by these scripts are listed below.
+1. Updates the implementation of HookOS.
+2. Signing the HookOS
+3. Creating a grub needed to boot HookOS from disk and into RAM
 
-## Scans
-Scans have been limited to the minimal required number. They can be extended with Bandit(for python code) or Snyk(for go code). Protex will only run on "main" branch and not on PRs because of tool limitations (parelel jobs cannot be executed) and also to shorten the PR check time. 
+# Build pre-requisites
+1. The build requires few containers to be embedded into the hook micro OS. These can be found in the actions repository.
+   The version of these container will be specified by the file VERSION in the root dir of this repo.
+2. The build requires these container image to be present before running the build script. Verify that these containers are present by running "docker images" cmd.
 
-## Triggers
-Please adapt the time at which the main branch is being executed according to your night time
+# Build steps for HookOS
+1. update the config file with the correct configurations.
+   Essential configurations include
+   http_proxy, https_proxy, ftp_proxy, socks_proxy, no_proxy, nameserver
 
-## Containers
-amr-registry.caas.intel.com/one-intel-edge/rrp-devops/oie_ci_testing:latest is used currently. This container has the following tools: 
-```
-Git 
-Make and standard build tooling 
-Docker CLI (to start containers) 
-Go 1.19.x 
-Python 3.9 or later 
-NodeJS 18 
-Mermaid CLI (used in documentation generation): https://github.com/mermaid-js/mermaid-cli 
-```
+   ```
+   Example:
+   http_proxy=http://xyz.com:911
+   https_proxy=https://xyz.com:911
+   ftp_proxy=ftp://xyz.com:911
+   socks_proxy=socks://xyz.com:911
+   no_proxy=localhost
+   nameserver=(192.168.1.1 192.168.1.2 192.168.1.3)
+   ```
+2. Run the build hookOS.
 
-## Coverage above 70% threshold. The following tools 
-```
-Python - Coverage
-Java - Bazel, Jacoco
-Go - Built-in Coverage
-JS - c8
-```
+   ```
+   bash ./build_hookOS.sh
+   ```
 
-## Linters. The following tools 
-```
-Python - Flake8 (formerly pep8)
-Java - Sonallint 
-Go - GoLint
-JS - prittier, Karma
-Ansible - Ansible Lint
-```
+## Customization of builds
+1. secure_hookos.sh will create gpg keys and uses it from folder gpg_keys and public portion is boot.key
+   If this folder is kept in the root of the folder no new gpg keys will be created.
+   If you need to use a custom gpg key replace the gpg_keys and boot.key.
 
-## Artifacts
-The source will be packed in a archive named after the repo. The archive will then be uploaded to artifactory following a path simillar to:
-https://ubit-artifactory-or.intel.com/artifactory/one-intel-edge-or-local/<project_name>/<jenkins_controller>/<jenkins_team>/<jenkins_job>/<repo_name>/<branch>/
+2. secure_hookos.sh will create secure boot keys and uses it from folder sb_keys.
+   If this folder is kept in the root of the folder no new secureboot keys will be created.
+   If you need to use a custom secureboot key replace the sb_keys.
+
+
+
+# Outputs
+1. Alpine linux based HookOS will be placed in alpine_image folder.
+1. A signed alpine linux based HookOS will be placed in alpine_image_secureboot folder.
 
