@@ -12,9 +12,10 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"os"
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/cmd/pdctl/commands"
 	"github.com/spf13/cobra"
-	"os"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -92,6 +93,7 @@ func main() {
 	rootCmd.AddCommand(commands.InstanceResourceCmd())
 	rootCmd.AddCommand(commands.HostResCmds())
 	rootCmd.AddCommand(commands.InstanceResCmds())
+	rootCmd.AddCommand(commands.OsCmds())
 
 	// Execute CLI
 	if err := rootCmd.Execute(); err != nil {

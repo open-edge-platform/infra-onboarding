@@ -11,7 +11,12 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"sync"
+	"time"
 
+	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
+
+	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -66,3 +71,39 @@ func (d *grpcDialer) Dial(ctx context.Context, opts ...grpc.DialOption) (*grpc.C
 	}
 	return cc, nil
 }
+
+func NewInventoryClient(ctx context.Context, wg *sync.WaitGroup, addr string) (inv_client.InventoryClient, chan *inv_client.WatchEvents, error) {
+	fmt.Println("Init Inv client")
+	resourceKinds := []inv_v1.ResourceKind{
+		inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE,
+		inv_v1.ResourceKind_RESOURCE_KIND_HOST,
+		inv_v1.ResourceKind_RESOURCE_KIND_OS,
+	}
+	eventCh := make(chan *inv_client.WatchEvents)
+
+	cfg := inv_client.InventoryClientConfig{
+		Name:                      "onboarding_manager",
+		Address:                   addr,
+		Events:                    eventCh,
+		EnableRegisterRetry:       false,
+		AbortOnUnknownClientError: true,
+		ClientKind:                inv_v1.ClientKind_CLIENT_KIND_API,
+		ResourceKinds:             resourceKinds,
+		EnableTracing:             true,
+		Wg:                        wg,
+		SecurityCfg: &inv_client.SecurityConfig{
+			Insecure: true,
+		},
+	}
+	for {
+		client, err := inv_client.NewInventoryClient(ctx, cfg)
+		if err != nil {
+			fmt.Println("Failed to create new inventory client %v,Retry after 5 seconds", err)
+			time.Sleep(5 * time.Second)
+		}
+		if err == nil {
+			return client, eventCh, nil
+		}
+	}
+}
+

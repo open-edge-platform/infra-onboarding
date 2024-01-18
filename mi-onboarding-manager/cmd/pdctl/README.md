@@ -93,8 +93,17 @@ Note: Connect to Inventory service (add parameters accordingly)
 	Note : Once the reconcliation starts, DKAM will send the response for respective resource and onboarding will be started.
 
 
+## Examples of OS Resources Commands:
 
+Note: Connect to Inventory service (add parameters accordingly)
 
+	1. pdctl os-res create --addr=<ip or localhost>:<port> --insecure --profileName=<profilename> --repo_url=<url>
 
+	2. pdctl os-res get --addr=<ip or localhost>:<port> --insecure
 
+	3. pdctl os-res getById --addr=<ip or localhost>:<port> --insecure -r=<resource_id>
+
+	4. pdctl os-res delete --addr=<ip or localhost>:<port> --insecure -r=<resource_id>
+
+	5. pdctl os-res update --addr=<ip or localhost>:<port> --insecure -r=<resource_id> -a=<value> -k=<command> -l=<url value> 
 

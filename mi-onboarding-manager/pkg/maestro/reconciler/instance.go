@@ -8,6 +8,7 @@ import (
 	"context"
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
@@ -31,18 +32,18 @@ func NewInstanceReconciler(c inv_client.InventoryClient) *InstanceReconciler {
 
 func (ir *InstanceReconciler) Reconcile(ctx context.Context, request rec_v2.Request[ResourceID]) rec_v2.Directive[ResourceID] {
 	resourceID := request.ID.String()
-	log.Infof("Reconciling instance %s", resourceID)
+	zlog.MiSec().Info().Msgf("Reconciling instance : %s", resourceID)
 
 	inst, err := getInstanceByID(ctx, ir.invClient, resourceID)
 	if err != nil {
-		log.Errorf("Failed to get instance %s %v", resourceID, err)
+		zlog.Err(err).Msgf("Failed to get instance : %s", resourceID)
 	}
 	if directive := handleInventoryError(err, request); directive != nil {
 		return directive
 	}
 
 	if inst.DesiredState == inst.CurrentState {
-		log.Infof("Instance %s reconciliation skipped", resourceID)
+		zlog.MiSec().Info().Msgf("Instance %s reconciliation skipped", resourceID)
 		return request.Ack()
 	}
 
@@ -55,60 +56,67 @@ func (ir *InstanceReconciler) reconcileInstance(
 	inst *computev1.InstanceResource,
 ) rec_v2.Directive[ResourceID] {
 	id := inst.GetResourceId()
-	log.Infof("Reconciling instance with ID: %s current state: %v desired state: %v",
+	zlog.Debug().Msgf("Reconciling instance with ID: %s current state: %v desired state: %v",
 		id, inst.GetCurrentState(), inst.GetDesiredState())
 
 	onboardingMgr := &onboarding.OnboardingManager{}
 
-	//TODO : Instance state value has to be confirmed.
-	if inst.GetCurrentState() == computev1.InstanceState_INSTANCE_STATE_INSTALLED {
-
-		// Trigger DKAM with the necessary details,
-		response, err := onboarding.GetOSResourceFromDkam(ctx, inst)
-		if err != nil {
-			log.Errorf("Failed to trigger DKAM for instance ID %s: %v", id, err)
-			return request.Ack()
-		}
+	if inst.GetDesiredState() == computev1.InstanceState_INSTANCE_STATE_RUNNING {
 
 		//Getting the host details for the id
 		hostID := inst.GetHost().GetResourceId()
 		host, err := GetHostDetailsByResourceID(ctx, ir.invClient, hostID)
 		if err != nil {
-			log.Errorf("Failed to get host details for instance ID %s: %v", host.GetResourceId(), err)
+			zlog.Err(err).Msgf("Failed to get host details for instance ID : %s", host.GetResourceId())
 			return request.Ack()
 		}
-		log.Infof("Host details associated with Instance id %v", host)
-
-		onboardingRequest, err := onboarding.ConvertInstanceForOnboarding([]*computev1.InstanceResource{inst}, host, response)
+		zlog.MiSec().Info().Msgf("Host details associated with Instance id %v", host)
+		osd, oserr := maestro.GetOsResourceById(ctx, ir.invClient, inst.Os.GetResourceId())
+		if oserr != nil {
+			zlog.Err(oserr).Msgf("Failed to get os details for instance ID : %s", inst.Os.GetResourceId())
+			return request.Ack()
+		}
+		onboardingRequest, err := onboarding.ConvertInstanceForOnboarding([]*computev1.InstanceResource{inst}, []*osv1.OperatingSystemResource{osd}, host)
 		if err != nil {
-			log.Errorf("Failed to convert instance for onboarding: %v", err)
+			zlog.Err(err).Msgf("Failed to convert instance for onboarding")
 			return request.Ack()
 		}
 
-		log.Infof("onboarding request: %v", onboardingRequest)
+		zlog.MiSec().Info().Msgf("onboarding request: %v", onboardingRequest)
 
 		if len(onboardingRequest) > 0 {
-			_, err = onboardingMgr.StartOnboarding(ctx, onboardingRequest[0])
-			err := ir.updateInstance(ctx, id)
-			if err != nil {
-				log.Errorf("Failed to update instance with ID: %s,  %s", id, err)
+			response, oberr := onboardingMgr.StartOnboarding(ctx, onboardingRequest[0])
+			if oberr != nil {
+				zlog.Err(oberr).Msgf("Failed to start onboard for the instance ID : %s", id)
+				return request.Ack()
+			}
+			if response.Status == "Success" {
+				err := ir.updateInstance(ctx, id)
+				if err != nil {
+					zlog.Err(err).Msgf("Failed to update instance with ID : %s", id)
+					return request.Ack()
+				}
+			} else {
+				zlog.Err(err).Msgf("Failed to update instance for the ID : %s", inst.GetResourceId())
+				return request.Ack()
 			}
 		} else {
-			log.Errorf("Failed to start onboarding for instance ID %s: %v", inst.GetResourceId(), err)
+			zlog.Err(err).Msgf("Failed to start onboarding for instance ID : %s", inst.GetResourceId())
+			return request.Ack()
 		}
 
 	}
 
 	if inst.GetDesiredState() == computev1.InstanceState_INSTANCE_STATE_DELETED {
-		log.Infof("Deleting instance ID %s (set current status to Deleted)", id)
+		zlog.MiSec().Info().Msgf("Deleting instance ID %s (set current status to Deleted)", id)
 		err := ir.deleteInstance(ctx, id)
 		if err != nil {
-			log.Errorf("Failed to update instance with ID: %s", id)
+			zlog.Err(err).Msgf("Failed to update instance with ID: %s", id)
 		}
 		if directive := handleInventoryError(err, request); directive != nil {
 			return directive
 		}
-		log.Infof("Instance with ID %v has been deleted", id)
+		zlog.Debug().Msgf("Instance with ID %v has been deleted", id)
 		return request.Ack()
 	}
 

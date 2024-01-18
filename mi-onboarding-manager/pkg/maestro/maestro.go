@@ -10,6 +10,7 @@ import (
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
@@ -57,21 +58,6 @@ func NewInventoryClient(wg *sync.WaitGroup, addr string) (inv_client.InventoryCl
 	return invClient, eventCh, nil
 }
 
-func FindAllResources(ctx context.Context, c inv_client.InventoryClient, kind inv_v1.ResourceKind) ([]string, error) {
-	fmk := &fieldmaskpb.FieldMask{Paths: []string{}}
-	res, err := util.GetResourceFromKind(kind)
-	if err != nil {
-		return nil, err
-	}
-
-	resources, err := c.FindAll(ctx, res, fmk)
-	if err != nil {
-		return nil, err
-	}
-
-	return resources, nil
-}
-
 func CreateHostResource(ctx context.Context, c inv_client.InventoryClient, uuid string, hostres *computev1.HostResource) (string, error) {
 	hostres.Uuid = uuid
 	resreq := &inv_v1.Resource{
@@ -111,14 +97,17 @@ func CreateHostnicResource(ctx context.Context, c inv_client.InventoryClient, Ho
 	return res.ResourceId, nil
 }
 
-func CreateInstanceResource(ctx context.Context, c inv_client.InventoryClient, inst *computev1.InstanceResource, hostID string) (string, error) {
+func CreateInstanceResource(ctx context.Context, c inv_client.InventoryClient, inst *computev1.InstanceResource, hostID, osID string) (string, error) {
 
 	// Set the host ID in the instance resource's Host field
 	inst.Host = &computev1.HostResource{
 
 		ResourceId: hostID,
 	}
+	inst.Os = &osv1.OperatingSystemResource{
 
+		ResourceId: osID,
+	}
 	resreq := &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Instance{
 			Instance: inst,
@@ -346,6 +335,10 @@ func GetInventoryResourceAndID(resource proto.Message) (*inv_v1.Resource, string
 			Instance: res,
 		}
 		invResourceID = res.GetResourceId()
+	case *osv1.OperatingSystemResource:
+		invResource.Resource = &inv_v1.Resource_Os{
+			Os: res,
+    }
 	case *computev1.HostnicResource:
 		invResource.Resource = &inv_v1.Resource_Hostnic{
 			Hostnic: res,
@@ -442,3 +435,103 @@ func listAllResources(
 	}
 	return objs, nil
 }
+
+func CreateOsResource(ctx context.Context, c inv_client.InventoryClient, osr *osv1.OperatingSystemResource) (string, error) {
+	resreq := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Os{
+			Os: osr,
+		},
+	}
+	res, err := c.Create(ctx, resreq)
+	if err != nil {
+		return "", err
+	}
+	return res.ResourceId, nil
+}
+
+func GetOsResourceById(ctx context.Context, c inv_client.InventoryClient, resourceID string) (*osv1.OperatingSystemResource, error) {
+	osGetRes, err := c.Get(ctx, resourceID)
+	if err != nil {
+		return nil, err
+	}
+	osRes := osGetRes.GetResource().GetOs()
+
+	if validateosErr := osRes.ValidateAll(); validateosErr != nil {
+		return nil, inv_errors.Wrap(validateosErr)
+	}
+
+	return osRes, nil
+}
+
+func GetOsResources(ctx context.Context, c inv_client.InventoryClient) (osres []*osv1.OperatingSystemResource, err error) {
+	filter, err := util.GetFilterFromSetResource(&inv_v1.Resource{
+		Resource: &inv_v1.Resource_Os{
+			Os: &osv1.OperatingSystemResource{},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	resources, err := listAllResources(ctx, c, filter)
+	if err != nil {
+		return nil, err
+	}
+	return util.GetSpecificResourceList[*osv1.OperatingSystemResource](resources)
+}
+
+func DeleteOsResource(ctx context.Context, c inv_client.InventoryClient, resourceID string) error {
+	delResp, err := c.Delete(ctx, resourceID)
+	if err != nil {
+		return err
+	}
+
+	if delValidateErr := delResp.ValidateAll(); delValidateErr != nil {
+		return inv_errors.Wrap(delValidateErr)
+	}
+	return nil
+}
+
+func UpdateOsResource(ctx context.Context, c inv_client.InventoryClient, osr *osv1.OperatingSystemResource) error {
+	fieldMask := &fieldmaskpb.FieldMask{
+		Paths: []string{
+			"repo_url",
+		},
+	}
+
+	res := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Os{
+			Os: &osv1.OperatingSystemResource{
+				RepoUrl: osr.RepoUrl,
+			},
+		},
+	}
+	_, err := c.Update(
+		ctx,
+		osr.ResourceId,
+		fieldMask,
+		res,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func FindAllResources(ctx context.Context, c inv_client.InventoryClient, kinds []inv_v1.ResourceKind) ([]string, error) {
+	fmk := &fieldmaskpb.FieldMask{Paths: []string{}}
+	var allResources []string
+	for _, kind := range kinds {
+		res, err := util.GetResourceFromKind(kind)
+		if err != nil {
+			return nil, err
+		}
+		resources, err := c.FindAll(ctx, res, fmk)
+		if err != nil {
+			return nil, err
+		}
+		allResources = append(allResources, resources...)
+	}
+	return allResources, nil
+}
+

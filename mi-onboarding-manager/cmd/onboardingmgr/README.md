@@ -55,19 +55,24 @@ step 3) check if onboarding manager and inventory service  is running
     
     2) Create a Host resource 
 
-    3) Create a Instance resource and associate it with host-id
+    3) Create a OS resource
 
-    4) Once onboarding manager is running, it will reconcile with the Instance state and onboarding process will start.
+    4) Create a Instance resource and associate it with host-id and os-id
+
+    5) Once onboarding manager is running, it will reconcile with the Instance state and onboarding process will start.
 
     Examples:
 
-        1.  pdctl host-res create --addr=localhost:50051 --insecure  --hostname=OS  --bmc-kind=BAREMETAL_CONTROLLER_KIND_PDU  --uuid=9fa8a788-f9f8-434a-8620-bbed2a12b0ad -s=10.49.76.113 -x=1c:69:7a:a8:12:af -c=INSTANCE_STATE_UNSPECIFIED --bmc-ip=10.223.87.65
+        1.  pdctl host-res create --addr=localhost:50051 --insecure  --hostname=OS  --bmc-kind=BAREMETAL_CONTROLLER_KIND_PDU  --uuid=9fa8a788-f9f8-434a-8620-bbed2a12b0ad -t=10.49.76.113 -x=1c:69:7a:a8:12:af -c=INSTANCE_STATE_UNSPECIFIED --bmc-ip=10.223.87.65
     
-        Note : The output of above command will generate a Host ID = host-1234ab
+        2. pdctl os-res create --addr=localhost:50051 --profileName="osprofile"  -l="repo_url" --insecure
 
-        2. pdctl instance-res create --addr=localhost:50051 --insecure --hostID=host-1234ab --kind=RESOURCE_KIND_INSTANCE -c=INSTANCE_STATE_INSTALLED 
+        3. pdctl host-res get --addr=localhost:50051 --insecure // Get the host id to associate it with instance
 
+        4. pdctl os-res get --addr=localhost:50051 --insecure // Get the os id to associate it with instance
 
+        5. pdctl instance-res create --addr=localhost:50051 --insecure --kind=RESOURCE_KIND_INSTANCE --osID=<os-id from step 4> --hostID=<host-id from step 3>
+ 
 
 Note: make sure your dkam is running to get the urls 
       Make sure your inventory service is running mentioned in step 5.1

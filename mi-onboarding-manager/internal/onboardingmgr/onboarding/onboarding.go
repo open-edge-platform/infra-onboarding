@@ -20,14 +20,20 @@ import (
 	"sync"
 	"time"
 
-	"google.golang.org/grpc"
-
 	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/onbworkflowclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/utils"
 	"github.com/mohae/deepcopy"
+	"google.golang.org/grpc"
+)
+
+var (
+	clientName = "OnboardingInventoryClient"
+	zlog       = logging.GetLogger(clientName)
 )
 
 type OnboardingManager struct {
@@ -343,32 +349,29 @@ func extractUrlsFromManifest(manifest string) (osUrl, overlayUrl string, err err
 	return osUrlMatches[1], overlayUrlMatches[1], nil
 }
 
-func ConvertInstanceForOnboarding(instances []*computev1.InstanceResource, host *computev1.HostResource, response *dkam.GetArtifactsResponse) ([]*pb.OnboardingRequest, error) {
-	// Check if response or host is nil
-	if response == nil || host == nil {
-		log.Printf("DKAM response or host is nil")
-		return nil, errors.New("DKAM response or host is nil")
-	}
-
-	osUrl, overlayUrl, err := extractUrlsFromManifest(response.ManifestFile)
-	if err != nil {
-		log.Printf("Failed to extract URLs from manifest file: %v", err)
-		return nil, err
-	}
+func ConvertInstanceForOnboarding(instances []*computev1.InstanceResource, osinstances []*osv1.OperatingSystemResource, host *computev1.HostResource) ([]*pb.OnboardingRequest, error) {
 
 	var onboardingRequests []*pb.OnboardingRequest
-	for range instances {
+	var osUrl, overlayUrl string
+	var urlerr error
+	for _, osr := range osinstances {
+		osUrl, overlayUrl, urlerr = extractUrlsFromManifest(osr.RepoUrl)
+		if urlerr != nil {
+			zlog.Err(urlerr).Msg("Failed to extract URLs from manifest file")
+			return nil, urlerr
+		}
 
 		// Create an instance of OnboardingRequest and populate it
 		onboardingRequest := &pb.OnboardingRequest{
+
 			ArtifactData: []*pb.ArtifactData{
 				{
-					Name:       "OS", // TODO Harcoding it for now , will extract from OS resource
+					Name:       "OS",
 					PackageUrl: osUrl,
 					Category:   1,
 				},
 				{
-					Name:       "PLATFORM", //TODO Hardcoding it for now
+					Name:       "PLATFORM",
 					PackageUrl: overlayUrl,
 					Category:   1,
 				},
@@ -412,11 +415,11 @@ type GetArtifactsResponse struct {
 	ManifestFile string `protobuf:"bytes,2,opt,name=manifest_file,json=manifestFile,proto3" json:"manifest_file,omitempty"`
 }
 
-func GetOSResourceFromDkam(ctx context.Context, inst *computev1.InstanceResource) (*dkam.GetArtifactsResponse, error) {
+func GetOSResourceFromDkamService(ctx context.Context, os *osv1.OperatingSystemResource) (*dkam.GetArtifactsResponse, error) {
 	// Create a gRPC connection to DKAM server
 	dkamConn, err := grpc.Dial(*dkamAddr, grpc.WithInsecure())
 	if err != nil {
-		log.Fatalf("Failed to connect to DKAM server: %v", err)
+		zlog.Err(err).Msg("Failed to connect to DKAM server")
 		return nil, err
 	}
 	defer dkamConn.Close()
@@ -427,7 +430,7 @@ func GetOSResourceFromDkam(ctx context.Context, inst *computev1.InstanceResource
 		// TODO: Pass relevant parameters
 	})
 	if err != nil {
-		log.Fatalf("Failed to get software details from DKAM: %v", err)
+		zlog.Err(err).Msg("Failed to get software details from DKAM")
 		return nil, err
 	}
 	if response == nil {
@@ -468,7 +471,7 @@ func StartOnboard(req *pb.OnboardingRequest) (*pb.OnboardingResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	result := "Exited with Success"
+	result := "Success"
 	return &pb.OnboardingResponse{Status: result}, nil
 }
 

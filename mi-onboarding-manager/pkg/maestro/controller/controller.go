@@ -57,9 +57,14 @@ func NewNBHandler(
 
 	instRcnl := reconciler.NewInstanceReconciler(invClient)
 	instCtrl := rec_v2.NewController[reconciler.ResourceID](
-		instRcnl.Reconcile, rec_v2.WithParallelism(parallelism))
+		instRcnl.Reconcile, rec_v2.WithTimeout(30*time.Minute), rec_v2.WithParallelism(parallelism))
 	controllers[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instCtrl
 	filters[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instanceEventFilter
+	osRcnl := reconciler.NewOsReconciler(invClient)
+	osCtrl := rec_v2.NewController[reconciler.ResourceID](
+		osRcnl.Reconcile, rec_v2.WithParallelism(parallelism))
+	controllers[inv_v1.ResourceKind_RESOURCE_KIND_OS] = osCtrl
+	filters[inv_v1.ResourceKind_RESOURCE_KIND_OS] = osEventFilter
 
 	return &NBHandler{
 		invClient:   invClient,
@@ -141,8 +146,11 @@ func (nbh *NBHandler) filterEvent(event *inv_v1.SubscribeEventsResponse) bool {
 }
 
 func (nbh *NBHandler) reconcileAll(ctx context.Context) error {
-	zlog.Info().Msg("Reconciling all instances")
-	ids, err := maestro.FindAllResources(ctx, nbh.invClient, inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE)
+
+	zlog.Debug().Msgf("Reconciling all instances")
+	resourceKinds := []inv_v1.ResourceKind{inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE, inv_v1.ResourceKind_RESOURCE_KIND_OS}
+	ids, err := maestro.FindAllResources(ctx, nbh.invClient, resourceKinds)
+
 	if err != nil && !inv_errors.IsNotFound(err) {
 		return err
 	}
@@ -184,4 +192,10 @@ func instanceEventFilter(event *inv_v1.SubscribeEventsResponse) bool {
 
 func hostEventFilter(event *inv_v1.SubscribeEventsResponse) bool {
 	return event.EventKind != inv_v1.SubscribeEventsResponse_EVENT_KIND_DELETED
+}
+
+func osEventFilter(event *inv_v1.SubscribeEventsResponse) bool {
+	return event.EventKind == inv_v1.SubscribeEventsResponse_EVENT_KIND_UPDATED ||
+		event.EventKind == inv_v1.SubscribeEventsResponse_EVENT_KIND_CREATED ||
+		event.EventKind == inv_v1.SubscribeEventsResponse_EVENT_KIND_DELETED
 }
