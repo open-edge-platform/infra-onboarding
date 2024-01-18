@@ -18,6 +18,7 @@ store_alpine=./tinker_actions/store_alpine/
 fdo_action_build=./tinker_actions/fdo_action_build/
 create_partition=./tinker_actions/create_partition
 efibootset=./tinker_actions/efibootset
+fde_setup=./tinker_actions/fde
 
 fdo_docker_setup() {
     pushd $fdo_action_build
@@ -55,6 +56,15 @@ create_partition_setup() {
 }
 
 
+fde_setup_action() {
+
+    pushd $fde_setup
+
+    bash build.sh
+
+    popd
+}
+
 main() {
 
     sudo apt install -y build-essential
@@ -65,6 +75,7 @@ main() {
     store_alpine_setup
     create_partition_setup
 
+    fde_setup_action
 }
 
 main
