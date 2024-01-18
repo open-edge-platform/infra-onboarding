@@ -34,7 +34,7 @@ func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIp string) ([]b
 					Image:   provIp + ":5015/cred_copy:latest",
 					Timeout: 90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":  "{{ index .Hardware.Disks 0 }}",
+						"BLOCK_DEVICE":  "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":    "ext4",
 					},
 				},
@@ -164,7 +164,7 @@ func NewTemplateDataProdBKC(name, rootPart, hostIP, clientImg, provIp string) ([
 					Image:   provIp + ":5015/cred_copy:latest",
 					Timeout: 90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":  "{{ index .Hardware.Disks 0 }}",
+						"BLOCK_DEVICE":  "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":    "ext4",
 					},
 				},
@@ -381,7 +381,7 @@ func NewTemplateDataProdMS(name, rootPart, rootPartNo, hostIP, clientIP, gateway
 					Image:   provIp + ":5015/cred_copy:latest",
 					Timeout: 90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":  "{{ index .Hardware.Disks 0 }}",
+						"BLOCK_DEVICE":  "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":    "ext4",
 					},
 				},
