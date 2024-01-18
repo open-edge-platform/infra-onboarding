@@ -18,7 +18,21 @@ source ./secure_hookos.sh
 
 STORE_ALPINE_SECUREBOOT=$PWD/alpine_image_secureboot/
 STORE_ALPINE=$PWD/alpine_image/
+
+# CI pipeline expects the below file. But we need to make the build independent of
+# CI requirements. This if-else block creates a new file TINKER_ACTIONS_VERSION from
+# versions and that is pulled when hook os is getting built.
+
 VERSION_FILE=$PWD/tinker-actions/VERSION
+if [ ! -f $VERSION_FILE ];
+then
+    if [ ! -f $PWD/TINKER_ACTIONS_VERSION ] ;
+    then
+	cp $PWD/VERSION $PWD/TINKER_ACTIONS_VERSION
+    fi
+    VERSION_FILE=$PWD/TINKER_ACTIONS_VERSION
+fi
+
 
 build_hook() {
 
@@ -61,7 +75,15 @@ build_hook() {
     mkdir -p $STORE_ALPINE
     mkdir -p $STORE_ALPINE_SECUREBOOT
     sudo cp $PWD/hook/out/sha-/rel/hook_x86_64.tar.gz $STORE_ALPINE
+
+    if [ $? -ne 0 ];
+    then
+	echo "Build of HookOS failed"
+	exit 1
+    fi
+
     sudo cp $PWD/hook/out/sha-/rel/hook_x86_64.tar.gz $STORE_ALPINE_SECUREBOOT
+
     #copy to the downloaded location of nginx
     if [ -d /opt/hook ]; then
         sudo cp $PWD/hook/out/sha-/rel/hook_x86_64.tar.gz /opt/hook/
@@ -76,7 +98,7 @@ build_hook() {
 
 main() {
 
-    sudo apt install -y build-essential
+    sudo apt install -y build-essential bison flex
 
     build_hook
 

@@ -48,6 +48,36 @@ index da5bde6..1e8b425 100644
  RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
  RUN apk update; apk add kexec-tools
  COPY --from=dev /hook-docker .
+diff --git a/hook-docker/main.go b/hook-docker/main.go
+index 0908c72..94d4299 100644
+--- a/hook-docker/main.go
++++ b/hook-docker/main.go
+@@ -29,6 +29,16 @@ func main() {
+ 	fmt.Println("Starting Tink-Docker")
+ 	go rebootWatch()
+ 
++         fmt.Println("Make /dev/null writeable for all users!")
++         cmd := exec.Command("chmod", "666", "/dev/null")
++         cmd.Stdout = os.Stdout
++         cmd.Stderr = os.Stderr
++         err := cmd.Run()
++         if err != nil {
++             panic(err)
++         }
++
++
+ 	// Parse the cmdline in order to find the urls for the repository and path to the cert
+ 	content, err := os.ReadFile("/proc/cmdline")
+ 	if err != nil {
+@@ -58,7 +68,7 @@ func main() {
+ 	}
+ 
+ 	// Build the command, and execute
+-	cmd := exec.Command("/usr/local/bin/docker-init", "/usr/local/bin/dockerd")
++	cmd = exec.Command("/usr/local/bin/docker-init", "/usr/local/bin/dockerd")
+ 	cmd.Stdout = os.Stdout
+ 	cmd.Stderr = os.Stderr
+ 
 diff --git a/hook.yaml b/hook.yaml
 index 647e792..9a17b20 100644
 --- a/hook.yaml
