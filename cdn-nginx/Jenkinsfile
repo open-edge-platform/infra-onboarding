@@ -3,7 +3,7 @@ def getEnvFromBranch(branch) {
         return 'virus,hadolint,checkmarx,protex'
     }
     else {
-        return ''
+        return 'virus,hadolint,checkmarx'
         // PR checks can be extended with checkmarx, bandit, snyk but source code has to available for them to pass. Protex should be kept only at branch level scanning.
     }
 }
@@ -141,24 +141,23 @@ pipeline {
         //     }
         // }
 	    
-        stage('Build') {
-            steps {
-                sh '''
-                eval \$(ssh-agent) > /dev/null
-                make build
-                '''
-            }
-        }
+        // stage('Build') {
+        //     steps {
+        //         sh '''
+        //         eval \$(ssh-agent) > /dev/null
+        //         make build
+        //         '''
+        //     }
+        // }
         
-		stage('Test Code') {
-            steps {
-                echo "Test the code"
-                sh '''
-                make test
-                '''
-            }
-        }
-
+		// stage('Test Code') {
+        //     steps {
+        //         echo "Test the code"
+        //         sh '''
+        //         make test
+        //         '''
+        //     }
+        // }
         stage('Validate clean repo') {
             steps {
                 sh '''
@@ -191,6 +190,24 @@ pipeline {
                 }
             }
         }
+	    stage('Build Docker image') {
+            when {
+                anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest(); }
+            }
+            steps {
+                script {
+                    miDocker.build()
+                }
+            }
+        }
+        stage('Test Code') {
+            steps {
+                echo "Test the code"
+                sh '''
+                make test
+                '''
+            }
+        }
         stage ('Scan Containers') {
             when {
                 anyOf {
@@ -219,25 +236,17 @@ pipeline {
                 }
             }
         }
-		
-
-        stage('Docker Publish') {
+        stage('Deploy Docker image') {
             when {
                 anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; expression{ common.isMatchingCommit(/.*\[push-docker-image\]*/) }; }
             }
             steps {
-                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'intel-harbor-credentials', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
-                {
-                    sh '''
-                    docker login -u $USERNAME -p $PASSWORD https://amr-registry.caas.intel.com
-                    make docker-push
-                    docker logout
-                    '''
+                script {
+                    miDocker.push()
                 }
             }
         }
-
-	stage('Version dev') {
+	    stage('Version dev') {
             when {
                 anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; }
             }

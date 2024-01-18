@@ -15,7 +15,7 @@ CURRENT_GID := $(shell id -g)
 
 # Project variables
 PROJECT_NAME := cdn-nginx
-BINARY_NAME  := minginx
+BINARY_NAME  := cdn-nginx
 
 # Code versions, tags, and so on
 VERSION       := $(shell cat VERSION)
@@ -23,6 +23,7 @@ VERSION_MAJOR := $(shell cut -c 1 VERSION)
 IMG_NAME      := ${PROJECT_NAME}
 IMG_VERSION   ?= $(VERSION)
 GIT_COMMIT    ?= $(shell git rev-parse HEAD)
+BRANCH_NAME   ?= $(shell git rev-parse --abbrev-ref HEAD)
 DOCKER_ENV              := DOCKER_BUILDKIT=1
 DOCKER_REGISTRY         ?= amr-registry.caas.intel.com
 DOCKER_REPOSITORY       ?= one-intel-edge/maestro-i
@@ -48,11 +49,13 @@ all:
 build:
 	@# Help: Runs build stage
 	@echo "---MAKEFILE BUILD---"
-	docker build --rm --build-arg http_proxy='http://proxy-dmz.intel.com:911' --build-arg https_proxy='http://proxy-dmz.intel.com:912' --build-arg HTTP_PROXY='http://proxy-dmz.intel.com:911' --build-arg HTTPS_PROXY='http://proxy-dmz.intel.com:912' --build-arg NO_PROXY='localhost,*.intel.com,intel.com,127.0.0.1' --build-arg no_proxy='localhost,*.intel.com,intel.com,127.0.0.1' -t ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}:${VERSION} -f cdn-nginx/Dockerfile cdn-nginx
 	@echo "---END MAKEFILE Build---"
 
+docker-build:
+	docker build --rm --build-arg http_proxy='http://proxy-dmz.intel.com:911' --build-arg https_proxy='http://proxy-dmz.intel.com:912' --build-arg HTTP_PROXY='http://proxy-dmz.intel.com:911' --build-arg HTTPS_PROXY='http://proxy-dmz.intel.com:912' --build-arg NO_PROXY='localhost,*.intel.com,intel.com,127.0.0.1' --build-arg no_proxy='localhost,*.intel.com,intel.com,127.0.0.1' -t ${DOCKER_TAG}:${IMG_VERSION} -f cdn-nginx/Dockerfile cdn-nginx
+
 docker-push:
-	docker push ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}:${VERSION}
+	docker push ${DOCKER_TAG}:${IMG_VERSION}
 
 lint-ci: license
 
