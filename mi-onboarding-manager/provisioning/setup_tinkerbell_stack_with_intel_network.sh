@@ -524,6 +524,8 @@ function setup_tinsk_stack() {
 	install_helm_service
 
 	install_tinkerbell_stack
+
+	instalation_status
 }
 
 ###MAIN####
