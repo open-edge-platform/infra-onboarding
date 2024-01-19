@@ -1,209 +1,284 @@
 def getEnvFromBranch(branch) {
     if (branch ==~ /main/) {
-        return 'virus,protex'
+        return 'virus,hadolint'
     }
     else {
-        return 'virus'
+        return 'virus,hadolint'
         // PR checks can be extended with checkmarx, bandit, snyk but source code has to available for them to pass. Protex should be kept only at branch level scanning.
     }
 }
 
 pipeline {
-    agent {
-        docker {
-            label 'docker'
-            image 'amr-registry.caas.intel.com/one-intel-edge/rrp-devops/oie_ci_testing:latest'
-            alwaysPull true
-        }
-    }
-    environment {
-        GIT_SHORT_URL=env.GIT_URL.split('/')[4].toString().replaceAll('.git','')
-        SUB_PROJECT_NAME='maestro-a'          //update the sub project name based on your repo, eg:maestro-a/i, springboard
-	authorEmail = sh (script: 'git --no-pager show -s --format=\'%ae\'',returnStdout: true).trim()
+	agent none
+    triggers {
+        // nightly build between 23:00 a.m. - 23:59 a.m.(Etc/UTC), Monday - Friday:
+        cron(env.BRANCH_NAME =~ /main/ ? 'H 23 * * 1-5' : '')
     }
     stages {
-        stage('Scan Sources'){
-            environment {
-                PROJECT_NAME               = "oie-${GIT_SHORT_URL}"
-                SCANNERS                   = getEnvFromBranch(env.BRANCH_NAME)
+		stage('Execute in OIE container') {
+			agent {
+				docker {
+					label 'oie_spot_executor'
+					image 'amr-registry.caas.intel.com/one-intel-edge/rrp-devops/oie_ci_testing:latest'
+					alwaysPull true
+				}
+			}
+			environment {
+				GIT_SHORT_URL=env.GIT_URL.split('/')[4].toString().replaceAll('.git','')
+				SUB_PROJECT_NAME='maestro-i'          //update the sub project name based on your repo, eg:maestro-a/i, springboard
+				authorEmail = sh (script: 'git --no-pager show -s --format=\'%ae\'',returnStdout: true).trim()
+			}
+			stages {		
+				stage('Scan Source') {
+						parallel {
+							stage('Scan Virus, Checkmarx, Protex, Trivy'){
+								environment {
+									PROJECT_NAME                 = "oie-${GIT_SHORT_URL}"
+									SCANNERS                     = getEnvFromBranch(env.BRANCH_NAME)
 
-                // publishArtifacts details
-                ARTIFACT_RETENTION_PERIOD  = ''
-                ARTIFACTORY_URL            = 'https://ubit-artifactory-or.intel.com/artifactory'
-                ARTIFACTS_REPO             = "one-intel-edge-or-local/${SUB_PROJECT_NAME}"
-                PUBLISH_TO_ARTIFACTORY     = true
-                ARTIFACTORY_CREDENTIAL_ID  = 'sys_oie_devops_ubit-artifactory-or.intel.com'
+									// publishArtifacts details
+									ARTIFACT_RETENTION_PERIOD    = ''
+									ARTIFACTORY_URL              = 'https://ubit-artifactory-or.intel.com/artifactory'
+									ARTIFACTS_REPO               = "one-intel-edge-or-local/${SUB_PROJECT_NAME}"
+									PUBLISH_TO_ARTIFACTORY       = true
+									ARTIFACTORY_CREDENTIAL_ID    = 'sys_oie_devops_ubit-artifactory-or.intel.com'
+									ARTIFACTORY_BYPASS_PROXY     = true
 
-                CHECKMARX_FORCE_SCAN       = true
-                CHECKMARX_USER_AUTH_DOMAIN = 'GER'
-                
-                //protex project has to be create before running the scan and the faceless user added to it
-                PROTEX_PROJECT_NAME        = "${GIT_SHORT_URL}"
-                
-                VIRUS_SCAN_DIR             = "."
+									CHECKMARX_FORCE_SCAN         = true
+									CHECKMARX_USER_AUTH_DOMAIN   = 'GER'
 
-                SNYK_PRE_SCAN_SCRIPT = '''\
-                    env
-                    echo 'Adding GitHub credentials to ~/.netrc'
-                    umask 077
-                    echo 'machine github.com' >> ~/.netrc
-                    echo "login $GITHUB_USER" >> ~/.netrc
-                    echo "password $GITHUB_TOKEN" >> ~/.netrc
-                    echo 'machine api.github.com' >> ~/.netrc
-                    echo "login $GITHUB_USER" >> ~/.netrc
-                    echo "password $GITHUB_TOKEN" >> ~/.netrc
-                    umask 022
-                '''.stripIndent()
-            }
-            when {
-                anyOf {
-                    branch 'main';
-                    changeRequest();
-                }
-            }
-            steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'sys_oie_devops_github_api',
-                        usernameVariable: 'GITHUB_USER',
-                        passwordVariable: 'GITHUB_TOKEN',
-                    ),
-                ]){
-                    rbheStaticCodeScan()
-                }
-            }
-        }
-        // This stage is required for service/agent repos only
-        // Please remove it for chart repos
-        stage('Version Check') {
-            steps {
-                echo "Check if its a valid code version"
-                sh '''
-                /opt/ci/version-check.sh
-                '''
-            }        
-        }
-        stage('Build') {
-            steps {
-                echo "Hi, I'm a pipeline, doing build step"
-                sh '''
-                make build
-                '''
-            }
-        }
-        stage('Lint') {
-            steps {
-                echo "Hi, I'm a pipeline, doing lint step"
-                sh '''
-                make lint
-                '''
-            }
-        }
-        stage('Test') {
-            steps {
-                echo "Hi, I'm a pipeline, doing test step"
-                sh '''
-                make test
-                make coverage
-                '''
-                // Coverage template for Java 
-                //step([$class: 'JacocoPublisher', 
-                //               exclusionPattern: '**/com/intel/auth/**,**/com/intel/cloud/**,**/com/intel/test/**,**/com/intel/producer/model/**', 
-                //               inclusionPattern: '**/*.class',
-                //               changeBuildStatus: true,
-                //               minimumInstructionCoverage: '50',
-                //              maximumInstructionCoverage: '51',
-                //               sourcePattern: '**/src/test/java/**'])
-                
-                // Coverage and Allure for Python
-                // python -m coverage run -m pytest --alluredir allure_reports
-                //  python -m coverage xml -o ./reports/coverage.xml 
-                //
-                // step([$class: 'CoberturaPublisher',
-                //                   autoUpdateHealth: false,
-                //                   autoUpdateStability: false,
-                //                  coberturaReportFile: 'reports/coverage.xml',
-                //                   failNoReports: false,
-                //                   failUnhealthy: false,
-                //                   failUnstable: false,
-                //                   maxNumberOfBuilds: 10,
-                //                  onlyStable: false,
-                //                   sourceEncoding: 'ASCII',
-                //                  zoomCoverageChart: false])
-                //    allure([
-                 //       includeProperties: false,
-                 //       properties: [],
-                 //       reportBuildPolicy: 'ALWAYS',
-                 //       results: [[path: 'allure_reports']]
-                 //   ])
-                 
-                 // Python lint using flake8
-                // flake8 --format=pylint --exit-zero /home/jenkins/agent/workspace/e.devops-staging_python_coverage/ >flake8-output.txt
-                // recordIssues enabledForFailure: true, tools: [flake8(name: 'Lint - Flake8', pattern: 'flake8-output.txt', skipSymbolicLinks: true)]
-                
-            }
-        }
-        // This stage is required for service/agent repos only
-        // Please remove it for chart repos
-        stage('Version Tag') {
-            when {
-                anyOf { branch 'main'; branch 'feature*'; branch 'release*' }
-            }
-            steps {
-                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
-                    {
-                        echo "Generate tag if SemVer"
-                        sh '''
-                        # Use writable user for git
-                        echo "machine github.com" >> $HOME/.netrc
-                        echo "  login not-used" >> $HOME/.netrc
-                        echo "  password $PASSWORD" >> $HOME/.netrc
-                        echo "machine api.github.com" >> $HOME/.netrc
-                        echo "  login not-used" >> $HOME/.netrc
-                        echo "  password $PASSWORD" >> $HOME/.netrc
-                        # Tag the version
-                        /opt/ci/version-tag.sh
-                        '''
-                }
-            }
-        }
-        stage('Artifact') {
-            steps {
-                sh '''
-                tar -zcvf "${GIT_SHORT_URL}.tar.gz" *
-                '''
-                archiveArtifacts artifacts: '**/*.tar.gz',
-                allowEmptyArchive: true,
-                fingerprint: true,
-                onlyIfSuccessful: true
-                sh '''
-                [ -d "artifacts" ] || mkdir -p artifacts
-                mv  *.tar.gz artifacts/
-                '''
-                //in case your projects is mastro-i or springbord replace "maestro-a" from bellow accordingly
-                publishArtifacts([artifactsRepo: "one-intel-edge-or-local/${SUB_PROJECT_NAME}",
-                                  credentialId: 'sys_oie_devops_ubit-artifactory-or.intel.com'])
-            }
-        }
+									PROTEX_PROJECT_NAME          = "${GIT_SHORT_URL}"
 
-    }
-    post {
-        always {
-	    jcpSummaryReport()
-            cleanWs()
-        }
-	failure {
-	    script {
-		def currentBranch = env.BRANCH_NAME
-                if (currentBranch == 'main' && authorEmail) {
-                    emailext(
-                    subject: "Build failed on main branch for ${GIT_SHORT_URL}",
-                    body: "The build on the main branch failed. Please check the logs for more details. Your PR was the last change, this is why you're receiving this email",
-                    to: authorEmail,
-                    attachLog: true
-                    )
-                }
-            }
-	}
+									VIRUS_SCAN_DIR               = "."
+						SNYK_PRE_SCAN_SCRIPT = '''\
+										env
+									echo 'Adding GitHub credentials to ~/.netrc'
+										umask 077
+										echo 'machine github.com' >> ~/.netrc
+										echo "login $GITHUB_USER" >> ~/.netrc
+										echo "password $GITHUB_TOKEN" >> ~/.netrc
+										echo 'machine api.github.com' >> ~/.netrc
+										echo "login $GITHUB_USER" >> ~/.netrc
+										echo "password $GITHUB_TOKEN" >> ~/.netrc
+										umask 022
+									'''.stripIndent()
+								}
+								when {
+									anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
+								}
+								steps {
+									withCredentials([
+										usernamePassword(
+											credentialsId: 'sys_oie_devops_github_api',
+											usernameVariable: 'GITHUB_USER',
+											passwordVariable: 'GITHUB_TOKEN',
+										),
+									]){
+									rbheStaticCodeScan()
+									}
+								}
+							}
+							stage('Trivy config scan') {
+								when {
+									anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
+								}
+								steps {
+									script {
+										catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+											sh '''
+											trivy conf --exit-code 1 --severity CRITICAL . 2>&1 > trivy_conf.log
+											'''
+										}
+										sh '''
+										[ -d "artifacts" ] && mkdir artifacts/Trivy_conf || mkdir -p artifacts/Trivy_conf
+										mv trivy_conf.log artifacts/Trivy_conf
+										'''
+										archiveArtifacts artifacts: 'artifacts/Trivy_conf/*.log',
+										fingerprint: true,
+										onlyIfSuccessful: false
+										publishArtifacts([artifactsRepo: 'one-intel-edge-or-local/${SUB_PROJECT_NAME}',
+													credentialId: 'sys_oie_devops_ubit-artifactory-or.intel.com',
+													bypassProxy: true])
+									}
+								}
+							}
+						}
+					}
+
+				stage('Setup') {
+						steps {
+							withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
+							{
+								sh '''
+								echo "Setup Build environment"
+								apt update && apt install python3-venv -y
+								echo "machine github.com" >> $HOME/.netrc
+								echo "    login not-used" >> $HOME/.netrc
+								echo "    password $PASSWORD" >> $HOME/.netrc
+								echo "machine api.github.com" >> $HOME/.netrc
+								echo "    login not-used" >> $HOME/.netrc
+								echo "    password $PASSWORD" >> $HOME/.netrc
+								'''
+							}
+						}
+				}
+				// This stage is required for service/agent repos only
+				// Please remove it for chart repos
+			
+				stage('Version Check') {
+					steps {
+						echo "Check if its a valid code version"
+						sh '''
+						/opt/ci/version-check.sh
+						'''
+					}        
+				}
+
+				stage('Lint Code') {
+					steps {
+						sh '''
+						echo "Linting the code"
+						make lint-ci
+						'''
+					}
+				}			
+				stage('Build') {
+					steps {
+						sh '''
+						eval \$(ssh-agent) > /dev/null
+						make build
+						'''
+					}
+				}			
+				// stage('Test Code') {
+					// steps {
+						// echo "Test the code"
+						// sh '''
+						// make test
+						// '''
+					// }
+				// }
+
+				stage('Validate clean repo') {
+					steps {
+						sh '''
+						bash -c "diff -u <(echo -n) <(git diff)"
+						'''
+					}
+				}
+			
+				// This stage is required for service/agent repos only
+				// Please remove it for chart repos
+				stage('Version Tag') {
+					when {
+						anyOf { branch 'main'; branch 'feature*'; branch 'release*' }
+					}
+					steps {
+						withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
+							{
+								echo "Generate tag if SemVer"
+								sh '''
+								# Use writable user for git
+								echo "machine github.com" >> $HOME/.netrc
+								echo "  login not-used" >> $HOME/.netrc
+								echo "  password $PASSWORD" >> $HOME/.netrc
+								echo "machine api.github.com" >> $HOME/.netrc
+								echo "  login not-used" >> $HOME/.netrc
+								echo "  password $PASSWORD" >> $HOME/.netrc
+								# Tag the version
+								/opt/ci/version-tag.sh
+								'''
+						}
+					}
+				}
+
+				stage ('Scan Containers') {
+					when {
+						anyOf {
+							anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest() }
+						}
+					}
+					environment {
+						PROJECT_NAME                 = "oie-${GIT_SHORT_URL}"
+						SCANNERS                     = 'trivy'
+
+						TRIVY_SEVERITY_THRESHOLD_CVE = 'CRITICAL'
+					}
+					steps {
+						script {
+							DOCKER_IMAGES=sh(script: '''
+							docker images --format '{{.Repository}}:{{.Tag}}' | grep -v -e "rrp-devops" -e "rbhe-public" -e "earthly/buildkitd" | awk 'BEGIN {ORS=","} {print $0} END {if (NR) print "\\n"}' | sed 's/,$//'
+							''', returnStdout: true).trim()
+
+							sh """
+							echo $DOCKER_IMAGES
+							"""
+
+							withEnv(["TRIVY_TARGET_DOCKER_IMAGE=${DOCKER_IMAGES}"]) {
+							rbheStaticCodeScan()
+							}
+						}
+					}
+				}
+				stage('Docker Publish') {
+					when {
+						anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; expression{ common.isMatchingCommit(/.*\[push-docker-image\]*/) }; }
+					}
+					steps {
+						withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'intel-harbor-credentials', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
+						{
+							sh '''
+							docker login -u $USERNAME -p $PASSWORD https://amr-registry.caas.intel.com
+							make docker-push
+							docker logout
+							'''
+						}
+					}
+				}
+				stage('Version dev') {
+					when {
+						anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; }
+					}
+					steps {
+						withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
+						{
+						echo "Start new development cycle if needed"
+						sh '''
+						# Use writable user for git
+						echo "machine github.com" >> $HOME/.netrc
+						echo "  login not-used" >> $HOME/.netrc
+						echo "  password $PASSWORD" >> $HOME/.netrc
+						echo "machine api.github.com" >> $HOME/.netrc
+						echo "  login not-used" >> $HOME/.netrc
+						echo "  password $PASSWORD" >> $HOME/.netrc
+
+						# Append -dev
+						REVIEWER_1="raphaelvrosa" REVIEWER_2="daniele-moro" /opt/ci/version-dev.sh
+						'''
+						}
+					}
+				}
+			}
+			post {
+				always {
+					jcpSummaryReport()
+					cleanWs()
+				}
+				failure {
+					script {
+						//def currentBranch = env.BRANCH_NAME
+						if (authorEmail) {
+							emailext(
+							subject: "Build failed on main branch for ${GIT_SHORT_URL}",
+							body: "The build on the main branch failed. Please check the logs for more details. Your PR was the last change, this is why you're receiving this email",
+							to: authorEmail,
+							attachLog: true
+							)
+						}
+					}
+				}
+			}
+		}
     }
 }
+

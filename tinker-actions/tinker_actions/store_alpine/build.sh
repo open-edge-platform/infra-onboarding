@@ -26,6 +26,7 @@ ver=latest
 
 ## # Build the container
 docker build -f Dockerfile \
+	--no-cache \
 	--build-arg HTTP_PROXY=$http_proxy \
 	--build-arg HTTPS_PROXY=$http_proxy \
 	--build-arg NO_PROXY="$no_proxy" \

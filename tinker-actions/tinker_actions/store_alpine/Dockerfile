@@ -20,6 +20,5 @@ COPY store_alpine.sh /
 COPY grub.cfg /
 
 RUN chmod +x store_alpine.sh
-COPY hook_sign_temp/hook_x86_64.tar.gz /
 
 CMD ["/bin/bash", "/store_alpine.sh"]
