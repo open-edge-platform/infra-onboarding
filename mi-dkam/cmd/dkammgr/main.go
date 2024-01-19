@@ -22,7 +22,7 @@ func main() {
 	// Set the port for DKAM Manager
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
-		log.Fatal("Failed to listen: %v", err)
+		log.Fatal("Failed to listen", err)
 	}
 
 	// Create a new gRPC server 
@@ -33,6 +33,6 @@ func main() {
 	pb.RegisterDkamServiceServer(grpc_server, &dkammgr.Service{})
 	log.Println("Starting gRPC server on port", port)
 	if err := grpc_server.Serve(lis); err != nil {
-		log.Fatal("Failed to serve: %v", err)
+		log.Fatal("Failed to serve", err)
 	}
 }

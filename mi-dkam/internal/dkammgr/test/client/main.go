@@ -15,28 +15,22 @@ func GetArtifacts(client pb.DkamServiceClient) {
 	req := &pb.GetArtifactsRequest{ProfileName: "AI", Platform: "Asus"}
 	res, err := client.GetArtifacts(context.Background(), req)
 	if err != nil {
-		log.Fatalf("Failed: %d\n", res)
-	}
+		log.Fatalf("Failed to get artifact: %v",err)
+	} 
 	 err = ioutil.WriteFile("manifest.yaml", []byte(res.ManifestFile), 0644)
         if err != nil {
-                log.Printf("Error writing to test.yaml: %v", err)
+                log.Fatalf("Error writing to test.yaml: %v",err)
         }
-
-
-	log.Printf("Result: %s", res)
+	log.Printf("Status: %s",res.ManifestFile)
 }
-
-
 
 func main() {
 	//connect to dkam manager
 	conn, err := grpc.Dial("localhost:5581", grpc.WithInsecure())
 	if err != nil {
-		log.Fatalf("Failed to dials: %v", err)
+		log.Fatalf("Failed to dial: %v",err)
 	}
 	defer conn.Close()
-
 	client := pb.NewDkamServiceClient(conn)
 	GetArtifacts(client)
-
 }

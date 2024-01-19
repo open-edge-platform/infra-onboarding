@@ -84,7 +84,8 @@ lint:
 	@echo "---END MAKEFILE LINT---"
 
 test:
-	earthly +test
+	go test ./... --race -coverprofile cover.out -covermode atomic
+	gocover-cobertura < cover.out > coverage.xml
 	
 coverage:
 	@# Help: Runs coverage stage

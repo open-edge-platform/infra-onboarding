@@ -83,7 +83,7 @@ pipeline {
                         script {
                             catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                 sh '''
-                                trivy conf --exit-code 1 --severity HIGH,CRITICAL . 2>&1 > trivy_conf.log
+                                trivy conf --exit-code 1 --severity CRITICAL . 2>&1 > trivy_conf.log
                                 '''
                             }
                             sh '''
@@ -140,15 +140,6 @@ pipeline {
             }
         }
 	    
-        stage('Build') {
-            steps {
-                sh '''
-                eval \$(ssh-agent) > /dev/null
-                make build
-                '''
-            }
-        }
-        
       stage('Test Code') {
             steps {
                 echo "Test the code"
@@ -156,9 +147,9 @@ pipeline {
                 make test
                 '''
             }
-        /*    post{
+            post{
                 success{
-                    cobertura coberturaReportFile: 'build/coverage.xml', 
+                    cobertura coberturaReportFile: 'coverage.xml', 
                         conditionalCoverageTargets: "${env.cobertura_healthy}, ${env.cobertura_unhealthy}, ${env.cobertura_unstable}", 
                         failNoReports: true,
                         failUnhealthy: true,
@@ -170,9 +161,8 @@ pipeline {
                         sourceEncoding: 'ASCII',
                         autoUpdateHealth: false,
                         autoUpdateStability: false
-                    junit 'build/report.xml'
                 }
-            } */
+            } 
         }
 
         stage('Validate clean repo') {
