@@ -58,4 +58,3 @@ subnet_ip=""
 # Please provide the stable tinkerbell charts branch id for clone , below one is the stable one
 #unless you need latest vesrion please do not change the below tag version
 tinkerbell_charts_stable_branch=v0.3.0
-
