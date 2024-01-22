@@ -150,7 +150,20 @@ build_hook() {
     sed -i "s+FIX_H_TTPS_PROXY+$https_proxy+g" $new_patch_file
 
     git apply $new_patch_file
+
+    #i255 igc driver issue fix
+    pushd kernel/
+    mkdir patches-5.10.x
+    pushd patches-5.10.x/
+    #download the igc i255 driver patch file
+    wget https://github.com/intel/linux-intel-lts/commit/170110adbecc1c603baa57246c15d38ef1faa0fa.patch
+    popd
+    make devbuild_5.10.x
+    popd
+
     sed -i "s|dl-cdn.alpinelinux.org/alpine/edge/testing|dl-cdn.alpinelinux.org/alpine/edge/community|g" hook-docker/Dockerfile
+    #update the hook.yaml file to point to new kernel
+    sed -i "s|quay.io/tinkerbell/hook-kernel:5.10.85-d1225df88208e5a732e820a182b75fb35c737bdd|quay.io/tinkerbell/hook-kernel:5.10.85-e546ea099917c006d1d08fe6b8398101de65cbc7|g" hook.yaml
 
     docker run --rm -it -e HTTP_PROXY=$http_proxy -e HTTPS_PROXY=$https_proxy -e NO_PROXY=$no_proxy -e http_proxy=$http_proxy -e https_proxy=${https_proxy} -v "$PWD:$PWD" -w "$PWD" -v /var/run/docker.sock:/var/run/docker.sock nixos/nix nix-shell --run "make dist"
     #    make dist
@@ -204,16 +217,12 @@ verify_registry() {
 
 make_local_hook_over_pxe() {
     #copy to the downloaded location of nginx
-    #    sudo cp $PWD/hook/out/sha-/rel/vmlinuz-x86_64 /opt/hook
-    #    sudo cp $PWD/hook/out/sha-/rel/initramfs-x86_64 /opt/hook
-    wget https://github.com/tinkerbell/hook/releases/download/v0.8.1/hook_x86_64.tar.gz
-    cp /hook_x86_64.tar.gz /opt/hook
-    tar -xvf hook_x86_64.tar.gz --no-same-owner
-    rm -rf hook_x86_64.tar.gz
-    sudo cp vmlinuz-x86_64 /opt/hook
-    sudo cp initramfs-x86_64 /opt/hook
 
-    rm -rf initramfs-x86_64  vmlinuz-x86_64
+    sudo cp $store_alpine/hook_x86_64.tar.gz /opt/hook/
+    pushd /opt/hook/
+    sudo tar -xzvf hook_x86_64.tar.gz >/dev/null 2&>1
+    sudo rm hook_x86_64.tar.gz
+    popd 
 }
 
 main() {
