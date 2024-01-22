@@ -24,6 +24,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/handlers/southbound/artifact"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/config"
 	inventory "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/controller"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/onboarding"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/maestro"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/maestro/controller"
 )
@@ -32,6 +33,7 @@ var (
 	name = "MiOnboardingRM"
 	zlog = logging.GetLogger(name + "Main")
 
+	dkamAddr         = flag.String("dkamaddr", "localhost:5581", "DKAM server address to connect to")
 	serverAddress    = flag.String(flags.ServerAddress, "0.0.0.0:50054", flags.ServerAddressDescription)
 	inventoryAddress = flag.String(client.InventoryAddress, "localhost:50051", client.InventoryAddressDescription)
 	oamServerAddress = flag.String(oam.OamServerAddress, "", oam.OamServerAddressDescription)
@@ -126,6 +128,7 @@ func main() {
 		zlog.MiSec().Fatal().Err(err).Msgf("failed to start inventory client")
 	}
 
+	onboarding.InitOnboarding(invClient, *dkamAddr)
 	_ = artifact.InitNodeArtifactService(invClient)
 
 	nbHandler, err := controller.NewNBHandler(invClient, invEvents)

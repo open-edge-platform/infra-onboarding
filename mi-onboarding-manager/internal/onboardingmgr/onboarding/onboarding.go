@@ -9,9 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -23,7 +21,8 @@ import (
 	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
+	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
+	logging "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/onbworkflowclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/utils"
@@ -34,17 +33,27 @@ import (
 var (
 	clientName = "OnboardingInventoryClient"
 	zlog       = logging.GetLogger(clientName)
+	_dkamAddr  = "localhost:5581"
+	_invClient inv_client.InventoryClient
 )
 
 type OnboardingManager struct {
 	pb.OnBoardingEBServer
 }
+
 type ResponseData struct {
 	To2CompletedOn string `json:"to2CompletedOn"`
 	To0Expiry      string `json:"to0Expiry"`
 }
 
-var dkamAddr = flag.String("dkamaddr", "localhost:5581", "DKAM server address to connect to")
+func InitOnboarding(invClient inv_client.InventoryClient, dkamAddr string) {
+	if invClient == nil {
+		zlog.Debug().Msgf("Warning: invClient is nil")
+		return
+	}
+	_invClient = invClient
+	_dkamAddr = dkamAddr
+}
 
 func generateGatewayFromBaseIP(baseIP string) string {
 	// Extract the last part of the base IP and replace it with "1" to get the gateway
@@ -147,9 +156,12 @@ func DeviceOnboardingManagerNzt(deviceDetails utils.DeviceInfo, artifactDetails 
 	log.Println("deviceInfo--", deviceInfo)
 	log.Println("artifactinfo--", artifactinfo)
 
-	var imageDownloadErr, dierror error
-	imageDownloadStatus := make(chan struct{})
-	diStatus := make(chan struct{})
+	var (
+		imageDownloadErr, dierror error
+		imageDownloadStatus       = make(chan struct{})
+		diStatus                  = make(chan struct{})
+		ctx                       = context.Background()
+	)
 
 	// ImageDownload goroutine
 	go func() {
@@ -175,6 +187,7 @@ func DeviceOnboardingManagerNzt(deviceDetails utils.DeviceInfo, artifactDetails 
 			fmt.Printf("Error in DiWorkflowCreation for %v\n", dierror)
 			return
 		}
+		UpdateHostStatusByHostGuid(ctx, _invClient, guid, computev1.HostStatus_HOST_STATUS_PROVISIONING)
 		log.Printf("GUID: %s\n", guid)
 		deviceInfo.Guid = guid
 		// TODO: change the certificate path to the common location once fdo services are working
@@ -217,10 +230,15 @@ func DeviceOnboardingManagerNzt(deviceDetails utils.DeviceInfo, artifactDetails 
 			return
 		}
 		if dierror != nil {
+			if deviceInfo.Guid != "" {
+				UpdateHostStatusByHostGuid(ctx, _invClient, deviceInfo.Guid, computev1.HostStatus_HOST_STATUS_PROVISION_FAILED)
+			}
 			ErrCh <- dierror
 			*nodeExistCount += 1
 			return
 		}
+		UpdateHostStatusByHostGuid(ctx, _invClient, deviceInfo.Guid, computev1.HostStatus_HOST_STATUS_PROVISIONED)
+		UpdateInstanceStatusByGuid(ctx, _invClient, deviceInfo.Guid, computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONING)
 		log.Println("ProdWorkflowCreation started for ", deviceInfo.HwIP)
 		// Production Workflow creation
 		proderror := onbworkflowclient.ProdWorkflowCreation(deviceInfo, deviceInfo.ImType)
@@ -228,8 +246,10 @@ func DeviceOnboardingManagerNzt(deviceDetails utils.DeviceInfo, artifactDetails 
 			proderror = fmt.Errorf("SutIP %s: %w", deviceInfo.HwIP, proderror)
 			ErrCh <- proderror
 			*nodeExistCount += 1
+			UpdateInstanceStatusByGuid(ctx, _invClient, deviceInfo.Guid, computev1.InstanceStatus_INSTANCE_STATUS_PROVISION_FAILED)
 			return
 		}
+		UpdateInstanceStatusByGuid(ctx, _invClient, deviceInfo.Guid, computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONED)
 		log.Println("ProdWorkflowCreation Finished for ", deviceInfo.HwIP)
 		*nodeExistCount += 1
 	}()
@@ -324,14 +344,6 @@ func MakeGETRequestWithRetry(serialNumber, pdip string, caCertPath, certPath str
 	return nil
 }
 
-func readUIDFromFile(filePath string) (string, error) {
-	data, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
-}
-
 // Temporary extraction of manifest file from DKAM using hostname
 func extractUrlsFromManifest(manifest string) (osUrl, overlayUrl string, err error) {
 	// Define regular expressions to match the URLs
@@ -388,19 +400,6 @@ func ConvertInstanceForOnboarding(instances []*computev1.InstanceResource, osins
 				// Add other hardware data if needed
 			},
 			//TODO : parameters has to be mapped accordingly
-			/* CusParams: &pb.CustomerParams{
-				DpsScopeId:          "DPS12345",
-				DpsRegistrationId:   "REG45656",
-				DpsEnrollmentSymKey: "SecretKey123456",
-			}, */
-			/* OnbParams: &pb.OnboardingParams{
-			PdIp:           host.GetMgmtIp(),
-			PdMac:          "123",
-			LoadBalancerIp: "192.168.1.200", // Adjust this accordingly
-			DiskPartition:  "12", // Adjust this accordingly
-			Env:            "NZT",
-			// Add other parameters...
-			}, */
 		}
 
 		onboardingRequests = append(onboardingRequests, onboardingRequest)
@@ -417,7 +416,7 @@ type GetArtifactsResponse struct {
 
 func GetOSResourceFromDkamService(ctx context.Context, os *osv1.OperatingSystemResource) (*dkam.GetArtifactsResponse, error) {
 	// Create a gRPC connection to DKAM server
-	dkamConn, err := grpc.Dial(*dkamAddr, grpc.WithInsecure())
+	dkamConn, err := grpc.Dial(_dkamAddr, grpc.WithInsecure())
 	if err != nil {
 		zlog.Err(err).Msg("Failed to connect to DKAM server")
 		return nil, err

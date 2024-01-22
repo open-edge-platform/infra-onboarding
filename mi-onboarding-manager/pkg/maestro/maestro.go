@@ -7,6 +7,7 @@ package maestro
 import (
 	"context"
 	"sync"
+	"time"
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
@@ -24,6 +25,36 @@ var (
 	clientName = "OnboardingInventoryClient"
 	zlog       = logging.GetLogger(clientName)
 )
+
+const (
+	DefaultTimeout = 3 * time.Second
+)
+
+// List resources by the provided filter. Filter is done only on fields that are set (not default values of the
+// resources). Note that this function will NOT return an error if an object is not found.
+func ListAllResources(
+	ctx context.Context,
+	c inv_client.InventoryClient,
+	filter *inv_v1.ResourceFilter,
+) ([]*inv_v1.Resource, error) {
+	zlog.Debug().Msgf("listAllResources")
+	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
+	defer cancel()
+	// we agreed to not return a NotFound error to avoid too many 'Not Found'
+	// responses to the consumer of our external APIs.
+	objs, err := c.ListAll(ctx, filter.GetResource(), filter.GetFieldMask())
+	if err != nil && !inv_errors.IsNotFound(err) {
+		zlog.MiSec().MiErr(err).Msgf("Unable to listAll %v", filter)
+		return nil, err
+	}
+	for _, v := range objs {
+		if err = v.ValidateAll(); err != nil {
+			zlog.MiSec().MiErr(err).Msgf("Invalid input, validation has failed: %v", v)
+			return nil, inv_errors.Wrap(err)
+		}
+	}
+	return objs, nil
+}
 
 func NewInventoryClient(wg *sync.WaitGroup, addr string) (inv_client.InventoryClient, chan *inv_client.WatchEvents, error) {
 	ctx := context.Background()
@@ -130,7 +161,7 @@ func GetInstanceResources(ctx context.Context, c inv_client.InventoryClient) (ho
 	if err != nil {
 		return nil, err
 	}
-	resources, err := listAllResources(ctx, c, filter)
+	resources, err := ListAllResources(ctx, c, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +177,7 @@ func GetHostResources(ctx context.Context, c inv_client.InventoryClient) (hostre
 	if err != nil {
 		return nil, err
 	}
-	resources, err := listAllResources(ctx, c, filter)
+	resources, err := ListAllResources(ctx, c, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -338,7 +369,7 @@ func GetInventoryResourceAndID(resource proto.Message) (*inv_v1.Resource, string
 	case *osv1.OperatingSystemResource:
 		invResource.Resource = &inv_v1.Resource_Os{
 			Os: res,
-    }
+		}
 	case *computev1.HostnicResource:
 		invResource.Resource = &inv_v1.Resource_Hostnic{
 			Hostnic: res,
@@ -398,7 +429,7 @@ func listOneHost(
 	c inv_client.InventoryClient,
 	filter *inv_v1.ResourceFilter,
 ) (*computev1.HostResource, error) {
-	resources, err := listAllResources(ctx, c, filter)
+	resources, err := ListAllResources(ctx, c, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -417,23 +448,6 @@ func listOneHost(
 	}
 
 	return host, nil
-}
-
-func listAllResources(
-	ctx context.Context,
-	c inv_client.InventoryClient,
-	filter *inv_v1.ResourceFilter,
-) ([]*inv_v1.Resource, error) {
-	objs, err := c.ListAll(ctx, filter.GetResource(), filter.GetFieldMask())
-	if err != nil && !inv_errors.IsNotFound(err) {
-		return nil, err
-	}
-	for _, v := range objs {
-		if err = v.ValidateAll(); err != nil {
-			return nil, inv_errors.Wrap(err)
-		}
-	}
-	return objs, nil
 }
 
 func CreateOsResource(ctx context.Context, c inv_client.InventoryClient, osr *osv1.OperatingSystemResource) (string, error) {
@@ -472,7 +486,7 @@ func GetOsResources(ctx context.Context, c inv_client.InventoryClient) (osres []
 	if err != nil {
 		return nil, err
 	}
-	resources, err := listAllResources(ctx, c, filter)
+	resources, err := ListAllResources(ctx, c, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -534,4 +548,3 @@ func FindAllResources(ctx context.Context, c inv_client.InventoryClient, kinds [
 	}
 	return allResources, nil
 }
-
