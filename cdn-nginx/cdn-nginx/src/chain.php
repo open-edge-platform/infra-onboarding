@@ -33,7 +33,7 @@ $response = get_auto_ipxe($input_mac);
 if ( empty($response) ){
   $custom_ipxe = <<<EOT
 #!ipxe
-echo Unable to get ipxe script for $input_mac. Retrying after 30 seconds
+echo Unable to fetch workflow (iPXE script not returned). Retrying after 30 seconds to check the workflow
 sleep 30
 chain {$input_boot_url}/chain.php?mac=\${mac}&&boot_url={$input_boot_url}
 EOT;
