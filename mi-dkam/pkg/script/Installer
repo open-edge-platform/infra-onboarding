@@ -1,0 +1,745 @@
+# SPDX-FileCopyrightText: (C) 2023 Intel Corporation
+# SPDX-License-Identifier: LicenseRef-Intel
+
+#!/bin/bash
+
+SETUP_STATUS_FILENAME="install_pkgs_status"
+SCRIPT_DIR=$(pwd)
+touch $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+
+export REGISTRY_URL=amr-registry.caas.intel.com
+export MAESTRO_C_URL=cluster-orch-edge-node.demo2.maestro.intel.com:443
+export MAESTRO_I_URL=infra.demo2.maestro.intel.com:443
+export MAESTRO_PLATFORM_OBSERVABILITY_HOST=logs.demo2.maestro.intel.com
+export MAESTRO_PLATFORM_OBSERVABILITY_PORT=443
+# export PROVISIONING_URL=192.168.1.11:8080
+# export PROVISIONING_APT_MIRROR_URL=192.168.1.11:443
+export MAINTENANCE_MANAGER_URL=update.demo2.maestro.intel.com:443
+export RELEASE_SERVER=__FILE_SERVER__
+export VAULT_URL=vault-edge-node.demo2.maestro.intel.com
+export PKI_PATH=pki_int_edge_node
+export PKI_ROLE=maestro
+export EMAIL=azure_ad_token@intel.com
+export PASSWORD="MysoreKarnataka@570011"
+
+# 1. Install dependencies
+install_dependencies() {
+    apt-get update
+    sudo apt-get install -y curl jq wget openssh-server unzip apparmor iptables lvm2 cryptsetup lxc mosquitto tpm2-abrmd tpm2-tools software-properties-common ntp python3-venv git jq libpq5
+    echo -e "\e[32m[install git debootstrap python3-pip]\e[0m"
+    sudo apt install -y git debootstrap python3-pip
+
+    snaphp=$(sudo snap get system proxy.http)
+    ret=$?
+    if [ $ret -ne 0 ]; then
+    echo "proxy not set for snap."
+    fi
+    if [ "$snaphp" !=  "$http_proxy" ] && [ -n "$http_proxy" ]; then
+    echo "set proxy.http as $http_proxy for snap."
+    sudo snap set system proxy.http=$http_proxy
+    echo "set proxy.https as $https_proxy for snap."
+    sudo snap set system proxy.https=$https_proxy
+    fi
+    sudo snap install jo
+
+    which yq_linux_amd64
+    if [ $? -ne 0 ]; then
+    echo "Download yq and install on provisioning host."
+    KSURL=https://github.com/mikefarah/yq/releases/latest
+    lversion=$(get_github_latest_vesion "$KSURL")
+    version=${YQ_VERSION:-$lversion}
+    echo "The latest yq version is: $lversion, will download version: $version"
+    url=https://github.com/mikefarah/yq/releases/download/${version}/yq_linux_amd64.tar.gz
+    download_github_url "$url"
+    tmpyq=/tmp/yq_linux_amd64
+    if [ -d "$tmpyq" ];then
+        sudo rm -rf "$tmpyq"
+    fi
+    mkdir -p $tmpyq
+    mv yq_linux_amd64.tar.gz $tmpyq
+    tar -xzvf $tmpyq/yq_linux_amd64.tar.gz -C "$tmpyq"
+    sudo mv "$tmpyq"/yq_linux_amd64 /usr/local/bin/yq_linux_amd64
+    fi
+    which yq
+    if [ $? -ne 0 ]; then
+    sudo ln -s yq_linux_amd64 /usr/local/bin/yq
+    fi   
+}
+
+# 2. Firewall update
+install_fws(){
+ # Enable UFW
+    sudo systemctl enable ufw
+    echo "y" | sudo ufw enable
+    sudo ufw default allow outgoing
+    sudo ufw allow from 10.114.181.83 comment "rancher server"
+    sudo ufw allow from 172.17.0.0/16 comment "Docker bridge network"
+    sudo ufw allow 6443 comment "rancher control plane nodes"
+    sudo ufw allow 10250
+    #below list is also requested according to rancher official doc, but not see the impact so far.
+    sudo ufw allow 22
+    sudo ufw allow 80
+    sudo ufw allow 443
+    sudo ufw allow 2376
+    sudo ufw allow 2379
+    sudo ufw allow 2380
+    sudo ufw allow 8472
+    sudo ufw allow 9090
+    sudo ufw allow 10254
+    sudo ufw reload
+}
+
+# Get the latest version from github repo release.
+get_github_latest_vesion() {
+  KSURL="$1"
+  # curl -Ls -w %{url_effective} -o /dev/null "$KSURL"
+  LASTURL=""
+  LASTURL=$(curl "$KSURL" -s -L -I -o /dev/null -w '%{url_effective}')
+  ret=$?
+  if [ $ret -ne 0 ]; then
+      LASTURL=$(wget -O /dev/null --content-disposition "$KSURL"  2>&1 |awk '/^Location: /{print $2}')
+      ret=$?
+      if [ $ret -ne 0 ]; then
+          echo "Error: Can not find the latest ksonnet version by wget."
+      fi
+  fi
+  LATES=${LASTURL##*/}
+  echo "$LATES"
+}
+
+# Get the release from github repo.
+download_github_url() {
+  url="$1"
+  echo "download file ${url##*/}"
+  if ! [ -e "${url##*/}" ]; then
+    wget "$url"
+  fi
+  if ! [ -e "${url##*/}" ]; then
+    curl -L -O "$url"
+  fi
+}
+
+# 3. Install Intel CA certificates
+install_intel_certificates() {
+    echo "Install intel CA certificates."
+    export no_proxy=$no_proxy,__FILE_SERVER__
+    export NO_PROXY=$NO_PROXY,__FILE_SERVER__
+    # wget  http://owrdropbox.intel.com/dropbox/public/Ansible/certificates/IntelCA5A-base64.crt
+    # wget  http://owrdropbox.intel.com/dropbox/public/Ansible/certificates/IntelCA5B-base64.crt
+    # wget  http://owrdropbox.intel.com/dropbox/public/Ansible/certificates/IntelSHA256RootCA-base64.crt
+    # sudo cp Intel* /usr/local/share/ca-certificates/
+    # sudo update-ca-certificates
+    sudo apt-get install -y unzip 
+    ca_bundle_list="Intel%20Root%20Certificate%20Chain%20Base64.zip \
+                Public%20Root%20Certificate%20Chain%20Base64.zip \
+                IntelSHA2RootChain-Base64.zip \
+                PublicSHA2RootChain-Base64.zip"
+
+    for bundle in $ca_bundle_list; do
+        wget -O- -O /usr/local/share/ca-certificates/tmp.zip "http://certificates.intel.com/repository/certificates/$bundle"
+        unzip /usr/local/share/ca-certificates/tmp.zip -d /usr/local/share/ca-certificates
+        rm /usr/local/share/ca-certificates/tmp.zip        
+    done
+    update-ca-certificates
+}
+
+# 4. Install Docker
+install_docker() {
+
+    if [ ! -f /etc/sudoers.d/"$USER" ]; then
+        echo "$USER ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/"$USER"
+        echo "" "  $USER added to /etc/sudoers.d/"
+    else
+        echo "warn" "  $USER already exists in /etc/sudoers.d/"
+    fi
+
+    # Install Tools
+    echo -e "\e[32m[apt update]\e[0m"
+    sudo apt update
+    echo -e "\e[32m[install ca-certificates curl gnupg jq dmidecode]\e[0m"
+    sudo apt install -y ca-certificates curl gnupg jq dmidecode
+
+    sudo install -m 0755 -d /etc/apt/keyrings
+
+    echo -e "\e[32m[install docker]\e[0m"
+    if [ ! -e /etc/apt/keyrings/docker.gpg ]; then
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        sudo chmod a+r /etc/apt/keyrings/docker.gpg
+        echo \
+        "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+        "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+        sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        sudo apt update
+        sudo apt install -y docker-ce
+    fi
+
+    if [ ! -e "/etc/systemd/system/docker.service.d/http-proxy.conf" ]; then
+        updateDockerdProxy
+
+        # Enable docker
+        sudo systemctl daemon-reload
+        sudo systemctl restart docker
+        sudo systemctl enable docker
+
+        # Add user into docker group
+        sudo usermod -aG docker $USER
+        sudo systemctl restart docker
+        sudo systemctl daemon-reload
+        sudo chmod 666 /var/run/docker.sock
+    fi
+    updateDockerClientProxy
+}
+
+# Update docker proxies
+updateDockerClientProxy() {
+    # Proxy for docker
+    ROOT_DOCKER_CONFIG="/root/.docker/config.json"
+    USER_DOCKER_CONFIG="$HOME/.docker/config.json"
+    config_proxy=$(jo httpProxy=$http_proxy httpsProxy=$https_proxy noProxy=$no_proxy)
+    config_default=$(jo default="$config_proxy")
+
+    dockerDir=${ROOT_DOCKER_CONFIG%/*}
+    sudo mkdir -p "$dockerDir"
+    dockerDir=${USER_DOCKER_CONFIG%/*}
+    mkdir -p "$dockerDir"
+
+    sudo ls ${ROOT_DOCKER_CONFIG} > /dev/null
+    if [ $? -eq 0 ];then
+        root_config_proxies=$(sudo cat ${ROOT_DOCKER_CONFIG} | jo proxies="$config_default" -D -f -)
+    else
+        root_config_proxies=$(jo proxies="$config_default" -D)
+    fi
+    echo "$root_config_proxies" | jo -D -f - -p | sudo tee "$ROOT_DOCKER_CONFIG"
+
+    sudo ls ${USER_DOCKER_CONFIG} > /dev/null
+    if [ $? -eq 0 ];then
+        user_config_proxies=$(cat ${USER_DOCKER_CONFIG} | jo proxies="$config_default" -D -f -)
+    else
+        user_config_proxies=$(jo proxies="$config_default" -D)
+    fi
+
+    echo "$user_config_proxies" | jo -D -f - -p | sudo tee "$USER_DOCKER_CONFIG"
+}
+
+#Update dockerd proxies
+updateDockerdProxy() {
+    if [ ! -d "/etc/systemd/system/docker.service.d" ];then
+        sudo mkdir -p /etc/systemd/system/docker.service.d
+    fi
+    echo """
+    # SPDX-FileCopyrightText: (C) 2023 Intel Corporation
+    # SPDX-License-Identifier: LicenseRef-Intel
+
+    [Service]
+    Environment=\"HTTP_PROXY=$http_proxy\"
+    Environment=\"HTTPS_PROXY=$http_proxy\"
+    Environment=\"NO_PROXY=$no_proxy\"
+    """ | sudo tee /etc/systemd/system/docker.service.d/http-proxy.conf
+}
+
+# 5. Install helm
+install_helm() {
+    local latest_release_url="https://api.github.com/repos/helm/helm/releases/latest"
+    latest_release_response=$( curl -L --silent --show-error --fail "$latest_release_url" 2>&1 || true )
+    O_TAG=$( echo "$latest_release_response" | grep '"tag_name"' | sed -E 's/.*"(v[0-9\.]+)".*/\1/g' )
+    TAG=${O_TAG:-v3.12.3}
+    HELM_DIST="helm-$TAG-linux-amd64.tar.gz"
+    DOWNLOAD_URL="https://get.helm.sh/$HELM_DIST"
+    wget $DOWNLOAD_URL
+    tar -xvf $HELM_DIST
+    mv linux-amd64/helm  /usr/bin/
+    rm -rf $HELM_DIST linux-amd64
+
+}
+
+# install_ubuntu_packages() {
+#     ##################################################################
+#     echo "$(date): Installing Packages...................."
+#     package=("__SUBSTITUTE_PACKAGE_COMMANDS__")    
+#     package=$(printf "%s\n" "${package[@]}" | sed 's/_KERNEL_VERSION_/$_KERNEL_VERSION_/g')
+#     package=$(printf "%s\n" "${package[@]}" | sed 's/_HWE_KERNEL_VERSION/$_HWE_KERNEL_VERSION_/g')
+#     IFS=',' read -ra package_list <<< "$package"
+#     echo $package_list
+#     #apt-get update > package_install.log 2>&1
+#     apt-get update;
+#     for item in "${package_list[@]}";
+#     do
+#         echo "Installing $item"
+#         #sudo apt-get install $item -y >> package_install.log 2>&1
+#         sudo apt-get install $item -y
+#     done
+#     echo "$(date): Packages Successfully Installed...................."
+# }
+
+# 6. Configure APT config
+install_apt_conf() {
+    echo "Set apt configurations."
+    echo 'DPkg::Options {"--force-confnew";};' > /etc/apt/apt.conf.d/75aptconf;
+    echo 'Acquire::https::__FILE_SERVER__ {' >> /etc/apt/apt.conf.d/75aptconf;
+    echo 'SSLCert "/tmp/host-cert.pem";' >> /etc/apt/apt.conf.d/75aptconf;
+    echo 'SSLKey "/tmp/host-key.pem";' >> /etc/apt/apt.conf.d/75aptconf;
+    echo '};' >> /etc/apt/apt.conf.d/75aptconf;
+
+    apt-get update
+}
+
+# 7. Get certificates
+install_certificates () {
+echo "Get Vault certificates."
+# get JWT access token from Keycloack
+export KEYCLOAK_TOKEN=$(curl -s -k -X POST https://keycloak.__AUTH_SERVER__/realms/master/protocol/openid-connect/token \
+  -d "username=lp-admin-user" -d "password=ChangeMeOn1stLogin!" -d "grant_type=password" \
+-d "client_id=ledge-park-system" -d "scope=openid" | jq -r '.access_token')
+
+echo "Received jwt from Keycloak"
+
+# Login to valut using JWT
+export VAULT_TOKEN=$(curl -s -k -X POST https://vault.__AUTH_SERVER__/v1/auth/jwt/login \
+--header 'Content-Type: application/json' \
+--data '{"jwt" : "'"$KEYCLOAK_TOKEN"'"}' | jq -r .auth.client_token)
+
+echo "Logged in to vault"
+
+# Request cert & private key from Vault
+curl -s -k --header "X-Vault-Token: ${VAULT_TOKEN}" \
+--request POST --data '{ "common_name": "4c4c4544-0035-3010-8030-c2c04f4a4633", "ttl": "60d" }' "https://vault.__AUTH_SERVER__/v1/pki_int_edge_node/issue/maestro" > response.json
+
+echo "Issued a fresh cert/key pair"
+
+# Convert Vault response to certificates
+jq -r .data.certificate response.json > host-cert.pem
+jq -r .data.ca_chain[0] response.json >> host-cert.pem
+jq -r .data.ca_chain[1] response.json >> host-cert.pem
+jq -r .data.private_key response.json > host-key.pem
+
+mv ./host-cert.pem /tmp/
+mv ./host-key.pem /tmp/
+
+sudo groupadd -f bm-agents --system
+sudo chown _apt:bm-agents /tmp/host-*
+groupadd -f bm-agents --system
+
+id -u node-agent &>/dev/null || useradd node-agent --system -g bm-agents
+id -u fluent-bit &>/dev/null || useradd fluent-bit --system -g bm-agents -G adm
+id -u prometheus &>/dev/null || useradd prometheus --system -g bm-agents
+
+mkdir -p /etc/lp/node/certs
+mkdir -p /etc/lp/node/.keys
+cp /tmp/host-cert.pem /etc/lp/node/certs
+cp /tmp/host-key.pem /etc/lp/node/.keys
+chmod -R 750 /etc/lp/node/certs
+chmod -R 750 /etc/lp/node/.keys
+chown -R node-agent:bm-agents /etc/lp/node/.keys
+chown -R node-agent:bm-agents /etc/lp/node/certs
+}
+
+# # 7. Update PPA
+# install_PPA() {
+# echo "Update PPA."
+# curl -fsSL "https://__FILE_SERVER__/ledgepark-debian-signing-key-gpg-non-prod.pem" --key /tmp/host-key.pem --cert /tmp/host-cert.pem | gpg --dearmor > ledgepark-release.gpg
+# sudo cp ledgepark-release.gpg /usr/share/keyrings/ledgepark-release.gpg
+# echo "deb [signed-by=/usr/share/keyrings/ledgepark-release.gpg] https://__FILE_SERVER__/ ledgepark release" | sudo tee /etc/apt/sources.list.d/ledgepark-release.list
+# echo "deb [signed-by=/usr/share/keyrings/ledgepark-release.gpg] https://__FILE_SERVER__/ ledgepark main" | sudo tee -a /etc/apt/sources.list.d/ledgepark-release.list
+
+# sudo apt-get update
+# }
+
+# 8. Get Token
+install_token(){
+apt-get -y install gpg
+curl -X POST -d "client_id=4ee465a2-6805-425d-a5a0-9ccf938fd38d&scope=openid+offline_access+profile&username=$EMAIL&password=$PASSWORD&grant_type=password" https://login.microsoftonline.com/organizations/oauth2/v2.0/token | jq -r .id_token >id_token
+
+ID_TOKEN=`cat id_token`
+echo $ID_TOKEN
+
+
+
+rm -f ${GPGKEY}
+set -x
+wget --header="Authorization: Bearer $ID_TOKEN"  https://${FILESERVER}/${GPGKEY}
+gpg --list-keys
+gpg --import ${GPGKEY}
+gpg --list-keys
+}
+
+# 9. Install Node Agent
+install_node-agent(){
+echo $ID_TOKEN
+echo "Install node agent..."
+VERSION="node-agent-VERSION"
+echo $VERSION
+PKGFILE="node-agent_${VERSION}_amd64.deb" 
+apt-get -y install gpg
+curl https://apt.releases.hashicorp.com/gpg | gpg --dearmor > /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" > /etc/apt/sources.list.d/hashicorp.list
+apt-get update
+echo "node-agent node-agent/onboarding.serviceURL string ${MAESTRO_I_URL}" | debconf-set-selections
+echo "node-agent node-agent/vault.serviceURL string ${VAULT_URL}" | debconf-set-selections
+echo "node-agent node-agent/vault.pkiRole string ${PKI_ROLE}" | debconf-set-selections
+echo "node-agent node-agent/vault.pkiPath string ${PKI_PATH}" | debconf-set-selections
+echo "node-agent node-agent/provisioning.serviceURL string ${PROVISIONING_URL}" | debconf-set-selections
+rm -f ${PKGFILE}
+wget --header="Authorization: Bearer $ID_TOKEN"  https://${FILESERVER}/pool/release/n/node-agent/${PKGFILE}
+gpg --decrypt ${PKGFILE}
+ret_val=$?
+if [ $ret_val != 0 ] ; then
+    echo " Failed to verify Debian package ERROR CODE ${ret_val}"
+    exit -1
+fi
+apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
+systemctl status -l --no-pager node-agent vault-agent
+}
+
+# 10. Install Cluster Agent
+install_cluster-agent(){
+echo $ID_TOKEN
+echo "Install Cluster agent..."
+VERSION="cluster-agent-VERSION"
+echo $VERSION
+PKGFILE="cluster-agent_${VERSION}_amd64.deb" 
+apt-get update
+echo "cluster-agent cluster-agent/cluster-orchestrator-url string ${MAESTRO_C_URL}" | debconf-set-selections
+rm -f ${PKGFILE}
+wget --header="Authorization: Bearer $ID_TOKEN"  https://${FILESERVER}/pool/release/c/cluster-agent/${PKGFILE}
+gpg --decrypt ${PKGFILE}
+ret_val=$?
+if [ $ret_val != 0 ] ; then
+    echo " Failed to verify Debian package ERROR CODE ${ret_val}"
+    exit -1
+fi
+apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
+systemctl status -l --no-pager cluster-agent
+}
+
+# 11. Install Hardware Discovery Agent
+install_hardware-discovery-agent(){
+echo "Install Hardware discovery agent..."
+VERSION="hardware-discovery-agent-VERSION"
+echo $VERSION
+PKGFILE="hardware-discovery-agent_${VERSION}_amd64.deb" 
+apt-get update
+echo "hardware-discovery-agent hardware-discovery-agent/onboarding.serviceURL string ${MAESTRO_I_URL}" | debconf-set-selections
+rm -f ${PKGFILE}
+wget --header="Authorization: Bearer $ID_TOKEN"  https://${FILESERVER}/pool/release/h/hardware-discovery-agent/${PKGFILE}
+gpg --decrypt ${PKGFILE}
+ret_val=$?
+if [ $ret_val != 0 ] ; then
+    echo " Failed to verify Debian package ERROR CODE ${ret_val}"
+    exit -1
+fi
+apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
+systemctl status -l --no-pager hardware-discovery-agent
+}
+
+# 12. Install Platform Observability Agent
+install_platform-observability-agent(){
+echo "install platform-observability-agent"
+VERSION="platform-observability-agent-VERSION"
+echo $VERSION
+PKGFILE="platform-observability-agent_${VERSION}_amd64.deb"
+apt-get update
+echo "platform-observability-agent platform-observability-agent/host string $MAESTRO_PLATFORM_OBSERVABILITY_HOST" | debconf-set-selections
+echo "platform-observability-agent platform-observability-agent/port string $MAESTRO_PLATFORM_OBSERVABILITY_PORT" | debconf-set-selections
+rm -f ${PKGFILE}
+wget --header="Authorization: Bearer $ID_TOKEN"  https://${FILESERVER}/pool/release/p/platform-observability-agent/${PKGFILE}
+gpg --decrypt ${PKGFILE}
+ret_val=$?
+if [ $ret_val != 0 ] ; then
+    echo " Failed to verify Debian package ERROR CODE ${ret_val}"
+    exit -1
+fi
+apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
+systemctl status -l --no-pager platform-observability-agent
+}
+
+# 13. Install TRTL
+install_trtl(){
+echo "Install TRTL..."
+apt-get update
+VERSION="trtl-VERSION"
+echo $VERSION
+PKGFILE="trtl_${VERSION}_all.deb"
+rm -f ${PKGFILE}
+wget --header="Authorization: Bearer $ID_TOKEN"  https://${FILESERVER}/pool/release/t/trtl/${PKGFILE}
+gpg --decrypt ${PKGFILE}
+ret_val=$?
+if [ $ret_val != 0 ] ; then
+    echo " Failed to verify Debian package ERROR CODE ${ret_val}"
+    exit -1
+fi
+apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
+}
+
+# 14. Install INBM Cloudadapter Agent
+install_inbm-cloudadapter-agent(){
+echo "Install inbm-cloudadapter-agent..."
+apt-get update
+VERSION="inbm-cloudadapter-agent-VERSION"
+echo $VERSION
+PKGFILE="inbm-cloudadapter-agent_${VERSION}_all.deb"
+rm -f ${PKGFILE}
+wget --header="Authorization: Bearer $ID_TOKEN"  https://${FILESERVER}/pool/release/i/inbm-cloudadapter-agent/${PKGFILE}
+gpg --decrypt ${PKGFILE}
+ret_val=$?
+if [ $ret_val != 0 ] ; then
+    echo " Failed to verify Debian package ERROR CODE ${ret_val}"
+    exit -1
+fi
+apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
+
+}
+
+# 15. Install INBM Dispatcher Agent
+install_inbm-dispatcher-agent(){
+echo "Install inbm-dispatcher-agent..."
+apt-get update
+VERSION="inbm-dispatcher-agent-VERSION"
+echo $VERSION
+PKGFILE="inbm-dispatcher-agent_${VERSION}_all.deb"
+rm -f ${PKGFILE}
+wget --header="Authorization: Bearer $ID_TOKEN"  https://${FILESERVER}/pool/release/i/inbm-dispatcher-agent/${PKGFILE}
+gpg --decrypt ${PKGFILE}
+ret_val=$?
+if [ $ret_val != 0 ] ; then
+    echo " Failed to verify Debian package ERROR CODE ${ret_val}"
+    exit -1
+fi
+apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
+
+}
+
+# 16. Install INBM Configuration Agent
+install_inbm-configuration-agent(){
+echo "Install inbm-configuration-agent..."
+apt-get update
+VERSION="inbm-configuration-agent-VERSION"
+echo $VERSION
+PKGFILE="inbm-configuration-agent_${VERSION}_all.deb"
+rm -f ${PKGFILE}
+wget --header="Authorization: Bearer $ID_TOKEN"  https://${FILESERVER}/pool/release/i/inbm-configuration-agent/${PKGFILE}
+gpg --decrypt ${PKGFILE}
+ret_val=$?
+if [ $ret_val != 0 ] ; then
+    echo " Failed to verify Debian package ERROR CODE ${ret_val}"
+    exit -1
+fi
+apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
+
+}
+
+# 17. Install INBM Telemetry Agent
+install_inbm-telemetry-agent(){
+echo "Install inbm-telemetry-agent..."
+apt-get update
+VERSION="inbm-telemetry-agent-VERSION"
+echo $VERSION
+PKGFILE="inbm-telemetry-agent_${VERSION}_all.deb"
+rm -f ${PKGFILE}
+wget --header="Authorization: Bearer $ID_TOKEN"  https://${FILESERVER}/pool/release/i/inbm-telemetry-agent/${PKGFILE}
+gpg --decrypt ${PKGFILE}
+ret_val=$?
+if [ $ret_val != 0 ] ; then
+    echo " Failed to verify Debian package ERROR CODE ${ret_val}"
+    exit -1
+fi
+apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
+
+}
+
+# 18. Install INBM Diagnostic Agent
+install_inbm-diagnostic-agent(){
+echo "Install inbm-diagnostic-agent..."
+apt-get update
+VERSION="inbm-diagnostic-agent-VERSION"
+echo $VERSION
+PKGFILE="inbm-diagnostic-agent_${VERSION}_all.deb"
+rm -f ${PKGFILE}
+wget --header="Authorization: Bearer $ID_TOKEN"  https://${FILESERVER}/pool/release/i/inbm-diagnostic-agent/${PKGFILE}
+gpg --decrypt ${PKGFILE}
+ret_val=$?
+if [ $ret_val != 0 ] ; then
+    echo " Failed to verify Debian package ERROR CODE ${ret_val}"
+    exit -1
+fi
+apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
+
+}
+
+# 19. Install MQTT Agent
+install_mqtt(){
+echo "Install mqtt..."
+apt-get update
+VERSION="mqtt-VERSION"
+echo $VERSION
+PKGFILE="mqtt_${VERSION}_all.deb"
+rm -f ${PKGFILE}
+wget --header="Authorization: Bearer $ID_TOKEN"  https://${FILESERVER}/pool/release/m/mqtt/${PKGFILE}
+gpg --decrypt ${PKGFILE}
+ret_val=$?
+if [ $ret_val != 0 ] ; then
+    echo " Failed to verify Debian package ERROR CODE ${ret_val}"
+    exit -1
+fi
+apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
+
+}
+
+# 120. Install TPM Provision
+install_tpm-provision(){
+echo "Install tpm-provision..."
+apt-get update
+VERSION="tpm-provision-VERSION"
+echo $VERSION
+PKGFILE="tpm-provision_${VERSION}_all.deb"
+rm -f ${PKGFILE}
+wget --header="Authorization: Bearer $ID_TOKEN"  https://${FILESERVER}/pool/release/t/tpm-provision/${PKGFILE}
+gpg --decrypt ${PKGFILE}
+ret_val=$?
+if [ $ret_val != 0 ] ; then
+    echo " Failed to verify Debian package ERROR CODE ${ret_val}"
+    exit -1
+fi
+apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
+
+}
+
+# 21. Install INBC Program
+install_inbc-program(){
+echo "Install inbc-program..."
+apt-get update
+VERSION="inbc-program-VERSION"
+echo $VERSION
+PKGFILE="inbc-program_${VERSION}_all.deb"
+rm -f ${PKGFILE}
+wget --header="Authorization: Bearer $ID_TOKEN"  https://${FILESERVER}/pool/release/i/inbc-program/${PKGFILE}
+gpg --decrypt ${PKGFILE}
+ret_val=$?
+if [ $ret_val != 0 ] ; then
+    echo " Failed to verify Debian package ERROR CODE ${ret_val}"
+    exit -1
+fi
+apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
+
+}
+
+# 22. Install Platform Update Agent
+install_platform-update-agent(){
+echo "Install Platform Update agent..."
+apt-get update
+VERSION="platform-update-agent-VERSION"
+echo $VERSION
+PKGFILE="platform-update-agent_${VERSION}_amd64.deb"
+apt-get install -y bindfs
+mkdir -p /etc/lp/node/.apt/certs /etc/lp/node/.apt/.keys
+chown -R _apt:bm-agents /etc/lp/node/.apt
+chmod -R 100 /etc/lp/node/.apt
+
+bindfs -o nonempty --force-user=_apt --force-group=bm-agents --perms=400,u+D /etc/lp/node/certs/.apt /etc/lp/node/.apt/certs
+bindfs -o nonempty --force-user=_apt --force-group=bm-agents --perms=400,u+D /etc/lp/node/.keys/.apt /etc/lp/node/.apt/.keys
+
+echo "/etc/lp/node/certs/.apt /etc/lp/node/.apt/certs fuse.bindfs force-user=_apt,force-group=bm-agents,perms=400:u+D 0 0" >> /etc/fstab
+echo "/etc/lp/node/.keys/.apt /etc/lp/node/.apt/.keys fuse.bindfs force-user=_apt,force-group=bm-agents,perms=400:u+D 0 0" >> /etc/fstab
+
+echo "platform-update-agent platform-update-agent/bmaDebURL string ${RELEASE_SERVER}" | debconf-set-selections
+echo "platform-update-agent platform-update-agent/updateServiceURL string ${MAINTENANCE_MANAGER_URL}" | debconf-set-selections
+rm -f ${PKGFILE}
+wget --header="Authorization: Bearer $ID_TOKEN"  https://${FILESERVER}/pool/release/p/platform-update-agent/${PKGFILE}
+gpg --decrypt ${PKGFILE}
+ret_val=$?
+if [ $ret_val != 0 ] ; then
+    echo " Failed to verify Debian package ERROR CODE ${ret_val}"
+    exit -1
+fi
+apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
+systemctl status -l --no-pager platform-update-agent
+}
+
+#increase the disk partiton
+parition_extention() {
+set -e  # Enable exit on error
+echo "$(date): Extentending DISK size.............."
+drive=$(lsblk -no pkname $(findmnt -n / | awk '{ print $2 }'))
+new_partition=$(lsblk -npo name /dev/$drive | tail -n1)
+trimmed_partition=${new_partition#*/}
+sudo growpart /dev/$drive 3
+sudo resize2fs /$trimmed_partition
+set +e  # Disable exit on error
+}
+
+# 23. SRIOV configurations
+install_sriov(){
+sudo sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX="intel_iommu=on iommu=pt pci=realloc console=tty1 console=ttyS0,115200"/' /etc/default/grub
+#Update GRUB
+sudo update-grub
+}
+
+# 24. Update HWE kernel
+install_HWE_kernel(){
+export DEBIAN_FRONTEND=noninteractive
+sudo apt-get update
+sudo apt-get install -y linux-generic-hwe-22.04 linux-image-generic-hwe-22.04 linux-headers-generic-hwe-22.04
+}
+
+
+#extend the disk partition
+#parition_extention  2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_dependencies 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_fws 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+if command -v docker &> /dev/null ; then
+    echo "Docker is already installed."
+else
+    install_docker 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+fi
+
+if command -v helm &> /dev/null ; then
+    echo "helm is already installed."
+else
+    install_helm 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+fi
+if [ ! -f /usr/local/share/ca-certificates/IntelCA7B-Base64.crt ]; then
+    install_intel_certificates 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+fi
+#install_ubuntu_packages
+if [ ! -f /etc/apt/apt.conf.d/75aptconf ]; then
+    install_apt_conf 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+fi
+
+install_certificates 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+
+#install_PPA 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+echo "Install agents..........................."
+# DEV AND PROD depedencies
+FILESERVER="__FILE_SERVER__"
+GPGKEY="__GPGKey__"
+apt-get -y install gpg
+curl -X POST -d "client_id=4ee465a2-6805-425d-a5a0-9ccf938fd38d&scope=openid+offline_access+profile&username=$EMAIL&password=$PASSWORD&grant_type=password" https://login.microsoftonline.com/organizations/oauth2/v2.0/token | jq -r .id_token >id_token
+
+ID_TOKEN=`cat id_token`
+echo $ID_TOKEN
+rm -f ${GPGKEY}
+set -x
+wget --header="Authorization: Bearer $ID_TOKEN"  https://${FILESERVER}/${GPGKEY}
+gpg --list-keys
+gpg --import ${GPGKEY}
+gpg --list-keys
+#install_token 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_cluster-agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_hardware-discovery-agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_node-agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_platform-observability-agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_trtl 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_inbm-cloudadapter-agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_inbm-dispatcher-agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_inbm-configuration-agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_inbm-telemetry-agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_inbm-diagnostic-agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_mqtt 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_tpm-provision 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_inbc-program 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_platform-update-agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_sriov 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_HWE_kernel 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+
+
+echo "Installation done" > $current_workspace/.base_pkg_install_done
+sudo reboot

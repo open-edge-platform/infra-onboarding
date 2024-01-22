@@ -70,7 +70,7 @@ helm-dkammgr:
     FROM alpine/helm:3.12.3
     COPY deployments/helm/dkam-manager /dkam-manager
     RUN helm package /dkam-manager
-    SAVE ARTIFACT dkam-manager-*.tgz AS LOCAL ./build/
+    SAVE ARTIFACT mi-dkam-*.tgz AS LOCAL ./build/
 	IF [ "$tag" != "ci" ]
 		RUN --push --secret HARBOR_USER --secret HARBOR_PASSWD \
 		helm registry login --insecure -u $HARBOR_USER -p $HARBOR_PASSWD $registry \

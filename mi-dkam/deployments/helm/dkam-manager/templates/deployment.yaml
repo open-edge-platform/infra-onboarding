@@ -1,43 +1,74 @@
+# SPDX-FileCopyrightText: (C) 2023 Intel Corporation
+# SPDX-License-Identifier: LicenseRef-Intel
+---
+{{- $registry := .Values.global.registry -}}
+{{ if .Values.image.registry }}
+  {{- $registry = .Values.image.registry -}}
+{{ end}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dkammgr-deployment
+  name: {{ include "mi-dkam.fullname" . }}
+  labels:
+    {{- include "mi-dkam.labels" . | nindent 4 }}
 spec:
+  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
-      app: dkammgr-app
+      {{- include "mi-dkam.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       labels:
-        app: dkammgr-app
+        {{- include "mi-dkam.selectorLabels" . | nindent 8 }}
     spec:
-      tolerations:
-      - key: "node-role.kubernetes.io/master"
-        operator: "Exists"
-        effect: "NoSchedule"
-      - key: "node-role.kubernetes.io/control-plane"
-        operator: "Exists"
-        effect: "NoSchedule"
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: node-role.kubernetes.io/control-plane
-                operator: In
-                values: [ "true", "" ]
-      dnsPolicy: ClusterFirstWithHostNet
+       {{- if hasKey $registry "name" }}
+       {{- with $registry.imagePullSecrets }} 
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+      serviceAccountName: {{ include "mi-dkam.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-      - name: dkammgr-container
-        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
-        imagePullPolicy: {{ .Values.image.pullPolicy }}
-        ports:
-        - containerPort: 5581
-        resources:
-          requests:
-            cpu: "100m"
-            memory: "128Mi"
-          limits:
-            cpu: "200m"
-            memory: "256Mi"
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ $registry.name }}{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: grpc
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          env:
+          - name: MODE
+            value: "{{ .Values.env.MODE }}"
+          - name: SeverUrl
+            value: "{{ .Values.env.SeverUrl }}"
+          volumeMounts:
+          - name: "{{ .Values.pvc.name }}"
+            mountPath: "{{ .Values.pvc.mountPath }}"
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+      - name: "{{ .Values.pvc.name }}"
+        persistentVolumeClaim:
+          claimName: "{{ .Values.pvc.claimName }}"
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
