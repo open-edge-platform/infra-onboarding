@@ -1,6 +1,6 @@
 def getEnvFromBranch(branch) {
     if (branch ==~ /main/) {
-        return 'virus,protex'
+        return 'virus'
     }
     else {
         return 'virus'
