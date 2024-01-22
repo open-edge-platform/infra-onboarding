@@ -837,69 +837,69 @@ func VoucherScript(hostIp, deviceSerial string) (string, error) {
 	url := "https://" + onrIp + ":" + onrPort + "/api/v1/certificate?alias=" + attestationType
 	resp, err := apiCalls("GET", url, authType, apiUser, onrApiPasswd, certPath, []byte{})
 	if err != nil {
-		return "", fmt.Errorf("Error1 Details", err)
+		return "", fmt.Errorf("Error1 Details:%v", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == 200 {
 		file, err := os.Create(fmt.Sprintf("/home/%s/.fdo-secrets/scripts/owner_cert_%s.txt", os.Getenv("USER"), attestationType))
 		if err != nil {
-			return "", fmt.Errorf("Error creating the file:", err)
+			return "", fmt.Errorf("Error creating the file:%v", err)
 		}
 		defer file.Close()
 		_, err = io.Copy(file, resp.Body)
 		if err != nil {
-			return "", fmt.Errorf("Error writing the response to the file:", err)
+			return "", fmt.Errorf("Error writing the response to the file:%v", err)
 		}
 		fmt.Printf("Success in downloading %s owner certificate to owner_cert_%s.txt\n", attestationType, attestationType)
 		ownerCertificate, err := os.ReadFile(fmt.Sprintf("/home/%s/.fdo-secrets/scripts/owner_cert_%s.txt", os.Getenv("USER"), attestationType))
 		if err != nil {
-			return "", fmt.Errorf("Error reading the file:", err)
+			return "", fmt.Errorf("Error reading the file:%v", err)
 		}
 		url = "https://" + mfgIp + ":" + mfgPort + "/api/v1/mfg/vouchers/" + serialNo
 		fmt.Println(url)
 		resp, err := apiCalls("POST", url, authType, apiUser, mfgApiPasswd, certPath, ownerCertificate)
 		if err != nil {
 			fmt.Println(err)
-			return "", fmt.Errorf("Error Details ", err)
+			return "", fmt.Errorf("Error Details:%v ", err)
 		}
 		if resp.StatusCode == 200 {
 			file1, err := os.Create(fmt.Sprintf("/home/%s/.fdo-secrets/scripts/%s_voucher.txt", os.Getenv("USER"), serialNo))
 			if err != nil {
-				return "", fmt.Errorf("Error creating the file:", err)
+				return "", fmt.Errorf("Error creating the file:%v", err)
 			}
 			defer file1.Close()
 			_, err = io.Copy(file1, resp.Body)
 			if err != nil {
-				return "", fmt.Errorf("Error writing the response to the file:", err)
+				return "", fmt.Errorf("Error writing the response to the file:%v", err)
 			}
 			fmt.Printf("Success in downloading extended voucher for device with serial number:%s\n", serialNo)
 			extendVoucher, err := os.ReadFile(fmt.Sprintf("/home/%s/.fdo-secrets/scripts/%s_voucher.txt", os.Getenv("USER"), serialNo))
 			if err != nil {
-				return "", fmt.Errorf("Error reading the file:", err)
+				return "", fmt.Errorf("Error reading the file:%v", err)
 			}
 			url = "https://" + onrIp + ":" + onrPort + "/api/v1/owner/vouchers/"
 			resp, err = apiCalls("POST", url, authType, apiUser, onrApiPasswd, certPath, extendVoucher)
 			if err != nil {
-				return "", fmt.Errorf("error details :", err)
+				return "", fmt.Errorf("error details :%v", err)
 			}
 			if resp.StatusCode == 200 {
 				file2, err := os.Create(fmt.Sprintf("/home/%s/.fdo-secrets/scripts/%s_guid.txt", os.Getenv("USER"), serialNo))
 				if err != nil {
 					fmt.Println("Error creating the file:", err)
-					return "", fmt.Errorf("Error creating the file:", err)
+					return "", fmt.Errorf("Error creating the file:%v", err)
 				}
 				_, err = io.Copy(file2, resp.Body)
 				if err != nil {
-					return "", fmt.Errorf("Error writing the response to the file:", err)
+					return "", fmt.Errorf("Error writing the response to the file:%v", err)
 				}
 				deviceGuid, err := os.ReadFile(fmt.Sprintf("/home/%s/.fdo-secrets/scripts/%s_guid.txt", os.Getenv("USER"), serialNo))
 				if err != nil {
-					return "", fmt.Errorf("Error reading the file:", err)
+					return "", fmt.Errorf("Error reading the file:%v", err)
 				}
 				url := fmt.Sprintf("https://%s:%s/api/v1/to0/%s", onrIp, onrPort, deviceGuid)
 				resp, err := apiCalls("GET", url, authType, apiUser, onrApiPasswd, certPath, deviceGuid)
 				if err != nil {
-					return "", fmt.Errorf("Error Details:", err)
+					return "", fmt.Errorf("Error Details:%v", err)
 				}
 				if resp.StatusCode == 200 {
 					fmt.Printf("Success in triggering TO0 for %s with GUID %s\n", serialNo, deviceGuid)

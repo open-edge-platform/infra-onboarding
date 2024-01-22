@@ -98,7 +98,7 @@ func NewInventoryClient(ctx context.Context, wg *sync.WaitGroup, addr string) (i
 	for {
 		client, err := inv_client.NewInventoryClient(ctx, cfg)
 		if err != nil {
-			fmt.Println("Failed to create new inventory client %v,Retry after 5 seconds", err)
+			fmt.Printf("Failed to create new inventory client %v,Retry after 5 seconds", err)
 			time.Sleep(5 * time.Second)
 		}
 		if err == nil {
@@ -106,4 +106,3 @@ func NewInventoryClient(ctx context.Context, wg *sync.WaitGroup, addr string) (i
 		}
 	}
 }
-
