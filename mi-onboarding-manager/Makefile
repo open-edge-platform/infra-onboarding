@@ -74,10 +74,8 @@ lint:
 	@echo "---END MAKEFILE LINT---"
 
 test:
-	@# Help: Runs test stage
-	@echo "---MAKEFILE TEST---"
-	echo $@
-	@echo "---END MAKEFILE TEST---"
+	go test ./... --race -coverprofile cover.out -covermode atomic
+	gocover-cobertura < cover.out > coverage.xml
 	
 coverage:
 	@# Help: Runs coverage stage

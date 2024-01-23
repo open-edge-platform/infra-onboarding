@@ -131,7 +131,7 @@ pipeline {
                 '''
             }
         }
-        /*stage('Test Code') {
+        stage('Test Code') {
             steps {
                 echo "Test the code"
                 sh '''
@@ -140,7 +140,7 @@ pipeline {
             }
             post{
                 success{
-                    cobertura coberturaReportFile: 'build/coverage.xml', 
+                    cobertura coberturaReportFile: 'coverage.xml', 
                         conditionalCoverageTargets: "${env.cobertura_healthy}, ${env.cobertura_unhealthy}, ${env.cobertura_unstable}", 
                         failNoReports: true,
                         failUnhealthy: true,
@@ -155,7 +155,7 @@ pipeline {
                     junit 'build/report.xml'
                 }
             }
-        }*/
+        }
 
         stage('Validate clean repo') {
             steps {
