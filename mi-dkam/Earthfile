@@ -60,8 +60,11 @@ build-dkammgr:
     SAVE ARTIFACT build/dkammgr AS LOCAL ./build/dkammgr
 
 docker-dkammgr:
-    FROM scratch
+    FROM gcr.io/distroless/static-debian11:nonroot
+    USER nobody
     ARG version='0.0.0-unknown'
+    WORKDIR /
+    COPY pkg /pkg
     COPY (+build-dkammgr/dkammgr --version=$version) .
     ENTRYPOINT ["/dkammgr"]
     SAVE IMAGE $DOCKER_REGISTRY/$DOCKER_REPOSITORY/$IMG_NAME:$VERSION
