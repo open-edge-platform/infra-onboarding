@@ -1,10 +1,10 @@
-# Maestro-I API Makefile
+# FM Onboarding Manager Makefile
 
-# SPDX-FileCopyrightText: (C) 2022 Intel Corporation
+# SPDX-FileCopyrightText: (C) 2024 Intel Corporation
 # SPDX-License-Identifier: LicenseRef-Intel
 
 .DEFAULT_GOAL := help
-.PHONY: build test lint license help generate
+.PHONY: docker-build test lint license help
 
 ##### Variables #####
 
@@ -28,8 +28,13 @@ DOCKER_REGISTRY         ?= amr-registry.caas.intel.com
 DOCKER_REPOSITORY       ?= one-intel-edge/maestro-i
 DOCKER_TAG              := ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}
 
+# Path variables
+BUILD_DIR  := build
+
 # Tools versions
 GOLINTVERSION_HAVE        := $(shell golangci-lint version | sed 's/.*version //' | sed 's/ .*//')
+
+GOCMD := GOPRIVATE="github.com/intel-innersource/*" go
 
 # Create the virtualenv with python tools installed
 VENV_NAME = venv_mionboarding
@@ -40,6 +45,7 @@ $(VENV_NAME): requirements.txt
 	. ./$@/bin/activate; set -u;\
 	python3 -m pip install --upgrade pip;\
 	python3 -m pip install -r requirements.txt
+
 
 ##### CI Targets #####
 
@@ -57,6 +63,9 @@ docker-push:
 
 lint-ci: go-lint license
 
+${BUILD_DIR}:
+	mkdir -p ${BUILD_DIR}
+
 # Maintenance and lint targets
 license: $(VENV_NAME) ## Check licensing with the reuse tool.
 	. ./$</bin/activate; set -u;\
@@ -73,10 +82,13 @@ lint:
 	echo $@
 	@echo "---END MAKEFILE LINT---"
 
-test:
-	go test ./... --race -coverprofile cover.out -covermode atomic
-	gocover-cobertura < cover.out > coverage.xml
-	
+test: ${BUILD_DIR} ## run tests, generate output
+	$(GOCMD) test -race -v -p 1 -coverpkg=$$(go list ./... | tr '\n' ,) -coverprofile=${BUILD_DIR}/coverage.out -covermode atomic ./... | tee \
+		>(go-junit-report -set-exit-code > ${BUILD_DIR}/junit_report.xml)
+	gocover-cobertura < ${BUILD_DIR}/coverage.out > ${BUILD_DIR}/coverage.xml
+	$(GOCMD) tool cover -html=${BUILD_DIR}/coverage.out -o ${BUILD_DIR}/coverage.html
+	$(GOCMD) tool cover -func ${BUILD_DIR}/coverage.out -o ${BUILD_DIR}/function_coverage.log
+
 coverage:
 	@# Help: Runs coverage stage
 	@echo "---MAKEFILE COVERAGE---"

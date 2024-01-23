@@ -66,7 +66,7 @@ func createTempFile(filePath string) error {
 
 func TestGenerateStringDataFromYAML(t *testing.T) {
 	// Create a temporary YAML file for testing
-	tempYamlFile := filepath.Join("..", "workflows", "/manifests/to/test_template_to.yaml")
+	tempYamlFile := filepath.Join("..", "workflows", "/manifests/to/test_template.yaml")
 
 	// Write YAML content to the temporary file
 	yamlContent := "apiVersion: \"tinkerbell.org/v1alpha1\"\nkind: Template\nmetadata:\n  name: testing"
@@ -74,6 +74,8 @@ func TestGenerateStringDataFromYAML(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error creating temp file: %v", err)
 	}
+	defer os.RemoveAll(tempYamlFile)
+
 	// Test reading valid YAML file
 	content, err := generateStringDataFromYAML(tempYamlFile)
 	if err != nil {
