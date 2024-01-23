@@ -361,7 +361,7 @@ func ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo,
 		log.Println("Bkc image Download process is started for ", deviceInfo.HwIP)
 		imgurl := artifactinfo.BkcUrl
 		filenameBz2 := filepath.Base(imgurl)
-		filenameWithoutExt := strings.TrimSuffix(filenameBz2, ".bz2")
+		filenameWithoutExt := strings.TrimSuffix(filenameBz2, ".img")
 		bkcRawGz := filenameWithoutExt + ".raw.gz"
 
 		// Check if the file exists at the specified path
@@ -972,7 +972,7 @@ func CalculateRootFS(imageType, diskDev string) (string, string) {
 	ROOTFS_PART_NO := "1"
 
 	if imageType == "bkc" {
-		ROOTFS_PART_NO = "3"
+		ROOTFS_PART_NO = "1"
 	}
 
 	// Use regular expression to check if diskDev ends with a numeric digit
@@ -1065,10 +1065,11 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string) error {
 
 	if imgtype == "prod_bkc" {
 		tmplName = fmt.Sprintf("bkc-%s-prod", id)
+		deviceInfo.ClientImgName = "jammy-server-cloudimg-amd64.raw.gz"
 		deviceInfo.ImType = "bkc"
 		deviceInfo.Rootfspart, deviceInfo.RootfspartNo = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
-		tmplData, err = tinkerbell.NewTemplateDataProdBKC(tmplName, deviceInfo.Rootfspart,
-			deviceInfo.LoadBalancerIP, deviceInfo.ClientImgName, deviceInfo.ProvisionerIp)
+		tmplData, err = tinkerbell.NewTemplateDataProdBKC(tmplName, deviceInfo.Rootfspart, deviceInfo.RootfspartNo,
+			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.ClientImgName, deviceInfo.ProvisionerIp)
 		if err != nil {
 			return err
 		}

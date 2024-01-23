@@ -25,22 +25,13 @@ data:
     image_url=$1
     file=$2/${image_url##*/}
     file=${file%.*}.raw.gz
-    file_name=${image_url##*/}
-    export TINKER_CLIENT_IMG=$file
     if [[ ! -f "$file" ]]; then
-        wget --no-proxy "$image_url" -O "$file_name"
-        bzip2 -d "$file_name"
-        img_name=$(echo $file_name | sed 's/.bz2//')
-        echo $img_name
-        qemu-img convert -O raw $img_name image.raw
-        pigz <image.raw >"$file"
-        rm -f $img_name image.raw
-        #wget "$image_url" -O image.bzip2
-        #bzip2 -d image.bzip2
-        #qemu-img convert -O raw image.img image.raw
-        #pigz <image.raw >"$file"
-        #rm -f image.img image.raw
+        wget "$image_url" -O image2.img
+        qemu-img convert -O raw image2.img image2.raw
+        pigz <image2.raw >"$file"
+        rm -f image2.img image2.raw
     fi
+
 ---
 apiVersion: batch/v1
 kind: Job

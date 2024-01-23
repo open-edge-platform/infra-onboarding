@@ -39,16 +39,23 @@ func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIp string) ([]b
 					},
 				},
 				{
-					Name:    "grow-partition",
-					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 90,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            fmt.Sprintf("growpart {{ index .Hardware.Disks 0 }} %s && resize2fs {{ index .Hardware.Disks 0 }}%s", rootPartNo, rootPart),
-					},
+					Name:    "grow-partision-install-script",
+                                        Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+                                        Timeout: 90,
+                                        Environment: map[string]string{
+                                                "DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+                                                "FS_TYPE":   "ext4",
+                                                "DEST_PATH": "/usr/local/bin/grow_part.sh",
+						"CONTENTS": fmt.Sprintf(`#!/bin/bash
+growpart {{ index .Hardware.Disks 0 }} %s
+resize2fs {{ index .Hardware.Disks 0 }}%s
+touch /usr/local/bin/.grow_part_done`,rootPartNo, rootPart),
+                                                "UID":     "0",
+                                                "GID":     "0",
+                                                "MODE":    "0755",
+                                                "DIRMODE": "0755",
+                                        },
+
 				},
 				{
 					Name:    "install-openssl",
@@ -83,7 +90,7 @@ func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIp string) ([]b
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "ssh-keygen -A; systemctl enable ssh.service; sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config",
+						"CMD_LINE":            "ssh-keygen -A; systemctl enable ssh.service; sed -i 's/^PasswordAuthentication no/#PasswordAuthentication yes/g' /etc/ssh/sshd_config",
 					},
 				},
 				{
@@ -122,6 +129,45 @@ func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIp string) ([]b
 					},
 				},
 				{
+                                        Name:    "service-script-for-grow-partion-installer",
+                                        Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+                                        Timeout: 200,
+                                        Environment: map[string]string{
+                                                "DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+                                                "FS_TYPE":   "ext4",
+                                                "DEST_PATH": "/etc/systemd/system/install-grow-part.service",
+                                                "CONTENTS": `
+                                                [Unit]
+                                                Description=disk size grow installer
+                                                After=network.target
+                                                ConditionPathExists = !/usr/local/bin/.grow_part_done
+
+                                                [Service]
+                                                ExecStartPre=/bin/sleep 30
+                                                WorkingDirectory=/usr/local/bin
+                                                ExecStart=/usr/local/bin/grow_part.sh
+
+                                                [Install]
+                                                WantedBy=multi-user.target`,
+                                                "UID":     "0",
+                                                "GID":     "0",
+                                                "MODE":    "0644",
+                                                "DIRMODE": "0755",
+                                        },
+                                },
+				{
+                                        Name:    "enable-grow-partinstall-service-script",
+                                        Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
+                                        Timeout: 200,
+                                        Environment: map[string]string{
+                                                "BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+                                                "FS_TYPE":             "ext4",
+                                                "CHROOT":              "y",
+                                                "DEFAULT_INTERPRETER": "/bin/sh -c",
+                                                "CMD_LINE":            "systemctl enable install-grow-part.service",
+                                        },
+                                },
+				{
 					Name:    "reboot",
 					Image:   "public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest",
 					Timeout: 90,
@@ -135,7 +181,7 @@ func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIp string) ([]b
 	return marshalWorkflow(&wf)
 }
 
-func NewTemplateDataProdBKC(name, rootPart, hostIP, clientImg, provIp string) ([]byte, error) {
+func NewTemplateDataProdBKC(name, rootPart, rootPartNo,  hostIP, clientIP, gateway, clientImg, provIp string) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -169,36 +215,80 @@ func NewTemplateDataProdBKC(name, rootPart, hostIP, clientImg, provIp string) ([
 					},
 				},
 				{
-					Name:    "base-pkg-install-script-download",
+				        Name:    "grow-partision-install-script",
+                                        Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+                                        Timeout: 90,
+                                        Environment: map[string]string{
+                                                "DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+                                                "FS_TYPE":   "ext4",
+                                                "DEST_PATH": "/usr/local/bin/grow_part.sh",
+						"CONTENTS": fmt.Sprintf(`#!/bin/bash
+growpart {{ index .Hardware.Disks 0 }} %s
+resize2fs {{ index .Hardware.Disks 0 }}%s
+touch /usr/local/bin/.grow_part_done`,rootPartNo, rootPart),
+                                                "UID":     "0",
+                                                "GID":     "0",
+                                                "MODE":    "0755",
+                                                "DIRMODE": "0755",
+                                        },
+                                },
+				{
+                                        Name:    "create-user",
+                                        Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
+                                        Timeout: 90,
+                                        Environment: map[string]string{
+                                                "BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+                                                "FS_TYPE":             "ext4",
+                                                "CHROOT":              "y",
+                                                "DEFAULT_INTERPRETER": "/bin/sh -c",
+                                                "CMD_LINE":            "useradd -p $(openssl passwd -1 user) -s /bin/bash -d /home/user/ -m -G sudo user",
+                                        },
+                                },
+
+                                {
+					Name:    "enable-ssh",
+                                        Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
+                                        Timeout: 90,
+                                        Environment: map[string]string{
+                                                "BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+                                                "FS_TYPE":             "ext4",
+                                                "CHROOT":              "y",
+                                                "DEFAULT_INTERPRETER": "/bin/sh -c",
+                                                "CMD_LINE":            "ssh-keygen -A;sed -i 's/^PasswordAuthentication no/#PasswordAuthentication yes/g' /etc/ssh/sshd_config;sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config.d/60-cloudimg-settings.conf",
+                                        },
+                                },
+
+				{
+					Name:    "profile-pkg-and-node-agents-install-script-download",
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
 					Timeout: 200,
 					Environment: map[string]string{
 						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
-						"SCRIPT_URL":          fmt.Sprintf("http://%s:8080/base_installer.sh", hostIP),
+						"SCRIPT_URL":          fmt.Sprintf("http://%s:8080/profile_and_agent_installer.sh", hostIP),
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            fmt.Sprintf("mkdir -p /home/user/Setup;chown user:user /home/user/Setup;wget -P /home/user/Setup http://%s:8080/base_installer.sh; chmod 755 /home/user/Setup/base_installer.sh", hostIP),
+						"CMD_LINE":            fmt.Sprintf("mkdir -p /home/user/Setup;chown user:user /home/user/Setup;wget -P /home/user/Setup http://%s:8080/profile_and_agent_installer.sh; chmod 755 /home/user/Setup/profile_and_agent_installer.sh", hostIP),
 					},
 				},
 				{
-					Name:    "service-script-for-base-pkg-install",
+					Name:    "service-script-for-profile-pkg-and-node-agents-install",
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
 					Timeout: 90,
 					Environment: map[string]string{
 						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/systemd/system/install-base-pkgs.service",
+						"DEST_PATH": "/etc/systemd/system/install-profile-pkgs-and-node-agent.service",
 						"CONTENTS": `
 						[Unit]
-						Description=Base Package Installation
+						Description=Profile and node agents Package Installation
 						After=network.target
 						ConditionPathExists = !/home/user/Setup/.base_pkg_install_done
 		
 						[Service]
 						ExecStartPre=/bin/sleep 60
 						WorkingDirectory=/home/user/Setup
-						ExecStart=/home/user/Setup/base_installer.sh
+						ExecStart=/home/user/Setup/profile_and_agent_installer.sh
 						Restart=always
 		
 						[Install]
@@ -210,7 +300,7 @@ func NewTemplateDataProdBKC(name, rootPart, hostIP, clientImg, provIp string) ([
 					},
 				},
 				{
-					Name:    "enable-service-script",
+					Name:    "enable-service-script-for-profile-pkg-node-agents",
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
 					Timeout: 200,
 					Environment: map[string]string{
@@ -218,105 +308,55 @@ func NewTemplateDataProdBKC(name, rootPart, hostIP, clientImg, provIp string) ([
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "systemctl enable install-base-pkgs.service",
+						"CMD_LINE":            "systemctl enable install-profile-pkgs-and-node-agent.service",
 					},
 				},
 				{
-					Name:    "add-dynamic-env-variables-on-node",
-					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 200,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"SCRIPT_URL":          fmt.Sprintf("http://%s:8080/agent_node_env.txt", hostIP),
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            fmt.Sprintf("wget -P /home/user/Setup http://%s:8080/agent_node_env.txt ;chmod 755 /home/user/Setup/agent_node_env.txt", hostIP),
-					},
-				},
+                                        Name:    "write-netplan",
+                                        Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+                                        Timeout: 90,
+                                        Environment: map[string]string{
+                                                "DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+                                                "FS_TYPE":   "ext4",
+                                                "DEST_PATH": "/etc/netplan/config.yaml",
+                                                "CONTENTS": fmt.Sprintf(`
+                network:
+                  version: 2
+                  renderer: networkd
+                  ethernets:
+                    id0:
+                      match:
+                        name: en*
+                      dhcp4: no
+                      addresses: [%s/24]
+                      gateway4: %s
+                      nameservers:
+                        addresses: [ 10.248.2.1,172.30.90.4,10.223.45.36]`, clientIP, gateway),
+                                                "UID":     "0",
+                                                "GID":     "0",
+                                                "MODE":    "0644",
+                                                "DIRMODE": "0755",
+                                        },
+                                },
+
 				{
-					Name:    "add-agent-env-to-bashrc",
-					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 200,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "cat /home/user/Setup/agent_node_env.txt >>/home/user/.bashrc;chown user:user /home/user/.bashrc",
-					},
-				},
-				{
-					Name:    "download-edge-agent-installer-file",
-					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 200,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"SCRIPT_URL":          fmt.Sprintf("http://%s:8080/edge_node_installer.sh", hostIP),
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            fmt.Sprintf("wget -P /home/user/Setup http://%s:8080/edge_node_installer.sh; cd /home/user/Setup && chmod 755 edge_node_installer.sh", hostIP),
-					},
-				},
-				{
-					Name:    "download-inventory-agent-docker-file",
-					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 200,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"SCRIPT_URL":          fmt.Sprintf("http://%s:8080/docker-compose-inv.yml", hostIP),
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            fmt.Sprintf("mkdir -p /home/user/Setup/inv_agent;wget -P /home/user/Setup/inv_agent http://%s:8080/docker-compose-inv.yml; cd /home/user/Setup/inv_agent && mv docker-compose-inv.yml docker-compose.yml", hostIP),
-					},
-				},
-				{
-					Name:    "download-update-mgr-agent-docker-file",
-					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 200,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"SCRIPT_URL":          fmt.Sprintf("http://%s:8080/docker-compose-upd.yml", hostIP),
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            fmt.Sprintf("mkdir -p /home/user/Setup/upd_mgr_agent;wget -P /home/user/Setup/upd_mgr_agent http://%s:8080/docker-compose-upd.yml; cd /home/user/Setup/upd_mgr_agent && mv docker-compose-upd.yml docker-compose.yml", hostIP),
-					},
-				},
-				{
-					Name:    "download-telemetry-agent-file",
-					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 200,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"SCRIPT_URL":          fmt.Sprintf("http://%s:8080/telemetry_agent_files.tar", hostIP),
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            fmt.Sprintf("mkdir -p /home/user/Setup/telmtry_agent;wget -P /home/user/Setup/telmtry_agent http://%s:8080/telemetry_agent_files.tar;cd /home/user/Setup/telmtry_agent;chmod 755 *", hostIP),
-					},
-				},
-				{
-					Name:    "service-script-for-node-agents-install",
+					Name:    "service-script-for-grow-partion-installer",
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
 					Timeout: 200,
 					Environment: map[string]string{
 						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/systemd/system/install-edge-node-agents.service",
+						"DEST_PATH": "/etc/systemd/system/install-grow-part.service",
 						"CONTENTS": `
 						[Unit]
-						Description=edge node agents Installation
-						After=network.target
-						ConditionPathExists = /home/user/Setup/.base_pkg_install_done
-						ConditionPathExists = !/home/user/Setup/.agent_install_done
-		
-						[Service]
-						ExecStartPre=/bin/sleep 10
-						WorkingDirectory=/home/user/Setup
-						ExecStart=/home/user/Setup/edge_node_installer.sh
+						Description=disk size grow installer
+                				After=network.target
+                				ConditionPathExists = !/usr/local/bin/.grow_part_done
+
+                				[Service]
+                				ExecStartPre=/bin/sleep 30
+                				WorkingDirectory=/usr/local/bin
+                				ExecStart=/usr/local/bin/grow_part.sh
 		
 						[Install]
 						WantedBy=multi-user.target`,
@@ -327,7 +367,7 @@ func NewTemplateDataProdBKC(name, rootPart, hostIP, clientImg, provIp string) ([
 					},
 				},
 				{
-					Name:    "enable-agent-service-script",
+					Name:    "enable-grow-partinstall-service-script",
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
 					Timeout: 200,
 					Environment: map[string]string{
@@ -335,7 +375,7 @@ func NewTemplateDataProdBKC(name, rootPart, hostIP, clientImg, provIp string) ([
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "systemctl enable install-edge-node-agents.service",
+						"CMD_LINE":            "systemctl enable install-grow-part.service",
 					},
 				},
 				{
@@ -386,16 +426,22 @@ func NewTemplateDataProdMS(name, rootPart, rootPartNo, hostIP, clientIP, gateway
 					},
 				},
 				{
-					Name:    "grow-partition",
-					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 90,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            fmt.Sprintf("growpart {{ index .Hardware.Disks 0 }} %s && resize2fs {{ index .Hardware.Disks 0 }}%s", rootPartNo, rootPart),
-					},
+					Name:    "grow-partision-install-script",
+                                        Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+                                        Timeout: 90,
+                                        Environment: map[string]string{
+                                                "DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+                                                "FS_TYPE":   "ext4",
+                                                "DEST_PATH": "/usr/local/bin/grow_part.sh",
+						"CONTENTS": fmt.Sprintf(`#!/bin/bash
+growpart {{ index .Hardware.Disks 0 }} %s
+resize2fs {{ index .Hardware.Disks 0 }}%s
+touch /usr/local/bin/.grow_part_done`,rootPartNo, rootPart),
+                                                "UID":     "0",
+                                                "GID":     "0",
+                                                "MODE":    "0755",
+                                                "DIRMODE": "0755",
+                                        },
 				},
 				{
 					Name:    "add-env-proxies",
@@ -479,7 +525,7 @@ func NewTemplateDataProdMS(name, rootPart, rootPartNo, hostIP, clientIP, gateway
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "ssh-keygen -A; systemctl enable ssh.service; sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config",
+						"CMD_LINE":            "ssh-keygen -A; systemctl enable ssh.service; sed -i 's/^PasswordAuthentication no/#PasswordAuthentication yes/g' /etc/ssh/sshd_config",
 					},
 				},
 				{
@@ -498,11 +544,11 @@ func NewTemplateDataProdMS(name, rootPart, rootPartNo, hostIP, clientIP, gateway
                     id0:
                       match:
                         name: en*
-					  dhcp4: no
-					  addresses: [%s/24]
-					  gateway4: %s
-					  nameservers:
-					    addresses: [ 10.248.2.1,172.30.90.4,10.223.45.36]`, clientIP, gateway),
+		      dhcp4: no
+		      addresses: [%s/24]
+		      gateway4: %s
+		      nameservers:
+		        addresses: [ 10.248.2.1,172.30.90.4,10.223.45.36]`, clientIP, gateway),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0644",
@@ -589,6 +635,46 @@ func NewTemplateDataProdMS(name, rootPart, rootPartNo, hostIP, clientIP, gateway
 						"CMD_LINE":            "systemctl enable install-azure-dps.service",
 					},
 				},
+				{
+                                        Name:    "service-script-for-grow-partion-installer",
+                                        Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+                                        Timeout: 200,
+                                        Environment: map[string]string{
+                                                "DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+                                                "FS_TYPE":   "ext4",
+                                                "DEST_PATH": "/etc/systemd/system/install-grow-part.service",
+                                                "CONTENTS": `
+                                                [Unit]
+                                                Description=disk size grow installer
+                                                After=network.target
+                                                ConditionPathExists = !/usr/local/bin/.grow_part_done
+
+                                                [Service]
+                                                ExecStartPre=/bin/sleep 30
+                                                WorkingDirectory=/usr/local/bin
+                                                ExecStart=/usr/local/bin/grow_part.sh
+
+                                                [Install]
+                                                WantedBy=multi-user.target`,
+                                                "UID":     "0",
+                                                "GID":     "0",
+                                                "MODE":    "0644",
+                                                "DIRMODE": "0755",
+                                        },
+                                },
+				{
+                                        Name:    "enable-grow-partinstall-service-script",
+                                        Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
+                                        Timeout: 200,
+                                        Environment: map[string]string{
+                                                "BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+                                                "FS_TYPE":             "ext4",
+                                                "CHROOT":              "y",
+                                                "DEFAULT_INTERPRETER": "/bin/sh -c",
+                                                "CMD_LINE":            "systemctl enable install-grow-part.service",
+                                        },
+                                },
+
 				{
 					Name:    "add-apt-proxies",
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",

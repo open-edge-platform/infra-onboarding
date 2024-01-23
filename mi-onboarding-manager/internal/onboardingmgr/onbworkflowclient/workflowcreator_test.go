@@ -135,8 +135,8 @@ func isEqual(a, b map[string]interface{}) bool {
 func TestCaSlculateRootF(t *testing.T) {
 	// Test case 1: imageType is "bkc" and diskDev ends with a numeric digit
 	partition, number := CalculateRootFS("bkc", "sda1")
-	assert.Equal(t, "p3", partition, "Expected partition 'p3'")
-	assert.Equal(t, "3", number, "Expected number '3'")
+	assert.Equal(t, "p1", partition, "Expected partition 'p1'")
+	assert.Equal(t, "1", number, "Expected number '1'")
 
 	// Test case 2: imageType is "ms" and diskDev ends with a numeric digit
 	partition, number = CalculateRootFS("ms", "nvme0n1p2")
@@ -145,8 +145,8 @@ func TestCaSlculateRootF(t *testing.T) {
 
 	// Test case 3: imageType is "bkc" and diskDev does not end with a numeric digit
 	partition, number = CalculateRootFS("bkc", "sdb")
-	assert.Equal(t, "3", partition, "Expected partition '3'")
-	assert.Equal(t, "3", number, "Expected number '3'")
+	assert.Equal(t, "1", partition, "Expected partition '1'")
+	assert.Equal(t, "1", number, "Expected number '1'")
 
 	// Test case 4: imageType is  "ms" and diskDev ends with a numeric digit
 	partition, number = CalculateRootFS("other", "nvme0n1p3")
