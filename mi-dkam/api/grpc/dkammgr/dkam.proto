@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package infrastructure.edge.iaas.platform.dkammgr;
+
+option go_package = "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr";
+
+service DkamService {
+  	rpc GetArtifacts(GetArtifactsRequest) returns (GetArtifactsResponse) {};
+}
+
+message GetArtifactsRequest {
+  	string profile_name = 1;
+        string platform = 2;
+}
+
+message GetArtifactsResponse {
+        string manifest_file = 1;
+  	bool statusCode = 2;
+}
