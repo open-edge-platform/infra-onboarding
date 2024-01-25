@@ -159,10 +159,10 @@ pipeline {
 						echo 'no_proxy=localhost,*.intel.com,*intel.com,192.168.0.0/16,172.16.0.0/12,127.0.0.0/8,10.0.0.0/8,/var/run/docker.sock' >> config
 						echo 'nameserver=(10.248.2.1 172.30.90.4 10.223.45.36)' >> config
 
-						sed -i "s+fdoclient_action+amr-registry.caas.intel.com/one-intel-edge/maestro-a/tinker-actions/fdoclient_action+g" patch.p
-      						sed -i "s+efibootset:+amr-registry.caas.intel.com/one-intel-edge/maestro-a/tinker-actions/efibootset:+g" patch.p
-                        			docker pull amr-registry.caas.intel.com/one-intel-edge/maestro-a/tinker-actions/efibootset:${tag}
-						docker pull amr-registry.caas.intel.com/one-intel-edge/maestro-a/tinker-actions/fdoclient_action:${tag}
+						sed -i "s+fdoclient_action+amr-registry.caas.intel.com/one-intel-edge/edgenode/tinker-actions/fdoclient_action+g" patch.p
+      						sed -i "s+efibootset:+amr-registry.caas.intel.com/one-intel-edge/edgenode/tinker-actions/efibootset:+g" patch.p
+                        			docker pull amr-registry.caas.intel.com/one-intel-edge/edgenode/tinker-actions/efibootset:${tag}
+						docker pull amr-registry.caas.intel.com/one-intel-edge/edgenode/tinker-actions/fdoclient_action:${tag}
 						eval \$(ssh-agent) > /dev/null
 						make build
 						"""
