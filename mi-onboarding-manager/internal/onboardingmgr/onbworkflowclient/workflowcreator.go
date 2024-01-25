@@ -492,7 +492,7 @@ func ReadingYamlNCreatingResourse(imgurl, imgType, filePath, fileName, HwId stri
 
 		if strings.ToLower(u.GetKind()) == "job" {
 			log.Println("Checking the Job status of ", u.GetName())
-			err = checkJobStatus("tink-system", u.GetName(), HwId)
+			err = checkJobStatus("maestro-iaas-system", u.GetName(), HwId)
 			if err != nil {
 				log.Fatalf("Error while waiting for workflow success: %v", err)
 				return err
@@ -968,7 +968,7 @@ func apiCalls(httpMethod, url, authType, apiUser, onrApiPasswd, certPath string,
 	return resp, nil
 }
 
-func CalculateRootFS(imageType, diskDev string) (string, string) {
+func CalculateRootFS(imageType, diskDev string) string {
 	ROOTFS_PART_NO := "1"
 
 	if imageType == "bkc" {
@@ -979,10 +979,10 @@ func CalculateRootFS(imageType, diskDev string) (string, string) {
 	match, _ := regexp.MatchString(".*[0-9]$", diskDev)
 
 	if match {
-		return fmt.Sprintf("p%s", ROOTFS_PART_NO), ROOTFS_PART_NO
+		return fmt.Sprintf("p%s", ROOTFS_PART_NO)
 	}
 
-	return ROOTFS_PART_NO, ROOTFS_PART_NO
+	return ROOTFS_PART_NO
 }
 
 func DeleteWorkflow(namespace, workflowName, resource string) error {
@@ -1029,7 +1029,7 @@ func ToWorkflowCreation(deviceInfo utils.DeviceInfo) error {
 	}
 	fmt.Printf("workflow applied workflowname:%s--------------", toworkflowname)
 
-	err5 := waitForWorkflowSuccess("tink-system", toworkflowname)
+	err5 := waitForWorkflowSuccess("maestro-iaas-system", toworkflowname)
 	if err5 != nil {
 		log.Fatalf("Error waiting for workflow success: %v", err5)
 		return err5
@@ -1038,11 +1038,11 @@ func ToWorkflowCreation(deviceInfo utils.DeviceInfo) error {
 
 	////////////////////////////////To workflow Cleanup//////////////////////////
 	//TODO:replace the namespace other info from Groupinfo struct
-	template_to_delete_err := DeleteWorkflow("tink-system", totemplatename, "templates")
+	template_to_delete_err := DeleteWorkflow("maestro-iaas-system", totemplatename, "templates")
 	if template_to_delete_err != nil {
 		fmt.Printf("Error: %v\n", template_to_delete_err)
 	}
-	workflow_to_delete_err := DeleteWorkflow("tink-system", toworkflowname, "workflows")
+	workflow_to_delete_err := DeleteWorkflow("maestro-iaas-system", toworkflowname, "workflows")
 	if workflow_to_delete_err != nil {
 		fmt.Printf("Error: %v\n", workflow_to_delete_err)
 	}
@@ -1057,17 +1057,26 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string) error {
 
 	var (
 		ctx      = context.Background()
-		ns       = "tink-system"
+		ns       = "maestro-iaas-system"
 		id       = GenerateMacIdString(deviceInfo.HwMacID)
 		tmplName string
 		tmplData []byte
 	)
 
+	hw := tinkerbell.NewHardware("machine-"+id, ns, deviceInfo.HwMacID,
+		deviceInfo.DiskType, deviceInfo.HwIP, deviceInfo.Gateway)
+
+	if err := client.Create(ctx, hw); err != nil {
+		return err
+	}
+
+	fmt.Printf("hardware workflow applied hardwarename:%s", hw.Name)
+	fmt.Printf("hardware workflow Image URL :%s", &deviceInfo.LoadBalancerIP)
 	if imgtype == "prod_bkc" {
 		tmplName = fmt.Sprintf("bkc-%s-prod", id)
 		deviceInfo.ClientImgName = "jammy-server-cloudimg-amd64.raw.gz"
 		deviceInfo.ImType = "bkc"
-		deviceInfo.Rootfspart, deviceInfo.RootfspartNo = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
+		deviceInfo.Rootfspart = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
 		tmplData, err = tinkerbell.NewTemplateDataProdBKC(tmplName, deviceInfo.Rootfspart, deviceInfo.RootfspartNo,
 			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.ClientImgName, deviceInfo.ProvisionerIp)
 		if err != nil {
@@ -1077,7 +1086,7 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string) error {
 		tmplName = fmt.Sprintf("focal-%s-prod", id)
 		deviceInfo.ClientImgName = "focal-server-cloudimg-amd64.raw.gz"
 		deviceInfo.ImType = "focal"
-		deviceInfo.Rootfspart, deviceInfo.RootfspartNo = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
+		deviceInfo.Rootfspart = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
 		tmplData, err = tinkerbell.NewTemplateDataProd(tmplName, deviceInfo.Rootfspart,
 			deviceInfo.RootfspartNo, deviceInfo.LoadBalancerIP, deviceInfo.ProvisionerIp)
 		if err != nil {
@@ -1086,7 +1095,7 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string) error {
 	} else if imgtype == "prod_focal-ms" {
 		tmplName = fmt.Sprintf("focal-ms-%s-prod", id)
 		deviceInfo.ImType = "focal-ms"
-		deviceInfo.Rootfspart, deviceInfo.RootfspartNo = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
+		deviceInfo.Rootfspart = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
 		tmplData, err = tinkerbell.NewTemplateDataProdMS(tmplName, deviceInfo.Rootfspart, deviceInfo.RootfspartNo,
 			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.HwMacID, deviceInfo.ProvisionerIp)
 		if err != nil {
@@ -1096,7 +1105,7 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string) error {
 		tmplName = fmt.Sprintf("focal-%s-prod", id)
 		deviceInfo.ClientImgName = "jammy-server-cloudimg-amd64.raw.gz"
 		deviceInfo.ImType = "jammy"
-		deviceInfo.Rootfspart, deviceInfo.RootfspartNo = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
+		deviceInfo.Rootfspart = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
 		tmplData, err = tinkerbell.NewTemplateDataProd(tmplName, deviceInfo.Rootfspart,
 			deviceInfo.RootfspartNo, deviceInfo.LoadBalancerIP, deviceInfo.ProvisionerIp)
 		if err != nil {
@@ -1164,7 +1173,7 @@ func DiWorkflowCreation(deviceInfo utils.DeviceInfo) (string, error) {
 	}
 
 	ctx := context.Background()
-	ns := "tink-system"
+	ns := "maestro-iaas-system"
 	id := GenerateMacIdString(deviceInfo.HwMacID)
 
 	hw := tinkerbell.NewHardware("machine-"+id, ns, deviceInfo.HwMacID,

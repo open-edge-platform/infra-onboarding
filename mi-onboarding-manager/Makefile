@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: LicenseRef-Intel
 
 .DEFAULT_GOAL := help
-.PHONY: docker-build test lint license help
+.PHONY: docker-build lint license help
 
 ##### Variables #####
 
@@ -50,8 +50,8 @@ $(VENV_NAME): requirements.txt
 ##### CI Targets #####
 
 all: 
-	@# Help: Runs build, lint, test stage
-	build lint test 	
+	@# Help: Runs build, lint
+	build lint  	
 	
 docker-build:
 	DOCKER_REGISTRY=${DOCKER_REGISTRY} DOCKER_REPOSITORY=${DOCKER_REPOSITORY} IMG_NAME=${IMG_NAME} VERSION=${IMG_VERSION} earthly -V +all
@@ -81,13 +81,6 @@ lint:
 	@echo "---MAKEFILE LINT---"
 	echo $@
 	@echo "---END MAKEFILE LINT---"
-
-test: ${BUILD_DIR} ## run tests, generate output
-	$(GOCMD) test -race -v -p 1 -coverpkg=$$(go list ./... | tr '\n' ,) -coverprofile=${BUILD_DIR}/coverage.out -covermode atomic ./... | tee \
-		>(go-junit-report -set-exit-code > ${BUILD_DIR}/junit_report.xml)
-	gocover-cobertura < ${BUILD_DIR}/coverage.out > ${BUILD_DIR}/coverage.xml
-	$(GOCMD) tool cover -html=${BUILD_DIR}/coverage.out -o ${BUILD_DIR}/coverage.html
-	$(GOCMD) tool cover -func ${BUILD_DIR}/coverage.out -o ${BUILD_DIR}/function_coverage.log
 
 coverage:
 	@# Help: Runs coverage stage

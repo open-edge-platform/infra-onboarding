@@ -149,7 +149,7 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 
 	case err == nil:
 		zlog.Debug().Msgf("Create op : Node and its Host Resource Already Exist for GUID %s \n", hostresdata[0].Uuid)
-		return nil, nil
+		return &pb.NodeResponse{Payload: req.Payload}, nil
 
 	case err != nil:
 		zlog.MiSec().MiErr(err).Msgf("Create op :Failed CreateNodes() for GUID %s\n", hostresdata[0].Uuid)

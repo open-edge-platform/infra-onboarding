@@ -114,7 +114,7 @@ func getInstanceResources(ctx context.Context, dialer *grpcDialer) func(cmd *cob
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		client, eventCh, err := NewInventoryClient(ctx, &wg, dialer.Addr)
+		client, eventCh, err := maestro.NewInventoryClient(&wg, dialer.Addr)
 		if err != nil {
 			return err
 		}
@@ -143,7 +143,7 @@ func getInstanceByID(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Co
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		client, eventCh, err := NewInventoryClient(ctx, &wg,  dialer.Addr)
+		client, eventCh, err := maestro.NewInventoryClient(&wg, dialer.Addr)
 		if err != nil {
 			return err
 		}
@@ -177,7 +177,7 @@ func createInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 		hostID, _ := cmd.Flags().GetString("hostID")
 		osID, _ := cmd.Flags().GetString("osID")
 
-		client, eventCh, err := NewInventoryClient(ctx, &wg,dialer.Addr)
+		client, eventCh, err := maestro.NewInventoryClient(&wg, dialer.Addr)
 		if err != nil {
 			return err
 		}
@@ -220,8 +220,7 @@ func deleteInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-
-		client, eventCh, err := NewInventoryClient(ctx, &wg, dialer.Addr)
+		client, eventCh, err := maestro.NewInventoryClient(&wg, dialer.Addr)
 		if err != nil {
 			return err
 		}
@@ -253,8 +252,7 @@ func updateInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-
-		client, eventCh, err := NewInventoryClient(ctx, &wg,dialer.Addr)
+		client, eventCh, err := maestro.NewInventoryClient(&wg, dialer.Addr)
 		if err != nil {
 			return err
 		}
@@ -448,7 +446,7 @@ func getHostResources(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.C
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		client, eventCh, err := NewInventoryClient(ctx, &wg,dialer.Addr)
+		client, eventCh, err := maestro.NewInventoryClient(&wg, dialer.Addr)
 		if err != nil {
 			return err
 		}
@@ -476,9 +474,7 @@ func getResourceByID(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Co
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		
-
-		client, eventCh, err :=NewInventoryClient(ctx, &wg,dialer.Addr)
+		client, eventCh, err := maestro.NewInventoryClient(&wg, dialer.Addr)
 
 		if err != nil {
 			return err
@@ -506,9 +502,7 @@ func getByuuID(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command,
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		
-
-		client, eventCh, err :=NewInventoryClient(ctx, &wg,dialer.Addr)
+		client, eventCh, err := maestro.NewInventoryClient(&wg, dialer.Addr)
 
 		if err != nil {
 			return err
@@ -536,9 +530,7 @@ func deleteHost(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		
-
-		client, eventCh, err :=NewInventoryClient(ctx, &wg,dialer.Addr)
+		client, eventCh, err := maestro.NewInventoryClient(&wg, dialer.Addr)
 
 		if err != nil {
 			return err
@@ -571,9 +563,7 @@ func updateHost(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		
-
-		client, eventCh, err :=NewInventoryClient(ctx, &wg,dialer.Addr)
+		client, eventCh, err := maestro.NewInventoryClient(&wg, dialer.Addr)
 		if err != nil {
 			return err
 		}

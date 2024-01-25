@@ -6,6 +6,7 @@ package reconciler
 
 import (
 	"context"
+	"os"
 
 	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
@@ -56,14 +57,19 @@ func (osr *OsReconciler) reconcileOsInstance(
 ) rec_v2.Directive[ResourceID] {
 	id := osinst.GetResourceId()
 	zlog.MiSec().Info().Msgf("Reconciling os instance with ID : %s", id)
-	response, err := onboarding.GetOSResourceFromDkamService(ctx, osinst)
-	if err != nil {
-		zlog.Err(err).Msgf("Failed to trigger DKAM for os instance ID : %s", id)
-		return request.Ack()
-	}
-	err = osr.updateOsInstance(ctx, osr.invClient, osinst, response, id)
-	if err != nil {
-		zlog.Err(err).Msgf("Failed to update os instance with ID : %s", id)
+
+	disableFeatureX := os.Getenv("DISABLE_FEATUREX")
+
+	if disableFeatureX == "true" {
+		response, err := onboarding.GetOSResourceFromDkamService(ctx)
+		if err != nil {
+			zlog.Err(err).Msgf("Failed to trigger DKAM for os instance ID : %s", id)
+			return request.Ack()
+		}
+		err = osr.updateOsInstance(ctx, osr.invClient, osinst, response, id)
+		if err != nil {
+			zlog.Err(err).Msgf("Failed to update os instance with ID : %s", id)
+		}
 	}
 	return request.Ack()
 }
