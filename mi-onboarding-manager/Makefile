@@ -53,7 +53,7 @@ all:
 	@# Help: Runs build, lint, test stage
 	build lint test
 	
-docker-build:
+docker-build: go-vendor
 	DOCKER_REGISTRY=${DOCKER_REGISTRY} DOCKER_REPOSITORY=${DOCKER_REPOSITORY} IMG_NAME=${IMG_NAME} VERSION=${IMG_VERSION} earthly -V +all
 
 docker-push:
@@ -75,6 +75,11 @@ license: $(VENV_NAME) ## Check licensing with the reuse tool.
 go-lint: ## run go lint
 	golangci-lint linters
 
+go-tidy: ## go mod tidy
+	$(GOCMD) mod tidy
+
+go-vendor:
+	$(GOCMD) mod vendor
 
 lint:
 	@# Help: Runs lint stage

@@ -9,6 +9,7 @@ build/*
 .idea
 .vscode
 .DS_Store
+vendor
 
 ## From https://github.com/github/gitignore/blob/main/Go.gitignore
 
