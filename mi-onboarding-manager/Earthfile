@@ -39,6 +39,7 @@ build-onboarding-stack:
     BUILD +docker-onboardingmgr
     BUILD +build-onboardingcli
     BUILD +build-pdctl
+    BUILD +build-onboardingmgrtest
 
 
 build-onboardingmgr:
@@ -51,6 +52,11 @@ build-onboardingmgr:
             ./cmd/onboardingmgr
     SAVE ARTIFACT build/onboardingmgr
     
+build-onboardingmgrtest:
+    ARG version='0.0.0-unknown'
+    WORKDIR /work
+    COPY . .
+    RUN go test -v ./...
 
 docker-onboardingmgr:
     FROM scratch

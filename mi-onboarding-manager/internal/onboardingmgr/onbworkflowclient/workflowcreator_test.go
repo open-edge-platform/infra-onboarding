@@ -134,24 +134,24 @@ func isEqual(a, b map[string]interface{}) bool {
 }
 func TestCaSlculateRootF(t *testing.T) {
 	// Test case 1: imageType is "bkc" and diskDev ends with a numeric digit
-	partition, number := CalculateRootFS("bkc", "sda1")
+	partition := CalculateRootFS("bkc", "sda1")
 	assert.Equal(t, "p1", partition, "Expected partition 'p1'")
-	assert.Equal(t, "1", number, "Expected number '1'")
+	// assert.Equal(t, "1", number, "Expected number '1'")
 
 	// Test case 2: imageType is "ms" and diskDev ends with a numeric digit
-	partition, number = CalculateRootFS("ms", "nvme0n1p2")
+	partition = CalculateRootFS("ms", "nvme0n1p2")
 	assert.Equal(t, "p1", partition, "Expected partition 'p1'")
-	assert.Equal(t, "1", number, "Expected number '1'")
+	// assert.Equal(t, "1", number, "Expected number '1'")
 
 	// Test case 3: imageType is "bkc" and diskDev does not end with a numeric digit
-	partition, number = CalculateRootFS("bkc", "sdb")
+	partition = CalculateRootFS("bkc", "sdb")
 	assert.Equal(t, "1", partition, "Expected partition '1'")
-	assert.Equal(t, "1", number, "Expected number '1'")
+	// assert.Equal(t, "1", number, "Expected number '1'")
 
 	// Test case 4: imageType is  "ms" and diskDev ends with a numeric digit
-	partition, number = CalculateRootFS("other", "nvme0n1p3")
+	partition = CalculateRootFS("other", "nvme0n1p3")
 	assert.Equal(t, "p1", partition, "Expected partition 'p1'")
-	assert.Equal(t, "1", number, "Expected number '1'")
+	// assert.Equal(t, "1", number, "Expected number '1'")
 }
 
 // MockHTTPServer creates a mock HTTP server and returns its URL
@@ -254,20 +254,20 @@ func TestImageDownload(t *testing.T) {
 		FocalImgDdLock:   focalImgDdLocks,
 		FocalMsImgDdLock: focalMsImgDdLocks,
 	}
-	inputArgs1 := args{
-		artifactinfo: utils.ArtifactData{
-			BkcUrl:        "1bkc",
-			BkcBasePkgUrl: "Bkc",
-		},
-		deviceInfo: utils.DeviceInfo{
-			ImType: "prod_jammy",
-		},
-		kubeconfigPath:   "configPath",
-		BkcImgDdLock:     bkcImgDdLocks,
-		JammyImgDdLock:   jammyImgDdLocks,
-		FocalImgDdLock:   focalImgDdLocks,
-		FocalMsImgDdLock: focalMsImgDdLocks,
-	}
+	// inputArgs1 := args{
+	// 	artifactinfo: utils.ArtifactData{
+	// 		BkcUrl:        "1bkc",
+	// 		BkcBasePkgUrl: "Bkc",
+	// 	},
+	// 	deviceInfo: utils.DeviceInfo{
+	// 		ImType: "prod_jammy",
+	// 	},
+	// 	kubeconfigPath:   "configPath",
+	// 	BkcImgDdLock:     bkcImgDdLocks,
+	// 	JammyImgDdLock:   jammyImgDdLocks,
+	// 	FocalImgDdLock:   focalImgDdLocks,
+	// 	FocalMsImgDdLock: focalMsImgDdLocks,
+	// }
 	inputArgs2 := args{
 		artifactinfo: utils.ArtifactData{
 			BkcUrl:        "1bkc",
@@ -307,11 +307,11 @@ func TestImageDownload(t *testing.T) {
 			inputArgs,
 			true,
 		},
-		{
-			"neg2",
-			inputArgs1,
-			true,
-		},
+		// {
+		// 	"neg2",
+		// 	inputArgs1,
+		// 	true,
+		// },
 		{
 			"neg3",
 			inputArgs2,

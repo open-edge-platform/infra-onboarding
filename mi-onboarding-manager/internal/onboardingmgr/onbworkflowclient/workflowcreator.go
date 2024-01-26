@@ -1071,7 +1071,7 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string) error {
 	}
 
 	fmt.Printf("hardware workflow applied hardwarename:%s", hw.Name)
-	fmt.Printf("hardware workflow Image URL :%s", &deviceInfo.LoadBalancerIP)
+	fmt.Printf("hardware workflow Image URL :%s", deviceInfo.LoadBalancerIP)
 	if imgtype == "prod_bkc" {
 		tmplName = fmt.Sprintf("bkc-%s-prod", id)
 		deviceInfo.ClientImgName = "jammy-server-cloudimg-amd64.raw.gz"
