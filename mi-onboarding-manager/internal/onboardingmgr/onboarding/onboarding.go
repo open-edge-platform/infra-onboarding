@@ -11,6 +11,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
 	"log"
 	"os"
 	"path/filepath"
@@ -22,7 +23,6 @@ import (
 	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
-	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
 	logging "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/onbworkflowclient"
@@ -32,10 +32,10 @@ import (
 )
 
 var (
-	clientName = "OnboardingInventoryClient"
+	clientName = "Onboarding"
 	zlog       = logging.GetLogger(clientName)
 	_dkamAddr  = "localhost:5581"
-	_invClient inv_client.InventoryClient
+	_invClient *invclient.OnboardingInventoryClient
 )
 
 type OnboardingManager struct {
@@ -47,7 +47,7 @@ type ResponseData struct {
 	To0Expiry      string `json:"to0Expiry"`
 }
 
-func InitOnboarding(invClient inv_client.InventoryClient, dkamAddr string) {
+func InitOnboarding(invClient *invclient.OnboardingInventoryClient, dkamAddr string) {
 	if invClient == nil {
 		zlog.Debug().Msgf("Warning: invClient is nil")
 		return

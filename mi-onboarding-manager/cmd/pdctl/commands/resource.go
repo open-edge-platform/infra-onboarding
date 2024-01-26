@@ -7,12 +7,13 @@ package commands
 import (
 	"context"
 	"fmt"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
 	"strings"
 	"sync"
 	"time"
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
-	maestro "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/maestro"
 	"github.com/spf13/cobra"
 )
 
@@ -114,13 +115,15 @@ func getInstanceResources(ctx context.Context, dialer *grpcDialer) func(cmd *cob
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		client, eventCh, err := maestro.NewInventoryClient(&wg, dialer.Addr)
+		client, err := invclient.NewOnboardingInventoryClientWithOptions(
+			invclient.WithInventoryAddress(dialer.Addr),
+		)
 		if err != nil {
 			return err
 		}
-		defer close(eventCh)
+		defer client.Close()
 
-		instanceResources, err := maestro.GetInstanceResources(ctx, client)
+		instanceResources, err := client.GetInstanceResources(ctx)
 		if err != nil {
 			return err
 		}
@@ -143,14 +146,16 @@ func getInstanceByID(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Co
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		client, eventCh, err := maestro.NewInventoryClient(&wg, dialer.Addr)
+		client, err := invclient.NewOnboardingInventoryClientWithOptions(
+			invclient.WithInventoryAddress(dialer.Addr),
+		)
 		if err != nil {
 			return err
 		}
-		defer close(eventCh)
+		defer client.Close()
 
 		// existing code for getting instance by ID
-		inst, err := maestro.GetInstanceResourceByResourceID(ctx, client, resourceID)
+		inst, err := client.GetInstanceResourceByResourceID(ctx, resourceID)
 		if err != nil {
 			return err
 		}
@@ -177,11 +182,13 @@ func createInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 		hostID, _ := cmd.Flags().GetString("hostID")
 		osID, _ := cmd.Flags().GetString("osID")
 
-		client, eventCh, err := maestro.NewInventoryClient(&wg, dialer.Addr)
+		client, err := invclient.NewOnboardingInventoryClientWithOptions(
+			invclient.WithInventoryAddress(dialer.Addr),
+		)
 		if err != nil {
 			return err
 		}
-		defer close(eventCh)
+		defer client.Close()
 
 		instance := &computev1.InstanceResource{
 			Kind:           computev1.InstanceKind(computev1.InstanceKind_value[kind]),
@@ -191,6 +198,12 @@ func createInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 			VmCpuCores:     vmCpuCores,
 			VmStorageBytes: vmStorageBytes,
 
+			Host: &computev1.HostResource{
+				ResourceId: hostID,
+			},
+			Os: &osv1.OperatingSystemResource{
+				ResourceId: osID,
+			},
 			// Set other fields based on parameters
 		}
 
@@ -199,7 +212,7 @@ func createInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 			return err
 		}
 
-		_, err = maestro.CreateInstanceResource(ctx, client, instance, hostID, osID)
+		_, err = client.CreateInstanceResource(ctx, instance)
 		if err != nil {
 			return err
 		}
@@ -220,19 +233,21 @@ func deleteInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		client, eventCh, err := maestro.NewInventoryClient(&wg, dialer.Addr)
+		client, err := invclient.NewOnboardingInventoryClientWithOptions(
+			invclient.WithInventoryAddress(dialer.Addr),
+		)
 		if err != nil {
 			return err
 		}
-		defer close(eventCh)
+		defer client.Close()
 
 		// existing code for getting instance by ID
-		inst, err := maestro.GetInstanceResourceByResourceID(ctx, client, resourceID)
+		inst, err := client.GetInstanceResourceByResourceID(ctx, resourceID)
 		if err != nil {
 			return err
 		}
 
-		err = maestro.DeleteInstanceResource(ctx, client, inst)
+		err = client.DeleteInstanceResource(ctx, inst.GetResourceId())
 		if err != nil {
 			return err
 		}
@@ -252,21 +267,23 @@ func updateInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		client, eventCh, err := maestro.NewInventoryClient(&wg, dialer.Addr)
+		client, err := invclient.NewOnboardingInventoryClientWithOptions(
+			invclient.WithInventoryAddress(dialer.Addr),
+		)
 		if err != nil {
 			return err
 		}
-		defer close(eventCh)
+		defer client.Close()
 
 		// existing code for getting instance by ID
-		inst, err := maestro.GetInstanceResourceByResourceID(ctx, client, resourceID)
+		inst, err := client.GetInstanceResourceByResourceID(ctx, resourceID)
 		if err != nil {
 			return err
 		}
 
 		fieldSlice := strings.Split(fields, ",")
 
-		err = maestro.UpdateInvResourceFields(ctx, client, inst, fieldSlice)
+		err = client.UpdateInvResourceFields(ctx, inst, fieldSlice)
 		if err != nil {
 			return err
 		}
@@ -399,14 +416,18 @@ func createResource(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 		desiredState, _ := cmd.Flags().GetString("desired-state")
 		currentState, _ := cmd.Flags().GetString("current-state")
 
-		client, eventCh, err := NewInventoryClient(ctx, &wg, dialer.Addr)
+		client, err := invclient.NewOnboardingInventoryClientWithOptions(
+			invclient.WithInventoryAddress(dialer.Addr),
+		)
+
 		if err != nil {
 			return err
 		}
-		defer close(eventCh)
+		defer client.Close()
 
 		hostResource := &computev1.HostResource{
 			SerialNumber: serialNumber,
+			Uuid:         uuid,
 			BmcKind:      computev1.BaremetalControllerKind(computev1.BaremetalControllerKind_value[bmcKind]),
 			BmcIp:        bmcIP,
 			BmcUsername:  bmcUsername,
@@ -424,8 +445,7 @@ func createResource(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 			return err
 		}
 
-		_, err = maestro.CreateHostResource(ctx, client, uuid, hostResource)
-
+		_, err = client.CreateHostResource(ctx, hostResource)
 		if err != nil {
 			return err
 		}
@@ -446,13 +466,15 @@ func getHostResources(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.C
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		client, eventCh, err := maestro.NewInventoryClient(&wg, dialer.Addr)
+		client, err := invclient.NewOnboardingInventoryClientWithOptions(
+			invclient.WithInventoryAddress(dialer.Addr),
+		)
 		if err != nil {
 			return err
 		}
-		defer close(eventCh)
+		defer client.Close()
 
-		instanceResources, err := maestro.GetHostResources(ctx, client)
+		instanceResources, err := client.GetHostResources(ctx)
 		if err != nil {
 			return err
 		}
@@ -474,14 +496,15 @@ func getResourceByID(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Co
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		client, eventCh, err := maestro.NewInventoryClient(&wg, dialer.Addr)
-
+		client, err := invclient.NewOnboardingInventoryClientWithOptions(
+			invclient.WithInventoryAddress(dialer.Addr),
+		)
 		if err != nil {
 			return err
 		}
-		defer close(eventCh)
+		defer client.Close()
 
-		host, err := maestro.GetHostResourceByResourceID(ctx, client, resourceID)
+		host, err := client.GetHostResourceByResourceID(ctx, resourceID)
 		if err != nil {
 			return err
 		}
@@ -502,14 +525,15 @@ func getByuuID(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command,
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		client, eventCh, err := maestro.NewInventoryClient(&wg, dialer.Addr)
-
+		client, err := invclient.NewOnboardingInventoryClientWithOptions(
+			invclient.WithInventoryAddress(dialer.Addr),
+		)
 		if err != nil {
 			return err
 		}
-		defer close(eventCh)
+		defer client.Close()
 
-		host, err := maestro.GetHostResourceByUUID(ctx, client, uuID)
+		host, err := client.GetHostResourceByUUID(ctx, uuID)
 		if err != nil {
 			return err
 		}
@@ -530,20 +554,21 @@ func deleteHost(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		client, eventCh, err := maestro.NewInventoryClient(&wg, dialer.Addr)
-
+		client, err := invclient.NewOnboardingInventoryClientWithOptions(
+			invclient.WithInventoryAddress(dialer.Addr),
+		)
 		if err != nil {
 			return err
 		}
-		defer close(eventCh)
+		defer client.Close()
 
 		// existing code for getting instance by ID
-		inst, err := maestro.GetHostResourceByResourceID(ctx, client, resourceID)
+		host, err := client.GetHostResourceByResourceID(ctx, uuID)
 		if err != nil {
 			return err
 		}
 
-		err = maestro.DeleteHostResource(ctx, client, inst)
+		err = client.DeleteHostResource(ctx, host.GetResourceId())
 		if err != nil {
 			return err
 		}
@@ -563,14 +588,16 @@ func updateHost(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		client, eventCh, err := maestro.NewInventoryClient(&wg, dialer.Addr)
+		client, err := invclient.NewOnboardingInventoryClientWithOptions(
+			invclient.WithInventoryAddress(dialer.Addr),
+		)
 		if err != nil {
 			return err
 		}
-		defer close(eventCh)
+		defer client.Close()
 
 		// existing code for getting host by ID
-		host, err := maestro.GetHostResourceByResourceID(ctx, client, resourceID)
+		host, err := client.GetHostResourceByResourceID(ctx, resourceID)
 		if err != nil {
 			return err
 		}
@@ -604,7 +631,7 @@ func updateHost(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command
 			host.CurrentState = computev1.HostState(computev1.HostState_value[currentState])
 		}
 
-		err = maestro.UpdateHostResource(ctx, client, host)
+		err = client.UpdateHostResource(ctx, host)
 		if err != nil {
 			return err
 		}

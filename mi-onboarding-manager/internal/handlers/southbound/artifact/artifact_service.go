@@ -5,20 +5,14 @@ package artifact
 
 import (
 	"context"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
 	"time"
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
-	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
-	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
-
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
 	repository "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/persistence"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/maestro"
-	"google.golang.org/grpc/codes"
 )
 
 var (
@@ -35,13 +29,16 @@ var hostNicResID string
 
 type NodeArtifactService struct {
 	pb.UnimplementedNodeArtifactServiceNBServer
-	invClient inv_client.InventoryClient
+	invClient *invclient.OnboardingInventoryClient
 }
 
-var ginvClient inv_client.InventoryClient
+// TODO: this should be removed and the internal invClient of NodeArtifactService should be used.
+//
+//	This requires to pass NodeArtifactService instance to SB Handler.
+var ginvClient *invclient.OnboardingInventoryClient
 
 // InitNodeArtifactService is a constructor function
-func InitNodeArtifactService(invClient inv_client.InventoryClient) *NodeArtifactService {
+func InitNodeArtifactService(invClient *invclient.OnboardingInventoryClient) *NodeArtifactService {
 	if invClient == nil {
 		zlog.Debug().Msgf("Warning: invClient is nil in InitNodeArtifactService")
 		// Return an error or handle the nil case appropriately
@@ -137,11 +134,11 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 	/* Copy node data from user */
 	hostresdata, _ := CopyNodeReqtoNodetData(req.Payload)
 
-	/* Check if any node with the serial num exists already */
+	/* Check if any node with the UUID exists already */
 	/* TODO: Need to check this hostresdata array for all the serial numbers existence
 	 *		 already in the system
 	 */
-	_, err = GetHostResourceByGUID(ctx, ginvClient, hostresdata[0].Uuid)
+	_, err = ginvClient.GetHostResourceByUUID(ctx, hostresdata[0].Uuid)
 
 	switch {
 	case inv_errors.IsNotFound(err):
@@ -159,7 +156,8 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 	/* TODO: Need to change it either to single host resource creation or
 	 *       multiple host resource based on the pdctl command input
 	 */
-	hostResID, err = maestro.CreateHostResource(ctx, ginvClient, hostresdata[0].Uuid, &hostresdata[0])
+
+	hostResID, err = ginvClient.CreateHostResource(ctx, &hostresdata[0])
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("CreateNodes() : CreateHostResource() Error : %v\n", err)
 	}
@@ -170,13 +168,15 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 	 *       multiple host resource based on the pdctl command input
 	 *		 create a Jira ticket and address this before GA release
 	 */
-	hostNicID, err := maestro.CreateHostnicResource(ctx, ginvClient, hostResID, hostresdata[0].HostNics[0])
+	hostresdata[0].HostNics[0].Host = &hostresdata[0]
+	hostNicID, err := ginvClient.CreateHostNICResource(ctx, hostresdata[0].HostNics[0])
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("CreateNodes() : CreateHostnicResource() Error : %v\n", err)
 	}
 	zlog.Debug().Msgf("\nCreateHostNicResource ID = %s\n", hostNicID)
 
-	hostres, err := maestro.GetHostResourceByResourceID(ctx, ginvClient, hostResID)
+	// TODO (LPIO-1740): this is not needed, to remove
+	hostres, err := ginvClient.GetHostResourceByResourceID(ctx, hostResID)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("\nGetHostResourceByResourceID() Error : %v\n", err)
 	}
@@ -193,7 +193,7 @@ func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.NodeReque
 	 *       multiple host resource based on the pdctl command input
 	 */
 	/* Check if any node with the serial num exists or not */
-	hostresget, err := GetHostResourceByGUID(ctx, ginvClient, hostresdata[0].Uuid)
+	hostresget, err := ginvClient.GetHostResourceByUUID(ctx, hostresdata[0].Uuid)
 
 	switch {
 	case inv_errors.IsNotFound(err):
@@ -214,12 +214,13 @@ func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.NodeReque
 	hostResID = hostresget.ResourceId
 	hostresdata[0].ResourceId = hostResID
 
-	err = maestro.DeleteHostResource(ctx, ginvClient, &hostresdata[0])
+	err = ginvClient.DeleteHostResource(ctx, hostResID)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("\nDeleteHostResource() Error : %v\n", err)
 	}
 
-	hostres, err := maestro.GetHostResourceByResourceID(ctx, ginvClient, hostResID)
+	// TODO (LPIO-1740): this is not needed, to remove
+	hostres, err := ginvClient.GetHostResourceByResourceID(ctx, hostResID)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("\nGetHostResourceByResourceID() Error : %v\n", err)
 	}
@@ -228,125 +229,13 @@ func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.NodeReque
 	return &pb.NodeResponse{Payload: req.Payload}, nil
 }
 
-func GetHostResourceBySN(
-	ctx context.Context,
-	c inv_client.InventoryClient,
-	serial string,
-) (*computev1.HostResource, error) {
-	zlog.Info().Msgf("Obtaining Host resource by its SN (%s)", serial)
-	// FIXME: remove this check and make sure it is covered by validateAll function
-	if serial == "" {
-		err := inv_errors.Errorfc(codes.InvalidArgument, "Empty serial number")
-		zlog.MiSec().MiErr(err).Msg("get host resource by SN with empty serial NO.")
-		return nil, err
-	}
-
-	filter, err := util.GetFilterFromSetResource(&inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: &computev1.HostResource{
-				SerialNumber: serial,
-			},
-		},
-	})
-	if err != nil {
-		zlog.MiSec().MiErr(err).Msg("Failed to get filter from a Host resource by Serial Number")
-		return nil, err
-	}
-	return listAndReturnHost(ctx, c, filter)
-}
-
-func GetHostResourceByGUID(
-	ctx context.Context,
-	c inv_client.InventoryClient,
-	guid string,
-) (*computev1.HostResource, error) {
-	zlog.Info().Msgf("Obtaining Host resource by its GUID (%s)", guid)
-	if guid == "" {
-		err := inv_errors.Errorfc(codes.InvalidArgument, "Empty GUID")
-		zlog.MiSec().MiErr(err).Msg("Empty GUID obtained at the input of the function")
-		return nil, err
-	}
-
-	filter, err := util.GetFilterFromSetResource(&inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: &computev1.HostResource{
-				Uuid: guid,
-			},
-		},
-	})
-	if err != nil {
-		zlog.MiSec().MiErr(err).Msg("Failed to get filter from a Host resource by GUID")
-		return nil, err
-	}
-	return listAndReturnHost(ctx, c, filter)
-}
-
-func listAndReturnHost(
-	ctx context.Context,
-	c inv_client.InventoryClient,
-	filter *inv_v1.ResourceFilter,
-) (*computev1.HostResource, error) {
-	zlog.Info().Msgf("listAndReturnHost")
-	resources, err := listAllResources(ctx, c, filter)
-	if err != nil {
-		zlog.MiSec().MiErr(err).Msg("Failed to listAllResources\n")
-		return nil, err
-	}
-
-	if len(resources) == 0 {
-		zlog.Debug().Msgf("the length is 0 \n")
-		return nil, errors.Errorfc(codes.NotFound, "No Resources found")
-	}
-	if len(resources) != 1 {
-		zlog.Debug().Msgf("the length is 1 \n")
-		return nil, errors.Errorfc(codes.Internal, "Obtained multiple (%d) Resources, but expected a single one", len(resources))
-	}
-
-	zlog.Debug().Msgf("the length is %d\n", len(resources))
-
-	hostres := resources[0].GetHost()
-	if hostres == nil {
-		err = inv_errors.Errorfc(codes.Internal, "Empty Host resource")
-		zlog.MiSec().MiErr(err).Msg("Inventory returned an empty Host resource")
-		return nil, err
-	}
-
-	return hostres, nil
-}
-
-// List resources by the provided filter. Filter is done only on fields that are set (not default values of the
-// resources). Note that this function will NOT return an error if an object is not found.
-func listAllResources(
-	ctx context.Context,
-	c inv_client.InventoryClient,
-	filter *inv_v1.ResourceFilter,
-) ([]*inv_v1.Resource, error) {
-	zlog.Info().Msgf("listAllResources")
-	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
-	defer cancel()
-	// we agreed to not return a NotFound error to avoid too many 'Not Found'
-	// responses to the consumer of our external APIs.
-	objs, err := c.ListAll(ctx, filter.GetResource(), filter.GetFieldMask())
-	if err != nil && !inv_errors.IsNotFound(err) {
-		zlog.MiSec().MiErr(err).Msgf("Unable to listAll %v", filter)
-		return nil, err
-	}
-	for _, v := range objs {
-		if err = v.ValidateAll(); err != nil {
-			zlog.MiSec().MiErr(err).Msgf("Invalid input, validation has failed: %v", v)
-			return nil, inv_errors.Wrap(err)
-		}
-	}
-	return objs, nil
-}
-
 func (s *NodeArtifactService) GetNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
 	zlog.Info().Msgf("GetNodes")
 
 	guid := req.Payload[0].Hwdata[0].Uuid
 
 	/* Check if any node with the serial num exists or not */
-	hostresget, err := GetHostResourceByGUID(ctx, ginvClient, guid)
+	hostresget, err := ginvClient.GetHostResourceByUUID(ctx, guid)
 
 	switch {
 	case inv_errors.IsNotFound(err):
@@ -364,7 +253,7 @@ func (s *NodeArtifactService) GetNodes(ctx context.Context, req *pb.NodeRequest)
 	//Copy the fetched resource id of the given serial number
 	hostResID = hostresget.ResourceId
 
-	hostres, err := maestro.GetHostResourceByResourceID(ctx, ginvClient, hostResID)
+	hostres, err := ginvClient.GetHostResourceByResourceID(ctx, hostResID)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("\nGetNodes() : GetHostResourceByResourceID() Error : %v\n", err)
 		return nil, err
@@ -387,7 +276,7 @@ func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeReque
 	 *       multiple host resource based on the pdctl command input
 	 */
 	/* Check if any node with the serial num exists already */
-	hostresget, err := GetHostResourceByGUID(ctx, ginvClient, hostresdata[0].Uuid)
+	hostresget, err := ginvClient.GetHostResourceByUUID(ctx, hostresdata[0].Uuid)
 
 	switch {
 	case inv_errors.IsNotFound(err):
@@ -411,14 +300,15 @@ func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeReque
 	zlog.Debug().Msgf("hostResID is %s\n", hostResID)
 	zlog.Debug().Msgf("hostNicResID is %s\n", hostNicResID)
 
-	hostres, err := maestro.GetHostResourceByResourceID(ctx, ginvClient, hostResID)
+	hostres, err := ginvClient.GetHostResourceByResourceID(ctx, hostResID)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("UpdateNodes() : GetHostResourceByResourceID() Error : %v\n", err)
 		return nil, err
 	}
 	zlog.Debug().Msgf("GetHostResource ID in UpdateNodes = %v \n", hostres)
 
-	err = maestro.UpdateHostResource(ctx, ginvClient, &hostresdata[0])
+	// TODO (LPIO-1740): we should check if Host Resource has changed. Otherwise, skip to limit load on Inventory
+	err = ginvClient.UpdateHostResource(ctx, &hostresdata[0])
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("UpdateNodes() : UpdateHostResource() Error : %v\n", err)
 		return nil, err
@@ -434,13 +324,15 @@ func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeReque
 		BmcInterface: hostresdata[0].HostNics[0].BmcInterface,
 	}
 	nic.ResourceId = hostresdata[0].HostNics[0].ResourceId
-	err = maestro.UpdateHostnic(ctx, ginvClient, nic)
+	// TODO: (LPIO-1740): check if Host NIC has changed. Otherwise, skip to limit load on Inventory
+	err = ginvClient.UpdateHostNIC(ctx, nic)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("UpdateNodes() : UpdateHostnic() Error : %v\n", err)
 		return nil, err
 	}
 
-	hostres, err = maestro.GetHostResourceByResourceID(ctx, ginvClient, hostResID)
+	// TODO (LPIO-1740): this is not needed, to remove
+	hostres, err = ginvClient.GetHostResourceByResourceID(ctx, hostResID)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("UpdateNodes() :GetHostResourceByResourceID() Error : %v\n", err)
 		return nil, err

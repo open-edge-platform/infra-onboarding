@@ -19,14 +19,13 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/oam"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/tracing"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/handlers/controller"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/handlers/southbound"
-
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/handlers/southbound/artifact"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/config"
 	inventory "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/controller"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/onboarding"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/maestro"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/maestro/controller"
 )
 
 var (
@@ -50,8 +49,9 @@ const (
 	DefaultTimeout = 3 * time.Second
 )
 
-var manager *inventory.InventoryManager
-var hostResID string
+var (
+	manager *inventory.InventoryManager
+)
 
 type OnboardingEB struct {
 	pb.UnimplementedOnBoardingEBServer
@@ -104,7 +104,7 @@ func main() {
 	// Startup order, respecting deps
 	// 1. Setup tracing
 	// 2. Start Inventory client
-	// 3. Start NBHandler and the reconcilers
+	// 3. Start OnboardingController and the reconcilers
 	// 4. Start southbound handler
 	// 5. Start the OAM server
 	if *enableTracing {
@@ -123,22 +123,25 @@ func main() {
 	conf := config.GetConfig()
 	manager = inventory.NewInventoryManager(conf)
 
-	invClient, invEvents, err := maestro.NewInventoryClient(&wg, *inventoryAddress)
+	invClient, err := invclient.NewOnboardingInventoryClientWithOptions(
+		invclient.WithInventoryAddress(*inventoryAddress),
+		invclient.WithEnableTracing(*enableTracing),
+	)
 	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("failed to start inventory client")
+		zlog.MiSec().Fatal().Err(err).Msgf("Unable to start onboarding inventory client")
 	}
 
 	onboarding.InitOnboarding(invClient, *dkamAddr)
 	_ = artifact.InitNodeArtifactService(invClient)
 
-	nbHandler, err := controller.NewNBHandler(invClient, invEvents)
+	onboardingController, err := controller.New(invClient)
 	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Unable to create northbound handler")
+		zlog.MiSec().Fatal().Err(err).Msgf("Unable to create onboarding controller")
 	}
 
-	err = nbHandler.Start()
+	err = onboardingController.Start()
 	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Unable to start northbound handler")
+		zlog.MiSec().Fatal().Err(err).Msgf("Unable to start onboarding controller")
 	}
 
 	sbHandler, err := southbound.NewSBHandler(southbound.SBHandlerConfig{
@@ -162,10 +165,8 @@ func main() {
 	// Terminate Onboarding Manager when termination signal received
 	close(termChan)
 	sbHandler.Stop()
-	nbHandler.Stop()
-	if err := invClient.Close(); err != nil {
-		zlog.MiSec().MiErr(err).Msgf("")
-	}
+	onboardingController.Stop()
+	invClient.Close()
 
 	wg.Done()
 }

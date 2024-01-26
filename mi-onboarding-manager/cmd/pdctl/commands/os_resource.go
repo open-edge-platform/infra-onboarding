@@ -7,10 +7,10 @@ package commands
 import (
 	"context"
 	"fmt"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
 	"time"
 
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
-	maestro "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/maestro"
 	"github.com/spf13/cobra"
 )
 
@@ -95,11 +95,13 @@ func createOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 		profileName, _ := cmd.Flags().GetString("profileName")
 		updateSources, _ := cmd.Flags().GetStringArray("update_sources")
 
-		osclient, osevent, err := NewInventoryClient(cmd.Context(), &wg, dialer.Addr)
+		client, err := invclient.NewOnboardingInventoryClientWithOptions(
+			invclient.WithInventoryAddress(dialer.Addr),
+		)
 		if err != nil {
 			return err
 		}
-		defer close(osevent)
+		defer client.Close()
 
 		osResource := &osv1.OperatingSystemResource{
 			UpdateSources: updateSources,
@@ -111,7 +113,7 @@ func createOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 			return err
 		}
 
-		_, err = maestro.CreateOsResource(cmd.Context(), osclient, osResource)
+		_, err = client.CreateOSResource(cmd.Context(), osResource)
 		if err != nil {
 			return err
 		}
@@ -131,13 +133,15 @@ func getByID(dialer *grpcDialer) func(cmd *cobra.Command, args []string) error {
 		_, cancel := context.WithTimeout(cmd.Context(), 5*time.Second)
 		defer cancel()
 
-		osClient, osCh, err := NewInventoryClient(cmd.Context(), &wg, dialer.Addr)
+		client, err := invclient.NewOnboardingInventoryClientWithOptions(
+			invclient.WithInventoryAddress(dialer.Addr),
+		)
 		if err != nil {
 			return err
 		}
-		defer close(osCh)
+		defer client.Close()
 
-		osRes, err := maestro.GetOsResourceById(cmd.Context(), osClient, resourceID)
+		osRes, err := client.GetOSResourceByResourceID(cmd.Context(), resourceID)
 		if err != nil {
 			return err
 		}
@@ -158,18 +162,20 @@ func deleteOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 		_, cancel := context.WithTimeout(cmd.Context(), 5*time.Second)
 		defer cancel()
 
-		osClient, osCh, err := NewInventoryClient(cmd.Context(), &wg, dialer.Addr)
+		client, err := invclient.NewOnboardingInventoryClientWithOptions(
+			invclient.WithInventoryAddress(dialer.Addr),
+		)
 		if err != nil {
 			return err
 		}
-		defer close(osCh)
+		defer client.Close()
 
-		inst, err := maestro.GetOsResourceById(cmd.Context(), osClient, resourceID)
+		inst, err := client.GetOSResourceByResourceID(cmd.Context(), resourceID)
 		if err != nil {
 			return err
 		}
 
-		err = maestro.DeleteOsResource(cmd.Context(), osClient, inst.GetResourceId())
+		err = client.DeleteResource(cmd.Context(), inst.GetResourceId())
 		if err != nil {
 			return err
 		}
@@ -189,13 +195,15 @@ func updateOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 		_, cancel := context.WithTimeout(cmd.Context(), 5*time.Second)
 		defer cancel()
 
-		osClient, osCh, err := NewInventoryClient(cmd.Context(), &wg, dialer.Addr)
+		client, err := invclient.NewOnboardingInventoryClientWithOptions(
+			invclient.WithInventoryAddress(dialer.Addr),
+		)
 		if err != nil {
 			return err
 		}
-		defer close(osCh)
+		defer client.Close()
 
-		osRes, err := maestro.GetOsResourceById(cmd.Context(), osClient, resourceID)
+		osRes, err := client.GetOSResourceByResourceID(cmd.Context(), resourceID)
 		if err != nil {
 			return err
 		}
@@ -213,7 +221,12 @@ func updateOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 		if profilename, _ := cmd.Flags().GetString("profile_name"); profilename != "" {
 			osRes.ProfileName = profilename
 		}
-		err = maestro.UpdateOsResource(cmd.Context(), osClient, osRes)
+		err = client.UpdateInvResourceFields(cmd.Context(), osRes, []string{
+			osv1.OperatingSystemResourceFieldUpdateSources,
+			osv1.OperatingSystemResourceFieldRepoUrl,
+			osv1.OperatingSystemResourceFieldSha256,
+			osv1.OperatingSystemResourceFieldProfileName,
+		})
 		if err != nil {
 			return err
 		}
@@ -233,13 +246,15 @@ func getOsResources(dialer *grpcDialer) func(cmd *cobra.Command, args []string) 
 		_, cancel := context.WithTimeout(cmd.Context(), 5*time.Second)
 		defer cancel()
 
-		client, eventCh, err := NewInventoryClient(cmd.Context(), &wg, dialer.Addr)
+		client, err := invclient.NewOnboardingInventoryClientWithOptions(
+			invclient.WithInventoryAddress(dialer.Addr),
+		)
 		if err != nil {
 			return err
 		}
-		defer close(eventCh)
+		defer client.Close()
 
-		instanceResources, err := maestro.GetOsResources(cmd.Context(), client)
+		instanceResources, err := client.GetOSResources(cmd.Context())
 		if err != nil {
 			return err
 		}

@@ -1,14 +1,12 @@
-/*
-Copyright (C) 2023 Intel Corporation
-SPDX-License-Identifier: Apache-2.0
-*/
-package reconciler
+// SPDX-FileCopyrightText: (C) 2023 Intel Corporation
+// SPDX-License-Identifier: LicenseRef-Intel
+
+package reconcilers
 
 import (
 	"time"
 
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/logger"
 	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
 	grpc_status "google.golang.org/grpc/status"
 )
@@ -24,9 +22,7 @@ func (id ResourceID) String() string {
 	return string(id)
 }
 
-var log = logger.GetLogger()
-
-func handleInventoryError(err error, request rec_v2.Request[ResourceID]) rec_v2.Directive[ResourceID] {
+func HandleInventoryError(err error, request rec_v2.Request[ResourceID]) rec_v2.Directive[ResourceID] {
 	if _, ok := grpc_status.FromError(err); !ok {
 		return request.Ack()
 	}

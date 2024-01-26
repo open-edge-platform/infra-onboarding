@@ -1,28 +1,26 @@
-/*
-Copyright (C) 2023 Intel Corporation
-SPDX-License-Identifier: Apache-2.0
-*/
+// SPDX-FileCopyrightText: (C) 2023 Intel Corporation
+// SPDX-License-Identifier: LicenseRef-Intel
+
 package controller
 
 import (
 	"context"
 	"fmt"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/handlers/controller/reconcilers"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
 	"sync"
 	"time"
 
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
-	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/maestro"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/maestro/reconciler"
 	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
 	"github.com/pkg/errors"
 )
 
 var (
-	loggerName = "OnboardingNBHandler"
+	loggerName = "OnboardingController"
 	zlog       = logging.GetLogger(loggerName)
 )
 
@@ -33,42 +31,39 @@ const (
 
 type Filter func(event *inv_v1.SubscribeEventsResponse) bool
 
-type NBHandler struct {
-	invClient   inv_client.InventoryClient
-	invEvents   chan *inv_client.WatchEvents
+type OnboardingController struct {
+	invClient   *invclient.OnboardingInventoryClient
 	filters     map[inv_v1.ResourceKind]Filter
-	controllers map[inv_v1.ResourceKind]*rec_v2.Controller[reconciler.ResourceID]
+	controllers map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ResourceID]
 	wg          *sync.WaitGroup
 	stop        chan bool
 }
 
-func NewNBHandler(
-	invClient inv_client.InventoryClient,
-	invEvents chan *inv_client.WatchEvents,
-) (*NBHandler, error) {
-	controllers := make(map[inv_v1.ResourceKind]*rec_v2.Controller[reconciler.ResourceID])
+func New(
+	invClient *invclient.OnboardingInventoryClient,
+) (*OnboardingController, error) {
+	controllers := make(map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ResourceID])
 	filters := make(map[inv_v1.ResourceKind]Filter)
 
-	hostRcnl := reconciler.NewHostReconciler(invClient)
-	hostCtrl := rec_v2.NewController[reconciler.ResourceID](
+	hostRcnl := reconcilers.NewHostReconciler(invClient)
+	hostCtrl := rec_v2.NewController[reconcilers.ResourceID](
 		hostRcnl.Reconcile, rec_v2.WithParallelism(parallelism))
 	controllers[inv_v1.ResourceKind_RESOURCE_KIND_HOST] = hostCtrl
 	filters[inv_v1.ResourceKind_RESOURCE_KIND_HOST] = hostEventFilter
 
-	instRcnl := reconciler.NewInstanceReconciler(invClient)
-	instCtrl := rec_v2.NewController[reconciler.ResourceID](
+	instRcnl := reconcilers.NewInstanceReconciler(invClient)
+	instCtrl := rec_v2.NewController[reconcilers.ResourceID](
 		instRcnl.Reconcile, rec_v2.WithTimeout(30*time.Minute), rec_v2.WithParallelism(parallelism))
 	controllers[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instCtrl
 	filters[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instanceEventFilter
-	osRcnl := reconciler.NewOsReconciler(invClient)
-	osCtrl := rec_v2.NewController[reconciler.ResourceID](
+	osRcnl := reconcilers.NewOsReconciler(invClient)
+	osCtrl := rec_v2.NewController[reconcilers.ResourceID](
 		osRcnl.Reconcile, rec_v2.WithParallelism(parallelism))
 	controllers[inv_v1.ResourceKind_RESOURCE_KIND_OS] = osCtrl
 	filters[inv_v1.ResourceKind_RESOURCE_KIND_OS] = osEventFilter
 
-	return &NBHandler{
+	return &OnboardingController{
 		invClient:   invClient,
-		invEvents:   invEvents,
 		filters:     filters,
 		controllers: controllers,
 		wg:          &sync.WaitGroup{},
@@ -76,56 +71,56 @@ func NewNBHandler(
 	}, nil
 }
 
-func (nbh *NBHandler) Start() error {
+func (obc *OnboardingController) Start() error {
 	ctx := context.Background()
-	if err := nbh.reconcileAll(ctx); err != nil {
+	if err := obc.reconcileAll(ctx); err != nil {
 		return err
 	}
 
-	nbh.wg.Add(1)
-	go nbh.controlLoop(ctx)
+	obc.wg.Add(1)
+	go obc.controlLoop(ctx)
 
-	zlog.MiSec().Info().Msgf("NB handler started")
+	zlog.MiSec().Info().Msgf("Onboarding controller started")
 	return nil
 }
 
-func (nbh *NBHandler) Stop() {
-	close(nbh.stop)
-	nbh.wg.Wait()
-	for _, ctrl := range nbh.controllers {
+func (obc *OnboardingController) Stop() {
+	close(obc.stop)
+	obc.wg.Wait()
+	for _, ctrl := range obc.controllers {
 		ctrl.Stop()
 	}
-	zlog.MiSec().Info().Msgf("NB handler stopped")
+	zlog.MiSec().Info().Msgf("Onboarding controller stopped")
 }
 
-func (nbh *NBHandler) controlLoop(ctx context.Context) {
+func (obc *OnboardingController) controlLoop(ctx context.Context) {
 	ticker := time.NewTicker(defaultTickerPeriod)
 	defer ticker.Stop()
 
 	for {
 		select {
-		case ev, ok := <-nbh.invEvents:
+		case ev, ok := <-obc.invClient.Watcher:
 			if !ok {
 				zlog.MiSec().Fatal().Msg("gRPC stream with inventory closed")
 				return
 			}
-			if !nbh.filterEvent(ev.Event) {
+			if !obc.filterEvent(ev.Event) {
 				zlog.Debug().Msgf("Event %v is not allowed by filter", ev.Event)
 				continue
 			}
-			nbh.reconcileResource(ev.Event.ResourceId)
+			obc.reconcileResource(ev.Event.ResourceId)
 		case <-ticker.C:
-			if err := nbh.reconcileAll(ctx); err != nil {
+			if err := obc.reconcileAll(ctx); err != nil {
 				zlog.MiSec().MiErr(err).Msgf("full reconciliation failed")
 			}
-		case <-nbh.stop:
-			nbh.wg.Done()
+		case <-obc.stop:
+			obc.wg.Done()
 			return
 		}
 	}
 }
 
-func (nbh *NBHandler) filterEvent(event *inv_v1.SubscribeEventsResponse) bool {
+func (obc *OnboardingController) filterEvent(event *inv_v1.SubscribeEventsResponse) bool {
 	zlog.Debug().Msgf("New inventory event received. ResourceID=%v, Kind=%s", event.ResourceId, event.EventKind)
 	if err := event.ValidateAll(); err != nil {
 		zlog.MiSec().MiErr(err).Msgf("Invalid event received: %s", event.ResourceId)
@@ -137,7 +132,7 @@ func (nbh *NBHandler) filterEvent(event *inv_v1.SubscribeEventsResponse) bool {
 		zlog.MiSec().MiErr(err).Msgf("Unknown resource kind for ID %s.", event.ResourceId)
 		return false
 	}
-	filter, ok := nbh.filters[expectedKind]
+	filter, ok := obc.filters[expectedKind]
 	if !ok {
 		zlog.Debug().Msgf("No filter found for resource kind %s, accepting all events", expectedKind)
 		return true
@@ -145,18 +140,17 @@ func (nbh *NBHandler) filterEvent(event *inv_v1.SubscribeEventsResponse) bool {
 	return filter(event)
 }
 
-func (nbh *NBHandler) reconcileAll(ctx context.Context) error {
-
+func (obc *OnboardingController) reconcileAll(ctx context.Context) error {
 	zlog.Debug().Msgf("Reconciling all instances")
-	resourceKinds := []inv_v1.ResourceKind{inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE, inv_v1.ResourceKind_RESOURCE_KIND_OS}
-	ids, err := maestro.FindAllResources(ctx, nbh.invClient, resourceKinds)
 
+	resourceKinds := []inv_v1.ResourceKind{inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE, inv_v1.ResourceKind_RESOURCE_KIND_OS}
+	ids, err := obc.invClient.FindAllResources(ctx, resourceKinds)
 	if err != nil && !inv_errors.IsNotFound(err) {
 		return err
 	}
 
 	for _, id := range ids {
-		err = nbh.reconcileResource(id)
+		err = obc.reconcileResource(id)
 		if err != nil {
 			return err
 		}
@@ -165,7 +159,7 @@ func (nbh *NBHandler) reconcileAll(ctx context.Context) error {
 	return nil
 }
 
-func (nbh *NBHandler) reconcileResource(resourceID string) error {
+func (obc *OnboardingController) reconcileResource(resourceID string) error {
 	expectedKind, err := util.GetResourceKindFromResourceID(resourceID)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("unknown resource kind for resource ID %s", resourceID))
@@ -173,12 +167,12 @@ func (nbh *NBHandler) reconcileResource(resourceID string) error {
 
 	zlog.Debug().Msgf("Reconciling resource (%s) of kind=%s", resourceID, expectedKind)
 
-	controller, ok := nbh.controllers[expectedKind]
+	controller, ok := obc.controllers[expectedKind]
 	if !ok {
 		return fmt.Errorf("unknown resource controller for kind %s with ID %s", expectedKind, resourceID)
 	}
 
-	if err = controller.Reconcile(reconciler.ResourceID(resourceID)); err != nil {
+	if err = controller.Reconcile(reconcilers.ResourceID(resourceID)); err != nil {
 		return err
 	}
 	return nil
