@@ -27,6 +27,27 @@ func main() {
 		zlog.MiSec().Fatal().Err(err).Msgf("Error downloading file")
 		return
 	}
+
+	// Download and sign MicroOS.
+	signed, signerr := dkammgr.SignMicroOS()
+	if signerr != nil {
+		zlog.MiSec().Info().Msgf("Failed to sign MicroOS %v", signerr)
+		return
+	}
+	if signed {
+		zlog.MiSec().Info().Msgf("Signed MicroOS and moved to PVC")
+	}
+
+	//Donwload and sign iPXE
+	signedIPXE, pxeErr := dkammgr.BuildSignIpxe()
+	if pxeErr != nil {
+		zlog.MiSec().Info().Msgf("Failed to sign MicroOS %v", pxeErr)
+		return
+	}
+	if signedIPXE {
+		zlog.MiSec().Info().Msgf("Signed MicroOS and moved to PVC")
+	}
+
 	// Set the port for DKAM Manager
 	lis, err := net.Listen("tcp", *servaddr)
 	if err != nil {

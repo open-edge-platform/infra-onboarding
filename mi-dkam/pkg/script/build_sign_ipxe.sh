@@ -14,9 +14,10 @@
 # or implied warranties, other than those that are expressly stated in the License. #
 #####################################################################################
 
-IPXE_DIR=$PWD/ipxe
-SB_KEYS_DIR=$PWD/sb_keys
-SERVER_CERT_DIR=$PWD/server_certs
+working_dir=$1
+IPXE_DIR=$working_dir/ipxe
+SB_KEYS_DIR=$working_dir/sb_keys
+SERVER_CERT_DIR=$working_dir/server_certs
 BIOS_CN=GA
 O=INTEL
 OU=NEX
@@ -25,20 +26,21 @@ C=IN
 generate_bios_certs() {
 	echo "====== Generating BIOS Certificate ======="
 	#verify that pk kek db is already present.
-	if [ -d $SB_KEYS_DIR ] || [ -f $SB_KEYS_DIR/db_ipxe.crt ]; then
+	if [ -f $SB_KEYS_DIR/db_ipxe.crt ]; then
 		echo "======== Seems like Secure boot $SB_KEYS_DIR are already present. Reusing the same ========"
 	else
 		mkdir -p $SB_KEYS_DIR
-		pushd $SB_KEYS_DIR
-
+		cd $SB_KEYS_DIR
 		openssl req -x509 -newkey rsa:4096 -keyout db_ipxe.key -out db_ipxe.crt -days 1000 -nodes -subj "/CN=4c4c4544-0035-3010-8030-c2c04f4a4633" -addext "subjectAltName = DNS:4c4c4544-0035-3010-8030-c2c04f4a4633"
-		if [ ! -f $SB_KEYS_DIR/db_ipxe.key] || [ ! -f $SB_KEYS_DIR/db_ipxe.crt ] ; then
+		openssl x509 -in db_ipxe.crt -out db_ipxe.der -outform DER
+		if [ ! -f $SB_KEYS_DIR/db_ipxe.key ] || [ ! -f $SB_KEYS_DIR/db_ipxe.crt ] ; then
 			echo "======== Seems like some issue with UEFI keys generation. Check again ========"
-			popd
+			cd $working_dir
 			exit 1
 		fi
-		popd
+		cd $working_dir
 	fi
+
 	echo "==========================================================================================="
 }
 
@@ -50,10 +52,10 @@ generate_https_certs() {
 		echo "======== Seems like Full Server & CA Certificate already present. Reusing the same ========"
 	else
 		mkdir -p $SERVER_CERT_DIR
-		pushd $SERVER_CERT_DIR
+		cd $SERVER_CERT_DIR
 		openssl  s_client -showcerts -servername keycloak.demo2.maestro.intel.com -connect keycloak.demo2.maestro.intel.com:443 </dev/null | awk '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/' > Full_server.crt
 		openssl  s_client -showcerts -servername keycloak.demo2.maestro.intel.com -connect keycloak.demo2.maestro.intel.com:443 </dev/null | awk '/-----BEGIN CERTIFICATE-----/{flag=1; cert=""; } flag { cert = cert $0 RS } /-----END CERTIFICATE-----/{flag=0; lastCert = cert} END{printf "%s", lastCert}' > CA.crt
-		popd
+		cd $working_dir
 	fi
 	echo "==========================================================================================="
 }
@@ -66,7 +68,7 @@ build_ipxe_efi() {
 	git clone https://github.com/ipxe/ipxe.git
 
 	cp chain.ipxe $IPXE_DIR/src
-	pushd $IPXE_DIR/src
+	cd $IPXE_DIR/src
 	make bin-x86_64-efi/ipxe.efi
 
 	sed -i 's|//#define\tCONSOLE_FRAMEBUFFER|#define\tCONSOLE_FRAMEBUFFER|g' $IPXE_DIR/src/config/console.h && \
@@ -76,14 +78,14 @@ build_ipxe_efi() {
 
 	if [ ! -f $SERVER_CERT_DIR/Full_server.crt ] || [ ! -f $SERVER_CERT_DIR/CA.crt ] || [ ! -f chain.ipxe ]; then
 		echo "======== Seems like the certificates and/or chain script are missing. Check again ========="
-		popd
+		cd $working_dir
 		exit 1
 	fi
 
 	echo "======== Embedding chain script while compiling iPXE ========"
 	make bin-x86_64-efi/ipxe.efi CERT=$SERVER_CERT_DIR/Full_server.crt TRUST=$SERVER_CERT_DIR/CA.crt EMBED=chain.ipxe
 
-	popd
+	cd $working_dir
 	echo "==========================================================================================="
 }
 
@@ -91,9 +93,24 @@ sign_ipxe_efi() {
 	echo "======== Signing iPXE image ========= "
 	mkdir -p out
 	sbsign --key $SB_KEYS_DIR/db_ipxe.key --cert $SB_KEYS_DIR/db_ipxe.crt --output ./out/signed_ipxe.efi $IPXE_DIR/src/bin-x86_64-efi/ipxe.efi
-	cp $SB_KEYS_DIR/db_ipxe.der $PWD/out/.
+	cp $SB_KEYS_DIR/db_ipxe.der $working_dir/out/.
+	if [ -e "/data" ]; then
+        echo "Path /data exists."
+        cp $working_dir/out/db_ipxe.der /data/.
+		cp $working_dir/out/signed_ipxe.efi /data/.
+		mv $SERVER_CERT_DIR/* /data
+		rm -rf $working_dir/out
+		rm -rf  $SB_KEYS_DIR
+    else
+        echo "Path /data does not exist."
+		
+		rm -rf $SB_KEYS_DIR
+    fi     
 	echo "======== Save db_ipxe.der file to enroll inside UEFI BIOS Secure Boot Settings ========="
 	echo "==========================================================================================="
+	if [ -f $SERVER_CERT_DIR/Full_server.crt ]; then
+		mv $working_dir/org_chain.ipxe  $working_dir/chain.ipxe
+	fi
 }
 
 
@@ -140,3 +157,6 @@ echo "Discription of this script"
 	generate_https_certs
 	build_ipxe_efi
 	sign_ipxe_efi
+	rm -rf $IPXE_DIR
+	rm -rf $SERVER_CERT_DIR
+	rm -rf $working_dir/out

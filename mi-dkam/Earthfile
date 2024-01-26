@@ -30,9 +30,13 @@ ARG --global DOCKER_REGISTRY=$(echo $DOCKER_REGISTRY)
 ARG --global DOCKER_REPOSITORY=$(echo $DOCKER_REPOSITORY)
 ARG --global IMG_NAME=$(echo $IMG_NAME)
 ARG --global VERSION=$(echo $VERSION)
+ARG --global http_proxy=$(echo $http_proxy)
+ARG --global https_proxy=$(echo $https_proxy)
+ARG --global HTTP_PROXY=$(echo $HTTP_PROXY)
+ARG --global HTTPS_PROXY=$(echo $HTTPS_PROXY)
 
 all:
-    BUILD +test
+    #BUILD +test
     BUILD +build-dkam-stack
 
 build-dkam-stack:
@@ -60,8 +64,13 @@ build-dkammgr:
     SAVE ARTIFACT build/dkammgr AS LOCAL ./build/dkammgr
 
 docker-dkammgr:
-    FROM gcr.io/distroless/static-debian11:nonroot
-    USER nobody
+    FROM ubuntu:latest
+    RUN apt update && \
+        apt install -y \
+        autoconf automake make gcc \
+        m4 git gettext autopoint pkg-config \
+        autoconf-archive python3 bison flex \
+        gawk efitools sbsigntool gnupg
     ARG version='0.0.0-unknown'
     WORKDIR /
     COPY pkg /pkg

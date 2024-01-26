@@ -5,11 +5,14 @@ import (
 
 	"context"
 	"os"
+	"path/filepath"
 	"strings"
 
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/curation"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/logging"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/signing"
 	"gopkg.in/yaml.v2"
 	"k8s.io/client-go/rest"
 )
@@ -25,6 +28,8 @@ type Data struct {
 
 var zlog = logging.GetLogger("MIDKAMgRPC")
 var url string
+var fileServer = config.ProdFileServer
+var harborServer = config.ProdHarbor
 
 func DownloadArtifacts() error {
 	zlog.MiSec().Info().Msg("Download artifacts")
@@ -34,9 +39,20 @@ func DownloadArtifacts() error {
 		zlog.MiSec().Info().Msgf("Running inside k8 cluster")
 		err := curation.DownloadArtifacts()
 		if err != nil {
-			zlog.MiSec().Info().Msgf("Get File from Local.")
+			zlog.MiSec().Info().Msgf("Failed to download manifest file: %v", err)
 			return err
 		}
+
+		downloaded, downloadErr := signing.DownloadMicroOS(GetScriptDir())
+
+		if downloadErr != nil {
+			zlog.MiSec().Info().Msgf("Failed to download MicroOS %v", downloadErr)
+			return downloadErr
+		}
+		if downloaded {
+			zlog.MiSec().Info().Msg("Downloaded successfully")
+		}
+
 	} else {
 		// Running outside Kubernetes cluster
 		zlog.MiSec().Info().Msgf("Running outside k8 cluster")
@@ -56,7 +72,7 @@ func (server *Service) GetArtifacts(ctx context.Context, req *pb.GetArtifactsReq
 
 	filename := GetCuratedScript(profile, platform)
 	scriptName := strings.Split(filename, "/")
-	zlog.MiSec().Info().Msgf("url %s", os.Getenv("ServerUrl"))
+	zlog.MiSec().Info().Msgf("url %s", GetServerUrl())
 	url = GetServerUrl() + "/" + scriptName[len(scriptName)-1]
 	zlog.MiSec().Info().Msgf("url %s", url)
 
@@ -85,5 +101,60 @@ func GetCuratedScript(profile string, platform string) string {
 }
 
 func GetServerUrl() string {
-	return os.Getenv("ServerUrl")
+	return os.Getenv("DNS_NAME")
+}
+
+func SignMicroOS() (bool, error) {
+	MODE := GetMODE()
+	if MODE == "dev" {
+		fileServer = config.DevFileServer
+		harborServer = config.DevHarbor
+	}
+	scriptPath := GetScriptDir()
+	_, err := rest.InClusterConfig()
+	if err == nil {
+		signed, err := signing.SignHookOS(MODE, scriptPath, harborServer)
+		if err != nil {
+			zlog.MiSec().Info().Msgf("Failed to sign MicroOS %v", err)
+			return false, err
+		}
+		if signed {
+			zlog.MiSec().Info().Msgf("Signed MicroOS and moved to PVC")
+		}
+	} else {
+		zlog.MiSec().Info().Msgf("Skip Signing")
+	}
+	return true, nil
+}
+
+func BuildSignIpxe() (bool, error) {
+	scriptPath := GetScriptDir()
+	dnsName := GetServerUrl()
+	signed, err := signing.BuildSignIpxe(scriptPath, dnsName)
+	if err != nil {
+		zlog.MiSec().Info().Msgf("Failed to build and sign iPXE %v", err)
+		return false, err
+	}
+	if signed {
+		zlog.MiSec().Info().Msgf("Build, Signed iPXE and moved to PVC")
+	}
+	return true, nil
+}
+
+func GetMODE() string {
+	return os.Getenv("MODE")
+}
+
+func GetScriptDir() string {
+	currentDir, err := os.Getwd()
+	if err != nil {
+		zlog.MiSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
+		return err.Error()
+	}
+	zlog.MiSec().Info().Msgf("Current dir %s", currentDir)
+	// Navigate two levels up
+	parentDir := filepath.Join(currentDir, "..", "..")
+	zlog.MiSec().Info().Msgf("Root dir %s", parentDir)
+	scriptPath := filepath.Join(parentDir, "pkg", "script")
+	return scriptPath
 }

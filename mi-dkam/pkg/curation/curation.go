@@ -262,7 +262,7 @@ func AddProxies(fileName string, newLines []string) {
 
 func DownloadArtifacts() error {
 
-	url := "http://rs-proxy-files.rs-proxy.svc.cluster.local:8081/publish/release-manifest/24.03.yaml"
+	url := "http://rs-proxy-files.rs-proxy.svc.cluster.local:8081/publish/release-manifest/24.03.0-dev.yaml"
 	client := &http.Client{
 		Transport: &http.Transport{
 			ForceAttemptHTTP2: false,

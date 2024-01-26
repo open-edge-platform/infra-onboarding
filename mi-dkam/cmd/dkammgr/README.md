@@ -38,6 +38,6 @@ export AZUREAD_CLIENTID="clientid"
 mage deploy:kindAll
 
 Deploy DKAM helm chart in dev instance
-helm install dkam --set env.MODE="dev" --set env.SeverUrl="server_url"
+helm install dkam --set env.mode="dev" --set traefikReverseProxy.dnsname="server_url"
  
 

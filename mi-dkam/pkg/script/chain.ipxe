@@ -1,10 +1,10 @@
 # SPDX-FileCopyrightText: (C) 2023 Intel Corporation
 # SPDX-License-Identifier: LicenseRef-Intel
-
 #!ipxe
 
 echo "==== iPXE boot success, chainloading Micro-OS ==== "
 
-dhcp
-chain https://BA38RNW00104.iind.intel.com/auto.ipxe
-
+set tink_url <TINK_STACK_URL>
+echo sleeping for 3s
+sleep 3
+dhcp && chain ${tink_url}/discover.php?mac=${mac}&&uuid=${uuid}&&serial_id=${serial}&&en_ip=${ip}&&boot_url=${tink_url}

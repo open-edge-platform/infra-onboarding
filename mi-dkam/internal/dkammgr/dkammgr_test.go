@@ -3,6 +3,7 @@ package dkammgr
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -90,11 +91,42 @@ func TestGetCuratedScript(t *testing.T) {
 
 func TestServerUrl(t *testing.T) {
 	// Save the original value of MODE so that it can be restored later
-	originalMode := os.Getenv("ServerUrl")
+	originalurl := os.Getenv("DNS_NAME")
 
 	// Defer the restoration of the original value
 	defer func() {
-		os.Setenv("ServerUrl", originalMode)
+		os.Setenv("DNS_NAME", originalurl)
+	}()
+
+	tests := []struct {
+		name         string
+		testMode     string
+		expectedMode string
+	}{
+		{"Mode is set", "dev", "dev"},
+		{"Mode is not set", "", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Set the test value for MODE
+			os.Setenv("DNS_NAME", tt.testMode)
+
+			result := GetServerUrl()
+			if result != tt.expectedMode {
+				t.Errorf("Expected %v, but got %v", tt.expectedMode, result)
+			}
+		})
+	}
+}
+
+func TestGetMode(t *testing.T) {
+	// Save the original value of MODE so that it can be restored later
+	originalMode := os.Getenv("MODE")
+
+	// Defer the restoration of the original value
+	defer func() {
+		os.Setenv("MODE", originalMode)
 	}()
 
 	tests := []struct {
@@ -109,12 +141,62 @@ func TestServerUrl(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set the test value for MODE
-			os.Setenv("ServerUrl", tt.testMode)
+			os.Setenv("MODE", tt.testMode)
 
-			result := GetServerUrl()
+			result := GetMODE()
 			if result != tt.expectedMode {
 				t.Errorf("Expected %v, but got %v", tt.expectedMode, result)
 			}
 		})
+	}
+}
+
+func TestGetScriptDir(t *testing.T) {
+	currentDir, err := os.Getwd()
+	if err != nil {
+		zlog.MiSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
+		return
+	}
+	zlog.MiSec().Info().Msgf("Current dir %s", currentDir)
+	// Call the function you want to test
+	scriptPath := GetScriptDir()
+	parentDir := filepath.Join(currentDir, "..", "..")
+	expectedPath := filepath.Join(parentDir, "pkg", "script")
+
+	// Check if the actual path matches the expected path
+	if scriptPath != expectedPath {
+		t.Errorf("Expected script path: %s, got: %s", expectedPath, scriptPath)
+	}
+}
+
+func TestSignMicroOS(t *testing.T) {
+
+	// Call the function you want to test
+	result, err := SignMicroOS()
+
+	// Check if the result matches the expected value
+	if result != true {
+		t.Errorf("Expected result to be true, got %t", result)
+	}
+
+	// Check if the error is nil
+	if err != nil {
+		t.Errorf("Expected error to be nil, got %v", err)
+	}
+}
+
+func TestBuildSignIpxe(t *testing.T) {
+
+	// Call the function you want to test
+	result, err := BuildSignIpxe()
+
+	// Check if the result matches the expected value
+	if result != true {
+		t.Errorf("Expected result to be true, got %t", result)
+	}
+
+	// Check if the error is nil
+	if err != nil {
+		t.Errorf("Expected error to be nil, got %v", err)
 	}
 }
