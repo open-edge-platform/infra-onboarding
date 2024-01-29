@@ -52,23 +52,37 @@ build_hook() {
     sed -i "s/latest/$ver/g" $new_patch_file
 
     git apply $new_patch_file
-    
-    #i255 igc driver issue fix
-    pushd kernel/
-    mkdir patches-5.10.x
-    pushd patches-5.10.x/
-    #download the igc i255 driver patch file
-    wget https://github.com/intel/linux-intel-lts/commit/170110adbecc1c603baa57246c15d38ef1faa0fa.patch
-    popd
-    make devbuild_5.10.x
-    popd
+
+    # if kernel already built or pulled into docker images list then dont recompile
+    if docker image inspect quay.io/tinkerbell/hook-kernel:5.10.85-e546ea099917c006d1d08fe6b8398101de65cbc7 > /dev/null  2>&1;
+    then
+	echo "Rebuild of kernel not required, since its already present in docker images"
+    else
+	# i255 igc driver issue fix
+	pushd kernel/
+	mkdir patches-5.10.x
+	pushd patches-5.10.x/
+	#download the igc i255 driver patch file
+	wget https://github.com/intel/linux-intel-lts/commit/170110adbecc1c603baa57246c15d38ef1faa0fa.patch
+	popd
+	make devbuild_5.10.x
+	popd
+    fi
 
     #update the hook.yaml file to point to new kernel
     sed -i "s|quay.io/tinkerbell/hook-kernel:5.10.85-d1225df88208e5a732e820a182b75fb35c737bdd|quay.io/tinkerbell/hook-kernel:5.10.85-e546ea099917c006d1d08fe6b8398101de65cbc7|g" hook.yaml    
 
     sed -i "s|dl-cdn.alpinelinux.org/alpine/edge/testing|dl-cdn.alpinelinux.org/alpine/edge/community|g" hook-docker/Dockerfile
 
-    docker run --rm -e HTTP_PROXY=$http_proxy -e HTTPS_PROXY=$https_proxy -e NO_PROXY=$no_proxy -e http_proxy=$http_proxy -e https_proxy=${https_proxy} -v "$PWD:$PWD" -w "$PWD" -v /var/run/docker.sock:/var/run/docker.sock nixos/nix nix-shell --run "make dist"
+    docker run --rm -e HTTP_PROXY=$http_proxy \
+	   -e HTTPS_PROXY=$https_proxy \
+	   -e NO_PROXY=$no_proxy \
+	   -e http_proxy=$http_proxy \
+	   -e https_proxy=${https_proxy} \
+	   -v "$PWD:$PWD" \
+	   -w "$PWD" \
+	   -v /var/run/docker.sock:/var/run/docker.sock nixos/nix nix-shell \
+	   --run "make dist"
     #    make dist
 
     popd
