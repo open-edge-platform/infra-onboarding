@@ -154,11 +154,11 @@ uefi_sign_grub_vmlinuz() {
 generate_pk_kek_db() {
 
     #verfy that pk kek db is already present.
-    if [ -d $SB_KEYS_DIR ] || [ -f $SB_KEYS_DIR/db.crt ] ;
-    then
-        echo "Seems like Secure boot $SB_KEYS_DIR are already present. Reusing the same"
-        return
-    fi
+    # if [ -d $SB_KEYS_DIR ] || [ -f $SB_KEYS_DIR/db.crt ] ;
+    # then
+    #     echo "Seems like Secure boot $SB_KEYS_DIR are already present. Reusing the same"
+    #     return
+    # fi
 
     mkdir -p $SB_KEYS_DIR
     pushd $SB_KEYS_DIR
@@ -167,23 +167,23 @@ generate_pk_kek_db() {
 
     echo $GUID
 
-    openssl req -newkey rsa:2048 -nodes -keyout PK.key -new -x509 -sha256 -days 3650 -subj "/CN=Secure Boot PK/" -out PK.crt
-    openssl x509 -outform DER -in PK.crt -out PK.cer
-    cert-to-efi-sig-list -g $GUID PK.crt PK.esl
-    sign-efi-sig-list -g $GUID -k PK.key -c PK.crt PK PK.esl PK.auth
-    sign-efi-sig-list -g $GUID -c PK.crt -k PK.key PK /dev/null noPK.auth
+    [ -f $SB_KEYS_DIR/pk.crt ]    || openssl req -newkey rsa:2048 -nodes -keyout pk.key -new -x509 -sha256 -days 3650 -subj "/CN=Secure Boot PK/" -out pk.crt
+    [ -f $SB_KEYS_DIR/pk.der ]    || openssl x509 -outform DER -in pk.crt -out pk.der
+    [ -f $SB_KEYS_DIR/pk.esl ]    || cert-to-efi-sig-list -g $GUID pk.crt pk.esl
+    [ -f $SB_KEYS_DIR/pk.auth ]   || sign-efi-sig-list -g $GUID -k pk.key -c pk.crt pk pk.esl pk.auth
+    [ -f $SB_KEYS_DIR/nopk.auth ] || sign-efi-sig-list -g $GUID -c pk.crt -k pk.key pk /dev/null nopk.auth
 
-    openssl req -newkey rsa:2048 -nodes -keyout KEK.key -new -x509 -sha256 -days 3650 -subj "/CN=Secure Boot KEK/" -out KEK.crt
-    openssl x509 -outform DER -in KEK.crt -out KEK.cer
-    cert-to-efi-sig-list -g $GUID KEK.crt KEK.esl
-    sign-efi-sig-list -g $GUID -k PK.key -c PK.crt KEK KEK.esl KEK.auth
+    [ -f $SB_KEYS_DIR/kek.crt ] || openssl req -newkey rsa:2048 -nodes -keyout kek.key -new -x509 -sha256 -days 3650 -subj "/CN=Secure Boot KEK/" -out kek.crt
+    [ -f $SB_KEYS_DIR/kek.der ] || openssl x509 -outform DER -in kek.crt -out kek.der
+    [ -f $SB_KEYS_DIR/kek.esl ] || cert-to-efi-sig-list -g $GUID kek.crt kek.esl
+    [ -f $SB_KEYS_DIR/kek.auth ] || sign-efi-sig-list -g $GUID -k pk.key -c pk.crt kek kek.esl kek.auth
 
-    openssl req -newkey rsa:2048 -nodes -keyout db.key -new -x509 -sha256 -days 3650 -subj "/CN=Secure Boot DB/" -out db.crt
-    openssl x509 -outform DER -in db.crt -out db.cer
-    cert-to-efi-sig-list -g $GUID db.crt db.esl
-    sign-efi-sig-list -g $GUID -k KEK.key -c KEK.crt db db.esl db.auth
+    [ -f $SB_KEYS_DIR/db.crt ] || openssl req -newkey rsa:2048 -nodes -keyout db.key -new -x509 -sha256 -days 3650 -subj "/CN=Secure Boot DB/" -out db.crt
+    [ -f $SB_KEYS_DIR/db.der ] || openssl x509 -outform DER -in db.crt -out db.der
+    [ -f $SB_KEYS_DIR/db.esl ] || cert-to-efi-sig-list -g $GUID db.crt db.esl
+    [ -f $SB_KEYS_DIR/db.auth ] || sign-efi-sig-list -g $GUID -k kek.key -c kek.crt db db.esl db.auth
 
-    if [ ! -f $SB_KEYS_DIR/PK.crt ] || [ ! -f $SB_KEYS_DIR/KEK.crt ] || [ ! -f $SB_KEYS_DIR/db.crt ] ;
+    if [ ! -f $SB_KEYS_DIR/pk.crt ] || [ ! -f $SB_KEYS_DIR/kek.crt ] || [ ! -f $SB_KEYS_DIR/db.crt ] ;
     then
         echo "Seems like some issue with UEFI keys generation. Check again"
         popd
@@ -234,7 +234,7 @@ secure_hookos() {
     sign_all_components
     package_signed_hookOS
 
-    echo "Save db.cer file on a FAT volume to enroll inside UEFI bios"
+    echo "Save db.der file on a FAT volume to enroll inside UEFI bios"
 }
 
 #secure_hookos
