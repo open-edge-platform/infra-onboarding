@@ -282,7 +282,7 @@ func (c *OnboardingInventoryClient) GetHostResourceByUUID(
 		Resource: &inv_v1.Resource{
 			Resource: &inv_v1.Resource_Host{},
 		},
-		Filter: fmt.Sprintf("host.uuid=%q", uuid),
+		Filter: fmt.Sprintf("%s = %q", computev1.HostResourceFieldUuid, uuid),
 	}
 
 	return c.listAndReturnHost(ctx, filter)

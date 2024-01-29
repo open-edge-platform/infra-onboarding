@@ -10,6 +10,7 @@ build/*
 .vscode
 .DS_Store
 vendor
+.tmp-earthly-out/
 
 ## From https://github.com/github/gitignore/blob/main/Go.gitignore
 

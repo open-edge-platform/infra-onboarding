@@ -28,16 +28,27 @@ DOCKER_REGISTRY         ?= amr-registry.caas.intel.com
 DOCKER_REPOSITORY       ?= one-intel-edge/maestro-i
 DOCKER_TAG              := ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}
 
+
 # Path variables
 BUILD_DIR  := build
 
 # Tools versions
 GOLINTVERSION_HAVE        := $(shell golangci-lint version | sed 's/.*version //' | sed 's/ .*//')
+POSTGRES_VERSION          := 14.9
 
 GOCMD := GOPRIVATE="github.com/intel-innersource/*" go
 
 # Create the virtualenv with python tools installed
 VENV_NAME = venv_mionboarding
+
+# Postgres DB configuration and credentials for testing. This mimics the Aurora
+# production environment.
+export PGUSER=admin
+export PGHOST=localhost
+export PGDATABASE=postgres
+export PGPORT=5432
+export PGPASSWORD=pass
+export PGSSLMODE=disable
 
 $(VENV_NAME): requirements.txt
 	echo "Creating virtualenv $@"
@@ -54,7 +65,7 @@ all:
 	build lint test
 	
 docker-build: go-vendor
-	DOCKER_REGISTRY=${DOCKER_REGISTRY} DOCKER_REPOSITORY=${DOCKER_REPOSITORY} IMG_NAME=${IMG_NAME} VERSION=${IMG_VERSION} earthly -V +all
+	DOCKER_REGISTRY=${DOCKER_REGISTRY} DOCKER_REPOSITORY=${DOCKER_REPOSITORY} IMG_NAME=${IMG_NAME} VERSION=${IMG_VERSION} earthly -V +build
 
 docker-push:
 	docker push ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}:${IMG_VERSION}
@@ -75,6 +86,20 @@ license: $(VENV_NAME) ## Check licensing with the reuse tool.
 go-lint: ## run go lint
 	golangci-lint linters
 
+db-start: ## Start the local postgres database. See: db-stop
+	if [ -z "`docker ps -aq -f name=^inv-db`" ]; then \
+		echo POSTGRES_PASSWORD=$$PGPASSWORD -e POSTGRES_DB=$$PGDATABASE -e POSTGRES_USER=$$PGUSER -d postgres:$(POSTGRES_VERSION); \
+		docker run --name inv-db --rm -p 5432:5432 -e POSTGRES_PASSWORD=$$PGPASSWORD -e POSTGRES_DB=$$PGDATABASE -e POSTGRES_USER=$$PGUSER -d postgres:$(POSTGRES_VERSION); \
+	fi
+
+db-stop: ## Stop the local postgres database. See: db-start
+	@if [ -n "`docker ps -aq -f name=^inv-db`" ]; then \
+		docker container kill inv-db; \
+	fi
+
+db-shell: ## Run the postgres shell connected to a local database. See: db-start
+	docker run -it --network=host -e PGPASSWORD=${PGPASSWORD} --name inv-shell --rm postgres:$(POSTGRES_VERSION) psql -h $$PGHOST -U $$PGUSER -d $$PGDATABASE
+
 go-tidy: ## go mod tidy
 	$(GOCMD) mod tidy
 
@@ -86,12 +111,16 @@ lint:
 	@echo "---MAKEFILE LINT---"
 	echo $@
 	@echo "---END MAKEFILE LINT---"
+
 test: ${BUILD_DIR} ## run tests, generate output
+	$(MAKE) db-stop
+	$(MAKE) db-start
 	$(GOCMD) test -race -v -p 1 -coverpkg=$$(go list ./... | tr '\n' ,) -coverprofile=${BUILD_DIR}/coverage.out -covermode atomic ./... | tee \
 		>(go-junit-report -set-exit-code > ${BUILD_DIR}/junit_report.xml)
 	gocover-cobertura < ${BUILD_DIR}/coverage.out > ${BUILD_DIR}/coverage.xml
 	$(GOCMD) tool cover -html=${BUILD_DIR}/coverage.out -o ${BUILD_DIR}/coverage.html
 	$(GOCMD) tool cover -func ${BUILD_DIR}/coverage.out -o ${BUILD_DIR}/function_coverage.log
+	$(MAKE) db-stop
 
 coverage:
 	@# Help: Runs coverage stage

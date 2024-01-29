@@ -21,7 +21,6 @@ import (
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/handlers/controller"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/handlers/southbound"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/handlers/southbound/artifact"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/config"
 	inventory "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/controller"
@@ -132,7 +131,6 @@ func main() {
 	}
 
 	onboarding.InitOnboarding(invClient, *dkamAddr)
-	_ = artifact.InitNodeArtifactService(invClient)
 
 	onboardingController, err := controller.New(invClient)
 	if err != nil {
@@ -144,7 +142,7 @@ func main() {
 		zlog.MiSec().Fatal().Err(err).Msgf("Unable to start onboarding controller")
 	}
 
-	sbHandler, err := southbound.NewSBHandler(southbound.SBHandlerConfig{
+	sbHandler, err := southbound.NewSBHandler(invClient, southbound.SBHandlerConfig{
 		ServerAddress: *serverAddress,
 		EnableTracing: *enableTracing,
 	})

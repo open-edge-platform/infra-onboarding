@@ -34,13 +34,18 @@ ARG --global VERSION=$(echo $VERSION)
 all:
     BUILD +build-onboarding-stack
 
+build:
+    BUILD +build-onboardingmgr
+    BUILD +docker-onboardingmgr
+    BUILD +build-onboardingcli
+    BUILD +build-pdctl
+
 build-onboarding-stack:
     BUILD +build-onboardingmgr
     BUILD +docker-onboardingmgr
     BUILD +build-onboardingcli
     BUILD +build-pdctl
     BUILD +build-onboardingmgrtest
-
 
 build-onboardingmgr:
     ARG version='0.0.0-unknown'

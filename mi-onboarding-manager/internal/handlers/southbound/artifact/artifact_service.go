@@ -32,66 +32,62 @@ type NodeArtifactService struct {
 	invClient *invclient.OnboardingInventoryClient
 }
 
-// TODO: this should be removed and the internal invClient of NodeArtifactService should be used.
-//
-//	This requires to pass NodeArtifactService instance to SB Handler.
-var ginvClient *invclient.OnboardingInventoryClient
-
-// InitNodeArtifactService is a constructor function
-func InitNodeArtifactService(invClient *invclient.OnboardingInventoryClient) *NodeArtifactService {
+// NewArtifactService is a constructor function
+func NewArtifactService(invClient *invclient.OnboardingInventoryClient) (*NodeArtifactService, error) {
 	if invClient == nil {
-		zlog.Debug().Msgf("Warning: invClient is nil in InitNodeArtifactService")
-		// Return an error or handle the nil case appropriately
-		return nil
+		return nil, inv_errors.Errorf("invClient is nil in NewArtifactService")
 	}
-	ginvClient = invClient
 
 	return &NodeArtifactService{
 		invClient: invClient,
-	}
+	}, nil
 }
 
-func CopyNodeReqtoNodetData(payload []*pb.NodeData) ([]computev1.HostResource, error) {
-
+func CopyNodeReqtoNodetData(payload []*pb.NodeData) ([]*computev1.HostResource, []*computev1.HostnicResource, error) {
 	zlog.Info().Msgf("CopyNodeReqtoNodetData")
 
 	zlog.Debug().Msgf("%d", len(payload))
-	var data []computev1.HostResource
-	for i, s := range payload {
-		hostres := computev1.HostResource{
-			BmcKind:      computev1.BaremetalControllerKind_BAREMETAL_CONTROLLER_KIND_PDU,
-			BmcIp:        s.Hwdata[i].SutIp,
-			SerialNumber: s.Hwdata[i].Serialnum,
-			Uuid:         s.Hwdata[i].Uuid,
-		}
+	hosts := make([]*computev1.HostResource, 0)
+	hostNics := make([]*computev1.HostnicResource, 0)
+	for _, s := range payload {
+		for _, hwData := range s.Hwdata {
+			hostres := &computev1.HostResource{
+				BmcKind:      computev1.BaremetalControllerKind_BAREMETAL_CONTROLLER_KIND_PDU,
+				BmcIp:        hwData.SutIp,
+				SerialNumber: hwData.Serialnum,
+				Uuid:         hwData.Uuid,
+			}
 
-		/* TODO: Implement multiple NIC resources for each Host Resource/Node
-		 * some changes might be required in type HwData struct in protobuf (onboarding.pb.go) file
-		 *
-		 * TODO: This is just for test purporse only.
-		 *       Need to change it either for
-		 *       multiple host resource based on the pdctl command input
-		 *		 create a Jira ticket and address this before GA release
-		 */
-		hostnic := computev1.HostnicResource{
-			MacAddr:      s.Hwdata[i].MacId,
-			DeviceName:   s.Hwdata[i].HostNicDevName,
-			BmcInterface: s.Hwdata[i].BmcInterface,
+			/* TODO: Implement multiple NIC resources for each Host Resource/Node
+			 * some changes might be required in type HwData struct in protobuf (onboarding.pb.go) file
+			 *
+			 * TODO: This is just for test purporse only.
+			 *       Need to change it either for
+			 *       multiple host resource based on the pdctl command input
+			 *		 create a Jira ticket and address this before GA release
+			 */
+			hostnic := &computev1.HostnicResource{
+				Host:         hostres,
+				MacAddr:      hwData.MacId,
+				DeviceName:   hwData.HostNicDevName,
+				BmcInterface: hwData.BmcInterface,
+			}
+
+			zlog.Debug().Msgf("MAC is %s \n", hwData.MacId)
+			zlog.Debug().Msgf("sut ip is %s \n", hwData.SutIp)
+			zlog.Debug().Msgf("uuid is %s \n", hwData.Uuid)
+			zlog.Debug().Msgf("serial num is %s \n", hwData.Serialnum)
+			zlog.Debug().Msgf("bmc ip is %s \n", hwData.BmcIp)
+			zlog.Debug().Msgf("Host nic dev name is %s \n", hwData.HostNicDevName)
+			zlog.Debug().Msgf("bmc interface is %t \n", hwData.BmcInterface)
+			hosts = append(hosts, hostres)
+			hostNics = append(hostNics, hostnic)
 		}
-		hostres.HostNics = append(hostres.HostNics, &hostnic)
-		zlog.Debug().Msgf("MAC is %s \n", s.Hwdata[i].MacId)
-		zlog.Debug().Msgf("sut ip is %s \n", s.Hwdata[i].SutIp)
-		zlog.Debug().Msgf("uuid is %s \n", s.Hwdata[i].Uuid)
-		zlog.Debug().Msgf("serial num is %s \n", s.Hwdata[i].Serialnum)
-		zlog.Debug().Msgf("bmc ip is %s \n", s.Hwdata[i].BmcIp)
-		zlog.Debug().Msgf("Host nic dev name is %s \n", s.Hwdata[i].HostNicDevName)
-		zlog.Debug().Msgf("bmc interface is %t \n", s.Hwdata[i].BmcInterface)
-		data = append(data, hostres)
 	}
 
-	zlog.Debug().Msgf("%d", len(data))
+	zlog.Debug().Msgf("%d", len(hosts))
 
-	return data, nil
+	return hosts, hostNics, nil
 }
 
 func CopyNodeDatatoNodeResp(payload []repository.NodeData, result string) ([]*pb.NodeData, error) {
@@ -121,24 +117,19 @@ func CopyNodeDatatoNodeResp(payload []repository.NodeData, result string) ([]*pb
 }
 
 func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
-
 	zlog.Info().Msgf("CreateNodes")
-	var err error
-
-	if ginvClient == nil {
-		// Handle the case when ginvClient is nil
-		zlog.Debug().Msgf("ginvClient is nil \n")
-		return nil, nil
-	}
 
 	/* Copy node data from user */
-	hostresdata, _ := CopyNodeReqtoNodetData(req.Payload)
-
+	hostresdata, hostNics, _ := CopyNodeReqtoNodetData(req.Payload)
+	// TODO: CopyNodeReqtoNodetData currently returns a list of Host/Hostnic resources with just a single element.
+	//  We should change it to either multiple Host/Hostnic resources returned or return a single resource.
+	host := hostresdata[0]
+	hostNic := hostNics[0]
 	/* Check if any node with the UUID exists already */
 	/* TODO: Need to check this hostresdata array for all the serial numbers existence
 	 *		 already in the system
 	 */
-	_, err = ginvClient.GetHostResourceByUUID(ctx, hostresdata[0].Uuid)
+	_, err := s.invClient.GetHostResourceByUUID(ctx, hostresdata[0].Uuid)
 
 	switch {
 	case inv_errors.IsNotFound(err):
@@ -156,44 +147,38 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 	/* TODO: Need to change it either to single host resource creation or
 	 *       multiple host resource based on the pdctl command input
 	 */
-
-	hostResID, err = ginvClient.CreateHostResource(ctx, &hostresdata[0])
+	hostResID, err = s.invClient.CreateHostResource(ctx, host)
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("CreateNodes() : CreateHostResource() Error : %v\n", err)
+		zlog.MiSec().MiErr(err).Msgf("Cannot create Host resource: %v", host)
+		return nil, err
 	}
-	zlog.Debug().Msgf("\nCreateHostResource ID = %s\n", hostResID)
+	zlog.Debug().Msgf("CreateHostResource ID = %s", hostResID)
 
 	/* TODO: This is just for test purporse only.
 	 *       Need to change it either for
 	 *       multiple host resource based on the pdctl command input
 	 *		 create a Jira ticket and address this before GA release
 	 */
-	hostresdata[0].HostNics[0].Host = &hostresdata[0]
-	hostNicID, err := ginvClient.CreateHostNICResource(ctx, hostresdata[0].HostNics[0])
+	hostNic.Host.ResourceId = hostResID
+	hostNicID, err := s.invClient.CreateHostNICResource(ctx, hostNic)
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("CreateNodes() : CreateHostnicResource() Error : %v\n", err)
+		zlog.MiSec().MiErr(err).Msgf("Cannot create Hostnic resource: %v", hostNic)
+		return nil, err
 	}
-	zlog.Debug().Msgf("\nCreateHostNicResource ID = %s\n", hostNicID)
-
-	// TODO (LPIO-1740): this is not needed, to remove
-	hostres, err := ginvClient.GetHostResourceByResourceID(ctx, hostResID)
-	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("\nGetHostResourceByResourceID() Error : %v\n", err)
-	}
-	zlog.Debug().Msgf("\n GetHostResourceByResourceID in CreateNodes()= %v \n", hostres)
+	zlog.Debug().Msgf("CreateHostNicResource ID = %s", hostNicID)
 
 	return &pb.NodeResponse{Payload: req.Payload}, nil
 }
 
 func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
 	zlog.Info().Msgf("DeleteNodes")
-	hostresdata, _ := CopyNodeReqtoNodetData(req.Payload)
+	hostresdata, _, _ := CopyNodeReqtoNodetData(req.Payload)
 
 	/* TODO: Need to change it either to single host resource creation or
 	 *       multiple host resource based on the pdctl command input
 	 */
 	/* Check if any node with the serial num exists or not */
-	hostresget, err := ginvClient.GetHostResourceByUUID(ctx, hostresdata[0].Uuid)
+	hostresget, err := s.invClient.GetHostResourceByUUID(ctx, hostresdata[0].Uuid)
 
 	switch {
 	case inv_errors.IsNotFound(err):
@@ -214,13 +199,13 @@ func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.NodeReque
 	hostResID = hostresget.ResourceId
 	hostresdata[0].ResourceId = hostResID
 
-	err = ginvClient.DeleteHostResource(ctx, hostResID)
+	err = s.invClient.DeleteHostResource(ctx, hostResID)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("\nDeleteHostResource() Error : %v\n", err)
 	}
 
 	// TODO (LPIO-1740): this is not needed, to remove
-	hostres, err := ginvClient.GetHostResourceByResourceID(ctx, hostResID)
+	hostres, err := s.invClient.GetHostResourceByResourceID(ctx, hostResID)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("\nGetHostResourceByResourceID() Error : %v\n", err)
 	}
@@ -235,7 +220,7 @@ func (s *NodeArtifactService) GetNodes(ctx context.Context, req *pb.NodeRequest)
 	guid := req.Payload[0].Hwdata[0].Uuid
 
 	/* Check if any node with the serial num exists or not */
-	hostresget, err := ginvClient.GetHostResourceByUUID(ctx, guid)
+	hostresget, err := s.invClient.GetHostResourceByUUID(ctx, guid)
 
 	switch {
 	case inv_errors.IsNotFound(err):
@@ -253,7 +238,7 @@ func (s *NodeArtifactService) GetNodes(ctx context.Context, req *pb.NodeRequest)
 	//Copy the fetched resource id of the given serial number
 	hostResID = hostresget.ResourceId
 
-	hostres, err := ginvClient.GetHostResourceByResourceID(ctx, hostResID)
+	hostres, err := s.invClient.GetHostResourceByResourceID(ctx, hostResID)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("\nGetNodes() : GetHostResourceByResourceID() Error : %v\n", err)
 		return nil, err
@@ -270,13 +255,13 @@ func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeReque
 
 	zlog.Info().Msgf("UpdateNodes")
 
-	hostresdata, _ := CopyNodeReqtoNodetData(req.Payload)
+	hostresdata, _, _ := CopyNodeReqtoNodetData(req.Payload)
 
 	/* TODO: Need to change it either to single host resource creation or
 	 *       multiple host resource based on the pdctl command input
 	 */
 	/* Check if any node with the serial num exists already */
-	hostresget, err := ginvClient.GetHostResourceByUUID(ctx, hostresdata[0].Uuid)
+	hostresget, err := s.invClient.GetHostResourceByUUID(ctx, hostresdata[0].Uuid)
 
 	switch {
 	case inv_errors.IsNotFound(err):
@@ -300,7 +285,7 @@ func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeReque
 	zlog.Debug().Msgf("hostResID is %s\n", hostResID)
 	zlog.Debug().Msgf("hostNicResID is %s\n", hostNicResID)
 
-	hostres, err := ginvClient.GetHostResourceByResourceID(ctx, hostResID)
+	hostres, err := s.invClient.GetHostResourceByResourceID(ctx, hostResID)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("UpdateNodes() : GetHostResourceByResourceID() Error : %v\n", err)
 		return nil, err
@@ -308,7 +293,7 @@ func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeReque
 	zlog.Debug().Msgf("GetHostResource ID in UpdateNodes = %v \n", hostres)
 
 	// TODO (LPIO-1740): we should check if Host Resource has changed. Otherwise, skip to limit load on Inventory
-	err = ginvClient.UpdateHostResource(ctx, &hostresdata[0])
+	err = s.invClient.UpdateHostResource(ctx, hostresdata[0])
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("UpdateNodes() : UpdateHostResource() Error : %v\n", err)
 		return nil, err
@@ -317,7 +302,7 @@ func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeReque
 	 *       Move this to a function
 	 */
 	nic := &computev1.HostnicResource{
-		Host:         &hostresdata[0],
+		Host:         hostresdata[0],
 		MacAddr:      hostresdata[0].HostNics[0].MacAddr,
 		PeerMgmtIp:   hostresdata[0].HostNics[0].PeerMgmtIp,
 		DeviceName:   hostresdata[0].HostNics[0].DeviceName,
@@ -325,14 +310,14 @@ func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeReque
 	}
 	nic.ResourceId = hostresdata[0].HostNics[0].ResourceId
 	// TODO: (LPIO-1740): check if Host NIC has changed. Otherwise, skip to limit load on Inventory
-	err = ginvClient.UpdateHostNIC(ctx, nic)
+	err = s.invClient.UpdateHostNIC(ctx, nic)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("UpdateNodes() : UpdateHostnic() Error : %v\n", err)
 		return nil, err
 	}
 
 	// TODO (LPIO-1740): this is not needed, to remove
-	hostres, err = ginvClient.GetHostResourceByResourceID(ctx, hostResID)
+	hostres, err = s.invClient.GetHostResourceByResourceID(ctx, hostResID)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("UpdateNodes() :GetHostResourceByResourceID() Error : %v\n", err)
 		return nil, err
