@@ -19,6 +19,10 @@ source ./secure_hookos.sh
 BASE_DIR=$PWD
 STORE_ALPINE_SECUREBOOT=$PWD/alpine_image_secureboot/
 STORE_ALPINE=$PWD/alpine_image/
+CLIENT_AUTH_LOCATION=$PWD/client_auth/container
+CLIENT_AUTH_SCRIPTS=$PWD/client_auth/scripts
+CLIENT_AUTH_FILES=$PWD/client_auth/files
+HOOKOS_IDP_FILES=$PWD/hook/files/idp/
 
 FLUENTBIT_FILES=$PWD/fluent-bit/files
 HOOKOS_FLUENTBIT_FILES=$PWD/hook/files/fluent-bit
@@ -47,6 +51,23 @@ copy_fluent_bit_files() {
     then
            echo "Copy of the fluent-bit config file to the hook/files folder failed"
            exit 1
+    fi
+}
+
+get_client_auth() {
+
+    pushd $CLIENT_AUTH_SCRIPTS
+    bash get_certs.sh
+    popd
+
+    mkdir -p $HOOKOS_IDP_FILES
+
+    # if predefined files are needed place them in client_auth/files as ca.pem and server_cert.pem
+    cp $CLIENT_AUTH_FILES/* $HOOKOS_IDP_FILES
+    if [ $? -ne 0 ];
+    then
+	echo "Copy of the certificates to the hook/files folder failed"
+	exit 1
     fi
 }
 
@@ -92,6 +113,12 @@ build_hook() {
     sed -i "s|quay.io/tinkerbell/hook-kernel:5.10.85-d1225df88208e5a732e820a182b75fb35c737bdd|quay.io/tinkerbell/hook-kernel:5.10.85-e546ea099917c006d1d08fe6b8398101de65cbc7|g" hook.yaml    
 
     sed -i "s|dl-cdn.alpinelinux.org/alpine/edge/testing|dl-cdn.alpinelinux.org/alpine/edge/community|g" hook-docker/Dockerfile
+
+    #update keycloak url
+    sed -i "s|update_idp_url|$keycloak_url|g" hook.yaml
+
+    # get the client_auth files and container before running the hook os build.
+    get_client_auth
 
     docker run --rm -e HTTP_PROXY=$http_proxy \
 	   -e HTTPS_PROXY=$https_proxy \

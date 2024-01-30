@@ -79,13 +79,13 @@ index 0908c72..94d4299 100644
  	cmd.Stderr = os.Stderr
  
 diff --git a/hook.yaml b/hook.yaml
-index 647e792..4e5b975 100644
+index 647e792..3433286 100644
 --- a/hook.yaml
 +++ b/hook.yaml
-@@ -34,6 +34,19 @@ onboot:
+@@ -34,6 +34,37 @@ onboot:
        mkdir:
          - /var/lib/dhcpcd
- 
+
 +  - name: fdo
 +    image: fdoclient_action:latest
 +    capabilities:
@@ -98,14 +98,32 @@ index 647e792..4e5b975 100644
 +      - DATA_PARTITION_LBL=CREDS
 +      - FDO_TLS=https
 +
++  - name: client_auth
++    image: client_auth:latest
++    capabilities:
++      - all
++    binds:
++      - /dev:/dev
++      - /dev/console:/dev/console
++      - /dev/ttyS0:/dev/ttyS0
++      - /etc/resolv.conf:/etc/resolv.conf
++      - /etc/idp/server_cert.pem:/usr/local/share/ca-certificates/IDP_keyclock.crt
++      - /var:/var:rshared,rbind
++      - /dev/shm:/dev/shm
++    rootfsPropagation: shared
++    env:
++      - CLIENT_AUTH_PRE_BIND=TRUE
++      - KEYCLOAK_URL=update_idp_url
++
++
 +
  services:
    - name: getty
      image: linuxkit/getty:76951a596aa5e0867a38e28f0b94d620e948e3e8
-@@ -63,6 +76,11 @@ services:
+@@ -63,6 +94,11 @@ services:
      binds:
        - /var/run:/var/run
- 
+
 +  - name: fluent-bit
 +    image: fluent/fluent-bit:2.1.9
 +    binds.add:
@@ -114,17 +132,41 @@ index 647e792..4e5b975 100644
    - name: hook-docker
      image: quay.io/tinkerbell/hook-docker:latest
      capabilities:
-@@ -137,6 +155,9 @@ files:
+@@ -80,6 +116,7 @@ services:
+       - /var/run/docker:/var/run
+       - /var/run/images:/var/lib/docker
+       - /var/run/worker:/worker
++      - /dev/shm:/dev/shm
+     runtime:
+       mkdir:
+         - /var/run/images
+@@ -110,6 +147,14 @@ files:
+       alias docker-shell='ctr -n services.linuxkit tasks exec --tty --exec-id shell hook-docker sh'
+     mode: "0644"
+
++  - path: etc/idp/ca.pem
++    source: files/idp/ca.pem
++    mode: "0644"
++
++  - path: etc/idp/server_cert.pem
++    source: files/idp/server_cert.pem
++    mode: "0644"
++
+   - path: etc/motd
+     mode: "0644"
+     contents: |
+@@ -137,6 +182,10 @@ files:
      source: "files/dhcpcd.conf"
      mode: "0644"
- 
+
 +  - path: /etc/fluent-bit/fluent-bit.conf
 +    source: "files/fluent-bit/fluent-bit.conf"
 +    mode: "0644"
++
  #dbg  - path: root/.ssh/authorized_keys
  #dbg    source: ~/.ssh/id_rsa.pub
  #dbg    mode: "0600"
-@@ -146,3 +167,12 @@ trust:
+@@ -146,3 +195,12 @@ trust:
    org:
      - linuxkit
      - library
@@ -137,6 +179,7 @@ index 647e792..4e5b975 100644
 +    binds.add:
 +      - /dev:/dev
 +      - /dev/console:/dev/console
+
 diff --git a/rules.mk b/rules.mk
 index b2c5133..7b1da7b 100644
 --- a/rules.mk

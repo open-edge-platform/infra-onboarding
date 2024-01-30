@@ -32,6 +32,9 @@ pd_host_ip=""
 ## Please provide the Load Balancer interface IP
 load_balancer_ip=""
 
+#provide Keyclock url
+keycloak_url=""
+
 ## Organizationonal proxy config (default is intel)
 http_proxy=""
 https_proxy=""
