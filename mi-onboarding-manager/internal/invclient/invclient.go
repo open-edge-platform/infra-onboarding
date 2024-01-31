@@ -7,6 +7,7 @@ package invclient
 import (
 	"context"
 	"fmt"
+	uuid_lib "github.com/google/uuid"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	network_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/network/v1"
@@ -273,9 +274,10 @@ func (c *OnboardingInventoryClient) GetHostResourceByUUID(
 	ctx context.Context,
 	uuid string,
 ) (*computev1.HostResource, error) {
-	if uuid == "" {
-		err := inv_errors.Errorfc(codes.InvalidArgument, "empty UUID")
-		return nil, err
+	_, err := uuid_lib.Parse(uuid)
+	// additional check for lenght is needed because .Parse() accepts other non-standard format (see function docs).
+	if err != nil || len(uuid) != 36 {
+		return nil, inv_errors.Errorfc(codes.InvalidArgument, "invalid UUID")
 	}
 
 	filter := &inv_v1.ResourceFilter{
@@ -292,6 +294,7 @@ func (c *OnboardingInventoryClient) UpdateHostResource(ctx context.Context, host
 	return c.UpdateInvResourceFields(ctx, host, []string{
 		computev1.HostResourceFieldKind,
 		computev1.HostResourceFieldName,
+		computev1.HostResourceFieldSerialNumber,
 		computev1.HostResourceFieldCurrentState,
 		computev1.HostResourceFieldMgmtIp,
 		computev1.HostResourceFieldBmcKind,

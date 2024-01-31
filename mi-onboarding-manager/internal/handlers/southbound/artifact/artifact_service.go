@@ -6,6 +6,9 @@ package artifact
 import (
 	"context"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/util"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"time"
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
@@ -26,6 +29,23 @@ const (
 
 var hostResID string
 var hostNicResID string
+
+var HostFieldmask = &fieldmaskpb.FieldMask{
+	Paths: []string{
+		computev1.HostResourceFieldBmcKind,
+		computev1.HostResourceFieldBmcIp,
+		computev1.HostResourceFieldSerialNumber,
+		computev1.HostResourceFieldUuid,
+	},
+}
+var HostnicFieldmask = &fieldmaskpb.FieldMask{
+	Paths: []string{
+		computev1.HostnicResourceFieldDeviceName,
+		computev1.HostnicResourceEdgeHost,
+		computev1.HostnicResourceFieldMacAddr,
+		computev1.HostnicResourceFieldBmcInterface,
+	},
+}
 
 type NodeArtifactService struct {
 	pb.UnimplementedNodeArtifactServiceNBServer
@@ -183,7 +203,7 @@ func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.NodeReque
 	switch {
 	case inv_errors.IsNotFound(err):
 		zlog.MiSec().MiErr(err).Msgf("Delete op : Node Doesn't Exist for GUID %s\n", hostresdata[0].Uuid)
-		return nil, nil
+		return &pb.NodeResponse{Payload: req.Payload}, nil
 
 	case err == nil:
 		zlog.Debug().Msgf("Delete op : Node and its Host Resource Already Exist for GUID %s \n", hostresdata[0].Uuid)
@@ -202,14 +222,8 @@ func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.NodeReque
 	err = s.invClient.DeleteHostResource(ctx, hostResID)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("\nDeleteHostResource() Error : %v\n", err)
+		return nil, err
 	}
-
-	// TODO (LPIO-1740): this is not needed, to remove
-	hostres, err := s.invClient.GetHostResourceByResourceID(ctx, hostResID)
-	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("\nGetHostResourceByResourceID() Error : %v\n", err)
-	}
-	zlog.Debug().Msgf("\n GetHostResourceByResourceID in DeleteNodes()= %v \n", hostres)
 
 	return &pb.NodeResponse{Payload: req.Payload}, nil
 }
@@ -235,95 +249,90 @@ func (s *NodeArtifactService) GetNodes(ctx context.Context, req *pb.NodeRequest)
 		return nil, err
 	}
 
-	//Copy the fetched resource id of the given serial number
-	hostResID = hostresget.ResourceId
+	zlog.Debug().Msgf("\n HostResource by GetNodes() = %v \n", hostresget)
 
-	hostres, err := s.invClient.GetHostResourceByResourceID(ctx, hostResID)
-	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("\nGetNodes() : GetHostResourceByResourceID() Error : %v\n", err)
-		return nil, err
-	}
-	zlog.Debug().Msgf("\n HostResource by GetNodes() = %v \n", hostres)
-
-	if len(hostres.HostNics) == 0 {
+	if len(hostresget.HostNics) == 0 {
 		zlog.Info().Msgf("GetNodes() : Slice is empty \n")
 	}
 	return &pb.NodeResponse{Payload: req.Payload}, nil
 }
 
 func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
-
 	zlog.Info().Msgf("UpdateNodes")
 
-	hostresdata, _, _ := CopyNodeReqtoNodetData(req.Payload)
+	host, bmcNics, _ := CopyNodeReqtoNodetData(req.Payload)
 
 	/* TODO: Need to change it either to single host resource creation or
 	 *       multiple host resource based on the pdctl command input
 	 */
-	/* Check if any node with the serial num exists already */
-	hostresget, err := s.invClient.GetHostResourceByUUID(ctx, hostresdata[0].Uuid)
-
+	hostInv, err := s.invClient.GetHostResourceByUUID(ctx, host[0].Uuid)
 	switch {
 	case inv_errors.IsNotFound(err):
-		zlog.MiSec().MiErr(err).Msgf("Update op : Node Doesn't Exist for GUID %s\n", hostresdata[0].Uuid)
+		zlog.MiSec().MiErr(err).Msgf("Update op : Node Doesn't Exist for GUID %s\n", host[0].Uuid)
 		return nil, err
 
 	case err == nil:
-		zlog.Debug().Msgf("Update op : Node and its Host Resource Already Exist for GUID %s \n", hostresdata[0].Uuid)
+		zlog.Debug().Msgf("Update op : Node and its Host Resource Already Exist for GUID %s \n", host[0].Uuid)
 
 	case err != nil:
-		zlog.MiSec().MiErr(err).Msgf("Update op : Failed CreateNodes() for GUID %s\n", hostresdata[0].Uuid)
+		zlog.MiSec().MiErr(err).Msgf("Update op : Failed CreateNodes() for GUID %s\n", host[0].Uuid)
 		return nil, err
 	}
 
-	//update the fetched resource id of the given serial number
-	hostResID = hostresget.ResourceId
-	hostresdata[0].ResourceId = hostResID
-	hostNicResID = hostresget.HostNics[0].ResourceId
-	hostresdata[0].HostNics[0].ResourceId = hostNicResID
-
-	zlog.Debug().Msgf("hostResID is %s\n", hostResID)
-	zlog.Debug().Msgf("hostNicResID is %s\n", hostNicResID)
-
-	hostres, err := s.invClient.GetHostResourceByResourceID(ctx, hostResID)
+	doHostUpdate := false
+	isSameHost, err := util.IsSameHost(hostInv, host[0], HostFieldmask)
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("UpdateNodes() : GetHostResourceByResourceID() Error : %v\n", err)
-		return nil, err
-	}
-	zlog.Debug().Msgf("GetHostResource ID in UpdateNodes = %v \n", hostres)
-
-	// TODO (LPIO-1740): we should check if Host Resource has changed. Otherwise, skip to limit load on Inventory
-	err = s.invClient.UpdateHostResource(ctx, hostresdata[0])
-	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("UpdateNodes() : UpdateHostResource() Error : %v\n", err)
-		return nil, err
-	}
-	/* TODO: Add other parameters in future
-	 *       Move this to a function
-	 */
-	nic := &computev1.HostnicResource{
-		Host:         hostresdata[0],
-		MacAddr:      hostresdata[0].HostNics[0].MacAddr,
-		PeerMgmtIp:   hostresdata[0].HostNics[0].PeerMgmtIp,
-		DeviceName:   hostresdata[0].HostNics[0].DeviceName,
-		BmcInterface: hostresdata[0].HostNics[0].BmcInterface,
-	}
-	nic.ResourceId = hostresdata[0].HostNics[0].ResourceId
-	// TODO: (LPIO-1740): check if Host NIC has changed. Otherwise, skip to limit load on Inventory
-	err = s.invClient.UpdateHostNIC(ctx, nic)
-	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("UpdateNodes() : UpdateHostnic() Error : %v\n", err)
-		return nil, err
+		zlog.MiSec().MiErr(err).Msgf("Failed to compare Host resources, continuing to do update anyway")
+		doHostUpdate = true
 	}
 
-	// TODO (LPIO-1740): this is not needed, to remove
-	hostres, err = s.invClient.GetHostResourceByResourceID(ctx, hostResID)
-	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("UpdateNodes() :GetHostResourceByResourceID() Error : %v\n", err)
-		return nil, err
+	if !isSameHost || doHostUpdate {
+		err = s.invClient.UpdateHostResource(ctx, host[0])
+		if err != nil {
+			zlog.MiSec().MiErr(err).Msgf("UpdateNodes() : UpdateHostResource() Error : %v", err)
+			return nil, err
+		}
+	} else {
+		zlog.Debug().Msgf("Skipping to update Host resource due to no changes. "+
+			"Original Host: %v, Updated Host: %v", hostInv, host[0])
 	}
 
-	zlog.Debug().Msgf("GetHostResource ID in UpdateNodes after updating = %v \n", hostres)
+	bmcNicsInv, err := util.GetBmcNicsFromHost(hostInv)
+	if err != nil {
+		zlog.MiSec().MiErr(err).Msg("Cannot get BMC interfaces from Host resource. Update won't be done.")
+		return &pb.NodeResponse{Payload: req.Payload}, nil
+	}
+
+	// current assumption is that there is always one BMC Hostnic resource
+	// FIXME: we should revisit this assumption in future
+	if len(bmcNicsInv) != 1 || len(bmcNics) != 1 {
+		zlog.MiSec().MiErr(err).Msgf(
+			"Cannot update BMC interfaces as the number of BMC interfaces associated with Host doesn't equal one. "+
+				"Inventory BMC Nics: %v, Updated BMC Nics: %v", bmcNicsInv, bmcNics)
+		return nil, inv_errors.Errorfc(codes.InvalidArgument, "Exactly one BMC interface should be provided")
+	}
+	originalBmcNic := bmcNicsInv[0]
+	updatedBmcNic := bmcNics[0]
+
+	doHostnicUpdate := false
+	isSameHostnic, err := util.IsSameHostnic(originalBmcNic, updatedBmcNic, HostnicFieldmask)
+	if err != nil {
+		zlog.MiSec().MiErr(err).Msgf("Failed to compare Hostnic resources, continuing to do update anyway")
+		doHostnicUpdate = true
+	}
+
+	if !isSameHostnic || doHostnicUpdate {
+		updatedBmcNic.ResourceId = originalBmcNic.ResourceId
+		updatedBmcNic.Host.ResourceId = hostInv.ResourceId
+		err = s.invClient.UpdateHostNIC(ctx, updatedBmcNic)
+		if err != nil {
+			zlog.MiSec().MiErr(err).Msgf("UpdateNodes() : UpdateHostnic() Error : %v", err)
+			return nil, err
+		}
+	} else {
+		zlog.Debug().Msgf("Skipping to update Hostnic resource due to no changes. "+
+			"Original Hostnic: %v, Updated Hostnic: %v", originalBmcNic, updatedBmcNic)
+	}
 
 	return &pb.NodeResponse{Payload: req.Payload}, nil
 }
