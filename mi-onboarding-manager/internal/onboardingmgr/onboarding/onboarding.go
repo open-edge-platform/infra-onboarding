@@ -69,8 +69,6 @@ func createDeviceInfoListNAzureEnv(copyOfRequest *pb.OnboardingRequest) ([]utils
 	var deviceInfoList []utils.DeviceInfo
 
 	//TODO : Exported PDIP/LOAD_BALANCER_IP/DISK_PARITION instead of passing as parameters
-	baseIP := os.Getenv("PD_IP")
-	gateway := generateGatewayFromBaseIP(baseIP)
 
 	for _, hw := range copyOfRequest.Hwdata {
 		deviceInfo := utils.DeviceInfo{
@@ -79,7 +77,7 @@ func createDeviceInfoListNAzureEnv(copyOfRequest *pb.OnboardingRequest) ([]utils
 			HwIP:           hw.SutIp,
 			DiskType:       os.Getenv("DISK_PARTITION"),
 			LoadBalancerIP: os.Getenv("IMG_URL"),
-			Gateway:        gateway,
+			Gateway:        generateGatewayFromBaseIP(hw.SutIp),
 			ProvisionerIp:  os.Getenv("PD_IP"),
 			ImType:         os.Getenv("IMAGE_TYPE"),
 			RootfspartNo:   os.Getenv("OVERLAY_URL"),
