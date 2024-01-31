@@ -6,8 +6,8 @@ package signing
 import (
 	"io"
 	"net/http"
+	"net/url"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"os"
@@ -80,48 +80,48 @@ func DownloadMicroOS(scriptPath string) (bool, error) {
 	// return true, nil
 }
 
-func SignHookOS(mode string, scriptPath string, harborserver string) (bool, error) {
+func SignHookOS(scriptPath string) (bool, error) {
 
 	// Specify the sb_keys directory to store sign keys
-	sbKeysDir := "sb_keys"
+	// sbKeysDir := "sb_keys"
 
 	zlog.MiSec().Info().Msgf("Script dir %s", scriptPath)
 
 	// Specify the full path of sb_keys directory.
-	sbKeysDirPath := filepath.Join(scriptPath, sbKeysDir)
-	zlog.MiSec().Info().Msgf("SB Keys dir %s", sbKeysDirPath)
+	// sbKeysDirPath := filepath.Join(scriptPath, sbKeysDir)
+	// zlog.MiSec().Info().Msgf("SB Keys dir %s", sbKeysDirPath)
 
-	if _, err := os.Stat(sbKeysDirPath); os.IsNotExist(err) {
+	// if _, err := os.Stat(sbKeysDirPath); os.IsNotExist(err) {
 
-		mkErr := os.MkdirAll(sbKeysDirPath, 0755) // 0755 sets read, write, and execute permissions for owner, and read and execute permissions for others
-		if mkErr != nil {
-			zlog.MiSec().Fatal().Err(mkErr).Msgf("Error creating directory: %v", mkErr)
-			return false, mkErr
-		}
-		zlog.MiSec().Info().Msg("sign keys folder created successfully")
-		// Change into the newly created directory
-		chErr := os.Chdir(sbKeysDirPath)
-		if chErr != nil {
-			zlog.MiSec().Fatal().Err(chErr).Msgf("Error changing into directory: %v", chErr)
-			return false, chErr
-		}
+	// 	mkErr := os.MkdirAll(sbKeysDirPath, 0755) // 0755 sets read, write, and execute permissions for owner, and read and execute permissions for others
+	// 	if mkErr != nil {
+	// 		zlog.MiSec().Fatal().Err(mkErr).Msgf("Error creating directory: %v", mkErr)
+	// 		return false, mkErr
+	// 	}
+	// 	zlog.MiSec().Info().Msg("sign keys folder created successfully")
+	// // Change into the newly created directory
+	// chErr := os.Chdir(sbKeysDirPath)
+	// if chErr != nil {
+	// 	zlog.MiSec().Fatal().Err(chErr).Msgf("Error changing into directory: %v", chErr)
+	// 	return false, chErr
+	// }
 
-		// Run a shell command to generate files (for demonstration, touch command is used)
-		cmd := exec.Command("openssl", "req", "-x509", "-newkey", "rsa:4096", "-keyout", "db.key", "-out", "db.crt", "-days", "1000", "-nodes", "-subj", "/CN=4c4c4544-0035-3010-8030-c2c04f4a4633", "-addext", "subjectAltName=DNS:4c4c4544-0035-3010-8030-c2c04f4a4633")
-		exeErr := cmd.Run()
-		if exeErr != nil {
-			zlog.MiSec().Fatal().Err(exeErr).Msgf("Error running command: %v", exeErr)
-			return false, exeErr
-		}
-	} else {
-		zlog.MiSec().Info().Msg("sign keys folder already exists.")
-	}
+	// // Run a shell command to generate files (for demonstration, touch command is used)
+	// cmd := exec.Command("openssl", "req", "-x509", "-newkey", "rsa:4096", "-keyout", "db.key", "-out", "db.crt", "-days", "1000", "-nodes", "-subj", "/CN=4c4c4544-0035-3010-8030-c2c04f4a4633", "-addext", "subjectAltName=DNS:4c4c4544-0035-3010-8030-c2c04f4a4633")
+	// exeErr := cmd.Run()
+	// if exeErr != nil {
+	// 	zlog.MiSec().Fatal().Err(exeErr).Msgf("Error running command: %v", exeErr)
+	// 	return false, exeErr
+	// }
+	// } else {
+	// 	zlog.MiSec().Info().Msg("sign keys folder already exists.")
+	// }
 
-	chdirErr := os.Chdir("..")
-	if chdirErr != nil {
-		zlog.MiSec().Fatal().Err(chdirErr).Msgf("Error changing back to the parent directory: %v", chdirErr)
-		return false, chdirErr
-	}
+	// chdirErr := os.Chdir("..")
+	// if chdirErr != nil {
+	// 	zlog.MiSec().Fatal().Err(chdirErr).Msgf("Error changing back to the parent directory: %v", chdirErr)
+	// 	return false, chdirErr
+	// }
 
 	errp := os.Chdir(scriptPath)
 	if errp != nil {
@@ -149,6 +149,19 @@ func SignHookOS(mode string, scriptPath string, harborserver string) (bool, erro
 }
 
 func BuildSignIpxe(scriptPath string, dnsName string) (bool, error) {
+
+	zlog.MiSec().Info().Msgf("CDN boot DNS name %s", dnsName)
+	parsedURL, parseerr := url.Parse(dnsName)
+	if parseerr != nil {
+		zlog.MiSec().Fatal().Err(parseerr).Msgf("Error parsing URL: %v", parseerr)
+		return false, parseerr
+	}
+
+	// Extract the host (including subdomain) from the URL
+	host := parsedURL.Hostname()
+
+	zlog.MiSec().Info().Msgf("Domain: %s", host)
+
 	tinkUrlString := "<TINK_STACK_URL>"
 	errp := os.Chdir(scriptPath)
 	if errp != nil {
@@ -191,7 +204,7 @@ func BuildSignIpxe(scriptPath string, dnsName string) (bool, error) {
 		return false, modeErr
 	}
 	zlog.Info().Msgf("Script output: %s", string(result))
-	cmd := exec.Command("sh", "./build_sign_ipxe.sh", scriptPath)
+	cmd := exec.Command("sh", "./build_sign_ipxe.sh", scriptPath, host)
 	zlog.Info().Msgf("signCmd: %s", cmd)
 	output, err := cmd.CombinedOutput()
 	if err != nil {

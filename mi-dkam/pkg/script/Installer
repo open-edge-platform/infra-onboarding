@@ -14,6 +14,8 @@ export MAESTRO_PLATFORM_OBSERVABILITY_HOST=logs.demo2.maestro.intel.com
 export MAESTRO_PLATFORM_OBSERVABILITY_PORT=443
 # export PROVISIONING_URL=192.168.1.11:8080
 # export PROVISIONING_APT_MIRROR_URL=192.168.1.11:443
+export OBSERVABILITY_METRICS_HOST=metrics.demo2.maestro.intel.com
+export OBSERVABILITY_METRICS_PORT=443
 export MAINTENANCE_MANAGER_URL=update.demo2.maestro.intel.com:443
 export RELEASE_SERVER=__FILE_SERVER__
 export VAULT_URL=vault-edge-node.demo2.maestro.intel.com
@@ -72,20 +74,19 @@ install_fws(){
     sudo systemctl enable ufw
     echo "y" | sudo ufw enable
     sudo ufw default allow outgoing
-    sudo ufw allow from 10.114.181.83 comment "rancher server"
-    sudo ufw allow from 172.17.0.0/16 comment "Docker bridge network"
-    sudo ufw allow 6443 comment "rancher control plane nodes"
-    sudo ufw allow 10250
-    #below list is also requested according to rancher official doc, but not see the impact so far.
-    sudo ufw allow 22
-    sudo ufw allow 80
-    sudo ufw allow 443
-    sudo ufw allow 2376
-    sudo ufw allow 2379
-    sudo ufw allow 2380
-    sudo ufw allow 8472
-    sudo ufw allow 9090
-    sudo ufw allow 10254
+    sudo ufw allow 2379/tcp
+    sudo ufw allow 2380/tcp
+    sudo ufw allow 6443/tcp
+    sudo ufw allow 9345/tcp
+    sudo ufw allow 10250/tcp
+    sudo ufw allow 5473/tcp    
+    sudo ufw allow 22/tcp
+    sudo ufw allow 80/tcp
+    sudo ufw allow 443/tcp
+    sudo ufw allow 2376/tcp
+    sudo ufw allow 8472/tcp
+    sudo ufw allow 9090/tcp
+    sudo ufw allow 10254/tcp
     sudo ufw reload
 }
 
@@ -363,7 +364,7 @@ gpg --list-keys
 }
 
 # 9. Install Node Agent
-install_node-agent(){
+install_node_agent(){
 echo $ID_TOKEN
 echo "Install node agent..."
 VERSION="node-agent-VERSION"
@@ -391,7 +392,7 @@ systemctl status -l --no-pager node-agent vault-agent
 }
 
 # 10. Install Cluster Agent
-install_cluster-agent(){
+install_cluster_agent(){
 echo $ID_TOKEN
 echo "Install Cluster agent..."
 VERSION="cluster-agent-VERSION"
@@ -412,7 +413,7 @@ systemctl status -l --no-pager cluster-agent
 }
 
 # 11. Install Hardware Discovery Agent
-install_hardware-discovery-agent(){
+install_hardware_discovery_agent(){
 echo "Install Hardware discovery agent..."
 VERSION="hardware-discovery-agent-VERSION"
 echo $VERSION
@@ -432,7 +433,7 @@ systemctl status -l --no-pager hardware-discovery-agent
 }
 
 # 12. Install Platform Observability Agent
-install_platform-observability-agent(){
+install_platform_observability_agent(){
 echo "install platform-observability-agent"
 VERSION="platform-observability-agent-VERSION"
 echo $VERSION
@@ -440,6 +441,8 @@ PKGFILE="platform-observability-agent_${VERSION}_amd64.deb"
 apt-get update
 echo "platform-observability-agent platform-observability-agent/host string $MAESTRO_PLATFORM_OBSERVABILITY_HOST" | debconf-set-selections
 echo "platform-observability-agent platform-observability-agent/port string $MAESTRO_PLATFORM_OBSERVABILITY_PORT" | debconf-set-selections
+echo "platform-observability-agent platform-observability-agent/metrics-host string $OBSERVABILITY_METRICS_HOST" | debconf-set-selections
+echo "platform-observability-agent platform-observability-agent/metrics-port string $OBSERVABILITY_METRICS_PORT" | debconf-set-selections
 rm -f ${PKGFILE}
 wget --header="Authorization: Bearer $ID_TOKEN"  https://${FILESERVER}/pool/release/p/platform-observability-agent/${PKGFILE}
 gpg --decrypt ${PKGFILE}
@@ -471,7 +474,7 @@ apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
 }
 
 # 14. Install INBM Cloudadapter Agent
-install_inbm-cloudadapter-agent(){
+install_inbm_cloudadapter_agent(){
 echo "Install inbm-cloudadapter-agent..."
 apt-get update
 VERSION="inbm-cloudadapter-agent-VERSION"
@@ -490,7 +493,7 @@ apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
 }
 
 # 15. Install INBM Dispatcher Agent
-install_inbm-dispatcher-agent(){
+install_inbm_dispatcher_agent(){
 echo "Install inbm-dispatcher-agent..."
 apt-get update
 VERSION="inbm-dispatcher-agent-VERSION"
@@ -509,7 +512,7 @@ apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
 }
 
 # 16. Install INBM Configuration Agent
-install_inbm-configuration-agent(){
+install_inbm_configuration_agent(){
 echo "Install inbm-configuration-agent..."
 apt-get update
 VERSION="inbm-configuration-agent-VERSION"
@@ -528,7 +531,7 @@ apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
 }
 
 # 17. Install INBM Telemetry Agent
-install_inbm-telemetry-agent(){
+install_inbm_telemetry_agent(){
 echo "Install inbm-telemetry-agent..."
 apt-get update
 VERSION="inbm-telemetry-agent-VERSION"
@@ -547,7 +550,7 @@ apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
 }
 
 # 18. Install INBM Diagnostic Agent
-install_inbm-diagnostic-agent(){
+install_inbm_diagnostic_agent(){
 echo "Install inbm-diagnostic-agent..."
 apt-get update
 VERSION="inbm-diagnostic-agent-VERSION"
@@ -584,8 +587,8 @@ apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
 
 }
 
-# 120. Install TPM Provision
-install_tpm-provision(){
+# 20. Install TPM Provision
+install_tpm_provision(){
 echo "Install tpm-provision..."
 apt-get update
 VERSION="tpm-provision-VERSION"
@@ -604,7 +607,7 @@ apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
 }
 
 # 21. Install INBC Program
-install_inbc-program(){
+install_inbc_program(){
 echo "Install inbc-program..."
 apt-get update
 VERSION="inbc-program-VERSION"
@@ -623,7 +626,7 @@ apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
 }
 
 # 22. Install Platform Update Agent
-install_platform-update-agent(){
+install_platform_update_agent(){
 echo "Install Platform Update agent..."
 apt-get update
 VERSION="platform-update-agent-VERSION"
@@ -680,6 +683,27 @@ sudo apt-get update
 sudo apt-get install -y linux-generic-hwe-22.04 linux-image-generic-hwe-22.04 linux-headers-generic-hwe-22.04
 }
 
+# 25. Install Platform Observability Agent
+install_platform_telemetry_agent(){
+echo "install platform-telemetry-agent"
+VERSION="platform-telemetry-agent-VERSION"
+echo $VERSION
+PKGFILE="platform-telemetry-agent_${VERSION}_amd64.deb"
+apt-get update
+#echo "platform-observability-agent platform-observability-agent/host string $MAESTRO_PLATFORM_OBSERVABILITY_HOST" | debconf-set-selections
+#echo "platform-observability-agent platform-observability-agent/port string $MAESTRO_PLATFORM_OBSERVABILITY_PORT" | debconf-set-selections
+rm -f ${PKGFILE}
+wget --header="Authorization: Bearer $ID_TOKEN"  https://${FILESERVER}/pool/release/p/platform-telemetry-agent/${PKGFILE}
+gpg --decrypt ${PKGFILE}
+ret_val=$?
+if [ $ret_val != 0 ] ; then
+    echo " Failed to verify Debian package ERROR CODE ${ret_val}"
+    exit -1
+fi
+apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
+systemctl status -l --no-pager platform-telemetry-agent
+}
+
 
 #extend the disk partition
 #parition_extention  2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
@@ -723,20 +747,21 @@ gpg --list-keys
 gpg --import ${GPGKEY}
 gpg --list-keys
 #install_token 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_cluster-agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_hardware-discovery-agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_node-agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_platform-observability-agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_cluster_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_hardware_discovery_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_node_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_platform_observability_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_trtl 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_inbm-cloudadapter-agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_inbm-dispatcher-agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_inbm-configuration-agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_inbm-telemetry-agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_inbm-diagnostic-agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_inbm_cloudadapter_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_inbm_dispatcher_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_inbm_configuration_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_inbm_telemetry_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_inbm_diagnostic_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_mqtt 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_tpm-provision 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_inbc-program 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_platform-update-agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_tpm_provision 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_inbc_program 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_platform_update_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+#install_platform_telemetry_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_sriov 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_HWE_kernel 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 

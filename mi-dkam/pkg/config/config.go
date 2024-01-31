@@ -19,4 +19,7 @@ const (
 	ReleaseVersion = "24.03.0-dev"
 	GPGKey         = "ledgepark-debian-signing-key-gpg-non-prod.pem"
 	PVC            = "/data/"
+	Tag            = "latest-dev"
+	PreintTag      = ""
+	Artifact       = "one-intel-edge/edgenode/en/manifest"
 )

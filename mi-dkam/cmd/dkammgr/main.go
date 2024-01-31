@@ -28,16 +28,6 @@ func main() {
 		return
 	}
 
-	// Download and sign MicroOS.
-	signed, signerr := dkammgr.SignMicroOS()
-	if signerr != nil {
-		zlog.MiSec().Info().Msgf("Failed to sign MicroOS %v", signerr)
-		return
-	}
-	if signed {
-		zlog.MiSec().Info().Msgf("Signed MicroOS and moved to PVC")
-	}
-
 	//Donwload and sign iPXE
 	signedIPXE, pxeErr := dkammgr.BuildSignIpxe()
 	if pxeErr != nil {
@@ -45,6 +35,16 @@ func main() {
 		return
 	}
 	if signedIPXE {
+		zlog.MiSec().Info().Msgf("Signed MicroOS and moved to PVC")
+	}
+
+	// Download and sign MicroOS.
+	signed, signerr := dkammgr.SignMicroOS()
+	if signerr != nil {
+		zlog.MiSec().Info().Msgf("Failed to sign MicroOS %v", signerr)
+		return
+	}
+	if signed {
 		zlog.MiSec().Info().Msgf("Signed MicroOS and moved to PVC")
 	}
 

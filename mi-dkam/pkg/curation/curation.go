@@ -40,7 +40,7 @@ var configs Config
 
 func GetCuratedScript(profile string, platform string) string {
 	MODE := os.Getenv("MODE")
-	//MODE = "dev"
+	//MODE := "dev"
 
 	if MODE == "dev" {
 		fileServer = config.DevFileServer
@@ -55,20 +55,20 @@ func GetCuratedScript(profile string, platform string) string {
 
 	}
 	zlog.MiSec().Info().Msgf("Current working directory: %s", currentDir)
+	parentDir := filepath.Dir(filepath.Dir(currentDir))
 
-	exists, err := PathExists("/data")
+	scriptDir := filepath.Join(parentDir, "pkg", "script")
+	yamlFile := filepath.Join(scriptDir, "tmp", config.ReleaseVersion+".yaml")
+	exists, err := PathExists(yamlFile)
 	if err != nil {
 		zlog.MiSec().Info().Msgf("Error checking path %v", err)
 	}
 	releaseFilePath := ""
 	if exists {
 		zlog.MiSec().Info().Msg("Path exists:")
-		releaseFilePath = filepath.Join(config.PVC, config.ReleaseVersion+".yaml")
+		releaseFilePath = yamlFile
 	} else {
 		zlog.MiSec().Info().Msg("Path not exists:")
-		parentDir := filepath.Dir(filepath.Dir(currentDir))
-
-		scriptDir := filepath.Join(parentDir, "pkg", "script")
 		releaseFilePath = filepath.Join(scriptDir, config.ReleaseVersion+".yaml")
 	}
 
@@ -260,7 +260,73 @@ func AddProxies(fileName string, newLines []string) {
 
 }
 
-func DownloadArtifacts() error {
+func DownloadArtifacts(fileServer string, harborServer string, scriptPath string, tag string) error {
+	errp := os.Chdir(scriptPath)
+	if errp != nil {
+		zlog.MiSec().Fatal().Err(errp).Msgf("Error changing working directory: %v\n", errp)
+		return errp
+	}
+	outDir := filepath.Join(scriptPath, "tmp")
+	// 0. cleanup
+	os.RemoveAll(outDir)
+
+	mkErr := os.MkdirAll(outDir, 0755) // 0755 sets read, write, and execute permissions for owner, and read and execute permissions for others
+	if mkErr != nil {
+		zlog.MiSec().Fatal().Err(mkErr).Msgf("Error creating directory: %v", mkErr)
+		return mkErr
+	}
+	zlog.MiSec().Info().Msg("tmp folder created successfully")
+
+	// 1. Create a file store
+	// fs, err := file.New(outDir)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// defer fs.Close()
+
+	// // 2. Connect to a remote repository
+	// ctx := context.Background()
+	// repo, err := remote.NewRepository(harborServer + "/" + config.Artifact)
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// // 3. Authenticate (not required in AMR)
+	// /*
+	// 	repo.Client = &auth.Client{
+	// 		Client: retry.DefaultClient,
+	// 		Cache:  auth.DefaultCache,
+	// 		Credential: auth.StaticCredential(reg, auth.Credential{
+	// 			Username: "username",
+	// 			Password: "password",
+	// 		}),
+	// 	}*/
+
+	// // 4. Copy from the remote repository to the file store
+	// manifestDescriptor, err := oras.Copy(ctx, repo, tag, fs, tag, oras.DefaultCopyOptions)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// zlog.MiSec().Info().Msgf("Manifest descriptor: %s", manifestDescriptor)
+
+	// // 5.list files
+	// zlog.MiSec().Info().Msg("Download files:")
+	// entries, err := os.ReadDir(outDir)
+	// if err != nil {
+	// 	zlog.MiSec().Fatal().Err(err).Msgf("Error reading the folder %v", err)
+	// }
+
+	// for _, e := range entries {
+	// 	zlog.MiSec().Info().Msgf("filename %s", e.Name())
+	// 	manifestFile := filepath.Join(outDir, e.Name())
+	// 	releaseFile := filepath.Join(outDir, config.ReleaseVersion+".yaml")
+	// 	if strings.Contains(e.Name(), "24.03") {
+	// 		e := os.Rename(manifestFile, releaseFile)
+	// 		if e != nil {
+	// 			zlog.MiSec().Fatal().Err(err).Msgf("Failed to rename file %v", e)
+	// 		}
+	// 	}
+	// }
 
 	url := "http://rs-proxy-files.rs-proxy.svc.cluster.local:8081/publish/release-manifest/24.03.0-dev.yaml"
 	client := &http.Client{
@@ -290,7 +356,7 @@ func DownloadArtifacts() error {
 	}
 	defer resp.Body.Close()
 
-	filePath := config.PVC + config.ReleaseVersion + ".yaml"
+	filePath := outDir + "/" + config.ReleaseVersion + ".yaml"
 	//Read the response body
 	//Create or open the local file for writing
 	file, fileerr := os.Create(filePath)

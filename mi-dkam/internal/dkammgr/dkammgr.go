@@ -28,16 +28,31 @@ type Data struct {
 
 var zlog = logging.GetLogger("MIDKAMgRPC")
 var url string
+
 var fileServer = config.ProdFileServer
 var harborServer = config.ProdHarbor
+var tag = config.Tag
 
 func DownloadArtifacts() error {
+	MODE := GetMODE()
+	//MODE := "dev"
+	zlog.MiSec().Info().Msgf("Mode of deployment: %s", MODE)
+	if MODE == "dev" || MODE == "preint" {
+		fileServer = config.DevFileServer
+		harborServer = config.DevHarbor
+	}
+
+	if MODE == "preint" {
+		tag = config.PreintTag
+	}
 	zlog.MiSec().Info().Msg("Download artifacts")
-	_, err := rest.InClusterConfig()
-	if err == nil {
-		// Running inside Kubernetes cluster
+
+	_, k8err := rest.InClusterConfig()
+	if k8err == nil {
+		//Running inside Kubernetes cluster
 		zlog.MiSec().Info().Msgf("Running inside k8 cluster")
-		err := curation.DownloadArtifacts()
+
+		err := curation.DownloadArtifacts(fileServer, harborServer, GetScriptDir(), tag)
 		if err != nil {
 			zlog.MiSec().Info().Msgf("Failed to download manifest file: %v", err)
 			return err
@@ -105,15 +120,11 @@ func GetServerUrl() string {
 }
 
 func SignMicroOS() (bool, error) {
-	MODE := GetMODE()
-	if MODE == "dev" {
-		fileServer = config.DevFileServer
-		harborServer = config.DevHarbor
-	}
+	//MODE := GetMODE()
 	scriptPath := GetScriptDir()
 	_, err := rest.InClusterConfig()
 	if err == nil {
-		signed, err := signing.SignHookOS(MODE, scriptPath, harborServer)
+		signed, err := signing.SignHookOS(scriptPath)
 		if err != nil {
 			zlog.MiSec().Info().Msgf("Failed to sign MicroOS %v", err)
 			return false, err

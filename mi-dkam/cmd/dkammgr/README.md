@@ -32,12 +32,13 @@ If succeed, stdout will looks like below:
 ### 3. DKAM helm chart deployment in Maestro:
 ```
 Helm chart deployment in Maestro
-export AZUREAD_USER="youremail"
-export AZUREAD_PASS="pass"
-export AZUREAD_CLIENTID="clientid"
+export AZUREAD_USER="azure_ad_token@intel.com"
+export AZUREAD_PASS="MysoreKarnataka@570011"
+export AZUREAD_CLIENTID="4ee465a2-6805-425d-a5a0-9ccf938fd38d"
 mage deploy:kindAll
 
 Deploy DKAM helm chart in dev instance
-helm install dkam --set env.mode="dev" --set traefikReverseProxy.dnsname="server_url"
+cd ~frameworks.edge.one-intel-edge.maestro-infra.charts/mi-dkam
+helm install dkam --set env.mode="dev" --set traefikReverseProxy.dnsname="https://tink.dkam.jf.intel.com/tink-stack" -n maestro-iaas-system .
  
 

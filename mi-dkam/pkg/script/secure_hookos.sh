@@ -95,9 +95,13 @@ sign_all_components() {
     if [ -e "/data" ]; then
         echo "Path /data exists."
         tar -xvf /data/hook_x86_64.tar.gz -C $STORE_ALPINE
+        mkdir -p /data/unsigned
+        mv /data/hook_x86_64.tar.gz /data/unsigned
     else
         echo "Path /data does not exist."
         tar -xvf $working_dir/hook_x86_64.tar.gz -C $STORE_ALPINE
+        mkdir -p $working_dir/unsigned
+        mv $working_dir/hook_x86_64.tar.gz $working_dir/unsigned
     fi     
 
     
@@ -170,15 +174,15 @@ package_signed_hookOS(){
 
      sync
 
-     tar -czvf hook_x86_64.tar.gz .
+     #tar -czvf hook_x86_64.tar.gz .
     if [ -e "/data" ]; then
         echo "Path /data exists."
-        mkdir -p /data/SIGNED_OS
-       cp hook_x86_64.tar.gz /data/SIGNED_OS/.
-       cp $SB_KEYS_DIR/db.der /data/SIGNED_OS/.
-       rm -rf $SB_KEYS_DIR
+        cp $STORE_ALPINE/initramfs-x86_64 /data
+        cp $STORE_ALPINE/vmlinuz-x86_64 /data
+        #cp $SB_KEYS_DIR/db.crt /data/keys
     else
         echo "Path /data does not exist."
+        tar -czvf hook_x86_64.tar.gz .
     fi 
 
      cd $working_dir
@@ -206,7 +210,7 @@ secure_hookos() {
      compile_grub
      create_gpg_key
      create_grub_image
-
+     #generate_bios_certs
      sign_all_components
      package_signed_hookOS
 
