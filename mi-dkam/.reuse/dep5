@@ -1,6 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 
-Files: VERSION Jenkinsfile README.md placeholder.txt .github/* api/grpc/dkammgr/* api/openapi/* cmd/dkammgr/* deployments/* internal/dkammgr/* artifacts/* go.sum pkg/script/chain.ipxe
+Files: VERSION Jenkinsfile README.md placeholder.txt .github/* api/grpc/dkammgr/* api/openapi/* cmd/dkammgr/* deployments/* internal/dkammgr/* artifacts/* go.sum pkg/script/chain.ipxe build/*
 Copyright: 2023 Intel Corporation
 License: LicenseRef-Intel
 

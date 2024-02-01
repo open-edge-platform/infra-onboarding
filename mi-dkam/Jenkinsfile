@@ -47,18 +47,6 @@ pipeline {
                         PROTEX_PROJECT_NAME          = "${GIT_SHORT_URL}"
 
                         VIRUS_SCAN_DIR               = "."
-			SNYK_PRE_SCAN_SCRIPT = '''\
-                    		env
-                   		echo 'Adding GitHub credentials to ~/.netrc'
-                    		umask 077
-                    		echo 'machine github.com' >> ~/.netrc
-                    		echo "login $GITHUB_USER" >> ~/.netrc
-                    		echo "password $GITHUB_TOKEN" >> ~/.netrc
-                    		echo 'machine api.github.com' >> ~/.netrc
-                    		echo "login $GITHUB_USER" >> ~/.netrc
-                    		echo "password $GITHUB_TOKEN" >> ~/.netrc
-                    		umask 022
-                		'''.stripIndent()
                     }
                     when {
                         anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
@@ -102,7 +90,7 @@ pipeline {
             }
         }
 
-	stage('Setup') {
+		stage('Setup') {
             steps {
                 withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
                 {
@@ -131,7 +119,17 @@ pipeline {
             }        
         }
 
-	stage('Lint Code') {
+		stage('Build Docker image') {
+            when {
+                anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest(); }
+            }
+            steps {
+                script {
+                    miDocker.build()
+                }
+            }
+        }
+		stage('Lint Code') {
             steps {
                 sh '''
                 echo "Linting the code"
@@ -195,17 +193,6 @@ pipeline {
                         # Tag the version
                         /opt/ci/version-tag.sh
                         '''
-                }
-            }
-        }
-
-	stage('Build Docker image') {
-            when {
-                anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest(); }
-            }
-            steps {
-                script {
-                    miDocker.build()
                 }
             }
         }
