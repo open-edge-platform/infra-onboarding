@@ -171,7 +171,20 @@ pipeline {
 					    }
 					}
 				}
-				
+				stage('Push to OCI harbor') {
+					when {
+						anyOf { branch 'main'; branch 'feature*'; branch 'release*' }
+					}
+					steps {
+						 withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'intel-harbor-credentials',
+                                        usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
+                        		{
+							sh '''
+							/opt/ci/push-oci-package.sh -f 'alpine_image/hook_x86_64.tar.gz alpine_image_secureboot/*'
+							'''
+						}
+					}
+				}
 				// stage('Test Code') {
 					// steps {
 						// echo "Test the code"
