@@ -5,123 +5,20 @@ package signing
 
 import (
 	"io"
-	"net/http"
 	"net/url"
 	"os/exec"
 	"strings"
 
 	"os"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/logging"
 )
 
 var zlog = logging.GetLogger("MIDKAMAuth")
 
-func DownloadMicroOS(scriptPath string) (bool, error) {
-	zlog.Info().Msgf("Inside Download and sign artifact... %s", scriptPath)
-	url := "http://rs-proxy-files.rs-proxy.svc.cluster.local:8081/publish/fm_en_artifacts/hook-os/0.8.1-dev-e87f024/alpine_image/hook_x86_64.tar.gz"
-	client := &http.Client{
-		Transport: &http.Transport{
-			ForceAttemptHTTP2: false,
-			MaxIdleConns:      10,
-			IdleConnTimeout:   30,
-		},
-	}
-	// Create an HTTP GET request with the specified URL
-	req, httperr := http.NewRequest("GET", url, nil)
-	if httperr != nil {
-		zlog.MiSec().Fatal().Err(httperr).Msgf("Error creating request: %v\n", httperr)
-		return false, httperr
-
-	}
-
-	// Set the HTTP version to 1.1
-	req.Proto = "HTTP/1.1"
-
-	// Perform the HTTP GET request
-	resp, clienterr := client.Do(req)
-	if clienterr != nil {
-		zlog.MiSec().Fatal().Err(clienterr).Msgf("Error performing request: %v\n", clienterr)
-		return false, clienterr
-
-	}
-	defer resp.Body.Close()
-
-	filePath := config.PVC + "hook_x86_64.tar.gz"
-	//Read the response body
-	//Create or open the local file for writing
-	file, fileerr := os.Create(filePath)
-	if fileerr != nil {
-		zlog.MiSec().Fatal().Err(fileerr).Msgf("Error while creating release manifest file.")
-		return false, fileerr
-	}
-	defer file.Close()
-
-	// Copy the response body to the local file
-	_, copyErr := io.Copy(file, resp.Body)
-	if copyErr != nil {
-		zlog.MiSec().Fatal().Err(copyErr).Msgf("Error while coping content ")
-	}
-	zlog.MiSec().Info().Msg("File downloaded")
-	return true, nil
-
-	// cmd := "curl -o /data/hook_x86_64.tar.gz --request GET http://rs-proxy-files.rs-proxy.svc.cluster.local:8081/publish/fm_en_artifacts/hook-os/0.7.0-dev-2636510/alpine_image/hook_x86_64.tar.gz --http1.1"
-	// osCmd := exec.Command("bash", "-c", cmd)
-	// result, err := osCmd.CombinedOutput()
-	// if err != nil {
-	// 	// Handle error
-	// 	zlog.MiSec().Fatal().Err(err).Msgf("Failed to download %v", err)
-	// 	return false, err
-	// }
-
-	// zlog.Info().Msgf("Script output: %s", string(result))
-
-	// return true, nil
-}
-
 func SignHookOS(scriptPath string) (bool, error) {
 
-	// Specify the sb_keys directory to store sign keys
-	// sbKeysDir := "sb_keys"
-
 	zlog.MiSec().Info().Msgf("Script dir %s", scriptPath)
-
-	// Specify the full path of sb_keys directory.
-	// sbKeysDirPath := filepath.Join(scriptPath, sbKeysDir)
-	// zlog.MiSec().Info().Msgf("SB Keys dir %s", sbKeysDirPath)
-
-	// if _, err := os.Stat(sbKeysDirPath); os.IsNotExist(err) {
-
-	// 	mkErr := os.MkdirAll(sbKeysDirPath, 0755) // 0755 sets read, write, and execute permissions for owner, and read and execute permissions for others
-	// 	if mkErr != nil {
-	// 		zlog.MiSec().Fatal().Err(mkErr).Msgf("Error creating directory: %v", mkErr)
-	// 		return false, mkErr
-	// 	}
-	// 	zlog.MiSec().Info().Msg("sign keys folder created successfully")
-	// // Change into the newly created directory
-	// chErr := os.Chdir(sbKeysDirPath)
-	// if chErr != nil {
-	// 	zlog.MiSec().Fatal().Err(chErr).Msgf("Error changing into directory: %v", chErr)
-	// 	return false, chErr
-	// }
-
-	// // Run a shell command to generate files (for demonstration, touch command is used)
-	// cmd := exec.Command("openssl", "req", "-x509", "-newkey", "rsa:4096", "-keyout", "db.key", "-out", "db.crt", "-days", "1000", "-nodes", "-subj", "/CN=4c4c4544-0035-3010-8030-c2c04f4a4633", "-addext", "subjectAltName=DNS:4c4c4544-0035-3010-8030-c2c04f4a4633")
-	// exeErr := cmd.Run()
-	// if exeErr != nil {
-	// 	zlog.MiSec().Fatal().Err(exeErr).Msgf("Error running command: %v", exeErr)
-	// 	return false, exeErr
-	// }
-	// } else {
-	// 	zlog.MiSec().Info().Msg("sign keys folder already exists.")
-	// }
-
-	// chdirErr := os.Chdir("..")
-	// if chdirErr != nil {
-	// 	zlog.MiSec().Fatal().Err(chdirErr).Msgf("Error changing back to the parent directory: %v", chdirErr)
-	// 	return false, chdirErr
-	// }
 
 	errp := os.Chdir(scriptPath)
 	if errp != nil {

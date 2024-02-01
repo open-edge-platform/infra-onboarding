@@ -22,4 +22,6 @@ const (
 	Tag            = "latest-dev"
 	PreintTag      = ""
 	Artifact       = "one-intel-edge/edgenode/en/manifest"
+	ImageUrl       = "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
+	ImageFileName  = "jammy-server-cloudimg-amd64.raw.gz"
 )

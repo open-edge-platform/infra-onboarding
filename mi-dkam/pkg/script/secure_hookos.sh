@@ -99,6 +99,9 @@ sign_all_components() {
         mv /data/hook_x86_64.tar.gz /data/unsigned
     else
         echo "Path /data does not exist."
+        if [ ! -f $working_dir/hook_x86_64.tar.gz ]; then
+            exit 0
+        fi
         tar -xvf $working_dir/hook_x86_64.tar.gz -C $STORE_ALPINE
         mkdir -p $working_dir/unsigned
         mv $working_dir/hook_x86_64.tar.gz $working_dir/unsigned

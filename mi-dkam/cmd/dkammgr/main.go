@@ -21,6 +21,13 @@ var (
 )
 
 func main() {
+	//Download OS image
+	downloadErr := dkammgr.DownloadOS()
+	if downloadErr != nil {
+		zlog.MiSec().Fatal().Err(downloadErr).Msgf("Error downloading and converting OS image")
+		return
+	}
+
 	//Download release manifest.yaml file.
 	err := dkammgr.DownloadArtifacts()
 	if err != nil {

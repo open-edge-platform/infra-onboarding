@@ -11,9 +11,9 @@ import (
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/curation"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/download"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/signing"
-	"gopkg.in/yaml.v2"
 	"k8s.io/client-go/rest"
 )
 
@@ -21,10 +21,10 @@ type Service struct {
 	pb.UnimplementedDkamServiceServer
 }
 
-type Data struct {
-	OsUrl            string
-	OverlayScriptUrl string
-}
+// type Data struct {
+// 	OsUrl            string
+// 	OverlayScriptUrl string
+// }
 
 var zlog = logging.GetLogger("MIDKAMgRPC")
 var url string
@@ -52,13 +52,13 @@ func DownloadArtifacts() error {
 		//Running inside Kubernetes cluster
 		zlog.MiSec().Info().Msgf("Running inside k8 cluster")
 
-		err := curation.DownloadArtifacts(fileServer, harborServer, GetScriptDir(), tag)
+		err := download.DownloadArtifacts(fileServer, harborServer, GetScriptDir(), tag)
 		if err != nil {
 			zlog.MiSec().Info().Msgf("Failed to download manifest file: %v", err)
 			return err
 		}
 
-		downloaded, downloadErr := signing.DownloadMicroOS(GetScriptDir())
+		downloaded, downloadErr := download.DownloadMicroOS(GetScriptDir())
 
 		if downloadErr != nil {
 			zlog.MiSec().Info().Msgf("Failed to download MicroOS %v", downloadErr)
@@ -90,25 +90,26 @@ func (server *Service) GetArtifacts(ctx context.Context, req *pb.GetArtifactsReq
 	zlog.MiSec().Info().Msgf("url %s", GetServerUrl())
 	url = GetServerUrl() + "/" + scriptName[len(scriptName)-1]
 	zlog.MiSec().Info().Msgf("url %s", url)
+	osUrl := GetServerUrl() + "/" + config.ImageFileName
 
-	data := GetData()
+	// data := GetData()
 
-	yamlContent, err := yaml.Marshal(data)
-	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Error... %v", err)
-		return nil, err
-	}
+	// yamlContent, err := yaml.Marshal(data)
+	// if err != nil {
+	// 	zlog.MiSec().Fatal().Err(err).Msgf("Error... %v", err)
+	// 	return nil, err
+	// }
 
 	zlog.MiSec().Info().Msg("Return Manifest file.")
-	return &pb.GetArtifactsResponse{StatusCode: true, ManifestFile: string(yamlContent)}, nil
+	return &pb.GetArtifactsResponse{StatusCode: true, OsUrl: osUrl, OverlayscriptUrl: url}, nil
 }
 
-func GetData() Data {
-	return Data{
-		OsUrl:            "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img",
-		OverlayScriptUrl: url,
-	}
-}
+// func GetData() Data {
+// 	return Data{
+// 		OsUrl:            "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img",
+// 		OverlayScriptUrl: url,
+// 	}
+// }
 
 func GetCuratedScript(profile string, platform string) string {
 	filename := curation.GetCuratedScript(profile, platform)
@@ -122,19 +123,19 @@ func GetServerUrl() string {
 func SignMicroOS() (bool, error) {
 	//MODE := GetMODE()
 	scriptPath := GetScriptDir()
-	_, err := rest.InClusterConfig()
-	if err == nil {
-		signed, err := signing.SignHookOS(scriptPath)
-		if err != nil {
-			zlog.MiSec().Info().Msgf("Failed to sign MicroOS %v", err)
-			return false, err
-		}
-		if signed {
-			zlog.MiSec().Info().Msgf("Signed MicroOS and moved to PVC")
-		}
-	} else {
-		zlog.MiSec().Info().Msgf("Skip Signing")
+	// _, err := rest.InClusterConfig()
+	// if err == nil {
+	signed, err := signing.SignHookOS(scriptPath)
+	if err != nil {
+		zlog.MiSec().Info().Msgf("Failed to sign MicroOS %v", err)
+		return false, err
 	}
+	if signed {
+		zlog.MiSec().Info().Msgf("Signed MicroOS and moved to PVC")
+	}
+	// } else {
+	// 	zlog.MiSec().Info().Msgf("Skip Signing")
+	// }
 	return true, nil
 }
 
@@ -168,4 +169,37 @@ func GetScriptDir() string {
 	zlog.MiSec().Info().Msgf("Root dir %s", parentDir)
 	scriptPath := filepath.Join(parentDir, "pkg", "script")
 	return scriptPath
+}
+
+func DownloadOS() error {
+	zlog.Info().Msgf("Inside DownloadOS...")
+
+	// Command-line arguments
+	imageURL := config.ImageUrl
+	targetDir := GetScriptDir()
+	fileName := fileNameFromURL(imageURL)
+	rawFileName := strings.TrimSuffix(fileName, ".img") + ".raw.gz"
+	file := targetDir + "/" + rawFileName
+
+	// Check if the compressed raw image file already exists
+	if _, err := os.Stat(file); os.IsNotExist(err) {
+		// Download the image
+		if err := download.DownloadUbuntuImage(imageURL, "image.img", file, rawFileName); err != nil {
+			zlog.MiSec().Fatal().Err(err).Msgf("Error downloading image:%v", err)
+			return err
+		}
+
+	} else {
+		zlog.MiSec().Info().Msgf("Compressed raw image file already exists: %s", file)
+	}
+
+	zlog.MiSec().Info().Msg("File downloaded and converted into raw file")
+	return nil
+
+}
+
+// Extract filename from URL
+func fileNameFromURL(url string) string {
+	parts := strings.Split(url, "/")
+	return parts[len(parts)-1]
 }

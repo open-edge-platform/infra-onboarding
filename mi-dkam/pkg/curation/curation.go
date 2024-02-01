@@ -6,7 +6,6 @@ package curation
 import (
 	"bufio"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -257,121 +256,5 @@ func AddProxies(fileName string, newLines []string) {
 		zlog.MiSec().Fatal().Err(err).Msgf("Error: %v", err)
 		return
 	}
-
-}
-
-func DownloadArtifacts(fileServer string, harborServer string, scriptPath string, tag string) error {
-	errp := os.Chdir(scriptPath)
-	if errp != nil {
-		zlog.MiSec().Fatal().Err(errp).Msgf("Error changing working directory: %v\n", errp)
-		return errp
-	}
-	outDir := filepath.Join(scriptPath, "tmp")
-	// 0. cleanup
-	os.RemoveAll(outDir)
-
-	mkErr := os.MkdirAll(outDir, 0755) // 0755 sets read, write, and execute permissions for owner, and read and execute permissions for others
-	if mkErr != nil {
-		zlog.MiSec().Fatal().Err(mkErr).Msgf("Error creating directory: %v", mkErr)
-		return mkErr
-	}
-	zlog.MiSec().Info().Msg("tmp folder created successfully")
-
-	// 1. Create a file store
-	// fs, err := file.New(outDir)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// defer fs.Close()
-
-	// // 2. Connect to a remote repository
-	// ctx := context.Background()
-	// repo, err := remote.NewRepository(harborServer + "/" + config.Artifact)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// // 3. Authenticate (not required in AMR)
-	// /*
-	// 	repo.Client = &auth.Client{
-	// 		Client: retry.DefaultClient,
-	// 		Cache:  auth.DefaultCache,
-	// 		Credential: auth.StaticCredential(reg, auth.Credential{
-	// 			Username: "username",
-	// 			Password: "password",
-	// 		}),
-	// 	}*/
-
-	// // 4. Copy from the remote repository to the file store
-	// manifestDescriptor, err := oras.Copy(ctx, repo, tag, fs, tag, oras.DefaultCopyOptions)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// zlog.MiSec().Info().Msgf("Manifest descriptor: %s", manifestDescriptor)
-
-	// // 5.list files
-	// zlog.MiSec().Info().Msg("Download files:")
-	// entries, err := os.ReadDir(outDir)
-	// if err != nil {
-	// 	zlog.MiSec().Fatal().Err(err).Msgf("Error reading the folder %v", err)
-	// }
-
-	// for _, e := range entries {
-	// 	zlog.MiSec().Info().Msgf("filename %s", e.Name())
-	// 	manifestFile := filepath.Join(outDir, e.Name())
-	// 	releaseFile := filepath.Join(outDir, config.ReleaseVersion+".yaml")
-	// 	if strings.Contains(e.Name(), "24.03") {
-	// 		e := os.Rename(manifestFile, releaseFile)
-	// 		if e != nil {
-	// 			zlog.MiSec().Fatal().Err(err).Msgf("Failed to rename file %v", e)
-	// 		}
-	// 	}
-	// }
-
-	url := "http://rs-proxy-files.rs-proxy.svc.cluster.local:8081/publish/release-manifest/24.03.0-dev.yaml"
-	client := &http.Client{
-		Transport: &http.Transport{
-			ForceAttemptHTTP2: false,
-			MaxIdleConns:      10,
-			IdleConnTimeout:   30,
-		},
-	}
-	// Create an HTTP GET request with the specified URL
-	req, httperr := http.NewRequest("GET", url, nil)
-	if httperr != nil {
-		zlog.MiSec().Fatal().Err(httperr).Msgf("Error creating request: %v\n", httperr)
-		return httperr
-
-	}
-
-	// Set the HTTP version to 1.1
-	req.Proto = "HTTP/1.1"
-
-	// Perform the HTTP GET request
-	resp, clienterr := client.Do(req)
-	if clienterr != nil {
-		zlog.MiSec().Fatal().Err(clienterr).Msgf("Error performing request: %v\n", clienterr)
-		return clienterr
-
-	}
-	defer resp.Body.Close()
-
-	filePath := outDir + "/" + config.ReleaseVersion + ".yaml"
-	//Read the response body
-	//Create or open the local file for writing
-	file, fileerr := os.Create(filePath)
-	if fileerr != nil {
-		zlog.MiSec().Fatal().Err(fileerr).Msgf("Error while creating release manifest file.")
-		return fileerr
-	}
-	defer file.Close()
-
-	// Copy the response body to the local file
-	_, copyErr := io.Copy(file, resp.Body)
-	if copyErr != nil {
-		zlog.MiSec().Fatal().Err(copyErr).Msgf("Error while coping content ")
-	}
-	zlog.MiSec().Info().Msg("File downloaded")
-	return nil
 
 }

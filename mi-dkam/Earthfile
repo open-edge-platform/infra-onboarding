@@ -70,7 +70,8 @@ docker-dkammgr:
         autoconf automake make gcc \
         m4 git gettext autopoint pkg-config \
         autoconf-archive python3 bison flex \
-        gawk efitools sbsigntool gnupg uuid-runtime
+        gawk efitools sbsigntool gnupg uuid-runtime \
+        pigz qemu-utils
     ARG version='0.0.0-unknown'
     WORKDIR /
     COPY pkg /pkg

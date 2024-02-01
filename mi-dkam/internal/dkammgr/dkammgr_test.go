@@ -4,12 +4,11 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"reflect"
+	"strings"
 	"testing"
 
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v2"
 )
 
 func TestGetArtifacts(t *testing.T) {
@@ -29,7 +28,12 @@ func TestGetArtifacts(t *testing.T) {
 	assert.NoError(t, err)
 	// Assert that the response is not nil
 	assert.NotNil(t, response)
+	assert.Equal(t, true, isImageFile(response.OsUrl))
 
+}
+
+func isImageFile(filename string) bool {
+	return strings.HasSuffix(filename, ".raw.gz")
 }
 
 func TestDownloadArtifacts(t *testing.T) {
@@ -42,42 +46,42 @@ func TestDownloadArtifacts(t *testing.T) {
 	}
 }
 
-func TestDataType(t *testing.T) {
-	// Call the function or create an instance of the struct
-	data := GetData()
+// func TestDataType(t *testing.T) {
+// 	// Call the function or create an instance of the struct
+// 	data := GetData()
 
-	// Check if the variable 'data' is of type 'Data'
-	if reflect.TypeOf(data) != reflect.TypeOf(Data{}) {
-		t.Errorf("Expected type 'Data', but got %T", data)
-	}
-}
+// 	// Check if the variable 'data' is of type 'Data'
+// 	if reflect.TypeOf(data) != reflect.TypeOf(Data{}) {
+// 		t.Errorf("Expected type 'Data', but got %T", data)
+// 	}
+// }
 
-func TestResponseContainsYAML(t *testing.T) {
-	type Data struct {
-		OsUrl            string
-		OverlayScriptUrl string
-	}
+// func TestResponseContainsYAML(t *testing.T) {
+// 	type Data struct {
+// 		OsUrl            string
+// 		OverlayScriptUrl string
+// 	}
 
-	data := GetData()
+// 	data := GetData()
 
-	// Marshal the data to YAML
-	yamlContent, err := yaml.Marshal(data)
-	if err != nil {
-		t.Fatalf("Error marshaling data to YAML: %v", err)
-	}
+// 	// Marshal the data to YAML
+// 	yamlContent, err := yaml.Marshal(data)
+// 	if err != nil {
+// 		t.Fatalf("Error marshaling data to YAML: %v", err)
+// 	}
 
-	var responseData Data
-	err = yaml.Unmarshal(yamlContent, &responseData)
-	if err != nil {
-		t.Fatalf("Error unmarshaling YAML data: %v", err)
-	}
+// 	var responseData Data
+// 	err = yaml.Unmarshal(yamlContent, &responseData)
+// 	if err != nil {
+// 		t.Fatalf("Error unmarshaling YAML data: %v", err)
+// 	}
 
-	// Check if the YAML data contains the expected message
-	expectedMessage := "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
-	if responseData.OsUrl != expectedMessage {
-		t.Errorf("Expected message '%s', but got '%s'", expectedMessage, responseData.OsUrl)
-	}
-}
+// 	// Check if the YAML data contains the expected message
+// 	expectedMessage := "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
+// 	if responseData.OsUrl != expectedMessage {
+// 		t.Errorf("Expected message '%s', but got '%s'", expectedMessage, responseData.OsUrl)
+// 	}
+//}
 
 func TestGetCuratedScript(t *testing.T) {
 	filename := GetCuratedScript("profile", "platform")
@@ -199,4 +203,13 @@ func TestBuildSignIpxe(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %v", err)
 	}
+}
+
+func TestDownloadOS(t *testing.T) {
+
+	// Test download function
+	if err := DownloadOS(); err != nil {
+		t.Errorf("Download failed: %v", err)
+	}
+
 }
