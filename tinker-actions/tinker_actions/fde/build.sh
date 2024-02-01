@@ -31,7 +31,7 @@ docker build -f Dockerfile \
 	--build-arg http_proxy=$http_proxy \
 	--build-arg https_proxy=$http_proxy \
 	--build-arg no_proxy="$no_proxy" \
-	-t fde:$ver . --push
+	-t fde:$ver .
 
 # Save the Docker image
 
