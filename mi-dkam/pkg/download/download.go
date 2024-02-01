@@ -19,7 +19,7 @@ var zlog = logging.GetLogger("MIDKAMAuth")
 
 func DownloadMicroOS(scriptPath string) (bool, error) {
 	zlog.Info().Msgf("Inside Download and sign artifact... %s", scriptPath)
-	url := "http://rs-proxy-files.rs-proxy.svc.cluster.local:8081/publish/fm_en_artifacts/hook-os/0.8.1-dev-e87f024/alpine_image/hook_x86_64.tar.gz"
+	url := config.RSProxy + "fm_en_artifacts/hook-os/0.8.1-dev-e87f024/alpine_image/hook_x86_64.tar.gz"
 	client := &http.Client{
 		Transport: &http.Transport{
 			ForceAttemptHTTP2: false,
@@ -135,7 +135,7 @@ func DownloadArtifacts(fileServer string, harborServer string, scriptPath string
 	// 	}
 	// }
 
-	url := "http://rs-proxy-files.rs-proxy.svc.cluster.local:8081/publish/release-manifest/24.03.0-dev.yaml"
+	url := config.RSProxy + tag
 	client := &http.Client{
 		Transport: &http.Transport{
 			ForceAttemptHTTP2: false,

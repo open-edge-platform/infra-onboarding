@@ -100,6 +100,13 @@ sign_all_components() {
     else
         echo "Path /data does not exist."
         if [ ! -f $working_dir/hook_x86_64.tar.gz ]; then
+            rm -rf $GPG_KEY_DIR
+            rm -rf $SB_KEYS_DIR
+            rm -rf $working_dir/server_certs
+            rm -rf $public_gpg_key
+            rm -rf $STORE_ALPINE
+            rm -rf $GRUB_SRC
+            rm -rf $BOOTX_LOC
             exit 0
         fi
         tar -xvf $working_dir/hook_x86_64.tar.gz -C $STORE_ALPINE
@@ -221,4 +228,11 @@ secure_hookos() {
  }
 
 secure_hookos
+rm -rf $GPG_KEY_DIR
+rm -rf $SB_KEYS_DIR
+rm -rf $working_dir/server_certs
+rm -rf $public_gpg_key
+rm -rf $STORE_ALPINE
+rm -rf $GRUB_SRC
+rm -rf $BOOTX_LOC
 

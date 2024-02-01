@@ -186,6 +186,6 @@ verify_https_certs
 build_ipxe_efi
 sign_ipxe_efi
 final_artifacts
-# rm -rf $IPXE_DIR
-# rm -rf $SERVER_CERT_DIR
-# rm -rf $working_dir/out
+rm -rf $IPXE_DIR
+rm -rf $working_dir/out
+rm -rf $working_dir/jammy-server-cloudimg-amd64.raw.gz
