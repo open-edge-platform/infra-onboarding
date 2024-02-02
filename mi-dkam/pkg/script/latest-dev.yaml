@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: LicenseRef-Intel
 metadata:
   schemaVersion: 0.2.1
-  release: 24.03.0-dev
+  release: 24.03.0-dev-3379b4d
   ociRegistries:
     - name: Release Service OCI registry
       url: https://amr-registry.caas.intel.com
@@ -36,8 +36,8 @@ metadata:
       url: https://registry.k8s.io
       thirdParty: true
       authType: none
-    - name: Github AKRI OCI Registry
-      url: https://ghcr.io/project-akri
+    - name: Github OCI Registry
+      url: https://ghcr.io
       thirdParty: true
       authType: none
   chartmuseumRepositories:
@@ -91,11 +91,15 @@ bma:
     - description: Platform Observability Agent
       repository: Release Service debian repository
       package: platform-observability-agent
-      version: 1.2.0
+      version: 1.2.2
     - description: Platform Update Agent
       repository: Release Service debian repository
       package: platform-update-agent
       version: 1.0.9
+    - description: Platform Telemetry Agent
+      repository: Release Service debian repository
+      package: platform-telemetry-agent
+      version: 0.1.0
     - description: INBC Program
       repository: Release Service debian repository
       package: inbc-program
@@ -137,7 +141,19 @@ provisioning:
     - description: Provisioning Installer
       server: ""
       path: ""
-      version: 1.3.6
+      version: 1.3.7
+    - description: iPXE binary
+      server: Release Service Fileserver
+      path: fm_en_artifacts/ipxe-efi-app/1.0.1/ipxe.efi
+      version: 1.0.1
+    - description: iPXE script
+      server: Release Service Fileserver
+      path: fm_en_artifacts/ipxe-efi-app/1.0.1/chain.ipxe
+      version: 1.0.1
+    - description: MicroOS image
+      server: Release Service Fileserver
+      path: fm_en_artifacts/hook-os/0.8.1-dev-3ba7543/alpine_image/hook_x86_64.tar.gz
+      version: 0.8.1-dev-3ba7543
   debs: []
   images:
     - description: Provision Service
@@ -151,7 +167,7 @@ provisioning:
     - description: Conductor Installer
       registry: Release Service OCI registry
       image: one-intel-edge/edgenode/conductor-installer
-      version: 1.3.5
+      version: 1.3.6
     - description: APT Debian Package mirror
       registry: Release Service OCI registry
       image: one-intel-edge/edgenode/apt-mirror-debmirror
@@ -164,34 +180,50 @@ provisioning:
       registry: Release Service OCI registry
       image: one-intel-edge/edgenode/caddy-upload-alpine
       version: 1.0.0
+    - description: Tinker Actions efibootset
+      registry: Release Service OCI registry
+      image: one-intel-edge/edgenode/tinker-actions/efibootset
+      version: 0.7.0-dev
+    - description: Tinker Actions fdoclient
+      registry: Release Service OCI registry
+      image: one-intel-edge/edgenode/tinker-actions/fdoclient_action
+      version: 0.7.0-dev
+    - description: Tinker Actions Create Partition
+      registry: Release Service OCI registry
+      image: one-intel-edge/edgenode/tinker-actions/create_partition
+      version: 0.7.0-dev
+    - description: Tinker Actions Store Alpine
+      registry: Release Service OCI registry
+      image: one-intel-edge/edgenode/tinker-actions/store_alpine
+      version: 0.7.0-dev
 lpke:
   files:
     - description: APP Template
       server: Release Service Fileserver
-      path: templates/APP Template/1.1.0-dev-0a3e81b/cluster.json
-      version: 0a3e81bcf607fe3ec84065ea3a37f67f88411c70
+      path: templates/APP Template/1.1.0-dev-23f4c81/cluster.json
+      version: 23f4c8104aa6902c7d185f1ae8f6e614d75eeef3
+    - description: lp-base-privileged
+      server: Release Service Fileserver
+      path: templates/lp-base-privileged/1.1.0-dev-23f4c81/cluster.json
+      version: 23f4c8104aa6902c7d185f1ae8f6e614d75eeef3
+    - description: lp-base-restricted
+      server: Release Service Fileserver
+      path: templates/lp-base-restricted/1.1.0-dev-23f4c81/cluster.json
+      version: 23f4c8104aa6902c7d185f1ae8f6e614d75eeef3
+    - description: lp-base-baseline
+      server: Release Service Fileserver
+      path: templates/lp-base-baseline/1.1.0-dev-23f4c81/cluster.json
+      version: 23f4c8104aa6902c7d185f1ae8f6e614d75eeef3
   images:
-    - registry: Docker Hub OCI registry
-      image: alpine
-      version: 3.18.4
-    - registry: Release Service OCI registry
-      image: one-intel-edge/edgenode/edgedns-coredns
-      version: 1.1.3
-    - registry: Release Service OCI registry
-      image: one-intel-edge/edgenode/usbredir-daemon
-      version: 1.1.3
-    - registry: Fluent Bit OCI registry
-      image: fluent/fluent-bit
-      version: 2.1.9
-    - registry: Docker Hub OCI registry
-      image: bitnami/kubectl
-      version: 1.18.2
     - registry: Docker Hub OCI registry
       image: curlimages/curl
       version: 7.83.1
     - registry: Docker Hub OCI registry
       image: intel/observability-telegraf
       version: 1.3.0
+    - registry: Docker Hub OCI registry
+      image: library/alpine
+      version: 3.18.4
     - registry: Docker Hub OCI registry
       image: library/busybox
       version: 1.35.0
@@ -214,6 +246,9 @@ lpke:
       image: openebs/node-disk-operator
       version: 2.1.0
     - registry: Docker Hub OCI registry
+      image: openebs/provisioner-localpv
+      version: 3.4.0
+    - registry: Docker Hub OCI registry
       image: openpolicyagent/gatekeeper-crds
       version: v3.13.2
     - registry: Docker Hub OCI registry
@@ -224,13 +259,16 @@ lpke:
       version: v0.8.0
     - registry: Docker Hub OCI registry
       image: rancher/hardened-cluster-autoscaler
-      version: v1.8.6-build20230406
+      version: v1.8.6-build20230609
     - registry: Docker Hub OCI registry
       image: rancher/hardened-cni-plugins
       version: v1.2.0-build20230523
     - registry: Docker Hub OCI registry
+      image: rancher/hardened-cni-plugins
+      version: v1.2.0-build20231009
+    - registry: Docker Hub OCI registry
       image: rancher/hardened-coredns
-      version: v1.10.1-build20230406
+      version: v1.10.1-build20230607
     - registry: Docker Hub OCI registry
       image: rancher/hardened-etcd
       version: v3.5.9-k3s1-build20230802
@@ -238,23 +276,17 @@ lpke:
       image: rancher/hardened-ib-sriov-cni
       version: v1.0.2-build20221014
     - registry: Docker Hub OCI registry
+      image: rancher/hardened-ib-sriov-cni
+      version: v1.0.2-build20230607
+    - registry: Docker Hub OCI registry
       image: rancher/hardened-k8s-metrics-server
-      version: v0.6.3-build20230515
-    - registry: Docker Hub OCI registry
-      image: rancher/system-agent-installer-rke2
-      version: v1.26.8-rke2r1
-    - registry: Docker Hub OCI registry
-      image: rancher/rke2-runtime
-      version: v1.26.8-rke2r1
+      version: v0.6.3-build20230607
     - registry: Docker Hub OCI registry
       image: rancher/hardened-kubernetes
-      version: v1.26.8-rke2r1-build20230824
+      version: v1.27.9-rke2r1-build20231220
     - registry: Docker Hub OCI registry
       image: rancher/hardened-multus-cni
       version: v4.0.2-build20230811
-    - registry: Kubernetes 2 OCI Registry
-      image: nfd/node-feature-discovery
-      version: v0.14.2
     - registry: Docker Hub OCI registry
       image: rancher/hardened-sriov-cni
       version: v2.6.3-build20221014
@@ -275,34 +307,37 @@ lpke:
       version: v1.2.0-build20221014
     - registry: Docker Hub OCI registry
       image: rancher/hardened-whereabouts
-      version: v0.6-build20230109
+      version: v0.6.2-build20230717
     - registry: Docker Hub OCI registry
       image: rancher/klipper-helm
       version: v0.8.2-build20230815
     - registry: Docker Hub OCI registry
       image: rancher/local-path-provisioner
-      version: v0.0.21
+      version: v0.0.24
     - registry: Docker Hub OCI registry
       image: rancher/mirrored-calico-cni
-      version: v3.26.1
+      version: v3.26.3
     - registry: Docker Hub OCI registry
       image: rancher/mirrored-calico-kube-controllers
-      version: v3.26.1
+      version: v3.26.3
     - registry: Docker Hub OCI registry
       image: rancher/mirrored-calico-node
-      version: v3.26.1
+      version: v3.26.3
     - registry: Docker Hub OCI registry
       image: rancher/mirrored-calico-operator
-      version: v1.30.4
+      version: v1.30.7
     - registry: Docker Hub OCI registry
       image: rancher/mirrored-calico-pod2daemon-flexvol
-      version: v3.26.1
+      version: v3.26.3
     - registry: Docker Hub OCI registry
       image: rancher/mirrored-calico-typha
-      version: v3.26.1
+      version: v3.26.3
     - registry: Docker Hub OCI registry
       image: rancher/mirrored-ingress-nginx-kube-webhook-certgen
       version: v20230312-helm-chart-4.5.2-28-g66a760794
+    - registry: Docker Hub OCI registry
+      image: rancher/mirrored-pause
+      version: "3.6"
     - registry: Docker Hub OCI registry
       image: rancher/mirrored-sig-storage-snapshot-controller
       version: v6.2.1
@@ -311,61 +346,76 @@ lpke:
       version: v6.2.2
     - registry: Docker Hub OCI registry
       image: rancher/nginx-ingress-controller
-      version: nginx-1.7.1-hardened1
-    - registry: Docker Hub OCI registry
-      image: rancher/pause
-      version: "3.6"
+      version: nginx-1.9.3-hardened1
     - registry: Docker Hub OCI registry
       image: rancher/rancher-agent
-      version: v2.7.7
+      version: v2.8.0
     - registry: Docker Hub OCI registry
       image: rancher/rancher-webhook
-      version: v0.3.6
+      version: v0.4.2
     - registry: Docker Hub OCI registry
       image: rancher/rke2-cloud-provider
       version: v1.26.3-build20230406
     - registry: Docker Hub OCI registry
+      image: rancher/rke2-cloud-provider
+      version: v1.28.2-build20231016
+    - registry: Docker Hub OCI registry
+      image: rancher/rke2-runtime
+      version: v1.27.9-rke2r1
+    - registry: Docker Hub OCI registry
       image: rancher/shell
-      version: v0.1.21
+      version: v0.1.22
+    - registry: Docker Hub OCI registry
+      image: rancher/system-agent-installer-rke2
+      version: v1.27.9-rke2r1
     - registry: Docker Hub OCI registry
       image: rancher/system-agent
-      version: v0.3.3-suc
+      version: v0.3.4-suc
     - registry: Docker Hub OCI registry
       image: rancher/system-upgrade-controller
-      version: v0.11.0
-    - registry: Github AKRI OCI Registry
-      image: akri/agent
+      version: v0.13.1
+    - registry: Fluent Bit OCI registry
+      image: fluent/fluent-bit
+      version: 2.1.9
+    - registry: Github OCI Registry
+      image: project-akri/akri/agent
       version: v0.12.9
-    - registry: Github AKRI OCI Registry
-      image: akri/controller
+    - registry: Github OCI Registry
+      image: project-akri/akri/controller
       version: v0.12.9
-    - registry: Github AKRI OCI Registry
-      image: akri/udev-discovery
+    - registry: Github OCI Registry
+      image: project-akri/akri/udev-discovery
       version: v0.12.9
-    - registry: Github AKRI OCI Registry
-      image: akri/webhook-configuration
+    - registry: Github OCI Registry
+      image: project-akri/akri/webhook-configuration
       version: v0.12.9
     - registry: Kubernetes 1 OCI Registry
       image: external-dns/external-dns
       version: v0.12.2
-    - registry: Kubernetes 1 OCI Registry
-      image: kube-scheduler
-      version: v1.26.4
-    - registry: Kubernetes 1 OCI Registry
-      image: sig-storage/csi-attacher
-      version: v3.5.0
-    - registry: Kubernetes 1 OCI Registry
+    - registry: Kubernetes 2 OCI Registry
+      image: ingress-nginx/kube-webhook-certgen
+      version: v1.1.1
+    - registry: Kubernetes 2 OCI Registry
+      image: kube-state-metrics/kube-state-metrics
+      version: v2.10.0
+    - registry: Kubernetes 2 OCI Registry
+      image: nfd/node-feature-discovery
+      version: v0.14.2
+    - registry: Kubernetes 2 OCI Registry
+      image: sig-storage/csi-node-driver-registrar
+      version: v2.3.0
+    - registry: Kubernetes 2 OCI Registry
+      image: sig-storage/csi-provisioner
+      version: v3.0.0
+    - registry: Kubernetes 2 OCI Registry
       image: sig-storage/csi-resizer
-      version: v1.6.0
-    - registry: Kubernetes 1 OCI Registry
+      version: v1.2.0
+    - registry: Kubernetes 2 OCI Registry
       image: sig-storage/csi-snapshotter
-      version: v4.2.1
-    - registry: Kubernetes 1 OCI Registry
+      version: v4.0.0
+    - registry: Kubernetes 2 OCI Registry
       image: sig-storage/snapshot-controller
-      version: v4.2.1
-    - registry: Quai OCI registry
-      image: brancz/kube-rbac-proxy
-      version: v0.10.0
+      version: v4.0.0
     - registry: Quai OCI registry
       image: brancz/kube-rbac-proxy
       version: v0.14.3
@@ -373,32 +423,23 @@ lpke:
       image: coreos/etcd
       version: v3.5.4
     - registry: Quai OCI registry
-      image: coreos/etcd
-      version: v3.5.6
-    - registry: Quai OCI registry
       image: jetstack/cert-manager-cainjector
-      version: v1.12.2
+      version: v1.13.2
     - registry: Quai OCI registry
       image: jetstack/cert-manager-controller
-      version: v1.12.2
-    - registry: Quai OCI registry
-      image: jetstack/cert-manager-ctl
-      version: v1.12.2
-    - registry: Quai OCI registry
-      image: jetstack/cert-manager-webhook
-      version: v1.12.2
+      version: v1.13.2
     - registry: Quai OCI registry
       image: kubevirt/cdi-apiserver
       version: v1.57.0
     - registry: Quai OCI registry
       image: kubevirt/cdi-cloner
-      version: v1.56.0
+      version: v1.57.0
     - registry: Quai OCI registry
       image: kubevirt/cdi-controller
       version: v1.57.0
     - registry: Quai OCI registry
       image: kubevirt/cdi-importer
-      version: v1.56.0
+      version: v1.57.0
     - registry: Quai OCI registry
       image: kubevirt/cdi-operator
       version: v1.57.0
@@ -407,10 +448,10 @@ lpke:
       version: v1.57.0
     - registry: Quai OCI registry
       image: kubevirt/cdi-uploadserver
-      version: v1.56.0
+      version: v1.57.0
     - registry: Quai OCI registry
-      image: kubevirt/virt-api
-      version: v1.0.0
+      image: kubevirt/macvtap-cni
+      version: v0.11.0
     - registry: Quai OCI registry
       image: kubevirt/virt-controller
       version: v1.0.0
@@ -424,17 +465,11 @@ lpke:
       image: kubevirt/virt-operator
       version: v1.0.0
     - registry: Quai OCI registry
-      image: kubevirt/macvtap-cni
-      version: v0.11.0
-    - registry: Quai OCI registry
       image: metallb/controller
-      version: v0.13.10
+      version: v0.13.12
     - registry: Quai OCI registry
       image: metallb/speaker
-      version: v0.13.10
-    - registry: Quai OCI registry
-      image: prometheus/node-exporter
-      version: v1.6.1
+      version: v0.13.12
     - registry: Quai OCI registry
       image: prometheus-operator/prometheus-config-reloader
       version: v0.68.0
@@ -442,73 +477,51 @@ lpke:
       image: prometheus-operator/prometheus-operator
       version: v0.68.0
     - registry: Quai OCI registry
+      image: prometheus/node-exporter
+      version: v1.6.1
+    - registry: Quai OCI registry
       image: prometheus/prometheus
       version: v2.47.1
-    - registry: Kubernetes 2 OCI Registry
-      image: kube-state-metrics/kube-state-metrics
-      version: v2.10.0
-    - registry: Kubernetes 2 OCI Registry
-      image: sig-storage/csi-node-driver-registrar
-      version: v2.3.0
-    - registry: Kubernetes 2 OCI Registry
-      image: sig-storage/csi-node-driver-registrar
-      version: v2.6.0
-    - registry: Kubernetes 2 OCI Registry
-      image: sig-storage/csi-provisioner
-      version: v3.0.0
-    - registry: Kubernetes 2 OCI Registry
-      image: sig-storage/csi-resizer
-      version: v1.2.0
-    - registry: Kubernetes 2 OCI Registry
-      image: sig-storage/csi-snapshotter
-      version: v4.0.0
-    - registry: Kubernetes 2 OCI Registry
-      image: sig-storage/livenessprobe
-      version: v2.8.0
-    - registry: Kubernetes 2 OCI Registry
-      image: sig-storage/snapshot-controller
-      version: v4.0.0
-  deploymentPackages:
-    - registry: Release Service OCI Helm registry
-      version: 0.0.2
-      dpkg: one-intel-edge/edgenode/dp/usb
-    - registry: Release Service OCI Helm registry
-      version: 0.0.2
-      dpkg: one-intel-edge/edgenode/dp/virtualization
+    - registry: Release Service OCI registry
+      image: one-intel-edge/edgenode/edgedns-coredns
+      version: 1.1.7
+    - registry: Release Service OCI registry
+      image: one-intel-edge/edgenode/usbredir-daemon
+      version: 1.1.7
   helmcharts:
     - registry: Release Service OCI Helm registry
       version: 0.12.10
       chart: one-intel-edge/edgenode/akri
     - registry: Release Service OCI Helm registry
-      version: 1.57.1
+      version: 1.57.2
       chart: one-intel-edge/edgenode/cdi
-    - registry: Release Service OCI Helm registry
-      version: 1.13.3
-      chart: one-intel-edge/edgenode/cert-manager
     - registry: Release Service OCI Helm registry
       version: 0.1.1
       chart: one-intel-edge/edgenode/cert-manager-config
     - registry: Release Service OCI Helm registry
-      version: 1.1.3
+      version: 1.13.3
+      chart: one-intel-edge/edgenode/cert-manager
+    - registry: Release Service OCI Helm registry
+      version: 1.1.7
       chart: one-intel-edge/edgenode/edgedns-chart
     - registry: Release Service OCI Helm registry
-      version: 0.1.23
+      version: 0.1.24
       chart: one-intel-edge/edgenode/fluent-bit
+    - registry: Release Service OCI Helm registry
+      version: 1.0.7
+      chart: one-intel-edge/edgenode/gatekeeper-constraints
     - registry: Release Service OCI Helm registry
       version: 3.13.4
       chart: one-intel-edge/edgenode/gatekeeper
     - registry: Release Service OCI Helm registry
-      version: 1.0.5
-      chart: one-intel-edge/edgenode/gatekeeper-constraints
-    - registry: Release Service OCI Helm registry
-      version: 1.0.5
+      version: 1.0.6
       chart: one-intel-edge/edgenode/kubevirt
-    - registry: Release Service OCI Helm registry
-      version: 0.13.14
-      chart: one-intel-edge/edgenode/metallb
     - registry: Release Service OCI Helm registry
       version: 0.1.1
       chart: one-intel-edge/edgenode/metallb-config
+    - registry: Release Service OCI Helm registry
+      version: 0.13.14
+      chart: one-intel-edge/edgenode/metallb
     - registry: Release Service OCI Helm registry
       version: 0.1.8
       chart: one-intel-edge/edgenode/network-policies
@@ -516,7 +529,7 @@ lpke:
       version: 2.4.11
       chart: one-intel-edge/edgenode/node-exporter
     - registry: Release Service OCI Helm registry
-      version: 3.9.1
+      version: 3.9.2
       chart: one-intel-edge/edgenode/openebs
     - registry: Release Service OCI Helm registry
       version: 33.1.21
@@ -528,5 +541,12 @@ lpke:
       version: 0.1.13
       chart: one-intel-edge/edgenode/telegraf
     - registry: Release Service OCI Helm registry
-      version: 1.1.3
+      version: 1.1.7
       chart: one-intel-edge/edgenode/usbredir-daemon-chart
+  deploymentPackages:
+    - registry: Release Service OCI Helm registry
+      version: 0.0.3
+      dpkg: one-intel-edge/edgenode/dp/usb
+    - registry: Release Service OCI Helm registry
+      version: 0.0.4
+      dpkg: one-intel-edge/edgenode/dp/virtualization

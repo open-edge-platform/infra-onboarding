@@ -41,7 +41,7 @@ func GetCuratedScript(profile string, platform string) string {
 	MODE := os.Getenv("MODE")
 	//MODE := "dev"
 
-	if MODE == "dev" {
+	if MODE == "dev" || MODE == "preint" {
 		fileServer = config.DevFileServer
 		harborServer = config.DevHarbor
 	}
@@ -178,7 +178,7 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 		zlog.MiSec().Fatal().Err(err).Msgf("Error: %v", err)
 	}
 
-	if MODE == "dev" {
+	if MODE == "dev" || MODE == "preint" {
 		//Add proxies to the installer script for dev environment.
 		newLines := []string{"echo 'http_proxy=http://proxy-dmz.intel.com:911' >> /etc/environment;",
 			"echo 'https_proxy=http://proxy-dmz.intel.com:912' >> /etc/environment;",

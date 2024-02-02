@@ -39,6 +39,6 @@ mage deploy:kindAll
 
 Deploy DKAM helm chart in dev instance
 cd ~frameworks.edge.one-intel-edge.maestro-infra.charts/mi-dkam
-helm install dkam --set env.mode="dev" --set traefikReverseProxy.dnsname="https://tink.dkam.jf.intel.com/tink-stack" -n maestro-iaas-system .
+helm install dkam --set env.mode="dev" --set traefikReverseProxy.dnsname="https://tink.dkam.jf.intel.com/tink-stack" --set traefikReverseProxy.proxyip="http://10.49.1.24/tink-stack" -n maestro-iaas-system .
  
 

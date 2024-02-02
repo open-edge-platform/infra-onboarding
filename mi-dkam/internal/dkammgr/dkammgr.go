@@ -88,10 +88,11 @@ func (server *Service) GetArtifacts(ctx context.Context, req *pb.GetArtifactsReq
 
 	filename := GetCuratedScript(profile, platform)
 	scriptName := strings.Split(filename, "/")
-	zlog.MiSec().Info().Msgf("url %s", GetServerUrl())
-	url = GetServerUrl() + "/" + scriptName[len(scriptName)-1]
+	proxyIP := os.Getenv("PROXY_IP")
+	zlog.MiSec().Info().Msgf("proxyIP %s", proxyIP)
+	url = proxyIP + "/" + scriptName[len(scriptName)-1]
 	zlog.MiSec().Info().Msgf("url %s", url)
-	osUrl := GetServerUrl() + "/" + config.ImageFileName
+	osUrl := proxyIP + "/" + config.ImageFileName
 
 	// data := GetData()
 
