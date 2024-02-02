@@ -35,6 +35,11 @@ load_balancer_ip=""
 #provide Keyclock url
 keycloak_url=""
 
+# provide extra hosts needed to resolve domain names.
+# example
+#extra_hosts="10.114.181.238 api-proxy.kind.internal,10.114.181.238 app-orch.kind.internal,10.114.181.238 cluster-orch-edge-node.kind.internal"
+extra_hosts=""
+
 ## Organizationonal proxy config (default is intel)
 http_proxy=""
 https_proxy=""

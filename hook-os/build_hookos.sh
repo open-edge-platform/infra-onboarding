@@ -117,6 +117,16 @@ build_hook() {
     #update keycloak url
     sed -i "s|update_idp_url|$keycloak_url|g" hook.yaml
 
+    #update extra hosts needed?
+    if [ $extra_hosts -ne '' ];
+    then
+	# needed for keycloak.kind.internal type of deployment
+	sed -i "s|update_extra_hosts|$extra_hosts|g" hook.yaml
+    else
+	#Remove the entire line for extra hosts if config doesnt have any value
+	sed -i "s|- EXTRA_HOSTS=update_extra_hosts||g" hook.yaml
+    fi
+
     # get the client_auth files and container before running the hook os build.
     get_client_auth
 

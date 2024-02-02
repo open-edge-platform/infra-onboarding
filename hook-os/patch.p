@@ -79,7 +79,7 @@ index 0908c72..94d4299 100644
  	cmd.Stderr = os.Stderr
  
 diff --git a/hook.yaml b/hook.yaml
-index 647e792..3433286 100644
+index 647e792..5174d74 100644
 --- a/hook.yaml
 +++ b/hook.yaml
 @@ -34,6 +34,37 @@ onboot:
@@ -114,7 +114,7 @@ index 647e792..3433286 100644
 +    env:
 +      - CLIENT_AUTH_PRE_BIND=TRUE
 +      - KEYCLOAK_URL=update_idp_url
-+
++      - EXTRA_HOSTS=update_extra_hosts
 +
 +
  services:
