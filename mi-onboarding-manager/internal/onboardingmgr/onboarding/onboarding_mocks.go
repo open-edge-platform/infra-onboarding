@@ -1,0 +1,168 @@
+/*
+   Copyright (C) 2023 Intel Corporation
+   SPDX-License-Identifier: Apache-2.0
+*/
+package onboarding
+
+import (
+	"context"
+	"sync"
+
+	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
+	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
+	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/utils"
+	"github.com/stretchr/testify/mock"
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
+)
+
+type MockInventoryClient struct {
+	mock.Mock
+}
+
+func (m *MockInventoryClient) Close() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+func (m *MockInventoryClient) List(ctx context.Context, filter *inv_v1.ResourceFilter) (*inv_v1.ListResourcesResponse, error) {
+	args := m.Called(ctx, filter)
+	return args.Get(0).(*inv_v1.ListResourcesResponse), args.Error(1)
+}
+
+func (m *MockInventoryClient) ListAll(ctx context.Context, resource *inv_v1.Resource, mask *fieldmaskpb.FieldMask) ([]*inv_v1.Resource, error) {
+	args := m.Called(ctx, resource, mask)
+	return args.Get(0).([]*inv_v1.Resource), args.Error(1)
+}
+
+func (m *MockInventoryClient) Find(ctx context.Context, filter *inv_v1.ResourceFilter) (*inv_v1.FindResourcesResponse, error) {
+	args := m.Called(ctx, filter)
+	return args.Get(0).(*inv_v1.FindResourcesResponse), args.Error(1)
+}
+
+func (m *MockInventoryClient) FindAll(ctx context.Context, resource *inv_v1.Resource, mask *fieldmaskpb.FieldMask) ([]string, error) {
+	args := m.Called(ctx, resource, mask)
+	return args.Get(0).([]string), args.Error(1)
+}
+
+func (m *MockInventoryClient) Get(ctx context.Context, id string) (*inv_v1.GetResourceResponse, error) {
+	args := m.Called(ctx, id)
+	return args.Get(0).(*inv_v1.GetResourceResponse), args.Error(1)
+}
+
+func (m *MockInventoryClient) Create(ctx context.Context, resource *inv_v1.Resource) (*inv_v1.CreateResourceResponse, error) {
+	args := m.Called(ctx, resource)
+	return args.Get(0).(*inv_v1.CreateResourceResponse), args.Error(1)
+}
+
+func (m *MockInventoryClient) Update(ctx context.Context, id string, mask *fieldmaskpb.FieldMask, resource *inv_v1.Resource) (*inv_v1.UpdateResourceResponse, error) {
+	args := m.Called(ctx, id, mask, resource)
+	return args.Get(0).(*inv_v1.UpdateResourceResponse), args.Error(1)
+}
+
+func (m *MockInventoryClient) Delete(ctx context.Context, id string) (*inv_v1.DeleteResourceResponse, error) {
+	args := m.Called(ctx, id)
+	return args.Get(0).(*inv_v1.DeleteResourceResponse), args.Error(1)
+}
+
+func (m *MockInventoryClient) UpdateSubscriptions(ctx context.Context, kinds []inv_v1.ResourceKind) error {
+	args := m.Called(ctx, kinds)
+	return args.Error(0)
+}
+
+func (m *MockInventoryClient) TestingOnlySetClient(client inv_v1.InventoryServiceClient) {
+	m.Called(client)
+}
+
+type MockOnboardingClient struct {
+	mock.Mock
+}
+
+func (m *MockOnboardingClient) ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo, ImgDownldLock, focalImgDdLock, jammyImgDdLock, focalMsImgDdLock *sync.Mutex) error {
+	args := m.Called(artifactinfo, deviceInfo, ImgDownldLock, focalImgDdLock, jammyImgDdLock, focalMsImgDdLock)
+	return args.Error(0)
+}
+
+func (m *MockOnboardingClient) DiWorkflowCreation(deviceInfo utils.DeviceInfo) (string, error) {
+	args := m.Called(deviceInfo)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockOnboardingClient) ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imType string) error {
+	args := m.Called(deviceInfo, imType)
+	return args.Error(0)
+}
+
+type MockInvClient struct {
+	mock.Mock
+}
+
+func (m *MockInvClient) UpdateHostStatusByHostGuid(ctx context.Context, hostGuid string, status computev1.HostStatus) error {
+	args := m.Called(ctx, hostGuid, status)
+	return args.Error(0)
+}
+
+type MockDeviceInfo struct {
+	mock.Mock
+}
+
+func (m *MockDeviceInfo) HwIP() string {
+	args := m.Called()
+	return args.String(0)
+}
+
+func (m *MockDeviceInfo) HwSerialID() string {
+	args := m.Called()
+	return args.String(0)
+}
+
+func (m *MockDeviceInfo) ProvisionerIp() string {
+	args := m.Called()
+	return args.String(0)
+}
+
+func (m *MockDeviceInfo) Guid() string {
+	args := m.Called()
+	return args.String(0)
+}
+
+func (m *MockDeviceInfo) SetGuid(guid string) {
+	m.Called(guid)
+}
+
+// type MockMakeGETRequestWithRetry struct {
+// 	mock.Mock
+// }
+
+// func (m *MockMakeGETRequestWithRetry) Call(deviceInfo *utils.DeviceInfo, caCertPath, certPath string) error {
+// 	args := m.Called(deviceInfo.HwSerialID, deviceInfo.ProvisionerIp, caCertPath, certPath, deviceInfo.Guid)
+// 	return args.Error(0)
+// }
+
+type MockHTTPUtils struct {
+	mock.Mock
+}
+
+func (m *MockHTTPUtils) MakeHTTPGETRequest(pdip, guid, caCertPath, certPath string) ([]byte, error) {
+	args := m.Called(pdip, guid, caCertPath, certPath)
+	return args.Get(0).([]byte), args.Error(1)
+}
+
+type MockController struct {
+	mock.Mock
+}
+
+func (m *MockController) Stop() {
+	m.Called()
+}
+
+type MockDkamServiceClient struct {
+	mock.Mock
+}
+
+func (m *MockDkamServiceClient) GetArtifacts(ctx context.Context, in *dkam.GetArtifactsRequest, opts ...grpc.CallOption) (*dkam.GetArtifactsResponse, error) {
+	args := m.Called(ctx, in, opts)
+	return args.Get(0).(*dkam.GetArtifactsResponse), args.Error(1)
+}
+

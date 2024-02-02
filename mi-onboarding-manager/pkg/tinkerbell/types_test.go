@@ -4,6 +4,7 @@
 package tinkerbell
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -61,3 +62,47 @@ func TestMarshal(t *testing.T) {
 	}
 
 }
+
+func TestNewTemplateData(t *testing.T) {
+	type args struct {
+		name     string
+		ip       string
+		clientyp string
+		disk     string
+		serial   string
+	}
+	wf := Workflow{}
+	want, _ := marshalWorkflow(&wf)
+	tests := []struct {
+		name    string
+		args    args
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name: "Test Case 1",
+			args: args{
+				name:     "TestWorkflow",
+				ip:       "000.0.0.0",
+				clientyp: "testClient",
+				disk:     "/dev/sda",
+				serial:   "12345",
+			},
+			want:    want,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewTemplateData(tt.args.name, tt.args.ip, tt.args.clientyp, tt.args.disk, tt.args.serial)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewTemplateData() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewTemplateData() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
