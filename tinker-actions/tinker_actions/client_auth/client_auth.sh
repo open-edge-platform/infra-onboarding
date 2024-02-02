@@ -93,6 +93,11 @@ main() {
 
 	update-ca-certificates
 
+	#update hosts if they were provided
+	extra_hosts_needed=$(sed "s|,|\n|g" <<< "$EXTRA_HOSTS")
+	echo -e "$extra_hosts_needed" >> /etc/hosts
+	echo "adding extras completed"
+
 	#login to IDP keycloak
 	# proxy if not set then the code will not be able to invoke curl.
 
