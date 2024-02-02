@@ -17,6 +17,7 @@ export MAESTRO_PLATFORM_OBSERVABILITY_PORT=443
 export OBSERVABILITY_METRICS_HOST=metrics.demo2.maestro.intel.com
 export OBSERVABILITY_METRICS_PORT=443
 export MAINTENANCE_MANAGER_URL=update.demo2.maestro.intel.com:443
+export TELEMETRY_MANAGER_URL=telemetry.demo2.maestro.intel.com:443
 export RELEASE_SERVER=__FILE_SERVER__
 export VAULT_URL=vault-edge-node.demo2.maestro.intel.com
 export PKI_PATH=pki_int_edge_node
@@ -683,15 +684,14 @@ sudo apt-get update
 sudo apt-get install -y linux-generic-hwe-22.04 linux-image-generic-hwe-22.04 linux-headers-generic-hwe-22.04
 }
 
-# 25. Install Platform Observability Agent
+# 25. Install Platform Telemetry Agent
 install_platform_telemetry_agent(){
 echo "install platform-telemetry-agent"
 VERSION="platform-telemetry-agent-VERSION"
 echo $VERSION
 PKGFILE="platform-telemetry-agent_${VERSION}_amd64.deb"
 apt-get update
-#echo "platform-observability-agent platform-observability-agent/host string $MAESTRO_PLATFORM_OBSERVABILITY_HOST" | debconf-set-selections
-#echo "platform-observability-agent platform-observability-agent/port string $MAESTRO_PLATFORM_OBSERVABILITY_PORT" | debconf-set-selections
+echo "telemetry-agent telemetry-agent/telemetrymanager.serviceURL string ${TELEMETRY_MANAGER_URL}" | debconf-set-selections
 rm -f ${PKGFILE}
 wget --header="Authorization: Bearer $ID_TOKEN"  https://${FILESERVER}/pool/release/p/platform-telemetry-agent/${PKGFILE}
 gpg --decrypt ${PKGFILE}
@@ -761,7 +761,7 @@ install_mqtt 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_tpm_provision 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_inbc_program 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_platform_update_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-#install_platform_telemetry_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_platform_telemetry_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_sriov 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_HWE_kernel 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 
