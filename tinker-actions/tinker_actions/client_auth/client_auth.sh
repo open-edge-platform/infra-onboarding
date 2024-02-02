@@ -126,7 +126,13 @@ main() {
 	# mkdir -p $idp_folder
 	printf "%s" "$access_token" > "$idp_folder/idp_access_token"
 
+	release_server_url=$(sed "s/keycloak/release/g" <<< $KEYCLOAK_URL)
+	release_token=$(curl -X GET https://$release_server_url/token -H "Authorization: Bearer $access_token")
+	printf "%s" "$release_token" > "$idp_folder/release_token"
+
 	cat "$idp_folder/idp_access_token"
+
+	cat "$idp_folder/release_token"
 
     else
 	echo "Incorrect username and password provided: rebooting now"
