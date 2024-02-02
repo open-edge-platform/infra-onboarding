@@ -58,24 +58,28 @@ docker-push:
 	docker tag store_alpine:latest ${DOCKER_TAG}/store_alpine:${BRANCH_NAME}
 	docker tag create_partition:latest ${DOCKER_TAG}/create_partition:${BRANCH_NAME}
 	docker tag fde:latest ${DOCKER_TAG}/fde:${BRANCH_NAME}
+	docker tag cred_copy:latest ${DOCKER_TAG}/cred_copy:${BRANCH_NAME}
 	
 	docker push ${DOCKER_TAG}/efibootset:${BRANCH_NAME}
 	docker push ${DOCKER_TAG}/fdoclient_action:${BRANCH_NAME}
 	docker push ${DOCKER_TAG}/store_alpine:${BRANCH_NAME}
 	docker push ${DOCKER_TAG}/create_partition:${BRANCH_NAME}
 	docker push ${DOCKER_TAG}/fde:${BRANCH_NAME}
+	docker push ${DOCKER_TAG}/cred_copy:${BRANCH_NAME}
 
 	docker tag efibootset:latest ${DOCKER_TAG}/efibootset:${VERSION}
 	docker tag fdoclient_action:latest ${DOCKER_TAG}/fdoclient_action:${VERSION}
 	docker tag store_alpine:latest ${DOCKER_TAG}/store_alpine:${VERSION}
 	docker tag create_partition:latest ${DOCKER_TAG}/create_partition:${VERSION}
 	docker tag fde:latest ${DOCKER_TAG}/fde:${VERSION}
+	docker tag cred_copy:latest ${DOCKER_TAG}/cred_copy:${VERSION}
 	
 	docker push ${DOCKER_TAG}/efibootset:${VERSION}
 	docker push ${DOCKER_TAG}/fdoclient_action:${VERSION}
 	docker push ${DOCKER_TAG}/store_alpine:${VERSION}
 	docker push ${DOCKER_TAG}/create_partition:${VERSION}
 	docker push ${DOCKER_TAG}/fde:${VERSION}
+	docker push ${DOCKER_TAG}/cred_copy:${VERSION}
 
 lint-ci: license
 

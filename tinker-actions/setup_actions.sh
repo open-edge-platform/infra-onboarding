@@ -19,6 +19,7 @@ fdo_action_build=./tinker_actions/fdo_action_build/
 create_partition=./tinker_actions/create_partition
 efibootset=./tinker_actions/efibootset
 fde_setup=./tinker_actions/fde
+creds_copy=./tinker_actions/creds_copy
 
 fdo_docker_setup() {
     pushd $fdo_action_build
@@ -55,10 +56,17 @@ create_partition_setup() {
     popd
 }
 
-
 fde_setup_action() {
 
     pushd $fde_setup
+
+    bash build.sh
+
+    popd
+}
+
+build_credscopy() {
+    pushd $creds_copy
 
     bash build.sh
 
@@ -74,8 +82,9 @@ main() {
 
     store_alpine_setup
     create_partition_setup
-
     fde_setup_action
+    build_credscopy
+
 }
 
 main
