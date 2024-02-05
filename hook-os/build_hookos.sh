@@ -16,8 +16,12 @@ source ./config
 
 source ./secure_hookos.sh
 
+BASE_DIR=$PWD
 STORE_ALPINE_SECUREBOOT=$PWD/alpine_image_secureboot/
 STORE_ALPINE=$PWD/alpine_image/
+
+FLUENTBIT_FILES=$PWD/fluent-bit/files
+HOOKOS_FLUENTBIT_FILES=$PWD/hook/files/fluent-bit
 
 # CI pipeline expects the below file. But we need to make the build independent of
 # CI requirements. This if-else block creates a new file TINKER_ACTIONS_VERSION from
@@ -33,6 +37,18 @@ then
     VERSION_FILE=$PWD/TINKER_ACTIONS_VERSION
 fi
 
+copy_fluent_bit_files() {
+
+    mkdir -p $HOOKOS_FLUENTBIT_FILES
+
+    cp $FLUENTBIT_FILES/* $HOOKOS_FLUENTBIT_FILES
+
+    if [ $? -ne 0 ];
+    then
+           echo "Copy of the fluent-bit config file to the hook/files folder failed"
+           exit 1
+    fi
+}
 
 build_hook() {
 
@@ -51,7 +67,10 @@ build_hook() {
     ver=$(cat $VERSION_FILE)
     sed -i "s/latest/$ver/g" $new_patch_file
 
-    git apply $new_patch_file
+    patch -p1 < $new_patch_file
+
+    # copy fluent-bit related files
+    copy_fluent_bit_files
 
     # if kernel already built or pulled into docker images list then dont recompile
     if docker image inspect quay.io/tinkerbell/hook-kernel:5.10.85-e546ea099917c006d1d08fe6b8398101de65cbc7 > /dev/null  2>&1;

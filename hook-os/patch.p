@@ -1,5 +1,5 @@
 diff --git a/hook-bootkit/Dockerfile b/hook-bootkit/Dockerfile
-index 5c38880..91c1bf4 100644
+index 5c38880..d875feb 100644
 --- a/hook-bootkit/Dockerfile
 +++ b/hook-bootkit/Dockerfile
 @@ -1,4 +1,14 @@
@@ -18,7 +18,7 @@ index 5c38880..91c1bf4 100644
  WORKDIR /src
  RUN go mod download
 diff --git a/hook-docker/Dockerfile b/hook-docker/Dockerfile
-index da5bde6..1e8b425 100644
+index da5bde6..026141a 100644
 --- a/hook-docker/Dockerfile
 +++ b/hook-docker/Dockerfile
 @@ -1,9 +1,26 @@
@@ -79,13 +79,13 @@ index 0908c72..94d4299 100644
  	cmd.Stderr = os.Stderr
  
 diff --git a/hook.yaml b/hook.yaml
-index 647e792..9a17b20 100644
+index 647e792..4e5b975 100644
 --- a/hook.yaml
 +++ b/hook.yaml
 @@ -34,6 +34,19 @@ onboot:
        mkdir:
          - /var/lib/dhcpcd
-
+ 
 +  - name: fdo
 +    image: fdoclient_action:latest
 +    capabilities:
@@ -102,7 +102,29 @@ index 647e792..9a17b20 100644
  services:
    - name: getty
      image: linuxkit/getty:76951a596aa5e0867a38e28f0b94d620e948e3e8
-@@ -146,3 +159,12 @@ trust:
+@@ -63,6 +76,11 @@ services:
+     binds:
+       - /var/run:/var/run
+ 
++  - name: fluent-bit
++    image: fluent/fluent-bit:2.1.9
++    binds.add:
++      - /etc/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
++
+   - name: hook-docker
+     image: quay.io/tinkerbell/hook-docker:latest
+     capabilities:
+@@ -137,6 +155,9 @@ files:
+     source: "files/dhcpcd.conf"
+     mode: "0644"
+ 
++  - path: /etc/fluent-bit/fluent-bit.conf
++    source: "files/fluent-bit/fluent-bit.conf"
++    mode: "0644"
+ #dbg  - path: root/.ssh/authorized_keys
+ #dbg    source: ~/.ssh/id_rsa.pub
+ #dbg    mode: "0600"
+@@ -146,3 +167,12 @@ trust:
    org:
      - linuxkit
      - library
