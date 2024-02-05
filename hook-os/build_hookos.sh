@@ -27,6 +27,9 @@ HOOKOS_IDP_FILES=$PWD/hook/files/idp/
 FLUENTBIT_FILES=$PWD/fluent-bit/files
 HOOKOS_FLUENTBIT_FILES=$PWD/hook/files/fluent-bit
 
+NGINX_FILES=$PWD/nginx/files
+HOOKOS_NGINX_FILES=$PWD/hook/files/nginx
+
 # CI pipeline expects the below file. But we need to make the build independent of
 # CI requirements. This if-else block creates a new file TINKER_ACTIONS_VERSION from
 # versions and that is pulled when hook os is getting built.
@@ -69,6 +72,23 @@ get_client_auth() {
 	echo "Copy of the certificates to the hook/files folder failed"
 	exit 1
     fi
+}
+
+get_nginx_conf() {
+    echo "inside get_nginx_conf"
+    mkdir -p $HOOKOS_NGINX_FILES
+    cp $NGINX_FILES/* $HOOKOS_NGINX_FILES
+    if [ $? -ne 0 ];
+    then
+	    echo "Copy of the nginx template to the hook/files folder failed"
+	    exit 1
+    fi
+
+    # Update NGINX runtime configs in hook.yaml
+    sed -i "s|update_tink_svc|$tinker_svc|g" hook.yaml
+    sed -i "s|update-release_svc|$release_svc|g" hook.yaml
+    sed -i "s|update_manufacturer_svc|$fdo_manufacturer_svc|g" hook.yaml
+    sed -i "s|update_owner_svc|$fdo_owner_svc|g" hook.yaml
 }
 
 build_hook() {
@@ -129,6 +149,7 @@ build_hook() {
 
     # get the client_auth files and container before running the hook os build.
     get_client_auth
+    get_nginx_conf
 
     docker run --rm -e HTTP_PROXY=$http_proxy \
 	   -e HTTPS_PROXY=$https_proxy \

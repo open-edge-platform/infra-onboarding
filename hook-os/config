@@ -39,6 +39,11 @@ keycloak_url=""
 # example
 #extra_hosts="10.114.181.238 api-proxy.kind.internal,10.114.181.238 app-orch.kind.internal,10.114.181.238 cluster-orch-edge-node.kind.internal"
 extra_hosts=""
+#NGINX runtime configs
+fdo_manufacturer_svc=""
+fdo_owner_svc=""
+release_svc=""
+tinker_svc=""
 
 ## Organizationonal proxy config (default is intel)
 http_proxy=""
