@@ -369,6 +369,11 @@ touch /usr/local/bin/.grow_part_done`, rootPart, rootPart),
 					},
 				},
 				{
+					Name:    "efibootmgr-to-set-disk-boot",
+					Image:   "gar-registry.caas.intel.com/star-fw/tinkerbell/efibootset:latest",
+					Timeout: 100,
+				},
+				{
 					Name:    "reboot",
 					Image:   "public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest",
 					Timeout: 90,
