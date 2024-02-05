@@ -9,7 +9,7 @@ go 1.21
 require (
 	github.com/apex/log v1.9.0
 	github.com/gocql/gocql v1.6.0
-	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.0.8-0.20240202150531-7bb69f15ce70
+	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.0.4
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory v0.9.3-0.20240202091002-ceaf943fc34b
 	github.com/jinzhu/configor v1.2.1
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
@@ -97,6 +97,7 @@ require (
 	github.com/labstack/echo/v4 v4.11.2 // indirect
 	github.com/labstack/gommon v0.4.0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
+	github.com/magefile/mage v1.15.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
