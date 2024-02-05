@@ -765,5 +765,5 @@ install_sriov 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_HWE_kernel 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 
 
-echo "Installation done" > $current_workspace/.base_pkg_install_done
+echo "Installation done" > $SCRIPT_DIR/.base_pkg_install_done
 sudo reboot
