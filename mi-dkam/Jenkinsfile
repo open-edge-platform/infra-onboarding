@@ -119,16 +119,6 @@ pipeline {
             }        
         }
 
-		stage('Build Docker image') {
-            when {
-                anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest(); }
-            }
-            steps {
-                script {
-                    miDocker.build()
-                }
-            }
-        }
 		stage('Lint Code') {
             steps {
                 sh '''
@@ -193,6 +183,20 @@ pipeline {
                         # Tag the version
                         /opt/ci/version-tag.sh
                         '''
+                }
+            }
+        }
+
+		stage('Build Docker image') {
+            when {
+                anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest(); }
+            }
+            steps {
+                script {
+                    scmCheckout {
+					    clean = true
+				    }
+                    miDocker.build()
                 }
             }
         }
