@@ -5,11 +5,12 @@ package artifact
 
 import (
 	"context"
+	"time"
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/util"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
-	"time"
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
@@ -90,7 +91,7 @@ func CopyNodeReqtoNodetData(payload []*pb.NodeData) ([]*computev1.HostResource, 
 				Host:         hostres,
 				MacAddr:      hwData.MacId,
 				DeviceName:   hwData.HostNicDevName,
-				BmcInterface: hwData.BmcInterface,
+				BmcInterface: true,
 			}
 
 			zlog.Debug().Msgf("MAC is %s \n", hwData.MacId)

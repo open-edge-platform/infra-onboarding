@@ -11,7 +11,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
 	"log"
 	"os"
 	"path/filepath"
@@ -25,6 +24,7 @@ import (
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	logging "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/onbworkflowclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/utils"
 	"github.com/mohae/deepcopy"
@@ -72,7 +72,8 @@ func createDeviceInfoListNAzureEnv(copyOfRequest *pb.OnboardingRequest) ([]utils
 
 	for _, hw := range copyOfRequest.Hwdata {
 		deviceInfo := utils.DeviceInfo{
-			HwSerialID:     hw.HwId,
+			Guid:           hw.Uuid,
+			HwSerialID:     hw.Serialnum,
 			HwMacID:        hw.MacId,
 			HwIP:           hw.SutIp,
 			DiskType:       os.Getenv("DISK_PARTITION"),
@@ -191,13 +192,15 @@ func DeviceOnboardingManagerNzt(deviceDetails utils.DeviceInfo, artifactDetails 
 			defer close(diStatus)
 			log.Printf("Device initialization started for Device: %s", deviceInfo.HwIP)
 			var guid string
+			UpdateHostStatusByHostGuid(ctx, _invClient, deviceInfo.Guid, computev1.HostStatus_HOST_STATUS_INITIALIZING)
 			guid, dierror = onbworkflowclient.DiWorkflowCreation(deviceInfo)
 			if dierror != nil {
 				dierror = fmt.Errorf("SutIP %s: %w", deviceInfo.HwIP, dierror)
 				fmt.Printf("Error in DiWorkflowCreation for %v\n", dierror)
+				UpdateHostStatusByHostGuid(ctx, _invClient, deviceInfo.Guid, computev1.HostStatus_HOST_STATUS_INIT_FAILED)
 				return
 			}
-			UpdateHostStatusByHostGuid(ctx, _invClient, guid, computev1.HostStatus_HOST_STATUS_PROVISIONING)
+			UpdateHostStatusByHostGuid(ctx, _invClient, deviceInfo.Guid, computev1.HostStatus_HOST_STATUS_ONBOARDED)
 			log.Printf("GUID: %s\n", guid)
 			deviceInfo.Guid = guid
 			// TODO: change the certificate path to the common location once fdo services are working
@@ -221,7 +224,7 @@ func DeviceOnboardingManagerNzt(deviceDetails utils.DeviceInfo, artifactDetails 
 	// Production Workflow goroutine
 	go func() {
 		//TODO:change this and pass the file naem instead of conversion
-		log.Println("ProdWorkflowCreation triggired for ", deviceInfo.HwIP)
+		log.Println("ProdWorkflowCreation triggered for GUID:", deviceInfo.Guid)
 		imgurl := artifactinfo.BkcUrl
 		filenameBz2 := filepath.Base(imgurl)
 		filenameWithoutExt := strings.TrimSuffix(filenameBz2, ".bz2")
@@ -261,11 +264,11 @@ func DeviceOnboardingManagerNzt(deviceDetails utils.DeviceInfo, artifactDetails 
 		} else {
 			log.Println("DI is disabled")
 		}
-		UpdateHostStatusByHostGuid(ctx, _invClient, deviceInfo.Guid, computev1.HostStatus_HOST_STATUS_PROVISIONED)
+		UpdateHostStatusByHostGuid(ctx, _invClient, deviceInfo.Guid, computev1.HostStatus_HOST_STATUS_PROVISIONING)
 		UpdateInstanceStatusByGuid(ctx, _invClient, deviceInfo.Guid, computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONING)
 		log.Println("ProdWorkflowCreation started for ", deviceInfo.HwIP)
 		// Production Workflow creation
-		proderror := onbworkflowclient.ProdWorkflowCreation(deviceInfo, deviceInfo.ImType)
+		proderror := onbworkflowclient.ProdWorkflowCreation(deviceInfo, deviceInfo.ImType, artifactinfo)
 		if proderror != nil {
 			proderror = fmt.Errorf("SutIP %s: %w", deviceInfo.HwIP, proderror)
 			ErrCh <- proderror
@@ -273,6 +276,7 @@ func DeviceOnboardingManagerNzt(deviceDetails utils.DeviceInfo, artifactDetails 
 			UpdateInstanceStatusByGuid(ctx, _invClient, deviceInfo.Guid, computev1.InstanceStatus_INSTANCE_STATUS_PROVISION_FAILED)
 			return
 		}
+		UpdateHostStatusByHostGuid(ctx, _invClient, deviceInfo.Guid, computev1.HostStatus_HOST_STATUS_PROVISIONED)
 		UpdateInstanceStatusByGuid(ctx, _invClient, deviceInfo.Guid, computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONED)
 		log.Println("ProdWorkflowCreation Finished for ", deviceInfo.HwIP)
 		*nodeExistCount += 1
@@ -370,57 +374,53 @@ func extractUrlsFromManifest(manifest string) (osUrl, overlayUrl string, err err
 
 func ConvertInstanceForOnboarding(instances []*computev1.InstanceResource, osinstances []*osv1.OperatingSystemResource, host *computev1.HostResource) ([]*pb.OnboardingRequest, error) {
 
-	disableFeatureX := os.Getenv("DISABLE_FEATUREX")
 	var onboardingRequests []*pb.OnboardingRequest
 	var osUrl, overlayUrl string
+	hostNics := host.GetHostNics()
 
 	for _, osr := range osinstances {
-
-		if disableFeatureX == "true" {
-			_, _, urlerr := extractUrlsFromManifest(osr.RepoUrl)
-			if urlerr != nil {
-				zlog.Err(urlerr).Msg("Failed to extract URLs from manifest file")
-				return nil, urlerr
-			}
-
-		}
-
-		// Create an instance of OnboardingRequest and populate it
-		onboardingRequest := &pb.OnboardingRequest{
-
-			ArtifactData: []*pb.ArtifactData{
-				{
-					Name:       "OS",
-					PackageUrl: osr.RepoUrl,
-					Category:   1,
-				},
-				{
-					Name:       "PLATFORM",
-					PackageUrl: "overlayUrl",
-					Category:   1,
-				},
-			},
-			Hwdata: []*pb.HwData{
-				{
-					HwId:          host.GetUuid(),
-					MacId:         host.GetPxeMac(),
-					SutIp:         host.GetMgmtIp(),
-					DiskPartition: "123", // Adjust these accordingly
-					PlatformType:  host.GetHardwareKind(),
-					// Add other hardware data if needed
-				},
-				// Add other hardware data if needed
-			},
-			//TODO : parameters has to be mapped accordingly
-		}
-
-		if disableFeatureX == "true" {
-			onboardingRequest.ArtifactData[0].PackageUrl = osUrl
-			onboardingRequest.ArtifactData[1].PackageUrl = overlayUrl
-		}
-
-		onboardingRequests = append(onboardingRequests, onboardingRequest)
+		osUrl = osr.RepoUrl
 	}
+
+	invUrl := strings.Split(osUrl, ";")
+
+	osUrl = invUrl[0]
+	overlayUrl = invUrl[1]
+
+	// Create an instance of OnboardingRequest and populate it
+	onboardingRequest := &pb.OnboardingRequest{
+		ArtifactData: []*pb.ArtifactData{
+			{
+				Name:       "OS",
+				PackageUrl: osUrl,
+				Category:   1,
+			},
+			{
+				Name:       "PLATFORM",
+				PackageUrl: overlayUrl,
+				Category:   1,
+			},
+		},
+		Hwdata: []*pb.HwData{},
+	}
+
+	// Populate hardware data for each hostNic in hostNics
+
+	onboardingRequest.Hwdata = append(onboardingRequest.Hwdata, &pb.HwData{
+		Serialnum:     host.GetSerialNumber(),
+		MacId:         hostNics[0].MacAddr,
+		SutIp:         host.GetBmcIp(),
+		DiskPartition: "123", // Adjust these accordingly
+		PlatformType:  host.GetHardwareKind(),
+		Uuid:          host.GetUuid(),
+		// Add other hardware data if needed
+	})
+
+	log.Printf("hostNic.GetMacAddr: %s", hostNics[0].MacAddr)
+	log.Printf("osUrl: %s", onboardingRequest.ArtifactData[0].PackageUrl)
+	log.Printf("Overlay Url: %s", onboardingRequest.ArtifactData[1].PackageUrl)
+
+	onboardingRequests = append(onboardingRequests, onboardingRequest)
 
 	// Return the onboarding request
 	return onboardingRequests, nil
@@ -431,7 +431,7 @@ type GetArtifactsResponse struct {
 	ManifestFile string `protobuf:"bytes,2,opt,name=manifest_file,json=manifestFile,proto3" json:"manifest_file,omitempty"`
 }
 
-func GetOSResourceFromDkamService(ctx context.Context) (*dkam.GetArtifactsResponse, error) {
+func GetOSResourceFromDkamService(ctx context.Context, profilename string, platform string) (*dkam.GetArtifactsResponse, error) {
 
 	// Get the DKAM manager host and port
 	host := os.Getenv("DKAMHOST")
@@ -441,18 +441,25 @@ func GetOSResourceFromDkamService(ctx context.Context) (*dkam.GetArtifactsRespon
 	dkamAddr := fmt.Sprintf("%s:%s", host, port)
 
 	log.Printf("DKAM Address: %s", dkamAddr)
+
 	// Create a gRPC connection to DKAM server
-	dkamConn, err := grpc.Dial(dkamAddr, grpc.WithInsecure())
+	var dkamConn *grpc.ClientConn
+	var err error
+
+	dkamConn, err = grpc.Dial(dkamAddr, grpc.WithInsecure())
+
 	if err != nil {
-		zlog.Err(err).Msg("Failed to connect to DKAM server")
+		zlog.Info().Msg("Failed to connect to DKAM server, retry in next iteration...")
 		return nil, err
 	}
+
 	defer dkamConn.Close()
 
 	// Create an instance of DkamServiceClient using the connection
 	dkamClient := dkam.NewDkamServiceClient(dkamConn)
 	response, err := dkamClient.GetArtifacts(ctx, &dkam.GetArtifactsRequest{
-		// TODO: Pass relevant parameters
+		ProfileName: profilename,
+		Platform:    platform,
 	})
 	if err != nil {
 		zlog.Err(err).Msg("Failed to get software details from DKAM")
@@ -477,7 +484,7 @@ func StartOnboard(req *pb.OnboardingRequest) (*pb.OnboardingResponse, error) {
 
 	// Increment the request counter for each incoming request
 	requestCounter++
-	fmt.Printf("Request Number: %d\n", requestCounter)
+	fmt.Printf("StartOnboard: %d\n", requestCounter)
 
 	// Step 1: Copy all request data to a variable using the DeepCopyOnboardingRequest function.
 	copyOfRequest := utils.DeepCopyOnboardingRequest(req)

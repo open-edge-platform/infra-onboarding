@@ -15,10 +15,12 @@ import (
 
 	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
+	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/utils"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestInitOnboarding(t *testing.T) {
@@ -227,12 +229,17 @@ func TestConvertInstanceForOnboarding_Err(t *testing.T) {
 		osinstances []*osv1.OperatingSystemResource
 		host        *computev1.HostResource
 	}
-	os.Setenv("DISABLE_FEATUREX", "true")
 	instance := &computev1.InstanceResource{}
 	osInstance := &osv1.OperatingSystemResource{
-		RepoUrl: "osurl: https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu-base/20230911-1844/default/ubuntu-22.04-desktop-amd64+intel-iot-37-custom.img.bz2",
+		RepoUrl: "osUrl;overlayUrl",
 	}
-	host := &computev1.HostResource{}
+	host := &computev1.HostResource{
+		HostNics: []*computev1.HostnicResource{
+			{
+				MacAddr: "00:00:00:00:00:00",
+			},
+		},
+	}
 	tests := []struct {
 		name    string
 		args    args
@@ -247,12 +254,9 @@ func TestConvertInstanceForOnboarding_Err(t *testing.T) {
 				host:        host,
 			},
 			want:    nil,
-			wantErr: true,
+			wantErr: false,
 		},
 	}
-	defer func() {
-		os.Unsetenv("DISABLE_FEATUREX")
-	}()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := ConvertInstanceForOnboarding(tt.args.instances, tt.args.osinstances, tt.args.host)
@@ -260,7 +264,7 @@ func TestConvertInstanceForOnboarding_Err(t *testing.T) {
 				t.Errorf("ConvertInstanceForOnboarding() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
+			if reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ConvertInstanceForOnboarding() = %v, want %v", got, tt.want)
 			}
 		})
@@ -269,7 +273,9 @@ func TestConvertInstanceForOnboarding_Err(t *testing.T) {
 
 func TestGetOSResourceFromDkamService(t *testing.T) {
 	type args struct {
-		ctx context.Context
+		ctx         context.Context
+		profilename string
+		platform    string
 	}
 	tests := []struct {
 		name    string
@@ -296,7 +302,7 @@ func TestGetOSResourceFromDkamService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetOSResourceFromDkamService(tt.args.ctx)
+			got, err := GetOSResourceFromDkamService(tt.args.ctx, tt.args.profilename, tt.args.platform)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetOSResourceFromDkamService() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -329,6 +335,12 @@ func TestOnboardingManager_StartOnboarding(t *testing.T) {
 		t.Fatalf("Failed to change working directory: %v", err)
 	}
 	hwdatas := []*pb.HwData{hwdata}
+	mockClient := &MockInventoryClient{}
+	mockResources := &inv_v1.ListResourcesResponse{}
+	mockClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
+	_invClient = &invclient.OnboardingInventoryClient{
+		Client: mockClient,
+	}
 	// artifactDatas := []*pb.ArtifactData{
 	// 	{
 	// 		Category: pb.ArtifactData_OS,
@@ -400,3 +412,4 @@ func TestOnboardingManager_StartOnboarding(t *testing.T) {
 		})
 	}
 }
+

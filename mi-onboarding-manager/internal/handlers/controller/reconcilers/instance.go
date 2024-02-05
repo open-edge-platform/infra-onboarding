@@ -6,6 +6,7 @@ package reconcilers
 
 import (
 	"context"
+
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
@@ -70,10 +71,15 @@ func (ir *InstanceReconciler) reconcileInstance(
 	if instance.GetDesiredState() == computev1.InstanceState_INSTANCE_STATE_RUNNING {
 		// no need to query Host from Inventory, eager loaded from Instance
 		host := instance.GetHost()
-		zlogInst.MiSec().Debug().Msgf("Host details associated with Instance id %v", host)
+		zlogInst.MiSec().Debug().Msgf("Host details associated with Instance id %v Resource %v", host, host.ResourceId)
 		// no need to query OS from Inventory, eager loaded from Instance
 		os := instance.GetOs()
 
+		host, err := ir.invClient.GetHostResourceByResourceID(ctx, host.ResourceId)
+		if err != nil {
+			zlogInst.MiSec().MiErr(err).Msgf("Failed to Get Host Resource by ID")
+			return request.Ack()
+		}
 		onboardingRequest, err := onboarding.ConvertInstanceForOnboarding(
 			[]*computev1.InstanceResource{instance}, []*osv1.OperatingSystemResource{os}, host)
 		if err != nil {

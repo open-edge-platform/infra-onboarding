@@ -111,13 +111,14 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 		ResourceId:   "inst-084d9b08",
 		DesiredState: computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		Host: &v14.HostResource{
-			ResourceId: "host-084d9b08",
+			ResourceId: "host-084d9b01",
 			Name:       "name",
-			MgmtIp: "00.00.00.00",
+			MgmtIp:     "00.00.00.00",
 		},
 		Os: &v16.OperatingSystemResource{
 			ResourceId:  "os-093dd2d7",
 			ProfileName: "profilename",
+			RepoUrl:     "osUrl;overlayUrl",
 		},
 	}
 	mockResource7 := &inv_v1.Resource{
@@ -126,7 +127,16 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 		},
 	}
 	mockHost7 := &v14.HostResource{
-		ResourceId: "host-084d9b02",
+		ResourceId: "host-084d9b52",
+		BmcIp:      "00.00.00.00",
+		HostNics: []*v14.HostnicResource{
+			{
+				MacAddr: "00:00:00:00:00:00",
+				Host: &computev1.HostResource{
+					BmcIp: "00.00.00.00",
+				},
+			},
+		},
 	}
 	mockHostResource7 := &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Host{
@@ -171,13 +181,22 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 		ResourceId:   "inst-084d9b08",
 		DesiredState: computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		Host: &v14.HostResource{
-			ResourceId: "host-084d9b08",
+			ResourceId: "host-084d9b02",
 			Name:       "name",
-			MgmtIp: "00.00.00.00",
+			BmcIp:      "00.00.00.00",
+			HostNics: []*computev1.HostnicResource{
+				{
+					MacAddr: "00:00:00:00:00:00",
+					Host: &computev1.HostResource{
+						BmcIp: "00.00.00.00",
+					},
+				},
+			},
 		},
 		Os: &v16.OperatingSystemResource{
 			ResourceId:  "os-093dd2d7",
 			ProfileName: "profilename",
+			RepoUrl:     "osUrl;overlayUrl",
 		},
 	}
 	mockResource8 := &inv_v1.Resource{
@@ -186,7 +205,13 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 		},
 	}
 	mockHost8 := &v14.HostResource{
-		ResourceId: "host-084d9b02",
+		ResourceId: "host-084d9b03",
+		BmcIp:      "00.00.00.00",
+		HostNics: []*computev1.HostnicResource{
+			{
+				MacAddr: "00:00:00:00:00:00",
+			},
+		},
 	}
 	mockHostResource8 := &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Host{
@@ -197,7 +222,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 	mockOs8 := &v16.OperatingSystemResource{
 		ResourceId:  "os-093dd2d7",
 		ProfileName: "profilename",
-		RepoUrl:     "osurl: https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu-base/20230911-1844/default/ubuntu-22.04-desktop-amd64+intel-iot-37-custom.img.bz2\noverlayscripturl: https://ubit-artifactory-sh.intel.com/artifactory/sed-dgn-local/yocto/dev-test-image/DKAM/IAAS/ADL/installer23WW44.4_2148.sh\n",
+		RepoUrl:     "osUrl;overlayUrl",
 	}
 	mockOsResource8 := &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Os{
@@ -220,13 +245,20 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 		ResourceId:   "inst-084d9b08",
 		DesiredState: computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		Host: &v14.HostResource{
-			ResourceId: "host-084d9b08",
+			ResourceId: "host-084d9b06",
 			Name:       "name",
-			MgmtIp: "00.00.00.00",
+			MgmtIp:     "00.00.00.00",
+			BmcIp:      "00.00.00.00",
+			HostNics: []*computev1.HostnicResource{
+				{
+					MacAddr: "00:00:00:00:00:00",
+				},
+			},
 		},
 		Os: &v16.OperatingSystemResource{
 			ResourceId:  "os-093dd2d7",
 			ProfileName: "profilename",
+			RepoUrl:     "osUrl;overlayUrl",
 		},
 	}
 	mockResource10 := &inv_v1.Resource{
@@ -235,7 +267,13 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 		},
 	}
 	mockHost10 := &v14.HostResource{
-		ResourceId: "host-084d9b02",
+		ResourceId: "host-084d9b04",
+		BmcIp:      "00.00.00.00",
+		HostNics: []*computev1.HostnicResource{
+			{
+				MacAddr: "00:00:00:00:00:00",
+			},
+		},
 	}
 	mockHostResource10 := &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Host{
@@ -246,7 +284,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 	mockOs10 := &v16.OperatingSystemResource{
 		ResourceId:  "os-093dd2d7",
 		ProfileName: "profilename",
-		RepoUrl:     "osurl: https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu-base/20230911-1844/default/ubuntu-22.04-desktop-amd64+intel-iot-37-custom.img.bz2\noverlayscripturl: https://ubit-artifactory-sh.intel.com/artifactory/sed-dgn-local/yocto/dev-test-image/DKAM/IAAS/ADL/installer23WW44.4_2148.sh\n",
+		RepoUrl:     "osUrl;overlayUrl",
 	}
 	mockOsResource10 := &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Os{

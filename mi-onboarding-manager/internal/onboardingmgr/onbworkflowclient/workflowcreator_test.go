@@ -536,16 +536,15 @@ func TestDeleteWorkflow(t *testing.T) {
 }
 
 func TestProdWorkflowCreation(t *testing.T) {
-	k, _ := generatekubeconfigPath()
 	type args struct {
-		deviceInfo     utils.DeviceInfo
-		kubeconfigpath string
-		imgtype        string
+		deviceInfo   utils.DeviceInfo
+		imgtype      string
+		artifactinfo utils.ArtifactData
 	}
 	inputargs := args{
-		deviceInfo:     utils.DeviceInfo{},
-		kubeconfigpath: k,
-		imgtype:        "",
+		deviceInfo:   utils.DeviceInfo{},
+		imgtype:      "",
+		artifactinfo: utils.ArtifactData{},
 	}
 	tests := []struct {
 		name    string
@@ -560,7 +559,7 @@ func TestProdWorkflowCreation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := ProdWorkflowCreation(tt.args.deviceInfo, tt.args.kubeconfigpath); (err != nil) != tt.wantErr {
+			if err := ProdWorkflowCreation(tt.args.deviceInfo, tt.args.imgtype,tt.args.artifactinfo); (err != nil) != tt.wantErr {
 				t.Errorf("ProdWorkflowCreation() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

@@ -63,7 +63,15 @@ func TestOsReconciler_Reconcile(t *testing.T) {
 	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{}, errors.New("err"))
 	os.Setenv("DISABLE_FEATUREX", "true")
 	mockInvClient1 := &onboarding.MockInventoryClient{}
-	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{}, nil)
+	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
+		Resource: &inv_v1.Resource{
+			Resource: &inv_v1.Resource_Os{
+				Os: &osv1.OperatingSystemResource{
+					ResourceId: "os-084d9b08",
+				},
+			},
+		},
+	}, nil)
 
 	tests := []struct {
 		name   string
@@ -170,9 +178,9 @@ func TestPopulateOSResourceFromDKAMResponse(t *testing.T) {
 		{
 			name: "Test case 2",
 			args: args{
-				dkamResponse: &dkam.GetArtifactsResponse{ManifestFile: "csdcsc"},
+				dkamResponse: &dkam.GetArtifactsResponse{OverlayscriptUrl: "url"},
 			},
-			want:    &osv1.OperatingSystemResource{RepoUrl: "csdcsc"},
+			want:    &osv1.OperatingSystemResource{RepoUrl: ";url"},
 			want1:   &fieldmaskpb.FieldMask{Paths: []string{"repo_url"}},
 			wantErr: false,
 		},

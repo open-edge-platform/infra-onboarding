@@ -258,7 +258,7 @@ touch /usr/local/bin/.grow_part_done`, rootPart, rootPart),
 						"CHROOT":              "y",
 						"SCRIPT_URL":          rootPartNo,
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            fmt.Sprintf("mkdir -p /home/user/Setup;chown user:user /home/user/Setup;wget -P /home/user/Setup %s; chmod 755 /home/user/Setup/profile_and_agent_installer.sh", rootPartNo),
+						"CMD_LINE":            fmt.Sprintf("mkdir -p /home/user/Setup;chown user:user /home/user/Setup;wget -P /home/user/Setup %s; chmod 755 /home/user/Setup/installer.sh", rootPartNo),
 					},
 				},
 				{
@@ -278,7 +278,7 @@ touch /usr/local/bin/.grow_part_done`, rootPart, rootPart),
 						[Service]
 						ExecStartPre=/bin/sleep 60
 						WorkingDirectory=/home/user/Setup
-						ExecStart=/home/user/Setup/profile_and_agent_installer.sh
+						ExecStart=/home/user/Setup/installer.sh
 						Restart=always
 		
 						[Install]

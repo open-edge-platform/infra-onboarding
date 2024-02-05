@@ -5,12 +5,12 @@ package reconcilers
 
 import (
 	"context"
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
-	"os"
 
 	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
@@ -57,37 +57,34 @@ func (osr *OsReconciler) reconcileOsInstance(
 	id := osinst.GetResourceId()
 	zlogOs.MiSec().Info().Msgf("Reconciling OS instance with ID : %s", id)
 
-	disableFeatureX := os.Getenv("DISABLE_FEATUREX")
-	if disableFeatureX == "true" {
-		response, err := onboarding.GetOSResourceFromDkamService(ctx)
-		if err != nil {
-			zlogOs.Err(err).Msgf("Failed to trigger DKAM for os instance ID : %s", id)
-			return request.Ack()
-		}
+	response, err := onboarding.GetOSResourceFromDkamService(ctx, osinst.Name, osinst.Architecture)
+	if err != nil {
+		zlogOs.Err(err).Msgf("Failed to trigger DKAM for os instance ID : %s", id)
+		return request.Ack()
+	}
 
-		updatedOSResource, fieldmask, err := PopulateOSResourceFromDKAMResponse(response)
-		if err != nil {
-			return request.Ack()
-		}
+	updatedOSResource, fieldmask, err := PopulateOSResourceFromDKAMResponse(response)
+	if err != nil {
+		return request.Ack()
+	}
 
-		// check if there are changes to OS Resource, If not, skip updating to limit number of requests to Inventory
-		isSame, err := IsSameOSResource(osinst, updatedOSResource, fieldmask)
-		if err != nil {
-			return request.Ack()
-		}
+	// check if there are changes to OS Resource, If not, skip updating to limit number of requests to Inventory
+	isSame, err := IsSameOSResource(osinst, updatedOSResource, fieldmask)
+	if err != nil {
+		return request.Ack()
+	}
 
-		if isSame {
-			zlogOs.Debug().Msgf("Skipping OS Resource update for OS (%s) - no changes: %v", osinst.GetResourceId(), osinst)
-			return request.Ack()
-		}
+	if isSame {
+		zlogOs.Debug().Msgf("Skipping OS Resource update for OS (%s) - no changes: %v", osinst.GetResourceId(), osinst)
+		return request.Ack()
+	}
 
-		updatedOSResource.ResourceId = osinst.ResourceId
+	updatedOSResource.ResourceId = osinst.ResourceId
 
-		err = osr.invClient.UpdateInvResourceFields(ctx, updatedOSResource, fieldmask.GetPaths())
-		if err != nil {
-			zlogOs.Err(err).Msgf("Failed to update os instance with ID : %s", id)
-			return request.Ack()
-		}
+	err = osr.invClient.UpdateInvResourceFields(ctx, updatedOSResource, fieldmask.GetPaths())
+	if err != nil {
+		zlogOs.Err(err).Msgf("Failed to update os instance with ID : %s", id)
+		return request.Ack()
 	}
 
 	return request.Ack()
@@ -122,11 +119,11 @@ func PopulateOSResourceFromDKAMResponse(dkamResponse *dkam.GetArtifactsResponse)
 	osr := &osv1.OperatingSystemResource{}
 	fieldmask := &fieldmaskpb.FieldMask{
 		Paths: []string{
-			osv1.OperatingSystemResourceFieldRepoUrl, // we only update Repo URL for now
+			osv1.OperatingSystemResourceFieldRepoUrl,
 		},
 	}
-
-	osr.RepoUrl = dkamResponse.ManifestFile
+	result := dkamResponse.OsUrl + ";" + dkamResponse.OverlayscriptUrl
+	osr.RepoUrl = result
 
 	return osr, fieldmask, nil
 }

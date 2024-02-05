@@ -1049,7 +1049,7 @@ func ToWorkflowCreation(deviceInfo utils.DeviceInfo) error {
 	return nil
 }
 
-func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string) error {
+func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string, artifactinfo utils.ArtifactData) error {
 	client, err := newK8SClient()
 	if err != nil {
 		return err
@@ -1077,6 +1077,8 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string) error {
 		deviceInfo.ClientImgName = "jammy-server-cloudimg-amd64.raw.gz"
 		deviceInfo.ImType = "bkc"
 		deviceInfo.Rootfspart = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
+		deviceInfo.LoadBalancerIP = artifactinfo.BkcUrl
+		deviceInfo.RootfspartNo = artifactinfo.BkcBasePkgUrl
 		tmplData, err = tinkerbell.NewTemplateDataProdBKC(tmplName, deviceInfo.Rootfspart, deviceInfo.RootfspartNo,
 			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.ClientImgName, deviceInfo.ProvisionerIp)
 		if err != nil {

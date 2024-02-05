@@ -6,11 +6,12 @@ package controller
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/handlers/controller/reconcilers"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
-	"sync"
-	"time"
 
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
@@ -53,7 +54,7 @@ func New(
 
 	instRcnl := reconcilers.NewInstanceReconciler(invClient)
 	instCtrl := rec_v2.NewController[reconcilers.ResourceID](
-		instRcnl.Reconcile, rec_v2.WithTimeout(30*time.Minute), rec_v2.WithParallelism(parallelism))
+		instRcnl.Reconcile, rec_v2.WithTimeout(3*time.Hour), rec_v2.WithParallelism(parallelism))
 	controllers[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instCtrl
 	filters[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instanceEventFilter
 	osRcnl := reconcilers.NewOsReconciler(invClient)
