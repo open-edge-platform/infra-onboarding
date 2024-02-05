@@ -307,6 +307,15 @@ func (c *OnboardingInventoryClient) UpdateHostResource(ctx context.Context, host
 	})
 }
 
+func (c *OnboardingInventoryClient) UpdateHostStateAndStatus(ctx context.Context, host *computev1.HostResource) error {
+	return c.UpdateInvResourceFields(ctx, host, []string{
+		computev1.HostResourceFieldCurrentState,
+		computev1.HostResourceFieldLegacyHostStatus,
+		computev1.HostResourceFieldProviderStatus,
+		computev1.HostResourceFieldProviderStatusDetail,
+	})
+}
+
 func (c *OnboardingInventoryClient) CreateHostNICResource(ctx context.Context, hostNIC *computev1.HostnicResource) (string, error) {
 	return c.createResource(ctx, &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Hostnic{
@@ -335,12 +344,12 @@ func (c *OnboardingInventoryClient) updateHostCurrentState(ctx context.Context, 
 
 func (c *OnboardingInventoryClient) SetHostStatus(ctx context.Context, hostID string, hostStatus computev1.HostStatus) error {
 	updateHost := &computev1.HostResource{
-		ResourceId: hostID,
-		HostStatus: hostStatus,
+		ResourceId:       hostID,
+		LegacyHostStatus: hostStatus,
 	}
 
 	return c.UpdateInvResourceFields(ctx, updateHost, []string{
-		computev1.HostResourceFieldHostStatus,
+		computev1.HostResourceFieldLegacyHostStatus,
 	})
 }
 

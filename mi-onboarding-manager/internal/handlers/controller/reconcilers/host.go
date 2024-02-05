@@ -60,7 +60,14 @@ func (hr *HostReconciler) reconcileHost(
 		return request.Ack()
 	}
 
-	// TODO: invalidate host
+	if host.GetDesiredState() == computev1.HostState_HOST_STATE_UNTRUSTED {
+		err := hr.invalidateHost(ctx, host)
+		if directive := HandleInventoryError(err, request); directive != nil {
+			return directive
+		}
+		zlogHost.Debug().Msgf("Host %v has been unauthorized", host.GetResourceId())
+		return request.Ack()
+	}
 
 	return request.Ack()
 }
@@ -185,5 +192,27 @@ func (hr *HostReconciler) deleteHostUsbByHost(ctx context.Context, host *compute
 		}
 	}
 
+	return nil
+}
+
+func (hr *HostReconciler) invalidateHost(ctx context.Context, host *computev1.HostResource) error {
+	zlogHost.Debug().Msgf("Invalidating Host %s", host.GetResourceId())
+
+	// TODO: revoke JWT credentials in Keycloak once the design is finalized
+	//  As for now, this function only sets the current state to UNTRUSTED + corresponding statuses.
+
+	untrustedHost := computev1.HostResource{
+		ResourceId:       host.GetResourceId(),
+		CurrentState:     computev1.HostState_HOST_STATE_UNTRUSTED,
+		LegacyHostStatus: computev1.HostStatus_HOST_STATUS_INVALIDATED,
+		ProviderStatus:   computev1.HostStatus_name[int32(computev1.HostStatus_HOST_STATUS_INVALIDATED)],
+	}
+
+	if err := hr.invClient.UpdateHostStateAndStatus(ctx, &untrustedHost); err != nil {
+		zlogHost.MiSec().MiError("Failed to update host state and status").Msg("invalidateHost")
+		return err
+	}
+
+	zlogHost.MiSec().Info().Msgf("Host %s is invalidated", host.GetHostname())
 	return nil
 }

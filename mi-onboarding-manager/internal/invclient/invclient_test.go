@@ -7,8 +7,14 @@ package invclient
 import (
 	"context"
 	"errors"
+	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
+	"time"
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
@@ -79,6 +85,23 @@ func (m *MockInventoryClient) UpdateSubscriptions(ctx context.Context, kinds []i
 func (m *MockInventoryClient) TestingOnlySetClient(client inv_v1.InventoryServiceClient) {
 	m.Called(client)
 }
+
+func TestMain(m *testing.M) {
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	projectRoot := filepath.Dir(filepath.Dir(wd))
+	policyPath := projectRoot + "/build"
+	migrationsDir := projectRoot + "/build"
+
+	inv_testing.StartTestingEnvironment(policyPath, "", migrationsDir)
+	run := m.Run() // run all tests
+	inv_testing.StopTestingEnvironment()
+
+	os.Exit(run)
+}
+
 func TestWithInventoryAddress(t *testing.T) {
 	type args struct {
 		invAddr string
@@ -1662,7 +1685,7 @@ func TestOnboardingInventoryClient_UpdateInvResourceFields(t *testing.T) {
 			fields: fields{
 				Client: &MockInventoryClient{},
 			},
-			args: args{},
+			args:    args{},
 			wantErr: true,
 		},
 	}
@@ -1674,6 +1697,87 @@ func TestOnboardingInventoryClient_UpdateInvResourceFields(t *testing.T) {
 			}
 			if err := c.UpdateInvResourceFields(tt.args.ctx, tt.args.resource, tt.args.fields); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.UpdateInvResourceFields() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
+	CreateOnboardingClientForTesting(t)
+	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	type args struct {
+		hostID               string
+		hostCurrentState     computev1.HostState
+		hostStatus           computev1.HostStatus
+		providerStatus       string
+		providerStatusDetail string
+	}
+	tests := []struct {
+		name       string
+		args       args
+		valid      bool
+		statusCode codes.Code
+	}{
+		{
+			name: "Success",
+			args: args{
+				hostID:               host.GetResourceId(),
+				hostCurrentState:     computev1.HostState_HOST_STATE_UNTRUSTED,
+				hostStatus:           computev1.HostStatus_HOST_STATUS_INVALIDATED,
+				providerStatus:       "some status",
+				providerStatusDetail: "some detail",
+			},
+			valid: true,
+		},
+		{
+			name: "Failed_NotFound",
+			args: args{
+				hostID: "host-12345678",
+			},
+			valid:      false,
+			statusCode: codes.NotFound,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			hostUp := &computev1.HostResource{
+				ResourceId:           tt.args.hostID,
+				CurrentState:         tt.args.hostCurrentState,
+				LegacyHostStatus:     tt.args.hostStatus,
+				ProviderStatus:       tt.args.providerStatus,
+				ProviderStatusDetail: tt.args.providerStatusDetail,
+			}
+
+			err := OnboardingTestClient.UpdateHostStateAndStatus(ctx, hostUp)
+			if err != nil {
+				if tt.valid {
+					t.Errorf("Failed: %s", err)
+					t.FailNow()
+				}
+			} else {
+				if !tt.valid {
+					t.Errorf("Succeeded but should have failed")
+					t.FailNow()
+				}
+			}
+
+			// only get/delete if valid test and hasn't failed otherwise may segfault
+			if !t.Failed() && tt.valid {
+				hostInv, err := OnboardingTestClient.GetHostResourceByUUID(ctx, host.Uuid)
+				require.NoError(t, err)
+				require.NotNil(t, hostInv)
+
+				assert.Equal(t, tt.args.hostCurrentState, hostInv.GetCurrentState())
+				assert.Equal(t, tt.args.hostStatus, hostInv.GetLegacyHostStatus())
+				assert.Equal(t, tt.args.providerStatus, hostInv.GetProviderStatus())
+				assert.Equal(t, tt.args.providerStatusDetail, hostInv.GetProviderStatusDetail())
+			}
+			if !tt.valid {
+				grpcCode := status.Code(err)
+				require.Equal(t, tt.statusCode, grpcCode)
 			}
 		})
 	}
