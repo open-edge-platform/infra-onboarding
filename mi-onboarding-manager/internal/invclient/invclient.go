@@ -12,9 +12,11 @@ import (
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	network_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/network/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
+	statusv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/status/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
+	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
@@ -145,21 +147,6 @@ func (c *OnboardingInventoryClient) listAllResources(
 	return resources, nil
 }
 
-func (c *OnboardingInventoryClient) findAllResources(ctx context.Context, kind inv_v1.ResourceKind) ([]string, error) {
-	fmk := &fieldmaskpb.FieldMask{Paths: []string{}}
-	res, err := util.GetResourceFromKind(kind)
-	if err != nil {
-		return nil, err
-	}
-
-	resources, err := c.Client.FindAll(ctx, res, fmk)
-	if err != nil {
-		return nil, err
-	}
-
-	return resources, nil
-}
-
 func (c *OnboardingInventoryClient) getResourceByID(ctx context.Context, resourceID string) (*inv_v1.GetResourceResponse, error) {
 	getresresp, err := c.Client.Get(ctx, resourceID)
 	if err != nil {
@@ -230,7 +217,7 @@ func (c *OnboardingInventoryClient) listAndReturnHost(
 }
 
 func (c *OnboardingInventoryClient) FindAllInstances(ctx context.Context) ([]string, error) {
-	return c.findAllResources(ctx, inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE)
+	return c.FindAllResources(ctx, []inv_v1.ResourceKind{inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE})
 }
 
 func (c *OnboardingInventoryClient) CreateHostResource(ctx context.Context, host *computev1.HostResource) (string, error) {
@@ -307,12 +294,23 @@ func (c *OnboardingInventoryClient) UpdateHostResource(ctx context.Context, host
 	})
 }
 
-func (c *OnboardingInventoryClient) UpdateHostStateAndStatus(ctx context.Context, host *computev1.HostResource) error {
+func (c *OnboardingInventoryClient) UpdateHostStateAndRuntimeStatus(ctx context.Context, host *computev1.HostResource) error {
+	if host.HostStatus == "" || host.HostStatusTimestamp == "" ||
+		host.HostStatusIndicator == statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED {
+		errMsg := "Missing mandatory host status fields during host status update"
+		err := inv_errors.Errorfc(codes.InvalidArgument, errMsg)
+		zlog.MiSec().MiErr(err).Msgf("Cannot update host status of %v", host)
+		return err
+	}
+
 	return c.UpdateInvResourceFields(ctx, host, []string{
 		computev1.HostResourceFieldCurrentState,
 		computev1.HostResourceFieldLegacyHostStatus,
 		computev1.HostResourceFieldProviderStatus,
 		computev1.HostResourceFieldProviderStatusDetail,
+		computev1.HostResourceFieldHostStatus,
+		computev1.HostResourceFieldHostStatusIndicator,
+		computev1.HostResourceFieldHostStatusTimestamp,
 	})
 }
 
@@ -342,14 +340,23 @@ func (c *OnboardingInventoryClient) updateHostCurrentState(ctx context.Context, 
 	})
 }
 
-func (c *OnboardingInventoryClient) SetHostStatus(ctx context.Context, hostID string, hostStatus computev1.HostStatus) error {
+func (c *OnboardingInventoryClient) SetHostStatus(ctx context.Context, hostID string,
+	hostStatus computev1.HostStatus, statusDetails string, onboardingStatus inv_status.ResourceStatus) error {
 	updateHost := &computev1.HostResource{
-		ResourceId:       hostID,
-		LegacyHostStatus: hostStatus,
+		ResourceId:                hostID,
+		LegacyHostStatus:          hostStatus,
+		ProviderStatus:            statusDetails, // report legacy status details as provider status
+		OnboardingStatus:          onboardingStatus.Status,
+		OnboardingStatusIndicator: onboardingStatus.StatusIndicator,
+		OnboardingStatusTimestamp: time.Now().UTC().String(),
 	}
 
 	return c.UpdateInvResourceFields(ctx, updateHost, []string{
 		computev1.HostResourceFieldLegacyHostStatus,
+		computev1.HostResourceFieldProviderStatus,
+		computev1.HostResourceFieldOnboardingStatus,
+		computev1.HostResourceFieldOnboardingStatusIndicator,
+		computev1.HostResourceFieldOnboardingStatusTimestamp,
 	})
 }
 
@@ -423,14 +430,23 @@ func (c *OnboardingInventoryClient) UpdateInstanceCurrentState(ctx context.Conte
 	})
 }
 
-func (c *OnboardingInventoryClient) SetInstanceStatus(ctx context.Context, instanceID string, instanceStatus computev1.InstanceStatus) error {
+func (c *OnboardingInventoryClient) SetInstanceStatus(ctx context.Context, instanceID string,
+	instanceStatus computev1.InstanceStatus,
+	provisioningStatus inv_status.ResourceStatus,
+) error {
 	updateInstance := &computev1.InstanceResource{
-		ResourceId: instanceID,
-		Status:     instanceStatus,
+		ResourceId:                  instanceID,
+		Status:                      instanceStatus,
+		ProvisioningStatus:          provisioningStatus.Status,
+		ProvisioningStatusIndicator: provisioningStatus.StatusIndicator,
+		ProvisioningStatusTimestamp: time.Now().UTC().String(),
 	}
 
 	return c.UpdateInvResourceFields(ctx, updateInstance, []string{
 		computev1.InstanceResourceFieldStatus,
+		computev1.InstanceResourceFieldProvisioningStatus,
+		computev1.InstanceResourceFieldProvisioningStatusIndicator,
+		computev1.InstanceResourceFieldProvisioningStatusTimestamp,
 	})
 }
 

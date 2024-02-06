@@ -7,14 +7,16 @@ package onboarding
 
 import (
 	"context"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
-
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
+	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
+	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/status"
 )
 
 func UpdateHostStatusByHostGuid(ctx context.Context,
 	invClient *invclient.OnboardingInventoryClient,
-	hostUUID string, hoststatus computev1.HostStatus,
+	hostUUID string, hoststatus computev1.HostStatus, statusDetails string,
+	onboardingStatus inv_status.ResourceStatus,
 ) error {
 	zlog.Info().Msgf("UpdateHostStatusByHostGuid")
 	/* Check if any host with the UUID exists or not */
@@ -27,11 +29,15 @@ func UpdateHostStatusByHostGuid(ctx context.Context,
 		zlog.Debug().Msgf("GetHostResourceByUUID = %v", hostResc)
 	}
 
-	hostStatusName := computev1.HostStatus_name[int32(hoststatus)]
-	zlog.Debug().Msgf("Update host resc (%v) status: %v", hostResc.ResourceId,
-		hostStatusName)
+	if statusDetails != "" {
+		onboardingStatus = om_status.WithDetails(onboardingStatus, statusDetails)
+	}
 
-	if err = invClient.SetHostStatus(ctx, hostResc.GetResourceId(), hoststatus); err != nil {
+	zlog.Debug().Msgf("Update host resc (%v) status: %v", hostResc.ResourceId,
+		hoststatus)
+	zlog.Debug().Msgf("Update Host (%v) onboarding status: %v", hostResc.ResourceId, onboardingStatus)
+
+	if err = invClient.SetHostStatus(ctx, hostResc.GetResourceId(), hoststatus, statusDetails, onboardingStatus); err != nil {
 		zlog.MiSec().MiError("Failed to update host resource info").Msg("UpdateHostStatusByHostGuid")
 		return err
 	}

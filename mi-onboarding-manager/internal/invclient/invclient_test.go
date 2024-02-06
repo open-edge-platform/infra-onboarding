@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: (C) 2023 Intel Corporation
+// SPDX-FileCopyrightText: (C) 2024 Intel Corporation
 //
 // SPDX-License-Identifier: LicenseRef-Intel
 
@@ -7,16 +7,20 @@ package invclient
 import (
 	"context"
 	"errors"
+	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
+	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
+
+	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/status"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"os"
 	"path/filepath"
+
 	"reflect"
 	"testing"
 	"time"
 
-	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	network_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/network/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
@@ -404,7 +408,7 @@ func TestOnboardingInventoryClient_FindAllInstances(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 			},
-			want:    []string{},
+			want:    nil,
 			wantErr: false,
 		},
 
@@ -833,42 +837,72 @@ func TestOnboardingInventoryClient_DeleteHostResource(t *testing.T) {
 }
 
 func TestOnboardingInventoryClient_SetHostStatus(t *testing.T) {
-	type fields struct {
-		Client  client.InventoryClient
-		Watcher chan *client.WatchEvents
-	}
+	CreateOnboardingClientForTesting(t)
+	invClient := OnboardingTestClient
+
+	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+
 	type args struct {
-		ctx        context.Context
-		hostID     string
-		hostStatus computev1.HostStatus
+		hostID           string
+		hostStatus       computev1.HostStatus
+		details          string
+		onboardingStatus inv_status.ResourceStatus
 	}
-	mockClient := &MockInventoryClient{}
-	mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
+		name  string
+		args  args
+		valid bool
 	}{
 		{
-			name: "Test Case 1",
-			fields: fields{
-				Client: mockClient,
-			},
+			name: "Success",
 			args: args{
-				ctx: context.Background(),
+				hostID:           host.GetResourceId(),
+				hostStatus:       computev1.HostStatus_HOST_STATUS_ONBOARDING,
+				details:          "some detail",
+				onboardingStatus: om_status.OnboardingStatusInProgress,
 			},
-			wantErr: false,
+			valid: true,
+		},
+		{
+			name: "Failed_NotFound",
+			args: args{
+				hostID: "host-12345678",
+			},
+			valid: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &OnboardingInventoryClient{
-				Client:  tt.fields.Client,
-				Watcher: tt.fields.Watcher,
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			timeBeforeUpdate := time.Now().UTC()
+			err := invClient.SetHostStatus(ctx, tt.args.hostID, tt.args.hostStatus, tt.args.details, tt.args.onboardingStatus)
+			if err != nil {
+				if tt.valid {
+					t.Errorf("Failed: %s", err)
+					t.FailNow()
+				}
+			} else {
+				if !tt.valid {
+					t.Errorf("Succeeded but should have failed")
+					t.FailNow()
+				}
 			}
-			if err := c.SetHostStatus(tt.args.ctx, tt.args.hostID, tt.args.hostStatus); (err != nil) != tt.wantErr {
-				t.Errorf("OnboardingInventoryClient.SetHostStatus() error = %v, wantErr %v", err, tt.wantErr)
+
+			// only get/delete if valid test and hasn't failed otherwise may segfault
+			if !t.Failed() && tt.valid {
+				hostInv, err := invClient.GetHostResourceByUUID(ctx, host.Uuid)
+				require.NoError(t, err)
+				require.NotNil(t, hostInv)
+
+				assert.Equal(t, tt.args.hostStatus, hostInv.GetLegacyHostStatus())
+				assert.Equal(t, tt.args.onboardingStatus.Status, hostInv.GetOnboardingStatus())
+				assert.Equal(t, tt.args.onboardingStatus.StatusIndicator, hostInv.GetOnboardingStatusIndicator())
+				timeNow, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST",
+					hostInv.GetOnboardingStatusTimestamp())
+				require.NoError(t, err)
+				assert.False(t, timeNow.UTC().Before(timeBeforeUpdate))
 			}
 		})
 	}
@@ -1126,46 +1160,6 @@ func TestOnboardingInventoryClient_DeleteInstanceResource(t *testing.T) {
 			}
 			if err := c.DeleteInstanceResource(tt.args.ctx, tt.args.resourceID); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.DeleteInstanceResource() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestOnboardingInventoryClient_SetInstanceStatus(t *testing.T) {
-	type fields struct {
-		Client  client.InventoryClient
-		Watcher chan *client.WatchEvents
-	}
-	type args struct {
-		ctx            context.Context
-		instanceID     string
-		instanceStatus computev1.InstanceStatus
-	}
-	mockClient := &MockInventoryClient{}
-	mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test Case 1",
-			fields: fields{
-				Client: mockClient,
-			},
-			args:    args{ctx: context.Background()},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := &OnboardingInventoryClient{
-				Client:  tt.fields.Client,
-				Watcher: tt.fields.Watcher,
-			}
-			if err := c.SetInstanceStatus(tt.args.ctx, tt.args.instanceID, tt.args.instanceStatus); (err != nil) != tt.wantErr {
-				t.Errorf("OnboardingInventoryClient.SetInstanceStatus() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -1446,51 +1440,6 @@ func TestOnboardingInventoryClient_ListIPAddresses(t *testing.T) {
 	}
 }
 
-func TestOnboardingInventoryClient_findAllResources(t *testing.T) {
-	type fields struct {
-		Client  client.InventoryClient
-		Watcher chan *client.WatchEvents
-	}
-	type args struct {
-		ctx  context.Context
-		kind inv_v1.ResourceKind
-	}
-	mockClient := &MockInventoryClient{}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    []string
-		wantErr bool
-	}{
-		{
-			name: "Test Case 1",
-			fields: fields{
-				Client: mockClient,
-			},
-			args:    args{ctx: context.Background()},
-			want:    nil,
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := &OnboardingInventoryClient{
-				Client:  tt.fields.Client,
-				Watcher: tt.fields.Watcher,
-			}
-			got, err := c.findAllResources(tt.args.ctx, tt.args.kind)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("OnboardingInventoryClient.findAllResources() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("OnboardingInventoryClient.findAllResources() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestOnboardingInventoryClient_FindAllResources(t *testing.T) {
 	type fields struct {
 		Client  client.InventoryClient
@@ -1562,108 +1511,6 @@ func TestOnboardingInventoryClient_FindAllResources(t *testing.T) {
 	}
 }
 
-func Test_getInventoryResourceAndID(t *testing.T) {
-	type args struct {
-		resource proto.Message
-	}
-	hostResource := &computev1.HostResource{}
-	hostResCopy := proto.Clone(hostResource)
-	hostStorageResource := &computev1.HoststorageResource{}
-	hostStorageResCopy := proto.Clone(hostStorageResource)
-	hostSubResource := &computev1.HostusbResource{}
-	hostSubResCopy := proto.Clone(hostSubResource)
-	hostgpuResource := &computev1.HostgpuResource{}
-	hostgpuResourceCopy := proto.Clone(hostgpuResource)
-	networkResource := &network_v1.IPAddressResource{}
-	networkResourceCopy := proto.Clone(networkResource)
-	operatingSystemResource := &osv1.OperatingSystemResource{}
-	operatingSystemResourceCopy := proto.Clone(operatingSystemResource)
-	tests := []struct {
-		name    string
-		args    args
-		want    *inv_v1.Resource
-		want1   string
-		wantErr bool
-	}{
-		{
-			name:    "Test Case 1",
-			args:    args{},
-			want:    &inv_v1.Resource{},
-			want1:   "",
-			wantErr: true,
-		},
-		{
-			name: "Test Case 2",
-			args: args{
-				resource: hostResCopy,
-			},
-			want:    &inv_v1.Resource{},
-			want1:   "",
-			wantErr: false,
-		},
-		{
-			name: "Test Case 3",
-			args: args{
-				resource: hostStorageResCopy,
-			},
-			want:    &inv_v1.Resource{},
-			want1:   "",
-			wantErr: false,
-		},
-		{
-			name: "Test Case 4",
-			args: args{
-				resource: hostSubResCopy,
-			},
-			want:    &inv_v1.Resource{},
-			want1:   "",
-			wantErr: false,
-		},
-		{
-			name: "Test Case 5",
-			args: args{
-				resource: hostgpuResourceCopy,
-			},
-			want:    &inv_v1.Resource{},
-			want1:   "",
-			wantErr: false,
-		},
-		{
-			name: "Test Case 6",
-			args: args{
-				resource: networkResourceCopy,
-			},
-			want:    &inv_v1.Resource{},
-			want1:   "",
-			wantErr: false,
-		},
-		{
-			name: "Test Case 7",
-			args: args{
-				resource: operatingSystemResourceCopy,
-			},
-			want:    &inv_v1.Resource{},
-			want1:   "",
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, got1, err := getInventoryResourceAndID(tt.args.resource)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("getInventoryResourceAndID() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if reflect.DeepEqual(got, tt.want) {
-				t.Errorf("getInventoryResourceAndID() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("getInventoryResourceAndID() got1 = %v, want %v", got1, tt.want1)
-			}
-		})
-	}
-}
-
 func TestOnboardingInventoryClient_UpdateInvResourceFields(t *testing.T) {
 	type fields struct {
 		Client  client.InventoryClient
@@ -1708,7 +1555,9 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 	type args struct {
 		hostID               string
 		hostCurrentState     computev1.HostState
-		hostStatus           computev1.HostStatus
+		runtimeHostStatus    inv_status.ResourceStatus
+		updateTimestamp      time.Time
+		legacyHostStatus     computev1.HostStatus
 		providerStatus       string
 		providerStatusDetail string
 	}
@@ -1723,19 +1572,35 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 			args: args{
 				hostID:               host.GetResourceId(),
 				hostCurrentState:     computev1.HostState_HOST_STATE_UNTRUSTED,
-				hostStatus:           computev1.HostStatus_HOST_STATUS_INVALIDATED,
+				runtimeHostStatus:    om_status.AuthorizationStatusInvalidated,
+				legacyHostStatus:     computev1.HostStatus_HOST_STATUS_INVALIDATED,
 				providerStatus:       "some status",
 				providerStatusDetail: "some detail",
+				updateTimestamp:      time.Now().UTC(),
 			},
 			valid: true,
 		},
 		{
 			name: "Failed_NotFound",
 			args: args{
-				hostID: "host-12345678",
+				hostID:               "host-12345678",
+				hostCurrentState:     computev1.HostState_HOST_STATE_UNTRUSTED,
+				runtimeHostStatus:    om_status.AuthorizationStatusInvalidated,
+				legacyHostStatus:     computev1.HostStatus_HOST_STATUS_INVALIDATED,
+				providerStatus:       "some status",
+				providerStatusDetail: "some detail",
+				updateTimestamp:      time.Now().UTC(),
 			},
 			valid:      false,
 			statusCode: codes.NotFound,
+		},
+		{
+			name: "Failed_HostStatusNotSet",
+			args: args{
+				hostID: host.GetResourceId(),
+			},
+			valid:      false,
+			statusCode: codes.InvalidArgument,
 		},
 	}
 	for _, tt := range tests {
@@ -1746,12 +1611,15 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 			hostUp := &computev1.HostResource{
 				ResourceId:           tt.args.hostID,
 				CurrentState:         tt.args.hostCurrentState,
-				LegacyHostStatus:     tt.args.hostStatus,
+				LegacyHostStatus:     tt.args.legacyHostStatus,
 				ProviderStatus:       tt.args.providerStatus,
 				ProviderStatusDetail: tt.args.providerStatusDetail,
+				HostStatus:           tt.args.runtimeHostStatus.Status,
+				HostStatusIndicator:  tt.args.runtimeHostStatus.StatusIndicator,
+				HostStatusTimestamp:  tt.args.updateTimestamp.String(),
 			}
 
-			err := OnboardingTestClient.UpdateHostStateAndStatus(ctx, hostUp)
+			err := OnboardingTestClient.UpdateHostStateAndRuntimeStatus(ctx, hostUp)
 			if err != nil {
 				if tt.valid {
 					t.Errorf("Failed: %s", err)
@@ -1771,13 +1639,95 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 				require.NotNil(t, hostInv)
 
 				assert.Equal(t, tt.args.hostCurrentState, hostInv.GetCurrentState())
-				assert.Equal(t, tt.args.hostStatus, hostInv.GetLegacyHostStatus())
+				assert.Equal(t, tt.args.legacyHostStatus, hostInv.GetLegacyHostStatus())
 				assert.Equal(t, tt.args.providerStatus, hostInv.GetProviderStatus())
 				assert.Equal(t, tt.args.providerStatusDetail, hostInv.GetProviderStatusDetail())
+				assert.Equal(t, tt.args.runtimeHostStatus.Status, hostInv.GetHostStatus())
+				assert.Equal(t, tt.args.runtimeHostStatus.StatusIndicator, hostInv.GetHostStatusIndicator())
+				timeNow, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST",
+					hostInv.GetHostStatusTimestamp())
+				require.NoError(t, err)
+				assert.False(t, timeNow.UTC().Before(tt.args.updateTimestamp))
 			}
+
 			if !tt.valid {
 				grpcCode := status.Code(err)
 				require.Equal(t, tt.statusCode, grpcCode)
+			}
+		})
+	}
+}
+
+func TestOnboardingInventoryClient_SetInstanceStatus(t *testing.T) {
+	CreateOnboardingClientForTesting(t)
+	invClient := OnboardingTestClient
+
+	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	osRes := inv_testing.CreateOs(t)
+	inst := inv_testing.CreateInstance(t, host, osRes)
+
+	type args struct {
+		instanceID         string
+		instanceStatus     computev1.InstanceStatus
+		provisioningStatus inv_status.ResourceStatus
+	}
+	tests := []struct {
+		name  string
+		args  args
+		valid bool
+	}{
+		{
+			name: "Success",
+			args: args{
+				instanceID:         inst.GetResourceId(),
+				instanceStatus:     computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONED,
+				provisioningStatus: om_status.ProvisioningStatusDone,
+			},
+			valid: true,
+		},
+		{
+			name: "Failed_NotFound",
+			args: args{
+				instanceID:         "inst-12345678",
+				instanceStatus:     computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONED,
+				provisioningStatus: om_status.ProvisioningStatusDone,
+			},
+			valid: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			timeBeforeUpdate := time.Now().UTC()
+			err := invClient.SetInstanceStatus(ctx, tt.args.instanceID, tt.args.instanceStatus, tt.args.provisioningStatus)
+			if err != nil {
+				if tt.valid {
+					t.Errorf("Failed: %s", err)
+					t.FailNow()
+				}
+			} else {
+				if !tt.valid {
+					t.Errorf("Succeeded but should have failed")
+					t.FailNow()
+				}
+			}
+
+			// only get/delete if valid test and hasn't failed otherwise may segfault
+			if !t.Failed() && tt.valid {
+				hostInv, err := invClient.GetHostResourceByUUID(ctx, host.Uuid)
+				require.NoError(t, err)
+				require.NotNil(t, hostInv)
+
+				instInv := hostInv.Instance
+				assert.Equal(t, tt.args.instanceStatus, instInv.GetStatus())
+				assert.Equal(t, tt.args.provisioningStatus.Status, instInv.GetProvisioningStatus())
+				assert.Equal(t, tt.args.provisioningStatus.StatusIndicator, instInv.GetProvisioningStatusIndicator())
+				timeNow, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST",
+					instInv.GetProvisioningStatusTimestamp())
+				require.NoError(t, err)
+				assert.False(t, timeNow.UTC().Before(timeBeforeUpdate))
 			}
 		})
 	}

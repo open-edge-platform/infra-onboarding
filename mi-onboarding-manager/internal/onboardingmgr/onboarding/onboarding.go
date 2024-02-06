@@ -11,6 +11,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/status"
 	"log"
 	"os"
 	"path/filepath"
@@ -192,15 +193,24 @@ func DeviceOnboardingManagerNzt(deviceDetails utils.DeviceInfo, artifactDetails 
 			defer close(diStatus)
 			log.Printf("Device initialization started for Device: %s", deviceInfo.HwIP)
 			var guid string
-			UpdateHostStatusByHostGuid(ctx, _invClient, deviceInfo.Guid, computev1.HostStatus_HOST_STATUS_INITIALIZING)
+			UpdateHostStatusByHostGuid(ctx, _invClient, deviceInfo.Guid,
+				computev1.HostStatus_HOST_STATUS_INITIALIZING,
+				"", // TODO: empty status details for now, add more details in future
+				om_status.InitializationInProgress)
 			guid, dierror = onbworkflowclient.DiWorkflowCreation(deviceInfo)
 			if dierror != nil {
 				dierror = fmt.Errorf("SutIP %s: %w", deviceInfo.HwIP, dierror)
 				fmt.Printf("Error in DiWorkflowCreation for %v\n", dierror)
-				UpdateHostStatusByHostGuid(ctx, _invClient, deviceInfo.Guid, computev1.HostStatus_HOST_STATUS_INIT_FAILED)
+				UpdateHostStatusByHostGuid(ctx, _invClient, deviceInfo.Guid,
+					computev1.HostStatus_HOST_STATUS_INIT_FAILED,
+					"", // TODO: empty status details for now, add more details in future
+					om_status.InitializationFailed)
 				return
 			}
-			UpdateHostStatusByHostGuid(ctx, _invClient, deviceInfo.Guid, computev1.HostStatus_HOST_STATUS_ONBOARDED)
+			UpdateHostStatusByHostGuid(ctx, _invClient, deviceInfo.Guid,
+				computev1.HostStatus_HOST_STATUS_INITIALIZED,
+				"", // TODO: empty status details for now, add more details in future
+				om_status.InitializationDone)
 			log.Printf("GUID: %s\n", guid)
 			deviceInfo.Guid = guid
 			// TODO: change the certificate path to the common location once fdo services are working
@@ -254,7 +264,10 @@ func DeviceOnboardingManagerNzt(deviceDetails utils.DeviceInfo, artifactDetails 
 			}
 			if dierror != nil {
 				if deviceInfo.Guid != "" {
-					UpdateHostStatusByHostGuid(ctx, _invClient, deviceInfo.Guid, computev1.HostStatus_HOST_STATUS_PROVISION_FAILED)
+					UpdateHostStatusByHostGuid(ctx, _invClient, deviceInfo.Guid,
+						computev1.HostStatus_HOST_STATUS_ONBOARDING_FAILED,
+						"", // TODO: empty status details for now, add more details in future
+						om_status.OnboardingStatusFailed)
 				}
 				ErrCh <- dierror
 				*nodeExistCount += 1
@@ -264,8 +277,12 @@ func DeviceOnboardingManagerNzt(deviceDetails utils.DeviceInfo, artifactDetails 
 		} else {
 			log.Println("DI is disabled")
 		}
-		UpdateHostStatusByHostGuid(ctx, _invClient, deviceInfo.Guid, computev1.HostStatus_HOST_STATUS_PROVISIONING)
-		UpdateInstanceStatusByGuid(ctx, _invClient, deviceInfo.Guid, computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONING)
+		UpdateHostStatusByHostGuid(ctx, _invClient, deviceInfo.Guid,
+			computev1.HostStatus_HOST_STATUS_ONBOARDING,
+			"", // TODO: empty status details for now, add more details in future
+			om_status.OnboardingStatusInProgress)
+		UpdateInstanceStatusByGuid(ctx, _invClient, deviceInfo.Guid,
+			computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONING, om_status.ProvisioningStatusInProgress)
 		log.Println("ProdWorkflowCreation started for ", deviceInfo.HwIP)
 		// Production Workflow creation
 		proderror := onbworkflowclient.ProdWorkflowCreation(deviceInfo, deviceInfo.ImType, artifactinfo)
@@ -273,11 +290,16 @@ func DeviceOnboardingManagerNzt(deviceDetails utils.DeviceInfo, artifactDetails 
 			proderror = fmt.Errorf("SutIP %s: %w", deviceInfo.HwIP, proderror)
 			ErrCh <- proderror
 			*nodeExistCount += 1
-			UpdateInstanceStatusByGuid(ctx, _invClient, deviceInfo.Guid, computev1.InstanceStatus_INSTANCE_STATUS_PROVISION_FAILED)
+			UpdateInstanceStatusByGuid(ctx, _invClient, deviceInfo.Guid,
+				computev1.InstanceStatus_INSTANCE_STATUS_PROVISION_FAILED, om_status.ProvisioningStatusFailed)
 			return
 		}
-		UpdateHostStatusByHostGuid(ctx, _invClient, deviceInfo.Guid, computev1.HostStatus_HOST_STATUS_PROVISIONED)
-		UpdateInstanceStatusByGuid(ctx, _invClient, deviceInfo.Guid, computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONED)
+		UpdateHostStatusByHostGuid(ctx, _invClient, deviceInfo.Guid,
+			computev1.HostStatus_HOST_STATUS_ONBOARDED,
+			"", // TODO: empty status details for now, add more details in future
+			om_status.OnboardingStatusDone)
+		UpdateInstanceStatusByGuid(ctx, _invClient, deviceInfo.Guid,
+			computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONED, om_status.ProvisioningStatusDone)
 		log.Println("ProdWorkflowCreation Finished for ", deviceInfo.HwIP)
 		*nodeExistCount += 1
 	}()

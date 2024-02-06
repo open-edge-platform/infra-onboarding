@@ -8,6 +8,8 @@ package onboarding
 import (
 	"context"
 	"errors"
+	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
+	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/status"
 	"testing"
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
@@ -18,10 +20,11 @@ import (
 
 func TestUpdateInstanceStatusByGuid(t *testing.T) {
 	type args struct {
-		ctx            context.Context
-		invClient      *invclient.OnboardingInventoryClient
-		hostUUID       string
-		instancestatus computev1.InstanceStatus
+		ctx                context.Context
+		invClient          *invclient.OnboardingInventoryClient
+		hostUUID           string
+		instancestatus     computev1.InstanceStatus
+		provisioningStatus inv_status.ResourceStatus
 	}
 	MockInvClient := &MockInventoryClient{}
 	host := &computev1.HostResource{
@@ -51,7 +54,7 @@ func TestUpdateInstanceStatusByGuid(t *testing.T) {
 	}
 	host3 := &computev1.HostResource{
 		ResourceId: "host-084d9b08",
-		Instance:nil,
+		Instance:   nil,
 	}
 	mockResource3 := &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Host{
@@ -86,8 +89,9 @@ func TestUpdateInstanceStatusByGuid(t *testing.T) {
 				invClient: &invclient.OnboardingInventoryClient{
 					Client: MockInvClient,
 				},
-				hostUUID:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-				instancestatus: computev1.InstanceStatus_INSTANCE_STATUS_ERROR,
+				hostUUID:           "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+				instancestatus:     computev1.InstanceStatus_INSTANCE_STATUS_ERROR,
+				provisioningStatus: om_status.ProvisioningStatusFailed,
 			},
 			wantErr: false,
 		},
@@ -98,8 +102,9 @@ func TestUpdateInstanceStatusByGuid(t *testing.T) {
 				invClient: &invclient.OnboardingInventoryClient{
 					Client: MockInvClient1,
 				},
-				hostUUID:       "mockhostUUID",
-				instancestatus: computev1.InstanceStatus_INSTANCE_STATUS_ERROR,
+				hostUUID:           "mockhostUUID",
+				instancestatus:     computev1.InstanceStatus_INSTANCE_STATUS_ERROR,
+				provisioningStatus: om_status.ProvisioningStatusFailed,
 			},
 			wantErr: true,
 		},
@@ -111,8 +116,9 @@ func TestUpdateInstanceStatusByGuid(t *testing.T) {
 				invClient: &invclient.OnboardingInventoryClient{
 					Client: MockInvClient2,
 				},
-				hostUUID:       "mockhostUUID",
-				instancestatus: computev1.InstanceStatus_INSTANCE_STATUS_ERROR,
+				hostUUID:           "mockhostUUID",
+				instancestatus:     computev1.InstanceStatus_INSTANCE_STATUS_ERROR,
+				provisioningStatus: om_status.ProvisioningStatusFailed,
 			},
 			wantErr: true,
 		},
@@ -123,8 +129,9 @@ func TestUpdateInstanceStatusByGuid(t *testing.T) {
 				invClient: &invclient.OnboardingInventoryClient{
 					Client: MockInvClient3,
 				},
-				hostUUID:       "mockhostUUID",
-				instancestatus: computev1.InstanceStatus_INSTANCE_STATUS_ERROR,
+				hostUUID:           "mockhostUUID",
+				instancestatus:     computev1.InstanceStatus_INSTANCE_STATUS_ERROR,
+				provisioningStatus: om_status.ProvisioningStatusFailed,
 			},
 			wantErr: true,
 		},
@@ -135,18 +142,18 @@ func TestUpdateInstanceStatusByGuid(t *testing.T) {
 				invClient: &invclient.OnboardingInventoryClient{
 					Client: MockInvClient4,
 				},
-				hostUUID:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-				instancestatus: computev1.InstanceStatus_INSTANCE_STATUS_ERROR,
+				hostUUID:           "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+				instancestatus:     computev1.InstanceStatus_INSTANCE_STATUS_ERROR,
+				provisioningStatus: om_status.ProvisioningStatusFailed,
 			},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := UpdateInstanceStatusByGuid(tt.args.ctx, tt.args.invClient, tt.args.hostUUID, tt.args.instancestatus); (err != nil) != tt.wantErr {
+			if err := UpdateInstanceStatusByGuid(tt.args.ctx, tt.args.invClient, tt.args.hostUUID, tt.args.instancestatus, tt.args.provisioningStatus); (err != nil) != tt.wantErr {
 				t.Errorf("UpdateInstanceStatusByGuid() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
-

@@ -7,6 +7,8 @@ import (
 	"context"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
+	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/status"
+	"time"
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
@@ -202,13 +204,20 @@ func (hr *HostReconciler) invalidateHost(ctx context.Context, host *computev1.Ho
 	//  As for now, this function only sets the current state to UNTRUSTED + corresponding statuses.
 
 	untrustedHost := computev1.HostResource{
-		ResourceId:       host.GetResourceId(),
-		CurrentState:     computev1.HostState_HOST_STATE_UNTRUSTED,
-		LegacyHostStatus: computev1.HostStatus_HOST_STATUS_INVALIDATED,
-		ProviderStatus:   computev1.HostStatus_name[int32(computev1.HostStatus_HOST_STATUS_INVALIDATED)],
+		ResourceId:          host.GetResourceId(),
+		CurrentState:        computev1.HostState_HOST_STATE_UNTRUSTED,
+		LegacyHostStatus:    computev1.HostStatus_HOST_STATUS_INVALIDATED,
+		ProviderStatus:      computev1.HostStatus_name[int32(computev1.HostStatus_HOST_STATUS_INVALIDATED)],
+		HostStatus:          om_status.AuthorizationStatusInvalidated.Status,
+		HostStatusIndicator: om_status.AuthorizationStatusInvalidated.StatusIndicator,
+		HostStatusTimestamp: time.Now().UTC().String(),
 	}
 
-	if err := hr.invClient.UpdateHostStateAndStatus(ctx, &untrustedHost); err != nil {
+	// Although Onboarding Manager should not update host_status that is updated by HRM,
+	// the host authorization status (being a host_status) must be updated by OM, because
+	// OM is the only source of truth for state reconciliation. Anyway, this operation is safe to
+	// HRM because once the state is moved to UNTRUSTED, HRM won't perform any runtime status update.
+	if err := hr.invClient.UpdateHostStateAndRuntimeStatus(ctx, &untrustedHost); err != nil {
 		zlogHost.MiSec().MiError("Failed to update host state and status").Msg("invalidateHost")
 		return err
 	}

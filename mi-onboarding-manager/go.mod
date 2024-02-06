@@ -12,7 +12,6 @@ require (
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.0.4
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory v0.9.3
 	github.com/jinzhu/configor v1.2.1
-	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
 	github.com/onosproject/onos-lib-go v0.10.24
 	github.com/pkg/errors v0.9.1
 	github.com/scylladb/gocqlx/v2 v2.8.0
@@ -29,6 +28,7 @@ require (
 
 require (
 	github.com/google/uuid v1.4.0
+	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
 	k8s.io/api v0.29.1
 	sigs.k8s.io/controller-runtime v0.15.0
 )

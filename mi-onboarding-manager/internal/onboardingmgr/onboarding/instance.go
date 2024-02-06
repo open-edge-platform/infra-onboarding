@@ -7,18 +7,19 @@ package onboarding
 
 import (
 	"context"
-	"errors"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
+	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
+	"google.golang.org/grpc/codes"
 
-	"github.com/apex/log"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 )
 
 func UpdateInstanceStatusByGuid(ctx context.Context,
 	invClient *invclient.OnboardingInventoryClient,
-	hostUUID string, instancestatus computev1.InstanceStatus,
+	hostUUID string, instancestatus computev1.InstanceStatus, provisioningStatus inv_status.ResourceStatus,
 ) error {
-	log.Infof("UpdateInstanceStatusByGuid")
+	zlog.Info().Msg("UpdateInstanceStatusByGuid")
 
 	hostResc, err := invClient.GetHostResourceByUUID(ctx, hostUUID)
 	if err != nil {
@@ -31,19 +32,19 @@ func UpdateInstanceStatusByGuid(ctx context.Context,
 
 	instanceResc := hostResc.GetInstance()
 	if instanceResc == nil {
-		err := errors.New("Instance Doesn't Exist")
+		err := inv_errors.Errorfc(codes.NotFound, "Instance Doesn't Exist")
 		zlog.MiSec().MiErr(err).Msgf(hostUUID)
 		return err
 	}
 	zlog.Debug().Msgf("Node and its Instance Resource Exist")
 	zlog.Debug().Msgf("GetInstanceResourceBySN = %v", instanceResc)
 
-	instanceStatusName := computev1.InstanceStatus_name[int32(instancestatus)]
 	zlog.Debug().Msgf("Update Instance resc (%v) status: %v", instanceResc.ResourceId,
-		instanceStatusName)
+		instancestatus)
+	zlog.Debug().Msgf("Update Instance (%v) provisioning status: %v", instanceResc.ResourceId, provisioningStatus)
 
-	if err = invClient.SetInstanceStatus(ctx, instanceResc.GetResourceId(), instancestatus); err != nil {
-		zlog.MiSec().MiError("Failed to update Instance resource info").Msg("UpdateInstanceStatusByGuid")
+	if err = invClient.SetInstanceStatus(ctx, instanceResc.GetResourceId(), instancestatus, provisioningStatus); err != nil {
+		zlog.MiSec().MiErr(err).Msgf("Failed to update status of Instance %v", instanceResc.ResourceId)
 		return err
 	}
 

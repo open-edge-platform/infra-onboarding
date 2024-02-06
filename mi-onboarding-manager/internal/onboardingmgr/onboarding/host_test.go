@@ -8,6 +8,8 @@ package onboarding
 import (
 	"context"
 	"errors"
+	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
+	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/status"
 	"testing"
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
@@ -18,10 +20,12 @@ import (
 
 func TestUpdateHostStatusByHostGuid(t *testing.T) {
 	type args struct {
-		ctx        context.Context
-		invClient  *invclient.OnboardingInventoryClient
-		hostUUID   string
-		hoststatus computev1.HostStatus
+		ctx              context.Context
+		invClient        *invclient.OnboardingInventoryClient
+		hostUUID         string
+		hoststatus       computev1.HostStatus
+		statusDetails    string
+		onboardingStatus inv_status.ResourceStatus
 	}
 	host := &computev1.HostResource{
 		ResourceId: "host-084d9b08",
@@ -55,8 +59,10 @@ func TestUpdateHostStatusByHostGuid(t *testing.T) {
 				invClient: &invclient.OnboardingInventoryClient{
 					Client: MockInvClient,
 				},
-				hostUUID:   "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-				hoststatus: computev1.HostStatus_HOST_STATUS_RUNNING,
+				hostUUID:         "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+				hoststatus:       computev1.HostStatus_HOST_STATUS_ONBOARDED,
+				statusDetails:    "some detail",
+				onboardingStatus: om_status.OnboardingStatusDone,
 			},
 			wantErr: false,
 		},
@@ -87,10 +93,10 @@ func TestUpdateHostStatusByHostGuid(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := UpdateHostStatusByHostGuid(tt.args.ctx, tt.args.invClient, tt.args.hostUUID, tt.args.hoststatus); (err != nil) != tt.wantErr {
+			if err := UpdateHostStatusByHostGuid(tt.args.ctx, tt.args.invClient, tt.args.hostUUID,
+				tt.args.hoststatus, tt.args.statusDetails, tt.args.onboardingStatus); (err != nil) != tt.wantErr {
 				t.Errorf("UpdateHostStatusByHostGuid() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
-
