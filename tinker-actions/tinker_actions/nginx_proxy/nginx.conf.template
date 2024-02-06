@@ -1,0 +1,90 @@
+# INTEL CONFIDENTIAL
+# Copyright (C) 2024 Intel Corporation
+#
+# This software and the related documents are Intel copyrighted materials, and
+# your use of them is governed by the express license under which they were
+# provided to you ("License"). Unless the License provides otherwise, you may
+# not use, modify, copy, publish, distribute, disclose or transmit this
+# software or the related documents without Intel's prior written permission.
+#
+# This software and the related documents are provided as is, with no express
+# or implied warranties, other than those that are expressly stated in the
+# License.
+# SPDX-License-Identifier: LicenseRef-Intel
+
+worker_processes 1;
+events {
+    worker_connections 1024;
+}
+
+http {
+    # Server for routing APT client requests to release fileserver
+    server {
+        listen 443 ssl;
+        server_name localhost;
+
+        # SSL settings
+        ssl_certificate /etc/nginx/ssl/nginx-cert.pem;
+        ssl_certificate_key /etc/nginx/ssl/nginx-key.pem;
+
+        proxy_set_header Authorization "Bearer ${release_token}";
+
+        location / {
+                proxy_pass https://${release_svc};
+        }
+    }
+
+    server {
+        listen 8081 ssl;
+        server_name localhost;
+
+        # SSL settings
+        ssl_certificate /etc/nginx/ssl/nginx-cert.pem;
+        ssl_certificate_key /etc/nginx/ssl/nginx-key.pem;
+
+        proxy_set_header Authorization "Bearer ${auth_token}";
+
+	location /health {
+            return 200 "NGINX healthy..";
+            add_header Content-Type text/plain;
+        }
+
+        location ~ ^/fdo/101/msg/(10|12|255) {
+                proxy_pass https://${manufacturer_svc}:8038;
+        }
+
+        location ~ ^/fdo/101/msg/(60|62|64|66|68|70|255) {
+                proxy_pass https://${owner_svc}:8043;
+        }
+    }
+
+    # Http server to route tink routes
+    server {
+        listen 80;
+        proxy_set_header Bearer ${auth_token};
+
+        location /tink-stack/ {
+                proxy_ssl_verify on;
+                proxy_ssl_server_name on;
+                proxy_ssl_trusted_certificate /etc/nginx/ssl/ensp-orchestrator-ca.crt;
+                proxy_ssl_verify_depth 1;
+                proxy_pass https://${tink_stack_svc};
+        }
+    }
+
+
+# Server to route GRPC traffic
+    server {
+        listen 42113;
+        http2 on;
+
+        proxy_set_header Bearer ${auth_token};
+        location / {
+                grpc_ssl_verify on;
+                grpc_ssl_server_name on;
+                grpc_ssl_trusted_certificate /etc/nginx/ssl/ensp-orchestrator-ca.crt;
+                grpc_ssl_verify_depth 1;
+                grpc_pass grpcs://${tink_server_svc}:443;
+        }
+    }
+}

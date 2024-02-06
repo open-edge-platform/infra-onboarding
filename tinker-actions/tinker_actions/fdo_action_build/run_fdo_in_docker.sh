@@ -24,8 +24,14 @@
 # CLIENT_SDK_TPM_DI_STATUS
 # CLIENT_SDK_DI_STATUS
 
+# Check if NGINX proxy service is up
+until [ $(curl -w "%{http_code}" --output /dev/null -s -k https://localhost:8081/health) != 200 ]
+do
+    echo "NGINX server still not up, wait for 10 sec"
+    sleep 10
+done
 
-
+echo "NGINX server is up, resuming FDO operations.."
 
 # mount the /CRED partition as /target folder
 ## sudo mount  -L ${DATA_PARTITION_LBL} /target
