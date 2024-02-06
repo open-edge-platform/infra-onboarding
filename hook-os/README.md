@@ -1,3 +1,4 @@
+
 # Hook microOS (Alpine Linuxkit)
 This repository holds the scripts needed to get a local copy of Tinkerbell HookOS which is built out of linuxkit yaml file.
 Addition functions accomplished by these scripts are listed below.
@@ -24,7 +25,22 @@ Addition functions accomplished by these scripts are listed below.
    no_proxy=localhost
    nameserver=(192.168.1.1 192.168.1.2 192.168.1.3)
    ```
-2. Run the build hookOS.
+2. Update NGINX runtime configurations according to Maestro deployment.
+
+   ```
+   Example:
+   fdo_manufacturer_svc="fdo-mfg.kind.internal"
+   fdo_owner_svc="fdo-owner.kind.internal"
+   release_svc="files.internal.ledgepark.intel.com"
+   tinker_svc="tink-stack.kind.internal"
+   ```
+3. [Optional] Update host IP/FQDN mapping(comma separated) values in extra_hosts if Maestro is deployed on Kind cluster
+
+   ```
+   Example:
+   extra_hosts="10.114.181.238 api-proxy.kind.internal,10.114.181.238 app-orch.kind.internal,10.114.181.238 cluster-orch-edge-node.kind.internal,10.114.181.238 fdo-mfg.kind.internal,10.114.181.238 fdo-owner.kind.internal,10.114.181.238 tink-stack.kind.internal"
+   ```
+4. Run the build hookOS.
 
    ```
    bash ./build_hookOS.sh
