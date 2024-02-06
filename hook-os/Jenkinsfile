@@ -150,21 +150,32 @@ pipeline {
 						git clone https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/intel-innersource/frameworks.edge.one-intel-edge.edge-node.os-provision.tinker-actions.git tinker-actions
 						'''
 						}
-						def tag = sh(script: 'cat tinker-actions/VERSION', returnStdout: true).trim()
 						sh """
-      						echo 'http_proxy=http://proxy-dmz.intel.com:911' >> config
+      					echo 'http_proxy=http://proxy-dmz.intel.com:911' >> config
 						echo 'https_proxy=http://proxy-dmz.intel.com:911' >> config
 						echo 'ftp_proxy=http://proxy-dmz.intel.com:911' >> config
 						echo 'socks_proxy=socks://proxy-dmz.intel.com:1080' >> config
 						echo 'no_proxy=localhost,*.intel.com,*intel.com,192.168.0.0/16,172.16.0.0/12,127.0.0.0/8,10.0.0.0/8,/var/run/docker.sock' >> config
 						echo 'nameserver=(10.248.2.1 172.30.90.4 10.223.45.36)' >> config
-
-						sed -i "s+fdoclient_action+amr-registry.caas.intel.com/one-intel-edge/edgenode/tinker-actions/fdoclient_action+g" patch.p
-      						sed -i "s+efibootset:+amr-registry.caas.intel.com/one-intel-edge/edgenode/tinker-actions/efibootset:+g" patch.p
-                        			docker pull amr-registry.caas.intel.com/one-intel-edge/edgenode/tinker-actions/efibootset:${tag}
-						docker pull amr-registry.caas.intel.com/one-intel-edge/edgenode/tinker-actions/fdoclient_action:${tag}
+						echo 'keycloak_url=keycloak.validation.maestro.intel.com' >> config
+						"""
+						def tag = sh(script: 'cat tinker-actions/VERSION', returnStdout: true).trim()
+						images_list = []
+						images = sh(script: "cat patch.p | grep -i '+.*image:.*:.*\$' | awk -F: '{print \$2}'", returnStdout: true).trim()
+						images_list = images.split("\n")
+						for (image in images_list) {
+						    image = image.trim()
+						    if (!image.contains('/')) {
+						        sh """
+        						sed -i "s+${image}+amr-registry.caas.intel.com/one-intel-edge/edgenode/tinker-actions/${image}+g" patch.p
+        						docker pull amr-registry.caas.intel.com/one-intel-edge/edgenode/tinker-actions/${image}:${tag}
+        						"""
+						    } 
+						  
+						}
+						sh """
 						eval \$(ssh-agent) > /dev/null
-						make build
+					    make build
 						"""
 						stash name: "alpine_image", includes: "alpine_image/hook_x86_64.tar.gz"
 						stash name: "alpine_image_secureboot", includes: "alpine_image_secureboot/"
