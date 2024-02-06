@@ -31,7 +31,7 @@ boot_space_end=91
 swap_space_start=91
 
 # Size in GBs
-tep_size=1
+tep_size=14
 reserved_size=5
 boot_size=5
 
