@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 #####################################################################################
 # INTEL CONFIDENTIAL                                                                #
@@ -21,7 +21,7 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout nginx-key.pem -out n
 ## # Build the container
 docker pull nginx:latest
 docker build -f Dockerfile \
-        -t nginx_proxy_action:$ver .
+	-t nginx_proxy_action:$ver .
 
 # Save the Docker image
 

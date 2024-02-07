@@ -10,10 +10,10 @@
 # or implied warranties, other than those that are expressly stated in the License. #
 #####################################################################################
 
-FROM nginx:latest
+FROM nginx:1.25.3
 
 # Copy self signed certificate and key
-COPY nginx-key.pem /etc/nginx/ssl/nginx-key.pem
-COPY nginx-cert.pem /etc/nginx/ssl/nginx-cert.pem
+COPY "nginx-key.pem" "/etc/nginx/ssl/nginx-key.pem"
+COPY "nginx-cert.pem" "/etc/nginx/ssl/nginx-cert.pem"
 
 CMD ["bash", "-c", "export access_token=$(cat /dev/shm/idp_access_token) && export release_token=$(cat /dev/shm/release_token) && envsubst < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"]

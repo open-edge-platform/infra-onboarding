@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 #####################################################################################
 # INTEL CONFIDENTIAL                                                                #
@@ -26,7 +26,7 @@ nginx_proxy=./tinker_actions/nginx_proxy
 fdo_docker_setup() {
     pushd $fdo_action_build
 
-    bash build_fdo_client_action.sh
+    bash -e build_fdo_client_action.sh
 
     popd
 }
@@ -35,7 +35,7 @@ store_alpine_setup() {
 
     pushd $store_alpine
 
-    bash build.sh
+    bash -e build.sh
 
     popd
 }
@@ -44,7 +44,7 @@ efibootset_setup() {
 
     pushd $efibootset
 
-    bash build.sh
+    bash -e build.sh
 
     popd
 }
@@ -53,7 +53,7 @@ create_partition_setup() {
 
     pushd $create_partition
 
-    bash build.sh
+    bash -e build.sh
 
     popd
 }
@@ -62,7 +62,7 @@ fde_setup_action() {
 
     pushd $fde_setup
 
-    bash build.sh
+    bash -e build.sh
 
     popd
 }
@@ -70,7 +70,7 @@ fde_setup_action() {
 build_credscopy() {
     pushd $creds_copy
 
-    bash build.sh
+    bash -e build.sh
 
     popd
 }
@@ -79,7 +79,7 @@ client_auth_setup() {
 
     pushd $client_auth
 
-    bash build.sh
+    bash -e build.sh
 
     popd
 }
@@ -88,14 +88,14 @@ nginxproxy_setup() {
 
     pushd $nginx_proxy
 
-    bash build.sh
+    bash -e build.sh
 
     popd
 }
 
 main() {
 
-    sudo apt install -y build-essential
+    apt install -y build-essential
 
     fdo_docker_setup
     efibootset_setup
