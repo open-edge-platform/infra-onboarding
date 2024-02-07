@@ -19,6 +19,7 @@ ver=latest
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout nginx-key.pem -out nginx-cert.pem -subj "/CN=nginx-proxy"
 
 ## # Build the container
+docker pull nginx:latest
 docker build -f Dockerfile \
         -t nginx_proxy_action:$ver .
 
