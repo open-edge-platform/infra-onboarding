@@ -1,9 +1,16 @@
+// SPDX-FileCopyrightText: (C) 2022 Intel Corporation
+// SPDX-License-Identifier: LicenseRef-Intel
+// Imported groovy libraries:
+// 1cicd: ["intel-innersource/applications.devops.jenkins.jenkins-common-pipelines"]
+
+def branchPattern = /(main|release-[0-9].[0-9]|release-[0-9][0-9].[0-9][0-9]|release-[0-9][0-9].[0-9]|release-[0-9].[0-9][0-9])/
+
 def getEnvFromBranch(branch) {
     if (branch ==~ /main/) {
-        return 'virus,protex,hadolint,checkmarx'
+        return 'checkmarx,protex'
     }
     else {
-        return 'virus,checkmarx,hadolint'
+        return 'virus,trivy,hadolint'
         // PR checks can be extended with checkmarx, bandit, snyk but source code has to available for them to pass. Protex should be kept only at branch level scanning.
     }
 }
@@ -352,7 +359,8 @@ pipeline {
         }
         failure {
 		    script {
-                if (authorEmail) {
+                	def currentBranch = env.BRANCH_NAME
+					if ((currentBranch ==~ env.branchPattern) && authorEmail?.contains('.intel')) {
                     emailext(
                     subject: "Build failed on main branch for ${GIT_SHORT_URL}",
                     body: "The build on the main branch failed. Please check the logs for more details. Your PR was the last change, this is why you're receiving this email",
