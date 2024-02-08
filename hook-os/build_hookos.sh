@@ -86,7 +86,7 @@ get_nginx_conf() {
 
     # Update NGINX runtime configs in hook.yaml
     sed -i "s|update_tink_svc|$tinker_svc|g" hook.yaml
-    sed -i "s|update-release_svc|$release_svc|g" hook.yaml
+    sed -i "s|update_release_svc|$release_svc|g" hook.yaml
     sed -i "s|update_manufacturer_svc|$fdo_manufacturer_svc|g" hook.yaml
     sed -i "s|update_owner_svc|$fdo_owner_svc|g" hook.yaml
 }
@@ -138,8 +138,7 @@ build_hook() {
     sed -i "s|update_idp_url|$keycloak_url|g" hook.yaml
 
     #update extra hosts needed?
-    if [ $extra_hosts -ne '' ];
-    then
+    if [ -n "$extra_hosts" ]; then
 	# needed for keycloak.kind.internal type of deployment
 	sed -i "s|update_extra_hosts|$extra_hosts|g" hook.yaml
     else
