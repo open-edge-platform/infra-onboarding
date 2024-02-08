@@ -32,7 +32,22 @@ http {
             proxy_pass https://${release_svc};
         }
     }
+    server {
+        listen 7443 ssl;
+        server_name localhost;
 
+        # SSL settings
+        ssl_certificate /etc/nginx/ssl/nginx-cert.pem;
+        ssl_certificate_key /etc/nginx/ssl/nginx-key.pem;
+
+        ssl_trusted_certificate /etc/nginx/ssl/ensp-orchestrator-ca.crt;
+
+        proxy_set_header Authorization "Bearer ${release_token}";
+
+        location / {
+                proxy_pass https://${oci_release_svc};
+        }
+    }
     server {
         listen 8081 ssl;
         server_name localhost;

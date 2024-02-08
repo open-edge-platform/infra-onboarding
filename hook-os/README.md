@@ -33,6 +33,7 @@ Addition functions accomplished by these scripts are listed below.
    fdo_manufacturer_svc="fdo-mfg.kind.internal"
    fdo_owner_svc="fdo-owner.kind.internal"
    release_svc="files.internal.ledgepark.intel.com"
+   oci_release_svc="registry-rs.internal.ledgepark.intel.com"
    tinker_svc="tink-stack.kind.internal"
    ```
 3. [Optional] Update host IP/FQDN mapping(comma separated) values in extra_hosts if Maestro is deployed on Kind cluster

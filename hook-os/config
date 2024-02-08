@@ -47,6 +47,7 @@ extra_hosts=""
 fdo_manufacturer_svc=""
 fdo_owner_svc=""
 release_svc=""
+oci_release_svc=""
 tinker_svc=""
 
 ## Organizationonal proxy config (default is intel)
