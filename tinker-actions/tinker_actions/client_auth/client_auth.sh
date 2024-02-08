@@ -130,10 +130,6 @@ main() {
 	release_token=$(curl -X GET https://$release_server_url/token -H "Authorization: Bearer $access_token")
 	printf "%s" "$release_token" > "$idp_folder/release_token"
 
-	cat "$idp_folder/idp_access_token"
-
-	cat "$idp_folder/release_token"
-
     else
 	echo "Incorrect username and password provided: rebooting now"
 	sleep 5
