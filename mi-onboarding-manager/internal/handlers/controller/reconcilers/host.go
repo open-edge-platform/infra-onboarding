@@ -5,10 +5,11 @@ package reconcilers
 
 import (
 	"context"
+	"time"
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/status"
-	"time"
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
@@ -28,7 +29,9 @@ func NewHostReconciler(c *invclient.OnboardingInventoryClient) *HostReconciler {
 	}
 }
 
-func (hr *HostReconciler) Reconcile(ctx context.Context, request rec_v2.Request[ResourceID]) rec_v2.Directive[ResourceID] {
+func (hr *HostReconciler) Reconcile(ctx context.Context,
+	request rec_v2.Request[ResourceID],
+) rec_v2.Directive[ResourceID] {
 	resourceID := request.ID.String()
 	zlogHost.Info().Msgf("Reconciling Host %s", resourceID)
 
@@ -91,7 +94,8 @@ func (hr *HostReconciler) deleteHost(
 	}
 
 	if err := hr.deleteHostStorageByHost(ctx, host); err != nil {
-		zlogHost.MiSec().MiError("Failed to delete host storage resource of Host (%s)", host.GetResourceId()).Msg("deleteHost")
+		zlogHost.MiSec().MiError("Failed to delete host storage resource of Host (%s)",
+			host.GetResourceId()).Msg("deleteHost")
 		return err
 	}
 

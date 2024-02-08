@@ -36,7 +36,10 @@ func TestInstanceResCmds_Create(t *testing.T) {
 	RootCmd := InstanceResCmds()
 	RootCmd.SetOut(actual)
 	RootCmd.SetErr(actual)
-	RootCmd.SetArgs([]string{"create", "--addr=localhost:50061", "--insecure", "resource-id=123", "--hostID=123", "--kind=123", "--osID=123"})
+	RootCmd.SetArgs([]string{
+		"create", "--addr=localhost:50061", "--insecure",
+		"resource-id=123", "--hostID=123", "--kind=123", "--osID=123",
+	})
 	err := RootCmd.Execute()
 	assert.Error(t, err)
 }
@@ -96,7 +99,10 @@ func TestHostResCmds_Create(t *testing.T) {
 	RootCmd := HostResCmds()
 	RootCmd.SetOut(actual)
 	RootCmd.SetErr(actual)
-	RootCmd.SetArgs([]string{"create", "--addr=localhost:50067", "--insecure", "--hostname=hostname", "--sut-ip=123", "--uuid=123"})
+	RootCmd.SetArgs([]string{
+		"create", "--addr=localhost:50067", "--insecure",
+		"--hostname=hostname", "--sut-ip=123", "--uuid=123",
+	})
 	err := RootCmd.Execute()
 	assert.Error(t, err)
 }
@@ -120,4 +126,3 @@ func TestHostResCmds_Delete(t *testing.T) {
 	err := RootCmd.Execute()
 	assert.Error(t, err)
 }
-

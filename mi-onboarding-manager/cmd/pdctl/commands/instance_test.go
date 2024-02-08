@@ -12,7 +12,6 @@ import (
 )
 
 func TestInstanceResourceCmd_Get(t *testing.T) {
-
 	actual := new(bytes.Buffer)
 	RootCmd := InstanceResourceCmd()
 	RootCmd.SetOut(actual)
@@ -24,7 +23,6 @@ func TestInstanceResourceCmd_Get(t *testing.T) {
 }
 
 func TestInstanceResourceCmd_Create(t *testing.T) {
-
 	actual := new(bytes.Buffer)
 	RootCmd := InstanceResourceCmd()
 	RootCmd.SetOut(actual)
@@ -36,7 +34,6 @@ func TestInstanceResourceCmd_Create(t *testing.T) {
 }
 
 func TestInstanceResourceCmd_Update(t *testing.T) {
-
 	actual := new(bytes.Buffer)
 	RootCmd := InstanceResourceCmd()
 	RootCmd.SetOut(actual)
@@ -48,7 +45,6 @@ func TestInstanceResourceCmd_Update(t *testing.T) {
 }
 
 func TestInstanceResourceCmd_Delete(t *testing.T) {
-
 	actual := new(bytes.Buffer)
 	RootCmd := InstanceResourceCmd()
 	RootCmd.SetOut(actual)
@@ -58,4 +54,3 @@ func TestInstanceResourceCmd_Delete(t *testing.T) {
 	err := RootCmd.Execute()
 	assert.Error(t, err)
 }
-

@@ -8,9 +8,10 @@ package onboarding
 import (
 	"context"
 	"errors"
+	"testing"
+
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/status"
-	"testing"
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
@@ -41,10 +42,12 @@ func TestUpdateHostStatusByHostGuid(t *testing.T) {
 		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
 	}
 	MockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
-	MockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	MockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 	MockInvClient1 := &MockInventoryClient{}
 	MockInvClient1.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
-	MockInvClient1.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
+	MockInvClient1.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
 	MockInvClient2 := &MockInventoryClient{}
 	MockInvClient2.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, errors.New("err"))
 	tests := []struct {
@@ -93,9 +96,9 @@ func TestUpdateHostStatusByHostGuid(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := UpdateHostStatusByHostGuid(tt.args.ctx, tt.args.invClient, tt.args.hostUUID,
+			if err := UpdateHostStatusByHostGUID(tt.args.ctx, tt.args.invClient, tt.args.hostUUID,
 				tt.args.hoststatus, tt.args.statusDetails, tt.args.onboardingStatus); (err != nil) != tt.wantErr {
-				t.Errorf("UpdateHostStatusByHostGuid() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("UpdateHostStatusByHostGUID() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

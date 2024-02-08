@@ -7,19 +7,16 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
 	"log"
-	"math/rand"
 	"os"
-	"strings"
-	"time"
 
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"gopkg.in/yaml.v2"
 )
 
-// Struct to hold input configuration from YAML
+// Struct to hold input configuration from YAML.
 type InputConfig struct {
 	ArtifactData []struct {
 		Name        string `yaml:"name"`
@@ -29,26 +26,26 @@ type InputConfig struct {
 		Description string `yaml:"description"`
 		Details     struct {
 			Name    string `yaml:"name"`
-			Url     string `yaml:"url"`
+			URL     string `yaml:"url"`
 			Contact string `yaml:"contact"`
 		} `yaml:"details"`
-		PackageUrl   string `yaml:"packageUrl"`
+		PackageURL   string `yaml:"packageUrl"`
 		Author       string `yaml:"author"`
 		License      string `yaml:"license"`
 		Vendor       string `yaml:"vendor"`
 		Manufacturer string `yaml:"manufacturer"`
 		ReleaseData  string `yaml:"releaseData"`
-		ArtifactId   string `yaml:"artifactId"`
+		ArtifactID   string `yaml:"artifactId"`
 		Result       int    `yaml:"result"`
 	} `yaml:"artifactData"`
 
 	HwData []struct {
-		HwId      string `yaml:"hwid"`
-		MacId     string `yaml:"macid"`
-		SutIp     string `yaml:"sutip"`
+		HwID      string `yaml:"hwid"`
+		MacID     string `yaml:"macid"`
+		SutIP     string `yaml:"sutip"`
 		CusParams struct {
-			DpsScopeId          string `yaml:"dpsscopeid"`
-			DpsRegistrationId   string `yaml:"dpsregistrationid"`
+			DpsScopeID          string `yaml:"dpsscopeid"`
+			DpsRegistrationID   string `yaml:"dpsregistrationid"`
 			DpsEnrollmentSymKey string `yaml:"dpsenrollmentsymkey"`
 		} `yaml:"cusparams"`
 		DiskPartition string `yaml:"disk"`
@@ -56,38 +53,12 @@ type InputConfig struct {
 	} `yaml:"hwdata"`
 
 	OnbParams struct {
-		PdIp           string `yaml:"pdip"`
+		PdIP           string `yaml:"pdip"`
 		PdMac          string `yaml:"pdmac"`
-		LoadBalancerIp string `yaml:"loadbalancerip"`
+		LoadBalancerIP string `yaml:"loadbalancerip"`
 		DiskPartition  string `yaml:"diskpartition"`
 		Env            string `yaml:"env"`
 	} `yaml:"onboarding"`
-}
-
-func generateDevSerial(macID string) (string, error) {
-	// Remove colons from the MAC address
-	uniqueID := strings.ReplaceAll(macID, ":", "")
-
-	// Generate a random alphanumeric string of length 5
-	rand.Seed(time.Now().UnixNano())
-	randID := generateRandomString(5)
-
-	// Truncate the uniqueID to remove the first 6 characters
-	truncatedID := uniqueID[6:]
-
-	// Concatenate truncatedID and randID to create devSerial
-	devSerial := truncatedID + randID
-
-	return devSerial, nil
-}
-
-func generateRandomString(length int) string {
-	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
-	result := make([]byte, length)
-	for i := range result {
-		result[i] = charset[rand.Intn(len(charset))]
-	}
-	return string(result)
 }
 
 func OnboardingTest(client pb.OnBoardingEBClient) (*pb.OnboardingResponse, error) {
@@ -95,7 +66,7 @@ func OnboardingTest(client pb.OnBoardingEBClient) (*pb.OnboardingResponse, error
 	log.Printf("start onboarding")
 	dirPath, _ := os.Getwd()
 	// Read YAML file
-	yamlData, err := ioutil.ReadFile(dirPath + "/profile_sample.yaml")
+	yamlData, err := os.ReadFile(dirPath + "/profile_sample.yaml")
 	if err != nil {
 		log.Fatalf("Error reading YAML file: %v", err)
 		return nil, err
@@ -119,16 +90,16 @@ func OnboardingTest(client pb.OnBoardingEBClient) (*pb.OnboardingResponse, error
 			Description: artifactData.Description,
 			Details: &pb.Supplier{
 				Name:    artifactData.Details.Name,
-				Url:     artifactData.Details.Url,
+				Url:     artifactData.Details.URL,
 				Contact: artifactData.Details.Contact,
 			},
-			PackageUrl:   artifactData.PackageUrl,
+			PackageUrl:   artifactData.PackageURL,
 			Author:       artifactData.Author,
 			License:      artifactData.License,
 			Vendor:       artifactData.Vendor,
 			Manufacturer: artifactData.Manufacturer,
 			ReleaseData:  artifactData.ReleaseData,
-			ArtifactId:   artifactData.ArtifactId,
+			ArtifactId:   artifactData.ArtifactID,
 			Result:       pb.ArtifactData_Response(artifactData.Result),
 		})
 	}
@@ -136,12 +107,12 @@ func OnboardingTest(client pb.OnBoardingEBClient) (*pb.OnboardingResponse, error
 	// Iterate through hardware data and populate obm
 	for _, hwData := range inputConfig.HwData {
 		obm.Hwdata = append(obm.Hwdata, &pb.HwData{
-			HwId:  hwData.HwId,
-			MacId: hwData.MacId,
-			SutIp: hwData.SutIp,
+			HwId:  hwData.HwID,
+			MacId: hwData.MacID,
+			SutIp: hwData.SutIP,
 			CusParams: &pb.CustomerParams{
-				DpsScopeId:          hwData.CusParams.DpsScopeId,
-				DpsRegistrationId:   hwData.CusParams.DpsRegistrationId,
+				DpsScopeId:          hwData.CusParams.DpsScopeID,
+				DpsRegistrationId:   hwData.CusParams.DpsRegistrationID,
 				DpsEnrollmentSymKey: hwData.CusParams.DpsEnrollmentSymKey,
 			},
 			DiskPartition: hwData.DiskPartition,
@@ -151,9 +122,9 @@ func OnboardingTest(client pb.OnBoardingEBClient) (*pb.OnboardingResponse, error
 
 	// Populate onboarding parameters
 	obm.OnbParams = &pb.OnboardingParams{
-		PdIp:           inputConfig.OnbParams.PdIp,
+		PdIp:           inputConfig.OnbParams.PdIP,
 		PdMac:          inputConfig.OnbParams.PdMac,
-		LoadBalancerIp: inputConfig.OnbParams.LoadBalancerIp,
+		LoadBalancerIp: inputConfig.OnbParams.LoadBalancerIP,
 		DiskPartition:  inputConfig.OnbParams.DiskPartition,
 		Env:            inputConfig.OnbParams.Env,
 	}
@@ -167,16 +138,16 @@ func OnboardingTest(client pb.OnBoardingEBClient) (*pb.OnboardingResponse, error
 }
 
 func main() {
-	onb_addr := os.Getenv("MGR_HOST")
-	onb_port := os.Getenv("ONBMGR_PORT")
-	address := onb_addr + ":" + onb_port
+	onbAddr := os.Getenv("MGR_HOST")
+	onbPort := os.Getenv("ONBMGR_PORT")
+	address := onbAddr + ":" + onbPort
 
-	if onb_addr == "" || onb_port == "" {
+	if onbAddr == "" || onbPort == "" {
 		log.Printf("Invalid environment variables MGR_HOST and ONBMGR_PORT please export")
 		os.Exit(1)
 	}
 
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Did not connect: %v", err)
 	}
@@ -185,7 +156,8 @@ func main() {
 	client := pb.NewOnBoardingEBClient(conn)
 	res, err := OnboardingTest(client)
 	if err != nil {
-		log.Fatalf("Onboarding failed: %v", err)
+		log.Printf("Onboarding failed: %v", err)
+		return
 	}
 
 	log.Printf("Onboarding state: %s", res.Status)

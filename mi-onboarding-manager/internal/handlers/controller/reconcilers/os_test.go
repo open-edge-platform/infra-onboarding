@@ -61,7 +61,7 @@ func TestOsReconciler_Reconcile(t *testing.T) {
 	}
 	mockInvClient := &onboarding.MockInventoryClient{}
 	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{}, errors.New("err"))
-	os.Setenv("DISABLE_FEATUREX", "true")
+	t.Setenv("DISABLE_FEATUREX", "true")
 	mockInvClient1 := &onboarding.MockInventoryClient{}
 	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: &inv_v1.Resource{
@@ -201,4 +201,3 @@ func TestPopulateOSResourceFromDKAMResponse(t *testing.T) {
 		})
 	}
 }
-

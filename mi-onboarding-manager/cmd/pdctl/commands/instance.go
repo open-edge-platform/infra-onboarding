@@ -1,14 +1,14 @@
 /*
- * SPDX-FileCopyrightText: (C) 2023 Intel Corporation
- * SPDX-License-Identifier: LicenseRef-Intel
- */
+SPDX-FileCopyrightText: (C) 2023 Intel Corporation
+SPDX-License-Identifier: LicenseRef-Intel
+*/
 package commands
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
@@ -71,7 +71,8 @@ func InstanceResourceCmd() *cobra.Command {
 	artifactFlags.StringVar(&name, "name", "", "Name of the Instance")
 	artifactFlags.StringVar(&version, "version", "", "Version of the Instance")
 	artifactFlags.StringVar(&platform, "platform", "", "Platform of the Instance")
-	artifactFlags.IntVar(&category, "category", 0, "Category of the artifact (0: DEFAULT, 1: BIOS, 2: OS, 3: APPLICATION, 4: CONTAINER, 5: PLATFORM)")
+	artifactFlags.IntVar(&category, "category", 0,
+		"Category of the artifact (0: DEFAULT, 1: BIOS, 2: OS, 3: APPLICATION, 4: CONTAINER, 5: PLATFORM)")
 	artifactFlags.StringVar(&description, "description", "", "Description of the Instance")
 	artifactFlags.StringVar(&packageURL, "package_url", "", "URL of the package")
 	artifactFlags.StringVar(&author, "author", "", "Author of the package")
@@ -162,9 +163,9 @@ func InstanceResourceCmd() *cobra.Command {
 
 			var artifacts []*pb.ArtifactData
 
-			//For multiple inputs.
+			// For multiple inputs.
 			if inputFile != "" {
-				data, err := ioutil.ReadFile(inputFile)
+				data, err := os.ReadFile(inputFile)
 				if err != nil {
 					return err
 				}
@@ -182,7 +183,6 @@ func InstanceResourceCmd() *cobra.Command {
 					artifacts = append(artifacts, currArtifact)
 				}
 			} else {
-
 				artifact := &pb.ArtifactData{
 					Name:        name,
 					Version:     version,
@@ -265,7 +265,7 @@ func InstanceResourceCmd() *cobra.Command {
 				ArtifactId:   artifactID,
 			}
 
-			data, err := updateArtifactsById(cmd.Context(), cc, artifactID, artifact)
+			data, err := updateArtifactsByID(cmd.Context(), cc, artifactID, artifact)
 			if err != nil {
 				if verbose, _ := cmd.Flags().GetBool("verbose"); verbose {
 					return err
@@ -280,7 +280,7 @@ func InstanceResourceCmd() *cobra.Command {
 			return nil
 		},
 	}
-	//Marking id as required flag.
+	// Marking id as required flag.
 	updatebyIDCmd.Flags().StringVar(&artifactID, "artifact_id", "", "Artifact ID to get details (required)")
 	must(updatebyIDCmd.MarkFlagRequired("artifact_id"))
 
@@ -323,7 +323,7 @@ func InstanceResourceCmd() *cobra.Command {
 				ArtifactId:   artifactID,
 			}
 
-			data, err := deleteArtifacts(cmd.Context(), cc, artifactID, artifact)
+			data, err := deleteArtifacts(cmd.Context(), cc, artifact)
 			if err != nil {
 				if verbose, _ := cmd.Flags().GetBool("verbose"); verbose {
 					return err
@@ -339,7 +339,7 @@ func InstanceResourceCmd() *cobra.Command {
 		},
 	}
 
-	//Setting the flags for all subcommands.
+	// Setting the flags for all subcommands.
 	getCmd.Flags().AddFlagSet(artifactFlags)
 	createCmd.Flags().AddFlagSet(artifactFlags)
 	updatebyIDCmd.Flags().AddFlagSet(artifactFlags)
@@ -392,7 +392,12 @@ func createArtifacts(ctx context.Context, cc *grpc.ClientConn, artifact *pb.Arti
 	return data, nil
 }
 
-func updateArtifactsById(ctx context.Context, cc *grpc.ClientConn, artifactID string, artifact *pb.ArtifactData) (*artifactData, error) {
+func updateArtifactsByID(
+	ctx context.Context,
+	cc *grpc.ClientConn,
+	artifactID string,
+	artifact *pb.ArtifactData,
+) (*artifactData, error) {
 	fmt.Println("Updating the Artifact By ID...")
 
 	client := pb.NewNodeArtifactServiceNBClient(cc)
@@ -413,7 +418,10 @@ func updateArtifactsById(ctx context.Context, cc *grpc.ClientConn, artifactID st
 	return data, nil
 }
 
-func deleteArtifacts(ctx context.Context, cc *grpc.ClientConn, artifactID string, artifact *pb.ArtifactData) (*artifactData, error) {
+func deleteArtifacts(ctx context.Context,
+	cc *grpc.ClientConn,
+	artifact *pb.ArtifactData,
+) (*artifactData, error) {
 	fmt.Println("Deleting the Instance...")
 
 	client := pb.NewNodeArtifactServiceNBClient(cc)

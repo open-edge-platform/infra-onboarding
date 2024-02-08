@@ -27,7 +27,8 @@ func HandleInventoryError(err error, request rec_v2.Request[ResourceID]) rec_v2.
 		return request.Ack()
 	}
 
-	if inv_errors.IsNotFound(err) || inv_errors.IsAlreadyExists(err) || inv_errors.IsUnauthenticated(err) || inv_errors.IsPermissionDenied(err) {
+	if inv_errors.IsNotFound(err) || inv_errors.IsAlreadyExists(err) ||
+		inv_errors.IsUnauthenticated(err) || inv_errors.IsPermissionDenied(err) {
 		return request.Ack()
 	}
 

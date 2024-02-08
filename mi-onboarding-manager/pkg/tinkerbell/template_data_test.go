@@ -14,7 +14,7 @@ func TestNewTemplateDataProd(t *testing.T) {
 		rootPart   string
 		rootPartNo string
 		hostIP     string
-		provIp     string
+		provIP     string
 	}
 	wf := Workflow{}
 	want, _ := marshalWorkflow(&wf)
@@ -35,7 +35,7 @@ func TestNewTemplateDataProd(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewTemplateDataProd(tt.args.name, tt.args.rootPart, tt.args.rootPartNo, tt.args.hostIP, tt.args.provIp)
+			got, err := NewTemplateDataProd(tt.args.name, tt.args.rootPart, tt.args.rootPartNo, tt.args.hostIP, tt.args.provIP)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewTemplateDataProd() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -56,7 +56,7 @@ func TestNewTemplateDataProdBKC(t *testing.T) {
 		clientIP   string
 		gateway    string
 		clientImg  string
-		provIp     string
+		provIP     string
 	}
 	wf := Workflow{}
 	want, _ := marshalWorkflow(&wf)
@@ -77,7 +77,8 @@ func TestNewTemplateDataProdBKC(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewTemplateDataProdBKC(tt.args.name, tt.args.rootPart, tt.args.rootPartNo, tt.args.hostIP, tt.args.clientIP, tt.args.gateway, tt.args.clientImg, tt.args.provIp)
+			got, err := NewTemplateDataProdBKC(tt.args.name, tt.args.rootPart, tt.args.rootPartNo,
+				tt.args.hostIP, tt.args.clientIP, tt.args.gateway, tt.args.clientImg, tt.args.provIP)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewTemplateDataProdBKC() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -98,7 +99,7 @@ func TestNewTemplateDataProdMS(t *testing.T) {
 		clientIP   string
 		gateway    string
 		mac        string
-		provIp     string
+		provIP     string
 	}
 	wf := Workflow{}
 	want, _ := marshalWorkflow(&wf)
@@ -119,7 +120,8 @@ func TestNewTemplateDataProdMS(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewTemplateDataProdMS(tt.args.name, tt.args.rootPart, tt.args.rootPartNo, tt.args.hostIP, tt.args.clientIP, tt.args.gateway, tt.args.mac, tt.args.provIp)
+			got, err := NewTemplateDataProdMS(tt.args.name, tt.args.rootPart, tt.args.rootPartNo,
+				tt.args.hostIP, tt.args.clientIP, tt.args.gateway, tt.args.mac, tt.args.provIP)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewTemplateDataProdMS() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -130,4 +132,3 @@ func TestNewTemplateDataProdMS(t *testing.T) {
 		})
 	}
 }
-

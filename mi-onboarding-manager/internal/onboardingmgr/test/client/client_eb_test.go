@@ -19,10 +19,13 @@ type MockOnBoardingEBClient struct {
 	mock.Mock
 }
 
-func (m *MockOnBoardingEBClient) StartOnboarding(ctx context.Context, req *pb.OnboardingRequest, opts ...grpc.CallOption) (*pb.OnboardingResponse, error) {
+func (m *MockOnBoardingEBClient) StartOnboarding(ctx context.Context, req *pb.OnboardingRequest,
+	_ ...grpc.CallOption,
+) (*pb.OnboardingResponse, error) {
 	args := m.Called(ctx, req)
 	return args.Get(0).(*pb.OnboardingResponse), args.Error(1)
 }
+
 func TestOnboardingTest(t *testing.T) {
 	type args struct {
 		client pb.OnBoardingEBClient
@@ -57,34 +60,3 @@ func TestOnboardingTest(t *testing.T) {
 		})
 	}
 }
-
-func Test_generateDevSerial(t *testing.T) {
-	type args struct {
-		macID string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
-		{
-			name: "Test case",
-			args: args{
-				macID: "00:00:00:00:00:00",
-			},
-			want:    "",
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := generateDevSerial(tt.args.macID)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("generateDevSerial() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-}
-

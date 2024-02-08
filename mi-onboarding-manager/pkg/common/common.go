@@ -23,9 +23,8 @@ func parseFieldName(f reflect.StructField) (name string, ignore bool) {
 	if i := strings.Index(tag, ","); i != -1 {
 		if i == 0 {
 			return f.Name, false
-		} else {
-			return tag[:i], false
 		}
+		return tag[:i], false
 	}
 
 	return tag, false

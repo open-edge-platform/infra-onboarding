@@ -7,7 +7,6 @@ package onbworkflowclient
 
 import (
 	"context"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -36,7 +35,7 @@ func generatekubeconfigPath() (string, error) {
 		return "", err
 	}
 
-	kubeconfigPath := filepath.Join(currentUser.HomeDir, ".kube/config")
+	kubeconfigPath := filepath.Join(currentUser.HomeDir, ".kube", "config")
 	return kubeconfigPath, err
 }
 
@@ -73,11 +72,11 @@ func createTempFile(filePath string) error {
 
 func TestGenerateStringDataFromYAML(t *testing.T) {
 	// Create a temporary YAML file for testing
-	tempYamlFile := filepath.Join("..", "workflows", "/manifests/to/test_template.yaml")
+	tempYamlFile := filepath.Join("..", "workflows", "manifests", "to", "test_template.yaml")
 
 	// Write YAML content to the temporary file
 	yamlContent := "apiVersion: \"tinkerbell.org/v1alpha1\"\nkind: Template\nmetadata:\n  name: testing"
-	err := ioutil.WriteFile(tempYamlFile, []byte(yamlContent), 0644)
+	err := os.WriteFile(tempYamlFile, []byte(yamlContent), 0o600)
 	if err != nil {
 		t.Fatalf("Error creating temp file: %v", err)
 	}
@@ -98,6 +97,7 @@ func TestGenerateStringDataFromYAML(t *testing.T) {
 		t.Error("Expected error for non-existent file, but got nil.")
 	}
 }
+
 func TestUnmarshalYAMLContent(t *testing.T) {
 	// Test valid YAML content
 	validYAML := `
@@ -139,29 +139,26 @@ func isEqual(a, b map[string]interface{}) bool {
 	}
 	return true
 }
+
 func TestCaSlculateRootF(t *testing.T) {
 	// Test case 1: imageType is "bkc" and diskDev ends with a numeric digit
 	partition := CalculateRootFS("bkc", "sda1")
 	assert.Equal(t, "p1", partition, "Expected partition 'p1'")
-	// assert.Equal(t, "1", number, "Expected number '1'")
 
 	// Test case 2: imageType is "ms" and diskDev ends with a numeric digit
 	partition = CalculateRootFS("ms", "nvme0n1p2")
 	assert.Equal(t, "p1", partition, "Expected partition 'p1'")
-	// assert.Equal(t, "1", number, "Expected number '1'")
 
 	// Test case 3: imageType is "bkc" and diskDev does not end with a numeric digit
 	partition = CalculateRootFS("bkc", "sdb")
 	assert.Equal(t, "1", partition, "Expected partition '1'")
-	// assert.Equal(t, "1", number, "Expected number '1'")
 
 	// Test case 4: imageType is  "ms" and diskDev ends with a numeric digit
 	partition = CalculateRootFS("other", "nvme0n1p3")
 	assert.Equal(t, "p1", partition, "Expected partition 'p1'")
-	// assert.Equal(t, "1", number, "Expected number '1'")
 }
 
-// MockHTTPServer creates a mock HTTP server and returns its URL
+// MockHTTPServer creates a mock HTTP server and returns its URL.
 func MockHTTPServer(handler http.Handler) (*httptest.Server, string) {
 	server := httptest.NewServer(handler)
 	return server, server.URL
@@ -179,16 +176,16 @@ spec:
   - name: test-container
     image: nginx
 `
-	tmpfile, err := ioutil.TempFile("", "test-yaml-*.yaml")
+	tmpfile, err := os.CreateTemp("", "test-yaml-*.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer os.Remove(tmpfile.Name()) // clean up
 
-	if _, err := tmpfile.Write([]byte(yamlContent)); err != nil {
+	if _, err = tmpfile.WriteString(yamlContent); err != nil {
 		t.Fatal(err)
 	}
-	if err := tmpfile.Close(); err != nil {
+	if err = tmpfile.Close(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -219,8 +216,8 @@ var (
 
 func TestImageDownload_empty(t *testing.T) {
 	artifactInfo := utils.ArtifactData{
-		BkcUrl:        "http://example.com/bkc_image.bz2",
-		BkcBasePkgUrl: "http://example.com/bkc_base_pkg",
+		BkcURL:        "http://example.com/bkc_image.bz2",
+		BkcBasePkgURL: "http://example.com/bkc_base_pkg",
 	}
 
 	deviceInfo := utils.DeviceInfo{
@@ -248,8 +245,8 @@ func TestImageDownload(t *testing.T) {
 	focalMsImgDdLocks := &sync.Mutex{}
 	inputArgs := args{
 		artifactinfo: utils.ArtifactData{
-			BkcUrl:        "1bkc",
-			BkcBasePkgUrl: "Bkc",
+			BkcURL:        "1bkc",
+			BkcBasePkgURL: "Bkc",
 		},
 		deviceInfo: utils.DeviceInfo{
 			ImType: "prod_bkc",
@@ -260,25 +257,10 @@ func TestImageDownload(t *testing.T) {
 		FocalImgDdLock:   focalImgDdLocks,
 		FocalMsImgDdLock: focalMsImgDdLocks,
 	}
-
-	// inputArgs1 := args{
-	// 	artifactinfo: utils.ArtifactData{
-	// 		BkcUrl:        "1bkc",
-	// 		BkcBasePkgUrl: "Bkc",
-	// 	},
-	// 	deviceInfo: utils.DeviceInfo{
-	// 		ImType: "prod_jammy",
-	// 	},
-	// 	kubeconfigPath:   "configPath",
-	// 	BkcImgDdLock:     bkcImgDdLocks,
-	// 	JammyImgDdLock:   jammyImgDdLocks,
-	// 	FocalImgDdLock:   focalImgDdLocks,
-	// 	FocalMsImgDdLock: focalMsImgDdLocks,
-	// }
 	inputArgs4 := args{
 		artifactinfo: utils.ArtifactData{
-			BkcUrl:        "1bkc",
-			BkcBasePkgUrl: "Bkc",
+			BkcURL:        "1bkc",
+			BkcBasePkgURL: "Bkc",
 		},
 		deviceInfo: utils.DeviceInfo{
 			ImType: "prod_focal",
@@ -291,8 +273,8 @@ func TestImageDownload(t *testing.T) {
 	}
 	inputArgs2 := args{
 		artifactinfo: utils.ArtifactData{
-			BkcUrl:        "1bkc",
-			BkcBasePkgUrl: "Bkc",
+			BkcURL:        "1bkc",
+			BkcBasePkgURL: "Bkc",
 		},
 		deviceInfo: utils.DeviceInfo{
 			ImType: "",
@@ -305,8 +287,8 @@ func TestImageDownload(t *testing.T) {
 	}
 	inputArgs3 := args{
 		artifactinfo: utils.ArtifactData{
-			BkcUrl:        "1bkc",
-			BkcBasePkgUrl: "Bkc",
+			BkcURL:        "1bkc",
+			BkcBasePkgURL: "Bkc",
 		},
 		deviceInfo: utils.DeviceInfo{
 			ImType: "prod_focal-ms",
@@ -351,7 +333,9 @@ func TestImageDownload(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := ImageDownload(tt.args.artifactinfo, tt.args.deviceInfo, tt.args.BkcImgDdLock, tt.args.JammyImgDdLock, tt.args.FocalImgDdLock, tt.args.FocalMsImgDdLock); (err != nil) != tt.wantErr {
+			if err := ImageDownload(tt.args.artifactinfo, tt.args.deviceInfo,
+				tt.args.BkcImgDdLock, tt.args.JammyImgDdLock, tt.args.FocalImgDdLock,
+				tt.args.FocalMsImgDdLock); (err != nil) != tt.wantErr {
 				t.Errorf("ImageDownload() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -389,7 +373,8 @@ func TestReadingYamlNCreatingResourse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := ReadingYamlNCreatingResourse(tt.args.imgurl, tt.args.imgType, tt.args.filePath, tt.args.fileName, tt.args.hwid); (err != nil) != tt.wantErr {
+			if err := ReadingYamlNCreatingResourse(tt.args.imgurl, tt.args.imgType,
+				tt.args.filePath, tt.args.fileName, tt.args.hwid); (err != nil) != tt.wantErr {
 				t.Errorf("ReadingYamlNCreatingResourse() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -466,11 +451,11 @@ func TestDiWorkflowCreation(t *testing.T) {
 
 func TestVoucherScript(t *testing.T) {
 	type args struct {
-		hostIp       string
+		hostIP       string
 		deviceSerial string
 	}
 	inputargs := args{
-		hostIp:       "",
+		hostIP:       "",
 		deviceSerial: "123",
 	}
 	tests := []struct {
@@ -489,7 +474,7 @@ func TestVoucherScript(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := VoucherScript(tt.args.hostIp, tt.args.deviceSerial)
+			got, err := VoucherScript(tt.args.hostIP, tt.args.deviceSerial)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("VoucherScript() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -528,7 +513,8 @@ func TestDeleteWorkflow(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := DeleteWorkflow(tt.args.kubeconfigPath, tt.args.namespace, tt.args.workflowName); (err != nil) != tt.wantErr {
+			if err := DeleteWorkflow(tt.args.kubeconfigPath, tt.args.namespace,
+				tt.args.workflowName); (err != nil) != tt.wantErr {
 				t.Errorf("DeleteWorkflow() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -559,7 +545,8 @@ func TestProdWorkflowCreation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := ProdWorkflowCreation(tt.args.deviceInfo, tt.args.imgtype,tt.args.artifactinfo); (err != nil) != tt.wantErr {
+			if err := ProdWorkflowCreation(tt.args.deviceInfo, tt.args.imgtype,
+				tt.args.artifactinfo); (err != nil) != tt.wantErr {
 				t.Errorf("ProdWorkflowCreation() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -601,6 +588,7 @@ func TestGetAllVariablesFromFile(t *testing.T) {
 }
 
 func runTest(t *testing.T, filePath string, expected map[string]string) {
+	t.Helper()
 	result, err := GetAllVariablesFromFile(filePath)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -611,7 +599,7 @@ func runTest(t *testing.T, filePath string, expected map[string]string) {
 }
 
 func createTempFiles(content []byte) string {
-	tmpFile, err := ioutil.TempFile("", "test_file_*.txt")
+	tmpFile, err := os.CreateTemp("", "test_file_*.txt")
 	if err != nil {
 		panic(err)
 	}
@@ -626,36 +614,8 @@ func createTempFiles(content []byte) string {
 
 var runtimeScheme = runtime.NewScheme()
 
-func init() {
+func Initialize() {
 	_ = v1.AddToScheme(runtimeScheme)
-}
-
-func TestGenerateDevSerial(t *testing.T) {
-	type args struct {
-		macID string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
-		{
-			name:    "Test Case 1",
-			args:    args{macID: "00:00:00:00:00:00"},
-			want:    "",
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := GenerateDevSerial(tt.args.macID)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GenerateDevSerial() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
 }
 
 type MockInterface struct {
@@ -681,32 +641,44 @@ func (m *ResourceInterfaceMock) Namespace(ns string) dynamic.ResourceInterface {
 	return args.Get(0).(dynamic.ResourceInterface)
 }
 
-func (m *ResourceInterfaceMock) Create(ctx context.Context, obj *unstructured.Unstructured, options metav1.CreateOptions, subresources ...string) (*unstructured.Unstructured, error) {
+func (m *ResourceInterfaceMock) Create(ctx context.Context, obj *unstructured.Unstructured,
+	options metav1.CreateOptions, subresources ...string,
+) (*unstructured.Unstructured, error) {
 	args := m.Called(ctx, obj, options, subresources)
 	return args.Get(0).(*unstructured.Unstructured), args.Error(1)
 }
 
-func (m *ResourceInterfaceMock) Update(ctx context.Context, obj *unstructured.Unstructured, options metav1.UpdateOptions, subresources ...string) (*unstructured.Unstructured, error) {
+func (m *ResourceInterfaceMock) Update(ctx context.Context, obj *unstructured.Unstructured,
+	options metav1.UpdateOptions, subresources ...string,
+) (*unstructured.Unstructured, error) {
 	args := m.Called(ctx, obj, options, subresources)
 	return args.Get(0).(*unstructured.Unstructured), args.Error(1)
 }
 
-func (m *ResourceInterfaceMock) UpdateStatus(ctx context.Context, obj *unstructured.Unstructured, options metav1.UpdateOptions) (*unstructured.Unstructured, error) {
+func (m *ResourceInterfaceMock) UpdateStatus(ctx context.Context, obj *unstructured.Unstructured,
+	options metav1.UpdateOptions,
+) (*unstructured.Unstructured, error) {
 	args := m.Called(ctx, obj, options)
 	return args.Get(0).(*unstructured.Unstructured), args.Error(1)
 }
 
-func (m *ResourceInterfaceMock) Delete(ctx context.Context, name string, options metav1.DeleteOptions, subresources ...string) error {
+func (m *ResourceInterfaceMock) Delete(ctx context.Context, name string,
+	options metav1.DeleteOptions, subresources ...string,
+) error {
 	args := m.Called(ctx, name, options, subresources)
 	return args.Error(0)
 }
 
-func (m *ResourceInterfaceMock) DeleteCollection(ctx context.Context, options metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+func (m *ResourceInterfaceMock) DeleteCollection(ctx context.Context, options metav1.DeleteOptions,
+	listOptions metav1.ListOptions,
+) error {
 	args := m.Called(ctx, options, listOptions)
 	return args.Error(0)
 }
 
-func (m *ResourceInterfaceMock) Get(ctx context.Context, name string, options metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error) {
+func (m *ResourceInterfaceMock) Get(ctx context.Context, name string, options metav1.GetOptions,
+	subresources ...string,
+) (*unstructured.Unstructured, error) {
 	args := m.Called(ctx, name, options, subresources)
 	return args.Get(0).(*unstructured.Unstructured), args.Error(1)
 }
@@ -721,17 +693,23 @@ func (m *ResourceInterfaceMock) Watch(ctx context.Context, opts metav1.ListOptio
 	return args.Get(0).(watch.Interface), args.Error(1)
 }
 
-func (m *ResourceInterfaceMock) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, options metav1.PatchOptions, subresources ...string) (*unstructured.Unstructured, error) {
+func (m *ResourceInterfaceMock) Patch(ctx context.Context, name string, pt types.PatchType,
+	data []byte, options metav1.PatchOptions, subresources ...string,
+) (*unstructured.Unstructured, error) {
 	args := m.Called(ctx, name, pt, data, options, subresources)
 	return args.Get(0).(*unstructured.Unstructured), args.Error(1)
 }
 
-func (m *ResourceInterfaceMock) Apply(ctx context.Context, name string, obj *unstructured.Unstructured, options metav1.ApplyOptions, subresources ...string) (*unstructured.Unstructured, error) {
+func (m *ResourceInterfaceMock) Apply(ctx context.Context, name string, obj *unstructured.Unstructured,
+	options metav1.ApplyOptions, subresources ...string,
+) (*unstructured.Unstructured, error) {
 	args := m.Called(ctx, name, obj, options, subresources)
 	return args.Get(0).(*unstructured.Unstructured), args.Error(1)
 }
 
-func (m *ResourceInterfaceMock) ApplyStatus(ctx context.Context, name string, obj *unstructured.Unstructured, options metav1.ApplyOptions) (*unstructured.Unstructured, error) {
+func (m *ResourceInterfaceMock) ApplyStatus(ctx context.Context, name string, obj *unstructured.Unstructured,
+	options metav1.ApplyOptions,
+) (*unstructured.Unstructured, error) {
 	args := m.Called(ctx, name, obj, options)
 	return args.Get(0).(*unstructured.Unstructured), args.Error(1)
 }
@@ -742,32 +720,44 @@ func (m *MockNamespaceableResource) Namespace(ns string) dynamic.ResourceInterfa
 	return args.Get(0).(dynamic.ResourceInterface)
 }
 
-func (m *MockNamespaceableResource) Create(ctx context.Context, obj *unstructured.Unstructured, options metav1.CreateOptions, subresources ...string) (*unstructured.Unstructured, error) {
+func (m *MockNamespaceableResource) Create(ctx context.Context, obj *unstructured.Unstructured,
+	options metav1.CreateOptions, subresources ...string,
+) (*unstructured.Unstructured, error) {
 	args := m.Called(ctx, obj, options, subresources)
 	return args.Get(0).(*unstructured.Unstructured), args.Error(1)
 }
 
-func (m *MockNamespaceableResource) Update(ctx context.Context, obj *unstructured.Unstructured, options metav1.UpdateOptions, subresources ...string) (*unstructured.Unstructured, error) {
+func (m *MockNamespaceableResource) Update(ctx context.Context, obj *unstructured.Unstructured,
+	options metav1.UpdateOptions, subresources ...string,
+) (*unstructured.Unstructured, error) {
 	args := m.Called(ctx, obj, options, subresources)
 	return args.Get(0).(*unstructured.Unstructured), args.Error(1)
 }
 
-func (m *MockNamespaceableResource) UpdateStatus(ctx context.Context, obj *unstructured.Unstructured, options metav1.UpdateOptions) (*unstructured.Unstructured, error) {
+func (m *MockNamespaceableResource) UpdateStatus(ctx context.Context, obj *unstructured.Unstructured,
+	options metav1.UpdateOptions,
+) (*unstructured.Unstructured, error) {
 	args := m.Called(ctx, obj, options)
 	return args.Get(0).(*unstructured.Unstructured), args.Error(1)
 }
 
-func (m *MockNamespaceableResource) Delete(ctx context.Context, name string, options metav1.DeleteOptions, subresources ...string) error {
+func (m *MockNamespaceableResource) Delete(ctx context.Context, name string, options metav1.DeleteOptions,
+	subresources ...string,
+) error {
 	args := m.Called(ctx, name, options, subresources)
 	return args.Error(0)
 }
 
-func (m *MockNamespaceableResource) DeleteCollection(ctx context.Context, options metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+func (m *MockNamespaceableResource) DeleteCollection(ctx context.Context, options metav1.DeleteOptions,
+	listOptions metav1.ListOptions,
+) error {
 	args := m.Called(ctx, options, listOptions)
 	return args.Error(0)
 }
 
-func (m *MockNamespaceableResource) Get(ctx context.Context, name string, options metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error) {
+func (m *MockNamespaceableResource) Get(ctx context.Context, name string, options metav1.GetOptions,
+	subresources ...string,
+) (*unstructured.Unstructured, error) {
 	args := m.Called(ctx, name, options, subresources)
 	return args.Get(0).(*unstructured.Unstructured), args.Error(1)
 }
@@ -782,20 +772,27 @@ func (m *MockNamespaceableResource) Watch(ctx context.Context, opts metav1.ListO
 	return args.Get(0).(watch.Interface), args.Error(1)
 }
 
-func (m *MockNamespaceableResource) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, options metav1.PatchOptions, subresources ...string) (*unstructured.Unstructured, error) {
+func (m *MockNamespaceableResource) Patch(ctx context.Context, name string, pt types.PatchType,
+	data []byte, options metav1.PatchOptions, subresources ...string,
+) (*unstructured.Unstructured, error) {
 	args := m.Called(ctx, name, pt, data, options, subresources)
 	return args.Get(0).(*unstructured.Unstructured), args.Error(1)
 }
 
-func (m *MockNamespaceableResource) Apply(ctx context.Context, name string, obj *unstructured.Unstructured, options metav1.ApplyOptions, subresources ...string) (*unstructured.Unstructured, error) {
+func (m *MockNamespaceableResource) Apply(ctx context.Context, name string, obj *unstructured.Unstructured,
+	options metav1.ApplyOptions, subresources ...string,
+) (*unstructured.Unstructured, error) {
 	args := m.Called(ctx, name, obj, options, subresources)
 	return args.Get(0).(*unstructured.Unstructured), args.Error(1)
 }
 
-func (m *MockNamespaceableResource) ApplyStatus(ctx context.Context, name string, obj *unstructured.Unstructured, options metav1.ApplyOptions) (*unstructured.Unstructured, error) {
+func (m *MockNamespaceableResource) ApplyStatus(ctx context.Context, name string,
+	obj *unstructured.Unstructured, options metav1.ApplyOptions,
+) (*unstructured.Unstructured, error) {
 	args := m.Called(ctx, name, obj, options)
 	return args.Get(0).(*unstructured.Unstructured), args.Error(1)
 }
+
 func Test_createCustomResourcename(t *testing.T) {
 	type args struct {
 		dynamicClient dynamic.Interface
@@ -864,7 +861,7 @@ func Test_checkJobStatus(t *testing.T) {
 	type args struct {
 		namespace string
 		jobName   string
-		HwId      string
+		HwID      string
 	}
 	tests := []struct {
 		name    string
@@ -879,7 +876,7 @@ func Test_checkJobStatus(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := checkJobStatus(tt.args.namespace, tt.args.jobName, tt.args.HwId); (err != nil) != tt.wantErr {
+			if err := checkJobStatus(tt.args.namespace, tt.args.jobName, tt.args.HwID); (err != nil) != tt.wantErr {
 				t.Errorf("checkJobStatus() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -938,30 +935,6 @@ func Test_waitForWorkflowSuccess(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := waitForWorkflowSuccess(tt.args.namespace, tt.args.workflowName); (err != nil) != tt.wantErr {
 				t.Errorf("waitForWorkflowSuccess() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func Test_convertMACAddress(t *testing.T) {
-	type args struct {
-		mac string
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			name: "Test Case",
-			args: args{mac: "00:00:00:00:00:00"},
-			want: "000000000000",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := convertMACAddress(tt.args.mac); got != tt.want {
-				t.Errorf("convertMACAddress() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -1072,45 +1045,6 @@ func TestToWorkflowCreation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := ToWorkflowCreation(tt.args.deviceInfo); (err != nil) != tt.wantErr {
 				t.Errorf("ToWorkflowCreation() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func Test_createCustomResource(t *testing.T) {
-	type args struct {
-		dynamicClient dynamic.Interface
-		group         string
-		version       string
-		resource      string
-		namespace     string
-		u             *unstructured.Unstructured
-	}
-	mockInterface := &MockInterface{}
-	mockNamespaceableResource := &MockNamespaceableResource{}
-	mockResourceInterfaceMock := &ResourceInterfaceMock{}
-	mockInterface.On("Resource", mock.Anything).Return(mockNamespaceableResource)
-	mockNamespaceableResource.On("Namespace", mock.Anything).Return(mockResourceInterfaceMock).Once()
-	mockResourceInterfaceMock.On("Create", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(&unstructured.Unstructured{}, nil)
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test Case 1",
-			args: args{
-				dynamicClient: mockInterface,
-				u:             &unstructured.Unstructured{},
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := createCustomResource(tt.args.dynamicClient, tt.args.group, tt.args.version, tt.args.resource, tt.args.namespace, tt.args.u); (err != nil) != tt.wantErr {
-				t.Errorf("createCustomResource() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

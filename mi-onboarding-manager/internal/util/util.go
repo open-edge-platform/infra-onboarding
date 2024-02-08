@@ -49,7 +49,7 @@ func GetBmcNicsFromHost(
 ) ([]*computev1.HostnicResource, error) {
 	bmcNics := make([]*computev1.HostnicResource, 0)
 	for _, hostNic := range host.HostNics {
-		if hostNic.BmcInterface == true {
+		if hostNic.BmcInterface {
 			bmcNics = append(bmcNics, hostNic)
 		}
 	}

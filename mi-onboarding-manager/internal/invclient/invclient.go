@@ -7,6 +7,9 @@ package invclient
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
+
 	uuid_lib "github.com/google/uuid"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
@@ -21,8 +24,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
-	"sync"
-	"time"
 )
 
 const (
@@ -164,7 +165,9 @@ func (c *OnboardingInventoryClient) createResource(ctx context.Context, resource
 	return res.ResourceId, nil
 }
 
-func (c *OnboardingInventoryClient) UpdateInvResourceFields(ctx context.Context, resource proto.Message, fields []string) error {
+func (c *OnboardingInventoryClient) UpdateInvResourceFields(ctx context.Context,
+	resource proto.Message, fields []string,
+) error {
 	if resource == nil {
 		return inv_errors.Errorfc(codes.InvalidArgument, "no resource provided")
 	}
@@ -220,7 +223,9 @@ func (c *OnboardingInventoryClient) FindAllInstances(ctx context.Context) ([]str
 	return c.FindAllResources(ctx, []inv_v1.ResourceKind{inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE})
 }
 
-func (c *OnboardingInventoryClient) CreateHostResource(ctx context.Context, host *computev1.HostResource) (string, error) {
+func (c *OnboardingInventoryClient) CreateHostResource(ctx context.Context,
+	host *computev1.HostResource,
+) (string, error) {
 	return c.createResource(ctx, &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Host{
 			Host: host,
@@ -228,7 +233,8 @@ func (c *OnboardingInventoryClient) CreateHostResource(ctx context.Context, host
 	})
 }
 
-func (c *OnboardingInventoryClient) GetHostResources(ctx context.Context) (hostres []*computev1.HostResource, err error) {
+func (c *OnboardingInventoryClient) GetHostResources(ctx context.Context,
+) (hostres []*computev1.HostResource, err error) {
 	filter := &inv_v1.ResourceFilter{
 		Resource: &inv_v1.Resource{
 			Resource: &inv_v1.Resource_Host{},
@@ -242,7 +248,9 @@ func (c *OnboardingInventoryClient) GetHostResources(ctx context.Context) (hostr
 	return util.GetSpecificResourceList[*computev1.HostResource](resources)
 }
 
-func (c *OnboardingInventoryClient) GetHostResourceByResourceID(ctx context.Context, resourceID string) (*computev1.HostResource, error) {
+func (c *OnboardingInventoryClient) GetHostResourceByResourceID(ctx context.Context,
+	resourceID string,
+) (*computev1.HostResource, error) {
 	resp, err := c.getResourceByID(ctx, resourceID)
 	if err != nil {
 		return nil, err
@@ -262,7 +270,7 @@ func (c *OnboardingInventoryClient) GetHostResourceByUUID(
 	uuid string,
 ) (*computev1.HostResource, error) {
 	_, err := uuid_lib.Parse(uuid)
-	// additional check for lenght is needed because .Parse() accepts other non-standard format (see function docs).
+	// additional check for length is needed because .Parse() accepts other non-standard format (see function docs).
 	if err != nil || len(uuid) != 36 {
 		return nil, inv_errors.Errorfc(codes.InvalidArgument, "invalid UUID")
 	}
@@ -314,7 +322,9 @@ func (c *OnboardingInventoryClient) UpdateHostStateAndRuntimeStatus(ctx context.
 	})
 }
 
-func (c *OnboardingInventoryClient) CreateHostNICResource(ctx context.Context, hostNIC *computev1.HostnicResource) (string, error) {
+func (c *OnboardingInventoryClient) CreateHostNICResource(ctx context.Context,
+	hostNIC *computev1.HostnicResource,
+) (string, error) {
 	return c.createResource(ctx, &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Hostnic{
 			Hostnic: hostNIC,
@@ -341,7 +351,8 @@ func (c *OnboardingInventoryClient) updateHostCurrentState(ctx context.Context, 
 }
 
 func (c *OnboardingInventoryClient) SetHostStatus(ctx context.Context, hostID string,
-	hostStatus computev1.HostStatus, statusDetails string, onboardingStatus inv_status.ResourceStatus) error {
+	hostStatus computev1.HostStatus, statusDetails string, onboardingStatus inv_status.ResourceStatus,
+) error {
 	updateHost := &computev1.HostResource{
 		ResourceId:                hostID,
 		LegacyHostStatus:          hostStatus,
@@ -374,7 +385,9 @@ func (c *OnboardingInventoryClient) DeleteHostResource(ctx context.Context, reso
 	return nil
 }
 
-func (c *OnboardingInventoryClient) CreateInstanceResource(ctx context.Context, inst *computev1.InstanceResource) (string, error) {
+func (c *OnboardingInventoryClient) CreateInstanceResource(ctx context.Context,
+	inst *computev1.InstanceResource,
+) (string, error) {
 	return c.createResource(ctx, &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Instance{
 			Instance: inst,
@@ -382,7 +395,9 @@ func (c *OnboardingInventoryClient) CreateInstanceResource(ctx context.Context, 
 	})
 }
 
-func (c *OnboardingInventoryClient) GetInstanceResourceByResourceID(ctx context.Context, resourceID string) (*computev1.InstanceResource, error) {
+func (c *OnboardingInventoryClient) GetInstanceResourceByResourceID(ctx context.Context,
+	resourceID string,
+) (*computev1.InstanceResource, error) {
 	resp, err := c.getResourceByID(ctx, resourceID)
 	if err != nil {
 		return nil, err
@@ -411,7 +426,9 @@ func (c *OnboardingInventoryClient) GetInstanceResources(ctx context.Context) ([
 	return util.GetSpecificResourceList[*computev1.InstanceResource](resources)
 }
 
-func (c *OnboardingInventoryClient) UpdateInstanceResource(ctx context.Context, inst *computev1.InstanceResource) error {
+func (c *OnboardingInventoryClient) UpdateInstanceResource(ctx context.Context,
+	inst *computev1.InstanceResource,
+) error {
 	return c.UpdateInvResourceFields(ctx, inst, []string{
 		computev1.InstanceResourceFieldCurrentState,
 		computev1.InstanceResourceFieldKind,
@@ -424,7 +441,9 @@ func (c *OnboardingInventoryClient) UpdateInstanceResource(ctx context.Context, 
 	})
 }
 
-func (c *OnboardingInventoryClient) UpdateInstanceCurrentState(ctx context.Context, instance *computev1.InstanceResource) error {
+func (c *OnboardingInventoryClient) UpdateInstanceCurrentState(ctx context.Context,
+	instance *computev1.InstanceResource,
+) error {
 	return c.UpdateInvResourceFields(ctx, instance, []string{
 		computev1.HostResourceFieldCurrentState,
 	})
@@ -481,7 +500,9 @@ func (c *OnboardingInventoryClient) DeleteResource(ctx context.Context, resource
 	return err
 }
 
-func (c *OnboardingInventoryClient) CreateOSResource(ctx context.Context, os *osv1.OperatingSystemResource) (string, error) {
+func (c *OnboardingInventoryClient) CreateOSResource(ctx context.Context,
+	os *osv1.OperatingSystemResource,
+) (string, error) {
 	return c.createResource(ctx, &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Os{
 			Os: os,
@@ -489,7 +510,9 @@ func (c *OnboardingInventoryClient) CreateOSResource(ctx context.Context, os *os
 	})
 }
 
-func (c *OnboardingInventoryClient) GetOSResourceByResourceID(ctx context.Context, resourceID string) (*osv1.OperatingSystemResource, error) {
+func (c *OnboardingInventoryClient) GetOSResourceByResourceID(ctx context.Context,
+	resourceID string,
+) (*osv1.OperatingSystemResource, error) {
 	resp, err := c.getResourceByID(ctx, resourceID)
 	if err != nil {
 		return nil, err
@@ -538,7 +561,9 @@ func (c *OnboardingInventoryClient) ListIPAddresses(ctx context.Context, hostNic
 	return util.GetSpecificResourceList[*network_v1.IPAddressResource](resources)
 }
 
-func (c *OnboardingInventoryClient) FindAllResources(ctx context.Context, kinds []inv_v1.ResourceKind) ([]string, error) {
+func (c *OnboardingInventoryClient) FindAllResources(ctx context.Context,
+	kinds []inv_v1.ResourceKind,
+) ([]string, error) {
 	fmk := &fieldmaskpb.FieldMask{Paths: []string{}}
 	var allResources []string
 	for _, kind := range kinds {

@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
-	v14 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
 	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/onboarding"
@@ -57,12 +56,9 @@ func TestHostReconciler_Reconcile_Case1(t *testing.T) {
 	testRequest := rec_v2.Request[ResourceID]{
 		ID: ResourceID("test-id"),
 	}
-	// testRequestDre := rec_v2.Directive[ResourceID]{
-	// 	// ID: ResourceID("test-id"),
-	// }
 	mockInvClient := &onboarding.MockInventoryClient{}
 	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{}, errors.New("err"))
-	mockHost := &v14.HostResource{
+	mockHost := &computev1.HostResource{
 		DesiredState: computev1.HostState_HOST_STATE_UNSPECIFIED,
 		CurrentState: computev1.HostState_HOST_STATE_UNSPECIFIED,
 	}
@@ -75,7 +71,7 @@ func TestHostReconciler_Reconcile_Case1(t *testing.T) {
 	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource,
 	}, nil)
-	mockHost2 := &v14.HostResource{
+	mockHost2 := &computev1.HostResource{
 		DesiredState: computev1.HostState_HOST_STATE_PROVISIONED,
 		CurrentState: computev1.HostState_HOST_STATE_UNSPECIFIED,
 	}
@@ -88,9 +84,9 @@ func TestHostReconciler_Reconcile_Case1(t *testing.T) {
 	mockInvClient2.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource2,
 	}, nil)
-	mockInvClient2.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	//=================================
-	mockHost3 := &v14.HostResource{
+	mockInvClient2.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	mockHost3 := &computev1.HostResource{
 		ResourceId:   "host-084d9b08",
 		DesiredState: computev1.HostState_HOST_STATE_DELETED,
 		// CurrentState: computev1.HostState_HOST_STATE_UNSPECIFIED,
@@ -105,10 +101,8 @@ func TestHostReconciler_Reconcile_Case1(t *testing.T) {
 	mockInvClient3.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource3,
 	}, nil)
-	mockInvClient3.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	// mockResources3 := &inv_v1.ListResourcesResponse{
-	// 	Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource3}},
-	// }
+	mockInvClient3.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 	mockResources3 := &inv_v1.ListResourcesResponse{
 		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource3}},
 	}
@@ -158,20 +152,6 @@ func TestHostReconciler_Reconcile_Case1(t *testing.T) {
 			},
 			want: testRequest.Ack(),
 		},
-		//==
-		// {
-		// 	name: "TestCase4",
-		// 	fields: fields{
-		// 		invClient: &invclient.OnboardingInventoryClient{
-		// 			Client: mockInvClient3,
-		// 		},
-		// 	},
-		// 	args: args{
-		// 		ctx:     context.TODO(),
-		// 		request: testRequest,
-		// 	},
-		// 	want: testRequest.Ack(),
-		// },
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -194,9 +174,11 @@ func TestHostReconciler_deleteHost(t *testing.T) {
 		host *computev1.HostResource
 	}
 	mockInvClient := &onboarding.MockInventoryClient{}
-	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 	mockInvClient1 := &onboarding.MockInventoryClient{}
-	mockInvClient1.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
+	mockInvClient1.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
 	tests := []struct {
 		name    string
 		fields  fields
@@ -266,7 +248,7 @@ func TestHostReconciler_deleteHostGpuByHost(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				hostres: &computev1.HostResource{
-					HostGpus: []*v14.HostgpuResource{
+					HostGpus: []*computev1.HostgpuResource{
 						{},
 					},
 				},
@@ -283,7 +265,7 @@ func TestHostReconciler_deleteHostGpuByHost(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				hostres: &computev1.HostResource{
-					HostGpus: []*v14.HostgpuResource{{}},
+					HostGpus: []*computev1.HostgpuResource{{}},
 				},
 			},
 			wantErr: true,
@@ -397,7 +379,7 @@ func TestHostReconciler_deleteIPsByHostNic(t *testing.T) {
 			},
 			args: args{
 				ctx:     context.Background(),
-				hostNic: &v14.HostnicResource{},
+				hostNic: &computev1.HostnicResource{},
 			},
 			wantErr: false,
 		},
@@ -410,7 +392,7 @@ func TestHostReconciler_deleteIPsByHostNic(t *testing.T) {
 			},
 			args: args{
 				ctx:     context.Background(),
-				hostNic: &v14.HostnicResource{},
+				hostNic: &computev1.HostnicResource{},
 			},
 			wantErr: true,
 		},
@@ -457,7 +439,7 @@ func TestHostReconciler_deleteHostStorageByHost(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				hostres: &computev1.HostResource{
-					HostStorages: []*v14.HoststorageResource{{}},
+					HostStorages: []*computev1.HoststorageResource{{}},
 				},
 			},
 			wantErr: false,
@@ -472,7 +454,7 @@ func TestHostReconciler_deleteHostStorageByHost(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				hostres: &computev1.HostResource{
-					HostStorages: []*v14.HoststorageResource{{}},
+					HostStorages: []*computev1.HoststorageResource{{}},
 				},
 			},
 			wantErr: true,
@@ -520,7 +502,7 @@ func TestHostReconciler_deleteHostUsbByHost(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				host: &computev1.HostResource{
-					HostUsbs: []*v14.HostusbResource{{}},
+					HostUsbs: []*computev1.HostusbResource{{}},
 				},
 			},
 			wantErr: false,
@@ -535,7 +517,7 @@ func TestHostReconciler_deleteHostUsbByHost(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				host: &computev1.HostResource{
-					HostUsbs: []*v14.HostusbResource{{}},
+					HostUsbs: []*computev1.HostusbResource{{}},
 				},
 			},
 			wantErr: true,
@@ -561,10 +543,10 @@ func TestHostReconciler_Reconcile(t *testing.T) {
 		ctx     context.Context
 		request rec_v2.Request[ResourceID]
 	}
-	mockHost3 := &v14.HostResource{
+	mockHost3 := &computev1.HostResource{
 		ResourceId:   "host-084d9b08",
 		DesiredState: computev1.HostState_HOST_STATE_DELETED,
-		HostNics: []*computev1.HostnicResource{{ResourceId: "hostnic-084d9b08"}},
+		HostNics:     []*computev1.HostnicResource{{ResourceId: "hostnic-084d9b08"}},
 	}
 	mockResource3 := &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Host{
@@ -575,7 +557,8 @@ func TestHostReconciler_Reconcile(t *testing.T) {
 	mockInvClient3.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource3,
 	}, nil)
-	mockInvClient3.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	mockInvClient3.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 	mockResources3 := &inv_v1.ListResourcesResponse{
 		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource3}},
 	}
@@ -614,4 +597,3 @@ func TestHostReconciler_Reconcile(t *testing.T) {
 		})
 	}
 }
-

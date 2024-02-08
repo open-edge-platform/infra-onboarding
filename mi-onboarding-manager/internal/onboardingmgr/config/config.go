@@ -13,7 +13,7 @@ import (
 )
 
 type (
-	// Config represents the settings
+	// Config represents the settings.
 	Config struct {
 		Keyspace    string `default:"inventory_manager"`
 		Replica     string `default:"1"`
@@ -45,7 +45,7 @@ var (
 	env    *string
 )
 
-// Load reads the settings from the yml file
+// Load reads the settings from the yml file.
 func Load() {
 	env = flag.String("env", "develop", "To switch configurations")
 	flag.Parse()

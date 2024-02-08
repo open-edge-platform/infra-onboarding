@@ -7,11 +7,11 @@ package commands
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
+
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
-	"strings"
-	"sync"
-	"time"
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	"github.com/spf13/cobra"
@@ -19,12 +19,12 @@ import (
 
 var (
 	dialer     grpcDialer
-	wg         sync.WaitGroup
 	resourceID string
 	uuID       string
 	fields     string
-	termchan   bool
 )
+
+const timeDuration = 5 * time.Second
 
 func InstanceResCmds() *cobra.Command {
 	instanceCmd := &cobra.Command{
@@ -55,14 +55,14 @@ func InstanceResCmds() *cobra.Command {
 		RunE:  getInstanceResources(context.Background(), &dialer),
 	}
 
-	getIdCmd := &cobra.Command{
+	getIDCmd := &cobra.Command{
 		Use:   "getById",
 		Short: "Get instance resources by resource id",
 		RunE:  getInstanceByID(context.Background(), &dialer),
 	}
 
-	getIdCmd.Flags().StringVarP(&resourceID, "resource-id", "r", "", "Resource ID (required)")
-	getIdCmd.MarkFlagRequired("resource-id")
+	getIDCmd.Flags().StringVarP(&resourceID, "resource-id", "r", "", "Resource ID (required)")
+	getIDCmd.MarkFlagRequired("resource-id")
 
 	createCmd := &cobra.Command{
 		Use:   "create",
@@ -100,7 +100,7 @@ func InstanceResCmds() *cobra.Command {
 	deleteCmd.Flags().StringVarP(&resourceID, "resource-id", "r", "", "Resource ID (required)")
 	deleteCmd.MarkFlagRequired("resource-id")
 
-	instanceCmd.AddCommand(getCmd, getIdCmd, createCmd, deleteCmd, updateCmd)
+	instanceCmd.AddCommand(getCmd, getIDCmd, createCmd, deleteCmd, updateCmd)
 
 	return instanceCmd
 }
@@ -112,7 +112,8 @@ func getInstanceResources(ctx context.Context, dialer *grpcDialer) func(cmd *cob
 			return err
 		}
 		defer cc.Close()
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeDuration)
 		defer cancel()
 
 		client, err := invclient.NewOnboardingInventoryClientWithOptions(
@@ -143,7 +144,8 @@ func getInstanceByID(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Co
 			return err
 		}
 		defer cc.Close()
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeDuration)
 		defer cancel()
 
 		client, err := invclient.NewOnboardingInventoryClientWithOptions(
@@ -177,7 +179,7 @@ func createInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 		kind, _ := cmd.Flags().GetString("kind")
 		currentState, _ := cmd.Flags().GetString("current-state")
 		vmMemoryBytes, _ := cmd.Flags().GetUint64("vm-memory-bytes")
-		vmCpuCores, _ := cmd.Flags().GetUint32("vm-cpu-cores")
+		vmCPUCores, _ := cmd.Flags().GetUint32("vm-cpu-cores")
 		vmStorageBytes, _ := cmd.Flags().GetUint64("vm-storage-bytes")
 		hostID, _ := cmd.Flags().GetString("hostID")
 		osID, _ := cmd.Flags().GetString("osID")
@@ -195,7 +197,7 @@ func createInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 			DesiredState:   computev1.InstanceState_INSTANCE_STATE_RUNNING,
 			CurrentState:   computev1.InstanceState(computev1.InstanceState_value[currentState]),
 			VmMemoryBytes:  vmMemoryBytes,
-			VmCpuCores:     vmCpuCores,
+			VmCpuCores:     vmCPUCores,
 			VmStorageBytes: vmStorageBytes,
 
 			Host: &computev1.HostResource{
@@ -208,8 +210,8 @@ func createInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 		}
 
 		// Validate the instance resource
-		if err := instance.ValidateAll(); err != nil {
-			return err
+		if validationErr := instance.ValidateAll(); validationErr != nil {
+			return validationErr
 		}
 
 		_, err = client.CreateInstanceResource(ctx, instance)
@@ -230,7 +232,8 @@ func deleteInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 			return err
 		}
 		defer cc.Close()
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeDuration)
 		defer cancel()
 
 		client, err := invclient.NewOnboardingInventoryClientWithOptions(
@@ -264,7 +267,8 @@ func updateInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 			return err
 		}
 		defer cc.Close()
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeDuration)
 		defer cancel()
 
 		client, err := invclient.NewOnboardingInventoryClientWithOptions(
@@ -323,23 +327,23 @@ func HostResCmds() *cobra.Command {
 	}
 	getCmd.Flags().StringP("kind", "k", "", "Kind of instance")
 
-	getIdCmd := &cobra.Command{
+	getIDCmd := &cobra.Command{
 		Use:   "getById",
 		Short: "Get Host resources by resource id",
 		RunE:  getResourceByID(context.Background(), &dialer),
 	}
 
-	getIdCmd.Flags().StringVarP(&resourceID, "resource-id", "r", "", "Resource ID (required)")
-	getIdCmd.MarkFlagRequired("resource-id")
+	getIDCmd.Flags().StringVarP(&resourceID, "resource-id", "r", "", "Resource ID (required)")
+	getIDCmd.MarkFlagRequired("resource-id")
 
-	getUuidCmd := &cobra.Command{
+	getUUIDCmd := &cobra.Command{
 		Use:   "getByUUID",
 		Short: "Get host resources by UUID ",
 		RunE:  getByuuID(context.Background(), &dialer),
 	}
 
-	getUuidCmd.Flags().StringVarP(&uuID, "uuid", "u", "", " UUID (required)")
-	getUuidCmd.MarkFlagRequired("uuid")
+	getUUIDCmd.Flags().StringVarP(&uuID, "uuid", "u", "", " UUID (required)")
+	getUUIDCmd.MarkFlagRequired("uuid")
 
 	createCmd := &cobra.Command{
 		Use:   "create",
@@ -390,7 +394,7 @@ func HostResCmds() *cobra.Command {
 	deleteCmd.Flags().StringVarP(&resourceID, "resource-id", "r", "", "Resource ID (required)")
 	deleteCmd.MarkFlagRequired("resource-id")
 
-	hostresCmd.AddCommand(createCmd, getCmd, getIdCmd, getUuidCmd, deleteCmd, updateCmd)
+	hostresCmd.AddCommand(createCmd, getCmd, getIDCmd, getUUIDCmd, deleteCmd, updateCmd)
 
 	return hostresCmd
 }
@@ -412,14 +416,13 @@ func createResource(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 		kind, _ := cmd.Flags().GetString("kind")
 		uuid, _ := cmd.Flags().GetString("uuid")
 		serialNumber, _ := cmd.Flags().GetString("serial-number")
-		mgmtIp, _ := cmd.Flags().GetString("sut-ip")
+		mgmtIP, _ := cmd.Flags().GetString("sut-ip")
 		desiredState, _ := cmd.Flags().GetString("desired-state")
 		currentState, _ := cmd.Flags().GetString("current-state")
 
 		client, err := invclient.NewOnboardingInventoryClientWithOptions(
 			invclient.WithInventoryAddress(dialer.Addr),
 		)
-
 		if err != nil {
 			return err
 		}
@@ -435,14 +438,14 @@ func createResource(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 			PxeMac:       pxeMAC,
 			Hostname:     hostname,
 			Kind:         kind,
-			MgmtIp:       mgmtIp,
+			MgmtIp:       mgmtIP,
 			DesiredState: computev1.HostState(computev1.HostState_value[desiredState]),
 			CurrentState: computev1.HostState(computev1.HostState_value[currentState]),
 		}
 
 		// Validate the host resource
-		if err := hostResource.ValidateAll(); err != nil {
-			return err
+		if validationErr := hostResource.ValidateAll(); validationErr != nil {
+			return validationErr
 		}
 
 		_, err = client.CreateHostResource(ctx, hostResource)
@@ -463,7 +466,8 @@ func getHostResources(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.C
 			return err
 		}
 		defer cc.Close()
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeDuration)
 		defer cancel()
 
 		client, err := invclient.NewOnboardingInventoryClientWithOptions(
@@ -486,6 +490,7 @@ func getHostResources(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.C
 		return nil
 	}
 }
+
 func getResourceByID(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		cc, err := dialer.Dial(cmd.Context())
@@ -493,7 +498,8 @@ func getResourceByID(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Co
 			return err
 		}
 		defer cc.Close()
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeDuration)
 		defer cancel()
 
 		client, err := invclient.NewOnboardingInventoryClientWithOptions(
@@ -522,7 +528,8 @@ func getByuuID(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command,
 			return err
 		}
 		defer cc.Close()
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeDuration)
 		defer cancel()
 
 		client, err := invclient.NewOnboardingInventoryClientWithOptions(
@@ -551,7 +558,8 @@ func deleteHost(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command
 			return err
 		}
 		defer cc.Close()
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeDuration)
 		defer cancel()
 
 		client, err := invclient.NewOnboardingInventoryClientWithOptions(
@@ -585,7 +593,8 @@ func updateHost(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command
 			return err
 		}
 		defer cc.Close()
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeDuration)
 		defer cancel()
 
 		client, err := invclient.NewOnboardingInventoryClientWithOptions(
@@ -602,7 +611,7 @@ func updateHost(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command
 			return err
 		}
 
-		//Can add parameters for updating it
+		// Can add parameters for updating it
 		if bmcKind, _ := cmd.Flags().GetString("bmc-kind"); bmcKind != "" {
 			host.BmcKind = computev1.BaremetalControllerKind(computev1.BaremetalControllerKind_value[bmcKind])
 		}
@@ -621,8 +630,8 @@ func updateHost(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command
 		if hostname, _ := cmd.Flags().GetString("hostname"); hostname != "" {
 			host.Hostname = hostname
 		}
-		if mgmtIp, _ := cmd.Flags().GetString("sut-ip"); mgmtIp != "" {
-			host.MgmtIp = mgmtIp
+		if mgmtIP, _ := cmd.Flags().GetString("sut-ip"); mgmtIP != "" {
+			host.MgmtIp = mgmtIP
 		}
 		if desiredState, _ := cmd.Flags().GetString("desired-state"); desiredState != "" {
 			host.DesiredState = computev1.HostState(computev1.HostState_value[desiredState])

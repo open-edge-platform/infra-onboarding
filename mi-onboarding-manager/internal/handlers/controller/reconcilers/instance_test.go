@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
-	v14 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	v16 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
@@ -62,7 +61,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 	mockInvClient1 := &onboarding.MockInventoryClient{}
 	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{}, errors.New("err"))
 
-	mockInstance2 := &v14.InstanceResource{
+	mockInstance2 := &computev1.InstanceResource{
 		DesiredState: computev1.InstanceState_INSTANCE_STATE_DELETED,
 		CurrentState: computev1.InstanceState_INSTANCE_STATE_DELETED,
 	}
@@ -76,7 +75,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 		Resource: mockResource2,
 	}, nil)
 
-	mockInstance3 := &v14.InstanceResource{
+	mockInstance3 := &computev1.InstanceResource{
 		DesiredState: computev1.InstanceState_INSTANCE_STATE_INSTALLED,
 	}
 	mockResource3 := &inv_v1.Resource{
@@ -88,7 +87,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 	mockInvClient3.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource3,
 	}, nil)
-	mockInstance4 := &v14.InstanceResource{
+	mockInstance4 := &computev1.InstanceResource{
 		DesiredState: computev1.InstanceState_INSTANCE_STATE_DELETED,
 	}
 	mockResource4 := &inv_v1.Resource{
@@ -100,17 +99,19 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 	mockInvClient4.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource4,
 	}, nil)
-	mockInvClient4.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	mockInvClient4.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 
 	mockInvClient5 := &onboarding.MockInventoryClient{}
 	mockInvClient5.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource4,
 	}, nil)
-	mockInvClient5.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
-	mockInstance7 := &v14.InstanceResource{
+	mockInvClient5.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
+	mockInstance7 := &computev1.InstanceResource{
 		ResourceId:   "inst-084d9b08",
 		DesiredState: computev1.InstanceState_INSTANCE_STATE_RUNNING,
-		Host: &v14.HostResource{
+		Host: &computev1.HostResource{
 			ResourceId: "host-084d9b01",
 			Name:       "name",
 			MgmtIp:     "00.00.00.00",
@@ -126,10 +127,10 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			Instance: mockInstance7,
 		},
 	}
-	mockHost7 := &v14.HostResource{
+	mockHost7 := &computev1.HostResource{
 		ResourceId: "host-084d9b52",
 		BmcIp:      "00.00.00.00",
-		HostNics: []*v14.HostnicResource{
+		HostNics: []*computev1.HostnicResource{
 			{
 				MacAddr: "00:00:00:00:00:00",
 				Host: &computev1.HostResource{
@@ -164,10 +165,11 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 	mockInvClient7.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockOsResource7,
 	}, nil).Once()
-	mockInvClient7.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	os.Setenv("PD_IP", "000.000.0.000")
+	mockInvClient7.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	t.Setenv("PD_IP", "000.000.0.000")
 	defer os.Unsetenv("PD_IP")
-	os.Setenv("IMAGE_TYPE", "prod_focal-ms")
+	t.Setenv("IMAGE_TYPE", "prod_focal-ms")
 	defer os.Unsetenv("IMAGE_TYPE")
 	dirPath, _ := os.Getwd()
 	dirPath, _ = strings.CutSuffix(dirPath, "internal/handlers/controller/reconcilers")
@@ -177,10 +179,10 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 		t.Fatalf("Failed to change working directory: %v", err)
 	}
 
-	mockInstance8 := &v14.InstanceResource{
+	mockInstance8 := &computev1.InstanceResource{
 		ResourceId:   "inst-084d9b08",
 		DesiredState: computev1.InstanceState_INSTANCE_STATE_RUNNING,
-		Host: &v14.HostResource{
+		Host: &computev1.HostResource{
 			ResourceId: "host-084d9b02",
 			Name:       "name",
 			BmcIp:      "00.00.00.00",
@@ -204,7 +206,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			Instance: mockInstance8,
 		},
 	}
-	mockHost8 := &v14.HostResource{
+	mockHost8 := &computev1.HostResource{
 		ResourceId: "host-084d9b03",
 		BmcIp:      "00.00.00.00",
 		HostNics: []*computev1.HostnicResource{
@@ -240,11 +242,12 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 	mockInvClient8.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockOsResource8,
 	}, nil).Once()
-	mockInvClient8.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	mockInstance10 := &v14.InstanceResource{
+	mockInvClient8.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	mockInstance10 := &computev1.InstanceResource{
 		ResourceId:   "inst-084d9b08",
 		DesiredState: computev1.InstanceState_INSTANCE_STATE_RUNNING,
-		Host: &v14.HostResource{
+		Host: &computev1.HostResource{
 			ResourceId: "host-084d9b06",
 			Name:       "name",
 			MgmtIp:     "00.00.00.00",
@@ -266,7 +269,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			Instance: mockInstance10,
 		},
 	}
-	mockHost10 := &v14.HostResource{
+	mockHost10 := &computev1.HostResource{
 		ResourceId: "host-084d9b04",
 		BmcIp:      "00.00.00.00",
 		HostNics: []*computev1.HostnicResource{
@@ -302,7 +305,8 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 	mockInvClient10.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockOsResource10,
 	}, nil).Once()
-	mockInvClient10.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
+	mockInvClient10.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
 	tests := []struct {
 		name   string
 		fields fields
@@ -430,4 +434,3 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 		})
 	}
 }
-

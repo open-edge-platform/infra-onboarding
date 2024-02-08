@@ -8,9 +8,10 @@ package onboarding
 import (
 	"context"
 	"errors"
+	"testing"
+
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/status"
-	"testing"
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
@@ -65,18 +66,22 @@ func TestUpdateInstanceStatusByGuid(t *testing.T) {
 		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource3}},
 	}
 	MockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
-	MockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	MockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 	MockInvClient1 := &MockInventoryClient{}
 	MockInvClient1.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
-	MockInvClient1.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
+	MockInvClient1.On("Update", mock.Anything, mock.Anything,
+		mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
 	MockInvClient2 := &MockInventoryClient{}
 	MockInvClient2.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, errors.New("err"))
 	MockInvClient3 := &MockInventoryClient{}
 	MockInvClient3.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources1, nil)
-	MockInvClient3.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	MockInvClient3.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 	MockInvClient4 := &MockInventoryClient{}
 	MockInvClient4.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources3, nil)
-	MockInvClient4.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	MockInvClient4.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 	tests := []struct {
 		name    string
 		args    args
@@ -151,8 +156,9 @@ func TestUpdateInstanceStatusByGuid(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := UpdateInstanceStatusByGuid(tt.args.ctx, tt.args.invClient, tt.args.hostUUID, tt.args.instancestatus, tt.args.provisioningStatus); (err != nil) != tt.wantErr {
-				t.Errorf("UpdateInstanceStatusByGuid() error = %v, wantErr %v", err, tt.wantErr)
+			if err := UpdateInstanceStatusByGUID(tt.args.ctx, tt.args.invClient, tt.args.hostUUID,
+				tt.args.instancestatus, tt.args.provisioningStatus); (err != nil) != tt.wantErr {
+				t.Errorf("UpdateInstanceStatusByGUID() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

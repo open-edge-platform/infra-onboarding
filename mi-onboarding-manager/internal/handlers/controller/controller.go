@@ -6,6 +6,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -53,8 +54,9 @@ func New(
 	filters[inv_v1.ResourceKind_RESOURCE_KIND_HOST] = hostEventFilter
 
 	instRcnl := reconcilers.NewInstanceReconciler(invClient)
+	const reconcileTimeDuration = 3 * time.Hour
 	instCtrl := rec_v2.NewController[reconcilers.ResourceID](
-		instRcnl.Reconcile, rec_v2.WithTimeout(3*time.Hour), rec_v2.WithParallelism(parallelism))
+		instRcnl.Reconcile, rec_v2.WithTimeout(reconcileTimeDuration), rec_v2.WithParallelism(parallelism))
 	controllers[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instCtrl
 	filters[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instanceEventFilter
 	osRcnl := reconcilers.NewOsReconciler(invClient)
@@ -144,7 +146,10 @@ func (obc *OnboardingController) filterEvent(event *inv_v1.SubscribeEventsRespon
 func (obc *OnboardingController) reconcileAll(ctx context.Context) error {
 	zlog.Debug().Msgf("Reconciling all instances")
 
-	resourceKinds := []inv_v1.ResourceKind{inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE, inv_v1.ResourceKind_RESOURCE_KIND_OS}
+	resourceKinds := []inv_v1.ResourceKind{
+		inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE,
+		inv_v1.ResourceKind_RESOURCE_KIND_OS,
+	}
 	ids, err := obc.invClient.FindAllResources(ctx, resourceKinds)
 	if err != nil && !inv_errors.IsNotFound(err) {
 		return err
@@ -174,6 +179,7 @@ func (obc *OnboardingController) reconcileResource(resourceID string) error {
 	}
 
 	if err = controller.Reconcile(reconcilers.ResourceID(resourceID)); err != nil {
+		log.Println("error while reconcile:", err)
 		return err
 	}
 	return nil

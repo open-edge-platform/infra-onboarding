@@ -4,13 +4,14 @@
 package southbound
 
 import (
+	"net"
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/handlers/southbound/artifact"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/onboarding"
 	"google.golang.org/grpc"
-	"net"
 )
 
 // Misc variables.
@@ -41,7 +42,10 @@ func NewSBHandler(invClient *invclient.OnboardingInventoryClient, config SBHandl
 	return NewSBHandlerWithListener(lis, invClient, config), nil
 }
 
-func NewSBHandlerWithListener(listener net.Listener, invClient *invclient.OnboardingInventoryClient, config SBHandlerConfig) *SBHandler {
+func NewSBHandlerWithListener(listener net.Listener,
+	invClient *invclient.OnboardingInventoryClient,
+	config SBHandlerConfig,
+) *SBHandler {
 	return &SBHandler{
 		invClient: invClient,
 		cfg: SBHandlerConfig{
@@ -62,7 +66,7 @@ func (sbh *SBHandler) Start() error {
 	pb.RegisterNodeArtifactServiceNBServer(sbh.server, nodeArtifactService)
 	pb.RegisterOnBoardingEBServer(sbh.server, &onboarding.OnboardingManager{})
 
-	//Run go routine to start the gRPC server
+	// Run go routine to start the gRPC server
 	go func() {
 		if err := sbh.server.Serve(sbh.lis); err != nil {
 			zlog.MiSec().Fatal().Err(err).Msgf("Error listening with TCP: %s", sbh.lis.Addr().String())

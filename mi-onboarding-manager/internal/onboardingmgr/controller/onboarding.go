@@ -19,15 +19,16 @@ type (
 	}
 )
 
-func NewInventoryManager(conf *config.Config) *InventoryManager {
+func NewInventoryManager(_ *config.Config) *InventoryManager {
 	im := &InventoryManager{}
-	//repository.InitDB(conf)
 	im.nodeRepo = repository.GetNodeRepository()
 	im.artifactRepo = repository.GetArtifactRepository()
 	return im
 }
 
-func (im InventoryManager) AddArtifacts(ctx context.Context, data []repository.ArtifactData) ([]repository.ArtifactData, error) {
+func (im InventoryManager) AddArtifacts(ctx context.Context,
+	data []repository.ArtifactData,
+) ([]repository.ArtifactData, error) {
 	return im.artifactRepo.CreateArtifacts(ctx, data)
 }
 
@@ -39,7 +40,9 @@ func (im InventoryManager) DeleteArtifacts(ctx context.Context, ids []string) er
 	return im.artifactRepo.DeleteArtifacts(ctx, ids)
 }
 
-func (im InventoryManager) GetArtifacts(ctx context.Context, data repository.ArtifactData) ([]*repository.ArtifactData, error) {
+func (im InventoryManager) GetArtifacts(ctx context.Context,
+	data repository.ArtifactData,
+) ([]*repository.ArtifactData, error) {
 	return im.artifactRepo.GetArtifacts(ctx, data)
 }
 

@@ -55,4 +55,3 @@ func TestNewTemplate(t *testing.T) {
 		})
 	}
 }
-

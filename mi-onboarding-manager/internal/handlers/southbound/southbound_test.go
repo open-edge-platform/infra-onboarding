@@ -5,6 +5,9 @@ package southbound_test
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/google/uuid"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
@@ -12,8 +15,6 @@ import (
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
 
 var (
@@ -159,7 +160,7 @@ func TestSouthbound_DeleteNodes(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		hostUuid := uuid.NewString()
+		hostUUID := uuid.NewString()
 		nodeReq := &pb.NodeRequest{
 			Payload: []*pb.NodeData{
 				{
@@ -168,7 +169,7 @@ func TestSouthbound_DeleteNodes(t *testing.T) {
 							MacId:          "90:49:fa:07:6c:fd",
 							SutIp:          "10.10.1.1",
 							Serialnum:      hostSN,
-							Uuid:           hostUuid,
+							Uuid:           hostUUID,
 							BmcIp:          "10.10.10.10",
 							BmcInterface:   true,
 							HostNicDevName: "bmc0",
@@ -186,7 +187,7 @@ func TestSouthbound_DeleteNodes(t *testing.T) {
 		// get Host by UUID
 		// Note that Host resource should be removed by reconciler that is not running in this test case,
 		// so we only check if current_state has been updated.
-		hostInv := GetHostbyUUID(t, hostUuid)
+		hostInv := GetHostbyUUID(t, hostUUID)
 		assert.Equal(t, hostInv.GetCurrentState(), computev1.HostState_HOST_STATE_DELETED)
 	})
 }

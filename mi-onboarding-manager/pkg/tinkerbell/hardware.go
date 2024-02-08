@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewHardware(name, ns string, id, device, ip, gateway string) *tink.Hardware {
+func NewHardware(name, ns, id, device, ip, gateway string) *tink.Hardware {
 	hw := &tink.Hardware{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Hardware",

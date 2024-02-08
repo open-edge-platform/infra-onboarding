@@ -54,4 +54,3 @@ func TestNewWorkflow(t *testing.T) {
 		})
 	}
 }
-

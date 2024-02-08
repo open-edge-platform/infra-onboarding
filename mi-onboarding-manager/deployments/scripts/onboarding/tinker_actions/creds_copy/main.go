@@ -14,8 +14,8 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"io"
+	"os"
 	"path/filepath"
 	"syscall"
 
@@ -30,7 +30,7 @@ func main() {
 	// Parse the environment variables that are passed into the action
 	blockDevice := os.Getenv("BLOCK_DEVICE")
 	filesystemType := os.Getenv("FS_TYPE")
-//	isDestMount := os.Getenv("NO_MOUNT")
+	// isDestMount := os.Getenv("NO_MOUNT")
 
 	if blockDevice == "" {
 		log.Fatalf("No Block Device speified with Environment Variable [BLOCK_DEVICE]")
@@ -80,7 +80,7 @@ func CopyFolder(src string, dest string) error {
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(dest, 0755)
+	err = os.MkdirAll(dest, 0o755)
 	if err != nil {
 		return err
 	}
@@ -101,6 +101,7 @@ func CopyFolder(src string, dest string) error {
 	}
 	return nil
 }
+
 func Copy(src string, dest string) error {
 	sourceFile, err := os.Open(src)
 	if err != nil {

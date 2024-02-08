@@ -33,10 +33,10 @@ func TestNewHardware(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewHardware(tt.args.name, tt.args.ns, tt.args.id, tt.args.device, tt.args.ip, tt.args.gateway); reflect.DeepEqual(got, tt.want) {
+			if got := NewHardware(tt.args.name, tt.args.ns, tt.args.id, tt.args.device,
+				tt.args.ip, tt.args.gateway); reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewHardware() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
-

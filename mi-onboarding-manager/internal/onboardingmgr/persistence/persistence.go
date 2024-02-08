@@ -28,7 +28,7 @@ type (
 		Version     string           `json:"version" db:"version" `
 		Description string           `json:"descrip" db:"descrip"`
 		Detail      string           `json:"detail" db:"detail"`
-		PackageUrl  string           `json:"pkg_url" db:"pkg_url"`
+		PackageURL  string           `json:"pkg_url" db:"pkg_url"`
 		Author      string           `json:"author" db:"author"`
 		State       string           `json:"state" db:"state"`
 		License     string           `json:"license" db:"license"`
@@ -80,19 +80,22 @@ type Repository interface {
 }
 
 const (
-	// CASSANDRA represents cassandra DB
+	// CASSANDRA represents cassandra DB.
 	CASSANDRA = "cassandra"
 
 	nodeRepoName     = "node"
 	artifactRepoName = "artifact"
+	repoMapLength    = 2
 )
 
 type myRepo struct {
 	repos map[string]Repository
 }
 
-var repo = myRepo{repos: make(map[string]Repository, 2)}
-var repoz = make(map[string]config.Database, 2)
+var (
+	repo  = myRepo{repos: make(map[string]Repository, repoMapLength)}
+	repoz = make(map[string]config.Database, repoMapLength)
+)
 
 func init() {
 	repo.repos[nodeRepoName] = nil
@@ -100,7 +103,6 @@ func init() {
 }
 
 func runInKubernetes(conf *config.Config) {
-
 	log.Println("Running inside Kubernetes cluster")
 
 	repoz[nodeRepoName] = conf.Node.Database
@@ -108,7 +110,6 @@ func runInKubernetes(conf *config.Config) {
 }
 
 func runInDockerContainer(conf *config.Config) {
-
 	log.Println("Running inside Docker container")
 
 	repoz[nodeRepoName] = conf.Node.Database
@@ -129,20 +130,22 @@ func isRunningInDocker() bool {
 	return !os.IsNotExist(err)
 }
 
-// InitDB initialize a database connection
+// InitDB initialize a database connection.
 func InitDB(conf *config.Config) {
+	const timeDuration = 5 * time.Second
 	logger.GetLogger().Info("Try database connection")
 
 	// Check if running inside Kubernetes cluster
 	_, err := rest.InClusterConfig()
 	isDocker := isRunningInDocker()
-	if err == nil {
+	switch {
+	case err == nil:
 		// Running inside Kubernetes cluster
 		runInKubernetes(conf)
-	} else if isDocker {
+	case isDocker:
 		// Running inside Docker container
 		runInDockerContainer(conf)
-	} else {
+	default:
 		// Running outside Kubernetes cluster and Docker container
 		runLocally(conf)
 	}
@@ -154,7 +157,7 @@ func InitDB(conf *config.Config) {
 				db, err := newCassandra(ep, d.Username, d.Password, conf.CreateTable, conf.Keyspace, conf.Replica)
 				if err != nil {
 					logger.GetLogger().Infof("Fail to connect %s database: %v", n, err)
-					time.Sleep(5 * time.Second)
+					time.Sleep(timeDuration)
 				}
 
 				if err == nil {
@@ -168,12 +171,12 @@ func InitDB(conf *config.Config) {
 	}
 }
 
-// GetNodeRepository returns the node repository
+// GetNodeRepository returns the node repository.
 func GetNodeRepository() Repository {
 	return repo.repos[nodeRepoName]
 }
 
-// GetArtifactRepository returns the artifact repository
+// GetArtifactRepository returns the artifact repository.
 func GetArtifactRepository() Repository {
 	return repo.repos[artifactRepoName]
 }
@@ -216,13 +219,14 @@ func UnmarshalStrArray(data string) ([]string, error) {
 }
 
 func UnmarshalOnboardingParams(data string) (*pb.OnboardingParams, error) {
+	var err error
 	if data == "" {
-		return nil, nil
+		return nil, err
 	}
 	r := strings.NewReader(data)
 	decoder := json.NewDecoder(r)
 	var p pb.OnboardingParams
-	err := decoder.Decode(&p)
+	err = decoder.Decode(&p)
 	if err != nil {
 		return nil, err
 	}

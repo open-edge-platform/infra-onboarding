@@ -7,6 +7,12 @@ package invclient
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
+	"reflect"
+	"testing"
+	"time"
+
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
@@ -14,12 +20,6 @@ import (
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/status"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"os"
-	"path/filepath"
-
-	"reflect"
-	"testing"
-	"time"
 
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	network_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/network/v1"
@@ -46,7 +46,9 @@ func (m *MockInventoryClient) List(ctx context.Context, filter *inv_v1.ResourceF
 	return args.Get(0).(*inv_v1.ListResourcesResponse), args.Error(1)
 }
 
-func (m *MockInventoryClient) ListAll(ctx context.Context, resource *inv_v1.Resource, mask *fieldmaskpb.FieldMask) ([]*inv_v1.Resource, error) {
+func (m *MockInventoryClient) ListAll(ctx context.Context, resource *inv_v1.Resource,
+	mask *fieldmaskpb.FieldMask,
+) ([]*inv_v1.Resource, error) {
 	args := m.Called(ctx, resource, mask)
 	return args.Get(0).([]*inv_v1.Resource), args.Error(1)
 }
@@ -56,7 +58,9 @@ func (m *MockInventoryClient) Find(ctx context.Context, filter *inv_v1.ResourceF
 	return args.Get(0).(*inv_v1.FindResourcesResponse), args.Error(1)
 }
 
-func (m *MockInventoryClient) FindAll(ctx context.Context, resource *inv_v1.Resource, mask *fieldmaskpb.FieldMask) ([]string, error) {
+func (m *MockInventoryClient) FindAll(ctx context.Context, resource *inv_v1.Resource,
+	mask *fieldmaskpb.FieldMask,
+) ([]string, error) {
 	args := m.Called(ctx, resource, mask)
 	return args.Get(0).([]string), args.Error(1)
 }
@@ -71,7 +75,9 @@ func (m *MockInventoryClient) Create(ctx context.Context, resource *inv_v1.Resou
 	return args.Get(0).(*inv_v1.CreateResourceResponse), args.Error(1)
 }
 
-func (m *MockInventoryClient) Update(ctx context.Context, id string, mask *fieldmaskpb.FieldMask, resource *inv_v1.Resource) (*inv_v1.UpdateResourceResponse, error) {
+func (m *MockInventoryClient) Update(ctx context.Context, id string,
+	mask *fieldmaskpb.FieldMask, resource *inv_v1.Resource,
+) (*inv_v1.UpdateResourceResponse, error) {
 	args := m.Called(ctx, id, mask, resource)
 	return args.Get(0).(*inv_v1.UpdateResourceResponse), args.Error(1)
 }
@@ -86,8 +92,8 @@ func (m *MockInventoryClient) UpdateSubscriptions(ctx context.Context, kinds []i
 	return args.Error(0)
 }
 
-func (m *MockInventoryClient) TestingOnlySetClient(client inv_v1.InventoryServiceClient) {
-	m.Called(client)
+func (m *MockInventoryClient) TestingOnlySetClient(invClient inv_v1.InventoryServiceClient) {
+	m.Called(invClient)
 }
 
 func TestMain(m *testing.M) {
@@ -266,7 +272,8 @@ func TestOnboardingInventoryClient_UpdateHostResource(t *testing.T) {
 		host *computev1.HostResource
 	}
 	mockClient := &MockInventoryClient{}
-	mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -750,7 +757,8 @@ func TestOnboardingInventoryClient_UpdateHostNIC(t *testing.T) {
 		hostNIC *computev1.HostnicResource
 	}
 	mockClient := &MockInventoryClient{}
-	mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -791,10 +799,12 @@ func TestOnboardingInventoryClient_DeleteHostResource(t *testing.T) {
 		resourceID string
 	}
 	mockClient := &MockInventoryClient{}
-	mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 
 	mockClient1 := &MockInventoryClient{}
-	mockClient1.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
+	mockClient1.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
 
 	tests := []struct {
 		name    string
@@ -1081,7 +1091,8 @@ func TestOnboardingInventoryClient_UpdateInstanceResource(t *testing.T) {
 		inst *computev1.InstanceResource
 	}
 	mockClient := &MockInventoryClient{}
-	mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1122,9 +1133,11 @@ func TestOnboardingInventoryClient_DeleteInstanceResource(t *testing.T) {
 		resourceID string
 	}
 	mockClient := &MockInventoryClient{}
-	mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 	mockClient1 := &MockInventoryClient{}
-	mockClient1.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
+	mockClient1.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1179,7 +1192,8 @@ func TestOnboardingInventoryClient_DeleteResource(t *testing.T) {
 	mockClient1 := &MockInventoryClient{}
 	mockClient1.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, errors.New("err"))
 	mockClient2 := &MockInventoryClient{}
-	mockClient2.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, status.Error(codes.NotFound, "Node not found"))
+	mockClient2.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{},
+		status.Error(codes.NotFound, "Node not found"))
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1475,7 +1489,8 @@ func TestOnboardingInventoryClient_FindAllResources(t *testing.T) {
 			fields: fields{
 				Client: mockClient1,
 			},
-			args: args{ctx: context.Background(),
+			args: args{
+				ctx:   context.Background(),
 				kinds: []inv_v1.ResourceKind{inv_v1.ResourceKind_RESOURCE_KIND_HOST},
 			},
 			want:    nil,
@@ -1486,7 +1501,8 @@ func TestOnboardingInventoryClient_FindAllResources(t *testing.T) {
 			fields: fields{
 				Client: mockClient2,
 			},
-			args: args{ctx: context.Background(),
+			args: args{
+				ctx:   context.Background(),
 				kinds: []inv_v1.ResourceKind{inv_v1.ResourceKind_RESOURCE_KIND_HOST},
 			},
 			want:    nil,
@@ -1634,8 +1650,8 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 
 			// only get/delete if valid test and hasn't failed otherwise may segfault
 			if !t.Failed() && tt.valid {
-				hostInv, err := OnboardingTestClient.GetHostResourceByUUID(ctx, host.Uuid)
-				require.NoError(t, err)
+				hostInv, err1 := OnboardingTestClient.GetHostResourceByUUID(ctx, host.Uuid)
+				require.NoError(t, err1)
 				require.NotNil(t, hostInv)
 
 				assert.Equal(t, tt.args.hostCurrentState, hostInv.GetCurrentState())
@@ -1644,9 +1660,9 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 				assert.Equal(t, tt.args.providerStatusDetail, hostInv.GetProviderStatusDetail())
 				assert.Equal(t, tt.args.runtimeHostStatus.Status, hostInv.GetHostStatus())
 				assert.Equal(t, tt.args.runtimeHostStatus.StatusIndicator, hostInv.GetHostStatusIndicator())
-				timeNow, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST",
+				timeNow, err2 := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST",
 					hostInv.GetHostStatusTimestamp())
-				require.NoError(t, err)
+				require.NoError(t, err2)
 				assert.False(t, timeNow.UTC().Before(tt.args.updateTimestamp))
 			}
 

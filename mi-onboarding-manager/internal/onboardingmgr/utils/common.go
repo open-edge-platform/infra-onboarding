@@ -6,10 +6,11 @@ SPDX-License-Identifier: Apache-2.0
 package utils
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -42,6 +43,7 @@ func ChangeWorkingDirectory(targetDir string) error {
 
 	// Change the working directory to the target directory
 	if err := os.Chdir(absPath); err != nil {
+		log.Println("error while changing working directory to the target directory: ", err)
 		return err
 	}
 
@@ -50,15 +52,15 @@ func ChangeWorkingDirectory(targetDir string) error {
 
 func MakeHTTPGETRequest(hostIP, guidValue, caCertPath, certPath string) ([]byte, error) {
 	// Read the CA certificate
-	caCert, err := ioutil.ReadFile(caCertPath)
+	caCert, err := os.ReadFile(caCertPath)
 	if err != nil {
-		return nil, fmt.Errorf("Error reading CA certificate: %v", err)
+		return nil, fmt.Errorf("error reading CA certificate: %w", err)
 	}
 
 	// Load client certificate and key
 	cert, err := tls.LoadX509KeyPair(certPath, certPath)
 	if err != nil {
-		return nil, fmt.Errorf("Error loading client certificate: %v", err)
+		return nil, fmt.Errorf("error loading client certificate: %w", err)
 	}
 
 	// Create a custom certificate pool and add the CA certificate
@@ -78,39 +80,42 @@ func MakeHTTPGETRequest(hostIP, guidValue, caCertPath, certPath string) ([]byte,
 
 	// Make an HTTP GET request
 	url := fmt.Sprintf("https://%s:8043/api/v1/owner/state/%s", hostIP, guidValue)
-	req, err := http.NewRequest("GET", url, nil)
+	ctx := context.Background()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating HTTP request: %v", err)
+		return nil, fmt.Errorf("error creating HTTP request: %w", err)
 	}
 
 	// Perform the GET request
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("Error making HTTP request: %v", err)
+		return nil, fmt.Errorf("error making HTTP request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	// Read the response body
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("Error reading response body: %v", err)
+		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
 
 	return body, nil
 }
 
-func ParseAndUpdateUrl(onboardingRequest *pb.OnboardingRequest) {
+func ParseAndUpdateURL(onboardingRequest *pb.OnboardingRequest) {
 	for _, artifactData := range onboardingRequest.ArtifactData {
-		//sets and parse the enviroment variable
+		// sets and parse the environment variable
 		// Determine which environment variable to set based on the Category
 		print("artifact data------", artifactData)
 		var envVarName string
-		if artifactData.Category.String() == "OS" || artifactData.Name == "OS" {
+		category := artifactData.Category.String()
+		switch {
+		case category == "OS" || artifactData.Name == "OS":
 			envVarName = "BKC_URL"
-		} else if artifactData.Category.String() == "PLATFORM" || artifactData.Name == "PLATFORM" {
+		case category == "PLATFORM" || artifactData.Name == "PLATFORM":
 			envVarName = "BKC_BASEPKG"
-		} else {
-			//Todo:Add support for other  category
+		default:
+			// Todo:Add support for other  category
 			fmt.Printf("Unsupported category: %s\n", artifactData.Category.String())
 			continue
 		}
@@ -124,10 +129,11 @@ func ParseAndUpdateUrl(onboardingRequest *pb.OnboardingRequest) {
 	}
 }
 
-// this function cleanup the file for nect time use after onboarding is done
+// this function cleanup the file for nect time use after onboarding is done.
 func ClearFileAndWriteHeader(filePath string) error {
+	const filePermission = 0o644
 	// Open the file for writing and truncate it to 0 bytes
-	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC, 0644)
+	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC, filePermission)
 	if err != nil {
 		return err
 	}

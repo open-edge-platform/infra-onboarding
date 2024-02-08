@@ -1,7 +1,7 @@
 /*
- * SPDX-FileCopyrightText: (C) 2023 Intel Corporation
- * SPDX-License-Identifier: LicenseRef-Intel
- */
+SPDX-FileCopyrightText: (C) 2023 Intel Corporation
+SPDX-License-Identifier: LicenseRef-Intel
+*/
 package commands
 
 import (
@@ -10,7 +10,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"sync"
 	"time"
 
@@ -45,7 +45,7 @@ func (d *grpcDialer) Dial(ctx context.Context, opts ...grpc.DialOption) (*grpc.C
 			return nil, fmt.Errorf("error loading client certificate credentials: %w", err)
 		}
 
-		cacertBytes, err := ioutil.ReadFile(d.CACertPath)
+		cacertBytes, err := os.ReadFile(d.CACertPath)
 		if err != nil {
 			return nil, fmt.Errorf("unable to read CA certificate bundle from %q: %w", d.CACertPath, err)
 		}
@@ -72,7 +72,11 @@ func (d *grpcDialer) Dial(ctx context.Context, opts ...grpc.DialOption) (*grpc.C
 	return cc, nil
 }
 
-func NewInventoryClient(ctx context.Context, wg *sync.WaitGroup, addr string) (inv_client.InventoryClient, chan *inv_client.WatchEvents, error) {
+func NewInventoryClient(
+	ctx context.Context,
+	wg *sync.WaitGroup,
+	addr string,
+) (inv_client.InventoryClient, chan *inv_client.WatchEvents, error) {
 	fmt.Println("Init Inv client")
 	resourceKinds := []inv_v1.ResourceKind{
 		inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE,
@@ -99,7 +103,8 @@ func NewInventoryClient(ctx context.Context, wg *sync.WaitGroup, addr string) (i
 		client, err := inv_client.NewInventoryClient(ctx, cfg)
 		if err != nil {
 			fmt.Printf("Failed to create new inventory client %v,Retry after 5 seconds", err)
-			time.Sleep(5 * time.Second)
+			time.Sleep(timeDuration)
+			return nil, nil, err
 		}
 		if err == nil {
 			return client, eventCh, nil

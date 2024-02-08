@@ -18,9 +18,7 @@ import (
 	"github.com/scylladb/gocqlx/v2/table"
 )
 
-var (
-	ErrInvalidKey = errors.New("Missing ID or HwID")
-)
+var ErrInvalidKey = errors.New("Missing ID or HwID")
 
 var _ Repository = (*Cassandra)(nil)
 
@@ -87,11 +85,10 @@ func newCassandra(eps []string, user, pass string, createTable bool, keyspace, r
 
 func createCluster(clusterHosts []string, opts ...func(*gocql.ClusterConfig)) *gocql.ClusterConfig {
 	cluster := gocql.NewCluster(clusterHosts...)
-	// cluster.ProtoVersion = ""
-	// cluster.CQLVersion = ""
-	cluster.Timeout = 30 * time.Second
+	const timeOutDuration, maxWaitDuration = 30 * time.Second, 2 * time.Minute
+	cluster.Timeout = timeOutDuration
 	cluster.Consistency = gocql.Quorum
-	cluster.MaxWaitSchemaAgreement = 2 * time.Minute
+	cluster.MaxWaitSchemaAgreement = maxWaitDuration
 
 	for _, opt := range opts {
 		opt(cluster)
@@ -138,7 +135,7 @@ func (c *Cassandra) UpdateNodes(ctx context.Context, data []NodeData) error {
 	return nil
 }
 
-func (c *Cassandra) GetNodes(ctx context.Context, data NodeData) ([]*NodeData, error) {
+func (c *Cassandra) GetNodes(_ context.Context, data NodeData) ([]*NodeData, error) {
 	get := c.session.Query(nodeSelQry(c.keyspace, data))
 	get.BindStruct(data)
 	var items []*NodeData
@@ -201,7 +198,7 @@ func (c *Cassandra) UpdateArtifacts(ctx context.Context, data []ArtifactData) er
 	return nil
 }
 
-func (c *Cassandra) GetArtifacts(ctx context.Context, data ArtifactData) ([]*ArtifactData, error) {
+func (c *Cassandra) GetArtifacts(_ context.Context, data ArtifactData) ([]*ArtifactData, error) {
 	get := c.session.Query(artifactSelQry(c.keyspace, data))
 	get.BindStruct(data)
 	var items []*ArtifactData
@@ -244,19 +241,19 @@ func createKeyspaceAndTable(session gocqlx.Session, keyspace, replica string, cr
 	}
 
 	if createTable {
-		if err := session.ExecStmt(fmt.Sprintf("DROP TABLE IF EXISTS  %s.node", keyspace)); err != nil {
+		if err = session.ExecStmt(fmt.Sprintf("DROP TABLE IF EXISTS  %s.node", keyspace)); err != nil {
 			return errors.Wrap(err, "drop table")
 		}
 
-		if err := session.ExecStmt(fmt.Sprintf("DROP TABLE IF EXISTS  %s.artifact", keyspace)); err != nil {
+		if err = session.ExecStmt(fmt.Sprintf("DROP TABLE IF EXISTS  %s.artifact", keyspace)); err != nil {
 			return errors.Wrap(err, "drop table")
 		}
 
-		if err := session.ExecStmt(fmt.Sprintf("DROP TABLE IF EXISTS  %s.profile", keyspace)); err != nil {
+		if err = session.ExecStmt(fmt.Sprintf("DROP TABLE IF EXISTS  %s.profile", keyspace)); err != nil {
 			return errors.Wrap(err, "drop table")
 		}
 
-		if err := session.ExecStmt(fmt.Sprintf("DROP TABLE IF EXISTS  %s.group", keyspace)); err != nil {
+		if err = session.ExecStmt(fmt.Sprintf("DROP TABLE IF EXISTS  %s.group", keyspace)); err != nil {
 			return errors.Wrap(err, "drop table")
 		}
 	}

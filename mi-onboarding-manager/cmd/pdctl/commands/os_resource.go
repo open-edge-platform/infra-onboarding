@@ -7,8 +7,8 @@ package commands
 import (
 	"context"
 	"fmt"
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
-	"time"
 
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	"github.com/spf13/cobra"
@@ -48,13 +48,13 @@ func OsCmds() *cobra.Command {
 	createCmd.Flags().StringArrayVarP(&updateSources, "update_sources", "u", []string{}, "UpdateSources")
 	createCmd.Flags().StringP("repo_url", "l", "", "RepoUrl")
 	createCmd.Flags().StringP("sha256", "s", "", "Sha256")
-	getIdCmd := &cobra.Command{
+	getIDCmd := &cobra.Command{
 		Use:   "getById",
 		Short: "Get os resources by resource id",
 		RunE:  getByID(&dialer),
 	}
-	getIdCmd.Flags().StringVarP(&resourceID, "resource-id", "r", "", "Resource ID (required)")
-	getIdCmd.MarkFlagRequired("resource-id")
+	getIDCmd.Flags().StringVarP(&resourceID, "resource-id", "r", "", "Resource ID (required)")
+	getIDCmd.MarkFlagRequired("resource-id")
 	getCmd := &cobra.Command{
 		Use:   "get",
 		Short: "Get Os resources",
@@ -79,7 +79,7 @@ func OsCmds() *cobra.Command {
 	updateCmd.Flags().StringP("repo_url", "l", "", "RepoUrl")
 	updateCmd.Flags().StringP("sha256", "s", "", "Sha256")
 	updateCmd.Flags().StringP("profile_name", "p", "", "ProfileName")
-	osResCmd.AddCommand(createCmd, getIdCmd, deleteCmd, updateCmd, getCmd)
+	osResCmd.AddCommand(createCmd, getIDCmd, deleteCmd, updateCmd, getCmd)
 	return osResCmd
 }
 
@@ -90,7 +90,7 @@ func createOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 			return err
 		}
 		defer cc.Close()
-		repoUrl, _ := cmd.Flags().GetString("repo_url")
+		repoURL, _ := cmd.Flags().GetString("repo_url")
 		sha256, _ := cmd.Flags().GetString("sha256")
 		profileName, _ := cmd.Flags().GetString("profileName")
 		updateSources, _ := cmd.Flags().GetStringArray("update_sources")
@@ -105,12 +105,12 @@ func createOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 
 		osResource := &osv1.OperatingSystemResource{
 			UpdateSources: updateSources,
-			RepoUrl:       repoUrl,
+			RepoUrl:       repoURL,
 			Sha256:        sha256,
 			ProfileName:   profileName,
 		}
-		if err := osResource.ValidateAll(); err != nil {
-			return err
+		if validationErr := osResource.ValidateAll(); validationErr != nil {
+			return validationErr
 		}
 
 		_, err = client.CreateOSResource(cmd.Context(), osResource)
@@ -130,7 +130,7 @@ func getByID(dialer *grpcDialer) func(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		defer cc.Close()
-		_, cancel := context.WithTimeout(cmd.Context(), 5*time.Second)
+		_, cancel := context.WithTimeout(cmd.Context(), timeDuration)
 		defer cancel()
 
 		client, err := invclient.NewOnboardingInventoryClientWithOptions(
@@ -159,7 +159,7 @@ func deleteOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 			return err
 		}
 		defer cc.Close()
-		_, cancel := context.WithTimeout(cmd.Context(), 5*time.Second)
+		_, cancel := context.WithTimeout(cmd.Context(), timeDuration)
 		defer cancel()
 
 		client, err := invclient.NewOnboardingInventoryClientWithOptions(
@@ -192,7 +192,7 @@ func updateOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 			return err
 		}
 		defer cc.Close()
-		_, cancel := context.WithTimeout(cmd.Context(), 5*time.Second)
+		_, cancel := context.WithTimeout(cmd.Context(), timeDuration)
 		defer cancel()
 
 		client, err := invclient.NewOnboardingInventoryClientWithOptions(
@@ -243,7 +243,7 @@ func getOsResources(dialer *grpcDialer) func(cmd *cobra.Command, args []string) 
 			return err
 		}
 		defer cc.Close()
-		_, cancel := context.WithTimeout(cmd.Context(), 5*time.Second)
+		_, cancel := context.WithTimeout(cmd.Context(), timeDuration)
 		defer cancel()
 
 		client, err := invclient.NewOnboardingInventoryClientWithOptions(

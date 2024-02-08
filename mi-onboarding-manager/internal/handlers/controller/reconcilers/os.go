@@ -38,7 +38,9 @@ func NewOsReconciler(c *invclient.OnboardingInventoryClient) *OsReconciler {
 }
 
 // Reconcile is responsible for reconciling operating system instances based on the provided request.
-func (osr *OsReconciler) Reconcile(ctx context.Context, request rec_v2.Request[ResourceID]) rec_v2.Directive[ResourceID] {
+func (osr *OsReconciler) Reconcile(ctx context.Context,
+	request rec_v2.Request[ResourceID],
+) rec_v2.Directive[ResourceID] {
 	resourceID := request.ID.String()
 	zlogOs.MiSec().Debug().Msgf("Reconciling os instance : %s", resourceID)
 	osre, err := osr.invClient.GetOSResourceByResourceID(ctx, resourceID)

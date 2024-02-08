@@ -7,6 +7,7 @@ package onboarding
 
 import (
 	"context"
+
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
@@ -15,24 +16,23 @@ import (
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 )
 
-func UpdateInstanceStatusByGuid(ctx context.Context,
+func UpdateInstanceStatusByGUID(ctx context.Context,
 	invClient *invclient.OnboardingInventoryClient,
 	hostUUID string, instancestatus computev1.InstanceStatus, provisioningStatus inv_status.ResourceStatus,
 ) error {
-	zlog.Info().Msg("UpdateInstanceStatusByGuid")
+	zlog.Info().Msg("UpdateInstanceStatusByGUID")
 
 	hostResc, err := invClient.GetHostResourceByUUID(ctx, hostUUID)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("Node Doesn't Exist")
 		return err
-	} else {
-		zlog.Debug().Msgf("Node and its Host Resource Exist")
-		zlog.Debug().Msgf("GetHostResourceBySN = %v", hostResc)
 	}
+	zlog.Debug().Msgf("Node and its Host Resource Exist")
+	zlog.Debug().Msgf("GetHostResourceBySN = %v", hostResc)
 
 	instanceResc := hostResc.GetInstance()
 	if instanceResc == nil {
-		err := inv_errors.Errorfc(codes.NotFound, "Instance Doesn't Exist")
+		err = inv_errors.Errorfc(codes.NotFound, "Instance Doesn't Exist")
 		zlog.MiSec().MiErr(err).Msgf(hostUUID)
 		return err
 	}

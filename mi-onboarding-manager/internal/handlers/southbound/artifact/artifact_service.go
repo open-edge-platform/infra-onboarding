@@ -20,16 +20,14 @@ import (
 )
 
 var (
-	name = "NodeArtifactService"
-	zlog = logging.GetLogger(name)
+	name      = "NodeArtifactService"
+	zlog      = logging.GetLogger(name)
+	hostResID string
 )
 
 const (
 	DefaultTimeout = 3 * time.Second
 )
-
-var hostResID string
-var hostNicResID string
 
 var HostFieldmask = &fieldmaskpb.FieldMask{
 	Paths: []string{
@@ -39,6 +37,7 @@ var HostFieldmask = &fieldmaskpb.FieldMask{
 		computev1.HostResourceFieldUuid,
 	},
 }
+
 var HostnicFieldmask = &fieldmaskpb.FieldMask{
 	Paths: []string{
 		computev1.HostnicResourceFieldDeviceName,
@@ -53,7 +52,7 @@ type NodeArtifactService struct {
 	invClient *invclient.OnboardingInventoryClient
 }
 
-// NewArtifactService is a constructor function
+// NewArtifactService is a constructor function.
 func NewArtifactService(invClient *invclient.OnboardingInventoryClient) (*NodeArtifactService, error) {
 	if invClient == nil {
 		return nil, inv_errors.Errorf("invClient is nil in NewArtifactService")
@@ -113,7 +112,7 @@ func CopyNodeReqtoNodetData(payload []*pb.NodeData) ([]*computev1.HostResource, 
 
 func CopyNodeDatatoNodeResp(payload []repository.NodeData, result string) ([]*pb.NodeData, error) {
 	zlog.Info().Msg("CopyNodeDatatoNodeResp")
-	var data []*pb.NodeData
+	data := make([]*pb.NodeData, 0)
 	for _, s := range payload {
 		art2 := pb.NodeData{
 			NodeId:          s.ID,

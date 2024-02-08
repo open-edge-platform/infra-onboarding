@@ -65,4 +65,3 @@ func TestHostResourceCmd_Add(t *testing.T) {
 	err := RootCmd.Execute()
 	assert.Error(t, err)
 }
-

@@ -13,7 +13,7 @@ import (
 )
 
 type example struct {
-	Id  string `json:"id"`
+	ID  string `json:"id"`
 	Tag string `json:"tag"`
 }
 
@@ -47,7 +47,7 @@ func TestGetFields(t *testing.T) {
 			name: "Test with struct containing ignored field",
 			args: args{
 				b: example{
-					Id:  "1",
+					ID:  "1",
 					Tag: "",
 				},
 			},
@@ -142,4 +142,3 @@ func TestGetLogger(t *testing.T) {
 		})
 	}
 }
-

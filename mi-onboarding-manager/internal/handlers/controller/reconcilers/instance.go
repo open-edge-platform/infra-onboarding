@@ -39,7 +39,9 @@ func NewInstanceReconciler(c *invclient.OnboardingInventoryClient) *InstanceReco
 	}
 }
 
-func (ir *InstanceReconciler) Reconcile(ctx context.Context, request rec_v2.Request[ResourceID]) rec_v2.Directive[ResourceID] {
+func (ir *InstanceReconciler) Reconcile(ctx context.Context,
+	request rec_v2.Request[ResourceID],
+) rec_v2.Directive[ResourceID] {
 	resourceID := request.ID.String()
 	zlogInst.Info().Msgf("Reconciling Instance (%s)", resourceID)
 

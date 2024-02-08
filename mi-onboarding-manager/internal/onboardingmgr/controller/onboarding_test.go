@@ -39,7 +39,9 @@ func (m *MockRepository) DeleteNodes(ctx context.Context, ids []string) error {
 	return args.Error(0)
 }
 
-func (m *MockRepository) CreateArtifacts(ctx context.Context, data []persistence.ArtifactData) ([]persistence.ArtifactData, error) {
+func (m *MockRepository) CreateArtifacts(ctx context.Context,
+	data []persistence.ArtifactData,
+) ([]persistence.ArtifactData, error) {
 	args := m.Called(ctx, data)
 	return args.Get(0).([]persistence.ArtifactData), args.Error(1)
 }
@@ -63,6 +65,7 @@ func (m *MockRepository) Close() error {
 	args := m.Called()
 	return args.Error(0)
 }
+
 func TestNewInventoryManager(t *testing.T) {
 	type args struct {
 		conf *config.Config
@@ -469,4 +472,3 @@ func TestInventoryManager_GetNodes(t *testing.T) {
 		})
 	}
 }
-

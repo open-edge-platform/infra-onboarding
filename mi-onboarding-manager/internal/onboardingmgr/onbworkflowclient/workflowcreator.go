@@ -13,9 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
@@ -61,40 +59,14 @@ func ConvertToJSONSerializable(input interface{}) interface{} {
 	}
 }
 
-func GenerateMacIdString(macId string) string {
-	macWithoutColon := strings.ReplaceAll(macId, ":", "")
+func GenerateMacIDString(macID string) string {
+	macWithoutColon := strings.ReplaceAll(macID, ":", "")
 	return strings.ToLower(macWithoutColon)
-}
-
-func GenerateDevSerial(macID string) (string, error) {
-	// Remove colons from the MAC address
-	uniqueID := strings.ReplaceAll(macID, ":", "")
-
-	// Generate a random alphanumeric string of length 5
-	rand.Seed(time.Now().UnixNano())
-	randID := GenerateRandomString(5)
-
-	// Truncate the uniqueID to remove the first 6 characters
-	truncatedID := uniqueID[6:]
-
-	// Concatenate truncatedID and randID to create devSerial
-	devSerial := truncatedID + randID
-
-	return devSerial, nil
-}
-
-func GenerateRandomString(length int) string {
-	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
-	result := make([]byte, length)
-	for i := range result {
-		result[i] = charset[rand.Intn(len(charset))]
-	}
-	return string(result)
 }
 
 func updateContentWithValues(content string, deviceInfo utils.DeviceInfo) string {
 	content = strings.ReplaceAll(content, "$TINKERBELL_CLIENT_MAC", deviceInfo.HwMacID)
-	content = strings.ReplaceAll(content, "$TINKERBELL_CLIENT_UID", GenerateMacIdString(deviceInfo.HwMacID))
+	content = strings.ReplaceAll(content, "$TINKERBELL_CLIENT_UID", GenerateMacIDString(deviceInfo.HwMacID))
 	content = strings.ReplaceAll(content, "$ROOTFS_PART_NO", deviceInfo.RootfspartNo)
 	content = strings.ReplaceAll(content, "$ROOTFS_PARTITION", deviceInfo.Rootfspart)
 	content = strings.ReplaceAll(content, "$TINKERBELL_HOST_IP", deviceInfo.LoadBalancerIP)
@@ -105,7 +77,7 @@ func updateContentWithValues(content string, deviceInfo utils.DeviceInfo) string
 	content = strings.ReplaceAll(content, "$DISK_DEVICE", deviceInfo.DiskType)
 	content = strings.ReplaceAll(content, "$TINKERBELL_IMG_TYPE", deviceInfo.ImType)
 
-	content = strings.ReplaceAll(content, "$PROVISIONER_HOST_IP", deviceInfo.ProvisionerIp)
+	content = strings.ReplaceAll(content, "$PROVISIONER_HOST_IP", deviceInfo.ProvisionerIP)
 	content = strings.ReplaceAll(content, "$FDO_CLIENT_TYPE", "CLIENT-SDK-TPM")
 	print("deviceinfo", deviceInfo.ImType)
 	content = strings.ReplaceAll(content, "$OS_TEMPLATE_NAME", deviceInfo.ImType)
@@ -115,13 +87,13 @@ func updateContentWithValues(content string, deviceInfo utils.DeviceInfo) string
 func generateStringDataFromYAML(filePath string) (string, error) {
 	hardwareFile, err := os.Open(filePath)
 	if err != nil {
-		return "", fmt.Errorf("Error opening %s: %v", filePath, err)
+		return "", fmt.Errorf("error opening %s: %w", filePath, err)
 	}
 	defer hardwareFile.Close()
 
 	hardwareYAML, err := io.ReadAll(hardwareFile)
 	if err != nil {
-		return "", fmt.Errorf("Error reading %s: %v", filePath, err)
+		return "", fmt.Errorf("error reading %s: %w", filePath, err)
 	}
 
 	content := string(hardwareYAML)
@@ -133,14 +105,14 @@ func unmarshalYAMLContent(content string) (map[string]interface{}, error) {
 	var hardwareData map[interface{}]interface{}
 	err := yaml.Unmarshal([]byte(content), &hardwareData)
 	if err != nil {
-		return nil, fmt.Errorf("Error parsing YAML: %v", err)
+		return nil, fmt.Errorf("error parsing YAML: %w", err)
 	}
 
 	serializableHardwareData := ConvertToJSONSerializable(hardwareData)
 
 	objectData, ok := serializableHardwareData.(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("Error converting YAML to map[string]interface{}")
+		return nil, fmt.Errorf("error converting YAML to map[string]interface{}")
 	}
 
 	return objectData, nil
@@ -170,30 +142,18 @@ func generateUnstructuredFromYAML(filePath string, deviceInfo utils.DeviceInfo) 
 func createDynamicClient() (dynamic.Interface, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to load kubeconfig: %v", err)
+		return nil, fmt.Errorf("failed to load kubeconfig: %w", err)
 	}
 
 	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create dynamic client: %v", err)
+		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
 	return dynamicClient, nil
 }
 
-func createCustomResource(dynamicClient dynamic.Interface, group, version, resource, namespace string, u *unstructured.Unstructured) error {
-	_, err := dynamicClient.Resource(schema.GroupVersionResource{
-		Group:    group,
-		Version:  version,
-		Resource: resource,
-	}).Namespace(namespace).Create(context.TODO(), u, metav1.CreateOptions{})
-
-	return err
-}
-
-// working
 func createCustomResourcename(dynamicClient dynamic.Interface, u *unstructured.Unstructured) error {
-
 	kind := strings.ToLower(u.GetKind())
 	resource := kind
 	if kind != "hardware" {
@@ -211,7 +171,8 @@ func createCustomResourcename(dynamicClient dynamic.Interface, u *unstructured.U
 	log.Printf("group  %s", u.GroupVersionKind().Group)
 	log.Printf(" version %s", u.GroupVersionKind().Version)
 	log.Printf("- %s", resource)
-	_, err := dynamicClient.Resource(groupVersionResource).Namespace(namespace).Create(context.TODO(), u, metav1.CreateOptions{})
+	_, err := dynamicClient.Resource(groupVersionResource).Namespace(namespace).Create(context.TODO(),
+		u, metav1.CreateOptions{})
 
 	return err
 }
@@ -220,19 +181,19 @@ func ListPodsInNamespace(kubeconfigPath, namespace string) error {
 	// Load the kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 	if err != nil {
-		return fmt.Errorf("Failed to load kubeconfig: %v", err)
+		return fmt.Errorf("failed to load kubeconfig: %w", err)
 	}
 
 	// Create a Kubernetes clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return fmt.Errorf("Failed to create Kubernetes clientset: %v", err)
+		return fmt.Errorf("failed to create Kubernetes clientset: %w", err)
 	}
 
 	// List all pods in the specified namespace
 	podList, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		return fmt.Errorf("Failed to list pods: %v", err)
+		return fmt.Errorf("failed to list pods: %w", err)
 	}
 
 	// Print the list of pods
@@ -244,24 +205,25 @@ func ListPodsInNamespace(kubeconfigPath, namespace string) error {
 	return nil
 }
 
-// Function to check the status of a Kubernetes Job
-func checkJobStatus(namespace, jobName, HwId string) error {
+// Function to check the status of a Kubernetes Job.
+func checkJobStatus(namespace, jobName, hwID string) error {
+	const pollTimeDuration = 10 * time.Second
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		return fmt.Errorf("Failed to load kubeconfig: %v", err)
+		return fmt.Errorf("failed to load kubeconfig: %w", err)
 	}
 
 	// Create a Kubernetes clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return fmt.Errorf("Failed to create Kubernetes clientset: %v", err)
+		return fmt.Errorf("failed to create Kubernetes clientset: %w", err)
 	}
 
 	// Define a function to check the Job status
 	checkStatus := func() (bool, error) {
-		job, err := clientset.BatchV1().Jobs(namespace).Get(context.TODO(), jobName, metav1.GetOptions{})
-		if err != nil {
-			return false, err
+		job, jobErr := clientset.BatchV1().Jobs(namespace).Get(context.TODO(), jobName, metav1.GetOptions{})
+		if jobErr != nil {
+			return false, jobErr
 		}
 
 		if job.Status.Succeeded > 0 {
@@ -269,7 +231,7 @@ func checkJobStatus(namespace, jobName, HwId string) error {
 			return true, nil
 		} else if job.Status.Failed > 0 {
 			// The Job has failed
-			return true, fmt.Errorf("Job %s failed for SUT IP %s", jobName, HwId)
+			return true, fmt.Errorf("job %s failed for SUT IP %s", jobName, hwID)
 		}
 
 		// The Job is still running
@@ -277,22 +239,21 @@ func checkJobStatus(namespace, jobName, HwId string) error {
 	}
 
 	// Poll the Job status every 10 seconds
-	err = wait.PollImmediate(10*time.Second, time.Hour, func() (bool, error) {
-		completed, err := checkStatus()
-		if err != nil {
-			log.Printf("Error checking Job status: %v", err)
+	err = wait.PollImmediate(pollTimeDuration, time.Hour, func() (bool, error) {
+		completed, statusErr := checkStatus()
+		if statusErr != nil {
+			log.Printf("Error checking Job status: %v", statusErr)
 			return false, nil
 		}
 		if completed {
-			log.Printf("Job %s has completed for SUT IP %s", jobName, HwId)
+			log.Printf("Job %s has completed for SUT IP %s", jobName, hwID)
 			return true, nil
 		}
-		log.Printf("Job %s is still running for SUT IP %s", jobName, HwId)
+		log.Printf("Job %s is still running for SUT IP %s", jobName, hwID)
 		return false, nil
 	})
-
 	if err != nil {
-		return fmt.Errorf("Job %s did not complete successfully: %v", jobName, err)
+		return fmt.Errorf("job %s did not complete successfully: %w", jobName, err)
 	}
 
 	return nil
@@ -304,28 +265,18 @@ func newK8SClient() (client.Client, error) {
 		return nil, err
 	}
 
-	if err := tinkv1alpha1.AddToScheme(scheme.Scheme); err != nil {
-		return nil, err
+	if schemeErr := tinkv1alpha1.AddToScheme(scheme.Scheme); schemeErr != nil {
+		return nil, schemeErr
 	}
 
-	client, err := client.New(config, client.Options{Scheme: scheme.Scheme})
+	kubeClient, err := client.New(config, client.Options{Scheme: scheme.Scheme})
 	if err != nil {
 		return nil, err
 	}
-	return client, nil
+	return kubeClient, nil
 }
 
 func CreateTemplateWorkflow(deviceInfo utils.DeviceInfo, workflowName string) (string, error) {
-	// Perform your logic here based on the req parameter
-
-	// commenting the logic to list all ...........
-	// err := ListPodsInNamespace(kubeconfigPath, namespace)
-
-	// if err != nil {
-	// 	// Handle the error, for example, log it or return an error response
-	// 	log.Printf("Error listing pods: %v", err)
-	// }
-
 	dynamicClient, err := createDynamicClient()
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
@@ -337,29 +288,31 @@ func CreateTemplateWorkflow(deviceInfo utils.DeviceInfo, workflowName string) (s
 	workflowname := u.GetName()
 	log.Printf("worfklow name %s for deletion", workflowname)
 	if err != nil {
-		return "", fmt.Errorf("Error generating unstructured from YAML: %v", err)
+		return "", fmt.Errorf("error generating unstructured from YAML: %w", err)
 	}
 
 	err = createCustomResourcename(dynamicClient, u)
 	if err != nil {
-		return workflowname, fmt.Errorf("Failed to create custom workflow resource: %v", err)
+		return workflowname, fmt.Errorf("failed to create custom workflow resource: %w", err)
 	}
 
 	// If everything is successful, return nil (no error)
 	return workflowname, nil
 }
 
-// //////////////Image download logic/////////////////////////////////////
-func ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo, BkcImgDdLock, JammyImgDdLock, FocalImgDdLock, FocalMsImgDdLock sync.Locker) error {
+// Image download logic.
+func ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo,
+	bkcImgDdLock, jammyImgDdLock, focalImgDdLock, focalMsImgDdLock sync.Locker,
+) error {
 	switch deviceInfo.ImType {
-	case "prod_bkc":
-		BkcImgDdLock.Lock()
-		defer BkcImgDdLock.Unlock()
-		if artifactinfo.BkcUrl == "" || artifactinfo.BkcBasePkgUrl == "" {
+	case utils.ProdBkc:
+		bkcImgDdLock.Lock()
+		defer bkcImgDdLock.Unlock()
+		if artifactinfo.BkcURL == "" || artifactinfo.BkcBasePkgURL == "" {
 			return errors.New("required image download Bkc url or Bkc basee pkg url are missing from ArtifactData")
 		}
 		log.Println("Bkc image Download process is started for ", deviceInfo.HwIP)
-		imgurl := artifactinfo.BkcUrl
+		imgurl := artifactinfo.BkcURL
 		filenameBz2 := filepath.Base(imgurl)
 		filenameWithoutExt := strings.TrimSuffix(filenameBz2, ".img")
 		bkcRawGz := filenameWithoutExt + ".raw.gz"
@@ -370,7 +323,8 @@ func ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo,
 		fileName := "ubuntu-download_bkc.yaml"
 		if toDownload {
 			// TODO: Need to Remove hardcoding path
-			err := ReadingYamlNCreatingResourse(imgurl, deviceInfo.ImType, "../../onboardingmgr/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
+			err := ReadingYamlNCreatingResourse(imgurl, deviceInfo.ImType,
+				"../../onboardingmgr/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
 			if err != nil {
 				return err
 			}
@@ -380,19 +334,21 @@ func ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo,
 		}
 		pkgFileName := "ubuntu-download-pkg-agents_bkc.yaml"
 		// TODO: Need to Remove hardcoding path
-		err := ReadingYamlNCreatingResourse(artifactinfo.BkcBasePkgUrl, "prod_bkc-pkg", "../../onboardingmgr/workflows/manifests/image_dload", pkgFileName, deviceInfo.HwIP)
+		err := ReadingYamlNCreatingResourse(artifactinfo.BkcBasePkgURL,
+			"prod_bkc-pkg", "../../onboardingmgr/workflows/manifests/image_dload", pkgFileName, deviceInfo.HwIP)
 		if err != nil {
 			return err
 		}
-	case "prod_jammy":
-		JammyImgDdLock.Lock()
-		defer JammyImgDdLock.Unlock()
+	case utils.ProdJammy:
+		jammyImgDdLock.Lock()
+		defer jammyImgDdLock.Unlock()
 		log.Println("Jammy image Download process is started for", deviceInfo.HwIP)
 		fileName := "ubuntu-download_jammy.yaml"
 		toDownload := !fileExists("/opt/hook/jammy-server-cloudimg-amd64.raw.gz")
 		if toDownload {
 			// TODO: Need to Remove hardcoding path
-			err := ReadingYamlNCreatingResourse("", deviceInfo.ImType, "../../onboardingmgr/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
+			err := ReadingYamlNCreatingResourse("", deviceInfo.ImType,
+				"../../onboardingmgr/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
 			if err != nil {
 				return err
 			}
@@ -401,16 +357,17 @@ func ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo,
 			fmt.Printf("using old downloaded jammy \n")
 		}
 
-	case "prod_focal":
-		FocalImgDdLock.Lock()
-		defer FocalImgDdLock.Unlock()
+	case utils.ProdFocal:
+		focalImgDdLock.Lock()
+		defer focalImgDdLock.Unlock()
 		fileName := "ubuntu-download.yaml"
 		toDownload := !fileExists("/opt/hook/focal-server-cloudimg-amd64.raw.gz")
 		log.Println("Focal image Download process is started for", deviceInfo.HwIP)
 		if toDownload {
 			log.Println("Focal image Download process is started")
 			// TODO: Need to Remove hardcoding path
-			err := ReadingYamlNCreatingResourse("", deviceInfo.ImType, "../../onboardingmgr/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
+			err := ReadingYamlNCreatingResourse("", deviceInfo.ImType,
+				"../../onboardingmgr/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
 			if err != nil {
 				return err
 			}
@@ -419,14 +376,19 @@ func ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo,
 			fmt.Printf("using old downloaded focal \n")
 		}
 
-	case "prod_focal-ms":
-		FocalMsImgDdLock.Lock()
-		defer FocalMsImgDdLock.Unlock()
+	case utils.ProdFocalMs:
+		focalMsImgDdLock.Lock()
+		defer focalMsImgDdLock.Unlock()
 		log.Println("Prod Focal MS image Download process is started for", deviceInfo.HwIP)
 		fileName := "ubuntu-download_focal-ms.yaml"
-		if !fileExists("/opt/hook/linux-image-5.15.96-lts.deb") || !fileExists("/opt/hook/linux-headers-5.15.96-lts.deb") || !fileExists("/opt/hook/focal-server-cloudimg-amd64.raw.gz") || !fileExists("/opt/hook/azure-credentials.env_"+deviceInfo.HwMacID) || !fileExists("/opt/hook/azure_dps_installer.sh") || !fileExists("/opt/hook/log.sh") {
+		if !fileExists("/opt/hook/linux-image-5.15.96-lts.deb") ||
+			!fileExists("/opt/hook/linux-headers-5.15.96-lts.deb") ||
+			!fileExists("/opt/hook/focal-server-cloudimg-amd64.raw.gz") ||
+			!fileExists("/opt/hook/azure-credentials.env_"+deviceInfo.HwMacID) ||
+			!fileExists("/opt/hook/azure_dps_installer.sh") || !fileExists("/opt/hook/log.sh") {
 			// TODO: Need to Remove hardcoding path
-			err := ReadingYamlNCreatingResourse("", deviceInfo.ImType, "../../onboardingmgr/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
+			err := ReadingYamlNCreatingResourse("", deviceInfo.ImType,
+				"../../onboardingmgr/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
 			if err != nil {
 				return err
 			}
@@ -441,7 +403,8 @@ func ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo,
 	return nil
 }
 
-func ReadingYamlNCreatingResourse(imgurl, imgType, filePath, fileName, HwId string) error {
+func ReadingYamlNCreatingResourse(imgurl, imgType, filePath, fileName, hwID string) error {
+	const timeDuration = 5 * time.Second
 	dynamicClient, err := createDynamicClient()
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
@@ -453,19 +416,20 @@ func ReadingYamlNCreatingResourse(imgurl, imgType, filePath, fileName, HwId stri
 	u := &unstructured.Unstructured{}
 	yamlContent, err := generateStringDataFromYAML(ubuntubkcpath)
 	if err != nil {
-		return fmt.Errorf("failed to generate YAML content: %v", err)
+		return fmt.Errorf("failed to generate YAML content: %w", err)
 	}
-	contentInfo := strings.Split(string(yamlContent), "---")
+	contentInfo := strings.Split(yamlContent, "---")
 	for _, content := range contentInfo {
-		if imgType == "prod_bkc" {
+		switch imgType {
+		case utils.ProdBkc:
 			content = strings.ReplaceAll(content, "BKC_IMG_LINK", imgurl)
-		} else if imgType == "prod_bkc-pkg" {
+		case "prod_bkc-pkg":
 			currentPath, _ = os.Getwd()
 			repoPath, _ := strings.CutSuffix(currentPath, "/internal/onboardingmgr/onboarding")
 			content = strings.ReplaceAll(content, "CurrentRepoPath", repoPath)
 			content = strings.ReplaceAll(content, "BKC_BASEPKG_URL", imgurl)
 			content = strings.ReplaceAll(content, "HOST_IP", os.Getenv("MGR_HOST"))
-		} else if imgType == "prod_focal-ms" {
+		case utils.ProdFocalMs:
 			currentPath, _ = os.Getwd()
 			azureEnvPath, _ := strings.CutSuffix(currentPath, "/internal/onboardingmgr/onboarding")
 			content = strings.ReplaceAll(content, "azure_env_path", azureEnvPath)
@@ -473,26 +437,26 @@ func ReadingYamlNCreatingResourse(imgurl, imgType, filePath, fileName, HwId stri
 
 		objectData, err := unmarshalYAMLContent(content)
 		if err != nil {
-			return fmt.Errorf("failed to unmarshal YAML content: %v", err)
+			return fmt.Errorf("failed to unmarshal YAML content: %w", err)
 		}
 		u.Object = objectData
 
-		//Deleting the resourse if exist
+		// Deleting the resource if exist
 		err = DeleteCustomResource(u)
 		if err != nil {
-			log.Printf("warning Error msg while deleting resourse: %s is %v", strings.ToLower(u.GetKind()), err)
+			log.Printf("warning Error msg while deleting resources: %s is %v", strings.ToLower(u.GetKind()), err)
 		}
-		time.Sleep(5 * time.Second)
+		time.Sleep(timeDuration)
 
-		//Creating the resourse
+		// Creating the resource
 		err = createCustomResourcename(dynamicClient, u)
 		if err != nil {
-			return fmt.Errorf("failed to create custom workflow resource: %v", err)
+			return fmt.Errorf("failed to create custom workflow resource: %w", err)
 		}
 
 		if strings.ToLower(u.GetKind()) == "job" {
 			log.Println("Checking the Job status of ", u.GetName())
-			err = checkJobStatus("maestro-iaas-system", u.GetName(), HwId)
+			err = checkJobStatus("maestro-iaas-system", u.GetName(), hwID)
 			if err != nil {
 				log.Fatalf("Error while waiting for workflow success: %v", err)
 				return err
@@ -523,10 +487,10 @@ func DeleteCustomResource(u *unstructured.Unstructured) error {
 	}
 	// Set the propagationPolicy to Background when deleting the Job.
 	deletePolicy := metav1.DeletePropagationBackground
-	err = dynamicClient.Resource(groupVersionResource).Namespace(u.GetNamespace()).Delete(context.TODO(), u.GetName(), metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
-
+	err = dynamicClient.Resource(groupVersionResource).Namespace(u.GetNamespace()).Delete(context.TODO(),
+		u.GetName(), metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
 	if err != nil {
-		return fmt.Errorf("warning deleting workflow: %v", err)
+		return fmt.Errorf("warning deleting workflow: %w", err)
 	}
 
 	fmt.Printf("Workflow %s deleted successfully in namespace %s\n", u.GetName(), u.GetNamespace())
@@ -539,13 +503,14 @@ func fileExists(filePath string) bool {
 }
 
 func waitForWorkflowSuccess(namespace, workflowName string) error {
+	const pollTimeDuration = 20 * time.Second
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		return fmt.Errorf("Failed to load kubeconfig: %v", err)
+		return fmt.Errorf("failed to load kubeconfig: %w", err)
 	}
 	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
-		return fmt.Errorf("Failed to create dynamic client: %v", err)
+		return fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
 	checkStatus := func() (bool, error) {
@@ -559,7 +524,8 @@ func waitForWorkflowSuccess(namespace, workflowName string) error {
 		}
 
 		// Get the custom resource
-		cr, err := dynamicClient.Resource(gvr).Namespace(namespace).Get(context.TODO(), workflowName, metav1.GetOptions{})
+		var cr *unstructured.Unstructured
+		cr, err = dynamicClient.Resource(gvr).Namespace(namespace).Get(context.TODO(), workflowName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -567,13 +533,13 @@ func waitForWorkflowSuccess(namespace, workflowName string) error {
 		// Extract the status field from the custom resource
 		statusField, found, _ := unstructured.NestedString(cr.Object, "status", "state")
 		if !found {
-			return false, fmt.Errorf("Status field not found in the custom resource")
+			return false, fmt.Errorf("status field not found in the custom resource")
 		}
 
 		log.Printf("Workflow %s state: %s", workflowName, statusField)
 
 		// Check if the workflow has reached STATE_SUCCESS
-		if strings.ToUpper(statusField) == "STATE_SUCCESS" {
+		if strings.EqualFold(statusField, "STATE_SUCCESS") {
 			return true, nil
 		}
 
@@ -581,10 +547,10 @@ func waitForWorkflowSuccess(namespace, workflowName string) error {
 	}
 
 	// Poll the workflow status every 20 seconds
-	err = wait.PollImmediate(20*time.Second, time.Hour, func() (bool, error) {
-		success, err := checkStatus()
-		if err != nil {
-			log.Printf("Error checking workflow status: %v", err)
+	err = wait.PollImmediate(pollTimeDuration, time.Hour, func() (bool, error) {
+		success, statusErr := checkStatus()
+		if statusErr != nil {
+			log.Printf("Error checking workflow status: %v", statusErr)
 			return false, nil
 		}
 		if success {
@@ -593,9 +559,8 @@ func waitForWorkflowSuccess(namespace, workflowName string) error {
 		}
 		return false, nil
 	})
-
 	if err != nil {
-		return fmt.Errorf("Workflow did not reach STATE_SUCCESS: %v", err)
+		return fmt.Errorf("workflow did not reach STATE_SUCCESS: %w", err)
 	}
 
 	return nil
@@ -603,7 +568,7 @@ func waitForWorkflowSuccess(namespace, workflowName string) error {
 
 func GetAllVariablesFromFile(fileName string) (map[string]string, error) {
 	// Read the content of the file
-	content, err := ioutil.ReadFile(fileName)
+	content, err := os.ReadFile(fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -615,9 +580,10 @@ func GetAllVariablesFromFile(fileName string) (map[string]string, error) {
 	variables := make(map[string]string)
 
 	// Parse the lines and store the variables in the map
+	const expectedCount = 2
 	for _, line := range lines {
 		parts := strings.Split(line, "=")
-		if len(parts) == 2 {
+		if len(parts) == expectedCount {
 			key := strings.TrimSpace(parts[0])
 			value := strings.TrimSpace(parts[1])
 			variables[key] = value
@@ -625,11 +591,6 @@ func GetAllVariablesFromFile(fileName string) (map[string]string, error) {
 	}
 
 	return variables, nil
-}
-
-func convertMACAddress(mac string) string {
-	// Remove colons from the MAC address
-	return strings.ReplaceAll(mac, ":", "")
 }
 
 func unsetEnvironmentVariables() {
@@ -645,39 +606,33 @@ func unsetEnvironmentVariables() {
 	}
 }
 
-func OnboardSetupms(ImType string) error {
-
+func OnboardSetupms(imType string) error {
 	oldWorkingDir, err := os.Getwd()
 	if err != nil {
 		return err
 	}
 	log.Printf("old working dir---  %s ", oldWorkingDir)
-	fmt.Printf(" ----------------imtype:%s", ImType)
+	fmt.Printf(" ----------------imtype:%s", imType)
 	onboardingstartupdir := filepath.Join("..", "scripts")
-	if err := os.Chdir(onboardingstartupdir); err != nil {
-		return err
+	if chdirErr := os.Chdir(onboardingstartupdir); chdirErr != nil {
+		return chdirErr
 	}
 	log.Printf("Job %s has completed", onboardingstartupdir)
 	// onboardingfilepath := filepath.Join(onboardingstartupdir, "onboardingstartupms.sh")
 	// Make the script executable
 	cmdChmod := exec.Command("chmod", "+x", "onboardingstartupms.sh")
-	if err := cmdChmod.Run(); err != nil {
-		return err
+	if runErr := cmdChmod.Run(); runErr != nil {
+		return runErr
 	}
 
 	// Run the shell script with arguments
-	var cmdExtendUpload *exec.Cmd
 
-	if ImType == "bkc" {
-		cmdExtendUpload = exec.Command("./onboardingstartupms.sh", ImType, "ms")
-	} else {
-		// Todo: check based on dpsscopeid for ms
-		cmdExtendUpload = exec.Command("./onboardingstartupms.sh", ImType, "ms")
-	}
+	// Todo: check based on dpsscopeid for ms
+	cmdExtendUpload := exec.Command("./onboardingstartupms.sh", imType, "ms")
 
 	output, err := cmdExtendUpload.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("Error executing script: %v, Output: %s", err, output)
+		return fmt.Errorf("error executing script: %w, Output: %s", err, output)
 	}
 
 	variableMap, err := GetAllVariablesFromFile("env_variable.txt")
@@ -691,6 +646,7 @@ func OnboardSetupms(ImType string) error {
 		fmt.Println("TINKER_CLIENT_IMG not found in the file")
 	}
 	if err := os.Chdir(oldWorkingDir); err != nil {
+		log.Println("error while reverting back to older directory:", err)
 		return err
 	}
 
@@ -719,8 +675,8 @@ func VoucherExtension(hostIP, deviceSerial string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := os.Chdir(scriptDir); err != nil {
-		return "", err
+	if chdirErr := os.Chdir(scriptDir); chdirErr != nil {
+		return "", chdirErr
 	}
 
 	log.Printf("Job %s has completed", scriptDir)
@@ -738,22 +694,23 @@ func VoucherExtension(hostIP, deviceSerial string) (string, error) {
 
 	// Make the script executable
 	cmdChmod := exec.Command("chmod", "+x", "extend_upload.sh")
-	if err := cmdChmod.Run(); err != nil {
-		return "", err
+	if runErr := cmdChmod.Run(); runErr != nil {
+		return "", runErr
 	}
 	fmt.Printf("host ip: %s\n", hostIP)
 
 	// Run the shell script with arguments
-	cmdExtendUpload := exec.Command("./extend_upload.sh", "-m", "sh", "-c", "./secrets/", "-e", "mtls", "-m", hostIP, "-o", hostIP, "-s", deviceSerial)
+	cmdExtendUpload := exec.Command("./extend_upload.sh", "-m", "sh", "-c",
+		"./secrets/", "-e", "mtls", "-m", hostIP, "-o", hostIP, "-s", deviceSerial)
 
 	output, err := cmdExtendUpload.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("Error executing script: %v, Output: %s", err, output)
+		return "", fmt.Errorf("error executing script: %w, Output: %s", err, output)
 	}
 
 	fmt.Printf("Script Output: voucher done\n%s\n", output)
 	// Create the GUID file path
-	guidFilePath := filepath.Join(deviceSerial + "_guid.txt")
+	guidFilePath := deviceSerial + "_guid.txt"
 
 	// Read the GUID from the file
 	uid, err := readUIDFromFile(guidFilePath)
@@ -770,59 +727,49 @@ func VoucherExtension(hostIP, deviceSerial string) (string, error) {
 	return uid, nil
 }
 
-func VoucherScript(hostIp, deviceSerial string) (string, error) {
+func VoucherScript(hostIP, deviceSerial string) (string, error) {
 	var (
 		attestationType string
-		mfgIp           string
-		onrIp           string
+		mfgIP           string
+		onrIP           string
 		apiUser         string
-		mfgApiPasswd    string
-		onrApiPasswd    string
+		mfgAPIPasswd    string
+		onrAPIPasswd    string
 		mfgPort         string
 		onrPort         string
-		authType        string
 		serialNo        string
 		certPath        string
 	)
 	attestationType = "SECP256R1"
-	authType = "mtls"
-	mfgIp = hostIp
-	onrIp = hostIp
+	mfgIP = hostIP
+	onrIP = hostIP
 	serialNo = deviceSerial
-	//default values
+	// default values
 	defaultAttestationType := "SECP256R1"
-	defaultMfgIp := "localhost"
-	defaultOnrIp := "localhost"
-	defaultApiUser := "apiUser"
-	defaultMfgApiPasswd := ""
-	defaultOnrApiPasswd := ""
+	defaultMfgIP := "localhost"
+	defaultOnrIP := "localhost"
+	defaultAPIUser := "apiUser"
+	defaultMfgAPIPasswd := ""
+	defaultOnrAPIPasswd := ""
 	mfgPort = "8038"
 	onrPort = "8043"
 	if attestationType == "" {
 		attestationType = defaultAttestationType
-
 	}
-	if mfgIp == "" {
-		mfgIp = defaultMfgIp
+	if mfgIP == "" {
+		mfgIP = defaultMfgIP
 	}
-	if onrIp == "" {
-		onrIp = defaultOnrIp
-
+	if onrIP == "" {
+		onrIP = defaultOnrIP
 	}
 	if apiUser == "" {
-		apiUser = defaultApiUser
-
+		apiUser = defaultAPIUser
 	}
-	if mfgApiPasswd == "" {
-		mfgApiPasswd = defaultMfgApiPasswd
-
+	if mfgAPIPasswd == "" {
+		mfgAPIPasswd = defaultMfgAPIPasswd
 	}
-	if onrApiPasswd == "" {
-		onrApiPasswd = defaultOnrApiPasswd
-	}
-	if authType == "" {
-		log.Println("Auth method is mandatory, ")
-		os.Exit(0)
+	if onrAPIPasswd == "" {
+		onrAPIPasswd = defaultOnrAPIPasswd
 	}
 	if serialNo == "" {
 		log.Println("Serial number of device is mandatory, ")
@@ -834,117 +781,128 @@ func VoucherScript(hostIp, deviceSerial string) (string, error) {
 	}
 	// TODO: modify the path for certificates
 	certPath = homeDir + "/.fdo-secrets/scripts/secrets"
-	url := "https://" + onrIp + ":" + onrPort + "/api/v1/certificate?alias=" + attestationType
-	resp, err := apiCalls("GET", url, authType, apiUser, onrApiPasswd, certPath, []byte{})
+	url := "https://" + onrIP + ":" + onrPort + "/api/v1/certificate?alias=" + attestationType
+	resp1, err := apiCalls("GET", url, apiUser, onrAPIPasswd, certPath, []byte{})
 	if err != nil {
-		return "", fmt.Errorf("Error1 Details:%v", err)
+		return "", fmt.Errorf("Error1 Details:%w", err)
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode == 200 {
-		file, err := os.Create(fmt.Sprintf("/home/%s/.fdo-secrets/scripts/owner_cert_%s.txt", os.Getenv("USER"), attestationType))
+	defer resp1.Body.Close()
+	if resp1.StatusCode == http.StatusOK {
+		file, err := os.Create(fmt.Sprintf("/home/%s/.fdo-secrets/scripts/owner_cert_%s.txt",
+			os.Getenv("USER"), attestationType))
 		if err != nil {
-			return "", fmt.Errorf("Error creating the file:%v", err)
+			return "", fmt.Errorf("error creating the file:%w", err)
 		}
 		defer file.Close()
-		_, err = io.Copy(file, resp.Body)
+		_, err = io.Copy(file, resp1.Body)
 		if err != nil {
-			return "", fmt.Errorf("Error writing the response to the file:%v", err)
+			return "", fmt.Errorf("error writing the response to the file:%w", err)
 		}
 		fmt.Printf("Success in downloading %s owner certificate to owner_cert_%s.txt\n", attestationType, attestationType)
-		ownerCertificate, err := os.ReadFile(fmt.Sprintf("/home/%s/.fdo-secrets/scripts/owner_cert_%s.txt", os.Getenv("USER"), attestationType))
+		ownerCertificate, err := os.ReadFile(fmt.Sprintf("/home/%s/.fdo-secrets/scripts/owner_cert_%s.txt",
+			os.Getenv("USER"), attestationType))
 		if err != nil {
-			return "", fmt.Errorf("Error reading the file:%v", err)
+			return "", fmt.Errorf("error reading the file:%w", err)
 		}
-		url = "https://" + mfgIp + ":" + mfgPort + "/api/v1/mfg/vouchers/" + serialNo
+		url = "https://" + mfgIP + ":" + mfgPort + "/api/v1/mfg/vouchers/" + serialNo
 		fmt.Println(url)
-		resp, err := apiCalls("POST", url, authType, apiUser, mfgApiPasswd, certPath, ownerCertificate)
+		resp2, err := apiCalls("POST", url, apiUser, mfgAPIPasswd, certPath, ownerCertificate)
 		if err != nil {
 			fmt.Println(err)
-			return "", fmt.Errorf("Error Details:%v ", err)
+			return "", fmt.Errorf("error Details:%w", err)
 		}
-		if resp.StatusCode == 200 {
+		defer resp2.Body.Close()
+		if resp2.StatusCode == http.StatusOK {
 			file1, err := os.Create(fmt.Sprintf("/home/%s/.fdo-secrets/scripts/%s_voucher.txt", os.Getenv("USER"), serialNo))
 			if err != nil {
-				return "", fmt.Errorf("Error creating the file:%v", err)
+				return "", fmt.Errorf("error creating the file:%w", err)
 			}
 			defer file1.Close()
-			_, err = io.Copy(file1, resp.Body)
+			_, err = io.Copy(file1, resp2.Body)
 			if err != nil {
-				return "", fmt.Errorf("Error writing the response to the file:%v", err)
+				return "", fmt.Errorf("error writing the response to the file:%w", err)
 			}
 			fmt.Printf("Success in downloading extended voucher for device with serial number:%s\n", serialNo)
-			extendVoucher, err := os.ReadFile(fmt.Sprintf("/home/%s/.fdo-secrets/scripts/%s_voucher.txt", os.Getenv("USER"), serialNo))
+			extendVoucher, err := os.ReadFile(fmt.Sprintf("/home/%s/.fdo-secrets/scripts/%s_voucher.txt",
+				os.Getenv("USER"), serialNo))
 			if err != nil {
-				return "", fmt.Errorf("Error reading the file:%v", err)
+				return "", fmt.Errorf("error reading the file:%w", err)
 			}
-			url = "https://" + onrIp + ":" + onrPort + "/api/v1/owner/vouchers/"
-			resp, err = apiCalls("POST", url, authType, apiUser, onrApiPasswd, certPath, extendVoucher)
+			url = "https://" + onrIP + ":" + onrPort + "/api/v1/owner/vouchers/"
+			resp3, err := apiCalls("POST", url, apiUser, onrAPIPasswd, certPath, extendVoucher)
 			if err != nil {
-				return "", fmt.Errorf("error details :%v", err)
+				return "", fmt.Errorf("error details :%w", err)
 			}
-			if resp.StatusCode == 200 {
+			defer resp3.Body.Close()
+			if resp3.StatusCode == http.StatusOK {
 				file2, err := os.Create(fmt.Sprintf("/home/%s/.fdo-secrets/scripts/%s_guid.txt", os.Getenv("USER"), serialNo))
 				if err != nil {
 					fmt.Println("Error creating the file:", err)
-					return "", fmt.Errorf("Error creating the file:%v", err)
+					return "", fmt.Errorf("error creating the file:%w", err)
 				}
-				_, err = io.Copy(file2, resp.Body)
+				_, err = io.Copy(file2, resp3.Body)
 				if err != nil {
-					return "", fmt.Errorf("Error writing the response to the file:%v", err)
+					return "", fmt.Errorf("error writing the response to the file:%w", err)
 				}
-				deviceGuid, err := os.ReadFile(fmt.Sprintf("/home/%s/.fdo-secrets/scripts/%s_guid.txt", os.Getenv("USER"), serialNo))
+				deviceGUID, err := os.ReadFile(fmt.Sprintf("/home/%s/.fdo-secrets/scripts/%s_guid.txt",
+					os.Getenv("USER"), serialNo))
 				if err != nil {
-					return "", fmt.Errorf("Error reading the file:%v", err)
+					return "", fmt.Errorf("error reading the file:%w", err)
 				}
-				url := fmt.Sprintf("https://%s:%s/api/v1/to0/%s", onrIp, onrPort, deviceGuid)
-				resp, err := apiCalls("GET", url, authType, apiUser, onrApiPasswd, certPath, deviceGuid)
+				url := fmt.Sprintf("https://%s:%s/api/v1/to0/%s", onrIP, onrPort, deviceGUID)
+				resp4, err := apiCalls("GET", url, apiUser, onrAPIPasswd, certPath, deviceGUID)
 				if err != nil {
-					return "", fmt.Errorf("Error Details:%v", err)
+					return "", fmt.Errorf("error Details:%w", err)
 				}
-				if resp.StatusCode == 200 {
-					fmt.Printf("Success in triggering TO0 for %s with GUID %s\n", serialNo, deviceGuid)
-					return string(deviceGuid), nil
-				} else {
-					return "", fmt.Errorf("Failure in triggering TO0 for %s  with GUID %s ", serialNo, deviceGuid)
+				defer resp4.Body.Close()
+				if resp4.StatusCode == http.StatusOK {
+					fmt.Printf("Success in triggering TO0 for %s with GUID %s\n", serialNo, deviceGUID)
+					return string(deviceGUID), nil
 				}
-			} else {
-				return "", fmt.Errorf("Failure in uploading voucher to owner for device with serial number %s with response code: %d", serialNo, resp.StatusCode)
+				return "", fmt.Errorf("failure in triggering TO0 for %s  with GUID %s ", serialNo, deviceGUID)
 			}
-		} else {
-			return "", fmt.Errorf("Failure in getting extended voucher for device with serial number %s with response code: %d", serialNo, resp.StatusCode)
+			return "", fmt.Errorf("failure in uploading voucher to owner for device with serial number"+
+				" %s with response code: %d", serialNo, resp3.StatusCode)
 		}
-	} else {
-		return "", fmt.Errorf("Failure in getting owner certificate for type %s with response code: %d\n", attestationType, resp.StatusCode)
+		return "", fmt.Errorf("failure in getting extended voucher for device with serial number %s with response code: %d",
+			serialNo, resp2.StatusCode)
 	}
+	return "", fmt.Errorf("failure in getting owner certificate for type %s with response code: %d",
+		attestationType, resp1.StatusCode)
 }
 
-func apiCalls(httpMethod, url, authType, apiUser, onrApiPasswd, certPath string, bodyData []byte) (*http.Response, error) {
-	var client *http.Client
+func apiCalls(httpMethod, url, apiUser, onrAPIPasswd, certPath string, bodyData []byte) (*http.Response, error) {
+	var httpClient *http.Client
+	authType := "mtls"
 	reader := bytes.NewReader(bodyData)
-	req, err := http.NewRequest(httpMethod, url, nil)
+	ctx := context.Background()
+	req, err := http.NewRequestWithContext(ctx, httpMethod, url, http.NoBody)
 	if err != nil {
 		return nil, err
 	}
 	if httpMethod == "POST" {
 		req.Body = io.NopCloser(reader)
 	}
-	if strings.ToLower(authType) == "digest" {
+	switch strings.ToLower(authType) {
+	case "digest":
 		log.Println("Digest authentication mode is being used")
-		req.SetBasicAuth(apiUser, onrApiPasswd)
-		client = &http.Client{}
-	} else if strings.ToLower(authType) == "mtls" {
+		req.SetBasicAuth(apiUser, onrAPIPasswd)
+		httpClient = &http.Client{}
+	case "mtls":
 		log.Println("Client Certificate authentication mode is being used")
-		caCert, err := os.ReadFile(certPath + "/ca-cert.pem")
+		var caCert []byte
+		caCert, err = os.ReadFile(certPath + "/ca-cert.pem")
 		if err != nil {
 			return nil, err
 		}
-		cert, err := tls.LoadX509KeyPair(certPath+"/api-user.pem", certPath+"/api-user.pem")
+		var cert tls.Certificate
+		cert, err = tls.LoadX509KeyPair(certPath+"/api-user.pem", certPath+"/api-user.pem")
 		pool := x509.NewCertPool()
 		pool.AppendCertsFromPEM(caCert)
 		if err != nil {
 			return nil, err
 		}
-		client = &http.Client{
+		httpClient = &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
 					RootCAs:            pool,
@@ -953,12 +911,12 @@ func apiCalls(httpMethod, url, authType, apiUser, onrApiPasswd, certPath string,
 				},
 			},
 		}
-	} else {
+	default:
 		log.Println("Provided Auth type is not valid, ")
 		os.Exit(1)
 	}
 	req.Header.Add("Content-Type", "text/plain")
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -969,20 +927,20 @@ func apiCalls(httpMethod, url, authType, apiUser, onrApiPasswd, certPath string,
 }
 
 func CalculateRootFS(imageType, diskDev string) string {
-	ROOTFS_PART_NO := "1"
+	rootFSPartNo := "1"
 
 	if imageType == "bkc" {
-		ROOTFS_PART_NO = "1"
+		rootFSPartNo = "1"
 	}
 
 	// Use regular expression to check if diskDev ends with a numeric digit
 	match, _ := regexp.MatchString(".*[0-9]$", diskDev)
 
 	if match {
-		return fmt.Sprintf("p%s", ROOTFS_PART_NO)
+		return fmt.Sprintf("p%s", rootFSPartNo)
 	}
 
-	return ROOTFS_PART_NO
+	return rootFSPartNo
 }
 
 func DeleteWorkflow(namespace, workflowName, resource string) error {
@@ -1003,10 +961,10 @@ func DeleteWorkflow(namespace, workflowName, resource string) error {
 		Version:  "v1alpha1",
 		Resource: resource,
 	}
-	err = dynamicClient.Resource(groupVersionResource).Namespace(namespace).Delete(context.TODO(), workflowName, metav1.DeleteOptions{})
-
+	err = dynamicClient.Resource(groupVersionResource).Namespace(namespace).Delete(context.TODO(),
+		workflowName, metav1.DeleteOptions{})
 	if err != nil {
-		return fmt.Errorf("Error deleting workflow: %v", err)
+		return fmt.Errorf("error deleting workflow: %w", err)
 	}
 
 	fmt.Printf("Workflow %s deleted successfully in namespace %s\n", workflowName, namespace)
@@ -1014,14 +972,13 @@ func DeleteWorkflow(namespace, workflowName, resource string) error {
 }
 
 func ToWorkflowCreation(deviceInfo utils.DeviceInfo) error {
-	//TODO: Remove hardcoding of the filename decide based on input
-	totemplatename, tempale_err := CreateTemplateWorkflow(deviceInfo, "/manifests/to/template_to.yaml")
-	if tempale_err != nil {
+	// TODO: Remove hardcoding of the filename decide based on input
+	totemplatename, tempaleErr := CreateTemplateWorkflow(deviceInfo, "/manifests/to/template_to.yaml")
+	if tempaleErr != nil {
 		// Handle the error, for example, log it or return an error response
-		return tempale_err
+		return tempaleErr
 	}
 	fmt.Printf("template workflow applied workflowname:%s", totemplatename)
-	// fmt.Println("Tempalte Workflow applied")
 	toworkflowname, err4 := CreateTemplateWorkflow(deviceInfo, "/manifests/to/workflow.yaml")
 	if err4 != nil {
 		// Handle the error, for example, log it or return an error response
@@ -1038,19 +995,19 @@ func ToWorkflowCreation(deviceInfo utils.DeviceInfo) error {
 
 	////////////////////////////////To workflow Cleanup//////////////////////////
 	//TODO:replace the namespace other info from Groupinfo struct
-	template_to_delete_err := DeleteWorkflow("maestro-iaas-system", totemplatename, "templates")
-	if template_to_delete_err != nil {
-		fmt.Printf("Error: %v\n", template_to_delete_err)
+	templateToDeleteErr := DeleteWorkflow("maestro-iaas-system", totemplatename, "templates")
+	if templateToDeleteErr != nil {
+		fmt.Printf("Error: %v\n", templateToDeleteErr)
 	}
-	workflow_to_delete_err := DeleteWorkflow("maestro-iaas-system", toworkflowname, "workflows")
-	if workflow_to_delete_err != nil {
-		fmt.Printf("Error: %v\n", workflow_to_delete_err)
+	workflowToDeleteErr := DeleteWorkflow("maestro-iaas-system", toworkflowname, "workflows")
+	if workflowToDeleteErr != nil {
+		fmt.Printf("Error: %v\n", workflowToDeleteErr)
 	}
 	return nil
 }
 
 func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string, artifactinfo utils.ArtifactData) error {
-	client, err := newK8SClient()
+	kubeClient, err := newK8SClient()
 	if err != nil {
 		return err
 	}
@@ -1058,58 +1015,60 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string, artifacti
 	var (
 		ctx      = context.Background()
 		ns       = "maestro-iaas-system"
-		id       = GenerateMacIdString(deviceInfo.HwMacID)
+		id       = GenerateMacIDString(deviceInfo.HwMacID)
 		tmplName string
 		tmplData []byte
 	)
+	const pollTimeDuration = 20 * time.Second
 
 	hw := tinkerbell.NewHardware("machine-"+id, ns, deviceInfo.HwMacID,
 		deviceInfo.DiskType, deviceInfo.HwIP, deviceInfo.Gateway)
 
-	if err := client.Create(ctx, hw); err != nil {
-		return err
+	if kubeCreateErr := kubeClient.Create(ctx, hw); kubeCreateErr != nil {
+		return kubeCreateErr
 	}
 
 	fmt.Printf("hardware workflow applied hardwarename:%s", hw.Name)
 	fmt.Printf("hardware workflow Image URL :%s", deviceInfo.LoadBalancerIP)
-	if imgtype == "prod_bkc" {
+	switch imgtype {
+	case utils.ProdBkc:
 		tmplName = fmt.Sprintf("bkc-%s-prod", id)
 		deviceInfo.ClientImgName = "jammy-server-cloudimg-amd64.raw.gz"
 		deviceInfo.ImType = "bkc"
 		deviceInfo.Rootfspart = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
-		deviceInfo.LoadBalancerIP = artifactinfo.BkcUrl
-		deviceInfo.RootfspartNo = artifactinfo.BkcBasePkgUrl
+		deviceInfo.LoadBalancerIP = artifactinfo.BkcURL
+		deviceInfo.RootfspartNo = artifactinfo.BkcBasePkgURL
 		tmplData, err = tinkerbell.NewTemplateDataProdBKC(tmplName, deviceInfo.Rootfspart, deviceInfo.RootfspartNo,
-			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.ClientImgName, deviceInfo.ProvisionerIp)
+			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.ClientImgName, deviceInfo.ProvisionerIP)
 		if err != nil {
 			return err
 		}
-	} else if imgtype == "prod_focal" {
+	case utils.ProdFocal:
 		tmplName = fmt.Sprintf("focal-%s-prod", id)
 		deviceInfo.ClientImgName = "focal-server-cloudimg-amd64.raw.gz"
 		deviceInfo.ImType = "focal"
 		deviceInfo.Rootfspart = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
 		tmplData, err = tinkerbell.NewTemplateDataProd(tmplName, deviceInfo.Rootfspart,
-			deviceInfo.RootfspartNo, deviceInfo.LoadBalancerIP, deviceInfo.ProvisionerIp)
+			deviceInfo.RootfspartNo, deviceInfo.LoadBalancerIP, deviceInfo.ProvisionerIP)
 		if err != nil {
 			return err
 		}
-	} else if imgtype == "prod_focal-ms" {
+	case utils.ProdFocalMs:
 		tmplName = fmt.Sprintf("focal-ms-%s-prod", id)
 		deviceInfo.ImType = "focal-ms"
 		deviceInfo.Rootfspart = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
 		tmplData, err = tinkerbell.NewTemplateDataProdMS(tmplName, deviceInfo.Rootfspart, deviceInfo.RootfspartNo,
-			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.HwMacID, deviceInfo.ProvisionerIp)
+			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.HwMacID, deviceInfo.ProvisionerIP)
 		if err != nil {
 			return err
 		}
-	} else {
+	default:
 		tmplName = fmt.Sprintf("focal-%s-prod", id)
 		deviceInfo.ClientImgName = "jammy-server-cloudimg-amd64.raw.gz"
 		deviceInfo.ImType = "jammy"
 		deviceInfo.Rootfspart = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
 		tmplData, err = tinkerbell.NewTemplateDataProd(tmplName, deviceInfo.Rootfspart,
-			deviceInfo.RootfspartNo, deviceInfo.LoadBalancerIP, deviceInfo.ProvisionerIp)
+			deviceInfo.RootfspartNo, deviceInfo.LoadBalancerIP, deviceInfo.ProvisionerIP)
 		if err != nil {
 			return err
 		}
@@ -1120,7 +1079,7 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string, artifacti
 	log.Printf("ROOTFS_PART_NO %s /// ROOTFS_PARTITION %s", deviceInfo.RootfspartNo, deviceInfo.Rootfspart)
 
 	tmpl := tinkerbell.NewTemplate(string(tmplData), tmplName, ns)
-	if err := client.Create(ctx, tmpl); err != nil {
+	if err := kubeClient.Create(ctx, tmpl); err != nil {
 		return err
 	}
 	fmt.Printf("template workflow applied workflowname:%s", tmpl.Name)
@@ -1128,21 +1087,21 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string, artifacti
 	wf := tinkerbell.NewWorkflow(fmt.Sprintf("workflow-%s-prod", id), ns, deviceInfo.HwMacID)
 	wf.Spec.HardwareRef = "machine-" + id
 	wf.Spec.TemplateRef = fmt.Sprintf("%s-%s-prod", deviceInfo.ImType, id)
-	if err := client.Create(ctx, wf); err != nil {
+	if err := kubeClient.Create(ctx, wf); err != nil {
 		return err
 	}
 	fmt.Printf("workflow applied workflowname:%s", wf.Name)
 
 	check := func() (bool, error) {
-		err := client.Get(ctx, types.NamespacedName{Namespace: wf.Namespace, Name: wf.Name}, wf)
+		err := kubeClient.Get(ctx, types.NamespacedName{Namespace: wf.Namespace, Name: wf.Name}, wf)
 		if err != nil {
 			return false, err
 		}
 		log.Printf("Workflow %s state: %s\n", wf.Name, wf.Status.State)
-		return strings.ToUpper(string(wf.Status.State)) == "STATE_SUCCESS", nil
+		return strings.EqualFold(string(wf.Status.State), "STATE_SUCCESS"), nil
 	}
 
-	if err := wait.PollUntilContextTimeout(ctx, 20*time.Second, time.Hour, false, func(_ context.Context) (bool, error) {
+	if err := wait.PollUntilContextTimeout(ctx, pollTimeDuration, time.Hour, false, func(_ context.Context) (bool, error) {
 		success, err := check()
 		if err != nil {
 			log.Printf("Error checking workflow status: %v", err)
@@ -1153,15 +1112,17 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string, artifacti
 		}
 		return success, nil
 	}); err != nil {
-		return fmt.Errorf("Workflow did not reach STATE_SUCCESS: %v", err)
+		return fmt.Errorf("workflow did not reach STATE_SUCCESS: %w", err)
 	}
 
 	////////////////////////////////To workflow Cleanup//////////////////////////
-	if err := client.Delete(ctx, tmpl); err != nil {
+	if err := kubeClient.Delete(ctx, tmpl); err != nil {
+		log.Printf("error while deleting template: %v", err)
 		return err
 	}
 
-	if err := client.Delete(ctx, wf); err != nil {
+	if err := kubeClient.Delete(ctx, wf); err != nil {
+		log.Printf("error while deleting workflow: %v", err)
 		return err
 	}
 
@@ -1169,67 +1130,68 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string, artifacti
 }
 
 func DiWorkflowCreation(deviceInfo utils.DeviceInfo) (string, error) {
-	client, err := newK8SClient()
+	kubeClient, err := newK8SClient()
 	if err != nil {
 		return "", err
 	}
 
 	ctx := context.Background()
 	ns := "maestro-iaas-system"
-	id := GenerateMacIdString(deviceInfo.HwMacID)
+	id := GenerateMacIDString(deviceInfo.HwMacID)
+	const pollTimeDuration = 20 * time.Second
 
 	hw := tinkerbell.NewHardware("machine-"+id, ns, deviceInfo.HwMacID,
 		deviceInfo.DiskType, deviceInfo.HwIP, deviceInfo.Gateway)
-	if err := client.Create(ctx, hw); err != nil {
-		return "", err
+	if kubeCreateErr := kubeClient.Create(ctx, hw); kubeCreateErr != nil {
+		return "", kubeCreateErr
 	}
 	fmt.Printf("hardware workflow applied hardwarename:%s", hw.Name)
 
 	tmplName := "fdodi-" + id
-	tmplData, err := tinkerbell.NewTemplateData(tmplName, deviceInfo.ProvisionerIp, "CLIENT-SDK-TPM",
+	tmplData, err := tinkerbell.NewTemplateData(tmplName, deviceInfo.ProvisionerIP, "CLIENT-SDK-TPM",
 		deviceInfo.DiskType, deviceInfo.HwSerialID)
 	if err != nil {
 		return "", err
 	}
 	tmpl := tinkerbell.NewTemplate(string(tmplData), tmplName, ns)
-	if err := client.Create(ctx, tmpl); err != nil {
-		return "", err
+	if kubeCreateErr := kubeClient.Create(ctx, tmpl); kubeCreateErr != nil {
+		return "", kubeCreateErr
 	}
 	fmt.Printf("template workflow applied workflowname:%s", tmpl.Name)
 
 	wf := tinkerbell.NewWorkflow("workflow-"+id, ns, deviceInfo.HwMacID)
 	wf.Spec.HardwareRef = hw.Name
 	wf.Spec.TemplateRef = tmpl.Name
-	if err := client.Create(ctx, wf); err != nil {
-		return "", err
+	if kubeCreateErr := kubeClient.Create(ctx, wf); kubeCreateErr != nil {
+		return "", kubeCreateErr
 	}
 	fmt.Printf("workflow applied workflowname:%s", wf.Name)
 
 	check := func() (bool, error) {
-		err := client.Get(ctx, types.NamespacedName{Namespace: wf.Namespace, Name: wf.Name}, wf)
-		if err != nil {
-			return false, err
+		clientErr := kubeClient.Get(ctx, types.NamespacedName{Namespace: wf.Namespace, Name: wf.Name}, wf)
+		if clientErr != nil {
+			return false, clientErr
 		}
 		log.Printf("Workflow %s state: %s\n", wf.Name, wf.Status.State)
-		return strings.ToUpper(string(wf.Status.State)) == "STATE_SUCCESS", nil
+		return strings.EqualFold(string(wf.Status.State), "STATE_SUCCESS"), nil
 	}
 
-	if err := wait.PollUntilContextTimeout(ctx, 20*time.Second, time.Hour, false, func(_ context.Context) (bool, error) {
-		success, err := check()
-		if err != nil {
-			log.Printf("Error checking workflow status: %v", err)
-			return false, err
+	if err = wait.PollUntilContextTimeout(ctx, pollTimeDuration, time.Hour, false, func(_ context.Context) (bool, error) {
+		success, statusErr := check()
+		if statusErr != nil {
+			log.Printf("Error checking workflow status: %v", statusErr)
+			return false, statusErr
 		}
 		if success {
 			log.Printf("Workflow %s has reached STATE_SUCCESS", wf.Name)
 		}
 		return success, nil
 	}); err != nil {
-		return "", fmt.Errorf("Workflow did not reach STATE_SUCCESS: %v", err)
+		return "", fmt.Errorf("workflow did not reach STATE_SUCCESS: %w", err)
 	}
 
 	/////////////////////Voucher extension//////////////////////
-	guid, err := VoucherScript(deviceInfo.ProvisionerIp, deviceInfo.HwSerialID)
+	guid, err := VoucherScript(deviceInfo.ProvisionerIP, deviceInfo.HwSerialID)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	} else {
@@ -1237,12 +1199,12 @@ func DiWorkflowCreation(deviceInfo utils.DeviceInfo) (string, error) {
 	}
 
 	////////////////////////////////Di workflow Cleanup//////////////////////////
-	if err := client.Delete(ctx, tmpl); err != nil {
-		return "", err
+	if kubeDeleteErr := kubeClient.Delete(ctx, tmpl); kubeDeleteErr != nil {
+		return "", kubeDeleteErr
 	}
 
-	if err := client.Delete(ctx, wf); err != nil {
-		return "", err
+	if kubeDeleteErr := kubeClient.Delete(ctx, wf); kubeDeleteErr != nil {
+		return "", kubeDeleteErr
 	}
 
 	return guid, nil

@@ -1,6 +1,6 @@
 /*
-   Copyright (C) 2023 Intel Corporation
-   SPDX-License-Identifier: Apache-2.0
+Copyright (C) 2023 Intel Corporation
+SPDX-License-Identifier: Apache-2.0
 */
 package onboarding
 
@@ -31,7 +31,9 @@ func (m *MockInventoryClient) List(ctx context.Context, filter *inv_v1.ResourceF
 	return args.Get(0).(*inv_v1.ListResourcesResponse), args.Error(1)
 }
 
-func (m *MockInventoryClient) ListAll(ctx context.Context, resource *inv_v1.Resource, mask *fieldmaskpb.FieldMask) ([]*inv_v1.Resource, error) {
+func (m *MockInventoryClient) ListAll(ctx context.Context, resource *inv_v1.Resource,
+	mask *fieldmaskpb.FieldMask,
+) ([]*inv_v1.Resource, error) {
 	args := m.Called(ctx, resource, mask)
 	return args.Get(0).([]*inv_v1.Resource), args.Error(1)
 }
@@ -41,7 +43,9 @@ func (m *MockInventoryClient) Find(ctx context.Context, filter *inv_v1.ResourceF
 	return args.Get(0).(*inv_v1.FindResourcesResponse), args.Error(1)
 }
 
-func (m *MockInventoryClient) FindAll(ctx context.Context, resource *inv_v1.Resource, mask *fieldmaskpb.FieldMask) ([]string, error) {
+func (m *MockInventoryClient) FindAll(ctx context.Context, resource *inv_v1.Resource,
+	mask *fieldmaskpb.FieldMask,
+) ([]string, error) {
 	args := m.Called(ctx, resource, mask)
 	return args.Get(0).([]string), args.Error(1)
 }
@@ -56,7 +60,9 @@ func (m *MockInventoryClient) Create(ctx context.Context, resource *inv_v1.Resou
 	return args.Get(0).(*inv_v1.CreateResourceResponse), args.Error(1)
 }
 
-func (m *MockInventoryClient) Update(ctx context.Context, id string, mask *fieldmaskpb.FieldMask, resource *inv_v1.Resource) (*inv_v1.UpdateResourceResponse, error) {
+func (m *MockInventoryClient) Update(ctx context.Context, id string,
+	mask *fieldmaskpb.FieldMask, resource *inv_v1.Resource,
+) (*inv_v1.UpdateResourceResponse, error) {
 	args := m.Called(ctx, id, mask, resource)
 	return args.Get(0).(*inv_v1.UpdateResourceResponse), args.Error(1)
 }
@@ -79,8 +85,11 @@ type MockOnboardingClient struct {
 	mock.Mock
 }
 
-func (m *MockOnboardingClient) ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo, ImgDownldLock, focalImgDdLock, jammyImgDdLock, focalMsImgDdLock *sync.Mutex) error {
-	args := m.Called(artifactinfo, deviceInfo, ImgDownldLock, focalImgDdLock, jammyImgDdLock, focalMsImgDdLock)
+func (m *MockOnboardingClient) ImageDownload(artifactinfo utils.ArtifactData,
+	deviceInfo utils.DeviceInfo, imgDownldLock, focalImgDdLock, jammyImgDdLock,
+	focalMsImgDdLock *sync.Mutex,
+) error {
+	args := m.Called(artifactinfo, deviceInfo, imgDownldLock, focalImgDdLock, jammyImgDdLock, focalMsImgDdLock)
 	return args.Error(0)
 }
 
@@ -98,8 +107,8 @@ type MockInvClient struct {
 	mock.Mock
 }
 
-func (m *MockInvClient) UpdateHostStatusByHostGuid(ctx context.Context, hostGuid string, status computev1.HostStatus) error {
-	args := m.Called(ctx, hostGuid, status)
+func (m *MockInvClient) UpdateHostStatusByHostGUID(ctx context.Context, hostGUID string, status computev1.HostStatus) error {
+	args := m.Called(ctx, hostGUID, status)
 	return args.Error(0)
 }
 
@@ -117,17 +126,17 @@ func (m *MockDeviceInfo) HwSerialID() string {
 	return args.String(0)
 }
 
-func (m *MockDeviceInfo) ProvisionerIp() string {
+func (m *MockDeviceInfo) ProvisionerIP() string {
 	args := m.Called()
 	return args.String(0)
 }
 
-func (m *MockDeviceInfo) Guid() string {
+func (m *MockDeviceInfo) GUID() string {
 	args := m.Called()
 	return args.String(0)
 }
 
-func (m *MockDeviceInfo) SetGuid(guid string) {
+func (m *MockDeviceInfo) SetGUID(guid string) {
 	m.Called(guid)
 }
 
@@ -161,8 +170,9 @@ type MockDkamServiceClient struct {
 	mock.Mock
 }
 
-func (m *MockDkamServiceClient) GetArtifacts(ctx context.Context, in *dkam.GetArtifactsRequest, opts ...grpc.CallOption) (*dkam.GetArtifactsResponse, error) {
+func (m *MockDkamServiceClient) GetArtifacts(ctx context.Context, in *dkam.GetArtifactsRequest,
+	opts ...grpc.CallOption,
+) (*dkam.GetArtifactsResponse, error) {
 	args := m.Called(ctx, in, opts)
 	return args.Get(0).(*dkam.GetArtifactsResponse), args.Error(1)
 }
-

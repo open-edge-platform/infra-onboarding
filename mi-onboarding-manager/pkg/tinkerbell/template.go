@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewTemplate(tpData string, name, ns string) *tink.Template {
+func NewTemplate(tpData, name, ns string) *tink.Template {
 	tp := &tink.Template{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Template",

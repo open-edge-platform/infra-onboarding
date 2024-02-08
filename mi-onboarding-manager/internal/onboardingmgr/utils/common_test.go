@@ -79,8 +79,6 @@ func TestMakeHTTPGETRequest(t *testing.T) {
 		caCertPath string
 		certPath   string
 	}
-	// caCertPath := "/home/" + os.Getenv("USER") + "/.fdo-secrets/scripts/secrets/ca-cert.pem"
-	// certPath := "/home/" + os.Getenv("USER") + "/.fdo-secrets/scripts/secrets/api-user.pem"
 	tests := []struct {
 		name    string
 		args    args
@@ -154,7 +152,7 @@ func TestParseAndUpdateUrl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ParseAndUpdateUrl(tt.args.onboardingRequest)
+			ParseAndUpdateURL(tt.args.onboardingRequest)
 		})
 	}
 }
@@ -166,9 +164,9 @@ func TestClearFileAndWriteHeader(t *testing.T) {
 	wd, _ := os.Getwd()
 	fmt.Println(wd)
 	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
+		name         string
+		args         args
+		wantErr      bool
 		expectedText string
 	}{
 		{
@@ -187,4 +185,3 @@ func TestClearFileAndWriteHeader(t *testing.T) {
 		})
 	}
 }
-

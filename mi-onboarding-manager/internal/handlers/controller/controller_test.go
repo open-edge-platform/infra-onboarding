@@ -294,11 +294,7 @@ func Test_osEventFilter(t *testing.T) {
 
 func TestOnboardingController_filterEvent(t *testing.T) {
 	type fields struct {
-		invClient   *invclient.OnboardingInventoryClient
-		filters     map[inv_v1.ResourceKind]Filter
-		controllers map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ResourceID]
-		wg          *sync.WaitGroup
-		stop        chan bool
+		filters map[inv_v1.ResourceKind]Filter
 	}
 	type args struct {
 		event *inv_v1.SubscribeEventsResponse
@@ -382,4 +378,3 @@ func TestOnboardingController_filterEvent(t *testing.T) {
 		})
 	}
 }
-

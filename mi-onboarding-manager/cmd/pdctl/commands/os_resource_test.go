@@ -49,7 +49,6 @@ func TestOsCmds_Delete(t *testing.T) {
 	RootCmd.SetArgs([]string{"delete", "--addr=localhost:50056", "--insecure", "--resource-id=123"})
 	err := RootCmd.Execute()
 	assert.Error(t, err)
-
 }
 
 func TestOsCmds_Update(t *testing.T) {
@@ -61,4 +60,3 @@ func TestOsCmds_Update(t *testing.T) {
 	err := RootCmd.Execute()
 	assert.Error(t, err)
 }
-

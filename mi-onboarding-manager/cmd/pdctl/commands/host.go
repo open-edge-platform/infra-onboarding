@@ -1,14 +1,14 @@
 /*
- * SPDX-FileCopyrightText: (C) 2023 Intel Corporation
- * SPDX-License-Identifier: LicenseRef-Intel
- */
+SPDX-FileCopyrightText: (C) 2023 Intel Corporation
+SPDX-License-Identifier: LicenseRef-Intel
+*/
 package commands
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"google.golang.org/grpc"
 
@@ -19,13 +19,6 @@ import (
 	"github.com/spf13/pflag"
 )
 
-type FWinstance struct {
-	BIOSVendor      string `yaml:"BIOSVendor" json:"BIOSVendor"`
-	BIOSDate        string `json:"BIOSDate" yaml:"BIOSDate"`
-	BIOSRelease     string `json:"BIOSRelease" yaml:"BIOSRelease"`
-	BIOSVersion     string `yaml:"BIOSVersion" json:"BIOSVersion"`
-	BMCManufacturer string `yaml:"BMCManufacturer" json:"BMCManufacturer"`
-}
 type OSinstance struct {
 	Machine      string `json:"Machine"`
 	SysName      string `json:"SysName"`
@@ -53,7 +46,7 @@ type Hbom struct {
 	RAMtotalMemory  int           `json:"RAMtotalMemory"`
 	Nwdevices       []NwInterface `json:"NwDevices"`
 	PciDevices      []string      `json:"PciDevices"`
-	//CpuCoreInfo     []cpu.CPUInfo `json:"CpuCoreInfo"` // TODO: CPU info IS AVAILABLE in inventory agent.
+	// CpuCoreInfo     []cpu.CPUInfo `json:"CpuCoreInfo"` // TODO: CPU info IS AVAILABLE in inventory agent.
 }
 
 func HostResourceCmd() *cobra.Command {
@@ -82,26 +75,26 @@ func HostResourceCmd() *cobra.Command {
 	hostCmd.MarkFlagsMutuallyExclusive("insecure", "cacert")
 
 	var (
-		hwID              string
-		platformType      string
-		fwArtifactID      string
-		osArtifactID      string
-		appArtifactID     string
-		platArtifactID    string
-		deviceType        string
-		deviceInfoAgent   string
-		deviceStatus      string
-		updateStatus      string
-		updateAvailable   string
-		nodeId            string
-		inputFile         string
-		mac               string
-		sutip             string
-		serialnum         string
-		uuid              string
-		bmcip             string
-		bmcintfceval      *bool
-		host_nic_dev_name string
+		hwID            string
+		platformType    string
+		fwArtifactID    string
+		osArtifactID    string
+		appArtifactID   string
+		platArtifactID  string
+		deviceType      string
+		deviceInfoAgent string
+		deviceStatus    string
+		updateStatus    string
+		updateAvailable string
+		nodeID          string
+		inputFile       string
+		mac             string
+		sutip           string
+		serialnum       string
+		uuid            string
+		bmcip           string
+		bmcintfceval    *bool
+		hostNicDevName  string
 	)
 
 	// Create a new FlagSet for addNodeCmd flags
@@ -109,14 +102,15 @@ func HostResourceCmd() *cobra.Command {
 
 	// Define addNodeCmd flags
 	nodeFlags.StringVar(&hwID, "hw-id", "", "HW ID (required)")
-	nodeFlags.StringVar(&nodeId, "host-id", "", "Host ID (required)")
+	nodeFlags.StringVar(&nodeID, "host-id", "", "Host ID (required)")
 	nodeFlags.StringVar(&platformType, "platform-type", "", "Platform details of the Host (required)")
 	nodeFlags.StringVar(&fwArtifactID, "fw-instance-id", "", "Node FW Instance ID")
 	nodeFlags.StringVar(&osArtifactID, "os-instance-id", "", "Node OS Instance ID")
 	nodeFlags.StringVar(&appArtifactID, "app-instance-id", "", "Node App Instance ID")
 	nodeFlags.StringVar(&platArtifactID, "plat-instance-id", "", "Node Platform Instance ID")
 	nodeFlags.StringVar(&deviceType, "device-type", "", "Host type (physical, virtual, or container)")
-	nodeFlags.StringVar(&deviceInfoAgent, "device-info-agent", "", "Inventory Agent update SBOM & HBOM details during bootup")
+	nodeFlags.StringVar(&deviceInfoAgent, "device-info-agent", "",
+		"Inventory Agent update SBOM & HBOM details during bootup")
 	nodeFlags.StringVar(&deviceStatus, "device-status", "", "Device status (READY, UNCLAIMED, etc.)")
 	nodeFlags.StringVar(&updateStatus, "update-status", "", "Update status from Update Manager")
 	nodeFlags.StringVar(&updateAvailable, "update-available", "", "Update availability status from Update Manager")
@@ -127,7 +121,7 @@ func HostResourceCmd() *cobra.Command {
 	nodeFlags.StringVar(&uuid, "uuid", "", "uuid of the node")
 	nodeFlags.StringVar(&bmcip, "bmc-ip", "", "bmc ip")
 	bmcintfceval = nodeFlags.Bool("bmc-interface", true, "set bmc interface true/false")
-	nodeFlags.StringVar(&host_nic_dev_name, "host-nic-dev-name", "", "host nic dev name")
+	nodeFlags.StringVar(&hostNicDevName, "host-nic-dev-name", "", "host nic dev name")
 
 	addNodeCmd := &cobra.Command{
 		Use:   "add",
@@ -142,7 +136,7 @@ func HostResourceCmd() *cobra.Command {
 			var nodes []*pbinv.NodeData
 
 			if inputFile != "" {
-				data, err := ioutil.ReadFile(inputFile)
+				data, err := os.ReadFile(inputFile)
 				if err != nil {
 					return err
 				}
@@ -151,7 +145,6 @@ func HostResourceCmd() *cobra.Command {
 					fmt.Println("Error unmarshaling YAML:", err)
 					return err
 				}
-
 			} else {
 				hwdat := &pbinv.HwData{
 					MacId:          mac,
@@ -160,7 +153,7 @@ func HostResourceCmd() *cobra.Command {
 					Uuid:           uuid,
 					BmcIp:          bmcip,
 					BmcInterface:   *bmcintfceval,
-					HostNicDevName: host_nic_dev_name,
+					HostNicDevName: hostNicDevName,
 				}
 				var hwdata []*pbinv.HwData
 				hwdata = append(hwdata, hwdat)
@@ -177,7 +170,7 @@ func HostResourceCmd() *cobra.Command {
 					DeviceStatus:    deviceStatus,
 					UpdateStatus:    updateStatus,
 					UpdateAvailable: updateAvailable,
-					NodeId:          nodeId,
+					NodeId:          nodeID,
 					Hwdata:          hwdata,
 				}
 
@@ -214,7 +207,7 @@ func HostResourceCmd() *cobra.Command {
 				Uuid:           uuid,
 				BmcIp:          bmcip,
 				BmcInterface:   *bmcintfceval,
-				HostNicDevName: host_nic_dev_name,
+				HostNicDevName: hostNicDevName,
 			}
 			var hwdata []*pbinv.HwData
 			hwdata = append(hwdata, hwdat)
@@ -231,12 +224,11 @@ func HostResourceCmd() *cobra.Command {
 				DeviceStatus:    deviceStatus,
 				UpdateStatus:    updateStatus,
 				UpdateAvailable: updateAvailable,
-				NodeId:          nodeId,
+				NodeId:          nodeID,
 				Hwdata:          hwdata,
 			}
 
 			resp, err := getNodes(cmd.Context(), cc, nodeData)
-
 			if err != nil {
 				return err
 			}
@@ -265,7 +257,7 @@ func HostResourceCmd() *cobra.Command {
 				Uuid:           uuid,
 				BmcIp:          bmcip,
 				BmcInterface:   *bmcintfceval,
-				HostNicDevName: host_nic_dev_name,
+				HostNicDevName: hostNicDevName,
 			}
 			var hwdata []*pbinv.HwData
 			hwdata = append(hwdata, hwdat)
@@ -282,7 +274,7 @@ func HostResourceCmd() *cobra.Command {
 				DeviceStatus:    deviceStatus,
 				UpdateStatus:    updateStatus,
 				UpdateAvailable: updateAvailable,
-				NodeId:          nodeId,
+				NodeId:          nodeID,
 				Hwdata:          hwdata,
 			}
 
@@ -315,7 +307,7 @@ func HostResourceCmd() *cobra.Command {
 				Uuid:           uuid,
 				BmcIp:          bmcip,
 				BmcInterface:   *bmcintfceval,
-				HostNicDevName: host_nic_dev_name,
+				HostNicDevName: hostNicDevName,
 			}
 			var hwdata []*pbinv.HwData
 			hwdata = append(hwdata, hwdat)
@@ -377,7 +369,8 @@ type nodeData struct {
 func addNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*nodeData, error) {
 	fmt.Println("PDCTL entry point - Add Host...")
 
-	resp, err := pbinv.NewNodeArtifactServiceNBClient(cc).CreateNodes(ctx, &pbinv.NodeRequest{Payload: []*pbinv.NodeData{node}})
+	resp, err := pbinv.NewNodeArtifactServiceNBClient(cc).CreateNodes(ctx,
+		&pbinv.NodeRequest{Payload: []*pbinv.NodeData{node}})
 	if err != nil {
 		return nil, err
 	}
@@ -390,7 +383,8 @@ func addNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*
 func getNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*nodeData, error) {
 	fmt.Println("PDCTL entry point - Get Host...")
 
-	resp, err := pbinv.NewNodeArtifactServiceNBClient(cc).GetNodes(ctx, &pbinv.NodeRequest{Payload: []*pbinv.NodeData{node}})
+	resp, err := pbinv.NewNodeArtifactServiceNBClient(cc).GetNodes(ctx,
+		&pbinv.NodeRequest{Payload: []*pbinv.NodeData{node}})
 	if err != nil {
 		return nil, err
 	}
@@ -403,7 +397,8 @@ func getNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*
 func updateNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*nodeData, error) {
 	fmt.Println("PDCTL entry point - Update Host by ID - INV ...")
 
-	resp, err := pbinv.NewNodeArtifactServiceNBClient(cc).UpdateNodes(ctx, &pbinv.NodeRequest{Payload: []*pbinv.NodeData{node}})
+	resp, err := pbinv.NewNodeArtifactServiceNBClient(cc).UpdateNodes(ctx,
+		&pbinv.NodeRequest{Payload: []*pbinv.NodeData{node}})
 	if err != nil {
 		return nil, err
 	}
@@ -416,7 +411,8 @@ func updateNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData)
 func deleteNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*nodeData, error) {
 	fmt.Println("PDCTL entry point - Delete host...")
 
-	resp, err := pbinv.NewNodeArtifactServiceNBClient(cc).DeleteNodes(ctx, &pbinv.NodeRequest{Payload: []*pbinv.NodeData{node}})
+	resp, err := pbinv.NewNodeArtifactServiceNBClient(cc).DeleteNodes(ctx,
+		&pbinv.NodeRequest{Payload: []*pbinv.NodeData{node}})
 	if err != nil {
 		return nil, err
 	}

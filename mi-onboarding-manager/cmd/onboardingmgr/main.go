@@ -48,9 +48,7 @@ const (
 	DefaultTimeout = 3 * time.Second
 )
 
-var (
-	manager *inventory.InventoryManager
-)
+var manager *inventory.InventoryManager
 
 type OnboardingEB struct {
 	pb.UnimplementedOnBoardingEBServer
@@ -66,7 +64,8 @@ var (
 
 func printSummary() {
 	zlog.Info().Msgf("Starting IFM Onboarding Manager")
-	zlog.MiSec().Info().Msgf("RepoURL: %s, Version: %s, Revision: %s, BuildDate: %s\n", RepoURL, Version, Revision, BuildDate)
+	zlog.MiSec().Info().Msgf("RepoURL: %s, Version: %s, Revision: %s, BuildDate: %s\n",
+		RepoURL, Version, Revision, BuildDate)
 }
 
 func setupTracing(traceURL string) func(context.Context) error {
@@ -121,6 +120,7 @@ func main() {
 	config.Load()
 	conf := config.GetConfig()
 	manager = inventory.NewInventoryManager(conf)
+	zlog.Info().Msgf("Inventory manager %v", manager)
 
 	invClient, err := invclient.NewOnboardingInventoryClientWithOptions(
 		invclient.WithInventoryAddress(*inventoryAddress),

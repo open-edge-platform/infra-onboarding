@@ -5,7 +5,7 @@ package tinkerbell
 
 import "fmt"
 
-func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIp string) ([]byte, error) {
+func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIP string) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -31,7 +31,7 @@ func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIp string) ([]b
 				},
 				{
 					Name:    "copy-secrets",
-					Image:   provIp + ":5015/cred_copy:latest",
+					Image:   provIP + ":5015/cred_copy:latest",
 					Timeout: 90,
 					Environment: map[string]string{
 						"BLOCK_DEVICE": "{{ index .Hardware.Disks 0 }}" + rootPart,
@@ -89,7 +89,8 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "ssh-keygen -A; systemctl enable ssh.service; sed -i 's/^PasswordAuthentication no/#PasswordAuthentication yes/g' /etc/ssh/sshd_config",
+						"CMD_LINE": "ssh-keygen -A; systemctl enable ssh.service; " +
+							"sed -i 's/^PasswordAuthentication no/#PasswordAuthentication yes/g' /etc/ssh/sshd_config",
 					},
 				},
 				{
@@ -173,14 +174,15 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 					Volumes: []string{
 						"/worker:/worker",
 					},
-				}},
+				},
+			},
 		}},
 	}
 
 	return marshalWorkflow(&wf)
 }
 
-func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gateway, clientImg, provIp string) ([]byte, error) {
+func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gateway, _, _ string) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -244,7 +246,8 @@ touch /usr/local/bin/.grow_part_done`, rootPart, rootPart),
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "ssh-keygen -A;sed -i 's/^PasswordAuthentication no/#PasswordAuthentication yes/g' /etc/ssh/sshd_config",
+						"CMD_LINE": "ssh-keygen -A;sed -i 's/^PasswordAuthentication " +
+							"no/#PasswordAuthentication yes/g' /etc/ssh/sshd_config",
 					},
 				},
 
@@ -258,7 +261,8 @@ touch /usr/local/bin/.grow_part_done`, rootPart, rootPart),
 						"CHROOT":              "y",
 						"SCRIPT_URL":          rootPartNo,
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            fmt.Sprintf("mkdir -p /home/user/Setup;chown user:user /home/user/Setup;wget -P /home/user/Setup %s; chmod 755 /home/user/Setup/installer.sh", rootPartNo),
+						"CMD_LINE": fmt.Sprintf("mkdir -p /home/user/Setup;chown user:user /home/user/Setup;"+
+							"wget -P /home/user/Setup %s; chmod 755 /home/user/Setup/installer.sh", rootPartNo),
 					},
 				},
 				{
@@ -375,14 +379,15 @@ touch /usr/local/bin/.grow_part_done`, rootPart, rootPart),
 					Volumes: []string{
 						"/worker:/worker",
 					},
-				}},
+				},
+			},
 		}},
 	}
 
 	return marshalWorkflow(&wf)
 }
 
-func NewTemplateDataProdMS(name, rootPart, rootPartNo, hostIP, clientIP, gateway, mac, provIp string) ([]byte, error) {
+func NewTemplateDataProdMS(name, rootPart, _, hostIP, clientIP, gateway, mac, provIP string) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -408,7 +413,7 @@ func NewTemplateDataProdMS(name, rootPart, rootPartNo, hostIP, clientIP, gateway
 				},
 				{
 					Name:    "copy-secrets",
-					Image:   provIp + ":5015/cred_copy:latest",
+					Image:   provIP + ":5015/cred_copy:latest",
 					Timeout: 90,
 					Environment: map[string]string{
 						"BLOCK_DEVICE": "{{ index .Hardware.Disks 0 }}" + rootPart,
@@ -460,7 +465,8 @@ touch /usr/local/bin/.grow_part_done`, rootPart, rootPart),
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "mkdir /etc/systemd/system/docker.service.d/; touch /etc/systemd/system/docker.service.d/proxy.conf;touch /etc/apt/apt.conf",
+						"CMD_LINE": "mkdir /etc/systemd/system/docker.service.d/;" +
+							" touch /etc/systemd/system/docker.service.d/proxy.conf;touch /etc/apt/apt.conf",
 					},
 				},
 				{
@@ -545,7 +551,8 @@ done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )`,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "ssh-keygen -A; systemctl enable ssh.service; sed -i 's/^PasswordAuthentication no/#PasswordAuthentication yes/g' /etc/ssh/sshd_config",
+						"CMD_LINE": "ssh-keygen -A; systemctl enable ssh.service;" +
+							" sed -i 's/^PasswordAuthentication no/#PasswordAuthentication yes/g' /etc/ssh/sshd_config",
 					},
 				},
 				{
@@ -586,7 +593,10 @@ done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )`,
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
 						"KER_HEADER_URL":      fmt.Sprintf("http://%s:8080/linux-headers-5.15.96-lts.deb", hostIP),
 						"KER_IMG_URL":         fmt.Sprintf("http://%s:8080/linux-image-5.15.96-lts.deb", hostIP),
-						"CMD_LINE":            fmt.Sprintf("mkdir -p /home/user/Setup;chown user:user /home/user/Setup;wget -P /home/user/Setup http://%s:8080/linux-headers-5.15.96-lts.deb; wget -P /home/user/Setup http://%s:8080/linux-image-5.15.96-lts.deb", hostIP, hostIP),
+						"CMD_LINE": fmt.Sprintf("mkdir -p /home/user/Setup;chown user:user /home/user/Setup;"+
+							"wget -P /home/user/Setup http://%s:8080/linux-headers-5.15.96-lts.deb;"+
+							" wget -P /home/user/Setup http://%s:8080/linux-image-5.15.96-lts.deb",
+							hostIP, hostIP),
 					},
 				},
 				{
@@ -613,7 +623,12 @@ done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )`,
 						"AZR_ENV":             fmt.Sprintf("http://%s:8080/azure-credentials.env_%s", hostIP, mac),
 						"AZR_LOG_FILE":        fmt.Sprintf("http://%s:8080/log.sh", hostIP),
 						"AZR_INSTLR_FILE":     fmt.Sprintf("http://%s:8080/azure_dps_installer.sh", hostIP),
-						"CMD_LINE":            fmt.Sprintf("mkdir -p /home/user/Setup/.creds;wget -P /home/user/Setup/.creds http://%s:8080/azure-credentials.env_%s; wget -P /home/user/Setup http://%s:8080/log.sh;  wget -P /home/user/Setup http://%s:8080/azure_dps_installer.sh;chmod 755  /home/user/Setup/*; cd /home/user/Setup/.creds; mv azure-credentials.env_%s azure-credentials.env", hostIP, mac, hostIP, hostIP, mac),
+						"CMD_LINE": fmt.Sprintf("mkdir -p /home/user/Setup/.creds;"+
+							"wget -P /home/user/Setup/.creds http://%s:8080/azure-credentials.env_%s;"+
+							" wget -P /home/user/Setup http://%s:8080/log.sh;"+
+							"  wget -P /home/user/Setup http://%s:8080/azure_dps_installer.sh;chmod 755  /home/user/Setup/*;"+
+							" cd /home/user/Setup/.creds; mv azure-credentials.env_%s azure-credentials.env",
+							hostIP, mac, hostIP, hostIP, mac),
 					},
 				},
 				{

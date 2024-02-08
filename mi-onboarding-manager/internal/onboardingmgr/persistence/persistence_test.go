@@ -227,4 +227,3 @@ func TestUnmarshalOnboardingParams(t *testing.T) {
 		})
 	}
 }
-

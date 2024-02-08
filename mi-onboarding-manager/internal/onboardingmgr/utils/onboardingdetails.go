@@ -16,26 +16,32 @@ type (
 		RootfspartNo      string
 		Rootfspart        string
 		ClientImgName     string
-		ProvisionerIp     string
+		ProvisionerIP     string
 		ImType            string
-		DpsScopeId        string
-		DpsRegistrationId string
+		DpsScopeID        string
+		DpsRegistrationID string
 		DpsSymmKey        string
-		Guid              string
+		GUID              string
 	}
 
 	ArtifactData struct {
-		BkcUrl        string
-		BkcBasePkgUrl string
+		BkcURL        string
+		BkcBasePkgURL string
 	}
 	Groupinfo struct {
-		Group     string
-		Version   string
-		namespace string
+		Group   string
+		Version string
 	}
 	CustomerInfo struct {
-		DpsScopeId        string
-		DpsRegistrationId string
+		DpsScopeID        string
+		DpsRegistrationID string
 		DpsSymmKey        string
 	}
+)
+
+const (
+	ProdBkc     = "prod_bkc"
+	ProdJammy   = "prod_jammy"
+	ProdFocal   = "prod_focal"
+	ProdFocalMs = "prod_focal-ms"
 )

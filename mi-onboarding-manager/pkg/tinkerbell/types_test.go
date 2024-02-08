@@ -60,7 +60,6 @@ func TestMarshal(t *testing.T) {
 	if !assert.EqualValues(t, wfExpected, wfGot) {
 		t.Errorf(`Got unexpected result: got "%v" wanted "%v"`, wfGot, wfExpected)
 	}
-
 }
 
 func TestNewTemplateData(t *testing.T) {
@@ -105,4 +104,3 @@ func TestNewTemplateData(t *testing.T) {
 		})
 	}
 }
-

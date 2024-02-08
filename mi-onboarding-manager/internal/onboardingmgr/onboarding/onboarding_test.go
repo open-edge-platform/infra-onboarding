@@ -7,7 +7,6 @@ package onboarding
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
@@ -58,7 +57,7 @@ func TestInitOnboarding(t *testing.T) {
 }
 
 func TestDeviceOnboardingManagerZt(t *testing.T) {
-	tmpFile, err := ioutil.TempFile("", "sut_onboarding_list.txt")
+	tmpFile, err := os.CreateTemp("", "sut_onboarding_list.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,142 +85,12 @@ func TestDeviceOnboardingManagerZt(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := DeviceOnboardingManagerZt(tt.args.deviceInfo, tt.args.kubeconfigPath, tt.args.sutlabel); (err != nil) != tt.wantErr {
+			if err := DeviceOnboardingManagerZt(tt.args.deviceInfo, tt.args.sutlabel); (err != nil) != tt.wantErr {
 				t.Errorf("DeviceOnboardingManagerZt() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
-
-// func TestDeviceOnboardingManagerNzt(t *testing.T) {
-// 	mockOnboardingClient := new(MockOnboardingClient)
-// 	mockOnboardingClient.On("ImageDownload", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-// 	mockOnboardingClient.On("DiWorkflowCreation", mock.Anything).Return("mocked-guid", nil)
-// 	mockOnboardingClient.On("ProdWorkflowCreation", mock.Anything, mock.Anything).Return(nil)
-
-// 	type args struct {
-// 		deviceDetails    utils.DeviceInfo
-// 		artifactDetails  utils.ArtifactData
-// 		nodeExistCount   *int
-// 		totalNodes       int
-// 		ErrCh            chan error
-// 		ImgDownldLock    *sync.Mutex
-// 		focalImgDdLock   *sync.Mutex
-// 		jammyImgDdLock   *sync.Mutex
-// 		focalMsImgDdLock *sync.Mutex
-// 	}
-// 	// inputargs := args{
-// 	// 	deviceDetails:    utils.DeviceInfo{},
-// 	// 	artifactDetails:  utils.ArtifactData{},
-// 	// 	nodeExistCount:   new(int),
-// 	// 	totalNodes:       1,
-// 	// 	ErrCh:            make(chan error),
-// 	// 	ImgDownldLock:    new(sync.Mutex),
-// 	// 	focalImgDdLock:   new(sync.Mutex),
-// 	// 	jammyImgDdLock:   new(sync.Mutex),
-// 	// 	focalMsImgDdLock: new(sync.Mutex),
-// 	// }
-// 	inputargs1 := args{
-// 		deviceDetails: utils.DeviceInfo{
-// 			ImType: "prod_focal-ms",
-// 			// HwIP: "000.00.00.00",
-// 		},
-// 		artifactDetails:  utils.ArtifactData{},
-// 		nodeExistCount:   new(int),
-// 		totalNodes:       1,
-// 		ErrCh:            make(chan error),
-// 		ImgDownldLock:    new(sync.Mutex),
-// 		focalImgDdLock:   new(sync.Mutex),
-// 		jammyImgDdLock:   new(sync.Mutex),
-// 		focalMsImgDdLock: new(sync.Mutex),
-// 	}
-// 	// enable := true
-// 	// enableImgDownload = &enable
-// 	// enableDI = &enable
-// 	tests := []struct {
-// 		name string
-// 		args args
-// 	}{
-// 		// {
-// 		// 	name: "Test Case 1",
-// 		// 	args: inputargs,
-// 		// },
-// 		{
-// 			name: "Test Case 2",
-// 			args: inputargs1,
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			DeviceOnboardingManagerNzt(tt.args.deviceDetails, tt.args.artifactDetails, tt.args.nodeExistCount, tt.args.totalNodes, tt.args.ErrCh, tt.args.ImgDownldLock, tt.args.focalImgDdLock, tt.args.jammyImgDdLock, tt.args.focalMsImgDdLock)
-// 		})
-// 	}
-// }
-
-// func TestConvertInstanceForOnboarding(t *testing.T) {
-// 	type args struct {
-// 		instances   []*computev1.InstanceResource
-// 		osinstances []*osv1.OperatingSystemResource
-// 		host        *computev1.HostResource
-// 	}
-// 	os.Setenv("DISABLE_FEATUREX", "true")
-// 	instance := &computev1.InstanceResource{}
-// 	osInstance := &osv1.OperatingSystemResource{
-// 		RepoUrl: "osurl: https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu-base/20230911-1844/default/ubuntu-22.04-desktop-amd64+intel-iot-37-custom.img.bz2\noverlayscripturl: https://ubit-artifactory-sh.intel.com/artifactory/sed-dgn-local/yocto/dev-test-image/DKAM/IAAS/ADL/installer23WW44.4_2148.sh\n",
-// 	}
-// 	host := &computev1.HostResource{}
-// 	artifiact := pb.ArtifactData{
-// 		Name:     "OS",
-// 		Category: pb.ArtifactData_BIOS,
-// 	}
-// 	artifiact1 := pb.ArtifactData{
-// 		Name:     "PLATFORM",
-// 		Category: pb.ArtifactData_BIOS,
-// 	}
-// 	artifactData := []*pb.ArtifactData{&artifiact, &artifiact1}
-// 	hw := pb.HwData{
-// 		DiskPartition: "123",
-// 	}
-// 	hwdata := []*pb.HwData{&hw}
-// 	req := pb.OnboardingRequest{
-// 		ArtifactData: artifactData,
-// 		Hwdata:       hwdata,
-// 	}
-// 	want := []*pb.OnboardingRequest{&req}
-
-// 	tests := []struct {
-// 		name    string
-// 		args    args
-// 		want    []*pb.OnboardingRequest
-// 		wantErr bool
-// 	}{
-// 		{
-// 			name: "Test Case 1",
-// 			args: args{
-// 				instances:   []*computev1.InstanceResource{instance},
-// 				osinstances: []*osv1.OperatingSystemResource{osInstance},
-// 				host:        host,
-// 			},
-// 			want:    want,
-// 			wantErr: false,
-// 		},
-// 	}
-// 	defer func() {
-// 		os.Unsetenv("DISABLE_FEATUREX")
-// 	}()
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			got, err := ConvertInstanceForOnboarding(tt.args.instances, tt.args.osinstances, tt.args.host)
-// 			if (err != nil) != tt.wantErr {
-// 				t.Errorf("ConvertInstanceForOnboarding() error = %v, wantErr %v", err, tt.wantErr)
-// 				return
-// 			}
-// 			if !reflect.DeepEqual(got, tt.want) {
-// 				t.Errorf("ConvertInstanceForOnboarding() = %v, want %v", got, tt.want)
-// 			}
-// 		})
-// 	}
-// }
 
 func TestConvertInstanceForOnboarding_Err(t *testing.T) {
 	type args struct {
@@ -322,9 +191,9 @@ func TestOnboardingManager_StartOnboarding(t *testing.T) {
 		ctx context.Context
 		req *pb.OnboardingRequest
 	}
-	os.Setenv("PD_IP", "000.000.0.000")
+	t.Setenv("PD_IP", "000.000.0.000")
 	defer os.Unsetenv("PD_IP")
-	os.Setenv("IMAGE_TYPE", "prod_focal-ms")
+	t.Setenv("IMAGE_TYPE", "prod_focal-ms")
 	defer os.Unsetenv("IMAGE_TYPE")
 	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad", SutIp: "00.00.00.00"}
 	dirPath, _ := os.Getwd()
@@ -341,12 +210,6 @@ func TestOnboardingManager_StartOnboarding(t *testing.T) {
 	_invClient = &invclient.OnboardingInventoryClient{
 		Client: mockClient,
 	}
-	// artifactDatas := []*pb.ArtifactData{
-	// 	{
-	// 		Category: pb.ArtifactData_OS,
-	// 		Name:     "OS",
-	// 	},
-	// }
 	artifactDatasPlatform := []*pb.ArtifactData{
 		{
 			Category: pb.ArtifactData_PLATFORM,
@@ -411,5 +274,6 @@ func TestOnboardingManager_StartOnboarding(t *testing.T) {
 			}
 		})
 	}
+	os.Remove(dirPath + "/internal/onboardingmgr/azure_env/" + "azure-credentials.env_")
+	os.Remove(dirPath + "/internal/onboardingmgr/azure_env/" + "azure-credentials.env_00:00:00:00:00:00")
 }
-

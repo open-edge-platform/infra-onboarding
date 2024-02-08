@@ -84,7 +84,8 @@ func NewTemplateData(name, ip, clientyp, disk, serial string) ([]byte, error) {
 						"DEVICE_SERIAL":      serial,
 						"TYPE":               clientyp,
 						"FDO_TLS":            "https",
-					}},
+					},
+				},
 				{
 					Name:    "reboot",
 					Image:   "public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest",
@@ -92,7 +93,8 @@ func NewTemplateData(name, ip, clientyp, disk, serial string) ([]byte, error) {
 					Volumes: []string{
 						"/worker:/worker",
 					},
-				}},
+				},
+			},
 		}},
 	}
 

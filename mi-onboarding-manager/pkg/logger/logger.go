@@ -18,17 +18,17 @@ func init() {
 	InitLogger(1)
 }
 
-// Logger is a Logger
+// Logger is a Logger.
 type Logger struct {
 	*log.Logger
 }
 
-// GetLogger returns Logger
+// GetLogger returns Logger.
 func GetLogger() *Logger {
 	return logger
 }
 
-// InitLogger initialize logger
+// InitLogger initialize logger.
 func InitLogger(level int) {
 	l := &log.Logger{
 		Handler: cli.New(os.Stdout),

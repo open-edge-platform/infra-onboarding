@@ -6,6 +6,12 @@ package southbound_test
 import (
 	"context"
 	"fmt"
+	"net"
+	"os"
+	"path/filepath"
+	"testing"
+	"time"
+
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
@@ -17,11 +23,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
-	"net"
-	"os"
-	"path/filepath"
-	"testing"
-	"time"
 
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
 )
@@ -41,7 +42,9 @@ var (
 // Internal parameters for bufconn testing.
 const bufferSize = util.Megabyte
 
-func CreateSouthboundOMClient(target string, bufconnLis *bufconn.Listener) (pb.NodeArtifactServiceNBClient, *grpc.ClientConn, error) {
+func CreateSouthboundOMClient(target string,
+	bufconnLis *bufconn.Listener,
+) (pb.NodeArtifactServiceNBClient, *grpc.ClientConn, error) {
 	opts := []grpc.DialOption{
 		grpc.WithBlock(),
 	}
@@ -78,7 +81,8 @@ func createInventoryOnboardingClientForTesting() {
 		zlog.Fatal().Err(err).Msg("Cannot create Inventory OnboardingRM client")
 	}
 
-	InvClient, err = invclient.NewOnboardingInventoryClient(inv_testing.TestClients[clientName], inv_testing.TestClientsEvents[clientName])
+	InvClient, err = invclient.NewOnboardingInventoryClient(inv_testing.TestClients[clientName],
+		inv_testing.TestClientsEvents[clientName])
 	if err != nil {
 		zlog.Fatal().Err(err).Msg("Cannot create Inventory OnboardingRM client")
 	}
