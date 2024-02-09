@@ -77,6 +77,16 @@ func (m *MockInventoryClient) UpdateSubscriptions(ctx context.Context, kinds []i
 	return args.Error(0)
 }
 
+func (m *MockInventoryClient) ListInheritedTelemetryProfiles(ctx context.Context,
+	inheritBy *inv_v1.ListInheritedTelemetryProfilesRequest_InheritBy,
+	filter string,
+	orderBy string,
+	limit, offset uint32,
+) (*inv_v1.ListInheritedTelemetryProfilesResponse, error) {
+	args := m.Called(ctx, inheritBy, filter, orderBy, limit, offset)
+	return args.Get(0).(*inv_v1.ListInheritedTelemetryProfilesResponse), args.Error(1)
+}
+
 func (m *MockInventoryClient) TestingOnlySetClient(client inv_v1.InventoryServiceClient) {
 	m.Called(client)
 }
