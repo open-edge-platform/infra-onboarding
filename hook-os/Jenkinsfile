@@ -174,8 +174,8 @@ pipeline {
 						    image = image.trim()
 						    if (!image.contains('/')) {
 						        sh """
-        						sed -i "s+${image}+amr-registry.caas.intel.com/one-intel-edge/edgenode/tinker-actions/${image}+g" patch.p
-        						docker pull amr-registry.caas.intel.com/one-intel-edge/edgenode/tinker-actions/${image}:${tag}
+        						sed -i "s+${image}+amr-registry.caas.intel.com/one-intel-edge/edge-node/tinker-actions/${image}+g" patch.p
+        						docker pull amr-registry.caas.intel.com/one-intel-edge/edge-node/tinker-actions/${image}:${tag}
         						"""
 						    } 
 						  
