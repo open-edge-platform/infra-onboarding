@@ -10,6 +10,7 @@ Addition functions accomplished by these scripts are listed below.
 1. The build requires few containers to be embedded into the hook micro OS. These can be found in the actions repository.
    The version of these container will be specified by the file VERSION in the root dir of this repo.
 2. The build requires these container image to be present before running the build script. Verify that these containers are present by running "docker images" cmd.
+3. Also prereq.sh can optionally also download the images from a hosted docker reg or harbor.
 
 # Build steps for HookOS
 1. update the config file with the correct configurations.

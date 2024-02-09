@@ -35,6 +35,10 @@ load_balancer_ip=""
 #provide Keyclock url
 keycloak_url=""
 
+#provide harbor or docker registry where tinker_actions are hosted
+# example harbor_url_tinker_actions="amr-registry.caas.intel.com/one-intel-edge/edgenode/tinker-actions"
+harbor_url_tinker_actions=""
+
 # provide extra hosts needed to resolve domain names.
 # example
 #extra_hosts="10.114.181.238 api-proxy.kind.internal,10.114.181.238 app-orch.kind.internal,10.114.181.238 cluster-orch-edge-node.kind.internal"
