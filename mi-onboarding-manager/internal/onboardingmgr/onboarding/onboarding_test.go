@@ -223,23 +223,8 @@ func TestOnboardingManager_StartOnboarding(t *testing.T) {
 		want    *pb.OnboardingResponse
 		wantErr bool
 	}{
-		// {
-		// 	name:   "Test Case 1",
-		// 	fields: fields{},
-		// 	args: args{
-		// 		ctx: context.TODO(),
-		// 		req: &pb.OnboardingRequest{
-		// 			Hwdata:       hwdatas,
-		// 			ArtifactData: artifactDatas,
-		// 		},
-		// 	},
-		// 	want: &pb.OnboardingResponse{
-		// 		Status: "Success",
-		// 	},
-		// 	wantErr: false,
-		// },
 		{
-			name:   "Test Case 2",
+			name:   "Test Case",
 			fields: fields{},
 			args: args{
 				ctx: context.TODO(),
@@ -277,3 +262,49 @@ func TestOnboardingManager_StartOnboarding(t *testing.T) {
 	os.Remove(dirPath + "/internal/onboardingmgr/azure_env/" + "azure-credentials.env_")
 	os.Remove(dirPath + "/internal/onboardingmgr/azure_env/" + "azure-credentials.env_00:00:00:00:00:00")
 }
+
+func Test_parseNGetBkcURL(t *testing.T) {
+	type args struct {
+		onboardingRequest *pb.OnboardingRequest
+	}
+	tests := []struct {
+		name string
+		args args
+		want utils.ArtifactData
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				&pb.OnboardingRequest{
+					ArtifactData: []*pb.ArtifactData{
+						{
+							Name: "OS",
+						},
+					},
+				},
+			},
+			want: utils.ArtifactData{},
+		},
+		{
+			name: "Test Case 1",
+			args: args{
+				&pb.OnboardingRequest{
+					ArtifactData: []*pb.ArtifactData{
+						{
+							Name: "OST",
+						},
+					},
+				},
+			},
+			want: utils.ArtifactData{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := parseNGetBkcURL(tt.args.onboardingRequest); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("parseNGetBkcURL() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+

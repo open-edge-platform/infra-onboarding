@@ -9,22 +9,23 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
+	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/handlers/southbound"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/onboardingmgr/onboarding"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
-
-	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
 )
 
 var (
@@ -182,3 +183,40 @@ func GetHostbyUUID(tb testing.TB, hostUUID string) *computev1.HostResource {
 	host := resources[0]
 	return host
 }
+
+func TestNewSBHandler(t *testing.T) {
+	type args struct {
+		invClient *invclient.OnboardingInventoryClient
+		config    southbound.SBHandlerConfig
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *southbound.SBHandler
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				invClient: &invclient.OnboardingInventoryClient{
+					Client: &onboarding.MockInventoryClient{},
+				},
+			},
+			want:    &southbound.SBHandler{},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := southbound.NewSBHandler(tt.args.invClient, tt.args.config)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewSBHandler() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewSBHandler() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+

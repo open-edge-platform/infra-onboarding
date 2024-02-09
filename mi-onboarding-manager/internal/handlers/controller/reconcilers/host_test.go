@@ -107,6 +107,34 @@ func TestHostReconciler_Reconcile_Case1(t *testing.T) {
 		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource3}},
 	}
 	mockInvClient3.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources3, nil)
+	mockHost4 := &computev1.HostResource{
+		DesiredState: computev1.HostState_HOST_STATE_UNTRUSTED,
+		// CurrentState: computev1.HostState_HOST_STATE_UNSPECIFIED,
+	}
+	mockResource4 := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: mockHost4,
+		},
+	}
+	mockInvClient4 := &onboarding.MockInventoryClient{}
+	mockInvClient4.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
+		Resource: mockResource4,
+	}, nil)
+	mockInvClient4.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	mockHost5 := &computev1.HostResource{
+		DesiredState: computev1.HostState_HOST_STATE_UNTRUSTED,
+		// CurrentState: computev1.HostState_HOST_STATE_UNSPECIFIED,
+	}
+	mockResource5 := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: mockHost5,
+		},
+	}
+	mockInvClient5 := &onboarding.MockInventoryClient{}
+	mockInvClient5.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
+		Resource: mockResource5,
+	}, nil)
+	mockInvClient5.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
 	tests := []struct {
 		name   string
 		fields fields
@@ -144,6 +172,45 @@ func TestHostReconciler_Reconcile_Case1(t *testing.T) {
 			fields: fields{
 				invClient: &invclient.OnboardingInventoryClient{
 					Client: mockInvClient2,
+				},
+			},
+			args: args{
+				ctx:     context.TODO(),
+				request: testRequest,
+			},
+			want: testRequest.Ack(),
+		},
+		// {
+		// 	name: "TestCase4",
+		// 	fields: fields{
+		// 		invClient: &invclient.OnboardingInventoryClient{
+		// 			Client: mockInvClient3,
+		// 		},
+		// 	},
+		// 	args: args{
+		// 		ctx:     context.TODO(),
+		// 		request: testRequest,
+		// 	},
+		// 	want: testRequest.Ack(),
+		// },
+		{
+			name: "TestCase5",
+			fields: fields{
+				invClient: &invclient.OnboardingInventoryClient{
+					Client: mockInvClient4,
+				},
+			},
+			args: args{
+				ctx:     context.TODO(),
+				request: testRequest,
+			},
+			want: testRequest.Ack(),
+		},
+		{
+			name: "TestCase6",
+			fields: fields{
+				invClient: &invclient.OnboardingInventoryClient{
+					Client: mockInvClient5,
 				},
 			},
 			args: args{

@@ -257,6 +257,20 @@ func TestImageDownload(t *testing.T) {
 		FocalImgDdLock:   focalImgDdLocks,
 		FocalMsImgDdLock: focalMsImgDdLocks,
 	}
+	inputArgs1 := args{
+		artifactinfo: utils.ArtifactData{
+			BkcURL:        "1bkc",
+			BkcBasePkgURL: "Bkc",
+		},
+		deviceInfo: utils.DeviceInfo{
+			ImType: "prod_jammy",
+		},
+		kubeconfigPath:   "configPath",
+		BkcImgDdLock:     bkcImgDdLocks,
+		JammyImgDdLock:   jammyImgDdLocks,
+		FocalImgDdLock:   focalImgDdLocks,
+		FocalMsImgDdLock: focalMsImgDdLocks,
+	}
 	inputArgs4 := args{
 		artifactinfo: utils.ArtifactData{
 			BkcURL:        "1bkc",
@@ -310,11 +324,11 @@ func TestImageDownload(t *testing.T) {
 			inputArgs,
 			true,
 		},
-		// {
-		// 	"neg2",
-		// 	inputArgs1,
-		// 	false,
-		// },
+		{
+			"neg2",
+			inputArgs1,
+			true,
+		},
 		{
 			"neg3",
 			inputArgs2,

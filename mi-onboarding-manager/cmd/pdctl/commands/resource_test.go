@@ -6,9 +6,11 @@ package commands
 
 import (
 	"bytes"
+	"net"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc"
 )
 
 func TestInstanceResCmds(t *testing.T) {
@@ -26,7 +28,7 @@ func TestInstanceResCmds_GetById(t *testing.T) {
 	RootCmd := InstanceResCmds()
 	RootCmd.SetOut(actual)
 	RootCmd.SetErr(actual)
-	RootCmd.SetArgs([]string{"getById", "--addr=localhost:50059", "--insecure", "resource-id=123"})
+	RootCmd.SetArgs([]string{"getById", "--addr=localhost:50059", "--insecure", "--resource-id=123"})
 	err := RootCmd.Execute()
 	assert.Error(t, err)
 }
@@ -36,10 +38,7 @@ func TestInstanceResCmds_Create(t *testing.T) {
 	RootCmd := InstanceResCmds()
 	RootCmd.SetOut(actual)
 	RootCmd.SetErr(actual)
-	RootCmd.SetArgs([]string{
-		"create", "--addr=localhost:50061", "--insecure",
-		"resource-id=123", "--hostID=123", "--kind=123", "--osID=123",
-	})
+	RootCmd.SetArgs([]string{"create", "--addr=localhost:50061", "--insecure", "resource-id=123", "--hostID=123", "--kind=123", "--osID=123"})
 	err := RootCmd.Execute()
 	assert.Error(t, err)
 }
@@ -99,10 +98,7 @@ func TestHostResCmds_Create(t *testing.T) {
 	RootCmd := HostResCmds()
 	RootCmd.SetOut(actual)
 	RootCmd.SetErr(actual)
-	RootCmd.SetArgs([]string{
-		"create", "--addr=localhost:50067", "--insecure",
-		"--hostname=hostname", "--sut-ip=123", "--uuid=123",
-	})
+	RootCmd.SetArgs([]string{"create", "--addr=localhost:50067", "--insecure", "--hostname=hostname", "--sut-ip=123", "--uuid=123"})
 	err := RootCmd.Execute()
 	assert.Error(t, err)
 }
@@ -126,3 +122,40 @@ func TestHostResCmds_Delete(t *testing.T) {
 	err := RootCmd.Execute()
 	assert.Error(t, err)
 }
+
+func TestInstanceResCmds_Get(t *testing.T) {
+	actual := new(bytes.Buffer)
+	RootCmd := InstanceResCmds()
+	RootCmd.SetOut(actual)
+	RootCmd.SetErr(actual)
+	RootCmd.SetArgs([]string{"get", "--addr=localhost:50058", "--insecure"})
+	err := RootCmd.Execute()
+	assert.Error(t, err)
+}
+
+func TestInstanceResCmds_Case(t *testing.T) {
+	lis, liserr := net.Listen("tcp", "localhost:17051")
+	if liserr != nil {
+		t.Fatalf("Failed to listen: %v", liserr)
+	}
+	grpcServer := grpc.NewServer()
+	go func() {
+		defer lis.Close()
+		if err := grpcServer.Serve(lis); err != nil {
+			t.Fatalf("Failed to serve: %v", err)
+		}
+	}()
+	conn, connerr := grpc.Dial("localhost:17051", grpc.WithInsecure())
+	if connerr != nil {
+		t.Fatalf("Failed to dial server: %v", connerr)
+	}
+	defer conn.Close()
+	actual := new(bytes.Buffer)
+	RootCmd := InstanceResCmds()
+	RootCmd.SetOut(actual)
+	RootCmd.SetErr(actual)
+	RootCmd.SetArgs([]string{"get", "--addr=localhost:17051", "--insecure"})
+	err := RootCmd.Execute()
+	assert.Error(t, err)
+}
+
