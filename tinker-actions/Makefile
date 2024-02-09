@@ -26,7 +26,7 @@ GIT_COMMIT    ?= $(shell git rev-parse HEAD)
 BRANCH_NAME   ?= $(shell git rev-parse --abbrev-ref HEAD)
 DOCKER_ENV              := DOCKER_BUILDKIT=1
 DOCKER_REGISTRY         ?= amr-registry.caas.intel.com
-DOCKER_REPOSITORY       ?= one-intel-edge/edgenode
+DOCKER_REPOSITORY       ?= one-intel-edge/edge-node
 DOCKER_TAG              := ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}
 
 
