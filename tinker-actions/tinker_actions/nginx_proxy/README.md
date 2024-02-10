@@ -21,7 +21,7 @@ Currently NGINX client proxies are configured for FDO, Tink Agent and APT.
 
 5. Run NGINX container by using below cmd
 
-	`docker run --name nginx-proxy --network host --env owner_svc="<owner_svc_fqdn>" --env auth_token="<jwit_token>" --env nameserver="<dns_server>" --env manufacturer_svc="<fdo_mfg_svc_fqdn>" --env tink_stack_svc="<tink_stack_fqdn>" --env tink_server_svc="<tink_server_fqdn>" --env release_svc="<release_svc_fqdn>" -v $PWD/nginx.conf.template:/etc/nginx/templates/nginx.conf.template -v /usr/local/share/ca-certificates/ensp-orchestrator-ca.crt:/etc/nginx/ssl/ensp-orchestrator-ca.crt  -d nginx_proxy`
+	`docker run --name nginx-proxy --network host --env owner_svc="<owner_svc_fqdn>" --env auth_token="<jwit_token>" --env nameserver="<dns_server>" --env manufacturer_svc="<fdo_mfg_svc_fqdn>" --env tink_stack_svc="<tink_stack_fqdn>" --env tink_server_svc="<tink_server_fqdn>" --env release_svc="<release_svc_fqdn>"  --env oci_release_svc="<oci_release_svc_fqdn>" -v $PWD/nginx.conf.template:/etc/nginx/templates/nginx.conf.template -v /usr/local/share/ca-certificates/ensp-orchestrator-ca.crt:/etc/nginx/ssl/ensp-orchestrator-ca.crt  -d nginx_proxy`
 
 NOTE: 
 1. Inject JWT token obtained in step 3 as env arg `auth_token`
