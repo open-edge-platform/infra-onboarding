@@ -16,4 +16,9 @@ FROM nginx:1.25.3
 COPY "nginx-key.pem" "/etc/nginx/ssl/nginx-key.pem"
 COPY "nginx-cert.pem" "/etc/nginx/ssl/nginx-cert.pem"
 
-CMD ["bash", "-c", "export access_token=$(cat /dev/shm/idp_access_token) && export release_token=$(cat /dev/shm/release_token) && envsubst < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"]
+COPY nginx_run.sh /nginx_run.sh
+
+RUN chmod +x /nginx_run.sh
+
+#CMD ["bash", "-c", "export access_token=$(cat /dev/shm/idp_access_token) && export release_token=$(cat /dev/shm/release_token) && envsubst < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"]
+CMD ["bash", "-c", "/nginx_run.sh"]
