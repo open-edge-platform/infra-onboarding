@@ -80,6 +80,29 @@ Expire-Date:0
 %commit'| gpg --batch  --gen-key --homedir $GPG_KEY_DIR
 
     gpg --homedir $GPG_KEY_DIR --export > $public_gpg_key
+
+    if [ $? -ne 0 ];
+    then
+	# Seems like gpg key creation failed with --homedir trying once with the default ~/.gnupg as the directory.
+	# might happen with coder environment
+
+	echo '%no-protection
+Key-Type:1
+Key-Length:2048
+Subkey-Type:1
+Subkey-Length:2048
+Name-Real: Boot verifier
+Expire-Date:0
+%commit'| gpg --batch  --gen-key
+
+	gpg --export > $public_gpg_key
+	if [ $? -ne 0 ];
+	then
+	    echo "gpg agent is not install or is not working."
+	    exit 1
+	fi
+	export GPG_KEY_DIR=~/.gnupg/
+    fi
 }
 
 sign_all_components() {
