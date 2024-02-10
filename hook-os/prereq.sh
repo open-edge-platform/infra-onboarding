@@ -5,6 +5,7 @@
 
 #set -x
 source ./config
+kernel_version="5.10.85-i225-igc"
 
 
 if [ ! -n "$harbor_url_tinker_actions" ];
@@ -52,3 +53,13 @@ do
     fi
     docker image tag $harbor_url_tinker_actions/$image:$tag $image:$tag
 done
+
+#download kernel image and tag it as expected
+docker pull $harbor_url_tinker_actions/hook-kernel:$kernel_version
+if [ $? -ne 0 ];
+then
+    echo "unable to pull $harbor_url_tinker_action/hook-kernel:$kernel_version"
+    exit 1
+fi
+
+docker image tag $harbor_url_tinker_actions/hook-kernel:$kernel_version quay.io/tinkerbell/hook-kernel:5.10.85-e546ea099917c006d1d08fe6b8398101de65cbc7
