@@ -79,8 +79,6 @@ Name-Real: Boot verifier
 Expire-Date:0
 %commit'| gpg --batch  --gen-key --homedir $GPG_KEY_DIR
 
-    gpg --homedir $GPG_KEY_DIR --export > $public_gpg_key
-
     if [ $? -ne 0 ];
     then
 	# Seems like gpg key creation failed with --homedir trying once with the default ~/.gnupg as the directory.
@@ -95,7 +93,7 @@ Name-Real: Boot verifier
 Expire-Date:0
 %commit'| gpg --batch  --gen-key
 
-	gpg --export > $public_gpg_key
+	# gpg --export > $public_gpg_key
 	if [ $? -ne 0 ];
 	then
 	    echo "gpg agent is not install or is not working."
@@ -103,6 +101,8 @@ Expire-Date:0
 	fi
 	export GPG_KEY_DIR=~/.gnupg/
     fi
+
+    gpg --homedir $GPG_KEY_DIR --export > $public_gpg_key
 }
 
 sign_all_components() {
