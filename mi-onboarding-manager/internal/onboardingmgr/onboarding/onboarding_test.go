@@ -93,47 +93,93 @@ func TestDeviceOnboardingManagerZt(t *testing.T) {
 }
 
 func TestConvertInstanceForOnboarding_Err(t *testing.T) {
-	type args struct {
-		instances   []*computev1.InstanceResource
-		osinstances []*osv1.OperatingSystemResource
-		host        *computev1.HostResource
-	}
-	instance := &computev1.InstanceResource{}
 	osInstance := &osv1.OperatingSystemResource{
-		RepoUrl: "osUrl;overlayUrl",
+		RepoUrl: "osUrl.raw.gz;overlayUrl",
 	}
 	host := &computev1.HostResource{
 		HostNics: []*computev1.HostnicResource{
 			{
-				MacAddr: "00:00:00:00:00:00",
+				MacAddr:      "00:00:00:00:00:00",
+				BmcInterface: true,
 			},
 		},
 	}
+
 	tests := []struct {
-		name    string
-		args    args
-		want    []*pb.OnboardingRequest
-		wantErr bool
+		name        string
+		osResources []*osv1.OperatingSystemResource
+		host        *computev1.HostResource
+		want        []*pb.OnboardingRequest
+		wantErr     bool
 	}{
 		{
-			name: "Test Case 1",
-			args: args{
-				instances:   []*computev1.InstanceResource{instance},
-				osinstances: []*osv1.OperatingSystemResource{osInstance},
-				host:        host,
+			name:        "Test case 1",
+			osResources: []*osv1.OperatingSystemResource{osInstance},
+			host:        host,
+			want: []*pb.OnboardingRequest{
+				{
+					ArtifactData: []*pb.ArtifactData{
+						{
+							Name:       "OS",
+							PackageUrl: "osUrl.raw.gz",
+							Category:   1,
+						},
+						{
+							Name:       "PLATFORM",
+							PackageUrl: "overlayUrl",
+							Category:   1,
+						},
+					},
+					Hwdata: []*pb.HwData{
+						{
+							MacId:         "00:00:00:00:00:00",
+							DiskPartition: "123",
+						},
+					},
+				},
 			},
-			want:    nil,
 			wantErr: false,
 		},
+		{
+			name: "Test case - 2",
+			osResources: []*osv1.OperatingSystemResource{
+				{RepoUrl: "invalidUrl"},
+			},
+			host:    host,
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:        "Test case -3",
+			osResources: []*osv1.OperatingSystemResource{osInstance},
+			host:        &computev1.HostResource{},
+			want:        nil,
+			wantErr:     true,
+		},
+		{
+			name:        "Test case - 4",
+			osResources: []*osv1.OperatingSystemResource{osInstance},
+			host: &computev1.HostResource{
+				HostNics: []*computev1.HostnicResource{
+					{
+						MacAddr:      "00:00:00:00:00:00",
+						BmcInterface: false, // BMC interface not enabled
+					},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ConvertInstanceForOnboarding(tt.args.instances, tt.args.osinstances, tt.args.host)
+			got, err := ConvertInstanceForOnboarding(tt.osResources, tt.host)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ConvertInstanceForOnboarding() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if reflect.DeepEqual(got, tt.want) {
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ConvertInstanceForOnboarding() = %v, want %v", got, tt.want)
 			}
 		})

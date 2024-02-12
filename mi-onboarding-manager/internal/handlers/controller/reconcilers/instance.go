@@ -82,8 +82,7 @@ func (ir *InstanceReconciler) reconcileInstance(
 			zlogInst.MiSec().MiErr(err).Msgf("Failed to Get Host Resource by ID")
 			return request.Ack()
 		}
-		onboardingRequest, err := onboarding.ConvertInstanceForOnboarding(
-			[]*computev1.InstanceResource{instance}, []*osv1.OperatingSystemResource{os}, host)
+		onboardingRequest, err := onboarding.ConvertInstanceForOnboarding([]*osv1.OperatingSystemResource{os}, host)
 		if err != nil {
 			zlogInst.MiSec().MiErr(err).Msgf("Failed to convert instance for onboarding")
 			return request.Ack()

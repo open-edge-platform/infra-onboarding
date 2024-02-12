@@ -389,59 +389,82 @@ func MakeGETRequestWithRetry(pdip, caCertPath, certPath, guid string) error {
 	return nil
 }
 
-func ConvertInstanceForOnboarding(_ []*computev1.InstanceResource, osinstances []*osv1.OperatingSystemResource,
-	host *computev1.HostResource,
-) ([]*pb.OnboardingRequest, error) {
+func ConvertInstanceForOnboarding(osResources []*osv1.OperatingSystemResource, host *computev1.HostResource) ([]*pb.OnboardingRequest, error) {
 	var onboardingRequests []*pb.OnboardingRequest
-	var osURL, overlayURL string
+
+	var overlayURL string
 	hostNics := host.GetHostNics()
+	for _, osr := range osResources {
+		osURL := osr.RepoUrl
 
-	for _, osr := range osinstances {
-		osURL = osr.RepoUrl
+		invURL := strings.Split(osURL, ";")
+
+		if len(invURL) > 0 {
+			osURL = invURL[0]
+		}
+		// Validate the format of osURL
+		if !isValidOSURLFormat(osURL) {
+			return nil, errors.New("osURL is not in the expected format")
+		}
+
+		if len(invURL) > 1 {
+			overlayURL = invURL[1]
+		}
+
+		// Check if hostNics is empty
+		if len(hostNics) == 0 {
+			return nil, errors.New("no macID found")
+		}
+
+		// Check if the HostnicResource has bmcInterface set to true
+		if !hostNics[0].BmcInterface {
+			return nil, errors.New("BMC interface is not enabled")
+		}
+
+		// Create an instance of OnboardingRequest and populate it
+		onboardingRequest := &pb.OnboardingRequest{
+			ArtifactData: []*pb.ArtifactData{
+				{
+					Name:       "OS",
+					PackageUrl: osURL,
+					Category:   1,
+				},
+				{
+					Name:       "PLATFORM",
+					PackageUrl: overlayURL,
+					Category:   1,
+				},
+			},
+			Hwdata: []*pb.HwData{
+				{
+					Serialnum:     host.GetSerialNumber(),
+					SutIp:         host.GetBmcIp(),
+					DiskPartition: "123", // Adjust these accordingly
+					PlatformType:  host.GetHardwareKind(),
+					Uuid:          host.GetUuid(),
+					// Add other hardware data if needed
+				},
+			},
+		}
+
+		// Set MAC address of HostnicResource if bmcInterface is true
+		onboardingRequest.Hwdata[0].MacId = hostNics[0].MacAddr
+
+		log.Printf("hostNic.GetMacAddr: %s", onboardingRequest.Hwdata[0].MacId)
+		log.Printf("osUrl: %s", onboardingRequest.ArtifactData[0].PackageUrl)
+		log.Printf("Overlay Url: %s", onboardingRequest.ArtifactData[1].PackageUrl)
+
+		onboardingRequests = append(onboardingRequests, onboardingRequest)
 	}
 
-	invURL := strings.Split(osURL, ";")
-
-	osURL = invURL[0]
-	overlayURL = invURL[1]
-
-	// Create an instance of OnboardingRequest and populate it
-	onboardingRequest := &pb.OnboardingRequest{
-		ArtifactData: []*pb.ArtifactData{
-			{
-				Name:       "OS",
-				PackageUrl: osURL,
-				Category:   1,
-			},
-			{
-				Name:       "PLATFORM",
-				PackageUrl: overlayURL,
-				Category:   1,
-			},
-		},
-		Hwdata: []*pb.HwData{},
-	}
-
-	// Populate hardware data for each hostNic in hostNics
-
-	onboardingRequest.Hwdata = append(onboardingRequest.Hwdata, &pb.HwData{
-		Serialnum:     host.GetSerialNumber(),
-		MacId:         hostNics[0].MacAddr,
-		SutIp:         host.GetBmcIp(),
-		DiskPartition: "123", // Adjust these accordingly
-		PlatformType:  host.GetHardwareKind(),
-		Uuid:          host.GetUuid(),
-		// Add other hardware data if needed
-	})
-
-	log.Printf("hostNic.GetMacAddr: %s", hostNics[0].MacAddr)
-	log.Printf("osUrl: %s", onboardingRequest.ArtifactData[0].PackageUrl)
-	log.Printf("Overlay Url: %s", onboardingRequest.ArtifactData[1].PackageUrl)
-
-	onboardingRequests = append(onboardingRequests, onboardingRequest)
-
-	// Return the onboarding request
+	// Return the onboarding requests
 	return onboardingRequests, nil
+}
+
+// TODO : Will scale it in future accordingly
+func isValidOSURLFormat(osURL string) bool {
+	expectedSuffix := ".raw.gz" // Checks if the OS URL is in the expected format
+	return strings.HasSuffix(osURL, expectedSuffix)
 }
 
 type GetArtifactsResponse struct {
