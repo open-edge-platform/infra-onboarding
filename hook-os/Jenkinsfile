@@ -181,6 +181,8 @@ pipeline {
 						  
 						}
 						sh """
+						docker pull amr-registry.caas.intel.com/one-intel-edge/edge-node/hook-kernel:5.10.85-i225-igc
+						docker image tag amr-registry.caas.intel.com/one-intel-edge/edge-node/hook-kernel:5.10.85-i225-igc quay.io/tinkerbell/hook-kernel:5.10.85-e546ea099917c006d1d08fe6b8398101de65cbc7
 						eval \$(ssh-agent) > /dev/null
 					    make build
 						"""
