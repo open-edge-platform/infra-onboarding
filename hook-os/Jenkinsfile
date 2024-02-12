@@ -358,9 +358,9 @@ pipeline {
             agent {
                 label 'edgenode_internal_deb_file_server'
             }
-            // when {
-                // anyOf { branch 'main'; branch 'release-*' }
-            // }
+            when {
+        	anyOf { branch 'main'; branch 'release-*' }
+            }
             steps {
                 script {
 					unstash 'alpine_image'
