@@ -34,14 +34,14 @@ Addition functions accomplished by these scripts are listed below.
    fdo_owner_svc="fdo-owner.kind.internal"
    release_svc="files.internal.ledgepark.intel.com"
    oci_release_svc="registry-rs.internal.ledgepark.intel.com"
-   tink_stack_svc="tink-stack.kind.internal"
+   tink_stack_svc="tinkerbell-nginx.kind.internal"
    tink_server_svc="tinkerbell-server.kind.internal"
    ```
 3. [Optional] Update host IP/FQDN mapping(comma separated) values in extra_hosts if Maestro is deployed on Kind cluster
 
    ```
    Example:
-   extra_hosts="10.114.181.238 api-proxy.kind.internal,10.114.181.238 app-orch.kind.internal,10.114.181.238 cluster-orch-edge-node.kind.internal,10.114.181.238 fdo-mfg.kind.internal,10.114.181.238 fdo-owner.kind.internal,10.114.181.238 tink-stack.kind.internal,10.114.181.238 tinkerbell-server.kind.internal"
+   extra_hosts="10.114.181.238 api-proxy.kind.internal,10.114.181.238 app-orch.kind.internal,10.114.181.238 cluster-orch-edge-node.kind.internal,10.114.181.238 fdo-mfg.kind.internal,10.114.181.238 fdo-owner.kind.internal,10.114.181.238 tinkerbell-nginx.kind.internal,10.114.181.238 tinkerbell-server.kind.internal"
    ```
 4. Run the build hookOS.
 
