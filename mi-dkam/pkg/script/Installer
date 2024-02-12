@@ -4,23 +4,23 @@ SETUP_STATUS_FILENAME="install_pkgs_status"
 SCRIPT_DIR=$(pwd)
 touch $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 
-export REGISTRY_URL=amr-registry.caas.intel.com
-export MAESTRO_C_URL=cluster-orch-edge-node.__AUTH_SERVER__:443
-export MAESTRO_I_URL=infra.__AUTH_SERVER__:443
-export MAESTRO_PLATFORM_OBSERVABILITY_HOST=logs.__AUTH_SERVER__
-export MAESTRO_PLATFORM_OBSERVABILITY_PORT=443
+export REGISTRY_URL=__REGISTRY_URL__
+export ORCH_C_URL=__ORCH_CLUSTER__
+export ORCH_I_URL=__ORCH_INFRA__
+export ORCH_PLATFORM_OBSERVABILITY_HOST=__ORCH_PLATFORM_OBS_HOST__
+export ORCH_PLATFORM_OBSERVABILITY_PORT=__ORCH_PLATFORM_OBS_PORT__
 # export PROVISIONING_URL=192.168.1.11:8080
 # export PROVISIONING_APT_MIRROR_URL=192.168.1.11:443
-export OBSERVABILITY_METRICS_HOST=metrics.__AUTH_SERVER__
-export OBSERVABILITY_METRICS_PORT=443
-export MAINTENANCE_MANAGER_URL=update.__AUTH_SERVER__:443
-export TELEMETRY_MANAGER_URL=telemetry.__AUTH_SERVER__:443
+export OBSERVABILITY_METRICS_HOST=__ORCH_PLATFORM_OBS_METRICS_HOST__
+export OBSERVABILITY_METRICS_PORT=__ORCH_PLATFORM_OBS_METRICS_PORT__
+export MAINTENANCE_MANAGER_URL=__ORCH_UPDATE__
+export TELEMETRY_MANAGER_URL=__ORCH_TELEMETRY_HOST__:__ORCH_TELEMETRY_PORT__
 export RELEASE_SERVER=__FILE_SERVER__
-export VAULT_URL=vault-edge-node.__AUTH_SERVER__
-export PKI_PATH=pki_int_edge_node
-export PKI_ROLE=maestro
-export EMAIL=azure_ad_token@intel.com
-export PASSWORD="MysoreKarnataka@570011"
+export VAULT_URL=__ORCH_VAULT__
+export PKI_PATH=__ORCH_PKI_PATH__
+export PKI_ROLE=__ORCH_PKI_ROLE__
+export EMAIL=__USERNAME__
+export PASSWORD=__PASSWORD__
 
 # 1. Install dependencies
 install_dependencies() {
@@ -288,14 +288,14 @@ install_apt_conf() {
 install_certificates () {
 echo "Get Vault certificates."
 # get JWT access token from Keycloack
-export KEYCLOAK_TOKEN=$(curl -s -k -X POST https://keycloak.__AUTH_SERVER__/realms/master/protocol/openid-connect/token \
+export KEYCLOAK_TOKEN=$(curl -s -k -X POST https://__KEYCLOAK__/realms/master/protocol/openid-connect/token \
   -d "username=lp-admin-user" -d "password=ChangeMeOn1stLogin!" -d "grant_type=password" \
 -d "client_id=ledge-park-system" -d "scope=openid" | jq -r '.access_token')
 
 echo "Received jwt from Keycloak"
 
 # Login to valut using JWT
-export VAULT_TOKEN=$(curl -s -k -X POST https://vault.__AUTH_SERVER__/v1/auth/jwt/login \
+export VAULT_TOKEN=$(curl -s -k -X POST https://__VAULT__/v1/auth/jwt/login \
 --header 'Content-Type: application/json' \
 --data '{"jwt" : "'"$KEYCLOAK_TOKEN"'"}' | jq -r .auth.client_token)
 
@@ -303,7 +303,7 @@ echo "Logged in to vault"
 
 # Request cert & private key from Vault
 curl -s -k --header "X-Vault-Token: ${VAULT_TOKEN}" \
---request POST --data '{ "common_name": "4c4c4544-0035-3010-8030-c2c04f4a4633", "ttl": "60d" }' "https://vault.__AUTH_SERVER__/v1/pki_int_edge_node/issue/maestro" > response.json
+--request POST --data '{ "common_name": "4c4c4544-0035-3010-8030-c2c04f4a4633", "ttl": "60d" }' "https://__VAULT__/v1/pki_int_edge_node/issue/maestro" > response.json
 
 echo "Issued a fresh cert/key pair"
 
@@ -374,7 +374,7 @@ apt-get -y install gpg
 curl https://apt.releases.hashicorp.com/gpg | gpg --dearmor > /usr/share/keyrings/hashicorp-archive-keyring.gpg
 echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" > /etc/apt/sources.list.d/hashicorp.list
 apt-get update
-echo "node-agent node-agent/onboarding.serviceURL string ${MAESTRO_I_URL}" | debconf-set-selections
+echo "node-agent node-agent/onboarding.serviceURL string ${ORCH_I_URL}" | debconf-set-selections
 echo "node-agent node-agent/vault.serviceURL string ${VAULT_URL}" | debconf-set-selections
 echo "node-agent node-agent/vault.pkiRole string ${PKI_ROLE}" | debconf-set-selections
 echo "node-agent node-agent/vault.pkiPath string ${PKI_PATH}" | debconf-set-selections
@@ -399,7 +399,7 @@ VERSION="cluster-agent-VERSION"
 echo $VERSION
 PKGFILE="cluster-agent_${VERSION}_amd64.deb" 
 apt-get update
-echo "cluster-agent cluster-agent/cluster-orchestrator-url string ${MAESTRO_C_URL}" | debconf-set-selections
+echo "cluster-agent cluster-agent/cluster-orchestrator-url string ${ORCH_C_URL}" | debconf-set-selections
 rm -f ${PKGFILE}
 wget --header="Authorization: Bearer $ID_TOKEN"  https://${FILESERVER}/pool/release/c/cluster-agent/${PKGFILE}
 gpg --decrypt ${PKGFILE}
@@ -419,7 +419,7 @@ VERSION="hardware-discovery-agent-VERSION"
 echo $VERSION
 PKGFILE="hardware-discovery-agent_${VERSION}_amd64.deb" 
 apt-get update
-echo "hardware-discovery-agent hardware-discovery-agent/onboarding.serviceURL string ${MAESTRO_I_URL}" | debconf-set-selections
+echo "hardware-discovery-agent hardware-discovery-agent/onboarding.serviceURL string ${ORCH_I_URL}" | debconf-set-selections
 rm -f ${PKGFILE}
 wget --header="Authorization: Bearer $ID_TOKEN"  https://${FILESERVER}/pool/release/h/hardware-discovery-agent/${PKGFILE}
 gpg --decrypt ${PKGFILE}
@@ -439,8 +439,8 @@ VERSION="platform-observability-agent-VERSION"
 echo $VERSION
 PKGFILE="platform-observability-agent_${VERSION}_amd64.deb"
 apt-get update
-echo "platform-observability-agent platform-observability-agent/host string $MAESTRO_PLATFORM_OBSERVABILITY_HOST" | debconf-set-selections
-echo "platform-observability-agent platform-observability-agent/port string $MAESTRO_PLATFORM_OBSERVABILITY_PORT" | debconf-set-selections
+echo "platform-observability-agent platform-observability-agent/host string $ORCH_PLATFORM_OBSERVABILITY_HOST" | debconf-set-selections
+echo "platform-observability-agent platform-observability-agent/port string $ORCH_PLATFORM_OBSERVABILITY_PORT" | debconf-set-selections
 echo "platform-observability-agent platform-observability-agent/metrics-host string $OBSERVABILITY_METRICS_HOST" | debconf-set-selections
 echo "platform-observability-agent platform-observability-agent/metrics-port string $OBSERVABILITY_METRICS_PORT" | debconf-set-selections
 rm -f ${PKGFILE}

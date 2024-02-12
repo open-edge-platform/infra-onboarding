@@ -270,7 +270,7 @@ func DownloadUbuntuImage(imageUrl string, format string, file string, fileName s
 	}
 
 	// Compress the raw image using pigz
-	if err := compressImage("image.raw", file); err != nil {
+	if err := compressImage("image.raw", fileName); err != nil {
 		zlog.MiSec().Fatal().Err(err).Msgf("Error compressing image:%v", err)
 		return err
 	}
@@ -282,7 +282,7 @@ func DownloadUbuntuImage(imageUrl string, format string, file string, fileName s
 	if err := os.Remove("image.raw"); err != nil {
 		zlog.MiSec().Fatal().Err(err).Msgf("Error removing temporary file: image.raw %v", err)
 	}
-	exists, patherr := PathExists(file)
+	exists, patherr := PathExists(fileName)
 	if patherr != nil {
 		zlog.MiSec().Info().Msgf("Error checking path %v", patherr)
 	}
@@ -294,14 +294,17 @@ func DownloadUbuntuImage(imageUrl string, format string, file string, fileName s
 		}
 		if exists {
 			zlog.MiSec().Info().Msg("PVC Path exists")
+			zlog.MiSec().Info().Msg(fileName)
 			pvcFilePath := "/data" + "/" + fileName
-			cmd := exec.Command("mv", file, pvcFilePath)
+			cmd := exec.Command("mv", fileName, pvcFilePath)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 
 			err := cmd.Run()
 			if err != nil {
 				zlog.MiSec().Info().Msgf("error running 'mv' command: %v", err)
+			} else {
+				zlog.MiSec().Info().Msg("OS image copied to PVC")
 			}
 		} else {
 			zlog.MiSec().Info().Msg("PVC Path not exists")
@@ -311,7 +314,7 @@ func DownloadUbuntuImage(imageUrl string, format string, file string, fileName s
 		zlog.MiSec().Info().Msg("image raw file Path not exists:")
 
 	}
-	zlog.MiSec().Info().Msg("File downloaded and converted into raw format")
+	zlog.MiSec().Info().Msg("File downloaded, converted into raw format and move to PVC")
 	return nil
 
 }

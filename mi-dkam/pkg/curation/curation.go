@@ -5,6 +5,7 @@ package curation
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -158,12 +159,55 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	if err != nil {
 		zlog.MiSec().Fatal().Err(err).Msgf("Error %v", err)
 	}
+	//Get FQDN names for agents:
+	orchCluster := os.Getenv("ORCH_CLUSTER")
+	orchInfra := os.Getenv("ORCH_INFRA")
+	orchUpdate := os.Getenv("ORCH_UPDATE")
+	orchPlatformObsHost := os.Getenv("ORCH_PLATFORM_OBS_HOST")
+	orchPlatformObsPort := os.Getenv("ORCH_PLATFORM_OBS_PORT")
+	orchPlatformObsMetricsHost := os.Getenv("ORCH_PLATFORM_OBS_METRICS_HOST")
+	orchPlatformObsMetricsPort := os.Getenv("ORCH_PLATFORM_OBS_METRICS_PORT")
+	orchTelemetryHost := os.Getenv("ORCH_TELEMETRY_HOST")
+	orchTelemetryPort := os.Getenv("ORCH_TELEMETRY_PORT")
+	orchVault := os.Getenv("ORCH_VAULT")
+	orchPkiRole := os.Getenv("ORCH_PKI_ROLE")
+	orchPkiPath := os.Getenv("ORCH_PKI_PATH")
+	azureUser := os.Getenv("USERNAME")
+	azurePassword := os.Getenv("PASSWORD")
+
+	//Proxies
+	httpProxy := os.Getenv("HTTP_PROXY")
+	httpsProxy := os.Getenv("HTTPS_PROXY")
+	noProxy := os.Getenv("NO_PROXY")
+	ftpProxy := os.Getenv("FTP_PROXY")
+	sockProxy := os.Getenv("SOCKS_PROXY")
+
+	//KEYCLOAK and VAULT
+	keycloak := os.Getenv("KEYCLOAK_URL")
+	vault := os.Getenv("VAULT_URL")
 
 	// Substitute relevant data in the script
 	//modifiedScript := strings.ReplaceAll(string(content), "__SUBSTITUTE_PACKAGE_COMMANDS__", packages)
-	modifiedScript := strings.ReplaceAll(string(content), "__FILE_SERVER__", fileServer)
+	modifiedScript := strings.ReplaceAll(string(content), "__REGISTRY_URL__", harborServer)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__FILE_SERVER__", fileServer)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__AUTH_SERVER__", config.AuthServer)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__GPGKey__", config.GPGKey)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_CLUSTER__", orchCluster)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_INFRA__", orchInfra)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_UPDATE__", orchUpdate)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PLATFORM_OBS_HOST__", orchPlatformObsHost)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PLATFORM_OBS_PORT__", orchPlatformObsPort)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PLATFORM_OBS_METRICS_HOST__", orchPlatformObsMetricsHost)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PLATFORM_OBS_METRICS_PORT__", orchPlatformObsMetricsPort)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_TELEMETRY_HOST__", orchTelemetryHost)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_TELEMETRY_PORT__", orchTelemetryPort)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_VAULT__", orchVault)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PKI_ROLE__", orchPkiRole)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PKI_PATH__", orchPkiPath)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__USERNAME__", azureUser)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__PASSWORD__", azurePassword)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__KEYCLOAK__", keycloak)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__VAULT__", vault)
 
 	// Loop through the agentsList
 	for _, agent := range agentsList {
@@ -178,19 +222,33 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 		zlog.MiSec().Fatal().Err(err).Msgf("Error: %v", err)
 	}
 
-	if MODE == "dev" || MODE == "preint" {
-		//Add proxies to the installer script for dev environment.
-		newLines := []string{"echo 'http_proxy=http://proxy-dmz.intel.com:911' >> /etc/environment;",
-			"echo 'https_proxy=http://proxy-dmz.intel.com:912' >> /etc/environment;",
-			"echo 'ftp_proxy=http://proxy-dmz.intel.com:911' >> /etc/environment;",
-			"echo 'socks_server=http://proxy-dmz.intel.com:1080' >> /etc/environment;",
-			"echo 'no_proxy=localhost,*.intel.com,*intel.com,127.0.0.1,intel.com' >> /etc/environment;",
-			" . /etc/environment;",
-			"export http_proxy https_proxy ftp_proxy socks_server no_proxy;",
+	proxies := map[string]string{
+		"http_proxy":  httpProxy,
+		"https_proxy": httpsProxy,
+		"ftp_proxy":   ftpProxy,
+		"socks_proxy": sockProxy,
+		"no_proxy":    noProxy,
+	}
+	var newLines []string
+	//Add proxies to the installer script for dev environment.
+	if len(proxies) > 0 {
+		newLines = append(newLines, "if [ ! -f '/etc/environment' ]; then")
+		for key, value := range proxies {
+			if value != "" {
+				newLines = append(newLines, fmt.Sprintf("    echo '%s=%s' >> /etc/environment;", key, value))
+			}
 		}
-		AddProxies(scriptFileName, newLines)
+		newLines = append(newLines, "    echo 'File /etc/environment created and proxies written.'")
+		newLines = append(newLines, "else")
+		newLines = append(newLines, "    echo 'File already exist'")
+		newLines = append(newLines, "fi")
+		newLines = append(newLines, ". /etc/environment;")
+		newLines = append(newLines, "export http_proxy https_proxy ftp_proxy socks_server no_proxy;")
 
 	}
+
+	AddProxies(scriptFileName, newLines)
+
 	return scriptFileName
 }
 

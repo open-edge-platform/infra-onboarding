@@ -93,25 +93,11 @@ func (server *Service) GetArtifacts(ctx context.Context, req *pb.GetArtifactsReq
 	url = proxyIP + "/" + scriptName[len(scriptName)-1]
 	zlog.MiSec().Info().Msgf("url %s", url)
 	osUrl := proxyIP + "/" + config.ImageFileName
-
-	// data := GetData()
-
-	// yamlContent, err := yaml.Marshal(data)
-	// if err != nil {
-	// 	zlog.MiSec().Fatal().Err(err).Msgf("Error... %v", err)
-	// 	return nil, err
-	// }
+	zlog.MiSec().Info().Msgf("osUrl %s", osUrl)
 
 	zlog.MiSec().Info().Msg("Return Manifest file.")
 	return &pb.GetArtifactsResponse{StatusCode: true, OsUrl: osUrl, OverlayscriptUrl: url}, nil
 }
-
-// func GetData() Data {
-// 	return Data{
-// 		OsUrl:            "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img",
-// 		OverlayScriptUrl: url,
-// 	}
-// }
 
 func GetCuratedScript(profile string, platform string) string {
 	filename := curation.GetCuratedScript(profile, platform)
@@ -125,8 +111,6 @@ func GetServerUrl() string {
 func SignMicroOS() (bool, error) {
 	//MODE := GetMODE()
 	scriptPath := GetScriptDir()
-	// _, err := rest.InClusterConfig()
-	// if err == nil {
 	signed, err := signing.SignHookOS(scriptPath)
 	if err != nil {
 		zlog.MiSec().Info().Msgf("Failed to sign MicroOS %v", err)
@@ -135,9 +119,7 @@ func SignMicroOS() (bool, error) {
 	if signed {
 		zlog.MiSec().Info().Msgf("Signed MicroOS and moved to PVC")
 	}
-	// } else {
-	// 	zlog.MiSec().Info().Msgf("Skip Signing")
-	// }
+
 	return true, nil
 }
 
@@ -160,6 +142,7 @@ func GetMODE() string {
 }
 
 func GetScriptDir() string {
+	scriptPath := ""
 	currentDir, err := os.Getwd()
 	if err != nil {
 		zlog.MiSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
@@ -167,9 +150,18 @@ func GetScriptDir() string {
 	}
 	zlog.MiSec().Info().Msgf("Current dir %s", currentDir)
 	// Navigate two levels up
-	parentDir := filepath.Join(currentDir, "..", "..")
-	zlog.MiSec().Info().Msgf("Root dir %s", parentDir)
-	scriptPath := filepath.Join(parentDir, "pkg", "script")
+
+	path := filepath.Join(currentDir, "pkg", "script")
+	_, geterr := os.Stat(path)
+	if geterr == nil {
+		scriptPath = path
+	}
+	if os.IsNotExist(geterr) {
+		parentDir := filepath.Join(currentDir, "..", "..")
+		zlog.MiSec().Info().Msgf("Root dir %s", parentDir)
+		scriptPath = filepath.Join(parentDir, "pkg", "script")
+	}
+	zlog.MiSec().Info().Msgf("scriptPath dir %s", scriptPath)
 	return scriptPath
 }
 
@@ -195,7 +187,7 @@ func DownloadOS() error {
 		zlog.MiSec().Info().Msgf("Compressed raw image file already exists: %s", file)
 	}
 
-	zlog.MiSec().Info().Msg("File downloaded and converted into raw file")
+	zlog.MiSec().Info().Msg("Ubuntu OS downloaded and move to PVC")
 	return nil
 
 }

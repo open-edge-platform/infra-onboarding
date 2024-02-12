@@ -65,7 +65,12 @@ build-dkammgr:
 
 docker-dkammgr:
     FROM ubuntu:latest
-    RUN apt update && \
+    ARG USERNAME=appuser
+    ARG USER_UID=1000
+    ARG USER_GID=$USER_UID
+    RUN groupadd --gid $USER_GID $USERNAME && \
+        useradd --uid $USER_UID --gid $USER_GID -m $USERNAME && \
+        apt update && \
         apt install -y \
         autoconf automake make gcc \
         m4 git gettext autopoint pkg-config \
@@ -73,10 +78,11 @@ docker-dkammgr:
         gawk efitools sbsigntool gnupg uuid-runtime \
         pigz qemu-utils
     ARG version='0.0.0-unknown'
-    WORKDIR /
-    COPY pkg /pkg
+    WORKDIR /home/$USERNAME
+    COPY pkg /home/$USERNAME/pkg
+    RUN chown -R $USERNAME:$USERNAME /home/$USERNAME
     COPY (+build-dkammgr/dkammgr --version=$version) .
-    ENTRYPOINT ["/dkammgr"]
+    ENTRYPOINT ["/home/appuser/dkammgr"]    
     SAVE IMAGE $DOCKER_REGISTRY/$DOCKER_REPOSITORY/$IMG_NAME:$VERSION
 
 helm-dkammgr:
