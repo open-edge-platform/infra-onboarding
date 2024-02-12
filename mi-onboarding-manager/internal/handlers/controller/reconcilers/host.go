@@ -5,9 +5,12 @@ package reconcilers
 
 import (
 	"context"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/common"
 	"time"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/auth"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/invclient"
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/status"
 
@@ -84,7 +87,11 @@ func (hr *HostReconciler) deleteHost(
 	zlogHost.Info().Msgf("Deleting host ID %s (set current status Deleted)\n", host.GetResourceId())
 
 	// if the current state is Untrusted, host certificates are already revoked
-	// TODO: add revoke certificates
+	if host.GetCurrentState() != computev1.HostState_HOST_STATE_UNTRUSTED {
+		if err := hr.revokeHostCredentials(ctx, host.GetUuid()); err != nil {
+			return err
+		}
+	}
 
 	// following functions are only modifying current state
 	// we continue to delete other host objects in case of not found errors
@@ -201,11 +208,33 @@ func (hr *HostReconciler) deleteHostUsbByHost(ctx context.Context, host *compute
 	return nil
 }
 
+func (hr *HostReconciler) revokeHostCredentials(ctx context.Context, uuid string) error {
+	if !*common.FlagDisableCredentialsManagement {
+		zlogHost.Warn().Msgf("disableCredentialsManagement flag is set to false, " +
+			"skip credentials revocation")
+		return nil
+	}
+
+	authService, err := auth.AuthServiceFactory(ctx)
+	if err != nil {
+		return err
+	}
+	defer authService.Logout(ctx)
+
+	if revokeErr := authService.RevokeCredentialsByUUID(ctx, uuid); revokeErr != nil && !inv_errors.IsNotFound(revokeErr) {
+		zlogHost.MiSec().MiError("Failed to revoke credentials of host %s.", uuid).Msg("revokeHostCredentials")
+		return inv_errors.Wrap(revokeErr)
+	}
+
+	return nil
+}
+
 func (hr *HostReconciler) invalidateHost(ctx context.Context, host *computev1.HostResource) error {
 	zlogHost.Debug().Msgf("Invalidating Host %s", host.GetResourceId())
 
-	// TODO: revoke JWT credentials in Keycloak once the design is finalized
-	//  As for now, this function only sets the current state to UNTRUSTED + corresponding statuses.
+	if err := hr.revokeHostCredentials(ctx, host.GetUuid()); err != nil {
+		return err
+	}
 
 	untrustedHost := computev1.HostResource{
 		ResourceId:          host.GetResourceId(),

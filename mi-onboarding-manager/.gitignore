@@ -11,7 +11,7 @@ build/*
 .DS_Store
 vendor
 .tmp-earthly-out/
-
+internal/onboardingmgr/azure_env/azure-credentials.env*
 ## From https://github.com/github/gitignore/blob/main/Go.gitignore
 
 # Binaries for programs and plugins

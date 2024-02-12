@@ -7,6 +7,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/secrets"
 	"os"
 	"os/signal"
 	"sync"
@@ -37,6 +38,7 @@ var (
 	oamServerAddress = flag.String(oam.OamServerAddress, "", oam.OamServerAddressDescription)
 	enableTracing    = flag.Bool(tracing.EnableTracing, false, tracing.EnableTracingDescription)
 	traceURL         = flag.String(tracing.TraceURL, "", tracing.TraceURLDescription)
+	// see also internal/common/flags.go for other flags
 
 	wg        = sync.WaitGroup{}
 	readyChan = make(chan bool, 1)
@@ -131,6 +133,10 @@ func main() {
 	}
 
 	onboarding.InitOnboarding(invClient, *dkamAddr)
+
+	if initErr := secrets.Init(context.Background()); initErr != nil {
+		zlog.MiSec().Fatal().Err(initErr).Msgf("Unable to initialize required secrets")
+	}
 
 	onboardingController, err := controller.New(invClient)
 	if err != nil {

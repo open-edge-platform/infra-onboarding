@@ -6,7 +6,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -179,7 +178,7 @@ func (obc *OnboardingController) reconcileResource(resourceID string) error {
 	}
 
 	if err = controller.Reconcile(reconcilers.ResourceID(resourceID)); err != nil {
-		log.Println("error while reconcile:", err)
+		zlog.Err(err).Msgf("Error while reconciling resource ID %s", resourceID)
 		return err
 	}
 	return nil

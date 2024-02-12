@@ -1,0 +1,11 @@
+// SPDX-FileCopyrightText: (C) 2024 Intel Corporation
+// SPDX-License-Identifier: LicenseRef-Intel
+
+package common
+
+import "flag"
+
+var (
+	FlagDisableCredentialsManagement = flag.Bool("disableCredentialsManagement", false,
+		"Disables credentials management for edge nodes. Should only be used for testing")
+)
