@@ -85,7 +85,8 @@ get_nginx_conf() {
     fi
 
     # Update NGINX runtime configs in hook.yaml
-    sed -i "s|update_tink_svc|$tinker_svc|g" hook.yaml
+    sed -i "s|update_tink_stack_svc|$tink_stack_svc|g" hook.yaml
+    sed -i "s|update_tink_server_svc|$tink_server_svc|g" hook.yaml
     sed -i "s|update_release_svc|$release_svc|g" hook.yaml
     sed -i "s|update_oci_release_svc|$oci_release_svc|g" hook.yaml
     sed -i "s|update_manufacturer_svc|$fdo_manufacturer_svc|g" hook.yaml

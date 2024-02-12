@@ -33,7 +33,7 @@ pd_host_ip=""
 load_balancer_ip=""
 
 #provide Keyclock url
-keycloak_url=""
+keycloak_url="keycloak.kind.intrenal"
 
 #provide harbor or docker registry where tinker_actions are hosted
 # example harbor_url_tinker_actions="amr-registry.caas.intel.com/one-intel-edge/edgenode/tinker-actions"
@@ -48,7 +48,9 @@ fdo_manufacturer_svc=""
 fdo_owner_svc=""
 release_svc=""
 oci_release_svc=""
-tinker_svc=""
+tink_stack_svc=""
+tink_server_svc=""
+
 
 ## Organizationonal proxy config (default is intel)
 http_proxy=""
