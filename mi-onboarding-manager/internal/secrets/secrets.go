@@ -51,7 +51,7 @@ func GetClientSecret() string {
 }
 
 func (ss *secretService) init(ctx context.Context) error {
-	if !*common.FlagDisableCredentialsManagement {
+	if *common.FlagDisableCredentialsManagement {
 		zlog.Warn().Msgf("disableCredentialsManagement flag is set to false, " +
 			"skip secrets initialization")
 		return nil

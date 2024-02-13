@@ -6,6 +6,8 @@ package reconcilers
 import (
 	"context"
 	"errors"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/common"
+	"os"
 	"reflect"
 	"testing"
 
@@ -16,6 +18,12 @@ import (
 	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
 	"github.com/stretchr/testify/mock"
 )
+
+func TestMain(m *testing.M) {
+	*common.FlagDisableCredentialsManagement = true
+	run := m.Run() // run all tests
+	os.Exit(run)
+}
 
 func TestNewHostReconciler(t *testing.T) {
 	type args struct {

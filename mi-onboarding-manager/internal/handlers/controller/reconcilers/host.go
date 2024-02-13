@@ -209,7 +209,7 @@ func (hr *HostReconciler) deleteHostUsbByHost(ctx context.Context, host *compute
 }
 
 func (hr *HostReconciler) revokeHostCredentials(ctx context.Context, uuid string) error {
-	if !*common.FlagDisableCredentialsManagement {
+	if *common.FlagDisableCredentialsManagement {
 		zlogHost.Warn().Msgf("disableCredentialsManagement flag is set to false, " +
 			"skip credentials revocation")
 		return nil
