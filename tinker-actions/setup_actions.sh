@@ -22,6 +22,7 @@ fde_setup=./tinker_actions/fde
 creds_copy=./tinker_actions/creds_copy
 client_auth=./tinker_actions/client_auth
 nginx_proxy=./tinker_actions/nginx_proxy
+image2disk=./tinker_actions/image2disk/v1
 
 fdo_docker_setup() {
     pushd $fdo_action_build
@@ -93,6 +94,15 @@ nginxproxy_setup() {
     popd
 }
 
+image2disk_setup() {
+
+    pushd $efibootset
+
+    bash build.sh
+
+    popd
+}
+
 main() {
 
     apt install -y build-essential
@@ -107,6 +117,8 @@ main() {
 
     client_auth_setup
     nginxproxy_setup
+    image2disk_setup
+
 }
 
 main

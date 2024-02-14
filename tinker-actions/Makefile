@@ -61,6 +61,7 @@ docker-push:
 	docker tag cred_copy:latest ${DOCKER_TAG}/cred_copy:${BRANCH_NAME}
 	docker tag client_auth:latest ${DOCKER_TAG}/client_auth:${BRANCH_NAME}
 	docker tag nginx_proxy_action:latest ${DOCKER_TAG}/nginx_proxy_action:${BRANCH_NAME}
+	docker tag image2disk:latest ${DOCKER_TAG}/image2disk:${BRANCH_NAME}
 
 	docker push ${DOCKER_TAG}/efibootset:${BRANCH_NAME}
 	docker push ${DOCKER_TAG}/fdoclient_action:${BRANCH_NAME}
@@ -70,6 +71,7 @@ docker-push:
 	docker push ${DOCKER_TAG}/cred_copy:${BRANCH_NAME}
 	docker push ${DOCKER_TAG}/client_auth:${BRANCH_NAME}
 	docker push ${DOCKER_TAG}/nginx_proxy_action:${BRANCH_NAME}
+	docker push ${DOCKER_TAG}/image2disk:${BRANCH_NAME}
 
 	docker tag efibootset:latest ${DOCKER_TAG}/efibootset:${VERSION}
 	docker tag fdoclient_action:latest ${DOCKER_TAG}/fdoclient_action:${VERSION}
@@ -79,6 +81,7 @@ docker-push:
 	docker tag cred_copy:latest ${DOCKER_TAG}/cred_copy:${VERSION}
 	docker tag client_auth:latest ${DOCKER_TAG}/client_auth:${VERSION}
 	docker tag nginx_proxy_action:latest ${DOCKER_TAG}/nginx_proxy_action:${VERSION}
+	docker tag image2disk:latest ${DOCKER_TAG}/image2disk:${VERSION}
 
 	docker push ${DOCKER_TAG}/efibootset:${VERSION}
 	docker push ${DOCKER_TAG}/fdoclient_action:${VERSION}
@@ -88,6 +91,7 @@ docker-push:
 	docker push ${DOCKER_TAG}/cred_copy:${VERSION}
 	docker push ${DOCKER_TAG}/client_auth:${VERSION}
 	docker push ${DOCKER_TAG}/nginx_proxy_action:${VERSION}
+	docker push ${DOCKER_TAG}/image2disk:${VERSION}
 
 
 lint-ci: license
