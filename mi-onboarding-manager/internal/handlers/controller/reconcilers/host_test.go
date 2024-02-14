@@ -6,10 +6,12 @@ package reconcilers
 import (
 	"context"
 	"errors"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/common"
+	"flag"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/common"
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
@@ -672,3 +674,88 @@ func TestHostReconciler_Reconcile(t *testing.T) {
 		})
 	}
 }
+
+func TestHostReconciler_revokeHostCredentials(t *testing.T) {
+	type fields struct {
+		invClient *invclient.OnboardingInventoryClient
+	}
+	type args struct {
+		ctx  context.Context
+		uuid string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			fields: fields{
+				invClient: &invclient.OnboardingInventoryClient{
+					Client: &onboarding.MockInventoryClient{},
+				},
+			},
+			args: args{
+				ctx:  context.Background(),
+				uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hr := &HostReconciler{
+				invClient: tt.fields.invClient,
+			}
+			if err := hr.revokeHostCredentials(tt.args.ctx, tt.args.uuid); (err != nil) != tt.wantErr {
+				t.Errorf("HostReconciler.revokeHostCredentials() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestHostReconciler_revokeHostCredentials_Case(t *testing.T) {
+	common.FlagDisableCredentialsManagement = flag.Bool("name", false, "")
+	type fields struct {
+		invClient *invclient.OnboardingInventoryClient
+	}
+	type args struct {
+		ctx  context.Context
+		uuid string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			fields: fields{
+				invClient: &invclient.OnboardingInventoryClient{
+					Client: &onboarding.MockInventoryClient{},
+				},
+			},
+			args: args{
+				ctx:  context.Background(),
+				uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hr := &HostReconciler{
+				invClient: tt.fields.invClient,
+			}
+			if err := hr.revokeHostCredentials(tt.args.ctx, tt.args.uuid); (err != nil) != tt.wantErr {
+				t.Errorf("HostReconciler.revokeHostCredentials() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+	defer func() {
+		common.FlagDisableCredentialsManagement = flag.Bool("", true, "")
+	}()
+}
+

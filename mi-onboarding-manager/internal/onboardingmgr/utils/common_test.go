@@ -161,8 +161,6 @@ func TestClearFileAndWriteHeader(t *testing.T) {
 	type args struct {
 		filePath string
 	}
-	wd, _ := os.Getwd()
-	fmt.Println(wd)
 	tests := []struct {
 		name         string
 		args         args
@@ -185,3 +183,41 @@ func TestClearFileAndWriteHeader(t *testing.T) {
 		})
 	}
 }
+
+func TestClearFileAndWriteHeader_case(t *testing.T) {
+	type args struct {
+		filePath string
+	}
+	wd, _ := os.Getwd()
+	tempFile, err := os.CreateTemp(wd, "common_file_*.go")
+	if err != nil {
+		t.Errorf("Error creating temporary file: %v", err)
+		return
+	}
+	defer os.Remove(tempFile.Name())
+	defer tempFile.Close()
+
+	fmt.Println(wd)
+	tests := []struct {
+		name         string
+		args         args
+		wantErr      bool
+		expectedText string
+	}{
+		{
+			name: "Test Case 1",
+			args: args{
+				filePath: tempFile.Name(),
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := ClearFileAndWriteHeader(tt.args.filePath); (err != nil) != tt.wantErr {
+				t.Errorf("ClearFileAndWriteHeader() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
