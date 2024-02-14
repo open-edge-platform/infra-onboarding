@@ -28,13 +28,17 @@ DOCKER_REGISTRY         ?= amr-registry.caas.intel.com
 DOCKER_REPOSITORY       ?= one-intel-edge/maestro-i
 DOCKER_TAG              := ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}
 
+# Base branch to check against for breaking API changes
+BASE_BRANCH ?= main
 
 # Path variables
+APIPKG_DIR := pkg/api
 BUILD_DIR  := build
 
 # Tools versions
 GOLINTVERSION_HAVE        := $(shell golangci-lint version | sed 's/.*version //' | sed 's/ .*//')
 POSTGRES_VERSION          := 14.9
+BUFVERSION_REQ			  := 1.27.1
 
 GOCMD := GOPRIVATE="github.com/intel-innersource/*" go
 
@@ -70,9 +74,11 @@ docker-build: go-vendor
 docker-push:
 	docker push ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}:${IMG_VERSION}
 
+generate-ci: buf-gen
+
 #lint-ci: license go-lint
 
-lint-ci: go-lint license
+lint-ci: license go-lint buf-lint
 
 ${BUILD_DIR}:
 	mkdir -p ${BUILD_DIR}
@@ -82,6 +88,20 @@ license: $(VENV_NAME) ## Check licensing with the reuse tool.
 	. ./$</bin/activate; set -u;\
 	reuse --version;\
 	reuse --root . lint
+
+buf-lint: ## Lint and format protobuf files
+	buf --version
+	buf format -d --exit-code
+	# TODO: buf lint and breaking disabled for now
+	#buf lint
+	#buf breaking --against 'https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service.git#branch=${BASE_BRANCH}'
+
+buf-gen: ## compile protoc files into code
+	buf --version ;\
+	buf generate
+
+go-dependency: ## install go dependency tooling
+	$(GOCMD) install github.com/bufbuild/buf/cmd/buf@v${BUFVERSION_REQ}
 
 go-lint: ## run go lint
 	golangci-lint linters
@@ -106,12 +126,6 @@ go-tidy: ## go mod tidy
 go-vendor:
 	$(GOCMD) mod vendor
 
-lint:
-	@# Help: Runs lint stage
-	@echo "---MAKEFILE LINT---"
-	echo $@
-	@echo "---END MAKEFILE LINT---"
-
 test: ${BUILD_DIR} ## run tests, generate output
 	$(MAKE) db-stop
 	$(MAKE) db-start
@@ -131,6 +145,11 @@ coverage:
 list: 
 	@# Help: displays make targets
 	help
+
+clean:
+	rm -rf ${BUILD_DIR}
+	rm -rf api/proto/
+	rm -rf ${APIPKG_DIR}/*.go
 
 help:	
 	@printf "%-20s %s\n" "Target" "Description"

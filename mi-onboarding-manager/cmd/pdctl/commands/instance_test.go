@@ -13,8 +13,8 @@ import (
 	"strings"
 	"testing"
 
-	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
-	pbinv "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/api/grpc/onboardingmgr"
+	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/api"
+	pbinv "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
@@ -331,9 +331,9 @@ func Test_deleteArtifacts(t *testing.T) {
 	}
 	defer conn.Close()
 	type args struct {
-		ctx        context.Context
-		cc         *grpc.ClientConn
-		artifact   *pb.ArtifactData
+		ctx      context.Context
+		cc       *grpc.ClientConn
+		artifact *pb.ArtifactData
 	}
 	tests := []struct {
 		name    string
