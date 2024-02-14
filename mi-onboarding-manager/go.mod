@@ -10,7 +10,7 @@ require (
 	github.com/apex/log v1.9.0
 	github.com/gocql/gocql v1.6.0
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.0.4
-	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory v0.10.2-0.20240212100820-3125fbe700c6
+	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory v0.10.2
 	github.com/jinzhu/configor v1.2.1
 	github.com/onosproject/onos-lib-go v0.10.24
 	github.com/pkg/errors v0.9.1
