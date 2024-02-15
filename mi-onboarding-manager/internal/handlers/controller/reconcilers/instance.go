@@ -8,12 +8,13 @@ import (
 	"context"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
+	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding"
+	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
+	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
+	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 
-	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding"
-	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
-	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
 )
 
@@ -64,15 +65,16 @@ func (ir *InstanceReconciler) reconcileInstance(
 	instance *computev1.InstanceResource,
 ) rec_v2.Directive[ResourceID] {
 	instanceID := instance.GetResourceId()
-	zlogInst.Debug().Msgf("Reconciling Instance with ID %s, with Current state: %v, Desired state: %v.",
-		instance.GetResourceId(), instance.GetCurrentState(), instance.GetDesiredState())
+	host := instance.GetHost()
 
-	onboardingMgr := &onboarding.OnboardingManager{}
+	zlogInst.Info().Msgf("Reconciling Instance with ID %s, with Current state: %v, Desired state: %v, HostState: %s",
+		instance.GetResourceId(), instance.GetCurrentState(), instance.GetDesiredState(), host.GetLegacyHostStatus())
 
 	// TODO: we should also check if there is no onboarding in progress
-	if instance.GetDesiredState() == computev1.InstanceState_INSTANCE_STATE_RUNNING {
+	if instance.GetDesiredState() == computev1.InstanceState_INSTANCE_STATE_RUNNING &&
+		host.GetLegacyHostStatus() == computev1.HostStatus_HOST_STATUS_UNSPECIFIED {
 		// no need to query Host from Inventory, eager loaded from Instance
-		host := instance.GetHost()
+
 		zlogInst.MiSec().Debug().Msgf("Host details associated with Instance id %v Resource %v", host, host.ResourceId)
 		// no need to query OS from Inventory, eager loaded from Instance
 		os := instance.GetOs()
@@ -82,6 +84,7 @@ func (ir *InstanceReconciler) reconcileInstance(
 			zlogInst.MiSec().MiErr(err).Msgf("Failed to Get Host Resource by ID")
 			return request.Ack()
 		}
+
 		onboardingRequest, err := onboarding.ConvertInstanceForOnboarding([]*osv1.OperatingSystemResource{os}, host)
 		if err != nil {
 			zlogInst.MiSec().MiErr(err).Msgf("Failed to convert instance for onboarding")
@@ -90,23 +93,13 @@ func (ir *InstanceReconciler) reconcileInstance(
 
 		zlogInst.MiSec().Debug().Msgf("onboarding request: %v", onboardingRequest)
 
-		if len(onboardingRequest) > 0 {
-			response, oberr := onboardingMgr.StartOnboarding(ctx, onboardingRequest[0])
-			if oberr != nil {
-				zlogInst.MiSec().MiErr(oberr).Msgf("Failed to start onboard for the instance ID : %s", instanceID)
-				return request.Ack()
-			}
+		onboarding.UpdateHostStatusByHostGUID(ctx, ir.invClient, host.GetUuid(),
+			computev1.HostStatus_HOST_STATUS_INITIALIZING,
+			"Host Initializing", // TODO: empty status details for now, add more details in future
+			om_status.InitializationInProgress)
 
-			if response.Status == "Success" {
-				updateErr := ir.updateInstance(ctx, instanceID)
-				if updateErr != nil {
-					zlogInst.MiSec().MiErr(updateErr).Msgf("Failed to update instance with ID : %s", instanceID)
-					return request.Ack()
-				}
-			} else {
-				zlogInst.MiSec().Error().Msgf("Failed to start onboarding, response status=%s", response.Status)
-				return request.Ack()
-			}
+		if len(onboardingRequest) > 0 {
+			go onboarding.StartOnboard(ctx, onboardingRequest[0], instanceID)
 		} else {
 			zlogInst.MiSec().Error().Msg("Failed to start onboarding, empty onboarding request list")
 			return request.Ack()

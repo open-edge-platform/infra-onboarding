@@ -18,17 +18,17 @@ import (
 	"sync"
 	"time"
 
-	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
-
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-
 	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onbworkflowclient"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
-	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
+	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	logging "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
+	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onbworkflowclient"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	"github.com/mohae/deepcopy"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -60,6 +60,15 @@ func InitOnboarding(invClient *invclient.OnboardingInventoryClient, _ string) {
 var (
 	enableDI          = flag.Bool("enableDI", false, "Set to true to enable Device Initialization routine")
 	enableImgDownload = flag.Bool("enableImgDownload", false, "Set to true to enable Image Download")
+)
+
+const (
+	instanceReconcilerLoggerName = "InstanceReconciler"
+)
+
+// Misc variables.
+var (
+	zlogInst = logging.GetLogger(instanceReconcilerLoggerName)
 )
 
 func generateGatewayFromBaseIP(baseIP string) string {
@@ -514,14 +523,10 @@ func GetOSResourceFromDkamService(ctx context.Context, profilename, platform str
 }
 
 var (
-	mu             sync.Mutex
 	requestCounter int
 )
 
-func startOnboard(req *pb.OnboardingRequest) (*pb.OnboardingResponse, error) {
-	// Lock to ensure only one request is processed at a time
-	mu.Lock()
-	defer mu.Unlock()
+func StartOnboard(ctx context.Context, req *pb.OnboardingRequest, resID string) (*pb.OnboardingResponse, error) {
 
 	// Increment the request counter for each incoming request
 	requestCounter++
@@ -542,6 +547,18 @@ func startOnboard(req *pb.OnboardingRequest) (*pb.OnboardingResponse, error) {
 	// Call the DeviceOnboardingManager function to manage the onboarding of devices
 	err = DeviceOnboardingManager(deviceInfoList, artifactinfo)
 	if err != nil {
+		zlogInst.MiSec().MiErr(err).Msgf("Failed to StartOnboard by ID %s", resID)
+		return nil, err
+	}
+
+	inst := &computev1.InstanceResource{
+		ResourceId:   resID,
+		CurrentState: computev1.InstanceState_INSTANCE_STATE_RUNNING,
+	}
+
+	err = _invClient.UpdateInstanceCurrentState(ctx, inst)
+	if err != nil {
+		zlogInst.MiSec().MiErr(err).Msgf("Failed to Get Host Resource by ID %s", resID)
 		return nil, err
 	}
 
@@ -549,7 +566,16 @@ func startOnboard(req *pb.OnboardingRequest) (*pb.OnboardingResponse, error) {
 	return &pb.OnboardingResponse{Status: result}, nil
 }
 
-func (s *OnboardingManager) StartOnboarding(_ context.Context, req *pb.OnboardingRequest) (*pb.OnboardingResponse, error) {
-	//Moving changes to seperate function to enable both gRPC endpoint and onboarding manager to call from Instance Reconsile
-	return startOnboard(req)
+func (s *OnboardingManager) StartOnboarding(ctx context.Context, req *pb.OnboardingRequest) (*pb.OnboardingResponse, error) {
+	// Moving changes to separate function to enable both gRPC endpoint and onboarding manager to call from Instance Reconcile
+	// This endpoint is only for internal testing, will be removed if end-to-end flow works properly.
+	_, err := StartOnboard(ctx, req, "")
+	if err != nil {
+		// Handle error
+		zlogInst.MiSec().MiErr(err).Msgf("Failed to StartOnboarding")
+		return nil, err
+	}
+
+	result := "Success"
+	return &pb.OnboardingResponse{Status: result}, nil
 }
