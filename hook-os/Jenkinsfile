@@ -195,10 +195,19 @@ pipeline {
 					when {
 						anyOf { branch 'main'; branch 'feature*'; branch 'release*' }
 					}
+					agent {
+						docker {
+							label 'oie_spot_executor'
+							image 'amr-registry.caas.intel.com/one-intel-edge/rrp-devops/oie_ci_testing:latest'
+							alwaysPull true
+				    		}
+			      		}
 					steps {
 						 withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'intel-harbor-credentials',
                                         usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
                         		{
+						        unstash 'alpine_image'
+					        	unstash 'alpine_image_secureboot'
 							sh '''
 							/opt/ci/push-oci-package.sh -f 'alpine_image/hook_x86_64.tar.gz alpine_image_secureboot/*'
 							'''
