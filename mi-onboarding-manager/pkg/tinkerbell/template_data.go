@@ -215,9 +215,9 @@ func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gatewa
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/usr/local/bin/grow_part.sh",
 						"CONTENTS": fmt.Sprintf(`#!/bin/bash
-growpart {{ index .Hardware.Disks 0 }} %s
+growpart {{ index .Hardware.Disks 0 }} 1 
 resize2fs {{ index .Hardware.Disks 0 }}%s
-touch /usr/local/bin/.grow_part_done`, rootPart, rootPart),
+touch /usr/local/bin/.grow_part_done`,rootPart),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -276,11 +276,11 @@ touch /usr/local/bin/.grow_part_done`, rootPart, rootPart),
 						"CONTENTS": `
 						[Unit]
 						Description=Profile and node agents Package Installation
-						After=network.target
+						After=update-netplan.service
 						ConditionPathExists = !/home/user/Setup/.base_pkg_install_done
 		
 						[Service]
-						ExecStartPre=/bin/sleep 60
+						ExecStartPre=/bin/sleep 20 
 						WorkingDirectory=/home/user/Setup
 						ExecStart=/home/user/Setup/installer.sh
 						Restart=always
@@ -313,19 +313,15 @@ touch /usr/local/bin/.grow_part_done`, rootPart, rootPart),
 						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/netplan/config.yaml",
-						"CONTENTS": fmt.Sprintf(`
-                network:
+						"CONTENTS":
+                `network:
                   version: 2
                   renderer: networkd
                   ethernets:
                     id0:
                       match:
                         name: en*
-                      dhcp4: no
-                      addresses: [%s/24]
-                      gateway4: %s
-                      nameservers:
-                        addresses: [ 10.248.2.1,172.30.90.4,10.223.45.36]`, clientIP, gateway),
+                      dhcp4: yes`, 
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0644",
@@ -333,6 +329,44 @@ touch /usr/local/bin/.grow_part_done`, rootPart, rootPart),
 					},
 				},
 
+				{
+                                        Name:    "update-netplan-to-make-ip-static",
+                                        Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+                                        Timeout: 200,
+                                        Environment: map[string]string{
+                                                "DEST_DISK":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+                                                "FS_TYPE":             "ext4",
+                                                "DEST_PATH": "/home/user/Setup/update_netplan_config.sh",
+                                                "CONTENTS": fmt.Sprintf(`#!/bin/bash
+interface=$(ip route show default | awk '/default/ {print $5}')
+gateway=$(ip route show default | awk '/default/ {print $3}')
+sub_net=$(ip addr show | grep $interface | grep -E 'inet ./*' | awk '{print $2}' | awk -F'/' '{print $2}')
+# Define the network configuration in YAML format with variables
+config_yaml="
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    id0:
+      match:
+        name: en*
+      dhcp4: no
+      addresses: [ %s/$sub_net ]
+      gateway4: $gateway
+      nameservers:
+        addresses: [10.248.2.1,172.30.90.4,10.223.45.36]
+"
+# Write the YAML configuration to the file
+echo "$config_yaml" | tee /etc/netplan/config.yaml
+touch .netplan_update_done
+netplan apply`,clientIP),
+                                "UID":     "0",
+                                "GID":     "0",
+                                "MODE":    "0755",
+                                "DIRMODE": "0755",
+                                        },
+                                },
+				
 				{
 					Name:    "service-script-for-grow-partion-installer",
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
@@ -372,6 +406,48 @@ touch /usr/local/bin/.grow_part_done`, rootPart, rootPart),
 						"CMD_LINE":            "systemctl enable install-grow-part.service",
 					},
 				},
+				
+				{
+                                        Name:    "service-script-for-netplan-update",
+                                        Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+                                        Timeout: 200,
+                                        Environment: map[string]string{
+                                                "DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+                                                "FS_TYPE":   "ext4",
+                                                "DEST_PATH": "/etc/systemd/system/update-netplan.service",
+                                                "CONTENTS": `
+                                                [Unit]
+                                                Description=update the netplan with to make static ip
+                                                After=network.target
+                                                ConditionPathExists = !/home/user/Setup/.netplan_update_done
+
+                                                [Service]
+                                                ExecStartPre=/bin/sleep 60 
+                                                WorkingDirectory=/home/user/Setup
+                                                ExecStart=/home/user/Setup/update_netplan_config.sh
+
+                                                [Install]
+                                                WantedBy=multi-user.target`,
+                                                "UID":     "0",
+                                                "GID":     "0",
+                                                "MODE":    "0644",
+                                                "DIRMODE": "0755",
+                                        },
+                                },
+				
+				{
+                                        Name:    "enable-update-netplan.service-script",
+                                        Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
+                                        Timeout: 200,
+                                        Environment: map[string]string{
+                                                "BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+                                                "FS_TYPE":             "ext4",
+                                                "CHROOT":              "y",
+                                                "DEFAULT_INTERPRETER": "/bin/sh -c",
+                                                "CMD_LINE":            "systemctl enable update-netplan.service",
+                                        },
+                                },
+
 				{
 					Name:    "reboot",
 					Image:   "public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest",
