@@ -42,11 +42,13 @@ http {
         ssl_certificate /etc/nginx/ssl/nginx-cert.pem;
         ssl_certificate_key /etc/nginx/ssl/nginx-key.pem;
 
-        ssl_trusted_certificate /etc/nginx/ssl/ensp-orchestrator-ca.crt;
-
         proxy_set_header Authorization "Bearer ${release_token}";
 
         location / {
+                proxy_ssl_verify on;
+            #    proxy_ssl_server_name on;
+                proxy_ssl_trusted_certificate /etc/nginx/ssl/ensp-orchestrator-ca.crt;
+                proxy_ssl_verify_depth 1;
                 proxy_pass https://${oci_release_svc};
         }
     }
