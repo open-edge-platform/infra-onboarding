@@ -8,7 +8,7 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/internal/common"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 )
 
 func TestInit(t *testing.T) {
@@ -101,7 +101,7 @@ func Test_secretService_init(t *testing.T) {
 			}
 		})
 	}
-	defer func(){
+	defer func() {
 		common.FlagDisableCredentialsManagement = flag.Bool("", false, "")
 	}()
 }

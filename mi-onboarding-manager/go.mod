@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LicenseRef-Intel
 
-module github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding
+module github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service
 
 go 1.21
 

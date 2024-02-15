@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"testing"
 
-	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/api"
+	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
 )

@@ -12,7 +12,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	pbinv "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/api"
+	pbinv "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	"gopkg.in/yaml.v2"
 
 	"github.com/spf13/cobra"

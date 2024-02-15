@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"testing"
 
-	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.managers.onboarding/pkg/api"
+	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 )
 
 func TestDeepCopyOnboardingRequest(t *testing.T) {
