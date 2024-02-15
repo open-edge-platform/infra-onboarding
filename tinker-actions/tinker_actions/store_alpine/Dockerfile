@@ -21,4 +21,7 @@ COPY grub.cfg /
 
 RUN chmod +x store_alpine.sh
 
+COPY drive_detection.sh /
+RUN chmod +x drive_detection.sh
+
 CMD ["/bin/bash", "/store_alpine.sh"]

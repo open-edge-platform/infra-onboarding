@@ -42,6 +42,12 @@ while IFS= read -r boot_part_number; do
 efibootmgr -b $boot_part_number -B
 done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )
 
+####################################################################################
+#delete the pile up HOOK OS partitions from bootMenu
+while IFS= read -r boot_part_number; do
+efibootmgr -b $boot_part_number -B
+done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )
+
 #####################################################################################
 # ######## make PXE the last boot option possible.
 # pxe_boot_number=$(efibootmgr | grep -i "Bootcurrent" | awk '{print $2}')

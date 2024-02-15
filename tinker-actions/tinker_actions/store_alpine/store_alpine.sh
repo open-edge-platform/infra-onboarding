@@ -22,6 +22,16 @@ hook_part="2"
 swap_part="3"
 creds_part="4"
 remaining_part="5"
+
+########################
+# drive detection
+source drive_detection.sh
+driveDetection
+if [ -z "$disk" ]; then
+    exit
+fi
+BLOCK_DEVICE=$disk
+
 #BLOCK_DEVICE="/dev/nvme0n1"
 
 
