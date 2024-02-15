@@ -13,47 +13,46 @@
 
 
 #####################################################################################
-#check if current boot was pxe if so then we are still in Device setup and device initialization
-out=$(grep "OS_MODE=provision" /proc/cmdline)
-if [ $? -ne 0 ];
-then
-    sleep 20
+# #check if current boot was pxe if so then we are still in Device setup and device initialization
+# out=$(grep "OS_MODE=provision" /proc/cmdline)
+# if [ $? -ne 0 ];
+# then
+#     sleep 20
+#     exit
+# fi
+
+####################################################################################
+# drive detection
+source drive_detection.sh
+driveDetection
+if [ -z "$disk" ]; then
     exit
 fi
+DRIVE=$disk
 
 
 #####################################################################################
 #move the nvme or the sda/sdb to the top of the boot orders
-disk_bootnum=$(efibootmgr -v | grep -i "nvme")
-if [ $? -ne 0 ];
-then
-    disk_bootnum=$(efibootmgr -v | grep -i "sata")
-fi
-disk_bootnum=$(awk '{ print substr($1, 5, 4)}' <<< $disk_bootnum)
+source change_boot_order.sh
+configure_boot_order $DRIVE
 
-echo "disk_bootnum $disk_bootnum"
-boot_order=$(efibootmgr | grep -i "Bootorder" | awk '{print $2}')
-remove_disk=$(sed "s/$disk_bootnum//g" <<< $boot_order)
-
-final_bootorder=$disk_bootnum","$remove_disk
-final_bootorder=$(sed "s/,,/,/g" <<< $final_bootorder)
-final_bootorder=$(sed "s/,$//g" <<< $final_bootorder)
-echo "bootorder -> $final_bootorder"
-
-efibootmgr --bootorder $final_bootorder
-echo "Made nvme/sata disk the first in the boot order"
+####################################################################################
+#delete the pile up HOOK OS partitions from bootMenu
+while IFS= read -r boot_part_number; do
+efibootmgr -b $boot_part_number -B
+done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )
 
 #####################################################################################
-######## make PXE the last boot option possible.
-pxe_boot_number=$(efibootmgr | grep -i "Bootcurrent" | awk '{print $2}')
+# ######## make PXE the last boot option possible.
+# pxe_boot_number=$(efibootmgr | grep -i "Bootcurrent" | awk '{print $2}')
 
-boot_order=$(efibootmgr | grep -i "Bootorder" | awk '{print $2}')
+# boot_order=$(efibootmgr | grep -i "Bootorder" | awk '{print $2}')
 
-remove_pxe=$(sed "s/$pxe_boot_number//g" <<< $boot_order)
-remove_pxe=$(sed "s/,,/,/g" <<< $remove_pxe)
+# remove_pxe=$(sed "s/$pxe_boot_number//g" <<< $boot_order)
+# remove_pxe=$(sed "s/,,/,/g" <<< $remove_pxe)
 
-final_bootorder=$remove_pxe","$pxe_boot_number
-final_bootorder=$(sed "s/,,/,/g" <<< $final_bootorder)
-efibootmgr --bootorder $final_bootorder
-echo "Made PXE the last in the boot order"
-#####################################################################################
+# final_bootorder=$remove_pxe","$pxe_boot_number
+# final_bootorder=$(sed "s/,,/,/g" <<< $final_bootorder)
+# efibootmgr --bootorder $final_bootorder
+# echo "Made PXE the last in the boot order"
+# #####################################################################################

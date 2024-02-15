@@ -18,4 +18,10 @@ COPY efibootset.sh /
 
 RUN chmod +x efibootset.sh
 
+COPY drive_detection.sh /
+RUN chmod +x drive_detection.sh
+
+COPY change_boot_order.sh /
+RUN chmod +x change_boot_order.sh
+
 CMD ["/bin/bash", "/efibootset.sh"]
