@@ -232,15 +232,21 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	var newLines []string
 	//Add proxies to the installer script for dev environment.
 	if len(proxies) > 0 {
-		newLines = append(newLines, "if [ ! -f '/etc/environment' ]; then")
+
 		for key, value := range proxies {
 			if value != "" {
-				newLines = append(newLines, fmt.Sprintf("    echo '%s=%s' >> /etc/environment;", key, value))
+				newLines = append(newLines, fmt.Sprintf("%s=\"%s\"", key, value))
 			}
 		}
-		newLines = append(newLines, "    echo 'File /etc/environment created and proxies written.'")
+		newLines = append(newLines, "if grep -q \"http_proxy\" /etc/environment && grep -q \"https_proxy\" /etc/environment && grep -q \"ftp_proxy\" /etc/environment && grep -q \"no_proxy\" /etc/environment; then")
+		newLines = append(newLines, "    echo \"Proxies are already present in /etc/environment.\"")
 		newLines = append(newLines, "else")
-		newLines = append(newLines, "    echo 'File already exist'")
+		newLines = append(newLines, "    echo \"http_proxy=$http_proxy\" >> /etc/environment;")
+		newLines = append(newLines, "    echo \"https_proxy=$https_proxy\" >> /etc/environment;")
+		newLines = append(newLines, "    echo \"ftp_proxy=$ftp_proxy\" >> /etc/environment;")
+		newLines = append(newLines, "    echo \"socks_server=$socks_server\" >> /etc/environment;")
+		newLines = append(newLines, "    echo \"no_proxy=$no_proxy\" >> /etc/environment;")
+		newLines = append(newLines, "    echo \"Proxies added to /etc/environment.\"")
 		newLines = append(newLines, "fi")
 		newLines = append(newLines, ". /etc/environment;")
 		newLines = append(newLines, "export http_proxy https_proxy ftp_proxy socks_server no_proxy;")
