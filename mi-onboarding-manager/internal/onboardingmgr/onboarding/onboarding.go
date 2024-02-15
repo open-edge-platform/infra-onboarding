@@ -518,7 +518,7 @@ var (
 	requestCounter int
 )
 
-func StartOnboard(req *pb.OnboardingRequest) (*pb.OnboardingResponse, error) {
+func startOnboard(req *pb.OnboardingRequest) (*pb.OnboardingResponse, error) {
 	// Lock to ensure only one request is processed at a time
 	mu.Lock()
 	defer mu.Unlock()
@@ -544,14 +544,12 @@ func StartOnboard(req *pb.OnboardingRequest) (*pb.OnboardingResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	result := "Success"
 	return &pb.OnboardingResponse{Status: result}, nil
 }
 
-func (s *OnboardingManager) StartOnboarding(_ context.Context,
-	req *pb.OnboardingRequest,
-) (*pb.OnboardingResponse, error) {
-	/*Moving changes to separate function to enable both gRPC endpoint and,
-	onboarding manager to call from Instance Reconsile*/
-	return StartOnboard(req)
+func (s *OnboardingManager) StartOnboarding(_ context.Context, req *pb.OnboardingRequest) (*pb.OnboardingResponse, error) {
+	//Moving changes to seperate function to enable both gRPC endpoint and onboarding manager to call from Instance Reconsile
+	return startOnboard(req)
 }

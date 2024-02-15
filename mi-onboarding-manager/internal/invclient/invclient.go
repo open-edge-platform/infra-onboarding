@@ -15,6 +15,7 @@ import (
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	network_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/network/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
+	provider_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/provider/v1"
 	statusv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/status/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
@@ -43,6 +44,7 @@ type OnboardingInventoryClient struct {
 type Options struct {
 	InventoryAddress string
 	EnableTracing    bool
+	ClientKind       inv_v1.ClientKind
 }
 
 type Option func(*Options)
@@ -61,10 +63,18 @@ func WithEnableTracing(enableTracing bool) Option {
 	}
 }
 
+func WithClientKind(clientKind inv_v1.ClientKind) Option {
+	return func(options *Options) {
+		options.ClientKind = clientKind
+	}
+}
+
 // NewOnboardingInventoryClientWithOptions creates a client by instantiating a new Inventory client.
 func NewOnboardingInventoryClientWithOptions(opts ...Option) (*OnboardingInventoryClient, error) {
 	ctx := context.Background()
-	var options Options
+	options := Options{
+		ClientKind: inv_v1.ClientKind_CLIENT_KIND_RESOURCE_MANAGER,
+	}
 	for _, opt := range opts {
 		opt(&options)
 	}
@@ -84,7 +94,7 @@ func NewOnboardingInventoryClientWithOptions(opts ...Option) (*OnboardingInvento
 			KeyPath:  "",
 		},
 		Events:     eventsWatcher,
-		ClientKind: inv_v1.ClientKind_CLIENT_KIND_RESOURCE_MANAGER,
+		ClientKind: options.ClientKind,
 		ResourceKinds: []inv_v1.ResourceKind{
 			inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE,
 			inv_v1.ResourceKind_RESOURCE_KIND_HOST,
@@ -578,4 +588,19 @@ func (c *OnboardingInventoryClient) FindAllResources(ctx context.Context,
 		allResources = append(allResources, resources...)
 	}
 	return allResources, nil
+}
+
+func (c *OnboardingInventoryClient) GetProviderResources(ctx context.Context) ([]*provider_v1.ProviderResource, error) {
+	filter := &inv_v1.ResourceFilter{
+		FieldMask: &fieldmaskpb.FieldMask{Paths: []string{}},
+		Resource: &inv_v1.Resource{
+			Resource: &inv_v1.Resource_Provider{},
+		},
+	}
+	zlog.Info().Msgf("GetProviderResources Filter: %v", filter)
+	resources, err := c.listAllResources(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	return util.GetSpecificResourceList[*provider_v1.ProviderResource](resources)
 }

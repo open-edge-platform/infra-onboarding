@@ -7,7 +7,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/secrets"
 	"os"
 	"os/signal"
 	"sync"
@@ -20,6 +19,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/config"
 	inventory "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/controller"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/secrets"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/flags"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
@@ -144,8 +144,9 @@ func main() {
 	}
 
 	sbHandler, err := southbound.NewSBHandler(invClient, southbound.SBHandlerConfig{
-		ServerAddress: *serverAddress,
-		EnableTracing: *enableTracing,
+		ServerAddress:    *serverAddress,
+		EnableTracing:    *enableTracing,
+		InventoryAddress: *inventoryAddress,
 	})
 	if err != nil {
 		zlog.MiSec().Fatal().Err(err).Msgf("Unable to create southbound handler")

@@ -10,6 +10,7 @@ import (
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 
+	inventoryv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	"github.com/spf13/cobra"
 )
@@ -97,6 +98,7 @@ func createOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 
 		client, err := invclient.NewOnboardingInventoryClientWithOptions(
 			invclient.WithInventoryAddress(dialer.Addr),
+			invclient.WithClientKind(inventoryv1.ClientKind_CLIENT_KIND_API),
 		)
 		if err != nil {
 			return err

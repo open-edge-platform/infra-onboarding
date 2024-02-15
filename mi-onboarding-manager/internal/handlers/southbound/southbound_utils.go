@@ -21,8 +21,9 @@ var (
 )
 
 type SBHandlerConfig struct {
-	ServerAddress string
-	EnableTracing bool
+	ServerAddress    string
+	InventoryAddress string
+	EnableTracing    bool
 }
 
 type SBHandler struct {
@@ -48,16 +49,14 @@ func NewSBHandlerWithListener(listener net.Listener,
 ) *SBHandler {
 	return &SBHandler{
 		invClient: invClient,
-		cfg: SBHandlerConfig{
-			ServerAddress: config.ServerAddress,
-			EnableTracing: config.EnableTracing,
-		},
-		lis: listener,
+		cfg:       config,
+		lis:       listener,
 	}
 }
 
 func (sbh *SBHandler) Start() error {
-	nodeArtifactService, err := artifact.NewArtifactService(sbh.invClient)
+	nodeArtifactService, err := artifact.NewArtifactService(sbh.invClient,
+		sbh.cfg.InventoryAddress, sbh.cfg.EnableTracing)
 	if err != nil {
 		return err
 	}

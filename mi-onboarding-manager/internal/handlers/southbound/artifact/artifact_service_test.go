@@ -52,7 +52,7 @@ func TestNewArtifactService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewArtifactService(tt.args.invClient)
+			got, err := NewArtifactService(tt.args.invClient, "", false)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewArtifactService() error = %v, wantErr %v", err, tt.wantErr)
 				return
