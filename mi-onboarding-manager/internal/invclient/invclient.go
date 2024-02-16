@@ -500,11 +500,11 @@ func (c *OnboardingInventoryClient) DeleteResource(ctx context.Context, resource
 	defer cancel()
 	_, err := c.Client.Delete(ctx, resourceID)
 	if inv_errors.IsNotFound(err) {
-		zlog.Debug().Msgf("Not found while HostGPU delete, dropping err: resourceID=%s", resourceID)
+		zlog.Debug().Msgf("Not found while deleting resource, dropping err: resourceID=%s", resourceID)
 		return nil
 	}
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("Failed delete Hostgpu resource %s", resourceID)
+		zlog.MiSec().MiErr(err).Msgf("Failed to delete resource: resourceID=%s", resourceID)
 		return err
 	}
 	return err
@@ -603,4 +603,29 @@ func (c *OnboardingInventoryClient) GetProviderResources(ctx context.Context) ([
 		return nil, err
 	}
 	return util.GetSpecificResourceList[*provider_v1.ProviderResource](resources)
+}
+
+// DeleteIPAddress deletes an existing IP address resource in Inventory
+// by setting to DELETED the current state of the resource.
+func (c *OnboardingInventoryClient) DeleteIPAddress(ctx context.Context, resourceID string) error {
+	zlog.Debug().Msgf("Delete IPAddress: %v", resourceID)
+
+	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
+	defer cancel()
+	ipAddress := &network_v1.IPAddressResource{
+		ResourceId:   resourceID,
+		CurrentState: network_v1.IPAddressState_IP_ADDRESS_STATE_DELETED,
+	}
+
+	err := c.UpdateInvResourceFields(ctx, ipAddress, []string{network_v1.IPAddressResourceFieldCurrentState})
+	if inv_errors.IsNotFound(err) {
+		zlog.Debug().Msgf("Not found while IP address delete, dropping err: resourceID=%s", resourceID)
+		return nil
+	}
+	if err != nil {
+		zlog.MiSec().MiErr(err).Msgf("Failed delete IPAddress resource %s", resourceID)
+		return err
+	}
+
+	return err
 }

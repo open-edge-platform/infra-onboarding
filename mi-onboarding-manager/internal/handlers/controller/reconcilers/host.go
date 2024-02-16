@@ -170,7 +170,7 @@ func (hr *HostReconciler) deleteIPsByHostNic(ctx context.Context, hostNic *compu
 
 	for _, ip := range nicIPs {
 		zlogHost.Debug().Msgf("Deleting IP address with ID=%s", ip.GetResourceId())
-		err := hr.invClient.DeleteResource(ctx, ip.GetResourceId())
+		err := hr.invClient.DeleteIPAddress(ctx, ip.GetResourceId())
 		if err != nil {
 			return err
 		}
