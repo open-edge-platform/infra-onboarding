@@ -12,6 +12,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"io"
 	"log"
 	"net/http"
@@ -39,6 +40,11 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+var (
+	clientName = "WorkflowCreator"
+	zlog       = logging.GetLogger(clientName)
 )
 
 func ConvertToJSONSerializable(input interface{}) interface{} {
@@ -1007,13 +1013,18 @@ func ToWorkflowCreation(deviceInfo utils.DeviceInfo) error {
 }
 
 func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string, artifactinfo utils.ArtifactData) error {
+	zlog.Info().Msgf("ProdWorkflowCreation starting for host %s (IP: %s)",
+		deviceInfo.GUID, deviceInfo.HwIP)
+
 	kubeClient, err := newK8SClient()
 	if err != nil {
 		return err
 	}
 
 	var (
-		ctx      = context.Background()
+		// TODO: use context from reconciler once refactored to asynchronous handling
+		ctx = context.Background()
+		// TODO: use env variable to get namespace from Helm chart deployment
 		ns       = "maestro-iaas-system"
 		id       = GenerateMacIDString(deviceInfo.HwMacID)
 		tmplName string
@@ -1135,6 +1146,7 @@ func DiWorkflowCreation(deviceInfo utils.DeviceInfo) (string, error) {
 		return "", err
 	}
 
+	// TODO: use context from reconciler once refactored to asynchronous handling
 	ctx := context.Background()
 	ns := "maestro-iaas-system"
 	id := GenerateMacIDString(deviceInfo.HwMacID)
