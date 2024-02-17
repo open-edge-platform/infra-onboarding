@@ -29,6 +29,7 @@ func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIP string) ([]b
 						"COMPRESSED": "true",
 					},
 				},
+				
 				{
 					Name:    "copy-secrets",
 					Image:   provIP + ":5015/cred_copy:latest",
@@ -206,6 +207,64 @@ func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gatewa
 						"COMPRESSED": "true",
 					},
 				},
+				{
+                                        Name:    "add-env-proxy",
+                                        Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+                                        Timeout: 90,
+                                        Environment: map[string]string{
+                                                "DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+                                                "FS_TYPE":   "ext4",
+                                                "DEST_PATH": "/etc/environment",
+                                                "CONTENTS": `
+http_proxy=http://proxy-dmz.intel.com:911
+https_proxy=http://proxy-dmz.intel.com:912
+no_proxy=localhost,127.0.0.1,.intel.com`,
+                                                "UID":     "0",
+                                                "GID":     "0",
+                                                "MODE":    "0755",
+                                                "DIRMODE": "0755",
+                                        },
+                                },
+
+                                {
+                                        Name:    "add-apt-proxy",
+                                        Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+                                        Timeout: 90,
+                                        Environment: map[string]string{
+                                                "DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+                                                "FS_TYPE":   "ext4",
+                                                "DEST_PATH": "/etc/apt/apt.conf",
+                                                "CONTENTS": `
+Acquire::http::Proxy "http://172.30.7.176:911";
+Acquire::https::Proxy "http://172.30.7.176:911";`,
+                                                "UID":     "0",
+                                                "GID":     "0",
+                                                "MODE":    "0755",
+					},
+			        },
+				{
+                                        Name:    "add-dns-namespace",
+                                        Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+                                        Timeout: 90,
+                                        Environment: map[string]string{
+                                                "DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+                                                "FS_TYPE":   "ext4",
+                                                "DEST_PATH": "/etc/systemd/resolved.conf",
+                                                "CONTENTS": `
+[Resolve]
+DNS=10.248.2.1 172.30.90.4 10.223.45.36`,
+                                                "UID":     "0",
+                                                "GID":     "0",
+                                                "MODE":    "0755",
+                                        },
+                                },
+				
+				{
+                                        Name:    "fde-encription",
+                                        Image:   "localhost:7443/one-intel-edge/edgenode/tinker-actions/fde:0.7.0-dev",
+                                        Timeout: 360,
+                                },
+
 				{
 					Name:    "grow-partision-install-script",
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
@@ -445,6 +504,19 @@ netplan apply`,clientIP),
                                                 "CHROOT":              "y",
                                                 "DEFAULT_INTERPRETER": "/bin/sh -c",
                                                 "CMD_LINE":            "systemctl enable update-netplan.service",
+                                        },
+                                },
+				
+				{
+                                        Name:    "delete-proxys",
+                                        Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
+                                        Timeout: 200,
+                                        Environment: map[string]string{
+                                                "BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+                                                "FS_TYPE":             "ext4",
+                                                "CHROOT":              "y",
+                                                "DEFAULT_INTERPRETER": "/bin/sh -c",
+                                                "CMD_LINE":            "rm /etc/apt/apt.conf;rm /etc/environment",
                                         },
                                 },
 
