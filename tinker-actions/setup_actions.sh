@@ -96,7 +96,7 @@ nginxproxy_setup() {
 
 image2disk_setup() {
 
-    pushd $efibootset
+    pushd $image2disk
 
     bash build.sh
 
