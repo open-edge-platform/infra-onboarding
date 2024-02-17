@@ -8,23 +8,19 @@ import (
 	"path/filepath"
 	"strings"
 
+	"k8s.io/client-go/rest"
+
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/curation"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/download"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/signing"
-	"k8s.io/client-go/rest"
 )
 
 type Service struct {
 	pb.UnimplementedDkamServiceServer
 }
-
-// type Data struct {
-// 	OsUrl            string
-// 	OverlayScriptUrl string
-// }
 
 var zlog = logging.GetLogger("MIDKAMgRPC")
 var url string
@@ -88,7 +84,7 @@ func (server *Service) GetArtifacts(ctx context.Context, req *pb.GetArtifactsReq
 
 	filename := GetCuratedScript(profile, platform)
 	scriptName := strings.Split(filename, "/")
-	proxyIP := os.Getenv("PROXY_IP")
+	proxyIP := "http://%host_ip%/tink-stack"
 	zlog.MiSec().Info().Msgf("proxyIP %s", proxyIP)
 	url = proxyIP + "/" + scriptName[len(scriptName)-1]
 	zlog.MiSec().Info().Msgf("url %s", url)

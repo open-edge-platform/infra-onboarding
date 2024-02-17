@@ -30,7 +30,8 @@ func DownloadMicroOS(scriptPath string) (bool, error) {
 	// Create an HTTP GET request with the specified URL
 	req, httperr := http.NewRequest("GET", url, nil)
 	if httperr != nil {
-		zlog.MiSec().Fatal().Err(httperr).Msgf("Error creating request: %v\n", httperr)
+		//zlog.MiSec().Fatal().Err(httperr).Msgf("Error creating request: %v\n", httperr)
+		zlog.MiSec().Info().Msg("Failed create GET request to release server.")
 		return false, httperr
 
 	}
@@ -41,7 +42,8 @@ func DownloadMicroOS(scriptPath string) (bool, error) {
 	// Perform the HTTP GET request
 	resp, clienterr := client.Do(req)
 	if clienterr != nil {
-		zlog.MiSec().Fatal().Err(clienterr).Msgf("Error performing request: %v\n", clienterr)
+		//zlog.MiSec().Fatal().Err(clienterr).Msgf("Error performing request: %v\n", clienterr)
+		zlog.MiSec().Info().Msg("Failed to connect to release server to download hookOS.")
 		return false, clienterr
 
 	}
@@ -52,7 +54,8 @@ func DownloadMicroOS(scriptPath string) (bool, error) {
 	//Create or open the local file for writing
 	file, fileerr := os.Create(filePath)
 	if fileerr != nil {
-		zlog.MiSec().Fatal().Err(fileerr).Msgf("Error while creating release manifest file.")
+		//zlog.MiSec().Fatal().Err(fileerr).Msgf("Error while creating release manifest file.")
+		zlog.MiSec().Info().Msg("Failed to create file")
 		return false, fileerr
 	}
 	defer file.Close()
@@ -146,7 +149,8 @@ func DownloadArtifacts(fileServer string, harborServer string, scriptPath string
 	// Create an HTTP GET request with the specified URL
 	req, httperr := http.NewRequest("GET", url, nil)
 	if httperr != nil {
-		zlog.MiSec().Fatal().Err(httperr).Msgf("Error creating request: %v\n", httperr)
+		//zlog.MiSec().Fatal().Err(httperr).Msgf("Error creating request: %v\n", httperr)
+		zlog.MiSec().Info().Msg("Failed to create GET request.")
 		return httperr
 
 	}
@@ -157,7 +161,8 @@ func DownloadArtifacts(fileServer string, harborServer string, scriptPath string
 	// Perform the HTTP GET request
 	resp, clienterr := client.Do(req)
 	if clienterr != nil {
-		zlog.MiSec().Fatal().Err(clienterr).Msgf("Error performing request: %v\n", clienterr)
+		zlog.MiSec().Info().Msg("Failed to connect to release server to download Manifest file.")
+		//zlog.MiSec().Fatal().Err(clienterr).Msgf("Error performing request: %v\n", clienterr)
 		return clienterr
 
 	}

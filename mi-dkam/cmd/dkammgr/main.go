@@ -31,8 +31,9 @@ func main() {
 	//Download release manifest.yaml file.
 	err := dkammgr.DownloadArtifacts()
 	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Error downloading file")
-		return
+		zlog.MiSec().Info().Msgf("Failed to download manifest")
+		//zlog.MiSec().Fatal().Err(err).Msgf("Error downloading file")
+		//return
 	}
 
 	//Donwload and sign iPXE
@@ -48,11 +49,12 @@ func main() {
 	// Download and sign MicroOS.
 	signed, signerr := dkammgr.SignMicroOS()
 	if signerr != nil {
-		zlog.MiSec().Info().Msgf("Failed to sign MicroOS %v", signerr)
-		return
+		zlog.MiSec().Info().Msgf("Failed to sign MicroOS")
+		//zlog.MiSec().Info().Msgf("Failed to sign MicroOS %v", signerr)
+		//return
 	}
 	if signed {
-		zlog.MiSec().Info().Msgf("Signed MicroOS and moved to PVC")
+		zlog.MiSec().Info().Msg("Signed MicroOS and moved to PVC")
 	}
 
 	// Set the port for DKAM Manager

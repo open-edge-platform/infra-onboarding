@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: LicenseRef-Intel
 metadata:
   schemaVersion: 0.2.1
-  release: 24.03.0-dev-3379b4d
+  release: 24.03.0-dev-93baa2e
   ociRegistries:
     - name: Release Service OCI registry
       url: https://amr-registry.caas.intel.com
@@ -69,73 +69,122 @@ orchestrator:
     - description: k8s engine
       repository: Release Service debian repository
       package: ensp-ke-installer
+      registry: Release Service OCI registry
+      ociArtifact: one-intel-edge/maestro-deployment/deb/ensp-ke-installer
       version: 0.1.0
     - description: orch installer
       repository: Release Service debian repository
       package: ensp-orch-installer
+      registry: Release Service OCI registry
+      ociArtifact: one-intel-edge/maestro-deployment/deb/ensp-on-prem-orch-installer
       version: 0.1.0
 bma:
   debs:
     - description: Node Agent
       repository: Release Service debian repository
       package: node-agent
+      registry: Release Service OCI registry
+      ociArtifact: one-intel-edge/edge-node/deb/node-agent
       version: 1.1.3
+      publishToRepo: true
     - description: Cluster Agent
       repository: Release Service debian repository
       package: cluster-agent
+      registry: Release Service OCI registry
+      ociArtifact: one-intel-edge/edge-node/deb/cluster-agent
       version: 1.1.0
+      publishToRepo: true
     - description: Hardware Discovery Agent
       repository: Release Service debian repository
       package: hardware-discovery-agent
-      version: 1.1.1
+      registry: Release Service OCI registry
+      ociArtifact: one-intel-edge/edge-node/deb/hardware-discovery-agent
+      version: 1.1.2
+      publishToRepo: true
     - description: Platform Observability Agent
       repository: Release Service debian repository
       package: platform-observability-agent
-      version: 1.2.2
+      registry: Release Service OCI registry
+      ociArtifact: one-intel-edge/edge-node/deb/platform-observability-agent
+      version: 1.2.3
+      publishToRepo: true
     - description: Platform Update Agent
       repository: Release Service debian repository
       package: platform-update-agent
-      version: 1.0.9
+      registry: Release Service OCI registry
+      ociArtifact: one-intel-edge/edge-node/deb/platform-update-agent
+      version: 1.1.0
+      publishToRepo: true
     - description: Platform Telemetry Agent
       repository: Release Service debian repository
       package: platform-telemetry-agent
-      version: 0.1.0
+      registry: Release Service OCI registry
+      ociArtifact: one-intel-edge/edge-node/deb/platform-telemetry-agent
+      version: 0.1.2
+      publishToRepo: true
     - description: INBC Program
       repository: Release Service debian repository
       package: inbc-program
-      version: 4.1.1-1
+      registry: Release Service OCI registry
+      ociArtifact: one-intel-edge/edge-node/deb/inbc-program
+      version: 4.2.0-1
+      publishToRepo: true
     - description: TRTL
       repository: Release Service debian repository
       package: trtl
-      version: 4.1.1-1
+      registry: Release Service OCI registry
+      ociArtifact: one-intel-edge/edge-node/deb/trtl
+      version: 4.2.0-1
+      publishToRepo: true
     - description: INBM Cloudadapter Agent
       repository: Release Service debian repository
       package: inbm-cloudadapter-agent
-      version: 4.1.1-1
+      registry: Release Service OCI registry
+      ociArtifact: one-intel-edge/edge-node/deb/inbm-cloudadapter-agent
+      version: 4.2.0-1
+      publishToRepo: true
     - description: INBM Dispatcher Agent
       repository: Release Service debian repository
       package: inbm-dispatcher-agent
-      version: 4.1.1-1
+      registry: Release Service OCI registry
+      ociArtifact: one-intel-edge/edge-node/deb/inbm-dispatcher-agent
+      version: 4.2.0-1
+      publishToRepo: true
     - description: INBM Configuration Agent
       repository: Release Service debian repository
       package: inbm-configuration-agent
-      version: 4.1.1-1
+      registry: Release Service OCI registry
+      ociArtifact: one-intel-edge/edge-node/deb/inbm-configuration-agent
+      version: 4.2.0-1
+      publishToRepo: true
     - description: INBM Telemetry Agent
       repository: Release Service debian repository
       package: inbm-telemetry-agent
-      version: 4.1.1-1
+      registry: Release Service OCI registry
+      ociArtifact: one-intel-edge/edge-node/deb/inbm-telemetry-agent
+      version: 4.2.0-1
+      publishToRepo: true
     - description: INBM Diagnostic Agent
       repository: Release Service debian repository
       package: inbm-diagnostic-agent
-      version: 4.1.1-1
+      registry: Release Service OCI registry
+      ociArtifact: one-intel-edge/edge-node/deb/inbm-diagnostic-agent
+      version: 4.2.0-1
+      publishToRepo: true
     - description: MQTT
       repository: Release Service debian repository
       package: mqtt
-      version: 4.1.1-1
+      registry: Release Service OCI registry
+      ociArtifact: one-intel-edge/edge-node/deb/mqtt
+      version: 4.2.0-1
+      publishToRepo: true
     - description: TPM Provision
       repository: Release Service debian repository
       package: tpm-provision
-      version: 4.1.1-1
+      registry: Release Service OCI registry
+      ociArtifact: one-intel-edge/edge-node/deb/tpm-provision
+      version: 4.2.0-1
+      publishToRepo: true
 provisioning:
   files:
     - description: Provisioning Installer
@@ -158,62 +207,70 @@ provisioning:
   images:
     - description: Provision Service
       registry: Release Service OCI registry
-      image: one-intel-edge/edgenode/provision-service
+      image: one-intel-edge/edge-node/provision-service
       version: 1.2.1
     - description: Provision Controller
       registry: Release Service OCI registry
-      image: one-intel-edge/edgenode/provision-controller
+      image: one-intel-edge/edge-node/provision-controller
       version: 1.3.3
     - description: Conductor Installer
       registry: Release Service OCI registry
-      image: one-intel-edge/edgenode/conductor-installer
-      version: 1.3.6
+      image: one-intel-edge/edge-node/conductor-installer
+      version: 1.3.7
     - description: APT Debian Package mirror
       registry: Release Service OCI registry
-      image: one-intel-edge/edgenode/apt-mirror-debmirror
+      image: one-intel-edge/edge-node/apt-mirror-debmirror
       version: 1.1.5
     - description: APT Cache
       registry: Release Service OCI registry
-      image: one-intel-edge/edgenode/apt_cacher_ng
+      image: one-intel-edge/edge-node/apt_cacher_ng
       version: 1.0.0
     - description: File Server
       registry: Release Service OCI registry
-      image: one-intel-edge/edgenode/caddy-upload-alpine
+      image: one-intel-edge/edge-node/caddy-upload-alpine
       version: 1.0.0
     - description: Tinker Actions efibootset
       registry: Release Service OCI registry
-      image: one-intel-edge/edgenode/tinker-actions/efibootset
+      image: one-intel-edge/edge-node/tinker-actions/efibootset
       version: 0.7.0-dev
     - description: Tinker Actions fdoclient
       registry: Release Service OCI registry
-      image: one-intel-edge/edgenode/tinker-actions/fdoclient_action
+      image: one-intel-edge/edge-node/tinker-actions/fdoclient_action
       version: 0.7.0-dev
     - description: Tinker Actions Create Partition
       registry: Release Service OCI registry
-      image: one-intel-edge/edgenode/tinker-actions/create_partition
+      image: one-intel-edge/edge-node/tinker-actions/create_partition
       version: 0.7.0-dev
     - description: Tinker Actions Store Alpine
       registry: Release Service OCI registry
-      image: one-intel-edge/edgenode/tinker-actions/store_alpine
+      image: one-intel-edge/edge-node/tinker-actions/store_alpine
+      version: 0.7.0-dev
+    - description: Tinker Actions Client Auth
+      registry: Release Service OCI registry
+      image: one-intel-edge/edge-node/tinker-actions/client_auth
+      version: 0.7.0-dev
+    - description: Tinker Actions NGINX proxy client
+      registry: Release Service OCI registry
+      image: one-intel-edge/edge-node/tinker-actions/nginx_proxy_action
       version: 0.7.0-dev
 lpke:
   files:
     - description: APP Template
       server: Release Service Fileserver
-      path: templates/APP Template/1.1.0-dev-23f4c81/cluster.json
-      version: 23f4c8104aa6902c7d185f1ae8f6e614d75eeef3
+      path: templates/APP Template/1.1.0-dev-3c85c77/cluster.json
+      version: 3c85c77344b55ef684873f23bd8e7d3d1c1e77bf
     - description: lp-base-privileged
       server: Release Service Fileserver
-      path: templates/lp-base-privileged/1.1.0-dev-23f4c81/cluster.json
-      version: 23f4c8104aa6902c7d185f1ae8f6e614d75eeef3
+      path: templates/lp-base-privileged/1.1.0-dev-3c85c77/cluster.json
+      version: 3c85c77344b55ef684873f23bd8e7d3d1c1e77bf
     - description: lp-base-restricted
       server: Release Service Fileserver
-      path: templates/lp-base-restricted/1.1.0-dev-23f4c81/cluster.json
-      version: 23f4c8104aa6902c7d185f1ae8f6e614d75eeef3
+      path: templates/lp-base-restricted/1.1.0-dev-3c85c77/cluster.json
+      version: 3c85c77344b55ef684873f23bd8e7d3d1c1e77bf
     - description: lp-base-baseline
       server: Release Service Fileserver
-      path: templates/lp-base-baseline/1.1.0-dev-23f4c81/cluster.json
-      version: 23f4c8104aa6902c7d185f1ae8f6e614d75eeef3
+      path: templates/lp-base-baseline/1.1.0-dev-3c85c77/cluster.json
+      version: 3c85c77344b55ef684873f23bd8e7d3d1c1e77bf
   images:
     - registry: Docker Hub OCI registry
       image: curlimages/curl
@@ -376,7 +433,7 @@ lpke:
       version: v0.13.1
     - registry: Fluent Bit OCI registry
       image: fluent/fluent-bit
-      version: 2.1.9
+      version: 2.2.2
     - registry: Github OCI Registry
       image: project-akri/akri/agent
       version: v0.12.9
@@ -397,7 +454,7 @@ lpke:
       version: v1.1.1
     - registry: Kubernetes 2 OCI Registry
       image: kube-state-metrics/kube-state-metrics
-      version: v2.10.0
+      version: v2.10.1
     - registry: Kubernetes 2 OCI Registry
       image: nfd/node-feature-discovery
       version: v0.14.2
@@ -418,7 +475,7 @@ lpke:
       version: v4.0.0
     - registry: Quai OCI registry
       image: brancz/kube-rbac-proxy
-      version: v0.14.3
+      version: v0.16.0
     - registry: Quai OCI registry
       image: coreos/etcd
       version: v3.5.4
@@ -430,123 +487,123 @@ lpke:
       version: v1.13.2
     - registry: Quai OCI registry
       image: kubevirt/cdi-apiserver
-      version: v1.57.0
+      version: v1.58.0
     - registry: Quai OCI registry
       image: kubevirt/cdi-cloner
-      version: v1.57.0
+      version: v1.58.0
     - registry: Quai OCI registry
       image: kubevirt/cdi-controller
-      version: v1.57.0
+      version: v1.58.0
     - registry: Quai OCI registry
       image: kubevirt/cdi-importer
-      version: v1.57.0
+      version: v1.58.0
     - registry: Quai OCI registry
       image: kubevirt/cdi-operator
-      version: v1.57.0
+      version: v1.58.0
     - registry: Quai OCI registry
       image: kubevirt/cdi-uploadproxy
-      version: v1.57.0
+      version: v1.58.0
     - registry: Quai OCI registry
       image: kubevirt/cdi-uploadserver
-      version: v1.57.0
+      version: v1.58.0
     - registry: Quai OCI registry
       image: kubevirt/macvtap-cni
       version: v0.11.0
     - registry: Quai OCI registry
       image: kubevirt/virt-controller
-      version: v1.0.0
+      version: v1.1.1
     - registry: Quai OCI registry
       image: kubevirt/virt-handler
-      version: v1.0.0
+      version: v1.1.1
     - registry: Quai OCI registry
       image: kubevirt/virt-launcher
-      version: v1.0.0
+      version: v1.1.1
     - registry: Quai OCI registry
       image: kubevirt/virt-operator
-      version: v1.0.0
+      version: v1.1.1
     - registry: Quai OCI registry
       image: metallb/controller
-      version: v0.13.12
+      version: v0.14.2
     - registry: Quai OCI registry
       image: metallb/speaker
-      version: v0.13.12
+      version: v0.14.2
     - registry: Quai OCI registry
       image: prometheus-operator/prometheus-config-reloader
-      version: v0.68.0
+      version: v0.71.2
     - registry: Quai OCI registry
       image: prometheus-operator/prometheus-operator
-      version: v0.68.0
+      version: v0.71.2
     - registry: Quai OCI registry
       image: prometheus/node-exporter
-      version: v1.6.1
+      version: v1.7.0
     - registry: Quai OCI registry
       image: prometheus/prometheus
-      version: v2.47.1
+      version: v2.49.1
     - registry: Release Service OCI registry
-      image: one-intel-edge/edgenode/edgedns-coredns
-      version: 1.1.7
+      image: one-intel-edge/edge-node/edgedns-coredns
+      version: 1.1.23
     - registry: Release Service OCI registry
-      image: one-intel-edge/edgenode/usbredir-daemon
-      version: 1.1.7
+      image: one-intel-edge/edge-node/usbredir-daemon
+      version: 1.1.23
   helmcharts:
     - registry: Release Service OCI Helm registry
-      version: 0.12.10
-      chart: one-intel-edge/edgenode/akri
+      version: 0.12.11
+      chart: one-intel-edge/edge-node/akri
     - registry: Release Service OCI Helm registry
-      version: 1.57.2
-      chart: one-intel-edge/edgenode/cdi
-    - registry: Release Service OCI Helm registry
-      version: 0.1.1
-      chart: one-intel-edge/edgenode/cert-manager-config
-    - registry: Release Service OCI Helm registry
-      version: 1.13.3
-      chart: one-intel-edge/edgenode/cert-manager
-    - registry: Release Service OCI Helm registry
-      version: 1.1.7
-      chart: one-intel-edge/edgenode/edgedns-chart
-    - registry: Release Service OCI Helm registry
-      version: 0.1.24
-      chart: one-intel-edge/edgenode/fluent-bit
-    - registry: Release Service OCI Helm registry
-      version: 1.0.7
-      chart: one-intel-edge/edgenode/gatekeeper-constraints
-    - registry: Release Service OCI Helm registry
-      version: 3.13.4
-      chart: one-intel-edge/edgenode/gatekeeper
-    - registry: Release Service OCI Helm registry
-      version: 1.0.6
-      chart: one-intel-edge/edgenode/kubevirt
+      version: 1.58.1
+      chart: one-intel-edge/edge-node/cdi
     - registry: Release Service OCI Helm registry
       version: 0.1.1
-      chart: one-intel-edge/edgenode/metallb-config
+      chart: one-intel-edge/edge-node/cert-manager-config
     - registry: Release Service OCI Helm registry
-      version: 0.13.14
-      chart: one-intel-edge/edgenode/metallb
+      version: 1.13.4
+      chart: one-intel-edge/edge-node/cert-manager
     - registry: Release Service OCI Helm registry
-      version: 0.1.8
-      chart: one-intel-edge/edgenode/network-policies
+      version: 1.1.23
+      chart: one-intel-edge/edge-node/edgedns-chart
     - registry: Release Service OCI Helm registry
-      version: 2.4.11
-      chart: one-intel-edge/edgenode/node-exporter
+      version: 0.1.26
+      chart: one-intel-edge/edge-node/fluent-bit
+    - registry: Release Service OCI Helm registry
+      version: 1.0.8
+      chart: one-intel-edge/edge-node/gatekeeper-constraints
+    - registry: Release Service OCI Helm registry
+      version: 3.13.5
+      chart: one-intel-edge/edge-node/gatekeeper
+    - registry: Release Service OCI Helm registry
+      version: 1.1.3
+      chart: one-intel-edge/edge-node/kubevirt
+    - registry: Release Service OCI Helm registry
+      version: 0.1.1
+      chart: one-intel-edge/edge-node/metallb-config
+    - registry: Release Service OCI Helm registry
+      version: 0.14.3
+      chart: one-intel-edge/edge-node/metallb
+    - registry: Release Service OCI Helm registry
+      version: 0.1.11
+      chart: one-intel-edge/edge-node/network-policies
+    - registry: Release Service OCI Helm registry
+      version: 2.4.12
+      chart: one-intel-edge/edge-node/node-exporter
     - registry: Release Service OCI Helm registry
       version: 3.9.2
-      chart: one-intel-edge/edgenode/openebs
+      chart: one-intel-edge/edge-node/openebs
     - registry: Release Service OCI Helm registry
-      version: 33.1.21
-      chart: one-intel-edge/edgenode/prometheus
+      version: 33.1.23
+      chart: one-intel-edge/edge-node/prometheus
     - registry: Release Service OCI Helm registry
-      version: 102.1.1
-      chart: one-intel-edge/edgenode/sriov
+      version: 102.1.2
+      chart: one-intel-edge/edge-node/sriov
     - registry: Release Service OCI Helm registry
       version: 0.1.13
-      chart: one-intel-edge/edgenode/telegraf
+      chart: one-intel-edge/edge-node/telegraf
     - registry: Release Service OCI Helm registry
-      version: 1.1.7
-      chart: one-intel-edge/edgenode/usbredir-daemon-chart
+      version: 1.1.23
+      chart: one-intel-edge/edge-node/usbredir-daemon-chart
   deploymentPackages:
     - registry: Release Service OCI Helm registry
       version: 0.0.3
-      dpkg: one-intel-edge/edgenode/dp/usb
+      dpkg: one-intel-edge/edge-node/dp/usb
     - registry: Release Service OCI Helm registry
       version: 0.0.4
-      dpkg: one-intel-edge/edgenode/dp/virtualization
+      dpkg: one-intel-edge/edge-node/dp/virtualization
