@@ -14,6 +14,7 @@ import (
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -388,6 +389,11 @@ func ConvertInstanceForOnboarding(osResources []*osv1.OperatingSystemResource, h
 			return nil, errors.New("BMC interface is not enabled")
 		}
 
+		sutIP := host.GetBmcIp()
+		// Replace #host_ip with SUT IP address in osURL and overlayURL
+		osURL = replaceHostIP(osURL, sutIP)
+		overlayURL = replaceHostIP(overlayURL, sutIP)
+
 		// Create an instance of OnboardingRequest and populate it
 		onboardingRequest := &pb.OnboardingRequest{
 			ArtifactData: []*pb.ArtifactData{
@@ -427,6 +433,12 @@ func ConvertInstanceForOnboarding(osResources []*osv1.OperatingSystemResource, h
 
 	// Return the onboarding requests
 	return onboardingRequests, nil
+}
+
+func replaceHostIP(url, ip string) string {
+	// Define the regular expression pattern to match #host_ip
+	re := regexp.MustCompile(`%host_ip%`)
+	return re.ReplaceAllString(url, ip)
 }
 
 // TODO : Will scale it in future accordingly
