@@ -31,7 +31,7 @@ if [ -z "$disk" ]; then
     exit
 fi
 BLOCK_DEVICE=$disk
-
+TINKERBELL_OWNER=${TINKERBELL_OWNER:-localhost}
 #BLOCK_DEVICE="/dev/nvme0n1"
 
 
@@ -54,11 +54,11 @@ search_label help font efi_gop efi_uga gfxterm linuxefi regexp probe progress"
 #Check if Tink options are not set
 if [ -z "$TINKERBELL_OWNER" ]; then
 	echo "$TINKERBELL_OWNER is not set"
-	exit(1)
+	exit 1
 fi
 if [ -z "$mac_address_current_device" ]; then
 	echo "MAC id of device is not set"
-	exit(1)
+	exit 1
 fi
 
 ###################
