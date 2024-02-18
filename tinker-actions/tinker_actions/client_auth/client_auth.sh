@@ -108,7 +108,7 @@ main() {
 			    -d "client_id=ledge-park-system" \
 			    -d "scope=openid" | jq -r '.access_token')
 
-	if [ $? -ne 0 ];
+	if [[ $access_token == 'null' ]];
 	then
 	    echo "Error login - retry"
 	    continue
