@@ -69,6 +69,16 @@ EXTRA_TINK_OPTIONS="tinkerbell=http://$TINKERBELL_OWNER syslog_host=$TINKERBELL_
 
 ####################
 
+do_image_download_bg() {
+    hostip=$(ip route | grep default |  grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b")
+    wget  http://$hostip/tink-stack/hook_x86_64.tar.gz -o /hook_x86_64.tar.gz
+    if [ $? -ne 0 ]; then
+        return 1
+    else
+        return 0
+    fi
+}
+
 fix_partition_suffix() {
     part_variable=''
     ret=$(grep -i "nvme" <<< "$BLOCK_DEVICE")
@@ -91,6 +101,10 @@ check_return_value() {
 echo "Selected Block Disk $BLOCK_DEVICE"
 suffix=$(fix_partition_suffix)
 
+
+## start download of hook image in background
+do_image_download_bg &
+bg_dl_pid=$!
 
 #make grub partition
 parted --script $BLOCK_DEVICE \
@@ -165,10 +179,17 @@ mkdir -p ${efi_mnt}/EFI/hook
 #grubenv add
 grub-editenv ${efi_mnt}/EFI/hook/mac_address set net_default_mac_user=$mac_address_current_device
 
-
 #copy vmlinuz of hook
 cd ${efi_mnt}/EFI/hook/
 # wget https://github.com/tinkerbell/hook/releases/download/v0.8.0/hook_x86_64.tar.gz
+# wait for background download complete
+wait $bg_dl_pid
+bg_dl_ret=$?
+if [ $bg_dl_ret -ne 0 ] && [ ! -f /hook_x86_64.tar.gz ] ; then
+    echo "Hook tar download failed"
+    exit 1
+fi
+
 cp /hook_x86_64.tar.gz ${efi_mnt}/EFI/hook/
 tar -xvf hook_x86_64.tar.gz --no-same-owner
 rm -rf hook_x86_64.tar.gz
