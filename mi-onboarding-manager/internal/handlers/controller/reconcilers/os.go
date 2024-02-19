@@ -48,6 +48,14 @@ func (osr *OsReconciler) Reconcile(ctx context.Context,
 		return directive
 	}
 
+	// skip reconciliation if Repo URL is already set.
+	// In the future, we should introduce current/desired state to drive reconciliation.
+	if osre.RepoUrl != "" {
+		zlogInst.Debug().Msgf("OS (%s) reconciliation skipped. RepoURL set to %s",
+			resourceID, osre.RepoUrl)
+		return request.Ack()
+	}
+
 	return osr.reconcileOsInstance(ctx, request, osre)
 }
 
@@ -71,6 +79,8 @@ func (osr *OsReconciler) reconcileOsInstance(
 	}
 
 	// check if there are changes to OS Resource, If not, skip updating to limit number of requests to Inventory
+	// This is used only once if RepoURL is not set. Once it's set this code will not be reachable,
+	// but since it's not hurtful, we keep it for future usage.
 	isSame, err := IsSameOSResource(osinst, updatedOSResource, fieldmask)
 	if err != nil {
 		return request.Ack()
