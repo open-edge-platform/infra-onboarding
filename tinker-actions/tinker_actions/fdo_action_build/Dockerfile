@@ -16,56 +16,32 @@
 # such intellectual property rights must be express and approved by Intel in writing.
 
 ################################################################################
-################################################################################
 FROM ubuntu:22.04 as fdo-client-sdk-builder
 
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update -y && apt-get upgrade -y && apt-get install -y --no-install-recommends \
+RUN apt-get update -y && apt-get upgrade -y && apt-get install -y \
   git \
   build-essential \
   cmake \
   libxml2-dev \
   uuid-dev \
   libcurl4-openssl-dev \
-  python-setuptools \
-  clang-format \
-  dos2unix \
-  ruby \
+  openssl \
+  libssl-dev \
   wget \
-  libglib2.0-dev \
-  libpcap-dev \
-  autoconf \
-  libtool \
-  libproxy-dev \
-  doxygen \
-   \
-  mercurial \
-  nghttp2 \
-  libnghttp2-dev \
+  bsdmainutils \
   unzip \
-  ca-certificates \
-  xxd &&  \
-  apt-get clean && \
-  rm -rf /var/lib/apt/lists/*
+  libglib2.0-dev \
+  xxd \
+  nghttp2 \
+  libnghttp2-dev
 
 RUN mkdir build_dir
 
-# install OpenSSL
-WORKDIR /build_dir/
-RUN mkdir /tpm-fdoout
-WORKDIR /build_dir/tpm-fdoout/
-RUN git clone -b v1.1.7 https://github.com/fido-device-onboard/client-sdk-fidoiot.git client-sdk
-WORKDIR /build_dir/tpm-fdoout/client-sdk/utils
-RUN bash ./install_openssl_curl.sh -i -v 3.0.12
-# RUN apt-get remove -y --auto-remove libssl-dev libssl-dev:i386 curl libcurl4-openssl-dev
-RUN bash ./install_tpm_libs.sh -t
-
 # Build & Install Curl version 8.4.0
 WORKDIR /build_dir/
-RUN wget https://curl.se/download/curl-8.4.0.tar.gz -O - | tar -xz \
-  && cd curl-8.4.0 \
-  && ./configure --with-openssl="/opt/openssl" --with-nghttp2 --enable-versioned-symbols \
-  && make -j$(nproc) && make install
+RUN wget https://curl.se/download/curl-8.4.0.tar.gz -O - | tar -xz && cd curl-8.4.0 && \
+./configure --with-openssl --enable-versioned-symbols --with-nghttp2 && make && make install
 
 # Setup safestring
 WORKDIR /build_dir
@@ -88,9 +64,8 @@ ENV METEE_ROOT /build_dir/metee
 WORKDIR ${METEE_ROOT}
 RUN cmake . && make && make install
 
-
-ENV OPENSSL3_ROOT /opt/openssl
-ENV CURL_ROOT /opt/curl
+ENV OPENSSL3_ROOT /usr
+ENV CURL_ROOT /usr
 
 # Setup client-sdk-cse.
 WORKDIR /build_dir/
@@ -102,7 +77,14 @@ RUN cmake -DDA=cse_ecdsa384 -DCSE_SHUTDOWN=false -DCSE_CLEAR=true .
 RUN make -j$(nproc)
 
 # Setup client-sdk and TPM libraries.
+WORKDIR /build_dir/
+RUN mkdir /tpm-fdoout
+WORKDIR /build_dir/tpm-fdoout/
+RUN git clone -b v1.1.7 https://github.com/fido-device-onboard/client-sdk-fidoiot.git client-sdk
 WORKDIR /build_dir/tpm-fdoout/client-sdk/
+RUN grep -rl '/opt/openssl' ./ | xargs sed -i 's/\/opt\/openssl/\/usr/g'
+RUN grep -rl '/opt/curl' ./ | xargs sed -i 's/\/opt\/curl/\/usr/g'
+RUN sed -i 's/lib64/lib\/x86_64-linux-gnu/' utils/install_tpm_libs.sh
 RUN sed -i 's/==/-eq/' utils/tpm_make_ready_ecdsa.sh
 RUN sh utils/install_tpm_libs.sh -i
 RUN cmake -DDA=tpm20_ecdsa256 -DTPM2_TCTI_TYPE=tpmrm0 .
@@ -146,7 +128,6 @@ COPY --from=fdo-client-sdk-builder "/usr/local/include/curl" "/usr/include/curl"
 # explicitly set symlinks
 RUN ln -s /usr/lib/libcurl.so.4.8.0 /usr/lib/libcurl.so.4
 RUN ln -s /usr/lib/libcurl.so.4 /usr/lib/libcurl.so
-
 
 WORKDIR /
 
