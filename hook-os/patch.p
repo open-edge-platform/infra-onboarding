@@ -79,7 +79,7 @@ index 0908c72..94d4299 100644
  	cmd.Stderr = os.Stderr
  
 diff --git a/hook.yaml b/hook.yaml
-index 647e792..56c1722 100644
+index 647e792..941f080 100644
 --- a/hook.yaml
 +++ b/hook.yaml
 @@ -34,6 +34,25 @@ onboot:
@@ -108,19 +108,22 @@ index 647e792..56c1722 100644
  services:
    - name: getty
      image: linuxkit/getty:76951a596aa5e0867a38e28f0b94d620e948e3e8
-@@ -63,6 +82,11 @@ services:
+@@ -63,6 +82,14 @@ services:
      binds:
        - /var/run:/var/run
  
 +  - name: fluent-bit
 +    image: fluent/fluent-bit:2.1.9
 +    binds.add:
++      - /dev:/dev
 +      - /etc/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
++      - /dev/shm:/dev/shm
++    rootfsPropagation: shared
 +
    - name: hook-docker
      image: quay.io/tinkerbell/hook-docker:latest
      capabilities:
-@@ -80,6 +104,7 @@ services:
+@@ -80,6 +107,7 @@ services:
        - /var/run/docker:/var/run
        - /var/run/images:/var/lib/docker
        - /var/run/worker:/worker
@@ -128,7 +131,7 @@ index 647e792..56c1722 100644
      runtime:
        mkdir:
          - /var/run/images
-@@ -100,6 +125,40 @@ services:
+@@ -100,6 +128,40 @@ services:
        mkdir:
          - /var/run/docker
  
@@ -169,7 +172,7 @@ index 647e792..56c1722 100644
  #dbg  - name: sshd
  #dbg    image: linuxkit/sshd:666b4a1a323140aa1f332826164afba506abf597
  
-@@ -110,6 +169,14 @@ files:
+@@ -110,6 +172,14 @@ files:
        alias docker-shell='ctr -n services.linuxkit tasks exec --tty --exec-id shell hook-docker sh'
      mode: "0644"
  
@@ -184,7 +187,7 @@ index 647e792..56c1722 100644
    - path: etc/motd
      mode: "0644"
      contents: |
-@@ -137,6 +204,14 @@ files:
+@@ -137,6 +207,14 @@ files:
      source: "files/dhcpcd.conf"
      mode: "0644"
  
@@ -199,7 +202,7 @@ index 647e792..56c1722 100644
  #dbg  - path: root/.ssh/authorized_keys
  #dbg    source: ~/.ssh/id_rsa.pub
  #dbg    mode: "0600"
-@@ -146,3 +221,12 @@ trust:
+@@ -146,3 +224,12 @@ trust:
    org:
      - linuxkit
      - library
