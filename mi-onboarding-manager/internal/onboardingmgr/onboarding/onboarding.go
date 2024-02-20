@@ -8,9 +8,9 @@ package onboarding
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"os"
 	"path/filepath"
@@ -317,7 +317,7 @@ func MakeGETRequestWithRetry(pdip, caCertPath, certPath, guid string) error {
 	startTime := time.Now()
 	for {
 		if time.Since(startTime) >= timeOut {
-			return errors.New(" time out for T02 Process")
+			return inv_errors.Errorf("Timeout for T02 Process for host %s", guid)
 		}
 		// Make an HTTP GET request
 		response, err := utils.MakeHTTPGETRequest(pdip, guid, caCertPath, certPath)
@@ -361,7 +361,19 @@ func ConvertInstanceForOnboarding(osResources []*osv1.OperatingSystemResource, h
 	var onboardingRequests []*pb.OnboardingRequest
 
 	var overlayURL string
-	hostNics := host.GetHostNics()
+
+	bmcNics, err := util.GetBmcNicsFromHost(host)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(bmcNics) > 1 {
+		zlog.Warn().Msgf("Using the first BMC NIC, but more than one retrieved: %v.", bmcNics)
+	}
+
+	// we always assume that there is only one BMC NIC for a given host
+	bmcNIC := bmcNics[0]
+
 	for _, osr := range osResources {
 		osURL := osr.RepoUrl
 
@@ -372,21 +384,11 @@ func ConvertInstanceForOnboarding(osResources []*osv1.OperatingSystemResource, h
 		}
 		// Validate the format of osURL
 		if !isValidOSURLFormat(osURL) {
-			return nil, errors.New("osURL is not in the expected format")
+			return nil, inv_errors.Errorf("osURL %s is not in the expected format", osURL)
 		}
 
 		if len(invURL) > 1 {
 			overlayURL = invURL[1]
-		}
-
-		// Check if hostNics is empty
-		if len(hostNics) == 0 {
-			return nil, errors.New("no macID found")
-		}
-
-		// Check if the HostnicResource has bmcInterface set to true
-		if !hostNics[0].BmcInterface {
-			return nil, errors.New("BMC interface is not enabled")
 		}
 
 		sutIP := host.GetBmcIp()
@@ -421,7 +423,7 @@ func ConvertInstanceForOnboarding(osResources []*osv1.OperatingSystemResource, h
 		}
 
 		// Set MAC address of HostnicResource if bmcInterface is true
-		onboardingRequest.Hwdata[0].MacId = hostNics[0].MacAddr
+		onboardingRequest.Hwdata[0].MacId = bmcNIC.MacAddr
 
 		zlog.Debug().Msgf("Instance resource converted to onboarding request (MAC=%s, OS URL=%s, Overlay URL=%s",
 			onboardingRequest.Hwdata[0].MacId,
