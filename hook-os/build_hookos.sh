@@ -91,6 +91,7 @@ get_nginx_conf() {
     sed -i "s|update_oci_release_svc|$oci_release_svc|g" hook.yaml
     sed -i "s|update_manufacturer_svc|$fdo_manufacturer_svc|g" hook.yaml
     sed -i "s|update_owner_svc|$fdo_owner_svc|g" hook.yaml
+    sed -i "s|update_logging_svc|$logging_svc|g" hook.yaml
 }
 
 build_hook() {
