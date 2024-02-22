@@ -17,14 +17,19 @@
     - [OnboardingResponse](#onboardingmgr-OnboardingResponse)
     - [Ports](#onboardingmgr-Ports)
     - [Proxy](#onboardingmgr-Proxy)
+    - [SecureBootResponse](#onboardingmgr-SecureBootResponse)
+    - [SecureBootStatRequest](#onboardingmgr-SecureBootStatRequest)
     - [Supplier](#onboardingmgr-Supplier)
   
     - [ArtifactData.ArtifactCategory](#onboardingmgr-ArtifactData-ArtifactCategory)
     - [ArtifactData.Response](#onboardingmgr-ArtifactData-Response)
     - [NodeData.Response](#onboardingmgr-NodeData-Response)
+    - [SecureBootResponse.Status](#onboardingmgr-SecureBootResponse-Status)
+    - [SecureBootStatRequest.Status](#onboardingmgr-SecureBootStatRequest-Status)
   
     - [NodeArtifactServiceNB](#onboardingmgr-NodeArtifactServiceNB)
     - [OnBoardingEB](#onboardingmgr-OnBoardingEB)
+    - [OnBoardingSB](#onboardingmgr-OnBoardingSB)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -132,6 +137,7 @@
 | bmc_ip | [string](#string) |  |  |
 | bmc_interface | [bool](#bool) |  |  |
 | host_nic_dev_name | [string](#string) |  |  |
+| SecurityFeature | [uint32](#uint32) |  |  |
 
 
 
@@ -290,6 +296,38 @@ Node App Artifact ID to be stored here.This ID is retured to GetArtifacts{id} |
 
 
 
+<a name="onboardingmgr-SecureBootResponse"></a>
+
+### SecureBootResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| result | [SecureBootResponse.Status](#onboardingmgr-SecureBootResponse-Status) |  |  |
+| guid | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="onboardingmgr-SecureBootStatRequest"></a>
+
+### SecureBootStatRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| result | [SecureBootStatRequest.Status](#onboardingmgr-SecureBootStatRequest-Status) |  |  |
+| guid | [string](#string) |  | GUID |
+
+
+
+
+
+
 <a name="onboardingmgr-Supplier"></a>
 
 ### Supplier
@@ -348,6 +386,30 @@ Node App Artifact ID to be stored here.This ID is retured to GetArtifacts{id} |
 | FAILURE | 1 | Failure |
 
 
+
+<a name="onboardingmgr-SecureBootResponse-Status"></a>
+
+### SecureBootResponse.Status
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| SUCCESS | 0 | Success |
+| FAILURE | 1 | Failure |
+
+
+
+<a name="onboardingmgr-SecureBootStatRequest-Status"></a>
+
+### SecureBootStatRequest.Status
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| SUCCESS | 0 | Success |
+| FAILURE | 1 | Failure |
+
+
  
 
  
@@ -378,6 +440,16 @@ Services exposed to EB by Onboarding Manager
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
 | StartOnboarding | [OnboardingRequest](#onboardingmgr-OnboardingRequest) | [OnboardingResponse](#onboardingmgr-OnboardingResponse) | Initialize connection with node |
+
+
+<a name="onboardingmgr-OnBoardingSB"></a>
+
+### OnBoardingSB
+
+
+| Method Name | Request Type | Response Type | Description |
+| ----------- | ------------ | ------------- | ------------|
+| SecureBootStatus | [SecureBootStatRequest](#onboardingmgr-SecureBootStatRequest) | [SecureBootResponse](#onboardingmgr-SecureBootResponse) | updates secureboot BIOS status in Edge Node |
 
  
 

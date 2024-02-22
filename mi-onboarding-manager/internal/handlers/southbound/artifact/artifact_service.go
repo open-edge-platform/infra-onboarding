@@ -440,3 +440,4 @@ func (s *NodeArtifactService) startZeroTouch(ctx context.Context, hostResID stri
 
 	return nil
 }
+

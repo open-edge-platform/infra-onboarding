@@ -29,6 +29,11 @@ service OnBoardingEB {
   rpc StartOnboarding(OnboardingRequest) returns (OnboardingResponse);
 }
 
+service OnBoardingSB {
+  // updates secureboot BIOS status in Edge Node
+  rpc SecureBootStatus(SecureBootStatRequest) returns (SecureBootResponse);
+}
+
 message ArtifactRequest {
   repeated ArtifactData payload = 1; // Payload data represented as an array or list
 }
@@ -116,6 +121,7 @@ message HwData {
   string bmc_ip = 9;
   bool bmc_interface = 10;
   string host_nic_dev_name = 11;
+  uint32 SecurityFeature = 12;
 }
 
 message Proxy {
@@ -158,4 +164,22 @@ message OnboardingRequest {
 
 message OnboardingResponse {
   string status = 1;
+}
+
+message SecureBootStatRequest {
+  enum Status {
+    SUCCESS = 0; // Success
+    FAILURE = 1; // Failure
+  }
+  Status result = 1;
+  string guid = 2; // GUID
+}
+
+message SecureBootResponse {
+  enum Status {
+    SUCCESS = 0; // Success
+    FAILURE = 1; // Failure
+  }
+  Status result = 1;
+  string guid = 2;
 }

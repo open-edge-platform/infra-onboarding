@@ -110,6 +110,7 @@ func TestConvertInstanceForOnboarding_Err(t *testing.T) {
 		name        string
 		osResources []*osv1.OperatingSystemResource
 		host        *computev1.HostResource
+		instance    *computev1.InstanceResource
 		want        []*pb.OnboardingRequest
 		wantErr     bool
 	}{
@@ -175,7 +176,7 @@ func TestConvertInstanceForOnboarding_Err(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ConvertInstanceForOnboarding(tt.osResources, tt.host)
+			got, err := ConvertInstanceForOnboarding(tt.osResources, tt.host, tt.instance)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ConvertInstanceForOnboarding() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -430,4 +431,231 @@ func TestOnboardingManager_StartOnboarding_Case(t *testing.T) {
 	}
 	os.Remove(dirPath + "/internal/onboardingmgr/azure_env/" + "azure-credentials.env_")
 	os.Remove(dirPath + "/internal/onboardingmgr/azure_env/" + "azure-credentials.env_00:00:00:00:00:00")
+}
+
+func TestHandleSecureBootMismatch(t *testing.T) {
+	type args struct {
+		ctx context.Context
+		req *pb.SecureBootResponse
+	}
+	mockClient := &MockInventoryClient{}
+	_invClient = &invclient.OnboardingInventoryClient{
+		Client: mockClient,
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				ctx: context.Background(),
+				req: &pb.SecureBootResponse{},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := IsSecureBootConfigAtEdgeNodeMismatch(tt.args.ctx, tt.args.req); (err != nil) != tt.wantErr {
+				t.Errorf("HandleSecureBootMismatch() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestHandleSecureBootMismatch_Case(t *testing.T) {
+	type args struct {
+		ctx context.Context
+		req *pb.SecureBootResponse
+	}
+	mockClient := &MockInventoryClient{}
+	mockHost := &computev1.HostResource{
+		ResourceId: "host-084d9b08",
+		Instance: &computev1.InstanceResource{
+			ResourceId: "inst-084d9b08",
+		},
+	}
+	mockResource := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: mockHost,
+		},
+	}
+	mockResources := &inv_v1.ListResourcesResponse{
+		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource}},
+	}
+	mockClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
+	mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	_invClient = &invclient.OnboardingInventoryClient{
+		Client: mockClient,
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				ctx: context.Background(),
+				req: &pb.SecureBootResponse{
+					Guid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := IsSecureBootConfigAtEdgeNodeMismatch(tt.args.ctx, tt.args.req); (err != nil) != tt.wantErr {
+				t.Errorf("HandleSecureBootMismatch() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestHandleSecureBootMismatch_Case1(t *testing.T) {
+	type args struct {
+		ctx context.Context
+		req *pb.SecureBootResponse
+	}
+	mockClient := &MockInventoryClient{}
+	mockHost := &computev1.HostResource{
+		ResourceId: "host-084d9b08",
+		Instance: &computev1.InstanceResource{
+			ResourceId: "inst-084d9b08",
+		},
+	}
+	mockResource := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: mockHost,
+		},
+	}
+	mockResources := &inv_v1.ListResourcesResponse{
+		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource}},
+	}
+	mockClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
+	mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
+	_invClient = &invclient.OnboardingInventoryClient{
+		Client: mockClient,
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				ctx: context.Background(),
+				req: &pb.SecureBootResponse{
+					Guid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := IsSecureBootConfigAtEdgeNodeMismatch(tt.args.ctx, tt.args.req); (err != nil) != tt.wantErr {
+				t.Errorf("HandleSecureBootMismatch() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestHandleSecureBootMismatch_Case2(t *testing.T) {
+	type args struct {
+		ctx context.Context
+		req *pb.SecureBootResponse
+	}
+	mockClient := &MockInventoryClient{}
+	mockHost := &computev1.HostResource{
+		ResourceId: "host-084d9b08",
+		Instance: &computev1.InstanceResource{
+			ResourceId: "inst-084d9b08",
+		},
+	}
+	mockResource := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: mockHost,
+		},
+	}
+	mockResources := &inv_v1.ListResourcesResponse{
+		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource}},
+	}
+	mockClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
+	mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil).Once()
+	mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err")).Once()
+	_invClient = &invclient.OnboardingInventoryClient{
+		Client: mockClient,
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				ctx: context.Background(),
+				req: &pb.SecureBootResponse{
+					Guid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := IsSecureBootConfigAtEdgeNodeMismatch(tt.args.ctx, tt.args.req); (err != nil) != tt.wantErr {
+				t.Errorf("HandleSecureBootMismatch() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestOnboardingManager_SecureBootStatus(t *testing.T) {
+	type fields struct {
+		OnBoardingEBServer pb.OnBoardingEBServer
+		OnBoardingSBServer pb.OnBoardingSBServer
+	}
+	type args struct {
+		ctx context.Context
+		req *pb.SecureBootStatRequest
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *pb.SecureBootResponse
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				ctx: context.Background(),
+				req: &pb.SecureBootStatRequest{},
+			},
+			want: &pb.SecureBootResponse{},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &OnboardingManager{
+				OnBoardingEBServer: tt.fields.OnBoardingEBServer,
+				OnBoardingSBServer: tt.fields.OnBoardingSBServer,
+			}
+			got, err := s.SecureBootStatus(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("OnboardingManager.SecureBootStatus() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("OnboardingManager.SecureBootStatus() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

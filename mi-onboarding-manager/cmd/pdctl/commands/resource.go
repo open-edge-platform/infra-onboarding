@@ -79,9 +79,11 @@ func InstanceResCmds() *cobra.Command {
 	createCmd.Flags().Uint32("vm-cpu-cores", 0, "Number of CPU cores")
 	createCmd.Flags().Uint64("vm-storage-bytes", 0, "Storage quantity (primary), in bytes")
 	createCmd.Flags().StringP("osID", "o", "", "os id (required)")
+	createCmd.Flags().Uint32("securityFeature", 0, "security Feature (required)")
 	must(createCmd.MarkFlagRequired("kind"))
 	must(createCmd.MarkFlagRequired("hostID"))
 	must(createCmd.MarkFlagRequired("osID"))
+	must(createCmd.MarkFlagRequired("securityFeature"))
 
 	updateCmd := &cobra.Command{
 		Use:   "update",
@@ -184,6 +186,7 @@ func createInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 		vmStorageBytes, _ := cmd.Flags().GetUint64("vm-storage-bytes")
 		hostID, _ := cmd.Flags().GetString("hostID")
 		osID, _ := cmd.Flags().GetString("osID")
+		securityFeature, _ := cmd.Flags().GetUint32("securityFeature")
 
 		client, err := invclient.NewOnboardingInventoryClientWithOptions(
 			invclient.WithInventoryAddress(dialer.Addr),
@@ -196,12 +199,13 @@ func createInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 		defer client.Close()
 
 		instance := &computev1.InstanceResource{
-			Kind:           computev1.InstanceKind(computev1.InstanceKind_value[kind]),
-			DesiredState:   computev1.InstanceState_INSTANCE_STATE_RUNNING,
-			CurrentState:   computev1.InstanceState(computev1.InstanceState_value[currentState]),
-			VmMemoryBytes:  vmMemoryBytes,
-			VmCpuCores:     vmCPUCores,
-			VmStorageBytes: vmStorageBytes,
+			Kind:            computev1.InstanceKind(computev1.InstanceKind_value[kind]),
+			DesiredState:    computev1.InstanceState_INSTANCE_STATE_RUNNING,
+			CurrentState:    computev1.InstanceState(computev1.InstanceState_value[currentState]),
+			VmMemoryBytes:   vmMemoryBytes,
+			VmCpuCores:      vmCPUCores,
+			VmStorageBytes:  vmStorageBytes,
+			SecurityFeature: osv1.SecurityFeature(securityFeature),
 
 			Host: &computev1.HostResource{
 				ResourceId: hostID,

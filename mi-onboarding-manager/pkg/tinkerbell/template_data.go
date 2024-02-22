@@ -3,7 +3,11 @@
 
 package tinkerbell
 
-import "fmt"
+import (
+	"fmt"
+
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
+)
 
 func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIP string) ([]byte, error) {
 	wf := Workflow{
@@ -40,7 +44,7 @@ func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIP string) ([]b
 					},
 				},
 				{
-					Name:    "grow-partision-install-script",
+					Name:    "grow-partition-install-script",
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
 					Timeout: 90,
 					Environment: map[string]string{
@@ -183,7 +187,7 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 	return marshalWorkflow(&wf)
 }
 
-func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gateway, _, _ string) ([]byte, error) {
+func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gateway, _, _ string, securityFeature uint32) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -221,7 +225,6 @@ https_proxy=http://proxy-dmz.intel.com:912
 ftp_proxy=http://proxy-dmz.intel.com:911
 socks_proxy=http://proxy-dmz.intel.com:1080
 no_proxy=localhost,*.intel.com,*intel.com,127.0.0.1,intel.com,.internal`,
-
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -263,8 +266,9 @@ DNS=10.248.2.1 172.30.90.4 10.223.45.36`,
 						"DIRMODE": "0755",
 					},
 				},
+
 				{
-					Name:    "grow-partision-install-script",
+					Name:    "grow-partition-install-script",
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
 					Timeout: 90,
 					Environment: map[string]string{
@@ -535,6 +539,31 @@ netplan apply`, clientIP),
 		}},
 	}
 
+	// FDE removal if security feature flag is not set for FDE
+	if osv1.SecurityFeature(securityFeature) != osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION {
+		for i, task := range wf.Tasks {
+			for j, action := range task.Actions {
+				if action.Name == "fde-encryption" {
+					// Remove the action from the slice
+					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
+					break
+				}
+			}
+		}
+		// Enable the grow partition
+		for _, task := range wf.Tasks {
+			for _, action := range task.Actions {
+				if action.Name == "enable-grow-partinstall-service-script" {
+					if action.Environment["CMD_LINE"] == "systemctl disable install-grow-part.service" {
+						action.Environment["CMD_LINE"] = "systemctl enable install-grow-part.service"
+					}
+					break
+				}
+			}
+		}
+
+	}
+
 	return marshalWorkflow(&wf)
 }
 
@@ -572,7 +601,7 @@ func NewTemplateDataProdMS(name, rootPart, _, hostIP, clientIP, gateway, mac, pr
 					},
 				},
 				{
-					Name:    "grow-partision-install-script",
+					Name:    "grow-partition-install-script",
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
 					Timeout: 90,
 					Environment: map[string]string{

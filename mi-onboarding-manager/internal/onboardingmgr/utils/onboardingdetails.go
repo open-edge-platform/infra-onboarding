@@ -22,6 +22,7 @@ type (
 		DpsRegistrationID string
 		DpsSymmKey        string
 		GUID              string
+		SecurityFeature   uint32
 	}
 
 	ArtifactData struct {

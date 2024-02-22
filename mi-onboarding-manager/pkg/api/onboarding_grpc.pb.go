@@ -439,3 +439,89 @@ var OnBoardingEB_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "onboarding.proto",
 }
+
+// OnBoardingSBClient is the client API for OnBoardingSB service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type OnBoardingSBClient interface {
+	// updates secureboot BIOS status in Edge Node
+	SecureBootStatus(ctx context.Context, in *SecureBootStatRequest, opts ...grpc.CallOption) (*SecureBootResponse, error)
+}
+
+type onBoardingSBClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewOnBoardingSBClient(cc grpc.ClientConnInterface) OnBoardingSBClient {
+	return &onBoardingSBClient{cc}
+}
+
+func (c *onBoardingSBClient) SecureBootStatus(ctx context.Context, in *SecureBootStatRequest, opts ...grpc.CallOption) (*SecureBootResponse, error) {
+	out := new(SecureBootResponse)
+	err := c.cc.Invoke(ctx, "/onboardingmgr.OnBoardingSB/SecureBootStatus", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// OnBoardingSBServer is the server API for OnBoardingSB service.
+// All implementations should embed UnimplementedOnBoardingSBServer
+// for forward compatibility
+type OnBoardingSBServer interface {
+	// updates secureboot BIOS status in Edge Node
+	SecureBootStatus(context.Context, *SecureBootStatRequest) (*SecureBootResponse, error)
+}
+
+// UnimplementedOnBoardingSBServer should be embedded to have forward compatible implementations.
+type UnimplementedOnBoardingSBServer struct {
+}
+
+func (UnimplementedOnBoardingSBServer) SecureBootStatus(context.Context, *SecureBootStatRequest) (*SecureBootResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SecureBootStatus not implemented")
+}
+
+// UnsafeOnBoardingSBServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to OnBoardingSBServer will
+// result in compilation errors.
+type UnsafeOnBoardingSBServer interface {
+	mustEmbedUnimplementedOnBoardingSBServer()
+}
+
+func RegisterOnBoardingSBServer(s grpc.ServiceRegistrar, srv OnBoardingSBServer) {
+	s.RegisterService(&OnBoardingSB_ServiceDesc, srv)
+}
+
+func _OnBoardingSB_SecureBootStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SecureBootStatRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OnBoardingSBServer).SecureBootStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/onboardingmgr.OnBoardingSB/SecureBootStatus",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OnBoardingSBServer).SecureBootStatus(ctx, req.(*SecureBootStatRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// OnBoardingSB_ServiceDesc is the grpc.ServiceDesc for OnBoardingSB service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var OnBoardingSB_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "onboardingmgr.OnBoardingSB",
+	HandlerType: (*OnBoardingSBServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "SecureBootStatus",
+			Handler:    _OnBoardingSB_SecureBootStatus_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "onboarding.proto",
+}

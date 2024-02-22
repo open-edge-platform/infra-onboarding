@@ -1711,3 +1711,130 @@ func TestNodeArtifactService_UpdateNodes_Case6(t *testing.T) {
 		})
 	}
 }
+
+func TestNodeArtifactService_startZeroTouch(t *testing.T) {
+	type fields struct {
+		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
+		invClient                                *invclient.OnboardingInventoryClient
+		invClientAPI                             *invclient.OnboardingInventoryClient
+	}
+	type args struct {
+		ctx       context.Context
+		hostResID string
+	}
+	mockHost := &computev1.HostResource{
+		ResourceId:   "host-084d9b08",
+		DesiredState: computev1.HostState_HOST_STATE_DELETED,
+		Instance: &computev1.InstanceResource{
+			ResourceId: "inst-084d9b08",
+		},
+	}
+	mockResource := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: mockHost,
+		},
+	}
+	mockInvClient := &onboarding.MockInventoryClient{}
+	mockResources1 := &inv_v1.ListResourcesResponse{
+		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource}},
+	}
+	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{Resource: mockResource}, nil)
+	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources1, nil)
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			fields: fields{
+				invClient: &invclient.OnboardingInventoryClient{
+					Client: mockInvClient,
+				},
+				invClientAPI: &invclient.OnboardingInventoryClient{
+					Client: &onboarding.MockInventoryClient{},
+				},
+			},
+			args: args{
+				ctx:       context.Background(),
+				hostResID: "host-084d9b08",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &NodeArtifactService{
+				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+				invClient:                                tt.fields.invClient,
+				invClientAPI:                             tt.fields.invClientAPI,
+			}
+			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostResID); (err != nil) != tt.wantErr {
+				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestNodeArtifactService_startZeroTouch_Case(t *testing.T) {
+	type fields struct {
+		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
+		invClient                                *invclient.OnboardingInventoryClient
+		invClientAPI                             *invclient.OnboardingInventoryClient
+	}
+	type args struct {
+		ctx       context.Context
+		hostResID string
+	}
+	mockHost := &computev1.HostResource{
+		ResourceId: "host-084d9b08",
+	}
+	mockResource := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: mockHost,
+		},
+	}
+	mockInvClient := &onboarding.MockInventoryClient{}
+	mockResources1 := &inv_v1.ListResourcesResponse{
+		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource}},
+	}
+	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{Resource: mockResource}, nil)
+	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources1, nil)
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			fields: fields{
+				invClient: &invclient.OnboardingInventoryClient{
+					Client: mockInvClient,
+				},
+				invClientAPI: &invclient.OnboardingInventoryClient{
+					Client: &onboarding.MockInventoryClient{},
+				},
+			},
+			args: args{
+				ctx:       context.Background(),
+				hostResID: "host-084d9b08",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &NodeArtifactService{
+				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+				invClient:                                tt.fields.invClient,
+				invClientAPI:                             tt.fields.invClientAPI,
+			}
+			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostResID); (err != nil) != tt.wantErr {
+				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+

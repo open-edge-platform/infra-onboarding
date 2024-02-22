@@ -8,18 +8,23 @@ package onboarding
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
+
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
 
-	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
+
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
+
+	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
+
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	logging "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
@@ -43,6 +48,7 @@ var (
 
 type OnboardingManager struct {
 	pb.OnBoardingEBServer
+	pb.OnBoardingSBServer
 }
 
 type ResponseData struct {
@@ -84,16 +90,17 @@ func createDeviceInfoListNAzureEnv(copyOfRequest *pb.OnboardingRequest) ([]utils
 
 	for _, hw := range copyOfRequest.Hwdata {
 		deviceInfo := utils.DeviceInfo{
-			GUID:           hw.Uuid,
-			HwSerialID:     hw.Serialnum,
-			HwMacID:        hw.MacId,
-			HwIP:           hw.SutIp,
-			DiskType:       os.Getenv("DISK_PARTITION"),
-			LoadBalancerIP: os.Getenv("IMG_URL"),
-			Gateway:        generateGatewayFromBaseIP(hw.SutIp),
-			ProvisionerIP:  os.Getenv("PD_IP"),
-			ImType:         os.Getenv("IMAGE_TYPE"),
-			RootfspartNo:   os.Getenv("OVERLAY_URL"),
+			GUID:            hw.Uuid,
+			HwSerialID:      hw.Serialnum,
+			HwMacID:         hw.MacId,
+			HwIP:            hw.SutIp,
+			SecurityFeature: hw.SecurityFeature,
+			DiskType:        os.Getenv("DISK_PARTITION"),
+			LoadBalancerIP:  os.Getenv("IMG_URL"),
+			Gateway:         generateGatewayFromBaseIP(hw.SutIp),
+			ProvisionerIP:   os.Getenv("PD_IP"),
+			ImType:          os.Getenv("IMAGE_TYPE"),
+			RootfspartNo:    os.Getenv("OVERLAY_URL"),
 			/* DpsScopeId:        hw.CusParams.DpsScopeId,
 			DpsRegistrationId: hw.CusParams.DpsRegistrationId,
 			DpsSymmKey:        hw.CusParams.DpsEnrollmentSymKey, */
@@ -357,7 +364,7 @@ func MakeGETRequestWithRetry(pdip, caCertPath, certPath, guid string) error {
 	return nil
 }
 
-func ConvertInstanceForOnboarding(osResources []*osv1.OperatingSystemResource, host *computev1.HostResource) ([]*pb.OnboardingRequest, error) {
+func ConvertInstanceForOnboarding(osResources []*osv1.OperatingSystemResource, host *computev1.HostResource, instances *computev1.InstanceResource) ([]*pb.OnboardingRequest, error) {
 	var onboardingRequests []*pb.OnboardingRequest
 
 	var overlayURL string
@@ -412,11 +419,12 @@ func ConvertInstanceForOnboarding(osResources []*osv1.OperatingSystemResource, h
 			},
 			Hwdata: []*pb.HwData{
 				{
-					Serialnum:     host.GetSerialNumber(),
-					SutIp:         host.GetBmcIp(),
-					DiskPartition: "123", // Adjust these accordingly
-					PlatformType:  host.GetHardwareKind(),
-					Uuid:          host.GetUuid(),
+					Serialnum:       host.GetSerialNumber(),
+					SutIp:           host.GetBmcIp(),
+					DiskPartition:   "123", // Adjust these accordingly
+					PlatformType:    host.GetHardwareKind(),
+					Uuid:            host.GetUuid(),
+					SecurityFeature: uint32(instances.GetSecurityFeature()),
 					// Add other hardware data if needed
 				},
 			},
@@ -496,6 +504,60 @@ func GetOSResourceFromDkamService(ctx context.Context, profilename, platform str
 	zlog.Debug().Msgf("Software details successfully obtained from DKAM: %v", response)
 
 	return response, nil
+}
+
+func IsSecureBootConfigAtEdgeNodeMismatch(ctx context.Context, req *pb.SecureBootResponse) error {
+	zlog.Info().Msgf("IsSecureBootConfigAtEdgeNodeMismatch")
+
+	// Getting details from Host for now using GUID/UUID
+	instanceDetails, err := _invClient.GetHostResourceByUUID(ctx, req.Guid)
+	if err != nil {
+		zlog.Err(err).Msg("Failed to get Instance Details")
+		return err // Return the error if failed to get instance details
+	}
+	// Check if SecureBootStatus mismatches
+	if ((instanceDetails.Instance.GetSecurityFeature().String() == "SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION") &&
+		(req.Result.String() == "FAILURE")) ||
+		((instanceDetails.Instance.GetSecurityFeature().String() == "SECURITY_FEATURE_UNSPECIFIED") &&
+			(req.Result.String() == "SUCCESS")) ||
+		((instanceDetails.Instance.GetSecurityFeature().String() == "SECURITY_FEATURE_NONE") &&
+			(req.Result.String() == "SUCCESS")) {
+		// If there's a mismatch, update the instance status to INSTANCE_STATE_ERROR
+		err := UpdateInstanceStatusByGUID(ctx, _invClient, req.Guid, computev1.InstanceStatus_INSTANCE_STATUS_ERROR, om_status.OnboardingStatusFailed)
+		if err != nil {
+			zlog.Err(err).Msg("Failed to Update the instance status")
+			return err
+		}
+
+		// Update host status with fail status and statusDetails
+		err = UpdateHostStatusByHostGUID(ctx, _invClient, req.Guid, computev1.HostStatus_HOST_STATUS_BOOT_FAILED, "SecureBoot status mismatch", om_status.OnboardingStatusFailed)
+		if err != nil {
+			zlog.Err(err).Msg("Failed to Update the host status")
+			return err
+		}
+
+		// Return an error indicating SecureBoot status mismatch
+		return errors.New("SecureBoot status mismatch")
+	}
+
+	zlog.Info().Msgf("IsSecureBootConfigAtEdgeNodeMismatch(): SB flags matched")
+
+	// If there's no error and no mismatch, return nil
+	return nil
+}
+
+func (s *OnboardingManager) SecureBootStatus(ctx context.Context, req *pb.SecureBootStatRequest) (*pb.SecureBootResponse, error) {
+	zlog.Info().Msgf("------- SecureBootStatus() ----------------\n")
+	resp := &pb.SecureBootResponse{
+		Guid:   req.Guid,
+		Result: pb.SecureBootResponse_Status(req.Result),
+	}
+	//	err := HandleSecureBootMismatch(ctx, resp)
+	err := IsSecureBootConfigAtEdgeNodeMismatch(ctx, resp)
+	if err != nil {
+		return resp, errors.New("SecureBoot Status mismatch")
+	}
+	return resp, nil
 }
 
 var (

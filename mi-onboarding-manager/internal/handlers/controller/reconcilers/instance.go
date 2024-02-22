@@ -85,7 +85,7 @@ func (ir *InstanceReconciler) reconcileInstance(
 			return request.Ack()
 		}
 
-		onboardingRequest, err := onboarding.ConvertInstanceForOnboarding([]*osv1.OperatingSystemResource{os}, host)
+		onboardingRequest, err := onboarding.ConvertInstanceForOnboarding([]*osv1.OperatingSystemResource{os}, host, instance)
 		if err != nil {
 			zlogInst.MiSec().MiErr(err).Msgf("Failed to convert instance for onboarding")
 			return request.Ack()

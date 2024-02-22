@@ -57,6 +57,7 @@ func TestNewTemplateDataProdBKC(t *testing.T) {
 		gateway    string
 		clientImg  string
 		provIP     string
+		securityFeature uint32
 	}
 	wf := Workflow{}
 	want, _ := marshalWorkflow(&wf)
@@ -78,7 +79,7 @@ func TestNewTemplateDataProdBKC(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := NewTemplateDataProdBKC(tt.args.name, tt.args.rootPart, tt.args.rootPartNo,
-				tt.args.hostIP, tt.args.clientIP, tt.args.gateway, tt.args.clientImg, tt.args.provIP)
+				tt.args.hostIP, tt.args.clientIP, tt.args.gateway, tt.args.clientImg, tt.args.provIP,tt.args.securityFeature)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewTemplateDataProdBKC() error = %v, wantErr %v", err, tt.wantErr)
 				return

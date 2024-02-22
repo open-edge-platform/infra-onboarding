@@ -12,7 +12,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"io"
 	"log"
 	"net/http"
@@ -24,6 +23,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/tinkerbell"
@@ -1050,7 +1051,7 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string, artifacti
 		deviceInfo.LoadBalancerIP = artifactinfo.BkcURL
 		deviceInfo.RootfspartNo = artifactinfo.BkcBasePkgURL
 		tmplData, err = tinkerbell.NewTemplateDataProdBKC(tmplName, deviceInfo.Rootfspart, deviceInfo.RootfspartNo,
-			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.ClientImgName, deviceInfo.ProvisionerIP)
+			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.ClientImgName, deviceInfo.ProvisionerIP, deviceInfo.SecurityFeature)
 		if err != nil {
 			return err
 		}
