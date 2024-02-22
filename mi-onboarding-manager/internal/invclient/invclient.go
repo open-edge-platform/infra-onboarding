@@ -581,7 +581,11 @@ func (c *OnboardingInventoryClient) FindAllResources(ctx context.Context,
 		if err != nil {
 			return nil, err
 		}
-		resources, err := c.Client.FindAll(ctx, res, fmk)
+		filter := &inv_v1.ResourceFilter{
+			Resource:  res,
+			FieldMask: fmk,
+		}
+		resources, err := c.Client.FindAll(ctx, filter)
 		if err != nil {
 			return nil, err
 		}

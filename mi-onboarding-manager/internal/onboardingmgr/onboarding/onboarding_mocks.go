@@ -12,6 +12,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client/cache"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
@@ -31,10 +32,8 @@ func (m *MockInventoryClient) List(ctx context.Context, filter *inv_v1.ResourceF
 	return args.Get(0).(*inv_v1.ListResourcesResponse), args.Error(1)
 }
 
-func (m *MockInventoryClient) ListAll(ctx context.Context, resource *inv_v1.Resource,
-	mask *fieldmaskpb.FieldMask,
-) ([]*inv_v1.Resource, error) {
-	args := m.Called(ctx, resource, mask)
+func (m *MockInventoryClient) ListAll(ctx context.Context, filter *inv_v1.ResourceFilter) ([]*inv_v1.Resource, error) {
+	args := m.Called(ctx, filter)
 	return args.Get(0).([]*inv_v1.Resource), args.Error(1)
 }
 
@@ -43,10 +42,8 @@ func (m *MockInventoryClient) Find(ctx context.Context, filter *inv_v1.ResourceF
 	return args.Get(0).(*inv_v1.FindResourcesResponse), args.Error(1)
 }
 
-func (m *MockInventoryClient) FindAll(ctx context.Context, resource *inv_v1.Resource,
-	mask *fieldmaskpb.FieldMask,
-) ([]string, error) {
-	args := m.Called(ctx, resource, mask)
+func (m *MockInventoryClient) FindAll(ctx context.Context, filter *inv_v1.ResourceFilter) ([]string, error) {
+	args := m.Called(ctx, filter)
 	return args.Get(0).([]string), args.Error(1)
 }
 
@@ -89,6 +86,11 @@ func (m *MockInventoryClient) ListInheritedTelemetryProfiles(ctx context.Context
 
 func (m *MockInventoryClient) TestingOnlySetClient(client inv_v1.InventoryServiceClient) {
 	m.Called(client)
+}
+
+func (m *MockInventoryClient) TestGetClientCache() *cache.InventoryCache {
+	m.Called()
+	return nil
 }
 
 type MockOnboardingClient struct {

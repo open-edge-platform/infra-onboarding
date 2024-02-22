@@ -13,18 +13,18 @@ import (
 	"testing"
 	"time"
 
-	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
-	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
-	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
-
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	network_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/network/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client/cache"
+	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
+	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -46,10 +46,8 @@ func (m *MockInventoryClient) List(ctx context.Context, filter *inv_v1.ResourceF
 	return args.Get(0).(*inv_v1.ListResourcesResponse), args.Error(1)
 }
 
-func (m *MockInventoryClient) ListAll(ctx context.Context, resource *inv_v1.Resource,
-	mask *fieldmaskpb.FieldMask,
-) ([]*inv_v1.Resource, error) {
-	args := m.Called(ctx, resource, mask)
+func (m *MockInventoryClient) ListAll(ctx context.Context, filter *inv_v1.ResourceFilter) ([]*inv_v1.Resource, error) {
+	args := m.Called(ctx, filter)
 	return args.Get(0).([]*inv_v1.Resource), args.Error(1)
 }
 
@@ -58,10 +56,8 @@ func (m *MockInventoryClient) Find(ctx context.Context, filter *inv_v1.ResourceF
 	return args.Get(0).(*inv_v1.FindResourcesResponse), args.Error(1)
 }
 
-func (m *MockInventoryClient) FindAll(ctx context.Context, resource *inv_v1.Resource,
-	mask *fieldmaskpb.FieldMask,
-) ([]string, error) {
-	args := m.Called(ctx, resource, mask)
+func (m *MockInventoryClient) FindAll(ctx context.Context, filter *inv_v1.ResourceFilter) ([]string, error) {
+	args := m.Called(ctx, filter)
 	return args.Get(0).([]string), args.Error(1)
 }
 
@@ -104,6 +100,11 @@ func (m *MockInventoryClient) ListInheritedTelemetryProfiles(ctx context.Context
 
 func (m *MockInventoryClient) TestingOnlySetClient(invClient inv_v1.InventoryServiceClient) {
 	m.Called(invClient)
+}
+
+func (m *MockInventoryClient) TestGetClientCache() *cache.InventoryCache {
+	m.Called()
+	return nil
 }
 
 func TestMain(m *testing.M) {
