@@ -49,7 +49,7 @@ index da5bde6..026141a 100644
  RUN apk update; apk add kexec-tools
  COPY --from=dev /hook-docker .
 diff --git a/hook-docker/main.go b/hook-docker/main.go
-index 0908c72..94d4299 100644
+index 0908c72..05a71fb 100644
 --- a/hook-docker/main.go
 +++ b/hook-docker/main.go
 @@ -29,6 +29,16 @@ func main() {
@@ -69,6 +69,15 @@ index 0908c72..94d4299 100644
  	// Parse the cmdline in order to find the urls for the repository and path to the cert
  	content, err := os.ReadFile("/proc/cmdline")
  	if err != nil {
+@@ -43,7 +53,7 @@ func main() {
+ 		Debug:     true,
+ 		LogDriver: "syslog",
+ 		LogOpts: map[string]string{
+-			"syslog-address": fmt.Sprintf("udp://%v:514", cfg.syslogHost),
++			"syslog-address": fmt.Sprintf("udp://%v:5140", cfg.syslogHost),
+ 		},
+ 		InsecureRegistries: cfg.insecureRegistries,
+ 	}
 @@ -58,7 +68,7 @@ func main() {
  	}
  
@@ -79,7 +88,7 @@ index 0908c72..94d4299 100644
  	cmd.Stderr = os.Stderr
  
 diff --git a/hook.yaml b/hook.yaml
-index 647e792..2a82003 100644
+index 647e792..abe6504 100644
 --- a/hook.yaml
 +++ b/hook.yaml
 @@ -34,6 +34,25 @@ onboot:
@@ -108,22 +117,21 @@ index 647e792..2a82003 100644
  services:
    - name: getty
      image: linuxkit/getty:76951a596aa5e0867a38e28f0b94d620e948e3e8
-@@ -63,6 +82,14 @@ services:
+@@ -63,6 +82,13 @@ services:
      binds:
        - /var/run:/var/run
  
 +  - name: fluent-bit
 +    image: fluent/fluent-bit:2.1.9
 +    binds.add:
-+      - /dev:/dev
 +      - /etc/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
-+      - /dev/shm:/dev/shm
++      - /var/log:/var/log
 +    rootfsPropagation: shared
 +
    - name: hook-docker
      image: quay.io/tinkerbell/hook-docker:latest
      capabilities:
-@@ -80,6 +107,7 @@ services:
+@@ -80,6 +106,7 @@ services:
        - /var/run/docker:/var/run
        - /var/run/images:/var/lib/docker
        - /var/run/worker:/worker
@@ -131,7 +139,7 @@ index 647e792..2a82003 100644
      runtime:
        mkdir:
          - /var/run/images
-@@ -100,6 +128,41 @@ services:
+@@ -100,6 +127,41 @@ services:
        mkdir:
          - /var/run/docker
  
@@ -173,7 +181,7 @@ index 647e792..2a82003 100644
  #dbg  - name: sshd
  #dbg    image: linuxkit/sshd:666b4a1a323140aa1f332826164afba506abf597
  
-@@ -110,6 +173,14 @@ files:
+@@ -110,6 +172,14 @@ files:
        alias docker-shell='ctr -n services.linuxkit tasks exec --tty --exec-id shell hook-docker sh'
      mode: "0644"
  
@@ -188,7 +196,7 @@ index 647e792..2a82003 100644
    - path: etc/motd
      mode: "0644"
      contents: |
-@@ -137,6 +208,14 @@ files:
+@@ -137,6 +207,14 @@ files:
      source: "files/dhcpcd.conf"
      mode: "0644"
  
@@ -203,7 +211,7 @@ index 647e792..2a82003 100644
  #dbg  - path: root/.ssh/authorized_keys
  #dbg    source: ~/.ssh/id_rsa.pub
  #dbg    mode: "0600"
-@@ -146,3 +225,12 @@ trust:
+@@ -146,3 +224,12 @@ trust:
    org:
      - linuxkit
      - library
