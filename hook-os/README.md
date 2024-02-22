@@ -41,7 +41,7 @@ Addition functions accomplished by these scripts are listed below.
 
    ```
    Example:
-   extra_hosts="10.114.181.238 api-proxy.kind.internal,10.114.181.238 app-orch.kind.internal,10.114.181.238 cluster-orch-edge-node.kind.internal,10.114.181.238 fdo-mfg.kind.internal,10.114.181.238 fdo-owner.kind.internal,10.114.181.238 tinkerbell-nginx.kind.internal,10.114.181.238 tinkerbell-server.kind.internal"
+   extra_hosts="10.114.181.238 api-proxy.kind.internal,10.114.181.238 app-orch.kind.internal,10.114.181.238 cluster-orch-edge-node.kind.internal,10.114.181.238 fdo-mfg.kind.internal,10.114.181.238 fdo-owner.kind.internal,10.114.181.238 tinkerbell-nginx.kind.internal,10.114.181.238 tinkerbell-server.kind.internal,10.114.181.238 logs.kind.internal"
    ```
 4. Run the build hookOS.
 
