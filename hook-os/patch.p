@@ -88,7 +88,7 @@ index 0908c72..05a71fb 100644
  	cmd.Stderr = os.Stderr
  
 diff --git a/hook.yaml b/hook.yaml
-index 647e792..abe6504 100644
+index 647e792..2911cf6 100644
 --- a/hook.yaml
 +++ b/hook.yaml
 @@ -34,6 +34,25 @@ onboot:
@@ -139,7 +139,7 @@ index 647e792..abe6504 100644
      runtime:
        mkdir:
          - /var/run/images
-@@ -100,6 +127,41 @@ services:
+@@ -100,6 +127,40 @@ services:
        mkdir:
          - /var/run/docker
  
@@ -162,7 +162,6 @@ index 647e792..abe6504 100644
 +      - release_svc=update_release_svc
 +      - manufacturer_svc=update_manufacturer_svc
 +      - owner_svc=update_owner_svc
-+      - logging_svc=update_logging_svc
 +      - oci_release_svc=update_oci_release_svc
 +      - EXTRA_HOSTS=update_extra_hosts
 +
@@ -181,7 +180,7 @@ index 647e792..abe6504 100644
  #dbg  - name: sshd
  #dbg    image: linuxkit/sshd:666b4a1a323140aa1f332826164afba506abf597
  
-@@ -110,6 +172,14 @@ files:
+@@ -110,6 +171,14 @@ files:
        alias docker-shell='ctr -n services.linuxkit tasks exec --tty --exec-id shell hook-docker sh'
      mode: "0644"
  
@@ -196,7 +195,7 @@ index 647e792..abe6504 100644
    - path: etc/motd
      mode: "0644"
      contents: |
-@@ -137,6 +207,14 @@ files:
+@@ -137,6 +206,14 @@ files:
      source: "files/dhcpcd.conf"
      mode: "0644"
  
@@ -211,7 +210,7 @@ index 647e792..abe6504 100644
  #dbg  - path: root/.ssh/authorized_keys
  #dbg    source: ~/.ssh/id_rsa.pub
  #dbg    mode: "0600"
-@@ -146,3 +224,12 @@ trust:
+@@ -146,3 +223,12 @@ trust:
    org:
      - linuxkit
      - library

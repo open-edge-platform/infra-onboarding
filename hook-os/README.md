@@ -32,7 +32,6 @@ Addition functions accomplished by these scripts are listed below.
    Example:
    fdo_manufacturer_svc="fdo-mfg.kind.internal"
    fdo_owner_svc="fdo-owner.kind.internal"
-   logging_svc="logs.kind.internal"
    release_svc="files.internal.ledgepark.intel.com"
    oci_release_svc="registry-rs.internal.ledgepark.intel.com"
    tink_stack_svc="tinkerbell-nginx.kind.internal"
