@@ -703,6 +703,87 @@ apt install -y -o Dpkg::Options::="--force-confnew" ./${PKGFILE}
 systemctl status -l --no-pager platform-telemetry-agent
 }
 
+#Install log rotate
+install_logrotate(){
+##### Managing log rotation
+if ! sudo grep -q "cron.ensp" "/etc/crontab"; then
+  sudo sed -i '$ d' /etc/crontab
+  echo "*/5 *   * * *   root    cd / && run-parts --report /etc/cron.ensp" | sudo tee -a /etc/crontab
+  echo "#" | sudo tee -a /etc/crontab
+fi
+
+sudo rm -rf /etc/cron.ensp
+sudo mkdir -p /etc/cron.ensp
+sudo tee /etc/cron.ensp/logrotate << END
+#!/bin/sh
+/usr/sbin/logrotate /etc/logrotate.conf
+EXITVALUE=$?
+if [ $EXITVALUE != 0 ]; then
+    /usr/bin/logger -t logrotate "ALERT exited abnormally with [$EXITVALUE]"
+fi
+exit $EXITVALUE
+END
+
+sudo chmod +x /etc/cron.ensp/logrotate
+
+sudo tee /etc/logrotate.d/rsyslog << END
+/var/log/syslog
+/var/log/mail.info
+/var/log/mail.warn
+/var/log/mail.err
+/var/log/mail.log
+/var/log/daemon.log
+/var/log/kern.log
+/var/log/auth.log
+/var/log/user.log
+/var/log/lpr.log
+/var/log/cron.log
+/var/log/debug
+/var/log/messages
+{
+        rotate 4
+        weekly
+        missingok
+        size 1G
+        notifempty
+        compress
+        delaycompress
+        sharedscripts
+        postrotate
+                /usr/lib/rsyslog/rsyslog-rotate
+        endscript
+}
+END
+
+sudo systemctl restart rsyslog.service
+
+sudo systemctl restart cron.service
+sudo /usr/sbin/logrotate /etc/logrotate.conf
+##### Managing log rotation
+}
+
+#Install log end
+install_logend(){
+sudo tee /etc/logrotate.d/ufw << END
+/var/log/ufw.log
+{
+        rotate 4
+        weekly
+        missingok
+        notifempty
+        size 1G
+        compress
+        delaycompress
+        sharedscripts
+        postrotate
+                [ -x /usr/lib/rsyslog/rsyslog-rotate ] && /usr/lib/rsyslog/rsyslog-rotate || true
+        endscript
+}
+END
+
+sudo systemctl restart ufw.service
+sudo ufw logging low
+}
 
 #extend the disk partition
 #parition_extention  2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
@@ -746,6 +827,7 @@ gpg --list-keys
 gpg --import ${GPGKEY}
 gpg --list-keys
 #install_token 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_logrotate 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_cluster_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_hardware_discovery_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_node_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
@@ -763,7 +845,7 @@ install_platform_update_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_platform_telemetry_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_sriov 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_HWE_kernel 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-
+install_logend 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 
 echo "Installation done" > $SCRIPT_DIR/.base_pkg_install_done
 sudo reboot
