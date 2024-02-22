@@ -44,7 +44,7 @@ http {
 
         location / {
                 proxy_ssl_verify on;
-            #    proxy_ssl_server_name on;
+                proxy_ssl_server_name on;
                 proxy_ssl_trusted_certificate /etc/nginx/ssl/ensp-orchestrator-ca.crt;
                 proxy_ssl_verify_depth 1;
                 proxy_pass https://${oci_release_svc};
@@ -66,10 +66,12 @@ http {
         }
 
         location ~ ^/fdo/101/msg/(10|12|255) {
+	    proxy_ssl_server_name on;
             proxy_pass https://${manufacturer_svc};
         }
 
         location ~ ^/fdo/101/msg/(60|62|64|66|68|70|255) {
+            proxy_ssl_server_name on;
             proxy_pass https://${owner_svc};
         }
     }
