@@ -104,16 +104,16 @@ http {
     }
 
     # Server to route fluent-bit traffic to Loki/Graphana
-    server {
-        listen 24224 ssl;
-        proxy_set_header Authorization "Bearer ${auth_token}";
+    #server {
+    #    listen 24224 ssl;
+    #    proxy_set_header Authorization "Bearer ${auth_token}";
 
-        location / {
-            proxy_ssl_verify on;
-            proxy_ssl_server_name on;
-            proxy_ssl_trusted_certificate /etc/nginx/ssl/ensp-orchestrator-ca.crt;
-            proxy_ssl_verify_depth 1;
-            proxy_pass https://${logging_svc};
-        }
-    }
+    #    location / {
+    #        proxy_ssl_verify on;
+    #        proxy_ssl_server_name on;
+    #        proxy_ssl_trusted_certificate /etc/nginx/ssl/ensp-orchestrator-ca.crt;
+    #        proxy_ssl_verify_depth 1;
+    #        proxy_pass https://${logging_svc};
+    #    }
+    #}
 }
