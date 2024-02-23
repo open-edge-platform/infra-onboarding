@@ -366,7 +366,7 @@ func (c *OnboardingInventoryClient) SetHostStatus(ctx context.Context, hostID st
 	updateHost := &computev1.HostResource{
 		ResourceId:                hostID,
 		LegacyHostStatus:          hostStatus,
-		ProviderStatus:            statusDetails, // report legacy status details as provider status
+		ProviderStatusDetail:      statusDetails, // report legacy status details as provider status
 		OnboardingStatus:          onboardingStatus.Status,
 		OnboardingStatusIndicator: onboardingStatus.StatusIndicator,
 		OnboardingStatusTimestamp: time.Now().UTC().String(),
@@ -374,7 +374,7 @@ func (c *OnboardingInventoryClient) SetHostStatus(ctx context.Context, hostID st
 
 	return c.UpdateInvResourceFields(ctx, updateHost, []string{
 		computev1.HostResourceFieldLegacyHostStatus,
-		computev1.HostResourceFieldProviderStatus,
+		computev1.HostResourceFieldProviderStatusDetail,
 		computev1.HostResourceFieldOnboardingStatus,
 		computev1.HostResourceFieldOnboardingStatusIndicator,
 		computev1.HostResourceFieldOnboardingStatusTimestamp,
