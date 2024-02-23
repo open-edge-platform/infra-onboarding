@@ -7,7 +7,6 @@ package commands
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 
 	"google.golang.org/grpc"
@@ -142,7 +141,7 @@ func HostResourceCmd() *cobra.Command {
 				}
 
 				if err := yaml.Unmarshal(data, &nodes); err != nil {
-					fmt.Println("Error unmarshaling YAML:", err)
+					zlog.Debug().Msgf("Error unmarshaling YAML: %v", err)
 					return err
 				}
 			} else {
@@ -183,7 +182,7 @@ func HostResourceCmd() *cobra.Command {
 					return err
 				}
 				// Handle the response data as needed
-				fmt.Printf("Added Host: %+v\n", resp.Payload)
+				zlog.Debug().Msgf("Added Host: %+v\n", resp.Payload)
 			}
 
 			return nil
@@ -232,7 +231,7 @@ func HostResourceCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Printf("%v\n", resp)
+			zlog.Debug().Msgf("%v\n", resp)
 			return nil
 		},
 	}
@@ -284,7 +283,7 @@ func HostResourceCmd() *cobra.Command {
 			}
 
 			// Handle the response data as needed
-			fmt.Printf("Updating the Host resource : %+v\n", resp.Payload)
+			zlog.Debug().Msgf("Updating the Host resource : %+v\n", resp.Payload)
 			return nil
 		},
 	}
@@ -346,7 +345,7 @@ func HostResourceCmd() *cobra.Command {
 			}
 
 			// Handle the response data as needed
-			fmt.Printf("Deleted the Host resource: %+v\n", resp.Payload)
+			zlog.Debug().Msgf("Deleted the Host resource: %+v\n", resp.Payload)
 			return nil
 		},
 	}
@@ -367,7 +366,7 @@ type nodeData struct {
 }
 
 func addNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*nodeData, error) {
-	fmt.Println("PDCTL entry point - Add Host...")
+	zlog.Debug().Msgf("PDCTL entry point - Add Host...")
 
 	resp, err := pbinv.NewNodeArtifactServiceNBClient(cc).CreateNodes(ctx,
 		&pbinv.NodeRequest{Payload: []*pbinv.NodeData{node}})
@@ -381,7 +380,7 @@ func addNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*
 }
 
 func getNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*nodeData, error) {
-	fmt.Println("PDCTL entry point - Get Host...")
+	zlog.Debug().Msgf("PDCTL entry point - Get Host...")
 
 	resp, err := pbinv.NewNodeArtifactServiceNBClient(cc).GetNodes(ctx,
 		&pbinv.NodeRequest{Payload: []*pbinv.NodeData{node}})
@@ -395,7 +394,7 @@ func getNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*
 }
 
 func updateNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*nodeData, error) {
-	fmt.Println("PDCTL entry point - Update Host by ID - INV ...")
+	zlog.Debug().Msgf("PDCTL entry point - Update Host by ID - INV ...")
 
 	resp, err := pbinv.NewNodeArtifactServiceNBClient(cc).UpdateNodes(ctx,
 		&pbinv.NodeRequest{Payload: []*pbinv.NodeData{node}})
@@ -409,7 +408,7 @@ func updateNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData)
 }
 
 func deleteNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*nodeData, error) {
-	fmt.Println("PDCTL entry point - Delete host...")
+	zlog.Debug().Msgf("PDCTL entry point - Delete host...")
 
 	resp, err := pbinv.NewNodeArtifactServiceNBClient(cc).DeleteNodes(ctx,
 		&pbinv.NodeRequest{Payload: []*pbinv.NodeData{node}})

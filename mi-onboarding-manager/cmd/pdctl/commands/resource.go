@@ -6,7 +6,6 @@ package commands
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -133,7 +132,7 @@ func getInstanceResources(ctx context.Context, dialer *grpcDialer) func(cmd *cob
 		}
 
 		for _, instance := range instanceResources {
-			fmt.Printf("Instance ID: %s, Data: %v\n", instance.GetResourceId(), instance)
+			zlog.Debug().Msgf("Instance ID: %s, Data: %v\n", instance.GetResourceId(), instance)
 		}
 
 		return nil
@@ -165,7 +164,7 @@ func getInstanceByID(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Co
 			return err
 		}
 
-		fmt.Printf("Instance ID: %s, Data: %v\n", inst.GetResourceId(), inst)
+		zlog.Debug().Msgf("Instance ID: %s, Data: %v\n", inst.GetResourceId(), inst)
 
 		return nil
 	}
@@ -226,7 +225,7 @@ func createInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 			return err
 		}
 
-		fmt.Printf("Instance Details: %+v\n", instance)
+		zlog.Debug().Msgf("Instance Details: %+v\n", instance)
 
 		return nil
 	}
@@ -262,7 +261,7 @@ func deleteInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 			return err
 		}
 
-		fmt.Printf("Deleted Instance ID: %s\n", resourceID)
+		zlog.Debug().Msgf("Deleted Instance ID: %s\n", resourceID)
 		return nil
 	}
 }
@@ -299,7 +298,7 @@ func updateInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 			return err
 		}
 
-		fmt.Printf("Updated Instance ID: %s, Fields: %s\n", resourceID, fields)
+		zlog.Debug().Msgf("Updated Instance ID: %s, Fields: %s\n", resourceID, fields)
 		return nil
 	}
 }
@@ -462,7 +461,7 @@ func createResource(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 			return err
 		}
 
-		fmt.Printf("Host Details: %+v\n", hostResource)
+		zlog.Debug().Msgf("Host Details: %+v\n", hostResource)
 
 		return nil
 	}
@@ -493,7 +492,7 @@ func getHostResources(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.C
 		}
 
 		for _, instance := range instanceResources {
-			fmt.Printf("Instance ID: %s, Data: %v\n", instance.GetResourceId(), instance)
+			zlog.Debug().Msgf("Instance ID: %s, Data: %v\n", instance.GetResourceId(), instance)
 		}
 
 		return nil
@@ -524,7 +523,7 @@ func getResourceByID(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Co
 			return err
 		}
 
-		fmt.Printf("Host ID: %s, Data: %v\n", host.GetResourceId(), host)
+		zlog.Debug().Msgf("Host ID: %s, Data: %v\n", host.GetResourceId(), host)
 
 		return nil
 	}
@@ -554,7 +553,7 @@ func getByuuID(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command,
 			return err
 		}
 
-		fmt.Printf("Host ID: %s, Data: %v\n", host.GetResourceId(), host)
+		zlog.Debug().Msgf("Host ID: %s, Data: %v\n", host.GetResourceId(), host)
 
 		return nil
 	}
@@ -590,7 +589,7 @@ func deleteHost(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command
 			return err
 		}
 
-		fmt.Printf("Deleted host ID: %s\n", resourceID)
+		zlog.Debug().Msgf("Deleted host ID: %s\n", resourceID)
 		return nil
 	}
 }
@@ -654,7 +653,7 @@ func updateHost(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command
 			return err
 		}
 
-		fmt.Printf("Updated Host ID: %s\n", resourceID)
+		zlog.Debug().Msgf("Updated Host ID: %s\n", resourceID)
 		return nil
 	}
 }

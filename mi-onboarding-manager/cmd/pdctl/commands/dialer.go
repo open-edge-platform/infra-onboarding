@@ -15,8 +15,8 @@ import (
 	"time"
 
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
-
 	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
+	logging "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -32,6 +32,11 @@ type grpcDialer struct {
 	CACertPath string
 	ServerName string
 }
+
+var (
+	clientName = "pdctl"
+	zlog       = logging.GetLogger(clientName)
+)
 
 func (d *grpcDialer) Dial(ctx context.Context, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	// Load credentials
@@ -77,7 +82,7 @@ func NewInventoryClient(
 	wg *sync.WaitGroup,
 	addr string,
 ) (inv_client.InventoryClient, chan *inv_client.WatchEvents, error) {
-	fmt.Println("Init Inv client")
+	zlog.Debug().Msgf("Init Inv client")
 	resourceKinds := []inv_v1.ResourceKind{
 		inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE,
 		inv_v1.ResourceKind_RESOURCE_KIND_HOST,
@@ -102,7 +107,7 @@ func NewInventoryClient(
 	for {
 		client, err := inv_client.NewInventoryClient(ctx, cfg)
 		if err != nil {
-			fmt.Printf("Failed to create new inventory client %v,Retry after 5 seconds", err)
+			zlog.Debug().Msgf("Failed to create new inventory client %v,Retry after 5 seconds", err)
 			time.Sleep(timeDuration)
 			return nil, nil, err
 		}

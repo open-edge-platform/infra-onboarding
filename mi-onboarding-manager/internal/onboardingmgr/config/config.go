@@ -7,9 +7,14 @@ package config
 
 import (
 	"flag"
-	"fmt"
 
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"github.com/jinzhu/configor"
+)
+
+var (
+	clientName = "config"
+	zlog       = logging.GetLogger(clientName)
 )
 
 type (
@@ -52,9 +57,9 @@ func Load() {
 	config = &Config{}
 	cnfgor := configor.New(&configor.Config{Debug: false, ENVPrefix: "INVENTORY", Environment: *env})
 	if err := cnfgor.Load(config); err != nil {
-		fmt.Println("failed to load config", err)
+		zlog.Debug().Msgf("failed to load config %v", err)
 	}
-	fmt.Println("config loaded")
+	zlog.Debug().Msgf("config loaded")
 }
 
 // GetConfig returns the configuration data.

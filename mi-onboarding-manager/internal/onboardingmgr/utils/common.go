@@ -17,7 +17,13 @@ import (
 	"path/filepath"
 
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
+	logging "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"google.golang.org/protobuf/proto"
+)
+
+var (
+	clientName = "Onbcommon"
+	zlog       = logging.GetLogger(clientName)
 )
 
 func DeepCopyOnboardingRequest(req *pb.OnboardingRequest) *pb.OnboardingRequest {
@@ -43,7 +49,7 @@ func ChangeWorkingDirectory(targetDir string) error {
 
 	// Change the working directory to the target directory
 	if err := os.Chdir(absPath); err != nil {
-		log.Println("error while changing working directory to the target directory: ", err)
+		zlog.Debug().Msgf("error while changing working directory to the target directory: %v", err)
 		return err
 	}
 
@@ -116,7 +122,7 @@ func ParseAndUpdateURL(onboardingRequest *pb.OnboardingRequest) {
 			envVarName = "BKC_BASEPKG"
 		default:
 			// Todo:Add support for other  category
-			fmt.Printf("Unsupported category: %s\n", artifactData.Category.String())
+			zlog.Debug().Msgf("Unsupported category: %s\n", artifactData.Category.String())
 			continue
 		}
 
@@ -124,7 +130,7 @@ func ParseAndUpdateURL(onboardingRequest *pb.OnboardingRequest) {
 		print("envvarname", envVarName, "packageurl", artifactData.PackageUrl)
 		err := os.Setenv(envVarName, artifactData.PackageUrl)
 		if err != nil {
-			fmt.Printf("Error setting environment variable %s: %v\n", envVarName, err)
+			zlog.Debug().Msgf("Error setting environment variable %s: %v\n", envVarName, err)
 		}
 	}
 }

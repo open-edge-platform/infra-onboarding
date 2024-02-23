@@ -7,7 +7,6 @@ package commands
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 
 	"google.golang.org/grpc"
@@ -138,7 +137,7 @@ func InstanceResourceCmd() *cobra.Command {
 				return errors.New(status.Convert(err).Message())
 			}
 
-			fmt.Printf("Payload: %+v\n", data.Payload)
+			zlog.Debug().Msgf("Payload: %+v\n", data.Payload)
 			return nil
 		},
 	}
@@ -216,7 +215,7 @@ func InstanceResourceCmd() *cobra.Command {
 					return errors.New(status.Convert(err).Message())
 				}
 
-				fmt.Printf("Payload: %+v\n", data.Payload)
+				zlog.Debug().Msgf("Payload: %+v\n", data.Payload)
 			}
 
 			return nil
@@ -276,7 +275,7 @@ func InstanceResourceCmd() *cobra.Command {
 				return errors.New(status.Convert(err).Message())
 			}
 
-			fmt.Printf("Payload: %+v\n", data.Payload)
+			zlog.Debug().Msgf("Payload: %+v\n", data.Payload)
 			return nil
 		},
 	}
@@ -334,7 +333,7 @@ func InstanceResourceCmd() *cobra.Command {
 				return errors.New(status.Convert(err).Message())
 			}
 
-			fmt.Printf("Payload: %+v\n", data.Payload)
+			zlog.Debug().Msgf("Payload: %+v\n", data.Payload)
 			return nil
 		},
 	}
@@ -355,7 +354,7 @@ type artifactData struct {
 }
 
 func getArtifacts(ctx context.Context, cc *grpc.ClientConn, artifact *pb.ArtifactData) (*artifactData, error) {
-	fmt.Println("Getting the Instance...")
+	zlog.Debug().Msgf("Getting the Instance...")
 
 	client := pb.NewNodeArtifactServiceNBClient(cc)
 
@@ -374,7 +373,7 @@ func getArtifacts(ctx context.Context, cc *grpc.ClientConn, artifact *pb.Artifac
 }
 
 func createArtifacts(ctx context.Context, cc *grpc.ClientConn, artifact *pb.ArtifactData) (*artifactData, error) {
-	fmt.Println("Creating the Instance...")
+	zlog.Debug().Msgf("Creating the Instance...")
 
 	client := pb.NewNodeArtifactServiceNBClient(cc)
 
@@ -398,7 +397,7 @@ func updateArtifactsByID(
 	artifactID string,
 	artifact *pb.ArtifactData,
 ) (*artifactData, error) {
-	fmt.Println("Updating the Artifact By ID...")
+	zlog.Debug().Msgf("Updating the Artifact By ID...")
 
 	client := pb.NewNodeArtifactServiceNBClient(cc)
 
@@ -422,7 +421,7 @@ func deleteArtifacts(ctx context.Context,
 	cc *grpc.ClientConn,
 	artifact *pb.ArtifactData,
 ) (*artifactData, error) {
-	fmt.Println("Deleting the Instance...")
+	zlog.Debug().Msgf("Deleting the Instance...")
 
 	client := pb.NewNodeArtifactServiceNBClient(cc)
 

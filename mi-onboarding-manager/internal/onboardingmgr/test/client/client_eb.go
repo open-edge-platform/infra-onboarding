@@ -11,9 +11,15 @@ import (
 	"os"
 
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"gopkg.in/yaml.v2"
+)
+
+var (
+	clientName = "ClientEB"
+	zlog       = logging.GetLogger(clientName)
 )
 
 // Struct to hold input configuration from YAML.
@@ -63,7 +69,7 @@ type InputConfig struct {
 
 func OnboardingTest(client pb.OnBoardingEBClient) (*pb.OnboardingResponse, error) {
 	var obm pb.OnboardingRequest
-	log.Printf("start onboarding")
+	zlog.Debug().Msgf("start onboarding")
 	dirPath, _ := os.Getwd()
 	// Read YAML file
 	yamlData, err := os.ReadFile(dirPath + "/profile_sample.yaml")
@@ -143,7 +149,7 @@ func main() {
 	address := onbAddr + ":" + onbPort
 
 	if onbAddr == "" || onbPort == "" {
-		log.Printf("Invalid environment variables MGR_HOST and ONBMGR_PORT please export")
+		zlog.Debug().Msgf("Invalid environment variables MGR_HOST and ONBMGR_PORT please export")
 		os.Exit(1)
 	}
 
@@ -156,7 +162,7 @@ func main() {
 	client := pb.NewOnBoardingEBClient(conn)
 	res, err := OnboardingTest(client)
 	if err != nil {
-		log.Printf("Onboarding failed: %v", err)
+		zlog.Debug().Msgf("Onboarding failed: %v", err)
 		return
 	}
 

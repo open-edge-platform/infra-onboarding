@@ -6,7 +6,6 @@ package commands
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 
@@ -120,7 +119,7 @@ func createOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 			return err
 		}
 
-		fmt.Printf("OS Details : %+v\n", osResource)
+		zlog.Debug().Msgf("OS Details : %+v\n", osResource)
 		return nil
 	}
 }
@@ -148,7 +147,7 @@ func getByID(dialer *grpcDialer) func(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		fmt.Printf("Os Resorce ID: %s, Data: %v\n", osRes.GetResourceId(), osRes)
+		zlog.Debug().Msgf("Os Resorce ID: %s, Data: %v\n", osRes.GetResourceId(), osRes)
 
 		return nil
 	}
@@ -182,7 +181,7 @@ func deleteOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 			return err
 		}
 
-		fmt.Printf("Deleted os resource ID: %s\n", resourceID)
+		zlog.Debug().Msgf("Deleted os resource ID: %s\n", resourceID)
 		return nil
 	}
 }
@@ -233,7 +232,7 @@ func updateOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 			return err
 		}
 
-		fmt.Printf("Updated os resource ID: %s\n", resourceID)
+		zlog.Debug().Msgf("Updated os resource ID: %s\n", resourceID)
 		return nil
 	}
 }
@@ -262,7 +261,7 @@ func getOsResources(dialer *grpcDialer) func(cmd *cobra.Command, args []string) 
 		}
 
 		for _, instance := range instanceResources {
-			fmt.Printf("Os Resources ID: %s, Data: %v\n", instance.GetResourceId(), instance)
+			zlog.Debug().Msgf("Os Resources ID: %s, Data: %v\n", instance.GetResourceId(), instance)
 		}
 
 		return nil

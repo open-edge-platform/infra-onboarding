@@ -10,7 +10,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -18,10 +17,8 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
-	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
@@ -29,17 +26,10 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/tinkerbell"
 	tinkv1alpha1 "github.com/tinkerbell/tink/api/v1alpha1"
-	"gopkg.in/yaml.v2"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -48,222 +38,9 @@ var (
 	zlog       = logging.GetLogger(clientName)
 )
 
-func ConvertToJSONSerializable(input interface{}) interface{} {
-	switch v := input.(type) {
-	case map[interface{}]interface{}:
-		m := make(map[string]interface{})
-		for key, val := range v {
-			m[fmt.Sprintf("%v", key)] = ConvertToJSONSerializable(val)
-		}
-		return m
-	case []interface{}:
-		for i, val := range v {
-			v[i] = ConvertToJSONSerializable(val)
-		}
-		return v
-	default:
-		return input
-	}
-}
-
 func GenerateMacIDString(macID string) string {
 	macWithoutColon := strings.ReplaceAll(macID, ":", "")
 	return strings.ToLower(macWithoutColon)
-}
-
-func updateContentWithValues(content string, deviceInfo utils.DeviceInfo) string {
-	content = strings.ReplaceAll(content, "$TINKERBELL_CLIENT_MAC", deviceInfo.HwMacID)
-	content = strings.ReplaceAll(content, "$TINKERBELL_CLIENT_UID", GenerateMacIDString(deviceInfo.HwMacID))
-	content = strings.ReplaceAll(content, "$ROOTFS_PART_NO", deviceInfo.RootfspartNo)
-	content = strings.ReplaceAll(content, "$ROOTFS_PARTITION", deviceInfo.Rootfspart)
-	content = strings.ReplaceAll(content, "$TINKERBELL_HOST_IP", deviceInfo.LoadBalancerIP)
-	content = strings.ReplaceAll(content, "$TINKERBELL_CLIENT_IMG", deviceInfo.ClientImgName)
-	content = strings.ReplaceAll(content, "$TINKERBELL_DEV_SERIAL", deviceInfo.HwSerialID)
-	content = strings.ReplaceAll(content, "$TINKERBELL_CLIENT_GW", deviceInfo.Gateway)
-	content = strings.ReplaceAll(content, "$TINKERBELL_CLIENT_IP", deviceInfo.HwIP)
-	content = strings.ReplaceAll(content, "$DISK_DEVICE", deviceInfo.DiskType)
-	content = strings.ReplaceAll(content, "$TINKERBELL_IMG_TYPE", deviceInfo.ImType)
-
-	content = strings.ReplaceAll(content, "$PROVISIONER_HOST_IP", deviceInfo.ProvisionerIP)
-	content = strings.ReplaceAll(content, "$FDO_CLIENT_TYPE", "CLIENT-SDK-TPM")
-	print("deviceinfo", deviceInfo.ImType)
-	content = strings.ReplaceAll(content, "$OS_TEMPLATE_NAME", deviceInfo.ImType)
-	return content
-}
-
-func generateStringDataFromYAML(filePath string) (string, error) {
-	hardwareFile, err := os.Open(filePath)
-	if err != nil {
-		return "", fmt.Errorf("error opening %s: %w", filePath, err)
-	}
-	defer hardwareFile.Close()
-
-	hardwareYAML, err := io.ReadAll(hardwareFile)
-	if err != nil {
-		return "", fmt.Errorf("error reading %s: %w", filePath, err)
-	}
-
-	content := string(hardwareYAML)
-
-	return content, nil
-}
-
-func unmarshalYAMLContent(content string) (map[string]interface{}, error) {
-	var hardwareData map[interface{}]interface{}
-	err := yaml.Unmarshal([]byte(content), &hardwareData)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing YAML: %w", err)
-	}
-
-	serializableHardwareData := ConvertToJSONSerializable(hardwareData)
-
-	objectData, ok := serializableHardwareData.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("error converting YAML to map[string]interface{}")
-	}
-
-	return objectData, nil
-}
-
-func generateUnstructuredFromYAML(filePath string, deviceInfo utils.DeviceInfo) (*unstructured.Unstructured, error) {
-	u := &unstructured.Unstructured{}
-
-	content, err := generateStringDataFromYAML(filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	content = updateContentWithValues(content, deviceInfo)
-
-	objectData, err := unmarshalYAMLContent(content)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Printf("object data-----------------------  %s", objectData)
-	u.Object = objectData
-
-	return u, nil
-}
-
-func createDynamicClient() (dynamic.Interface, error) {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load kubeconfig: %w", err)
-	}
-
-	dynamicClient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
-	}
-
-	return dynamicClient, nil
-}
-
-func createCustomResourcename(dynamicClient dynamic.Interface, u *unstructured.Unstructured) error {
-	kind := strings.ToLower(u.GetKind())
-	resource := kind
-	if kind != "hardware" {
-		resource += "s"
-	}
-
-	groupVersionResource := schema.GroupVersionResource{
-		Group:    u.GroupVersionKind().Group,
-		Version:  u.GroupVersionKind().Version,
-		Resource: resource,
-	}
-
-	namespace := u.GetNamespace()
-	log.Printf("- %s", namespace)
-	log.Printf("group  %s", u.GroupVersionKind().Group)
-	log.Printf(" version %s", u.GroupVersionKind().Version)
-	log.Printf("- %s", resource)
-	_, err := dynamicClient.Resource(groupVersionResource).Namespace(namespace).Create(context.TODO(),
-		u, metav1.CreateOptions{})
-
-	return err
-}
-
-func ListPodsInNamespace(kubeconfigPath, namespace string) error {
-	// Load the kubeconfig
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
-	if err != nil {
-		return fmt.Errorf("failed to load kubeconfig: %w", err)
-	}
-
-	// Create a Kubernetes clientset
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return fmt.Errorf("failed to create Kubernetes clientset: %w", err)
-	}
-
-	// List all pods in the specified namespace
-	podList, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to list pods: %w", err)
-	}
-
-	// Print the list of pods
-	log.Printf("Pods in %s namespace:", namespace)
-	for _, pod := range podList.Items {
-		log.Printf("- %s", pod.Name)
-	}
-
-	return nil
-}
-
-// Function to check the status of a Kubernetes Job.
-func checkJobStatus(namespace, jobName, hwID string) error {
-	const pollTimeDuration = 10 * time.Second
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return fmt.Errorf("failed to load kubeconfig: %w", err)
-	}
-
-	// Create a Kubernetes clientset
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return fmt.Errorf("failed to create Kubernetes clientset: %w", err)
-	}
-
-	// Define a function to check the Job status
-	checkStatus := func() (bool, error) {
-		job, jobErr := clientset.BatchV1().Jobs(namespace).Get(context.TODO(), jobName, metav1.GetOptions{})
-		if jobErr != nil {
-			return false, jobErr
-		}
-
-		if job.Status.Succeeded > 0 {
-			// The Job has completed successfully
-			return true, nil
-		} else if job.Status.Failed > 0 {
-			// The Job has failed
-			return true, fmt.Errorf("job %s failed for SUT IP %s", jobName, hwID)
-		}
-
-		// The Job is still running
-		return false, nil
-	}
-
-	// Poll the Job status every 10 seconds
-	err = wait.PollImmediate(pollTimeDuration, time.Hour, func() (bool, error) {
-		completed, statusErr := checkStatus()
-		if statusErr != nil {
-			log.Printf("Error checking Job status: %v", statusErr)
-			return false, nil
-		}
-		if completed {
-			log.Printf("Job %s has completed for SUT IP %s", jobName, hwID)
-			return true, nil
-		}
-		log.Printf("Job %s is still running for SUT IP %s", jobName, hwID)
-		return false, nil
-	})
-	if err != nil {
-		return fmt.Errorf("job %s did not complete successfully: %w", jobName, err)
-	}
-
-	return nil
 }
 
 func newK8SClient() (client.Client, error) {
@@ -283,323 +60,13 @@ func newK8SClient() (client.Client, error) {
 	return kubeClient, nil
 }
 
-func CreateTemplateWorkflow(deviceInfo utils.DeviceInfo, workflowName string) (string, error) {
-	dynamicClient, err := createDynamicClient()
+func readUIDFromFile(filePath string) (string, error) {
+	data, err := os.ReadFile(filePath)
 	if err != nil {
-		fmt.Printf("Error: %v\n", err)
 		return "", err
 	}
-	hardwareFilePath := filepath.Join("..", "workflows", workflowName)
-	log.Printf("hardwareFilePath- %s", hardwareFilePath)
-	u, err := generateUnstructuredFromYAML(hardwareFilePath, deviceInfo)
-	workflowname := u.GetName()
-	log.Printf("worfklow name %s for deletion", workflowname)
-	if err != nil {
-		return "", fmt.Errorf("error generating unstructured from YAML: %w", err)
-	}
-
-	err = createCustomResourcename(dynamicClient, u)
-	if err != nil {
-		return workflowname, fmt.Errorf("failed to create custom workflow resource: %w", err)
-	}
-
-	// If everything is successful, return nil (no error)
-	return workflowname, nil
+	return string(data), nil
 }
-
-// Image download logic.
-func ImageDownload(artifactinfo utils.ArtifactData, deviceInfo utils.DeviceInfo,
-	bkcImgDdLock, jammyImgDdLock, focalImgDdLock, focalMsImgDdLock sync.Locker,
-) error {
-	switch deviceInfo.ImType {
-	case utils.ProdBkc:
-		bkcImgDdLock.Lock()
-		defer bkcImgDdLock.Unlock()
-		if artifactinfo.BkcURL == "" || artifactinfo.BkcBasePkgURL == "" {
-			return errors.New("required image download Bkc url or Bkc basee pkg url are missing from ArtifactData")
-		}
-		log.Println("Bkc image Download process is started for ", deviceInfo.HwIP)
-		imgurl := artifactinfo.BkcURL
-		filenameBz2 := filepath.Base(imgurl)
-		filenameWithoutExt := strings.TrimSuffix(filenameBz2, ".img")
-		bkcRawGz := filenameWithoutExt + ".raw.gz"
-
-		// Check if the file exists at the specified path
-		filePath := "/opt/hook/" + bkcRawGz
-		toDownload := !fileExists(filePath)
-		fileName := "ubuntu-download_bkc.yaml"
-		if toDownload {
-			// TODO: Need to Remove hardcoding path
-			err := ReadingYamlNCreatingResourse(imgurl, deviceInfo.ImType,
-				"../../onboardingmgr/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
-			if err != nil {
-				return err
-			}
-			fmt.Println("Prod_bkc Image file is downloaded")
-		} else {
-			fmt.Printf("using old downloaded bkc %s\n", bkcRawGz)
-		}
-		pkgFileName := "ubuntu-download-pkg-agents_bkc.yaml"
-		// TODO: Need to Remove hardcoding path
-		err := ReadingYamlNCreatingResourse(artifactinfo.BkcBasePkgURL,
-			"prod_bkc-pkg", "../../onboardingmgr/workflows/manifests/image_dload", pkgFileName, deviceInfo.HwIP)
-		if err != nil {
-			return err
-		}
-	case utils.ProdJammy:
-		jammyImgDdLock.Lock()
-		defer jammyImgDdLock.Unlock()
-		log.Println("Jammy image Download process is started for", deviceInfo.HwIP)
-		fileName := "ubuntu-download_jammy.yaml"
-		toDownload := !fileExists("/opt/hook/jammy-server-cloudimg-amd64.raw.gz")
-		if toDownload {
-			// TODO: Need to Remove hardcoding path
-			err := ReadingYamlNCreatingResourse("", deviceInfo.ImType,
-				"../../onboardingmgr/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
-			if err != nil {
-				return err
-			}
-			fmt.Println("Prod_jammy Image file is downloaded")
-		} else {
-			fmt.Printf("using old downloaded jammy \n")
-		}
-
-	case utils.ProdFocal:
-		focalImgDdLock.Lock()
-		defer focalImgDdLock.Unlock()
-		fileName := "ubuntu-download.yaml"
-		toDownload := !fileExists("/opt/hook/focal-server-cloudimg-amd64.raw.gz")
-		log.Println("Focal image Download process is started for", deviceInfo.HwIP)
-		if toDownload {
-			log.Println("Focal image Download process is started")
-			// TODO: Need to Remove hardcoding path
-			err := ReadingYamlNCreatingResourse("", deviceInfo.ImType,
-				"../../onboardingmgr/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
-			if err != nil {
-				return err
-			}
-			fmt.Println("Prod_focal Image file is downloaded")
-		} else {
-			fmt.Printf("using old downloaded focal \n")
-		}
-
-	case utils.ProdFocalMs:
-		focalMsImgDdLock.Lock()
-		defer focalMsImgDdLock.Unlock()
-		log.Println("Prod Focal MS image Download process is started for", deviceInfo.HwIP)
-		fileName := "ubuntu-download_focal-ms.yaml"
-		if !fileExists("/opt/hook/linux-image-5.15.96-lts.deb") ||
-			!fileExists("/opt/hook/linux-headers-5.15.96-lts.deb") ||
-			!fileExists("/opt/hook/focal-server-cloudimg-amd64.raw.gz") ||
-			!fileExists("/opt/hook/azure-credentials.env_"+deviceInfo.HwMacID) ||
-			!fileExists("/opt/hook/azure_dps_installer.sh") || !fileExists("/opt/hook/log.sh") {
-			// TODO: Need to Remove hardcoding path
-			err := ReadingYamlNCreatingResourse("", deviceInfo.ImType,
-				"../../onboardingmgr/workflows/manifests/image_dload", fileName, deviceInfo.HwIP)
-			if err != nil {
-				return err
-			}
-			fmt.Println("Prod_focal-ms Image file is downloaded")
-		} else {
-			fmt.Printf("using old downloaded prod focal ms \n")
-		}
-
-	default:
-		return errors.New("Unknown image_type:" + deviceInfo.ImType)
-	}
-	return nil
-}
-
-func ReadingYamlNCreatingResourse(imgurl, imgType, filePath, fileName, hwID string) error {
-	const timeDuration = 5 * time.Second
-	dynamicClient, err := createDynamicClient()
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-		return err
-	}
-	currentPath, _ := os.Getwd()
-	ubuntubkcpath := filepath.Join(currentPath, filePath, fileName)
-
-	u := &unstructured.Unstructured{}
-	yamlContent, err := generateStringDataFromYAML(ubuntubkcpath)
-	if err != nil {
-		return fmt.Errorf("failed to generate YAML content: %w", err)
-	}
-	contentInfo := strings.Split(yamlContent, "---")
-	for _, content := range contentInfo {
-		switch imgType {
-		case utils.ProdBkc:
-			content = strings.ReplaceAll(content, "BKC_IMG_LINK", imgurl)
-		case "prod_bkc-pkg":
-			currentPath, _ = os.Getwd()
-			repoPath, _ := strings.CutSuffix(currentPath, "/internal/onboardingmgr/onboarding")
-			content = strings.ReplaceAll(content, "CurrentRepoPath", repoPath)
-			content = strings.ReplaceAll(content, "BKC_BASEPKG_URL", imgurl)
-			content = strings.ReplaceAll(content, "HOST_IP", os.Getenv("MGR_HOST"))
-		case utils.ProdFocalMs:
-			currentPath, _ = os.Getwd()
-			azureEnvPath, _ := strings.CutSuffix(currentPath, "/internal/onboardingmgr/onboarding")
-			content = strings.ReplaceAll(content, "azure_env_path", azureEnvPath)
-		}
-
-		objectData, err := unmarshalYAMLContent(content)
-		if err != nil {
-			return fmt.Errorf("failed to unmarshal YAML content: %w", err)
-		}
-		u.Object = objectData
-
-		// Deleting the resource if exist
-		err = DeleteCustomResource(u)
-		if err != nil {
-			log.Printf("warning Error msg while deleting resources: %s is %v", strings.ToLower(u.GetKind()), err)
-		}
-		time.Sleep(timeDuration)
-
-		// Creating the resource
-		err = createCustomResourcename(dynamicClient, u)
-		if err != nil {
-			return fmt.Errorf("failed to create custom workflow resource: %w", err)
-		}
-
-		if strings.ToLower(u.GetKind()) == "job" {
-			log.Println("Checking the Job status of ", u.GetName())
-			err = checkJobStatus("maestro-iaas-system", u.GetName(), hwID)
-			if err != nil {
-				log.Fatalf("Error while waiting for workflow success: %v", err)
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func DeleteCustomResource(u *unstructured.Unstructured) error {
-	// Create a Kubernetes client configuration from the provided kubeconfig path
-	dynamicClient, err := createDynamicClient()
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-		return err
-	}
-	// Delete the custom resource
-	kind := strings.ToLower(u.GetKind())
-	resource := kind
-	if kind != "hardware" {
-		resource += "s"
-	}
-
-	groupVersionResource := schema.GroupVersionResource{
-		Group:    u.GroupVersionKind().Group,
-		Version:  u.GroupVersionKind().Version,
-		Resource: resource,
-	}
-	// Set the propagationPolicy to Background when deleting the Job.
-	deletePolicy := metav1.DeletePropagationBackground
-	err = dynamicClient.Resource(groupVersionResource).Namespace(u.GetNamespace()).Delete(context.TODO(),
-		u.GetName(), metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
-	if err != nil {
-		return fmt.Errorf("warning deleting workflow: %w", err)
-	}
-
-	fmt.Printf("Workflow %s deleted successfully in namespace %s\n", u.GetName(), u.GetNamespace())
-	return nil
-}
-
-func fileExists(filePath string) bool {
-	_, err := os.Stat(filePath)
-	return !os.IsNotExist(err)
-}
-
-func waitForWorkflowSuccess(namespace, workflowName string) error {
-	const pollTimeDuration = 20 * time.Second
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return fmt.Errorf("failed to load kubeconfig: %w", err)
-	}
-	dynamicClient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		return fmt.Errorf("failed to create dynamic client: %w", err)
-	}
-
-	checkStatus := func() (bool, error) {
-		// Define the resource request for your custom resource
-		resource := "workflows"
-
-		gvr := schema.GroupVersionResource{
-			Group:    "tinkerbell.org",
-			Version:  "v1alpha1",
-			Resource: resource,
-		}
-
-		// Get the custom resource
-		var cr *unstructured.Unstructured
-		cr, err = dynamicClient.Resource(gvr).Namespace(namespace).Get(context.TODO(), workflowName, metav1.GetOptions{})
-		if err != nil {
-			return false, err
-		}
-
-		// Extract the status field from the custom resource
-		statusField, found, _ := unstructured.NestedString(cr.Object, "status", "state")
-		if !found {
-			return false, fmt.Errorf("status field not found in the custom resource")
-		}
-
-		log.Printf("Workflow %s state: %s", workflowName, statusField)
-
-		// Check if the workflow has reached STATE_SUCCESS
-		if strings.EqualFold(statusField, "STATE_SUCCESS") {
-			return true, nil
-		}
-
-		return false, nil
-	}
-
-	// Poll the workflow status every 20 seconds
-	err = wait.PollImmediate(pollTimeDuration, time.Hour, func() (bool, error) {
-		success, statusErr := checkStatus()
-		if statusErr != nil {
-			log.Printf("Error checking workflow status: %v", statusErr)
-			return false, nil
-		}
-		if success {
-			log.Printf("Workflow %s has reached STATE_SUCCESS", workflowName)
-			return true, nil
-		}
-		return false, nil
-	})
-	if err != nil {
-		return fmt.Errorf("workflow did not reach STATE_SUCCESS: %w", err)
-	}
-
-	return nil
-}
-
-func GetAllVariablesFromFile(fileName string) (map[string]string, error) {
-	// Read the content of the file
-	content, err := os.ReadFile(fileName)
-	if err != nil {
-		return nil, err
-	}
-
-	// Split the content into lines
-	lines := strings.Split(string(content), "\n")
-
-	// Create a map to store the variables
-	variables := make(map[string]string)
-
-	// Parse the lines and store the variables in the map
-	const expectedCount = 2
-	for _, line := range lines {
-		parts := strings.Split(line, "=")
-		if len(parts) == expectedCount {
-			key := strings.TrimSpace(parts[0])
-			value := strings.TrimSpace(parts[1])
-			variables[key] = value
-		}
-	}
-
-	return variables, nil
-}
-
 func unsetEnvironmentVariables() {
 	// List of environment variables to unset
 	variablesToUnset := []string{"http_proxy", "https_proxy"}
@@ -612,62 +79,6 @@ func unsetEnvironmentVariables() {
 		}
 	}
 }
-
-func OnboardSetupms(imType string) error {
-	oldWorkingDir, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-	log.Printf("old working dir---  %s ", oldWorkingDir)
-	fmt.Printf(" ----------------imtype:%s", imType)
-	onboardingstartupdir := filepath.Join("..", "scripts")
-	if chdirErr := os.Chdir(onboardingstartupdir); chdirErr != nil {
-		return chdirErr
-	}
-	log.Printf("Job %s has completed", onboardingstartupdir)
-	// onboardingfilepath := filepath.Join(onboardingstartupdir, "onboardingstartupms.sh")
-	// Make the script executable
-	cmdChmod := exec.Command("chmod", "+x", "onboardingstartupms.sh")
-	if runErr := cmdChmod.Run(); runErr != nil {
-		return runErr
-	}
-
-	// Run the shell script with arguments
-
-	// Todo: check based on dpsscopeid for ms
-	cmdExtendUpload := exec.Command("./onboardingstartupms.sh", imType, "ms")
-
-	output, err := cmdExtendUpload.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("error executing script: %w, Output: %s", err, output)
-	}
-
-	variableMap, err := GetAllVariablesFromFile("env_variable.txt")
-	if err != nil {
-		fmt.Println("Error:", err)
-		return err
-	}
-	if tinkImg, ok := variableMap["TINKER_CLIENT_IMG"]; ok {
-		fmt.Printf("TINKER_CLIENT_IMG: %s\n", tinkImg)
-	} else {
-		fmt.Println("TINKER_CLIENT_IMG not found in the file")
-	}
-	if err := os.Chdir(oldWorkingDir); err != nil {
-		log.Println("error while reverting back to older directory:", err)
-		return err
-	}
-
-	return nil
-}
-
-func readUIDFromFile(filePath string) (string, error) {
-	data, err := os.ReadFile(filePath)
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
-}
-
 func VoucherExtension(hostIP, deviceSerial string) (string, error) {
 	// Construct the path to the script directory
 	usr, err := user.Current()
@@ -779,12 +190,12 @@ func VoucherScript(hostIP, deviceSerial string) (string, error) {
 		onrAPIPasswd = defaultOnrAPIPasswd
 	}
 	if serialNo == "" {
-		log.Println("Serial number of device is mandatory, ")
+		zlog.Debug().Msgf("Serial number of device is mandatory, ")
 		os.Exit(0)
 	}
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		fmt.Println(err)
+		zlog.Debug().Msgf("%v", err)
 	}
 	// TODO: modify the path for certificates
 	certPath = homeDir + "/.fdo-secrets/scripts/secrets"
@@ -812,10 +223,10 @@ func VoucherScript(hostIP, deviceSerial string) (string, error) {
 			return "", fmt.Errorf("error reading the file:%w", err)
 		}
 		url = "https://" + mfgIP + ":" + mfgPort + "/api/v1/mfg/vouchers/" + serialNo
-		fmt.Println(url)
+		zlog.Debug().Msgf(url)
 		resp2, err := apiCalls("POST", url, apiUser, mfgAPIPasswd, certPath, ownerCertificate)
 		if err != nil {
-			fmt.Println(err)
+			zlog.Debug().Msgf("%v", err)
 			return "", fmt.Errorf("error Details:%w", err)
 		}
 		defer resp2.Body.Close()
@@ -844,7 +255,7 @@ func VoucherScript(hostIP, deviceSerial string) (string, error) {
 			if resp3.StatusCode == http.StatusOK {
 				file2, err := os.Create(fmt.Sprintf("/home/%s/.fdo-secrets/scripts/%s_guid.txt", os.Getenv("USER"), serialNo))
 				if err != nil {
-					fmt.Println("Error creating the file:", err)
+					zlog.Debug().Msgf("Error creating the file: %v", err)
 					return "", fmt.Errorf("error creating the file:%w", err)
 				}
 				_, err = io.Copy(file2, resp3.Body)
@@ -892,11 +303,11 @@ func apiCalls(httpMethod, url, apiUser, onrAPIPasswd, certPath string, bodyData 
 	}
 	switch strings.ToLower(authType) {
 	case "digest":
-		log.Println("Digest authentication mode is being used")
+		zlog.Debug().Msgf("Digest authentication mode is being used")
 		req.SetBasicAuth(apiUser, onrAPIPasswd)
 		httpClient = &http.Client{}
 	case "mtls":
-		log.Println("Client Certificate authentication mode is being used")
+		zlog.Debug().Msgf("Client Certificate authentication mode is being used")
 		var caCert []byte
 		caCert, err = os.ReadFile(certPath + "/ca-cert.pem")
 		if err != nil {
@@ -919,7 +330,7 @@ func apiCalls(httpMethod, url, apiUser, onrAPIPasswd, certPath string, bodyData 
 			},
 		}
 	default:
-		log.Println("Provided Auth type is not valid, ")
+		zlog.Debug().Msgf("Provided Auth type is not valid, ")
 		os.Exit(1)
 	}
 	req.Header.Add("Content-Type", "text/plain")
@@ -948,69 +359,6 @@ func CalculateRootFS(imageType, diskDev string) string {
 	}
 
 	return rootFSPartNo
-}
-
-func DeleteWorkflow(namespace, workflowName, resource string) error {
-	// Create a Kubernetes client configuration from the provided kubeconfig path
-	dynamicClient, err := createDynamicClient()
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-		return err
-	}
-
-	// Define the resource type and group for your custom resource
-	// resource := "workflows.tinkerbell.org"
-	// resourceGroup := "tinkerbell.org"
-
-	// Delete the custom resource
-	groupVersionResource := schema.GroupVersionResource{
-		Group:    "tinkerbell.org",
-		Version:  "v1alpha1",
-		Resource: resource,
-	}
-	err = dynamicClient.Resource(groupVersionResource).Namespace(namespace).Delete(context.TODO(),
-		workflowName, metav1.DeleteOptions{})
-	if err != nil {
-		return fmt.Errorf("error deleting workflow: %w", err)
-	}
-
-	fmt.Printf("Workflow %s deleted successfully in namespace %s\n", workflowName, namespace)
-	return nil
-}
-
-func ToWorkflowCreation(deviceInfo utils.DeviceInfo) error {
-	// TODO: Remove hardcoding of the filename decide based on input
-	totemplatename, tempaleErr := CreateTemplateWorkflow(deviceInfo, "/manifests/to/template_to.yaml")
-	if tempaleErr != nil {
-		// Handle the error, for example, log it or return an error response
-		return tempaleErr
-	}
-	fmt.Printf("template workflow applied workflowname:%s", totemplatename)
-	toworkflowname, err4 := CreateTemplateWorkflow(deviceInfo, "/manifests/to/workflow.yaml")
-	if err4 != nil {
-		// Handle the error, for example, log it or return an error response
-		return err4
-	}
-	fmt.Printf("workflow applied workflowname:%s--------------", toworkflowname)
-
-	err5 := waitForWorkflowSuccess("maestro-iaas-system", toworkflowname)
-	if err5 != nil {
-		log.Fatalf("Error waiting for workflow success: %v", err5)
-		return err5
-	}
-	fmt.Println("workflow-1c697a0eb228 has reached STATE_SUCCESS")
-
-	////////////////////////////////To workflow Cleanup//////////////////////////
-	//TODO:replace the namespace other info from Groupinfo struct
-	templateToDeleteErr := DeleteWorkflow("maestro-iaas-system", totemplatename, "templates")
-	if templateToDeleteErr != nil {
-		fmt.Printf("Error: %v\n", templateToDeleteErr)
-	}
-	workflowToDeleteErr := DeleteWorkflow("maestro-iaas-system", toworkflowname, "workflows")
-	if workflowToDeleteErr != nil {
-		fmt.Printf("Error: %v\n", workflowToDeleteErr)
-	}
-	return nil
 }
 
 func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string, artifactinfo utils.ArtifactData) error {

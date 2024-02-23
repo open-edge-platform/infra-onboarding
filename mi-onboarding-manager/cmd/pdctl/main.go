@@ -5,11 +5,16 @@ SPDX-License-Identifier: LicenseRef-Intel
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/cmd/pdctl/commands"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"github.com/spf13/cobra"
+)
+
+var (
+	clientName = "pdctl"
+	zlog       = logging.GetLogger(clientName)
 )
 
 // type grpcDialer struct {
@@ -88,7 +93,7 @@ func main() {
 	// Execute CLI
 	if err := rootCmd.Execute(); err != nil {
 		if *verbose {
-			fmt.Println(err)
+			zlog.Debug().Msgf("%v", err)
 		}
 		os.Exit(1)
 	}

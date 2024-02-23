@@ -8,7 +8,6 @@ package persistence
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"os"
 	"reflect"
 	"strings"
@@ -17,7 +16,13 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/config"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/logger"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"k8s.io/client-go/rest"
+)
+
+var (
+	clientName = "Persistance"
+	zlog       = logging.GetLogger(clientName)
 )
 
 type (
@@ -103,21 +108,21 @@ func init() {
 }
 
 func runInKubernetes(conf *config.Config) {
-	log.Println("Running inside Kubernetes cluster")
+	zlog.Debug().Msgf("Running inside Kubernetes cluster")
 
 	repoz[nodeRepoName] = conf.Node.Database
 	repoz[artifactRepoName] = conf.Artifact.Database
 }
 
 func runInDockerContainer(conf *config.Config) {
-	log.Println("Running inside Docker container")
+	zlog.Debug().Msgf("Running inside Docker container")
 
 	repoz[nodeRepoName] = conf.Node.Database
 	repoz[artifactRepoName] = conf.Artifact.Database
 }
 
 func runLocally(conf *config.Config) {
-	log.Println("Running outside Kubernetes cluster")
+	zlog.Debug().Msgf("Running outside Kubernetes cluster")
 	conf.Node.Database.Endpoints = "localhost:9042"
 	repoz[nodeRepoName] = conf.Node.Database
 
