@@ -461,6 +461,10 @@ enable_luks(){
     mtab_to_fstab
 
     partition_other_devices
+
+    rm /mnt/etc/resolv.conf
+    touch /mnt/etc/resolv.conf
+    mount --bind /etc/resolv.conf /mnt/etc/resolv.conf
     
     chroot /mnt /bin/bash <<EOT
 
