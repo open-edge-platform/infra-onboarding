@@ -23,6 +23,7 @@ import (
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/auth"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/tinkerbell"
 	tinkv1alpha1 "github.com/tinkerbell/tink/api/v1alpha1"
@@ -60,6 +61,23 @@ func newK8SClient() (client.Client, error) {
 	return kubeClient, nil
 }
 
+func GetClientData(deviceGUID string) (string, string, error) {
+
+	//TODO:replace ctx with parent context
+	ctx := context.Background()
+	authService, err := auth.AuthServiceFactory(ctx)
+	if err != nil {
+		return "", "", err
+	}
+	defer authService.Logout(ctx)
+
+	clientSecret, clientID, credsErr := authService.CreateCredentialsWithUUID(ctx, deviceGUID)
+	if credsErr != nil {
+		return "", "", credsErr
+	}
+	return clientID, clientSecret.(string), nil
+}
+
 func readUIDFromFile(filePath string) (string, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -67,6 +85,7 @@ func readUIDFromFile(filePath string) (string, error) {
 	}
 	return string(data), nil
 }
+
 func unsetEnvironmentVariables() {
 	// List of environment variables to unset
 	variablesToUnset := []string{"http_proxy", "https_proxy"}
@@ -79,6 +98,7 @@ func unsetEnvironmentVariables() {
 		}
 	}
 }
+
 func VoucherExtension(hostIP, deviceSerial string) (string, error) {
 	// Construct the path to the script directory
 	usr, err := user.Current()
@@ -390,6 +410,12 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string, artifacti
 
 	fmt.Printf("hardware workflow applied hardwarename:%s", hw.Name)
 	fmt.Printf("hardware workflow Image URL :%s", deviceInfo.LoadBalancerIP)
+
+	clientId, clientSecret, secreterr := GetClientData(deviceInfo.GUID)
+
+	if secreterr != nil {
+		return secreterr
+	}
 	switch imgtype {
 	case utils.ProdBkc:
 		tmplName = fmt.Sprintf("bkc-%s-prod", id)
@@ -399,7 +425,7 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string, artifacti
 		deviceInfo.LoadBalancerIP = artifactinfo.BkcURL
 		deviceInfo.RootfspartNo = artifactinfo.BkcBasePkgURL
 		tmplData, err = tinkerbell.NewTemplateDataProdBKC(tmplName, deviceInfo.Rootfspart, deviceInfo.RootfspartNo,
-			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.ClientImgName, deviceInfo.ProvisionerIP, deviceInfo.SecurityFeature)
+			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, clientId, clientSecret, deviceInfo.Gateway, deviceInfo.ClientImgName, deviceInfo.ProvisionerIP, deviceInfo.SecurityFeature)
 		if err != nil {
 			return err
 		}

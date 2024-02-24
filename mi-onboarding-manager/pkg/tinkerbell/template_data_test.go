@@ -49,14 +49,16 @@ func TestNewTemplateDataProd(t *testing.T) {
 
 func TestNewTemplateDataProdBKC(t *testing.T) {
 	type args struct {
-		name       string
-		rootPart   string
-		rootPartNo string
-		hostIP     string
-		clientIP   string
-		gateway    string
-		clientImg  string
-		provIP     string
+		name            string
+		rootPart        string
+		rootPartNo      string
+		hostIP          string
+		clientIP        string
+		clientID        string
+		clientSecret    string
+		gateway         string
+		in8             string
+		in9             string
 		securityFeature uint32
 	}
 	wf := Workflow{}
@@ -78,8 +80,7 @@ func TestNewTemplateDataProdBKC(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewTemplateDataProdBKC(tt.args.name, tt.args.rootPart, tt.args.rootPartNo,
-				tt.args.hostIP, tt.args.clientIP, tt.args.gateway, tt.args.clientImg, tt.args.provIP,tt.args.securityFeature)
+			got, err := NewTemplateDataProdBKC(tt.args.name, tt.args.rootPart, tt.args.rootPartNo, tt.args.hostIP, tt.args.clientIP, tt.args.clientID, tt.args.clientSecret, tt.args.gateway, tt.args.in8, tt.args.in9, tt.args.securityFeature)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewTemplateDataProdBKC() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -133,3 +134,4 @@ func TestNewTemplateDataProdMS(t *testing.T) {
 		})
 	}
 }
+

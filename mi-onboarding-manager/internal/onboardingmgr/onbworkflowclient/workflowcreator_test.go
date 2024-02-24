@@ -132,7 +132,26 @@ func TestVoucherScript(t *testing.T) {
 		})
 	}
 }
+func TestGetClientData(t *testing.T) {
+	// Mock device GUID
+	mockDeviceGUID := "444C-44ac-6639-2983-3u4u-9475"
 
+	// Call the function being tested
+	clientID, clientSecret, err := GetClientData(mockDeviceGUID)
+
+	// Check if an error was returned
+	if err == nil {
+		t.Error("Expected an error, but got nil")
+	}
+
+	// Check if clientID and clientSecret are empty
+	if clientID != "" {
+		t.Errorf("Expected empty client ID, but got: %s", clientID)
+	}
+	if clientSecret != "" {
+		t.Errorf("Expected empty client secret, but got: %s", clientSecret)
+	}
+}
 func TestProdWorkflowCreation(t *testing.T) {
 	type args struct {
 		deviceInfo   utils.DeviceInfo

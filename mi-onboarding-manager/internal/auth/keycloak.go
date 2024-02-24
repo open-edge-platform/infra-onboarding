@@ -6,14 +6,15 @@ package auth
 import (
 	"context"
 	"fmt"
+	"os"
+	"time"
+
+	"github.com/Nerzal/gocloak/v13"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/secrets"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"google.golang.org/grpc/codes"
-	"os"
-	"time"
 )
-import "github.com/Nerzal/gocloak/v13"
 
 var zlog = logging.GetLogger("OMKeycloakService")
 
@@ -68,14 +69,14 @@ func (k *keycloakService) login(ctx context.Context, keycloakURL string) error {
 	return nil
 }
 
-func (k *keycloakService) CreateCredentialsWithUUID(ctx context.Context, uuid string) (interface{}, error) {
+func (k *keycloakService) CreateCredentialsWithUUID(ctx context.Context, uuid string) (interface{}, string, error) {
 	edgeNodeClient := getEdgeNodeClientFromTemplate(uuid)
 
 	id, err := k.keycloakClient.CreateClient(ctx, k.jwtToken.AccessToken, KeycloakRealm, edgeNodeClient)
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to create Keycloak client with UUID %s", uuid)
 		zlog.MiSec().Err(err).Msg(errMsg)
-		return nil, inv_errors.Errorf(errMsg)
+		return inv_errors.Errorf(errMsg), "", nil
 	}
 
 	zlog.MiSec().Debug().Msgf("Keycloak credentials for host %s created successfully, ID: %s",
@@ -85,19 +86,19 @@ func (k *keycloakService) CreateCredentialsWithUUID(ctx context.Context, uuid st
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to get Keycloak client secret for client ID %s (host UUID %s)", id, uuid)
 		zlog.MiSec().Err(err).Msg(errMsg)
-		return nil, inv_errors.Errorf(errMsg)
+		return inv_errors.Errorf(errMsg), "", nil
 	}
 
 	if creds.Value == nil {
 		err = inv_errors.Errorf("Received empty client secret for client ID %s (host UUID %s)", id, uuid)
 		zlog.MiSec().Err(err).Msg("")
-		return "", err
+		return err, "", err
 	}
 
 	zlog.MiSec().Debug().Msgf("Keycloak client secret for host %s obtained successfully, ID: %s",
 		uuid, id)
 
-	return *creds.Value, nil
+	return *creds.Value, id, nil
 }
 
 func (k *keycloakService) RevokeCredentialsByUUID(ctx context.Context, uuid string) error {

@@ -187,7 +187,7 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 	return marshalWorkflow(&wf)
 }
 
-func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gateway, _, _ string, securityFeature uint32) ([]byte, error) {
+func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, clientID, clientSecret, gateway, _, _ string, securityFeature uint32) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -283,6 +283,49 @@ touch /usr/local/bin/.grow_part_done`, rootPart),
 						"GID":     "0",
 						"MODE":    "0755",
 						"DIRMODE": "0755",
+					},
+				},
+				{
+					Name:    "create-directory",
+					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
+					Timeout: 30,
+					Environment: map[string]string{
+
+						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"FS_TYPE":             "ext4",
+						"CHROOT":              "y",
+						"DEFAULT_INTERPRETER": "/bin/sh -c",
+						"CMD_LINE":            "mkdir -p /etc/ensp/node/client-credentials/",
+					},
+				},
+				{
+					Name:    "client-id",
+					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+					Timeout: 90,
+					Environment: map[string]string{
+						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"FS_TYPE":   "ext4",
+						"DEST_PATH": "/etc/ensp/node/client-credentials/client_id",
+						"CONTENTS":  clientID,
+						"UID":       "0",
+						"GID":       "0",
+						"MODE":      "0755",
+						"DIRMODE":   "0755",
+					},
+				},
+				{
+					Name:    "client-secret",
+					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+					Timeout: 90,
+					Environment: map[string]string{
+						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"FS_TYPE":   "ext4",
+						"DEST_PATH": "/etc/ensp/node/client-credentials/client_secret",
+						"CONTENTS":  clientSecret,
+						"UID":       "0",
+						"GID":       "0",
+						"MODE":      "0755",
+						"DIRMODE":   "0755",
 					},
 				},
 				{
