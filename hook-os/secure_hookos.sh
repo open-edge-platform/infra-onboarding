@@ -41,6 +41,11 @@ create_grub_image() {
     # make grub-image from the newly compiled grub.
     $GRUB_SRC/grub-mkimage -O x86_64-efi --disable-shim-lock --pubkey $public_gpg_key -p "/EFI/hook/" -o $BOOTX_LOC $MODULES
     echo "created BOOTX64.efi"
+    if [ ! -f $BOOTX_LOC ] ;
+    then
+	echo "Failed to generate a signed grub because grub source is missing or gpg key is missing"
+	exit 1
+    fi
 }
 
 
@@ -224,7 +229,7 @@ package_signed_hookOS(){
 
     tar -czvf hook_x86_64.tar.gz .
 
-    mv $STORE_ALPINE_SECUREBOOT/hook_sign_temp/hook_x86_64.tar.gz $STORE_ALPINE_SECUREBOOT/hook_x86_64.tar.gz
+    mv -f $STORE_ALPINE_SECUREBOOT/hook_sign_temp/hook_x86_64.tar.gz $STORE_ALPINE_SECUREBOOT/hook_x86_64.tar.gz
 
     popd
 
@@ -260,4 +265,29 @@ secure_hookos() {
     echo "Save db.der file on a FAT volume to enroll inside UEFI bios"
 }
 
+resign_hookos() {
+
+    if [ ! -f $STORE_ALPINE_SECUREBOOT/hook_x86_64.tar.gz ] ;
+    then
+	echo "Place the hook image at $STORE_ALPINE_SECUREBOOT/hook_x86_64.tar.gz to proceed."
+	exit 1
+    fi
+
+    if [ ! -f $GRUB_SRC/grub-mkimage ] ;
+    then
+	echo "Place the grub source $PWD/grub_source to proceed."
+	exit 1
+    fi
+
+    create_gpg_key
+    create_grub_image
+    generate_pk_kek_db
+
+    sign_all_components
+    package_signed_hookOS
+
+    echo "Save db.der file on a FAT volume to enroll inside UEFI bios"
+}
+
 #secure_hookos
+#resign_hookos
