@@ -20,6 +20,7 @@ import (
 var zlog = logging.GetLogger("MIDKAMAuth")
 var fileServer = config.ProdFileServer
 var harborServer = config.ProdHarbor
+var registryService = config.RegistryServiceProd
 var agentsList []AgentsVersion
 
 type AgentsVersion struct {
@@ -45,6 +46,7 @@ func GetCuratedScript(profile string, platform string) string {
 	if MODE == "dev" || MODE == "preint" {
 		fileServer = config.DevFileServer
 		harborServer = config.DevHarbor
+		registryService = config.RegistryServiceDev
 	}
 	zlog.MiSec().Info().Msgf("MODE: %s", MODE)
 
@@ -170,10 +172,14 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	orchTelemetryHost := os.Getenv("ORCH_TELEMETRY_HOST")
 	orchTelemetryPort := os.Getenv("ORCH_TELEMETRY_PORT")
 	orchVault := os.Getenv("ORCH_VAULT")
+	orchKeycloak := os.Getenv("ORCH_KEYCLOAK")
+	orchRelease := os.Getenv("ORCH_RELEASE")
 	orchPkiRole := os.Getenv("ORCH_PKI_ROLE")
 	orchPkiPath := os.Getenv("ORCH_PKI_PATH")
-	azureUser := os.Getenv("USERNAME")
-	azurePassword := os.Getenv("PASSWORD")
+	// azureUser := os.Getenv("USERNAME")
+	// azurePassword := os.Getenv("PASSWORD")
+	orchAptSrcPort := os.Getenv("ORCH_APT_PORT")
+	orchImgRegProxyPort := os.Getenv("ORCH_IMG_PORT")
 
 	//Proxies
 	httpProxy := os.Getenv("HTTP_PROXY")
@@ -183,8 +189,11 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	sockProxy := os.Getenv("SOCKS_PROXY")
 
 	//KEYCLOAK and VAULT
-	keycloak := os.Getenv("KEYCLOAK_URL")
+	//keycloak := os.Getenv("KEYCLOAK_URL")
 	vault := os.Getenv("VAULT_URL")
+
+	//Extra hosts
+	extra_hosts := os.Getenv("EXTRA_HOSTS")
 
 	// Substitute relevant data in the script
 	//modifiedScript := strings.ReplaceAll(string(content), "__SUBSTITUTE_PACKAGE_COMMANDS__", packages)
@@ -204,10 +213,16 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_VAULT__", orchVault)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PKI_ROLE__", orchPkiRole)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PKI_PATH__", orchPkiPath)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__USERNAME__", azureUser)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__PASSWORD__", azurePassword)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__KEYCLOAK__", keycloak)
+	// modifiedScript = strings.ReplaceAll(modifiedScript, "__USERNAME__", azureUser)
+	// modifiedScript = strings.ReplaceAll(modifiedScript, "__PASSWORD__", azurePassword)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__KEYCLOAK__", strings.Split(orchKeycloak, ":")[0])
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__VAULT__", vault)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__RELEASE_FQDN__", strings.Split(orchRelease, ":")[0])
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__KEYCLOAK_URL__", orchKeycloak)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__RELEASE_TOKEN_URL__", orchRelease)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__IMG_REGISTRY_URL__", registryService)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_APT_PORT__", orchAptSrcPort)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_IMG_PORT__", orchImgRegProxyPort)
 
 	// Loop through the agentsList
 	for _, agent := range agentsList {
@@ -222,6 +237,25 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 		zlog.MiSec().Fatal().Err(err).Msgf("Error: %v", err)
 	}
 
+	var newLines []string
+	var kindLines []string
+	//check if its a kind cluster
+	if strings.Contains(orchCluster, "kind.internal") {
+		zlog.MiSec().Info().Msg("Its a kind cluster")
+		kindLines = append(kindLines, fmt.Sprintf("extra_hosts=\"%s\"", extra_hosts))
+		kindLines = append(kindLines, "IFS=',' read -ra hosts <<< \"$extra_hosts\"")
+		kindLines = append(kindLines, "for host in \"${hosts[@]}\"; do")
+		kindLines = append(kindLines, "    IFS=' ' read -ra parts <<< \"$host\"")
+		kindLines = append(kindLines, "    ip=\"${parts[0]}\"")
+		kindLines = append(kindLines, "     hostname=\"${parts[1]}\"")
+		kindLines = append(kindLines, "     echo \"$ip $hostname\" >> /etc/hosts")
+		kindLines = append(kindLines, "done")
+		AddProxies(scriptFileName, kindLines)
+
+	} else {
+		zlog.MiSec().Info().Msg("Its not a kind cluster")
+	}
+
 	proxies := map[string]string{
 		"http_proxy":  httpProxy,
 		"https_proxy": httpsProxy,
@@ -229,7 +263,7 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 		"socks_proxy": sockProxy,
 		"no_proxy":    noProxy,
 	}
-	var newLines []string
+
 	//Add proxies to the installer script for dev environment.
 	if len(proxies) > 0 {
 
@@ -244,7 +278,7 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 		newLines = append(newLines, "    echo \"http_proxy=$http_proxy\" >> /etc/environment;")
 		newLines = append(newLines, "    echo \"https_proxy=$https_proxy\" >> /etc/environment;")
 		newLines = append(newLines, "    echo \"ftp_proxy=$ftp_proxy\" >> /etc/environment;")
-		newLines = append(newLines, "    echo \"socks_server=$socks_server\" >> /etc/environment;")
+		newLines = append(newLines, "    echo \"socks_server=$socks_proxy\" >> /etc/environment;")
 		newLines = append(newLines, "    echo \"no_proxy=$no_proxy\" >> /etc/environment;")
 		newLines = append(newLines, "    echo \"Proxies added to /etc/environment.\"")
 		newLines = append(newLines, "fi")
@@ -297,7 +331,7 @@ func AddProxies(fileName string, newLines []string) {
 		lines = append(lines, line)
 
 		// Check if the current line matches the target line
-		if strings.TrimSpace(line) == "#!/bin/bash" {
+		if strings.TrimSpace(line) == "rm /etc/apt/apt.conf" {
 			foundTargetLine = true
 			// Insert the new lines after the target line
 			lines = append(lines, newLines...)
