@@ -32,6 +32,24 @@ func main() {
 	filesystemType := os.Getenv("FS_TYPE")
 //	isDestMount := os.Getenv("NO_MOUNT")
 
+	if len(blockDevice) == 0 {
+		// Get a list of drives
+		drives, err := GetDrives()
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		detectedDisk, err := DriveDetection(drives)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		log.Infof("Detected drive: [%s] ", detectedDisk)
+		blockDevice = detectedDisk
+	} else {
+		log.Infof("Drive provided by the user: [%s] ", blockDevice)
+	}
+
 	if blockDevice == "" {
 		log.Fatalf("No Block Device speified with Environment Variable [BLOCK_DEVICE]")
 	}
