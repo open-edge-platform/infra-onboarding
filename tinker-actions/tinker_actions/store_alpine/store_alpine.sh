@@ -193,8 +193,8 @@ if [ $bg_dl_ret -ne 0 ] && [ ! -f /hook_x86_64.tar.gz ] ; then
     exit 1
 fi
 
-cp /hook_x86_64.tar.gz ${efi_mnt}/EFI/hook/
-tar -xvf hook_x86_64.tar.gz --no-same-owner
+#cp /hook_x86_64.tar.gz ${efi_mnt}/EFI/hook/
+tar -xvf hook_x86_64.tar.gz --no-same-owner -C ${efi_mnt}/EFI/hook/
 rm -rf hook_x86_64.tar.gz
 echo "completed download and install of vmlinuz and initramfs-x86_64"
 
