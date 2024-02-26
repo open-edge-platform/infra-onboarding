@@ -72,10 +72,11 @@ func GetClientData(deviceGUID string) (string, string, error) {
 	defer authService.Logout(ctx)
 
 	clientSecret, clientID, credsErr := authService.CreateCredentialsWithUUID(ctx, deviceGUID)
+
 	if credsErr != nil {
 		return "", "", credsErr
 	}
-	return clientID, clientSecret.(string), nil
+	return clientSecret.(string), clientID, nil
 }
 
 func readUIDFromFile(filePath string) (string, error) {
@@ -411,7 +412,7 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string, artifacti
 	fmt.Printf("hardware workflow applied hardwarename:%s", hw.Name)
 	fmt.Printf("hardware workflow Image URL :%s", deviceInfo.LoadBalancerIP)
 
-	clientId, clientSecret, secreterr := GetClientData(deviceInfo.GUID)
+	clientSecret, clientId, secreterr := GetClientData(deviceInfo.GUID)
 
 	if secreterr != nil {
 		return secreterr

@@ -98,7 +98,7 @@ func (k *keycloakService) CreateCredentialsWithUUID(ctx context.Context, uuid st
 	zlog.MiSec().Debug().Msgf("Keycloak client secret for host %s obtained successfully, ID: %s",
 		uuid, id)
 
-	return *creds.Value, id, nil
+	return *creds.Value, *edgeNodeClient.ClientID, nil
 }
 
 func (k *keycloakService) RevokeCredentialsByUUID(ctx context.Context, uuid string) error {
