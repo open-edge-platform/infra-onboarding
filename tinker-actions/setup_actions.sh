@@ -24,6 +24,7 @@ client_auth=./tinker_actions/client_auth
 nginx_proxy=./tinker_actions/nginx_proxy
 image2disk=./tinker_actions/image2disk/v1
 cexec=./tinker_actions/cexec/v1
+writefile=./tinker_actions/writefile/v1
 
 fdo_docker_setup() {
     pushd $fdo_action_build
@@ -110,8 +111,18 @@ cexec_setup() {
 
     bash build.sh
 
+    popd    
+}
+
+writefile_setup() {
+
+    pushd $writefile
+
+    bash build.sh
+
     popd
 }
+
 main() {
 
     apt install -y build-essential
@@ -128,7 +139,7 @@ main() {
     nginxproxy_setup
     image2disk_setup
     cexec_setup
-
+    writefile_setup
 }
 
 main

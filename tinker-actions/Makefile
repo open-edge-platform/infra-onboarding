@@ -63,6 +63,7 @@ docker-push:
 	docker tag nginx_proxy_action:latest ${DOCKER_TAG}/nginx_proxy_action:${BRANCH_NAME}
 	docker tag image2disk:latest ${DOCKER_TAG}/image2disk:${BRANCH_NAME}
 	docker tag cexec:latest ${DOCKER_TAG}/cexec:${BRANCH_NAME}
+	docker tag writefile:latest ${DOCKER_TAG}/writefile:${BRANCH_NAME}
 
 	docker push ${DOCKER_TAG}/efibootset:${BRANCH_NAME}
 	docker push ${DOCKER_TAG}/fdoclient_action:${BRANCH_NAME}
@@ -74,6 +75,7 @@ docker-push:
 	docker push ${DOCKER_TAG}/nginx_proxy_action:${BRANCH_NAME}
 	docker push ${DOCKER_TAG}/image2disk:${BRANCH_NAME}
 	docker push ${DOCKER_TAG}/cexec:${BRANCH_NAME}
+	docker push ${DOCKER_TAG}/writefile:${BRANCH_NAME}
 
 	docker tag efibootset:latest ${DOCKER_TAG}/efibootset:${VERSION}
 	docker tag fdoclient_action:latest ${DOCKER_TAG}/fdoclient_action:${VERSION}
@@ -85,6 +87,7 @@ docker-push:
 	docker tag nginx_proxy_action:latest ${DOCKER_TAG}/nginx_proxy_action:${VERSION}
 	docker tag image2disk:latest ${DOCKER_TAG}/image2disk:${VERSION}
 	docker tag cexec:latest ${DOCKER_TAG}/cexec:${VERSION}
+	docker tag writefile:latest ${DOCKER_TAG}/writefile:${VERSION}
 
 	docker push ${DOCKER_TAG}/efibootset:${VERSION}
 	docker push ${DOCKER_TAG}/fdoclient_action:${VERSION}
@@ -96,6 +99,7 @@ docker-push:
 	docker push ${DOCKER_TAG}/nginx_proxy_action:${VERSION}
 	docker push ${DOCKER_TAG}/image2disk:${VERSION}
 	docker push ${DOCKER_TAG}/cexec:${VERSION}
+	docker push ${DOCKER_TAG}/writefile:${VERSION}
 
 
 lint-ci: license
