@@ -71,8 +71,11 @@ EXTRA_TINK_OPTIONS="tinkerbell=http://$TINKERBELL_OWNER syslog_host=$TINKERBELL_
 
 do_image_download_bg() {
     hostip=$(ip route | grep default |  grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b")
-    wget  http://$hostip/tink-stack/hook_x86_64.tar.gz -o /hook_x86_64.tar.gz
-    if [ $? -ne 0 ]; then
+    pushd /
+    wget  http://$hostip/tink-stack/hook_x86_64.tar.gz
+    ret=$?
+    popd
+    if [ $ret -ne 0 ]; then
         return 1
     else
         return 0
