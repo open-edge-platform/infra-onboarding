@@ -203,20 +203,18 @@ func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, client
 			Actions: []Action{
 				{
 					Name:    "stream-ubuntu-image",
-					Image:   "quay.io/tinkerbell-actions/image2disk:v1.0.0",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/image2disk:0.7.1-dev",
 					Timeout: 9600,
 					Environment: map[string]string{
-						"DEST_DISK":  "{{ index .Hardware.Disks 0 }}",
 						"IMG_URL":    hostIP,
 						"COMPRESSED": "true",
 					},
 				},
 				{
 					Name:    "add-env-proxy",
-					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 					Timeout: 90,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/environment",
 						"CONTENTS": `
@@ -234,15 +232,14 @@ no_proxy=localhost,*.intel.com,*intel.com,127.0.0.1,intel.com,.internal`,
 
 				{
 					Name:    "add-apt-proxy",
-					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 					Timeout: 90,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/apt/apt.conf",
 						"CONTENTS": `
-Acquire::http::Proxy "http://172.30.7.176:911";
-Acquire::https::Proxy "http://172.30.7.176:911";`,
+Acquire::http::Proxy "http://proxy-dmz.intel.com:911";
+Acquire::https::Proxy "http://proxy-dmz.intel.com:911";`,
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -251,10 +248,9 @@ Acquire::https::Proxy "http://172.30.7.176:911";`,
 				},
 				{
 					Name:    "add-dns-namespace",
-					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 					Timeout: 90,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/systemd/resolved.conf",
 						"CONTENTS": `
@@ -269,16 +265,15 @@ DNS=10.248.2.1 172.30.90.4 10.223.45.36`,
 
 				{
 					Name:    "grow-partition-install-script",
-					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 					Timeout: 90,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/usr/local/bin/grow_part.sh",
 						"CONTENTS": fmt.Sprintf(`#!/bin/bash
-growpart {{ index .Hardware.Disks 0 }} 1 
-resize2fs {{ index .Hardware.Disks 0 }}%s
-touch /usr/local/bin/.grow_part_done`, rootPart),
+growpart $DEST_DISK 1 
+resize2fs $DEST_DISK$ID 
+touch /usr/local/bin/.grow_part_done`),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -286,12 +281,10 @@ touch /usr/local/bin/.grow_part_done`, rootPart),
 					},
 				},
 				{
-					Name:    "create-directory",
-					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 30,
+					Name:    "create-ensp-node-directory",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
+					Timeout: 60,
 					Environment: map[string]string{
-
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
@@ -299,11 +292,10 @@ touch /usr/local/bin/.grow_part_done`, rootPart),
 					},
 				},
 				{
-					Name:    "client-id",
-					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+					Name:    "write-client-id",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 					Timeout: 90,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/ensp/node/client-credentials/client_id",
 						"CONTENTS":  clientID,
@@ -314,11 +306,10 @@ touch /usr/local/bin/.grow_part_done`, rootPart),
 					},
 				},
 				{
-					Name:    "client-secret",
-					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+					Name:    "write-client-secret",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 					Timeout: 90,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/ensp/node/client-credentials/client_secret",
 						"CONTENTS":  clientSecret,
@@ -330,10 +321,9 @@ touch /usr/local/bin/.grow_part_done`, rootPart),
 				},
 				{
 					Name:    "create-user",
-					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
 					Timeout: 90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
@@ -343,10 +333,9 @@ touch /usr/local/bin/.grow_part_done`, rootPart),
 
 				{
 					Name:    "enable-ssh",
-					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
 					Timeout: 90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
@@ -357,10 +346,9 @@ touch /usr/local/bin/.grow_part_done`, rootPart),
 
 				{
 					Name:    "profile-pkg-and-node-agents-install-script-download",
-					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
 					Timeout: 200,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"SCRIPT_URL":          rootPartNo,
@@ -371,10 +359,9 @@ touch /usr/local/bin/.grow_part_done`, rootPart),
 				},
 				{
 					Name:    "service-script-for-profile-pkg-and-node-agents-install",
-					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 					Timeout: 90,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/systemd/system/install-profile-pkgs-and-node-agent.service",
 						"CONTENTS": `
@@ -399,10 +386,9 @@ touch /usr/local/bin/.grow_part_done`, rootPart),
 				},
 				{
 					Name:    "enable-service-script-for-profile-pkg-node-agents",
-					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
 					Timeout: 200,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
@@ -411,10 +397,9 @@ touch /usr/local/bin/.grow_part_done`, rootPart),
 				},
 				{
 					Name:    "write-netplan",
-					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 					Timeout: 90,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/netplan/config.yaml",
 						"CONTENTS": `network:
@@ -434,10 +419,9 @@ touch /usr/local/bin/.grow_part_done`, rootPart),
 
 				{
 					Name:    "update-netplan-to-make-ip-static",
-					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 					Timeout: 200,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/home/user/Setup/update_netplan_config.sh",
 						"CONTENTS": fmt.Sprintf(`#!/bin/bash
@@ -461,6 +445,7 @@ network:
 "
 # Write the YAML configuration to the file
 echo "$config_yaml" | tee /etc/netplan/config.yaml
+ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 touch .netplan_update_done
 netplan apply`, clientIP),
 						"UID":     "0",
@@ -472,10 +457,9 @@ netplan apply`, clientIP),
 
 				{
 					Name:    "service-script-for-grow-partion-installer",
-					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 					Timeout: 200,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/systemd/system/install-grow-part.service",
 						"CONTENTS": `
@@ -499,10 +483,9 @@ netplan apply`, clientIP),
 				},
 				{
 					Name:    "enable-grow-partinstall-service-script",
-					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
 					Timeout: 200,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
@@ -512,10 +495,9 @@ netplan apply`, clientIP),
 
 				{
 					Name:    "service-script-for-netplan-update",
-					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 					Timeout: 200,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/systemd/system/update-netplan.service",
 						"CONTENTS": `
@@ -540,10 +522,9 @@ netplan apply`, clientIP),
 
 				{
 					Name:    "enable-update-netplan.service-script",
-					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
 					Timeout: 200,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
@@ -552,22 +533,15 @@ netplan apply`, clientIP),
 				},
 
 				{
-					Name:    "fde-encryption",
-					Image:   "localhost:7443/one-intel-edge/edgenode/tinker-actions/fde:0.7.0-dev",
-					Timeout: 560,
-				},
+                                        Name:    "efibootset-for-diskboot",
+                                        Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/efibootset:0.7.1-dev",
+                                        Timeout: 300,
+                                },
 
 				{
-					Name:    "delete-proxys",
-					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 200,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        "/dev/mapper/rootfs_crypt",
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "rm /etc/apt/apt.conf",
-					},
+					Name:    "fde-encryption",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/fde:0.7.1-dev",
+					Timeout: 560,
 				},
 
 				{
