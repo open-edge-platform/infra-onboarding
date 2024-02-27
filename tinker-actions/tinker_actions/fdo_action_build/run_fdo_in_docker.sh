@@ -53,6 +53,12 @@ if [[ $FDO_RUN_TYPE == 'di' ]] ; then
     ##TODO check retturn values and debug
 else
     bash /usr/bin/run_fdo_to.sh
+    if [ -e "/dev/shm" ] && [ -r "/dev/shm" ]; then
+      cp -rf /target/boot /dev/shm/
+      echo "fdo data copied at /dev/shm/boot."
+    else
+      echo "/dev/shm is not available or not readable."
+    fi
 fi
 
 
