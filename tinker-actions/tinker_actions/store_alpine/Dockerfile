@@ -17,7 +17,6 @@ RUN apt install -y parted grub-common udev grub-pc-bin grub-efi-amd64-bin dosfst
 #RUN wget https://github.com/tinkerbell/hook/releases/download/v0.8.0/hook_x86_64.tar.gz
 
 COPY store_alpine.sh /
-COPY grub.cfg /
 
 RUN chmod +x store_alpine.sh
 
