@@ -204,6 +204,9 @@ disk_bootnum=$(efibootmgr -v | grep -i "nvme")
 if [ $? -ne 0 ];
 then
     disk_bootnum=$(efibootmgr -v | grep -i "sata")
+    if [ $? -ne 0 ];then
+        disk_bootnum=$(efibootmgr -v | grep -i "HD")
+    fi
 fi
 disk_bootnum=$(awk '{ print substr($1, 5, 4)}' <<< $disk_bootnum)
 
