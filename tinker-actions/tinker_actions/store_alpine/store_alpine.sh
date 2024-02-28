@@ -239,3 +239,5 @@ final_bootorder=$remove_pxe","$pxe_boot_number
 final_bootorder=$(sed "s/,,/,/g" <<< $final_bootorder)
 efibootmgr --bootorder $final_bootorder
 echo "Made PXE the last in the boot order"
+sync
+sleep 10
