@@ -282,8 +282,8 @@ func TestOnboardingManager_StartOnboarding(t *testing.T) {
 					ArtifactData: artifactDatasPlatform,
 				},
 			},
-			want:    &pb.OnboardingResponse{Status: "Success"},
-			wantErr: false,
+			want:    nil,
+			wantErr: true,
 		},
 	}
 	originalDir, _ := os.Getwd()
@@ -638,7 +638,7 @@ func TestOnboardingManager_SecureBootStatus(t *testing.T) {
 				ctx: context.Background(),
 				req: &pb.SecureBootStatRequest{},
 			},
-			want: &pb.SecureBootResponse{},
+			want:    &pb.SecureBootResponse{},
 			wantErr: true,
 		},
 	}

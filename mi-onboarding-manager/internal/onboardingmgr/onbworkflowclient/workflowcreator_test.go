@@ -99,12 +99,7 @@ func TestDiWorkflowCreation(t *testing.T) {
 
 func TestVoucherScript(t *testing.T) {
 	type args struct {
-		hostIP       string
-		deviceSerial string
-	}
-	inputargs := args{
-		hostIP:       "",
-		deviceSerial: "123",
+		deviceInfo utils.DeviceInfo
 	}
 	tests := []struct {
 		name    string
@@ -114,14 +109,14 @@ func TestVoucherScript(t *testing.T) {
 	}{
 		{
 			"test",
-			inputargs,
+			args{},
 			"",
 			true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := VoucherScript(tt.args.hostIP, tt.args.deviceSerial)
+			got, err := VoucherScript(tt.args.deviceInfo)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("VoucherScript() error = %v, wantErr %v", err, tt.wantErr)
 				return

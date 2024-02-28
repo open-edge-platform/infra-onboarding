@@ -187,7 +187,7 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 	return marshalWorkflow(&wf)
 }
 
-func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, clientID, clientSecret, gateway, _, _ string, securityFeature uint32) ([]byte, error) {
+func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gateway, _, _ string, securityFeature uint32) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -208,6 +208,15 @@ func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, client
 					Environment: map[string]string{
 						"IMG_URL":    hostIP,
 						"COMPRESSED": "true",
+					},
+				},
+				{
+					Name:    "copy-secrets",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cred_copy:0.7.1-dev",
+					Timeout: 90,
+					Environment: map[string]string{
+						"OS_DST_DIR": "/etc/ensp/node/client-credentials/",
+						"FS_TYPE":    "ext4",
 					},
 				},
 				{
@@ -278,45 +287,6 @@ touch /usr/local/bin/.grow_part_done`),
 						"GID":     "0",
 						"MODE":    "0755",
 						"DIRMODE": "0755",
-					},
-				},
-				{
-					Name:    "create-ensp-node-directory",
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
-					Timeout: 60,
-					Environment: map[string]string{
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "mkdir -p /etc/ensp/node/client-credentials/",
-					},
-				},
-				{
-					Name:    "write-client-id",
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
-					Timeout: 90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/ensp/node/client-credentials/client_id",
-						"CONTENTS":  clientID,
-						"UID":       "0",
-						"GID":       "0",
-						"MODE":      "0755",
-						"DIRMODE":   "0755",
-					},
-				},
-				{
-					Name:    "write-client-secret",
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
-					Timeout: 90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/ensp/node/client-credentials/client_secret",
-						"CONTENTS":  clientSecret,
-						"UID":       "0",
-						"GID":       "0",
-						"MODE":      "0755",
-						"DIRMODE":   "0755",
 					},
 				},
 				{
@@ -533,10 +503,10 @@ netplan apply`, clientIP),
 				},
 
 				{
-                                        Name:    "efibootset-for-diskboot",
-                                        Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/efibootset:0.7.1-dev",
-                                        Timeout: 300,
-                                },
+					Name:    "efibootset-for-diskboot",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/efibootset:0.7.1-dev",
+					Timeout: 300,
+				},
 
 				{
 					Name:    "fde-encryption",
