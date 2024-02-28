@@ -5,17 +5,13 @@ set -e
 run() {
 	echo "Starting Nginx..."
 
-	envsubst '$BOOTS_SERVICE_URL' \
-            </template/discover.php \
-            >/usr/share/nginx/html/discover.php
+	echo "$(cat /template/index1.php)" > /usr/share/nginx/html/index.php
 
-	envsubst '$BOOTS_SERVICE_URL' \
-            </template/chain.php \
-            >/usr/share/nginx/html/chain.php
-    
-    cp /template/index.php /usr/share/nginx/html/
+	echo "$(cat /template/discover1.php)" | sed "s/\$BOOTS_SERVICE_URL/$BOOTS_SERVICE_URL/g" >/usr/share/nginx/html/discover.php
 
-	php-fpm81 && chmod 777 /var/run/php/php81-fpm.sock && chmod 755 /usr/share/nginx/html/* && nginx -g 'daemon off;'
+	echo "$(cat /template/chain1.php)" | sed "s/\$BOOTS_SERVICE_URL/$BOOTS_SERVICE_URL/g" >/usr/share/nginx/html/chain.php
+
+    php-fpm81 && nginx -g 'daemon off;'
 }
 
 run
