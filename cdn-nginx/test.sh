@@ -7,9 +7,12 @@ docker run --name cdn-nginx --rm -d  -p 8080:8080 --network host --env BOOTS_SER
 sleep 10
 curl -s "http://localhost:8080/index.php" --noproxy '*' --output result.html
 docker stop cdn-nginx
-if cmp -s "result.html" "reference.html"; then
+if diff -wB "result.html" "reference.html"; then
+    echo "FILES MATCH"
     exit 0
 else
+    echo "FILES DONt MATCH"
+    diff "result.html" "reference.html"
     exit 1
 fi
 
