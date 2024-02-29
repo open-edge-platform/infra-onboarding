@@ -674,6 +674,28 @@ install_CA_cert(){
     curl -XGET https://__VAULT__/v1/pki_root/ca/pem -k | sudo tee /usr/local/share/ca-certificates/kind.crt && sudo update-ca-certificates
 }
 
+# 27. Enable netIp
+enable_netipplan() {
+    # New values to update in the config.yaml file
+    new_values="network:
+                  version: 2
+                  renderer: networkd
+                  ethernets:
+                    id0:
+                      match:
+                        name: en*
+                      dhcp4: true"
+
+
+    # Update the content of the config.yaml file with new values
+    echo "$new_values" > /etc/netplan/config.yaml
+
+    # Apply the changes using the netplan apply command
+    netplan apply
+
+    echo "Config.yaml file updated successfully."
+}
+
 #extend the disk partition
 #parition_extention  2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_dependencies 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
@@ -695,6 +717,7 @@ fi
 
 
 install_syslogrotate_job 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+enable_netipplan 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 echo "Install agents..........................."
 install_CA_cert 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_cleanup 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME

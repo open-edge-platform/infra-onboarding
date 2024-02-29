@@ -5,6 +5,7 @@ package curation
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -229,6 +230,37 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 		// Access the fields of each struct
 		zlog.MiSec().Info().Msgf("Package: %s, Version: %s\n", agent.Package, agent.Version)
 		modifiedScript = strings.ReplaceAll(modifiedScript, agent.Package+"-VERSION", agent.Version)
+	}
+
+	//netplan
+	netip_enable_flag := os.Getenv("NETIP")
+	//netip_enable_flag := "dynamic"
+	// Name of the function to remove
+	functionToRemove := "enable_netipplan"
+
+	// Find the start and end positions of the function
+	startIdx := strings.Index(modifiedScript, functionToRemove)
+	if startIdx == -1 {
+		fmt.Println("Function not found in script")
+	}
+	endIdx := strings.Index(modifiedScript[startIdx:], "}") + startIdx
+	if endIdx == -1 {
+		fmt.Println("Function end not found in script")
+	}
+
+	// Remove the function from the script
+	if netip_enable_flag == "static" {
+		newcontent := []byte(modifiedScript)
+		newScript := bytes.Replace(newcontent, newcontent[startIdx:endIdx+1], []byte{}, 1)
+		modifiedScript = string(newScript)
+		// Remove any lines containing calls to the function
+		lines := strings.Split(string(modifiedScript), "\n")
+		for i := range lines {
+			if strings.Contains(lines[i], functionToRemove) {
+				lines[i] = ""
+			}
+		}
+		modifiedScript = strings.Join(lines, "\n")
 	}
 
 	// Save the modified script to the specified output path
