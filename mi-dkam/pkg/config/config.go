@@ -19,8 +19,8 @@ const (
 	ReleaseVersion         = "latest-dev"
 	GPGKey                 = "ledgepark-debian-signing-key-gpg-non-prod.pem"
 	PVC                    = "/data/"
-	Tag                    = "latest-dev"
-	PreintTag              = "latest-dev.yaml"
+	Tag                    = "manifest"
+	PreintTag              = "pre-int/manifest"
 	Artifact               = "one-intel-edge/edgenode/en/manifest"
 	ImageUrl               = "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
 	ImageFileName          = "jammy-server-cloudimg-amd64.raw.gz"
@@ -28,4 +28,5 @@ const (
 	RegistryServiceDev     = "registry-rs.internal.ledgepark.intel.com"
 	RegistryServiceProd    = "registry-rs.edgeorchestration.intel.com"
 	RegistryServiceStaging = "registry-rs.espdstage.infra-host.com"
+	RSProxyManifest        = "http://rs-proxy.rs-proxy.svc.cluster.local:8081/v2/one-intel-edge/edgenode/en/"
 )

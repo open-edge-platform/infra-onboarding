@@ -36,11 +36,10 @@ func DownloadArtifacts() error {
 	if MODE == "dev" || MODE == "preint" {
 		fileServer = config.DevFileServer
 		harborServer = config.DevHarbor
-		tag = "release-manifest/" + config.ReleaseVersion + ".yaml"
 	}
 
 	if MODE == "preint" {
-		tag = "preint/" + config.PreintTag
+		tag = config.PreintTag
 	}
 	zlog.MiSec().Info().Msg("Download artifacts")
 

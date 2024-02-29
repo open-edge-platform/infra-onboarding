@@ -4,6 +4,7 @@
 package download
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,6 +17,32 @@ import (
 )
 
 var zlog = logging.GetLogger("MIDKAMAuth")
+
+type Response struct {
+	SchemaVersion int    `json:"schemaVersion"`
+	MediaType     string `json:"mediaType"`
+	ArtifactType  string `json:"artifactType"`
+	Config        struct {
+		MediaType string `json:"mediaType"`
+		Digest    string `json:"digest"`
+		Size      int    `json:"size"`
+		Data      string `json:"data"`
+	} `json:"config"`
+	Layers []struct {
+		MediaType   string `json:"mediaType"`
+		Digest      string `json:"digest"`
+		Size        int    `json:"size"`
+		Annotations struct {
+			Title string `json:"org.opencontainers.image.title"`
+		} `json:"annotations"`
+	} `json:"layers"`
+	Annotations struct {
+		Created string `json:"org.opencontainers.image.created"`
+	} `json:"annotations"`
+}
+
+// Extract the digest value from the appropriate layer
+var res Response
 
 func DownloadMicroOS(scriptPath string) (bool, error) {
 	zlog.Info().Msgf("Inside Download and sign artifact... %s", scriptPath)
@@ -87,58 +114,6 @@ func DownloadArtifacts(fileServer string, harborServer string, scriptPath string
 	}
 	zlog.MiSec().Info().Msg("tmp folder created successfully")
 
-	// 1. Create a file store
-	// fs, err := file.New(outDir)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// defer fs.Close()
-
-	// // 2. Connect to a remote repository
-	// ctx := context.Background()
-	// repo, err := remote.NewRepository(harborServer + "/" + config.Artifact)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// // 3. Authenticate (not required in AMR)
-	// /*
-	// 	repo.Client = &auth.Client{
-	// 		Client: retry.DefaultClient,
-	// 		Cache:  auth.DefaultCache,
-	// 		Credential: auth.StaticCredential(reg, auth.Credential{
-	// 			Username: "username",
-	// 			Password: "password",
-	// 		}),
-	// 	}*/
-
-	// // 4. Copy from the remote repository to the file store
-	// manifestDescriptor, err := oras.Copy(ctx, repo, tag, fs, tag, oras.DefaultCopyOptions)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// zlog.MiSec().Info().Msgf("Manifest descriptor: %s", manifestDescriptor)
-
-	// // 5.list files
-	// zlog.MiSec().Info().Msg("Download files:")
-	// entries, err := os.ReadDir(outDir)
-	// if err != nil {
-	// 	zlog.MiSec().Fatal().Err(err).Msgf("Error reading the folder %v", err)
-	// }
-
-	// for _, e := range entries {
-	// 	zlog.MiSec().Info().Msgf("filename %s", e.Name())
-	// 	manifestFile := filepath.Join(outDir, e.Name())
-	// 	releaseFile := filepath.Join(outDir, config.ReleaseVersion+".yaml")
-	// 	if strings.Contains(e.Name(), "24.03") {
-	// 		e := os.Rename(manifestFile, releaseFile)
-	// 		if e != nil {
-	// 			zlog.MiSec().Fatal().Err(err).Msgf("Failed to rename file %v", e)
-	// 		}
-	// 	}
-	// }
-
-	url := config.RSProxy + tag
 	client := &http.Client{
 		Transport: &http.Transport{
 			ForceAttemptHTTP2: false,
@@ -146,30 +121,55 @@ func DownloadArtifacts(fileServer string, harborServer string, scriptPath string
 			IdleConnTimeout:   30,
 		},
 	}
-	// Create an HTTP GET request with the specified URL
-	req, httperr := http.NewRequest("GET", url, nil)
-	if httperr != nil {
-		//zlog.MiSec().Fatal().Err(httperr).Msgf("Error creating request: %v\n", httperr)
-		zlog.MiSec().Info().Msg("Failed to create GET request.")
-		return httperr
+
+	url := config.RSProxyManifest + tag + "/manifests/latest-dev"
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		zlog.MiSec().Fatal().Err(err).Msgf("Error making get request: %v\n", err)
 
 	}
+	req.Header.Add("Accept", "application/vnd.oci.image.manifest.v1+json")
 
-	// Set the HTTP version to 1.1
-	req.Proto = "HTTP/1.1"
-
-	// Perform the HTTP GET request
-	resp, clienterr := client.Do(req)
+	response, clienterr := client.Do(req)
 	if clienterr != nil {
-		zlog.MiSec().Info().Msg("Failed to connect to release server to download Manifest file.")
-		//zlog.MiSec().Fatal().Err(clienterr).Msgf("Error performing request: %v\n", clienterr)
-		return clienterr
+		zlog.MiSec().Fatal().Err(clienterr).Msgf("Client Error: %v\n", clienterr)
+	}
+	defer response.Body.Close()
+
+	// response details
+	zlog.MiSec().Info().Msgf("Response Body:%s", response.Body)
+
+	body, readerr := io.ReadAll(response.Body)
+	if readerr != nil {
+		panic(readerr)
+	}
+
+	//unmarshal the JSON response
+	marshalerr := json.Unmarshal([]byte(body), &res)
+	if marshalerr != nil {
+		zlog.MiSec().Fatal().Err(marshalerr).Msgf("Error while json unmarshelling: %v\n", marshalerr)
 
 	}
-	defer resp.Body.Close()
 
+	// Access the digest value
+	digest := res.Layers[0].Digest
+	zlog.MiSec().Info().Msgf("Digest: %s", digest)
+
+	file_url := config.RSProxyManifest + tag + "/blobs/" + digest
+
+	req2, geterr2 := http.NewRequest("GET", file_url, nil)
+	if geterr2 != nil {
+		zlog.MiSec().Fatal().Err(geterr2).Msgf("Error while making 2nd get request: %v\n", geterr2)
+
+	}
+	resp2, err2 := client.Do(req2)
+	if err2 != nil {
+		zlog.MiSec().Fatal().Err(err2).Msgf("Client Error: %v\n", err2)
+	}
+	defer response.Body.Close()
 	filePath := outDir + "/" + config.ReleaseVersion + ".yaml"
-	//Read the response body
+
 	//Create or open the local file for writing
 	file, fileerr := os.Create(filePath)
 	if fileerr != nil {
@@ -179,7 +179,7 @@ func DownloadArtifacts(fileServer string, harborServer string, scriptPath string
 	defer file.Close()
 
 	// Copy the response body to the local file
-	_, copyErr := io.Copy(file, resp.Body)
+	_, copyErr := io.Copy(file, resp2.Body)
 	if copyErr != nil {
 		zlog.MiSec().Fatal().Err(copyErr).Msgf("Error while coping content ")
 	}
