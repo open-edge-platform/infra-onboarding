@@ -573,7 +573,7 @@ sudo update-grub
 install_HWE_kernel(){
 export DEBIAN_FRONTEND=noninteractive
 sudo apt-get update
-sudo apt-get install -y linux-generic-hwe-22.04 linux-image-generic-hwe-22.04 linux-headers-generic-hwe-22.04
+sudo apt-get install -y linux-image-generic linux-headers-generic
 }
 
 # 23. Install Platform Telemetry Agent
