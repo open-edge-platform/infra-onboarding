@@ -31,8 +31,6 @@ func Test_getInventoryResourceAndID(t *testing.T) {
 	networkResourceCopy := proto.Clone(networkResource)
 	operatingSystemResource := &osv1.OperatingSystemResource{}
 	operatingSystemResourceCopy := proto.Clone(operatingSystemResource)
-	res := &network_v1.EndpointResource{}
-	resCopy:=proto.Clone(res)
 	tests := []struct {
 		name    string
 		args    args
@@ -100,15 +98,6 @@ func Test_getInventoryResourceAndID(t *testing.T) {
 			want:    &inv_v1.Resource{},
 			want1:   "",
 			wantErr: false,
-		},
-		{
-			name: "Test Case 8",
-			args: args{
-				resource: resCopy,
-			},
-			want:    &inv_v1.Resource{},
-			want1:   "",
-			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

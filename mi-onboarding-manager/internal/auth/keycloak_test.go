@@ -89,10 +89,10 @@ func Test_keycloakService_login(t *testing.T) {
 			name: "Test Case",
 			fields: fields{
 				keycloakClient: &gocloak.GoCloak{},
-				jwtToken:       &gocloak.JWT{},
+				jwtToken: &gocloak.JWT{},
 			},
 			args: args{
-				ctx:         context.Background(),
+				ctx: context.Background(),
 				keycloakURL: "",
 			},
 			wantErr: true,
@@ -110,69 +110,3 @@ func Test_keycloakService_login(t *testing.T) {
 		})
 	}
 }
-
-// func Test_keycloakService_CreateCredentialsWithUUID(t *testing.T) {
-// 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-// 		if r.URL.Path == "/clients" {
-// 			w.WriteHeader(http.StatusOK)
-// 			w.Write([]byte("Mock certificate response"))
-// 		} else {
-// 			w.WriteHeader(http.StatusNotFound)
-// 			w.Write([]byte("Not found"))
-// 		}
-// 	}))
-// 	server.StartTLS()
-// 	defer server.Close()
-// 	mockToken := &gocloak.JWT{}
-// 	mockClient := &gocloak.GoCloak{}
-// 	type fields struct {
-// 		keycloakClient *gocloak.GoCloak
-// 		jwtToken       *gocloak.JWT
-// 	}
-// 	type args struct {
-// 		ctx  context.Context
-// 		uuid string
-// 	}
-// 	tests := []struct {
-// 		name    string
-// 		fields  fields
-// 		args    args
-// 		want    interface{}
-// 		want1   string
-// 		wantErr bool
-// 	}{
-// 		{
-// 			name: "Successful case",
-// 			fields: fields{
-// 				keycloakClient: mockClient,
-// 				jwtToken:       mockToken,
-// 			},
-// 			args: args{
-// 				ctx:  context.Background(),
-// 				uuid: "test-uuid",
-// 			},
-// 			want:    "mockSecret",
-// 			want1:   "mockClientID",
-// 			wantErr: false,
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			k := &keycloakService{
-// 				keycloakClient: tt.fields.keycloakClient,
-// 				jwtToken:       tt.fields.jwtToken,
-// 			}
-// 			got, got1, err := k.CreateCredentialsWithUUID(tt.args.ctx, tt.args.uuid)
-// 			if (err != nil) != tt.wantErr {
-// 				t.Errorf("keycloakService.CreateCredentialsWithUUID() error = %v, wantErr %v", err, tt.wantErr)
-// 				return
-// 			}
-// 			if !reflect.DeepEqual(got, tt.want) {
-// 				t.Errorf("keycloakService.CreateCredentialsWithUUID() got = %v, want %v", got, tt.want)
-// 			}
-// 			if got1 != tt.want1 {
-// 				t.Errorf("keycloakService.CreateCredentialsWithUUID() got1 = %v, want %v", got1, tt.want1)
-// 			}
-// 		})
-// 	}
-// }

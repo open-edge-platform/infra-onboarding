@@ -9,7 +9,7 @@ import (
 	"context"
 	"errors"
 	"testing"
-	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
+
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 
@@ -27,7 +27,7 @@ func TestUpdateInstanceStatusByGuid(t *testing.T) {
 		instancestatus     computev1.InstanceStatus
 		provisioningStatus inv_status.ResourceStatus
 	}
-	MockInvClient := &onboarding.MockInventoryClient{}
+	MockInvClient := &MockInventoryClient{}
 	host := &computev1.HostResource{
 		ResourceId: "host-084d9b08",
 		Instance: &computev1.InstanceResource{
@@ -68,17 +68,17 @@ func TestUpdateInstanceStatusByGuid(t *testing.T) {
 	MockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
 	MockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	MockInvClient1 := &onboarding.MockInventoryClient{}
+	MockInvClient1 := &MockInventoryClient{}
 	MockInvClient1.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
 	MockInvClient1.On("Update", mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
-	MockInvClient2 := &onboarding.MockInventoryClient{}
+	MockInvClient2 := &MockInventoryClient{}
 	MockInvClient2.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, errors.New("err"))
-	MockInvClient3 := &onboarding.MockInventoryClient{}
+	MockInvClient3 := &MockInventoryClient{}
 	MockInvClient3.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources1, nil)
 	MockInvClient3.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	MockInvClient4 := &onboarding.MockInventoryClient{}
+	MockInvClient4 := &MockInventoryClient{}
 	MockInvClient4.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources3, nil)
 	MockInvClient4.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)

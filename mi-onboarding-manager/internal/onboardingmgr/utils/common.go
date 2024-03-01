@@ -6,7 +6,13 @@ SPDX-License-Identifier: Apache-2.0
 package utils
 
 import (
+	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 
@@ -48,6 +54,58 @@ func ChangeWorkingDirectory(targetDir string) error {
 	}
 
 	return nil
+}
+
+func MakeHTTPGETRequest(hostIP, guidValue, caCertPath, certPath string) ([]byte, error) {
+	// Read the CA certificate
+	caCert, err := os.ReadFile(caCertPath)
+	if err != nil {
+		return nil, fmt.Errorf("error reading CA certificate: %w", err)
+	}
+
+	// Load client certificate and key
+	cert, err := tls.LoadX509KeyPair(certPath, certPath)
+	if err != nil {
+		return nil, fmt.Errorf("error loading client certificate: %w", err)
+	}
+
+	// Create a custom certificate pool and add the CA certificate
+	pool := x509.NewCertPool()
+	pool.AppendCertsFromPEM(caCert)
+
+	// Configure the HTTP client to use the custom certificates and skip hostname verification
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs:            pool,
+				Certificates:       []tls.Certificate{cert},
+				InsecureSkipVerify: true, // Skip hostname verification
+			},
+		},
+	}
+
+	// Make an HTTP GET request
+	url := fmt.Sprintf("https://%s:8043/api/v1/owner/state/%s", hostIP, guidValue)
+	ctx := context.Background()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
+	if err != nil {
+		return nil, fmt.Errorf("error creating HTTP request: %w", err)
+	}
+
+	// Perform the GET request
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error making HTTP request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read the response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %w", err)
+	}
+
+	return body, nil
 }
 
 func ParseAndUpdateURL(onboardingRequest *pb.OnboardingRequest) {

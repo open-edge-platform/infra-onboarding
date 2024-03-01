@@ -9,7 +9,7 @@ import (
 	"context"
 	"errors"
 	"testing"
-	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
+
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 
@@ -37,18 +37,18 @@ func TestUpdateHostStatusByHostGuid(t *testing.T) {
 			Host: host,
 		},
 	}
-	MockInvClient := &onboarding.MockInventoryClient{}
+	MockInvClient := &MockInventoryClient{}
 	mockResources := &inv_v1.ListResourcesResponse{
 		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
 	}
 	MockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
 	MockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	MockInvClient1 := &onboarding.MockInventoryClient{}
+	MockInvClient1 := &MockInventoryClient{}
 	MockInvClient1.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
 	MockInvClient1.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
-	MockInvClient2 := &onboarding.MockInventoryClient{}
+	MockInvClient2 := &MockInventoryClient{}
 	MockInvClient2.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, errors.New("err"))
 	tests := []struct {
 		name    string

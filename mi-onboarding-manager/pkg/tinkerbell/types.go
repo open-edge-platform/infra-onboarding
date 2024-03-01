@@ -65,7 +65,7 @@ func NewTemplateData(name, ip, clientyp, disk, serial string) ([]byte, error) {
 			Actions: []Action{
 				{
 					Name:    "store-Alpine",
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/store_alpine:0.7.1-dev",
+					Image:   ip + ":5015/store_alpine:latest",
 					Timeout: 500,
 					Environment: map[string]string{
 						"BLOCK_DEVICE": disk,
@@ -74,13 +74,13 @@ func NewTemplateData(name, ip, clientyp, disk, serial string) ([]byte, error) {
 				},
 				{
 					Name:    "run-fdo",
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/fdoclient_action:0.7.1-dev",
+					Image:   ip + ":5015/fdoclient_action:latest",
 					Timeout: 400,
 					Environment: map[string]string{
 						"DATA_PARTITION_LBL": "CREDS",
 						"FDO_RUN_TYPE":       "di",
 						"FDO_MFGIP":          ip,
-						"FDO_MPORT":          "8081",
+						"FDO_MPORT":          "8038",
 						"DEVICE_SERIAL":      serial,
 						"TYPE":               clientyp,
 						"FDO_TLS":            "https",

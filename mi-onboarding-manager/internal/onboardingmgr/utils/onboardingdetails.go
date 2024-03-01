@@ -23,12 +23,6 @@ type (
 		DpsSymmKey        string
 		GUID              string
 		SecurityFeature   uint32
-		FdoGUID           string
-		FdoOwnerDNS       string
-		FdoMfgDNS         string
-		FdoOwnerPort      string
-		FdoMfgPort        string
-		FdoRvPort         string
 	}
 
 	ArtifactData struct {
