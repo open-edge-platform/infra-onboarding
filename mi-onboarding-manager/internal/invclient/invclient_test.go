@@ -14,18 +14,18 @@ import (
 	"time"
 
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	network_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/network/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
+	provider_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/provider/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client/cache"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -1755,6 +1755,487 @@ func TestOnboardingInventoryClient_SetInstanceStatus(t *testing.T) {
 					instInv.GetProvisioningStatusTimestamp())
 				require.NoError(t, err)
 				assert.False(t, timeNow.UTC().Before(timeBeforeUpdate))
+			}
+		})
+	}
+}
+
+func TestWithClientKind(t *testing.T) {
+	type args struct {
+		clientKind inv_v1.ClientKind
+	}
+	tests := []struct {
+		name string
+		args args
+		want Option
+	}{
+		{
+			name: "Test Case",
+			args: args{},
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := WithClientKind(tt.args.clientKind); reflect.DeepEqual(got, tt.want) {
+				t.Errorf("WithClientKind() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNewOnboardingInventoryClientWithOptions_Case(t *testing.T) {
+	type args struct {
+		opts []Option
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		want    *OnboardingInventoryClient
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				opts: []Option{WithInventoryAddress("example.com")},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewOnboardingInventoryClientWithOptions(tt.args.opts...)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewOnboardingInventoryClientWithOptions() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewOnboardingInventoryClientWithOptions() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestOnboardingInventoryClient_UpdateInvResourceFields_Case(t *testing.T) {
+	type fields struct {
+		Client  client.InventoryClient
+		Watcher chan *client.WatchEvents
+	}
+	hostResource := &computev1.HostResource{}
+	hostResCopy := proto.Clone(hostResource)
+	type args struct {
+		ctx      context.Context
+		resource proto.Message
+		fields   []string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test case 1",
+			fields: fields{
+				Client: &MockInventoryClient{},
+			},
+			args: args{
+				resource: hostResCopy,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &OnboardingInventoryClient{
+				Client:  tt.fields.Client,
+				Watcher: tt.fields.Watcher,
+			}
+			if err := c.UpdateInvResourceFields(tt.args.ctx, tt.args.resource, tt.args.fields); (err != nil) != tt.wantErr {
+				t.Errorf("OnboardingInventoryClient.UpdateInvResourceFields() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestOnboardingInventoryClient_UpdateInvResourceFields_Case1(t *testing.T) {
+	type fields struct {
+		Client  client.InventoryClient
+		Watcher chan *client.WatchEvents
+	}
+	// hostResource := &computev1.HostResource{}
+	// hostResCopy := proto.Clone(hostResource)
+	res := &network_v1.EndpointResource{}
+	resCopy := proto.Clone(res)
+	type args struct {
+		ctx      context.Context
+		resource proto.Message
+		fields   []string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test case 1",
+			fields: fields{
+				Client: &MockInventoryClient{},
+			},
+			args: args{
+				resource: resCopy,
+				fields:   []string{"field"},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &OnboardingInventoryClient{
+				Client:  tt.fields.Client,
+				Watcher: tt.fields.Watcher,
+			}
+			if err := c.UpdateInvResourceFields(tt.args.ctx, tt.args.resource, tt.args.fields); (err != nil) != tt.wantErr {
+				t.Errorf("OnboardingInventoryClient.UpdateInvResourceFields() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestOnboardingInventoryClient_UpdateInvResourceFields_Case3(t *testing.T) {
+	type fields struct {
+		Client  client.InventoryClient
+		Watcher chan *client.WatchEvents
+	}
+	hostResource := &computev1.HostResource{}
+	hostResCopy := proto.Clone(hostResource)
+	type args struct {
+		ctx      context.Context
+		resource proto.Message
+		fields   []string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test case 1",
+			fields: fields{
+				Client: &MockInventoryClient{},
+			},
+			args: args{
+				resource: hostResCopy,
+				fields:   []string{"field"},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &OnboardingInventoryClient{
+				Client:  tt.fields.Client,
+				Watcher: tt.fields.Watcher,
+			}
+			if err := c.UpdateInvResourceFields(tt.args.ctx, tt.args.resource, tt.args.fields); (err != nil) != tt.wantErr {
+				t.Errorf("OnboardingInventoryClient.UpdateInvResourceFields() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestOnboardingInventoryClient_GetInstanceResourceByResourceID_Case(t *testing.T) {
+	type fields struct {
+		Client  client.InventoryClient
+		Watcher chan *client.WatchEvents
+	}
+	type args struct {
+		ctx        context.Context
+		resourceID string
+	}
+	resource := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Instance{
+			Instance: &computev1.InstanceResource{
+				ResourceId: "inst-78789",
+			},
+		},
+	}
+	mockClient := &MockInventoryClient{}
+	mockClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{Resource: resource}, nil)
+	mockClient1 := &MockInventoryClient{}
+	mockClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{Resource: resource}, errors.New("err"))
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *computev1.InstanceResource
+		wantErr bool
+	}{
+		{
+			name: "Test Case 1",
+			fields: fields{
+				Client: mockClient,
+			},
+			args: args{
+				ctx: context.Background(),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "Test Case 2",
+			fields: fields{
+				Client: mockClient1,
+			},
+			args: args{
+				ctx: context.Background(),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &OnboardingInventoryClient{
+				Client:  tt.fields.Client,
+				Watcher: tt.fields.Watcher,
+			}
+			got, err := c.GetInstanceResourceByResourceID(tt.args.ctx, tt.args.resourceID)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("OnboardingInventoryClient.GetInstanceResourceByResourceID() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("OnboardingInventoryClient.GetInstanceResourceByResourceID() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestOnboardingInventoryClient_GetInstanceResources_Case(t *testing.T) {
+	type fields struct {
+		Client  client.InventoryClient
+		Watcher chan *client.WatchEvents
+	}
+	type args struct {
+		ctx context.Context
+	}
+	mockClient := &MockInventoryClient{}
+	mockClient.On("List", mock.Anything, mock.Anything).Return(&inv_v1.ListResourcesResponse{}, errors.New("err"))
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    []*computev1.InstanceResource
+		wantErr bool
+	}{
+		{
+			name: "Test Case 1",
+			fields: fields{
+				Client: mockClient,
+			},
+			args: args{
+				ctx: context.Background(),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &OnboardingInventoryClient{
+				Client:  tt.fields.Client,
+				Watcher: tt.fields.Watcher,
+			}
+			got, err := c.GetInstanceResources(tt.args.ctx)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("OnboardingInventoryClient.GetInstanceResources() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("OnboardingInventoryClient.GetInstanceResources() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestOnboardingInventoryClient_GetOSResourceByResourceID_Case(t *testing.T) {
+	type fields struct {
+		Client  client.InventoryClient
+		Watcher chan *client.WatchEvents
+	}
+	type args struct {
+		ctx        context.Context
+		resourceID string
+	}
+	mockClient := &MockInventoryClient{}
+	mockClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
+		Resource: &inv_v1.Resource{
+			Resource: &inv_v1.Resource_Os{
+				Os: &osv1.OperatingSystemResource{
+					ResourceId: "123",
+				},
+			},
+		},
+	}, nil)
+	mockClient1 := &MockInventoryClient{}
+	mockClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{}, errors.New("err"))
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *osv1.OperatingSystemResource
+		wantErr bool
+	}{
+		{
+			name: "Test Case 1",
+			fields: fields{
+				Client: mockClient,
+			},
+			args:    args{ctx: context.Background()},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "Test Case 2",
+			fields: fields{
+				Client: mockClient1,
+			},
+			args:    args{ctx: context.Background()},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &OnboardingInventoryClient{
+				Client:  tt.fields.Client,
+				Watcher: tt.fields.Watcher,
+			}
+			got, err := c.GetOSResourceByResourceID(tt.args.ctx, tt.args.resourceID)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("OnboardingInventoryClient.GetOSResourceByResourceID() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("OnboardingInventoryClient.GetOSResourceByResourceID() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestOnboardingInventoryClient_GetProviderResources(t *testing.T) {
+	type fields struct {
+		Client  client.InventoryClient
+		Watcher chan *client.WatchEvents
+	}
+	type args struct {
+		ctx context.Context
+	}
+	mockClient := &MockInventoryClient{}
+	mockClient.On("List", mock.Anything, mock.Anything).Return(&inv_v1.ListResourcesResponse{}, errors.New("err"))
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    []*provider_v1.ProviderResource
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			fields: fields{
+				Client: mockClient,
+			},
+			args:    args{ctx: context.Background()},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &OnboardingInventoryClient{
+				Client:  tt.fields.Client,
+				Watcher: tt.fields.Watcher,
+			}
+			got, err := c.GetProviderResources(tt.args.ctx)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("OnboardingInventoryClient.GetProviderResources() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("OnboardingInventoryClient.GetProviderResources() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestOnboardingInventoryClient_DeleteIPAddress(t *testing.T) {
+	type fields struct {
+		Client  client.InventoryClient
+		Watcher chan *client.WatchEvents
+	}
+	type args struct {
+		ctx        context.Context
+		resourceID string
+	}
+	mockClient := &MockInventoryClient{}
+	mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	mockClient1 := &MockInventoryClient{}
+	mockClient1.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
+	mockClient2 := &MockInventoryClient{}
+	mockClient2.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, status.Error(codes.NotFound, "Node not found"))
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			fields: fields{
+				Client: mockClient,
+			},
+			args: args{
+				ctx: context.Background(),
+			},
+			wantErr: false,
+		},
+		{
+			name: "Test Case",
+			fields: fields{
+				Client: mockClient1,
+			},
+			args: args{
+				ctx: context.Background(),
+			},
+			wantErr: true,
+		},
+		{
+			name: "Test Case",
+			fields: fields{
+				Client: mockClient2,
+			},
+			args: args{
+				ctx: context.Background(),
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &OnboardingInventoryClient{
+				Client:  tt.fields.Client,
+				Watcher: tt.fields.Watcher,
+			}
+			if err := c.DeleteIPAddress(tt.args.ctx, tt.args.resourceID); (err != nil) != tt.wantErr {
+				t.Errorf("OnboardingInventoryClient.DeleteIPAddress() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

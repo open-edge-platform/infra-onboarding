@@ -8,19 +8,23 @@ package onboarding
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
 
 	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
+	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	"github.com/stretchr/testify/mock"
+	"google.golang.org/grpc"
 )
 
 func TestInitOnboarding(t *testing.T) {
@@ -28,7 +32,7 @@ func TestInitOnboarding(t *testing.T) {
 		invClient *invclient.OnboardingInventoryClient
 		dkamAddr  string
 	}
-	mockInvClient := &MockInventoryClient{}
+	mockInvClient := &onboarding.MockInventoryClient{}
 	inputargs := args{
 		invClient: &invclient.OnboardingInventoryClient{
 			Client: mockInvClient,
@@ -252,7 +256,7 @@ func TestOnboardingManager_StartOnboarding(t *testing.T) {
 		t.Fatalf("Failed to change working directory: %v", err)
 	}
 	hwdatas := []*pb.HwData{hwdata}
-	mockClient := &MockInventoryClient{}
+	mockClient := &onboarding.MockInventoryClient{}
 	mockResources := &inv_v1.ListResourcesResponse{}
 	mockClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
 	mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
@@ -375,7 +379,7 @@ func TestOnboardingManager_StartOnboarding_Case(t *testing.T) {
 		t.Fatalf("Failed to change working directory: %v", err)
 	}
 	hwdatas := []*pb.HwData{hwdata}
-	mockClient := &MockInventoryClient{}
+	mockClient := &onboarding.MockInventoryClient{}
 	mockResources := &inv_v1.ListResourcesResponse{}
 	mockClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
 	mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
@@ -438,7 +442,7 @@ func TestHandleSecureBootMismatch(t *testing.T) {
 		ctx context.Context
 		req *pb.SecureBootResponse
 	}
-	mockClient := &MockInventoryClient{}
+	mockClient := &onboarding.MockInventoryClient{}
 	_invClient = &invclient.OnboardingInventoryClient{
 		Client: mockClient,
 	}
@@ -470,7 +474,7 @@ func TestHandleSecureBootMismatch_Case(t *testing.T) {
 		ctx context.Context
 		req *pb.SecureBootResponse
 	}
-	mockClient := &MockInventoryClient{}
+	mockClient := &onboarding.MockInventoryClient{}
 	mockHost := &computev1.HostResource{
 		ResourceId: "host-084d9b08",
 		Instance: &computev1.InstanceResource{
@@ -520,7 +524,7 @@ func TestHandleSecureBootMismatch_Case1(t *testing.T) {
 		ctx context.Context
 		req *pb.SecureBootResponse
 	}
-	mockClient := &MockInventoryClient{}
+	mockClient := &onboarding.MockInventoryClient{}
 	mockHost := &computev1.HostResource{
 		ResourceId: "host-084d9b08",
 		Instance: &computev1.InstanceResource{
@@ -570,7 +574,7 @@ func TestHandleSecureBootMismatch_Case2(t *testing.T) {
 		ctx context.Context
 		req *pb.SecureBootResponse
 	}
-	mockClient := &MockInventoryClient{}
+	mockClient := &onboarding.MockInventoryClient{}
 	mockHost := &computev1.HostResource{
 		ResourceId: "host-084d9b08",
 		Instance: &computev1.InstanceResource{
@@ -659,3 +663,138 @@ func TestOnboardingManager_SecureBootStatus(t *testing.T) {
 		})
 	}
 }
+
+func TestDeviceOnboardingManagerZt_Case(t *testing.T) {
+	wd, _ := os.Getwd()
+	fullPath := filepath.Join(wd, "sut_onboarding_list.txt")
+	file, err := os.Create(fullPath)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		return
+	}
+	defer file.Close()
+	type args struct {
+		deviceInfo     utils.DeviceInfo
+		kubeconfigPath string
+		sutlabel       string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "negative",
+			args: args{
+				deviceInfo:     utils.DeviceInfo{},
+				kubeconfigPath: "",
+				sutlabel:       "",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := DeviceOnboardingManagerZt(tt.args.deviceInfo, tt.args.sutlabel); (err != nil) != tt.wantErr {
+				t.Errorf("DeviceOnboardingManagerZt() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+	defer func() {
+		if err := os.Remove(fullPath); err != nil {
+			fmt.Println("Error removing file:", err)
+		}
+	}()
+}
+
+type MockClientConn struct {
+	mock.Mock
+}
+
+// Invoke mocks the Invoke method of ClientConnInterface.
+func (m *MockClientConn) Invoke(ctx context.Context, method string, args interface{}, reply interface{}, opts ...grpc.CallOption) error {
+	argsMock := m.Called(ctx, method, args, reply, opts)
+	return argsMock.Error(0)
+}
+
+// NewStream mocks the NewStream method of ClientConnInterface.
+func (m *MockClientConn) NewStream(ctx context.Context, desc *grpc.StreamDesc, method string, opts ...grpc.CallOption) (grpc.ClientStream, error) {
+	argsMock := m.Called(ctx, desc, method, opts)
+	return argsMock.Get(0).(grpc.ClientStream), argsMock.Error(1)
+}
+
+type MockDkamServiceClient struct {
+	mock.Mock
+}
+
+// GetArtifacts mocks the GetArtifacts method of DkamServiceClient interface.
+func (m *MockDkamServiceClient) GetArtifacts(ctx context.Context, in *dkam.GetArtifactsRequest, opts ...grpc.CallOption) (*GetArtifactsResponse, error) {
+	args := m.Called(ctx, in, opts)
+	return args.Get(0).(*GetArtifactsResponse), args.Error(1)
+}
+
+// func TestGetOSResourceFromDkamService_Case(t *testing.T) {
+// 	os.Setenv("DKAMHOST", "localhost")
+// 	os.Setenv("DKAMPORT", "7513")
+// 	lis, err := net.Listen("tcp", "localhost:7513")
+// 	if err != nil {
+// 		t.Fatalf("Failed to listen: %v", err)
+// 	}
+// 	grpcServer := grpc.NewServer()
+// 	go func() {
+// 		defer lis.Close()
+// 		if err := grpcServer.Serve(lis); err != nil {
+// 			t.Fatalf("Failed to serve: %v", err)
+// 		}
+// 	}()
+// 	mockClient := &MockClientConn{}
+// 	mockClient.On("Invoke", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+// 	dkam.NewDkamServiceClient(mockClient)
+// 	dkam.RegisterDkamServiceServer(grpcServer, dkam.DkamServiceServer{})
+// 	conn, err := grpc.Dial("localhost:7513", grpc.WithInsecure())
+// 	if err != nil {
+// 		t.Fatalf("Failed to dial server: %v", err)
+// 	}
+// 	defer conn.Close()
+
+// 	type args struct {
+// 		ctx         context.Context
+// 		profilename string
+// 		platform    string
+// 	}
+// 	tests := []struct {
+// 		name    string
+// 		args    args
+// 		want    *dkam.GetArtifactsResponse
+// 		wantErr bool
+// 	}{
+// 		{
+// 			name: "TestCase1",
+// 			args: args{
+// 				ctx: context.TODO(),
+// 			},
+// 			want:    nil,
+// 			wantErr: true,
+// 		},
+// 		{
+// 			name: "TestCase2",
+// 			args: args{
+// 				ctx: context.TODO(),
+// 			},
+// 			want:    nil,
+// 			wantErr: true,
+// 		},
+// 	}
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			got, err := GetOSResourceFromDkamService(tt.args.ctx, tt.args.profilename, tt.args.platform)
+// 			if (err != nil) != tt.wantErr {
+// 				t.Errorf("GetOSResourceFromDkamService() error = %v, wantErr %v", err, tt.wantErr)
+// 				return
+// 			}
+// 			if !reflect.DeepEqual(got, tt.want) {
+// 				t.Errorf("GetOSResourceFromDkamService() = %v, want %v", got, tt.want)
+// 			}
+// 		})
+// 	}
+// }

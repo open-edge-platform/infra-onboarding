@@ -12,9 +12,8 @@ import (
 	"testing"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
-
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding"
+	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
@@ -759,3 +758,390 @@ func TestHostReconciler_revokeHostCredentials_Case(t *testing.T) {
 	}()
 }
 
+func TestHostReconciler_reconcileHost(t *testing.T) {
+	type fields struct {
+		invClient *invclient.OnboardingInventoryClient
+	}
+	type args struct {
+		ctx     context.Context
+		request rec_v2.Request[ResourceID]
+		host    *computev1.HostResource
+	}
+	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   rec_v2.Directive[ResourceID]
+	}{
+		{
+			name: "Test Case",
+			fields: fields{
+				invClient: &invclient.OnboardingInventoryClient{
+					Client: mockInvClient,
+				},
+			},
+			args: args{
+				ctx:     context.Background(),
+				request: rec_v2.Request[ResourceID]{},
+				host: &computev1.HostResource{
+					DesiredState: computev1.HostState_HOST_STATE_DELETED,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hr := &HostReconciler{
+				invClient: tt.fields.invClient,
+			}
+			if got := hr.reconcileHost(tt.args.ctx, tt.args.request, tt.args.host); reflect.DeepEqual(got, tt.want) {
+				t.Errorf("HostReconciler.reconcileHost() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHostReconciler_deleteHost_Case(t *testing.T) {
+	common.FlagDisableCredentialsManagement = flag.Bool("iname", false, "")
+	type fields struct {
+		invClient *invclient.OnboardingInventoryClient
+	}
+	type args struct {
+		ctx  context.Context
+		host *computev1.HostResource
+	}
+	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	mockInvClient1 := &onboarding.MockInventoryClient{}
+	mockInvClient1.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case 1",
+			fields: fields{
+				invClient: &invclient.OnboardingInventoryClient{
+					Client: mockInvClient,
+				},
+			},
+			args:    args{ctx: context.Background()},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hr := &HostReconciler{
+				invClient: tt.fields.invClient,
+			}
+			if err := hr.deleteHost(tt.args.ctx, tt.args.host); (err != nil) != tt.wantErr {
+				t.Errorf("HostReconciler.deleteHost() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+	defer func() {
+		common.FlagDisableCredentialsManagement = flag.Bool("n", false, "")
+	}()
+}
+
+func TestHostReconciler_deleteHost_Case1(t *testing.T) {
+	common.FlagDisableCredentialsManagement = flag.Bool("jname", false, "")
+	type fields struct {
+		invClient *invclient.OnboardingInventoryClient
+	}
+	type args struct {
+		ctx  context.Context
+		host *computev1.HostResource
+	}
+	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	mockInvClient.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, errors.New("err"))
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case 1",
+			fields: fields{
+				invClient: &invclient.OnboardingInventoryClient{
+					Client: mockInvClient,
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				host: &computev1.HostResource{
+					CurrentState: computev1.HostState_HOST_STATE_UNTRUSTED,
+					HostStorages: []*computev1.HoststorageResource{
+						{
+							ResourceId: "host",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hr := &HostReconciler{
+				invClient: tt.fields.invClient,
+			}
+			if err := hr.deleteHost(tt.args.ctx, tt.args.host); (err != nil) != tt.wantErr {
+				t.Errorf("HostReconciler.deleteHost() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+	defer func() {
+		common.FlagDisableCredentialsManagement = flag.Bool("j", false, "")
+	}()
+}
+
+func TestHostReconciler_deleteHost_Case2(t *testing.T) {
+	common.FlagDisableCredentialsManagement = flag.Bool("kname", false, "")
+	type fields struct {
+		invClient *invclient.OnboardingInventoryClient
+	}
+	type args struct {
+		ctx  context.Context
+		host *computev1.HostResource
+	}
+	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	mockInvClient.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, nil).Once()
+	mockInvClient.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, errors.New("err")).Once()
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case 1",
+			fields: fields{
+				invClient: &invclient.OnboardingInventoryClient{
+					Client: mockInvClient,
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				host: &computev1.HostResource{
+					CurrentState: computev1.HostState_HOST_STATE_UNTRUSTED,
+					HostUsbs: []*computev1.HostusbResource{
+						{
+							ResourceId: "usbs",
+						},
+					},
+					HostStorages: []*computev1.HoststorageResource{
+						{
+							ResourceId: "host",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hr := &HostReconciler{
+				invClient: tt.fields.invClient,
+			}
+			if err := hr.deleteHost(tt.args.ctx, tt.args.host); (err != nil) != tt.wantErr {
+				t.Errorf("HostReconciler.deleteHost() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+	defer func() {
+		common.FlagDisableCredentialsManagement = flag.Bool("k", false, "")
+	}()
+}
+
+func TestHostReconciler_deleteHost_Case3(t *testing.T) {
+	common.FlagDisableCredentialsManagement = flag.Bool("lname", false, "")
+	type fields struct {
+		invClient *invclient.OnboardingInventoryClient
+	}
+	type args struct {
+		ctx  context.Context
+		host *computev1.HostResource
+	}
+	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	mockInvClient.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, nil).Once()
+	mockInvClient.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, nil).Once()
+	mockInvClient.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, errors.New("err")).Once()
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case 1",
+			fields: fields{
+				invClient: &invclient.OnboardingInventoryClient{
+					Client: mockInvClient,
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				host: &computev1.HostResource{
+					CurrentState: computev1.HostState_HOST_STATE_UNTRUSTED,
+					HostGpus: []*computev1.HostgpuResource{
+						{
+							ResourceId: "ups",
+						},
+					},
+					HostUsbs: []*computev1.HostusbResource{
+						{
+							ResourceId: "usbs",
+						},
+					},
+					HostStorages: []*computev1.HoststorageResource{
+						{
+							ResourceId: "host",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hr := &HostReconciler{
+				invClient: tt.fields.invClient,
+			}
+			if err := hr.deleteHost(tt.args.ctx, tt.args.host); (err != nil) != tt.wantErr {
+				t.Errorf("HostReconciler.deleteHost() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+	defer func() {
+		common.FlagDisableCredentialsManagement = flag.Bool("l", false, "")
+	}()
+}
+
+func TestHostReconciler_deleteHostNicByHost_Case(t *testing.T) {
+	type fields struct {
+		invClient *invclient.OnboardingInventoryClient
+	}
+	type args struct {
+		ctx     context.Context
+		hostres *computev1.HostResource
+	}
+	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, errors.New("err"))
+	mockInvClient.On("List", mock.Anything, mock.Anything).Return(&inv_v1.ListResourcesResponse{}, nil)
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case 1",
+			fields: fields{
+				invClient: &invclient.OnboardingInventoryClient{
+					Client: mockInvClient,
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				hostres: &computev1.HostResource{
+					HostNics: []*computev1.HostnicResource{{}},
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hr := &HostReconciler{
+				invClient: tt.fields.invClient,
+			}
+			if err := hr.deleteHostNicByHost(tt.args.ctx, tt.args.hostres); (err != nil) != tt.wantErr {
+				t.Errorf("HostReconciler.deleteHostNicByHost() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// func TestHostReconciler_deleteIPsByHostNic_Case(t *testing.T) {
+// 	type fields struct {
+// 		invClient *invclient.OnboardingInventoryClient
+// 	}
+// 	type args struct {
+// 		ctx     context.Context
+// 		hostNic *computev1.HostnicResource
+// 	}
+// 	resource := &inv_v1.Resource{
+// 		Resource:&inv_v1.Resource_Hostnic{
+// 			Hostnic: &computev1.HostnicResource{
+// 				ResourceId:  "hostnic-084d9b08",
+// 			},
+// 		},
+// 	}
+// 	mockResources := []*inv_v1.GetResourceResponse{{Resource: resource}}
+// 	// mockInvClient := &onboarding.MockInventoryClient{}
+// 	// mockInvClient.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, nil)
+// 	// mockInvClient.On("List", mock.Anything, mock.Anything).Return(&inv_v1.ListResourcesResponse{}, nil)
+// 	mockInvClient1 := &onboarding.MockInventoryClient{}
+// 	mockInvClient1.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, nil)
+// 	mockInvClient1.On("List", mock.Anything, mock.Anything).Return(&inv_v1.ListResourcesResponse{Resources: mockResources}, nil)
+// 	tests := []struct {
+// 		name    string
+// 		fields  fields
+// 		args    args
+// 		wantErr bool
+// 	}{
+// 		// {
+// 		// 	name: "Test Case 1",
+// 		// 	fields: fields{
+// 		// 		invClient: &invclient.OnboardingInventoryClient{
+// 		// 			Client: mockInvClient,
+// 		// 		},
+// 		// 	},
+// 		// 	args: args{
+// 		// 		ctx:     context.Background(),
+// 		// 		hostNic: &computev1.HostnicResource{},
+// 		// 	},
+// 		// 	wantErr: false,
+// 		// },
+// 		{
+// 			name: "Test Case 1",
+// 			fields: fields{
+// 				invClient: &invclient.OnboardingInventoryClient{
+// 					Client: mockInvClient1,
+// 				},
+// 			},
+// 			args: args{
+// 				ctx:     context.Background(),
+// 				hostNic: &computev1.HostnicResource{},
+// 			},
+// 			wantErr: true,
+// 		},
+// 	}
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			hr := &HostReconciler{
+// 				invClient: tt.fields.invClient,
+// 			}
+// 			if err := hr.deleteIPsByHostNic(tt.args.ctx, tt.args.hostNic); (err != nil) != tt.wantErr {
+// 				t.Errorf("HostReconciler.deleteIPsByHostNic() error = %v, wantErr %v", err, tt.wantErr)
+// 			}
+// 		})
+// 	}
+// }
