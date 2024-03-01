@@ -279,6 +279,7 @@ resign_hookos() {
 	exit 1
     fi
 
+    create_grub_cfg
     create_gpg_key
     create_grub_image
     generate_pk_kek_db
