@@ -70,8 +70,22 @@ generate_https_certs() {
 	else
 		mkdir -p $SERVER_CERT_DIR
 		cd $SERVER_CERT_DIR
-		openssl  s_client -showcerts -servername $HTTPS_CN -connect $HTTPS_CN:443 </dev/null | awk '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/' > Full_server.crt
-		openssl  s_client -showcerts -servername $HTTPS_CN -connect $HTTPS_CN:443 </dev/null | awk '/-----BEGIN CERTIFICATE-----/{flag=1; cert=""; } flag { cert = cert $0 RS } /-----END CERTIFICATE-----/{flag=0; lastCert = cert} END{printf "%s", lastCert}' > ca.crt
+		if [ ! -f /etc/ssl/boots-ca-cert/ca.crt ]; then
+			echo "======== file is not present ========"
+			exit 0
+		fi
+
+		if [ ! -s /etc/ssl/boots-ca-cert/ca.crt ]; then
+			echo "======== file size is zero ========"
+			exit 0
+		fi
+
+		cp /etc/ssl/boots-ca-cert/ca.crt Full_server.crt
+		cp /etc/ssl/boots-ca-cert/ca.crt ca.crt
+		echo "certifictes copied from /etc/ssl/boots-ca-cert"
+
+		# openssl  s_client -showcerts -servername $HTTPS_CN -connect $HTTPS_CN:443 </dev/null | awk '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/' > Full_server.crt
+		# openssl  s_client -showcerts -servername $HTTPS_CN -connect $HTTPS_CN:443 </dev/null | awk '/-----BEGIN CERTIFICATE-----/{flag=1; cert=""; } flag { cert = cert $0 RS } /-----END CERTIFICATE-----/{flag=0; lastCert = cert} END{printf "%s", lastCert}' > ca.crt
 		#kubectl get secrets tls-maestro -n gateway-system -o yaml | grep ca.crt | sed 's/  ca.crt: //' | base64 -d > ca.crt
 		#kubectl get secrets tls-maestro -n gateway-system -o yaml | grep tls.crt | sed 's/  tls.crt: //' | base64 -d > Full_server.crt
 		#kubectl get secrets tls-maestro -n gateway-system -o yaml | grep tls.key | sed 's/  tls.key: //' | base64 -d > server.key
@@ -144,7 +158,7 @@ sign_ipxe_efi() {
 	
 	sbsign --key $SB_KEYS_DIR/db.key --cert $SB_KEYS_DIR/db.crt --output ./out/signed_ipxe.efi $IPXE_DIR/src/bin-x86_64-efi/ipxe.efi
 	cp $SB_KEYS_DIR/db.der $working_dir/out
-	if [ -e "/data" ]; then
+	if [ -d "/data" ]; then
         echo "Path /data exists."
 		mkdir -p /data/keys
         cp $SB_KEYS_DIR/db.der /data/keys

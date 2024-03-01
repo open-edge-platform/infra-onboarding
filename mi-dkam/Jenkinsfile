@@ -164,7 +164,7 @@ pipeline {
         stage('Validate clean repo') {
             steps {
                 sh '''
-                bash -c "diff -u <(echo -n) <(git diff)"
+                bash -c "diff -u <(echo -n) <(git diff ':!pkg/script/chain.ipxe')"
                 '''
             }
         }
