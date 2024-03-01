@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -63,6 +64,10 @@ func InitOnboarding(invClient *invclient.OnboardingInventoryClient, _ string) {
 	}
 	_invClient = invClient
 }
+
+var (
+	enableDI = flag.Bool("enableDI", false, "Set to true to enable Device Initialization routine")
+)
 
 const (
 	instanceReconcilerLoggerName = "InstanceReconciler"
@@ -184,51 +189,52 @@ func DeviceOnboardingManagerNzt(ctx context.Context, deviceDetails utils.DeviceI
 		deviceDetails.GUID, deviceDetails.HwIP, deviceInfo, artifactinfo)
 
 	var dierror error
-	var guid string
-	zlog.Debug().Msgf("Device initialization started for host %s (IP: %s)",
-		deviceInfo.GUID, deviceInfo.HwIP)
+	// var guid string
+	if *enableDI {
+		zlog.Debug().Msgf("Device initialization started for host %s (IP: %s)",
+			deviceInfo.GUID, deviceInfo.HwIP)
 
-	guid, workflowErr := onbworkflowclient.DiWorkflowCreation(deviceInfo)
-	if workflowErr != nil {
-		dierror = inv_errors.Errorf(
-			"Error in DiWorkflowCreation for host %s (IP %s): %v",
-			deviceInfo.GUID, deviceInfo.HwIP, workflowErr)
+		guid, workflowErr := onbworkflowclient.DiWorkflowCreation(deviceInfo)
+		if workflowErr != nil {
+			dierror = inv_errors.Errorf(
+				"Error in DiWorkflowCreation for host %s (IP %s): %v",
+				deviceInfo.GUID, deviceInfo.HwIP, workflowErr)
+
+			UpdateHostStatusByHostGUID(ctx, _invClient, deviceInfo.GUID,
+				computev1.HostStatus_HOST_STATUS_INIT_FAILED,
+				"", // TODO: empty status details for now, add more details in future
+				om_status.InitializationFailed)
+			return dierror
+		}
+		zlog.Debug().Msgf("DI workflow creation succeeded for GUID %s", guid)
 
 		UpdateHostStatusByHostGUID(ctx, _invClient, deviceInfo.GUID,
-			computev1.HostStatus_HOST_STATUS_INIT_FAILED,
+			computev1.HostStatus_HOST_STATUS_INITIALIZED,
 			"", // TODO: empty status details for now, add more details in future
-			om_status.InitializationFailed)
-		return dierror
+			om_status.InitializationDone)
+
+		deviceInfo.FdoGUID = guid
+		// TODO: change the certificate path to the common location once fdo services are working
+
+		err := onbworkflowclient.InitializeDeviceSecretData(deviceInfo)
+		if err != nil {
+			log.Fatalf("Error initializing device: %v", err)
+		}
+
+		url := fmt.Sprintf("http://%s:%s/api/v1/owner/state/%s", deviceInfo.FdoOwnerDNS, deviceInfo.FdoOwnerPort, deviceInfo.FdoGUID)
+		provisionErr := MakeGETRequestWithRetry(url, deviceInfo.FdoOwnerDNS, deviceInfo.FdoGUID)
+		if provisionErr != nil {
+			dierror = inv_errors.Errorf(
+				"Error while MakeGETRequestWithRetry for host %s (IP %s): %v",
+				deviceInfo.GUID, deviceInfo.HwIP, provisionErr)
+			return dierror
+		}
+		zlog.Debug().Msgf("TO2 completed  for host %s", deviceInfo.GUID)
+
+		zlog.Debug().Msgf("Device initialization completed for host %s (IP: %s)",
+			deviceInfo.GUID, deviceInfo.HwIP)
+		// Production Workflow goroutine
 	}
-	zlog.Debug().Msgf("DI workflow creation succeeded for GUID %s", guid)
-
-	UpdateHostStatusByHostGUID(ctx, _invClient, deviceInfo.GUID,
-		computev1.HostStatus_HOST_STATUS_INITIALIZED,
-		"", // TODO: empty status details for now, add more details in future
-		om_status.InitializationDone)
-
-	deviceInfo.FdoGUID = guid
-	// TODO: change the certificate path to the common location once fdo services are working
-
-	err := onbworkflowclient.InitializeDeviceSecretData(deviceInfo)
-	if err != nil {
-		log.Fatalf("Error initializing device: %v", err)
-	}
-
-	url := fmt.Sprintf("http://%s:%s/api/v1/owner/state/%s", deviceInfo.FdoOwnerDNS, deviceInfo.FdoOwnerPort, deviceInfo.FdoGUID)
-	provisionErr := MakeGETRequestWithRetry(url, deviceInfo.FdoOwnerDNS, deviceInfo.FdoGUID)
-	if provisionErr != nil {
-		dierror = inv_errors.Errorf(
-			"Error while MakeGETRequestWithRetry for host %s (IP %s): %v",
-			deviceInfo.GUID, deviceInfo.HwIP, provisionErr)
-		return dierror
-	}
-	zlog.Debug().Msgf("TO2 completed  for host %s", deviceInfo.GUID)
-
-	zlog.Debug().Msgf("Device initialization completed for host %s (IP: %s)",
-		deviceInfo.GUID, deviceInfo.HwIP)
-	// Production Workflow goroutine
-
 	zlog.Debug().Msgf("ProdWorkflowCreation triggered for host %s", deviceInfo.GUID)
 
 	UpdateHostStatusByHostGUID(ctx, _invClient, deviceInfo.GUID,
