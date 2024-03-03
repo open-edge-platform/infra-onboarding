@@ -696,6 +696,17 @@ enable_netipplan() {
     echo "Config.yaml file updated successfully."
 }
 
+#delete the invalid ubuntu boot menu options
+delete_invalid_ubuntu_boot_menuoptions () {
+
+    present_boot=$(efibootmgr | grep -i "Bootcurrent" | awk '{print $2}')
+    while IFS= read -r boot_part_number; do
+    if [ $boot_part_number -ne $present_boot ]; then
+        efibootmgr -b $boot_part_number -B
+    fi
+    done < <(efibootmgr | grep -i ubuntu | awk '{print $1}'| cut -c 5-8 )
+}    
+
 #extend the disk partition
 #parition_extention  2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_dependencies 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
@@ -739,6 +750,9 @@ install_platform_telemetry_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAM
 install_sriov 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_HWE_kernel 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_syslogrotate_ufw 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+
+#Delete the invalid ubuntu boot numbers created from previous installation from boot menu
+delete_invalid_ubuntu_boot_menuoptions  2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 
 echo "Installation done" > $SCRIPT_DIR/.base_pkg_install_done
 sudo reboot
