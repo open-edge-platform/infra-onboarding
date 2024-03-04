@@ -39,7 +39,7 @@ EXTRA_TINK_OPTIONS_PROXY="http_proxy=$http_proxy https_proxy=$https_proxy no_pro
 
 create_grub_image() {
     # make grub-image from the newly compiled grub.
-    $GRUB_SRC/grub-mkimage -O x86_64-efi --disable-shim-lock --pubkey $public_gpg_key -p "/EFI/hook/" -o $BOOTX_LOC $MODULES
+    $GRUB_SRC/grub-mkimage -O x86_64-efi --disable-shim-lock --pubkey $public_gpg_key -p "/EFI/hook/" -o $BOOTX_LOC $MODULES -d $GRUB_SRC/grub-lib/grub/x86_64-efi
     echo "created BOOTX64.efi"
     if [ ! -f $BOOTX_LOC ] ;
     then
