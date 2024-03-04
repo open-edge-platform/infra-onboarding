@@ -28,5 +28,5 @@ const (
 	RegistryServiceDev     = "registry-rs.internal.ledgepark.intel.com"
 	RegistryServiceProd    = "registry-rs.edgeorchestration.intel.com"
 	RegistryServiceStaging = "registry-rs.espdstage.infra-host.com"
-	RSProxyManifest        = "http://rs-proxy.rs-proxy.svc.cluster.local:8081/v2/one-intel-edge/edgenode/en/"
+	RSProxyManifest        = "http://rs-proxy.rs-proxy.svc.cluster.local:8081/v2/one-intel-edge/edge-node/en/"
 )

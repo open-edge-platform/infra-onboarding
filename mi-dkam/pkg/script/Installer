@@ -696,7 +696,7 @@ enable_netipplan() {
     echo "Config.yaml file updated successfully."
 }
 
-#delete the invalid ubuntu boot menu options
+# 28. delete the invalid ubuntu boot menu options
 delete_invalid_ubuntu_boot_menuoptions () {
 
     present_boot=$(efibootmgr | grep -i "Bootcurrent" | awk '{print $2}')
@@ -705,7 +705,37 @@ delete_invalid_ubuntu_boot_menuoptions () {
         efibootmgr -b $boot_part_number -B
     fi
     done < <(efibootmgr | grep -i ubuntu | awk '{print $1}'| cut -c 5-8 )
-}    
+}
+
+# 29. Set kernel configurations
+enable_kernel_config(){
+    sysctl -w vm.overcommit_memory=__OVER_COMMIT_MEMORY__ 
+    sysctl -w kernel.panic=__KERNEL_PANIC__ 
+    sysctl -w kernel.panic_on_oops=__PANIC_ON_OOPS__ 
+    sysctl -w fs.inotify.max_user_instances=__MAX_USER_INSTANCE__
+    echo vm.overcommit_memory=__OVER_COMMIT_MEMORY__ | tee -a /etc/sysctl.conf
+    echo kernel.panic=__KERNEL_PANIC__ | tee -a /etc/sysctl.conf
+    echo kernel.panic_on_oops=__PANIC_ON_OOPS__ | tee -a /etc/sysctl.conf
+    echo fs.inotify.max_user_instances=__MAX_USER_INSTANCE__ | tee -a /etc/sysctl.conf
+    sysctl -p
+}
+
+# 30. Enable NTP configuration
+install_NTP(){
+    apt-get update
+    apt-get install -y ntp
+    cp /etc/ntp.conf /etc/ntp.conf.bak
+    ntpServers=__NTP_SERVERS__
+    IFS=',' read -ra servers <<< "$ntpServers"
+    for server in "${servers[@]}"; do
+        if ! grep -q "^server $server" /etc/ntp.conf; then
+            echo "server $server" | sudo tee -a /etc/ntp.conf > /dev/null
+        fi
+    done
+    ufw allow 123/udp 
+    systemctl restart ntp
+    systemctl status ntp
+}
 
 #extend the disk partition
 #parition_extention  2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
@@ -726,7 +756,8 @@ if [ ! -f /usr/local/share/ca-certificates/IntelCA7B-Base64.crt ]; then
     install_intel_CAcertificates 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 fi
 
-
+enable_kernel_config 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_NTP 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_syslogrotate_job 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 enable_netipplan 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 echo "Install agents..........................."

@@ -39,7 +39,7 @@ func DownloadArtifacts() error {
 	}
 
 	if MODE == "preint" {
-		tag = config.PreintTag
+		tag = config.Tag
 	}
 	zlog.MiSec().Info().Msg("Download artifacts")
 

@@ -196,6 +196,15 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	//Extra hosts
 	extra_hosts := os.Getenv("EXTRA_HOSTS")
 
+	//Kernel configurations
+	systemConfigVmOverCommitMemory := os.Getenv("OVER_COMMIT_MEMORY")
+	systemConfigKernelPanicOnOops := os.Getenv("PANIC_ON_OOPS")
+	systemConfigKernelPanic := os.Getenv("KERNEL_PANIC")
+	systemConfigFsInotifyMaxUserInstances := os.Getenv("MAX_USER_INSTANCE")
+
+	//NTP configurations
+	ntpServer := os.Getenv("NTP_SERVERS")
+
 	// Substitute relevant data in the script
 	//modifiedScript := strings.ReplaceAll(string(content), "__SUBSTITUTE_PACKAGE_COMMANDS__", packages)
 	modifiedScript := strings.ReplaceAll(string(content), "__REGISTRY_URL__", harborServer)
@@ -224,7 +233,11 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__IMG_REGISTRY_URL__", registryService)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_APT_PORT__", orchAptSrcPort)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_IMG_PORT__", orchImgRegProxyPort)
-
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__OVER_COMMIT_MEMORY__", systemConfigVmOverCommitMemory)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__KERNEL_PANIC__", systemConfigKernelPanic)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__PANIC_ON_OOPS__", systemConfigKernelPanicOnOops)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__MAX_USER_INSTANCE__", systemConfigFsInotifyMaxUserInstances)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__NTP_SERVERS__", ntpServer)
 	// Loop through the agentsList
 	for _, agent := range agentsList {
 		// Access the fields of each struct
