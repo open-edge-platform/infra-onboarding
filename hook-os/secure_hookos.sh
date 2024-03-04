@@ -25,6 +25,8 @@ STORE_ALPINE_SECUREBOOT=$PWD/alpine_image_secureboot/
 GRUB_CFG_LOC=${PWD}/grub.cfg
 GRUB_SRC=$PWD/grub_source
 BOOTX_LOC=$PWD/BOOTX64.efi
+RSA_KEY_SIZE=4096
+HASH_SIZE=512
 tinkerbell_owner=${load_balancer_ip:-localhost}
 #mac_address_current_device=$(cat /proc/cmdline | grep -o "instance_id=..:..:..:..:..:.. " | awk ' {split($0,a,"="); print a[2]} ')
 #
@@ -80,9 +82,9 @@ create_gpg_key() {
     mkdir -p $GPG_KEY_DIR
     echo '%no-protection
 Key-Type:1
-Key-Length:2048
+Key-Length:$RSA_KEY_SIZE
 Subkey-Type:1
-Subkey-Length:2048
+Subkey-Length:$RSA_KEY_SIZE
 Name-Real: Boot verifier
 Expire-Date:0
 %commit'| gpg --batch  --gen-key --homedir $GPG_KEY_DIR
@@ -94,9 +96,9 @@ Expire-Date:0
 
 	echo '%no-protection
 Key-Type:1
-Key-Length:2048
+Key-Length:$RSA_KEY_SIZE
 Subkey-Type:1
-Subkey-Length:2048
+Subkey-Length:$RSA_KEY_SIZE
 Name-Real: Boot verifier
 Expire-Date:0
 %commit'| gpg --batch  --gen-key
@@ -200,18 +202,18 @@ generate_pk_kek_db() {
 
     echo $GUID
 
-    [ -f $SB_KEYS_DIR/pk.crt ]    || openssl req -newkey rsa:2048 -nodes -keyout pk.key -new -x509 -sha256 -days 3650 -subj "/CN=Secure Boot PK/" -out pk.crt
+    [ -f $SB_KEYS_DIR/pk.crt ]    || openssl req -newkey rsa:$RSA_KEY_SIZE -nodes -keyout pk.key -new -x509 -sha$HASH_SIZE -days 3650 -subj "/CN=Secure Boot PK/" -out pk.crt
     [ -f $SB_KEYS_DIR/pk.der ]    || openssl x509 -outform DER -in pk.crt -out pk.der
     [ -f $SB_KEYS_DIR/pk.esl ]    || cert-to-efi-sig-list -g $GUID pk.crt pk.esl
     [ -f $SB_KEYS_DIR/pk.auth ]   || sign-efi-sig-list -g $GUID -k pk.key -c pk.crt pk pk.esl pk.auth
     [ -f $SB_KEYS_DIR/nopk.auth ] || sign-efi-sig-list -g $GUID -c pk.crt -k pk.key pk /dev/null nopk.auth
 
-    [ -f $SB_KEYS_DIR/kek.crt ] || openssl req -newkey rsa:2048 -nodes -keyout kek.key -new -x509 -sha256 -days 3650 -subj "/CN=Secure Boot KEK/" -out kek.crt
+    [ -f $SB_KEYS_DIR/kek.crt ] || openssl req -newkey rsa:$RSA_KEY_SIZE -nodes -keyout kek.key -new -x509 -sha$HASH_SIZE -days 3650 -subj "/CN=Secure Boot KEK/" -out kek.crt
     [ -f $SB_KEYS_DIR/kek.der ] || openssl x509 -outform DER -in kek.crt -out kek.der
     [ -f $SB_KEYS_DIR/kek.esl ] || cert-to-efi-sig-list -g $GUID kek.crt kek.esl
     [ -f $SB_KEYS_DIR/kek.auth ] || sign-efi-sig-list -g $GUID -k pk.key -c pk.crt kek kek.esl kek.auth
 
-    [ -f $SB_KEYS_DIR/db.crt ] || openssl req -newkey rsa:2048 -nodes -keyout db.key -new -x509 -sha256 -days 3650 -subj "/CN=Secure Boot DB/" -out db.crt
+    [ -f $SB_KEYS_DIR/db.crt ] || openssl req -newkey rsa:$RSA_KEY_SIZE -nodes -keyout db.key -new -x509 -sha$HASH_SIZE -days 3650 -subj "/CN=Secure Boot DB/" -out db.crt
     [ -f $SB_KEYS_DIR/db.der ] || openssl x509 -outform DER -in db.crt -out db.der
     [ -f $SB_KEYS_DIR/db.esl ] || cert-to-efi-sig-list -g $GUID db.crt db.esl
     [ -f $SB_KEYS_DIR/db.auth ] || sign-efi-sig-list -g $GUID -k kek.key -c kek.crt db db.esl db.auth
