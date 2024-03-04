@@ -431,6 +431,7 @@ func (s *NodeArtifactService) startZeroTouch(ctx context.Context, hostResID stri
 			Os: &osv1.OperatingSystemResource{
 				ResourceId: pconf.DefaultOs,
 			},
+			SecurityFeature: osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION,
 		}
 		if _, err := s.invClientAPI.CreateInstanceResource(ctx, instance); err != nil {
 			zlog.Err(err).Msgf("Failed to CreateInstanceResource for host resource (uuid=%s)", hostResID)
@@ -440,4 +441,3 @@ func (s *NodeArtifactService) startZeroTouch(ctx context.Context, hostResID stri
 
 	return nil
 }
-
