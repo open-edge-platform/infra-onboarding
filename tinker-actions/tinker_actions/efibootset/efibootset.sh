@@ -44,15 +44,15 @@ done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )
 
 #####################################################################################
 # ######## make PXE the last boot option possible.
-# pxe_boot_number=$(efibootmgr | grep -i "Bootcurrent" | awk '{print $2}')
+pxe_boot_number=$(efibootmgr | grep -i "Bootcurrent" | awk '{print $2}')
 
-# boot_order=$(efibootmgr | grep -i "Bootorder" | awk '{print $2}')
+boot_order=$(efibootmgr | grep -i "Bootorder" | awk '{print $2}')
 
-# remove_pxe=$(sed "s/$pxe_boot_number//g" <<< $boot_order)
-# remove_pxe=$(sed "s/,,/,/g" <<< $remove_pxe)
+remove_pxe=$(sed "s/$pxe_boot_number//g" <<< $boot_order)
+remove_pxe=$(sed "s/,,/,/g" <<< $remove_pxe)
 
-# final_bootorder=$remove_pxe","$pxe_boot_number
-# final_bootorder=$(sed "s/,,/,/g" <<< $final_bootorder)
-# efibootmgr --bootorder $final_bootorder
-# echo "Made PXE the last in the boot order"
+final_bootorder=$remove_pxe","$pxe_boot_number
+final_bootorder=$(sed "s/,,/,/g" <<< $final_bootorder)
+efibootmgr --bootorder $final_bootorder
+echo "Made PXE the last in the boot order"
 # #####################################################################################
