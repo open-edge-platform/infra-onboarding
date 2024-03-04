@@ -185,9 +185,10 @@ pipeline {
 						docker image tag amr-registry.caas.intel.com/one-intel-edge/edge-node/hook-kernel:5.10.85-i225-igc quay.io/tinkerbell/hook-kernel:5.10.85-e546ea099917c006d1d08fe6b8398101de65cbc7
 						eval \$(ssh-agent) > /dev/null
 					    make build
+	 					tar -zcvf grub_source.tar.gz grub_source
 						"""
 						stash name: "alpine_image", includes: "alpine_image/hook_x86_64.tar.gz"
-						stash name: "alpine_image_secureboot", includes: "alpine_image_secureboot/"
+						stash name: "grub_source", includes: "grub_source.tar.gz"
 					    }
 					}
 				}
@@ -207,9 +208,9 @@ pipeline {
                                         usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
                         		{
 						        unstash 'alpine_image'
-					        	unstash 'alpine_image_secureboot'
+								unstash 'grub_source'
 							sh '''
-							/opt/ci/push-oci-package.sh -f 'alpine_image/hook_x86_64.tar.gz alpine_image_secureboot/*'
+							/opt/ci/push-oci-package.sh -f 'alpine_image/hook_x86_64.tar.gz grub_source.tar.gz'
 							'''
 						}
 					}
@@ -375,7 +376,7 @@ pipeline {
             steps {
                 script {
 					unstash 'alpine_image'
-					unstash 'alpine_image_secureboot'
+					unstash 'grub_source'
 				
                     def repoVersion = sh(script: 'cat VERSION', returnStdout: true).trim()
                     def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
@@ -384,16 +385,14 @@ pipeline {
                         // Perform mkdir and cp steps only if repoVersion doesn't contain '-dev'
                         sh """
                             [ -d /srv/repos/apt/debian/fm_en_artifacts/hook-os/${repoVersion}/alpine_image ] || mkdir -p /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}/alpine_image/
-							[ -d /srv/repos/apt/debian/fm_en_artifacts/hook-os/${repoVersion}/alpine_image_secureboot ] || mkdir -p /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}/alpine_image_secureboot/
                             cp ${WORKSPACE}/alpine_image/hook_x86_64.tar.gz /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}/alpine_image/hook_x86_64.tar.gz
-                            cp -R ${WORKSPACE}/alpine_image_secureboot/* /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}/alpine_image_secureboot/
+							cp ${WORKSPACE}/grub_source.tar.gz /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}/
                         """
                     } else {
                         sh """
                             [ -d /srv/repos/apt/debian/fm_en_artifacts/hook-os/${repoVersion}-${commitId}/alpine_image ] || mkdir -p /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}-${commitId}/alpine_image/
-							[ -d /srv/repos/apt/debian/fm_en_artifacts/hook-os/${repoVersion}-${commitId}/alpine_image_secureboot ] || mkdir -p /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}-${commitId}/alpine_image_secureboot/
                             cp ${WORKSPACE}/alpine_image/hook_x86_64.tar.gz /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}-${commitId}/alpine_image/hook_x86_64.tar.gz
-                            cp -R ${WORKSPACE}/alpine_image_secureboot/* /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}-${commitId}/alpine_image_secureboot/
+							cp ${WORKSPACE}/grub_source.tar.gz /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}-${commitId}/
                         """
                     }
                 }
