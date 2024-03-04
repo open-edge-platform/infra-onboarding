@@ -72,45 +72,6 @@ func TestChangeWorkingDirectory(t *testing.T) {
 	}
 }
 
-func TestMakeHTTPGETRequest(t *testing.T) {
-	type args struct {
-		hostIP     string
-		guidValue  string
-		caCertPath string
-		certPath   string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    []byte
-		wantErr bool
-	}{
-		{
-			name: "Test Case 1",
-			args: args{
-				hostIP:     "",
-				guidValue:  "",
-				caCertPath: "caCertPath",
-				certPath:   "certPath",
-			},
-			want:    nil,
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := MakeHTTPGETRequest(tt.args.hostIP, tt.args.guidValue, tt.args.caCertPath, tt.args.certPath)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("MakeHTTPGETRequest() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("MakeHTTPGETRequest() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestParseAndUpdateUrl(t *testing.T) {
 	type args struct {
 		onboardingRequest *pb.OnboardingRequest
@@ -220,4 +181,3 @@ func TestClearFileAndWriteHeader_case(t *testing.T) {
 		})
 	}
 }
-

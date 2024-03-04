@@ -11,9 +11,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-
+	"io"
+	"log"
+	"net/http"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -101,6 +102,11 @@ func createDeviceInfoListNAzureEnv(copyOfRequest *pb.OnboardingRequest) ([]utils
 			ProvisionerIP:   os.Getenv("PD_IP"),
 			ImType:          os.Getenv("IMAGE_TYPE"),
 			RootfspartNo:    os.Getenv("OVERLAY_URL"),
+			FdoMfgDNS:       os.Getenv("FDO_MFG_URL"),
+			FdoOwnerDNS:     os.Getenv("FDO_OWNER_URL"),
+			FdoMfgPort:      os.Getenv("FDO_MFG_PORT"),
+			FdoOwnerPort:    os.Getenv("FDO_OWNER_PORT"),
+			FdoRvPort:       os.Getenv("FDO_RV_PORT"),
 			/* DpsScopeId:        hw.CusParams.DpsScopeId,
 			DpsRegistrationId: hw.CusParams.DpsRegistrationId,
 			DpsSymmKey:        hw.CusParams.DpsEnrollmentSymKey, */
@@ -176,175 +182,147 @@ func DeviceOnboardingManagerZt(deviceInfo utils.DeviceInfo, sutlabel string) err
 }
 
 func DeviceOnboardingManagerNzt(ctx context.Context, deviceDetails utils.DeviceInfo, artifactDetails utils.ArtifactData,
-	nodeExistCount *int, totalNodes int, errCh chan error,
-) {
+) error {
 	deviceInfo := deepcopy.Copy(deviceDetails).(utils.DeviceInfo)
 	artifactinfo := deepcopy.Copy(artifactDetails).(utils.ArtifactData)
 	zlog.Debug().Msgf("Onboarding triggered for host %s (IP: %s). Host info %+v, Artifact info %+v",
 		deviceDetails.GUID, deviceDetails.HwIP, deviceInfo, artifactinfo)
 
+	// Get client data
+	clientSecret, clientID, err := onbworkflowclient.GetClientData(deviceInfo.GUID)
+	if err != nil {
+		return fmt.Errorf("error getting client data: %v", err)
+	}
+	deviceInfo.ClientID = clientID
+	deviceInfo.ClientSecret = clientSecret
 	var dierror error
-	// DI goroutine
-	go func() {
-		// Check if DI routine should be executed
-		if *enableDI {
-			zlog.Debug().Msgf("Device initialization started for host %s (IP: %s)",
-				deviceInfo.GUID, deviceInfo.HwIP)
+	// var guid string
+	if *enableDI {
+		zlog.Debug().Msgf("Device initialization started for host %s (IP: %s)",
+			deviceInfo.GUID, deviceInfo.HwIP)
+
+		guid, workflowErr := onbworkflowclient.DiWorkflowCreation(deviceInfo)
+		if workflowErr != nil {
+			dierror = inv_errors.Errorf(
+				"Error in DiWorkflowCreation for host %s (IP %s): %v",
+				deviceInfo.GUID, deviceInfo.HwIP, workflowErr)
 
 			UpdateHostStatusByHostGUID(ctx, _invClient, deviceInfo.GUID,
-				computev1.HostStatus_HOST_STATUS_INITIALIZING,
+				computev1.HostStatus_HOST_STATUS_INIT_FAILED,
 				"", // TODO: empty status details for now, add more details in future
-				om_status.InitializationInProgress)
-			guid, workflowErr := onbworkflowclient.DiWorkflowCreation(deviceInfo)
-			if workflowErr != nil {
-				dierror = inv_errors.Errorf(
-					"Error in DiWorkflowCreation for host %s (IP %s): %v",
-					deviceInfo.GUID, deviceInfo.HwIP, workflowErr)
-
-				UpdateHostStatusByHostGUID(ctx, _invClient, deviceInfo.GUID,
-					computev1.HostStatus_HOST_STATUS_INIT_FAILED,
-					"", // TODO: empty status details for now, add more details in future
-					om_status.InitializationFailed)
-				return
-			}
-			zlog.Debug().Msgf("DI workflow creation succeeded for GUID %s", guid)
-
-			UpdateHostStatusByHostGUID(ctx, _invClient, deviceInfo.GUID,
-				computev1.HostStatus_HOST_STATUS_INITIALIZED,
-				"", // TODO: empty status details for now, add more details in future
-				om_status.InitializationDone)
-
-			deviceInfo.GUID = guid
-			// TODO: change the certificate path to the common location once fdo services are working
-			caCertPath := "/home/" + os.Getenv("USER") + "/.fdo-secrets/scripts/secrets/ca-cert.pem"
-			certPath := "/home/" + os.Getenv("USER") + "/.fdo-secrets/scripts/secrets/api-user.pem"
-
-			provisionErr := MakeGETRequestWithRetry(deviceInfo.ProvisionerIP, caCertPath, certPath, deviceInfo.GUID)
-			if provisionErr != nil {
-				dierror = inv_errors.Errorf(
-					"Error while MakeGETRequestWithRetry for host %s (IP %s): %v",
-					deviceInfo.GUID, deviceInfo.HwIP, provisionErr)
-				return
-			}
-
-			zlog.Debug().Msgf("Device initialization completed for host %s (IP: %s)",
-				deviceInfo.GUID, deviceInfo.HwIP)
-		} else {
-			zlog.Warn().Msgf("Device initialization disabled")
+				om_status.InitializationFailed)
+			return dierror
 		}
-	}()
-
-	// Production Workflow goroutine
-	go func() {
-		zlog.Debug().Msgf("ProdWorkflowCreation triggered for host %s", deviceInfo.GUID)
-
-		// TODO:change this and pass the file naem instead of conversion
-		imgurl := artifactinfo.BkcURL
-		filenameBz2 := filepath.Base(imgurl)
-		filenameWithoutExt := strings.TrimSuffix(filenameBz2, ".bz2")
-		deviceInfo.ClientImgName = filenameWithoutExt + ".raw.gz"
-
-		defer func() {
-			if totalNodes == *nodeExistCount {
-				close(errCh)
-				zlog.Debug().Msgf("Closed device onboarding error channel")
-			}
-		}()
-
-		if dierror != nil {
-			if deviceInfo.GUID != "" {
-				UpdateHostStatusByHostGUID(ctx, _invClient, deviceInfo.GUID,
-					computev1.HostStatus_HOST_STATUS_ONBOARDING_FAILED,
-					"", // TODO: empty status details for now, add more details in future
-					om_status.OnboardingStatusFailed)
-			}
-			errCh <- dierror
-			*nodeExistCount++
-			return
-		}
+		zlog.Debug().Msgf("DI workflow creation succeeded for GUID %s", guid)
 
 		UpdateHostStatusByHostGUID(ctx, _invClient, deviceInfo.GUID,
-			computev1.HostStatus_HOST_STATUS_ONBOARDING,
+			computev1.HostStatus_HOST_STATUS_INITIALIZED,
 			"", // TODO: empty status details for now, add more details in future
-			om_status.OnboardingStatusInProgress)
-		UpdateInstanceStatusByGUID(ctx, _invClient, deviceInfo.GUID,
-			computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONING, om_status.ProvisioningStatusInProgress)
+			om_status.InitializationDone)
 
-		proderror := onbworkflowclient.ProdWorkflowCreation(deviceInfo, deviceInfo.ImType, artifactinfo)
-		if proderror != nil {
-			err := inv_errors.Errorf("Failed to create production workflow for host %s (IP: %s): %v",
-				deviceInfo.GUID, deviceInfo.HwIP, proderror)
-			errCh <- err
-			*nodeExistCount++
-			UpdateInstanceStatusByGUID(ctx, _invClient, deviceInfo.GUID,
-				computev1.InstanceStatus_INSTANCE_STATUS_PROVISION_FAILED, om_status.ProvisioningStatusFailed)
-			return
+		deviceInfo.FdoGUID = guid
+		// TODO: change the certificate path to the common location once fdo services are working
+
+		err := onbworkflowclient.InitializeDeviceSecretData(deviceInfo)
+		if err != nil {
+			log.Fatalf("Error initializing device: %v", err)
 		}
-		UpdateHostStatusByHostGUID(ctx, _invClient, deviceInfo.GUID,
-			computev1.HostStatus_HOST_STATUS_ONBOARDED,
-			"", // TODO: empty status details for now, add more details in future
-			om_status.OnboardingStatusDone)
-		UpdateInstanceStatusByGUID(ctx, _invClient, deviceInfo.GUID,
-			computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONED, om_status.ProvisioningStatusDone)
 
-		zlog.Debug().Msgf("ProdWorkflowCreation finished for host %s", deviceInfo.GUID)
-		*nodeExistCount++
-	}()
+		url := fmt.Sprintf("http://%s:%s/api/v1/owner/state/%s", deviceInfo.FdoOwnerDNS, deviceInfo.FdoOwnerPort, deviceInfo.FdoGUID)
+		provisionErr := MakeGETRequestWithRetry(url, deviceInfo.FdoOwnerDNS, deviceInfo.FdoGUID)
+		if provisionErr != nil {
+			dierror = inv_errors.Errorf(
+				"Error while MakeGETRequestWithRetry for host %s (IP %s): %v",
+				deviceInfo.GUID, deviceInfo.HwIP, provisionErr)
+			return dierror
+		}
+		zlog.Debug().Msgf("TO2 completed  for host %s", deviceInfo.GUID)
+
+		zlog.Debug().Msgf("Device initialization completed for host %s (IP: %s)",
+			deviceInfo.GUID, deviceInfo.HwIP)
+		// Production Workflow goroutine
+	}
+	zlog.Debug().Msgf("ProdWorkflowCreation triggered for host %s", deviceInfo.GUID)
+
+	UpdateHostStatusByHostGUID(ctx, _invClient, deviceInfo.GUID,
+		computev1.HostStatus_HOST_STATUS_ONBOARDING,
+		"", // TODO: empty status details for now, add more details in future
+		om_status.OnboardingStatusInProgress)
+	UpdateInstanceStatusByGUID(ctx, _invClient, deviceInfo.GUID,
+		computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONING, om_status.ProvisioningStatusInProgress)
+
+	proderror := onbworkflowclient.ProdWorkflowCreation(deviceInfo, deviceInfo.ImType, artifactinfo, *enableDI)
+	if proderror != nil {
+		err := inv_errors.Errorf("Failed to create production workflow for host %s (IP: %s): %v",
+			deviceInfo.GUID, deviceInfo.HwIP, proderror)
+		UpdateInstanceStatusByGUID(ctx, _invClient, deviceInfo.GUID,
+			computev1.InstanceStatus_INSTANCE_STATUS_PROVISION_FAILED, om_status.ProvisioningStatusFailed)
+		return err
+	}
+	UpdateHostStatusByHostGUID(ctx, _invClient, deviceInfo.GUID,
+		computev1.HostStatus_HOST_STATUS_ONBOARDED,
+		"", // TODO: empty status details for now, add more details in future
+		om_status.OnboardingStatusDone)
+	UpdateInstanceStatusByGUID(ctx, _invClient, deviceInfo.GUID,
+		computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONED, om_status.ProvisioningStatusDone)
+
+	zlog.Debug().Msgf("ProdWorkflowCreation finished for host %s", deviceInfo.GUID)
+	return nil
+
 	// TODO: Delete the hardware workflow remaining
 }
 
 func DeviceOnboardingManager(ctx context.Context, deviceInfoList []utils.DeviceInfo, artifactinfo utils.ArtifactData) error {
-	// setup the sutonboarding file
-	CurrentDeviceList := make(map[string]string)
-	nodeExistCount := 0
-	ErrCh := make(chan error, len(deviceInfoList))
 	for _, deviceInfo := range deviceInfoList {
-		if _, found := CurrentDeviceList[deviceInfo.HwMacID]; !found {
-			CurrentDeviceList[deviceInfo.HwMacID] = deviceInfo.HwIP
-			DeviceOnboardingManagerNzt(ctx, deviceInfo, artifactinfo,
-				&nodeExistCount, len(deviceInfoList), ErrCh)
-		} else {
-			nodeExistCount++
-			zlog.Warn().Msgf("Duplicate host %s from the profile request", deviceInfo.GUID)
-		}
-	}
+		err := DeviceOnboardingManagerNzt(ctx, deviceInfo, artifactinfo)
+		if err != nil {
+			zlog.Debug().Msgf("OnboardingStatusFailed for host %s", deviceInfo.HwIP)
+			UpdateHostStatusByHostGUID(ctx, _invClient, deviceInfo.GUID,
+				computev1.HostStatus_HOST_STATUS_ONBOARDING_FAILED,
+				"", // TODO: empty status details for now, add more details in future
+				om_status.OnboardingStatusFailed)
+			return err
 
-	for err := range ErrCh {
-		zlog.MiSec().MiErr(err).Msg("Error while onboarding host")
+		}
 	}
 
 	zlog.Debug().Msgf("Onboarding is completed")
 	return nil
 }
 
-// TODO: make this function asynchronous once reconciler is refactored
-func MakeGETRequestWithRetry(pdip, caCertPath, certPath, guid string) error {
-	const timeOut = 5 * time.Minute
+func MakeGETRequestWithRetry(to2URL, pdip, guid string) error {
+	const timeOut = time.Hour
 	const timeSleep = 5 * time.Second
 	startTime := time.Now()
 	for {
 		if time.Since(startTime) >= timeOut {
 			return inv_errors.Errorf("Timeout for T02 Process for host %s", guid)
 		}
-		// Make an HTTP GET request
-		response, err := utils.MakeHTTPGETRequest(pdip, guid, caCertPath, certPath)
+
+		fmt.Println("Making GET request to:", to2URL)
+		response, err := http.Get(to2URL)
 		if err != nil {
 			respErr := inv_errors.Errorf("Error making HTTP GET request %v", err)
 			zlog.MiSec().MiErr(err).Msgf("")
 			return respErr
 		}
+		defer response.Body.Close()
+		// Read response body
+		body, err := io.ReadAll(response.Body)
+		if err != nil {
+			return errors.New("error reading response body")
+		}
 
-		if len(response) == 0 {
-			zlog.Debug().Msgf("Empty response received for IP %s and host %s, "+
-				"retrying in %d seconds...", pdip, guid, timeSleep)
+		fmt.Println("Response:", string(body))
+
+		if len(body) == 0 {
 			time.Sleep(timeSleep)
 			continue
 		}
-
-		// Unmarshal the JSON response
+		// Unmarshal response JSON
 		responseData := ResponseData{}
-		if jsonErr := json.Unmarshal(response, &responseData); jsonErr != nil {
-			zlog.MiSec().Err(jsonErr).Msgf("")
+		if err := json.Unmarshal(body, &responseData); err != nil {
+			zlog.MiSec().Err(err).Msgf("")
 			return inv_errors.Errorf("Failed to perform GET request to %s for host %s",
 				pdip, guid)
 		}
@@ -353,17 +331,16 @@ func MakeGETRequestWithRetry(pdip, caCertPath, certPath, guid string) error {
 			// The "to2CompletedOn" field is not empty, indicating completion
 			zlog.Debug().Msgf("Received response from %s. to2CompletedOn: %s, to0Expiry: %s",
 				pdip, responseData.To2CompletedOn, responseData.To0Expiry)
-			// Add your logic here, e.g., echo "$dev_serial CLIENT_SDK_TPM_TO2_SUCCESSFUL"
+
 			break // Exit the loop when "to2CompletedOn" is completed
 		}
-
+		// Add your logic here, e.g., echo "$dev_serial CLIENT_SDK_TPM_TO2_SUCCESSFUL"
 		// If "to2CompletedOn" is still empty, wait for 5 seconds and then make the next request
 		time.Sleep(timeSleep)
 	}
 
 	return nil
 }
-
 func ConvertInstanceForOnboarding(osResources []*osv1.OperatingSystemResource, host *computev1.HostResource, instances *computev1.InstanceResource) ([]*pb.OnboardingRequest, error) {
 	var onboardingRequests []*pb.OnboardingRequest
 

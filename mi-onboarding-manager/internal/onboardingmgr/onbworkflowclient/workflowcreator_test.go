@@ -99,12 +99,7 @@ func TestDiWorkflowCreation(t *testing.T) {
 
 func TestVoucherScript(t *testing.T) {
 	type args struct {
-		hostIP       string
-		deviceSerial string
-	}
-	inputargs := args{
-		hostIP:       "",
-		deviceSerial: "123",
+		deviceInfo utils.DeviceInfo
 	}
 	tests := []struct {
 		name    string
@@ -114,14 +109,14 @@ func TestVoucherScript(t *testing.T) {
 	}{
 		{
 			"test",
-			inputargs,
+			args{},
 			"",
 			true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := VoucherScript(tt.args.hostIP, tt.args.deviceSerial)
+			got, err := VoucherScript(tt.args.deviceInfo)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("VoucherScript() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -157,11 +152,13 @@ func TestProdWorkflowCreation(t *testing.T) {
 		deviceInfo   utils.DeviceInfo
 		imgtype      string
 		artifactinfo utils.ArtifactData
+		enableDI     bool
 	}
 	inputargs := args{
 		deviceInfo:   utils.DeviceInfo{},
 		imgtype:      "",
 		artifactinfo: utils.ArtifactData{},
+		enableDI:     false,
 	}
 	tests := []struct {
 		name    string
@@ -177,7 +174,7 @@ func TestProdWorkflowCreation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := ProdWorkflowCreation(tt.args.deviceInfo, tt.args.imgtype,
-				tt.args.artifactinfo); (err != nil) != tt.wantErr {
+				tt.args.artifactinfo, tt.args.enableDI); (err != nil) != tt.wantErr {
 				t.Errorf("ProdWorkflowCreation() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

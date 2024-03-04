@@ -282,8 +282,8 @@ func TestOnboardingManager_StartOnboarding(t *testing.T) {
 					ArtifactData: artifactDatasPlatform,
 				},
 			},
-			want:    &pb.OnboardingResponse{Status: "Success"},
-			wantErr: false,
+			want:    nil,
+			wantErr: true,
 		},
 	}
 	originalDir, _ := os.Getwd()
