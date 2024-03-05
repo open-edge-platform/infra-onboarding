@@ -1,7 +1,7 @@
 #!/bin/bash
 #####################################################################################
 # INTEL CONFIDENTIAL                                                                #
-# Copyright (C) 2023 Intel Corporation                                              # 
+# Copyright (C) 2024 Intel Corporation                                              #
 # This software and the related documents are Intel copyrighted materials,          #
 # and your use of them is governed by the express license under which they          #
 # were provided to you ("License"). Unless the License provides otherwise,          #
@@ -34,7 +34,6 @@ BLOCK_DEVICE=$disk
 TINKERBELL_OWNER=${TINKERBELL_OWNER:-localhost}
 #BLOCK_DEVICE="/dev/nvme0n1"
 
-
 ####################
 #tinkerbell owner information will be replaced during docker image build
 mac_address_current_device=$(cat /proc/cmdline | grep -o "instance_id=..:..:..:..:..:.. " | awk ' {split($0,a,"="); print a[2]} ')
@@ -53,26 +52,27 @@ search_label help font efi_gop efi_uga gfxterm linuxefi regexp probe progress"
 
 #Check if Tink options are not set
 if [ -z "$TINKERBELL_OWNER" ]; then
-	echo "$TINKERBELL_OWNER is not set"
-	exit 1
+    echo "$TINKERBELL_OWNER is not set"
+    exit 1
 fi
 if [ -z "$mac_address_current_device" ]; then
-	echo "MAC id of device is not set"
-	exit 1
+    echo "MAC id of device is not set"
+    exit 1
 fi
 
 ###################
 EXTRA_TINK_OPTIONS="tinkerbell=http://$TINKERBELL_OWNER syslog_host=$TINKERBELL_OWNER packet_action=workflow packet_state= osie_vendors_url= http_proxy=$http_proxy https_proxy=$https_proxy no_proxy=$no_proxy HTTP_PROXY=$HTTP_PROXY HTTPS_PROXY=$HTTPS_PROXY NO_PROXY=$NO_PROXY console=ttyS0,11520 tink_worker_image=quay.io/tinkerbell/tink-worker:v0.8.0 grpc_authority=$TINKERBELL_OWNER:42113 packet_base_url=http://$TINKERBELL_OWNER:8080/workflow tinkerbell_tls=false instance_id=$mac_address_current_device worker_id=$mac_address_current_device packet_bootdev_mac=$mac_address_current_device facility=sandbox"
 
-
-
-
 ####################
 
 do_image_download_bg() {
-    hostip=$(ip route | grep default |  grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b")
+    hostip=$(ip route get 1 | head -n 1 | grep -o 'src\s[.0-9a-z]\+' | awk '{print $2}')
+    # check if docker network
+    if echo "$hostip" | grep -q '^172'; then
+        hostip=$(ip route | grep default | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b")
+    fi
     pushd /
-    wget  http://$hostip/tink-stack/hook_x86_64.tar.gz
+    wget http://$hostip/tink-stack/hook_x86_64.tar.gz -nv
     ret=$?
     popd
     if [ $ret -ne 0 ]; then
@@ -84,26 +84,23 @@ do_image_download_bg() {
 
 fix_partition_suffix() {
     part_variable=''
-    ret=$(grep -i "nvme" <<< "$BLOCK_DEVICE")
-    if [ $? == 0 ]
-    then
-	part_variable="p"
+    ret=$(echo $"$BLOCK_DEVICE" | grep -i "nvme")
+    if [ $? == 0 ]; then
+        part_variable="p"
     fi
 
     echo $part_variable
 }
 
 check_return_value() {
-    if [ $1 -ne 0 ]
-    then
-	echo "$2"
-	exit
+    if [ $1 -ne 0 ]; then
+        echo "$2"
+        exit
     fi
 }
 
 echo "Selected Block Disk $BLOCK_DEVICE"
 suffix=$(fix_partition_suffix)
-
 
 ## start download of hook image in background
 do_image_download_bg &
@@ -111,18 +108,18 @@ bg_dl_pid=$!
 
 #make grub partition
 parted --script $BLOCK_DEVICE \
-       mklabel gpt \
-       mkpart ESP fat32 1MiB 1024MiB \
-       set 1 esp on \
-       mkpart primary ext4 1024MiB 2048MiB \
-       mkpart primary linux-swap 2048MiB 3072MiB \
-       mkpart primary ext4 3072MiB 4096MiB \
-       mkpart primary 4096MiB 100%
+    mklabel gpt \
+    mkpart ESP fat32 1MiB 1024MiB \
+    set 1 esp on \
+    mkpart primary ext4 1024MiB 2048MiB \
+    mkpart primary linux-swap 2048MiB 3072MiB \
+    mkpart primary ext4 3072MiB 4096MiB \
+    mkpart primary 4096MiB 100%
 
 check_return_value $? "Failed to create paritions"
 
 sleep 5
-partprobe 
+partprobe
 #########
 #hook_os partition
 mkfs -t ext4 -L hook -F "${BLOCK_DEVICE}${suffix}${hook_part}"
@@ -164,11 +161,10 @@ check_return_value $? "Failed to mkfs creds label"
 echo "creds partition done"
 
 #########
-#the rest of the memory 
+#the rest of the memory
 mkfs -t ext4 -F "${BLOCK_DEVICE}${suffix}${remaining_part}"
 check_return_value $? "Failed to mkfs remaining partitions"
 echo "free partition done"
-
 
 # mkdir -p $remaining_mnt
 # mount "${BLOCK_DEVICE}${suffix}${remaining_part}" ${remaining_mnt}
@@ -188,7 +184,7 @@ cd ${efi_mnt}/EFI/hook/
 # wait for background download complete
 wait $bg_dl_pid
 bg_dl_ret=$?
-if [ $bg_dl_ret -ne 0 ] && [ ! -f /hook_x86_64.tar.gz ] ; then
+if [ $bg_dl_ret -ne 0 ] && [ ! -f /hook_x86_64.tar.gz ]; then
     echo "Hook tar download failed"
     exit 1
 fi
@@ -199,45 +195,38 @@ rm -rf /hook_x86_64.tar.gz
 echo "completed download and install of vmlinuz and initramfs-x86_64"
 
 #######################################################
+#remove all hookOS entries
+while IFS= read -r boot_part_number; do
+    efibootmgr -b $boot_part_number -B
+done < <(efibootmgr | grep -i hookos | awk '{print $1}' | cut -c 5-8)
+
 #move the nvme or the sda/sdb to the top of the boot orders
-disk_bootnum=$(efibootmgr -v | grep -i "nvme")
-if [ $? -ne 0 ];
-then
-    disk_bootnum=$(efibootmgr -v | grep -i "sata")
-    if [ $? -ne 0 ];then
-        disk_bootnum=$(efibootmgr -v | grep -i "HD")
+final_bootorder=$(efibootmgr | grep -i "Bootorder" | awk '{print $2}') # starting with all
+disk_bootnum=$(efibootmgr -v | grep -e "nvme" -e "HD" -e "sata")
+if [ $? -ne 0 ] || [ disk_bootnum = "" ]; then
+    echo "HDs not found"
+else
+    disk_bootnum=$(echo $disk_bootnum | awk '{ print substr($1, 5, 4)}')
+    boot_order=$final_bootorder
+    #    echo "disk_bootnum\n$disk_bootnum"
+    #    echo "bootorde:$boot_order"
+    tmp=$(echo "$boot_order" | tr -d ' ' | tr ',' '\n' | grep -v -f <(echo "$abc") | tr '\n' ',' | sed 's/,$//')
+    removed_disks_bootorder=$tmp
+    #    echo "after_removal bootored:$removed_disks_bootorder"
+
+    disk_bootnum_ser=$(echo "$disk_bootnum" | tr '\n' ',' | sed 's/,$//')
+    disk_bootnum_ser="$disk_bootnum_ser"
+    if [ "$removed_disks_bootorder" ]; then
+        final_bootorder="$disk_bootnum_ser,$removed_disks_bootorder"
+    else
+        final_bootorder="$disk_bootnum_ser"
     fi
 fi
-disk_bootnum=$(awk '{ print substr($1, 5, 4)}' <<< $disk_bootnum)
-
-echo "disk_bootnum $disk_bootnum"
-boot_order=$(efibootmgr | grep -i "Bootorder" | awk '{print $2}')
-remove_disk=$(sed "s/$disk_bootnum//g" <<< $boot_order)
-
-final_bootorder=$disk_bootnum","$remove_disk
-final_bootorder=$(sed "s/,,/,/g" <<< $final_bootorder)
-final_bootorder=$(sed "s/,$//g" <<< $final_bootorder)
 echo "bootorder -> $final_bootorder"
-
 efibootmgr --bootorder $final_bootorder
-echo "Made nvme/sata disk the first in the boot order"
+echo "Made existing nvme/sata/hdd disk the first in the boot order"
 ########################################################
 
-
-efibootmgr -c --remove-dups -d ${BLOCK_DEVICE} -p 1 -L "hookOS" -l '\EFI\hook\BOOTX64.efi'
+# Add the entry for HookOS
+efibootmgr -c -D -d ${BLOCK_DEVICE} -p 1 -L "hookOS" -l '\EFI\hook\BOOTX64.efi'
 echo "Configure EFI boot manager done"
-
-######## make PXE the last boot option possible.
-pxe_boot_number=$(efibootmgr | grep -i "Bootcurrent" | awk '{print $2}')
-
-boot_order=$(efibootmgr | grep -i "Bootorder" | awk '{print $2}')
-
-remove_pxe=$(sed "s/$pxe_boot_number//g" <<< $boot_order)
-remove_pxe=$(sed "s/,,/,/g" <<< $remove_pxe)
-
-final_bootorder=$remove_pxe","$pxe_boot_number
-final_bootorder=$(sed "s/,,/,/g" <<< $final_bootorder)
-efibootmgr --bootorder $final_bootorder
-echo "Made PXE the last in the boot order"
-sync
-sleep 10
