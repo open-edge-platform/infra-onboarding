@@ -23,7 +23,7 @@ STORE_ALPINE_SECUREBOOT=$PWD/alpine_image_secureboot/
 GRUB_CFG_LOC=${PWD}/grub.cfg
 GRUB_SRC=$PWD/grub_source
 BOOTX_LOC=$PWD/BOOTX64.efi
-tinkerbell_owner=${load_balancer_ip:-192.168.1.120}
+tinkerbell_owner=${load_balancer_ip:-localhost}
 #mac_address_current_device=$(cat /proc/cmdline | grep -o "instance_id=..:..:..:..:..:.. " | awk ' {split($0,a,"="); print a[2]} ')
 mac_address_current_device="net_default_mac_user"
 
