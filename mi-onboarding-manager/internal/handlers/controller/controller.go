@@ -42,23 +42,25 @@ type OnboardingController struct {
 
 func New(
 	invClient *invclient.OnboardingInventoryClient,
+	enableTracing bool,
 ) (*OnboardingController, error) {
 	controllers := make(map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ResourceID])
 	filters := make(map[inv_v1.ResourceKind]Filter)
 
-	hostRcnl := reconcilers.NewHostReconciler(invClient)
+	hostRcnl := reconcilers.NewHostReconciler(invClient, enableTracing)
 	hostCtrl := rec_v2.NewController[reconcilers.ResourceID](
 		hostRcnl.Reconcile, rec_v2.WithParallelism(parallelism))
 	controllers[inv_v1.ResourceKind_RESOURCE_KIND_HOST] = hostCtrl
 	filters[inv_v1.ResourceKind_RESOURCE_KIND_HOST] = hostEventFilter
 
-	instRcnl := reconcilers.NewInstanceReconciler(invClient)
+	instRcnl := reconcilers.NewInstanceReconciler(invClient, enableTracing)
 	const reconcileTimeDuration = 3 * time.Hour
 	instCtrl := rec_v2.NewController[reconcilers.ResourceID](
 		instRcnl.Reconcile, rec_v2.WithTimeout(reconcileTimeDuration), rec_v2.WithParallelism(parallelism))
 	controllers[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instCtrl
 	filters[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instanceEventFilter
-	osRcnl := reconcilers.NewOsReconciler(invClient)
+
+	osRcnl := reconcilers.NewOsReconciler(invClient, enableTracing)
 	osCtrl := rec_v2.NewController[reconcilers.ResourceID](
 		osRcnl.Reconcile, rec_v2.WithParallelism(parallelism))
 	controllers[inv_v1.ResourceKind_RESOURCE_KIND_OS] = osCtrl

@@ -6,6 +6,7 @@ package reconcilers
 
 import (
 	"context"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/tracing"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding"
@@ -28,21 +29,27 @@ var (
 )
 
 type InstanceReconciler struct {
-	invClient *invclient.OnboardingInventoryClient
+	invClient     *invclient.OnboardingInventoryClient
+	enableTracing bool
 }
 type OnboardingManager struct {
 	pb.OnBoardingEBServer
 }
 
-func NewInstanceReconciler(c *invclient.OnboardingInventoryClient) *InstanceReconciler {
+func NewInstanceReconciler(c *invclient.OnboardingInventoryClient, enableTracing bool) *InstanceReconciler {
 	return &InstanceReconciler{
-		invClient: c,
+		invClient:     c,
+		enableTracing: enableTracing,
 	}
 }
 
 func (ir *InstanceReconciler) Reconcile(ctx context.Context,
 	request rec_v2.Request[ResourceID],
 ) rec_v2.Directive[ResourceID] {
+	if ir.enableTracing {
+		ctx = tracing.StartTrace(ctx, "MIOnboardingManager", "InstanceReconciler")
+		defer tracing.StopTrace(ctx)
+	}
 	resourceID := request.ID.String()
 	zlogInst.Info().Msgf("Reconciling Instance (%s)", resourceID)
 

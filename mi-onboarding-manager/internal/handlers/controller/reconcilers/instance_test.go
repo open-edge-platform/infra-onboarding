@@ -42,7 +42,7 @@ func TestNewInstanceReconciler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewInstanceReconciler(tt.args.c); !reflect.DeepEqual(got, tt.want) {
+			if got := NewInstanceReconciler(tt.args.c, false); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewInstanceReconciler() = %v, want %v", got, tt.want)
 			}
 		})

@@ -48,7 +48,7 @@ func TestNewHostReconciler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewHostReconciler(tt.args.c); !reflect.DeepEqual(got, tt.want) {
+			if got := NewHostReconciler(tt.args.c, false); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewHostReconciler() = %v, want %v", got, tt.want)
 			}
 		})
@@ -758,4 +758,3 @@ func TestHostReconciler_revokeHostCredentials_Case(t *testing.T) {
 		common.FlagDisableCredentialsManagement = flag.Bool("", true, "")
 	}()
 }
-

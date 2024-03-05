@@ -5,6 +5,7 @@ package reconcilers
 
 import (
 	"context"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/tracing"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
@@ -27,13 +28,15 @@ var (
 
 // OsReconciler is responsible for reconciling operating system instances.
 type OsReconciler struct {
-	invClient *invclient.OnboardingInventoryClient
+	invClient     *invclient.OnboardingInventoryClient
+	enableTracing bool
 }
 
 // NewOsReconciler creates a new OsReconciler instance with the given InventoryClient.
-func NewOsReconciler(c *invclient.OnboardingInventoryClient) *OsReconciler {
+func NewOsReconciler(c *invclient.OnboardingInventoryClient, enableTracing bool) *OsReconciler {
 	return &OsReconciler{
-		invClient: c,
+		invClient:     c,
+		enableTracing: enableTracing,
 	}
 }
 
@@ -41,6 +44,11 @@ func NewOsReconciler(c *invclient.OnboardingInventoryClient) *OsReconciler {
 func (osr *OsReconciler) Reconcile(ctx context.Context,
 	request rec_v2.Request[ResourceID],
 ) rec_v2.Directive[ResourceID] {
+	if osr.enableTracing {
+		ctx = tracing.StartTrace(ctx, "MIOnboardingManager", "OsReconciler")
+		defer tracing.StopTrace(ctx)
+	}
+
 	resourceID := request.ID.String()
 	zlogOs.MiSec().Debug().Msgf("Reconciling os instance : %s", resourceID)
 	osre, err := osr.invClient.GetOSResourceByResourceID(ctx, resourceID)

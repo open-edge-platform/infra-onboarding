@@ -7,6 +7,7 @@ import (
 	"context"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/tracing"
 	"time"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/auth"
@@ -23,18 +24,24 @@ const loggerName = "HostReconciler"
 var zlogHost = logging.GetLogger(loggerName)
 
 type HostReconciler struct {
-	invClient *invclient.OnboardingInventoryClient
+	invClient     *invclient.OnboardingInventoryClient
+	enableTracing bool
 }
 
-func NewHostReconciler(c *invclient.OnboardingInventoryClient) *HostReconciler {
+func NewHostReconciler(c *invclient.OnboardingInventoryClient, enableTracing bool) *HostReconciler {
 	return &HostReconciler{
-		invClient: c,
+		invClient:     c,
+		enableTracing: enableTracing,
 	}
 }
 
 func (hr *HostReconciler) Reconcile(ctx context.Context,
 	request rec_v2.Request[ResourceID],
 ) rec_v2.Directive[ResourceID] {
+	if hr.enableTracing {
+		ctx = tracing.StartTrace(ctx, "MIOnboardingManager", "HostReconciler")
+		defer tracing.StopTrace(ctx)
+	}
 	resourceID := request.ID.String()
 	zlogHost.Info().Msgf("Reconciling Host %s", resourceID)
 

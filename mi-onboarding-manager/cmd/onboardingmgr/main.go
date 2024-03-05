@@ -7,12 +7,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
-	"time"
-
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/controller"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/southbound"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
@@ -25,6 +19,10 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/oam"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/tracing"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 )
 
 var (
@@ -43,10 +41,6 @@ var (
 	readyChan = make(chan bool, 1)
 	termChan  = make(chan bool, 1)
 	sigChan   = make(chan os.Signal, 1)
-)
-
-const (
-	DefaultTimeout = 3 * time.Second
 )
 
 var manager *inventory.InventoryManager
@@ -133,7 +127,7 @@ func main() {
 		zlog.MiSec().Fatal().Err(initErr).Msgf("Unable to initialize required secrets")
 	}
 
-	onboardingController, err := controller.New(invClient)
+	onboardingController, err := controller.New(invClient, *enableTracing)
 	if err != nil {
 		zlog.MiSec().Fatal().Err(err).Msgf("Unable to create onboarding controller")
 	}

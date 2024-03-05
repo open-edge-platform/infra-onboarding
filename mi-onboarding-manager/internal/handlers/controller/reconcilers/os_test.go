@@ -41,7 +41,7 @@ func TestNewOsReconciler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewOsReconciler(tt.args.c); !reflect.DeepEqual(got, tt.want) {
+			if got := NewOsReconciler(tt.args.c, false); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewOsReconciler() = %v, want %v", got, tt.want)
 			}
 		})
