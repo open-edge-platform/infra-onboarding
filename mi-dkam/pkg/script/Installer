@@ -334,7 +334,7 @@ install_node_agent(){
 
     #Below code is intended to resolve dependencies for MTLS based apt and bypass need for ESP based provisioning
 
-    groupadd -f bm-agents --system
+    groupadd -f bm-agents -g 998 --system
     id -u node-agent &>/dev/null || useradd node-agent --system -g bm-agents
 
     echo create required dir structure to persist cert/key
