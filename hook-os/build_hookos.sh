@@ -105,8 +105,6 @@ build_hook() {
     git checkout v0.8.1
 
     cp $patch_file $new_patch_file
-    sed -i "s+FIX_H_TTP_PROXY+$http_proxy+g" $new_patch_file
-    sed -i "s+FIX_H_TTPS_PROXY+$https_proxy+g" $new_patch_file
     ver=$(cat $VERSION_FILE)
     sed -i "s/latest/$ver/g" $new_patch_file
 

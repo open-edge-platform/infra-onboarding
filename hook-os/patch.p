@@ -1,55 +1,5 @@
-diff --git a/hook-bootkit/Dockerfile b/hook-bootkit/Dockerfile
-index 5c38880..d875feb 100644
---- a/hook-bootkit/Dockerfile
-+++ b/hook-bootkit/Dockerfile
-@@ -1,4 +1,14 @@
- FROM golang:1.20-alpine as dev
-+ENV http_proxy "FIX_H_TTP_PROXY"
-+ENV https_proxy "FIX_H_TTPS_PROXY"
-+ENV HTTP_PROXY "FIX_H_TTP_PROXY"
-+ENV HTTPS_PROXY "FIX_H_TTPS_PROXY"
-+
-+RUN export http_proxy=FIX_H_TTP_PROXY
-+RUN export https_proxy=FIX_H_TTPS_PROXY
-+RUN export HTTPS_PROXY=FIX_H_TTPS_PROXY
-+RUN export HTTPS_PROXY=FIX_H_TTPS_PROXY
-+
- COPY . /src/
- WORKDIR /src
- RUN go mod download
-diff --git a/hook-docker/Dockerfile b/hook-docker/Dockerfile
-index da5bde6..026141a 100644
---- a/hook-docker/Dockerfile
-+++ b/hook-docker/Dockerfile
-@@ -1,9 +1,26 @@
- FROM golang:1.20-alpine as dev
-+ENV http_proxy "FIX_H_TTP_PROXY"
-+ENV https_proxy "FIX_H_TTPS_PROXY"
-+ENV HTTP_PROXY "FIX_H_TTP_PROXY"
-+ENV HTTPS_PROXY "FIX_H_TTPS_PROXY"
-+RUN export http_proxy=FIX_H_TTP_PROXY
-+RUN export https_proxy=FIX_H_TTPS_PROXY
-+RUN export HTTPS_PROXY=FIX_H_TTPS_PROXY
-+RUN export HTTPS_PROXY=FIX_H_TTPS_PROXY
-+
- COPY . /src/
- WORKDIR /src
- RUN CGO_ENABLED=0 go build -a -ldflags '-w -extldflags "-static"' -o /hook-docker
- 
- FROM docker:24.0.4-dind
-+ENV http_proxy "FIX_H_TTP_PROXY"
-+ENV https_proxy "FIX_H_TTPS_PROXY"
-+ENV HTTP_PROXY "FIX_H_TTP_PROXY"
-+ENV HTTPS_PROXY "FIX_H_TTPS_PROXY"
-+RUN export http_proxy=FIX_H_TTP_PROXY
-+RUN export https_proxy=FIX_H_TTPS_PROXY
-+RUN export HTTPS_PROXY=FIX_H_TTPS_PROXY
-+RUN export HTTPS_PROXY=FIX_H_TTPS_PROXY
- RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
- RUN apk update; apk add kexec-tools
- COPY --from=dev /hook-docker .
 diff --git a/hook-docker/main.go b/hook-docker/main.go
-index 0908c72..05a71fb 100644
+index 0908c72..e5998bf 100644
 --- a/hook-docker/main.go
 +++ b/hook-docker/main.go
 @@ -29,6 +29,16 @@ func main() {
@@ -87,6 +37,15 @@ index 0908c72..05a71fb 100644
  	cmd.Stdout = os.Stdout
  	cmd.Stderr = os.Stderr
  
+@@ -121,6 +131,8 @@ func rebootWatch() {
+ 			cmd := exec.Command("/sbin/reboot")
+ 			cmd.Stdout = os.Stdout
+ 			cmd.Stderr = os.Stderr
++			// wait 3 sec to do actual reboot before workflow send back success status
++			time.Sleep(3*time.Second)
+ 			err := cmd.Run()
+ 			if err != nil {
+ 				panic(err)
 diff --git a/hook.yaml b/hook.yaml
 index 647e792..2911cf6 100644
 --- a/hook.yaml
@@ -224,11 +183,34 @@ index 647e792..2911cf6 100644
 +      - /dev:/dev
 +      - /dev/console:/dev/console
 diff --git a/rules.mk b/rules.mk
-index b2c5133..7b1da7b 100644
+index b2c5133..93fcdea 100644
 --- a/rules.mk
 +++ b/rules.mk
-@@ -87,13 +87,12 @@ push-hook-bootkit push-hook-docker:
- 	docker buildx build --platform $$platforms --push -t $(ORG)/$(container):$T $(container)
+@@ -68,7 +68,12 @@ out/$T/hook-docker-$(arch): $$(hook-docker-deps)
+ out/$T/hook-bootkit-$(arch) out/$T/hook-docker-$(arch): platform=linux/$$(lastword $$(subst -, ,$$(notdir $$@)))
+ out/$T/hook-bootkit-$(arch) out/$T/hook-docker-$(arch): container=hook-$$(word 2,$$(subst -, ,$$(notdir $$@)))
+ out/$T/hook-bootkit-$(arch) out/$T/hook-docker-$(arch):
+-	docker buildx build --platform $$(platform) --load -t $(ORG)/$$(container):$T-$(arch) $$(container)
++	docker buildx build --platform $$(platform)  \
++		--build-arg HTTP_PROXY=${http_proxy} \
++		--build-arg HTTPS_PROXY=${https_proxy} \
++		--build-arg http_proxy=${http_proxy} \
++		--build-arg https_proxy=${https_proxy} \
++		--load -t $(ORG)/$$(container):$T-$(arch) $$(container)
+ 	touch $$@
+ 
+ run-$(arch): out/$T/dbg/$(arch)/hook.tar
+@@ -84,16 +89,20 @@ push-hook-bootkit push-hook-docker: container=hook-$(lastword $(subst -, ,$(base
+ push-hook-bootkit push-hook-docker:
+ 	platforms="$(platforms)"
+ 	platforms=$${platforms// /,}
+-	docker buildx build --platform $$platforms --push -t $(ORG)/$(container):$T $(container)
++	docker buildx build --platform $$platforms \
++		--build-arg HTTP_PROXY=${http_proxy} \
++		--build-arg HTTPS_PROXY=${https_proxy} \
++		--build-arg http_proxy=${http_proxy} \
++		--build-arg https_proxy=${https_proxy} \
++		--push -t $(ORG)/$(container):$T $(container)
  
  .PHONY: dist
 -dist: out/$T/rel/amd64/hook.tar out/$T/rel/arm64/hook.tar ## Build tarballs for distribution
