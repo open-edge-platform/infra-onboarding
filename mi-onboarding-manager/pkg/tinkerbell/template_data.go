@@ -5,9 +5,30 @@ package tinkerbell
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 )
+
+type ProxySetup struct {
+	http_proxy  string
+	https_proxy string
+	no_proxy    string
+	dns         string
+}
+
+func GetProxyEnv() ProxySetup {
+
+	var proxy_settings ProxySetup
+
+	proxy_settings.http_proxy = os.Getenv("EN_HTTP_PROXY")
+	proxy_settings.https_proxy = os.Getenv("EN_HTTPS_PROXY")
+	proxy_settings.no_proxy = os.Getenv("EN_NO_PROXY")
+	proxy_settings.dns = os.Getenv("EN_NAMESERVERS")
+
+	return proxy_settings
+}
 
 func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIP string) ([]byte, error) {
 	wf := Workflow{
@@ -188,6 +209,7 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 }
 
 func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gateway, _, _ string, securityFeature uint32, clientID, clientSecret string, enableDI bool) ([]byte, error) {
+	proxy_setting := GetProxyEnv()
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -217,12 +239,10 @@ func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gatewa
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/environment",
-						"CONTENTS": `
-http_proxy=http://proxy-dmz.intel.com:911
-https_proxy=http://proxy-dmz.intel.com:912
-ftp_proxy=http://proxy-dmz.intel.com:911
-socks_proxy=http://proxy-dmz.intel.com:1080
-no_proxy=localhost,*.intel.com,*intel.com,127.0.0.1,intel.com,.internal`,
+						"CONTENTS": fmt.Sprintf(`
+						http_proxy=%s
+						https_proxy=%s
+						no_proxy=%s`, proxy_setting.http_proxy, proxy_setting.https_proxy, proxy_setting.no_proxy),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -237,9 +257,9 @@ no_proxy=localhost,*.intel.com,*intel.com,127.0.0.1,intel.com,.internal`,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/apt/apt.conf",
-						"CONTENTS": `
-Acquire::http::Proxy "http://proxy-dmz.intel.com:911";
-Acquire::https::Proxy "http://proxy-dmz.intel.com:911";`,
+						"CONTENTS": fmt.Sprintf(`
+						Acquire::http::Proxy "%s";
+						Acquire::https::Proxy "%s";`, proxy_setting.http_proxy, proxy_setting.https_proxy),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -253,9 +273,9 @@ Acquire::https::Proxy "http://proxy-dmz.intel.com:911";`,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/systemd/resolved.conf",
-						"CONTENTS": `
-[Resolve]
-DNS=10.248.2.1 172.30.90.4 10.223.45.36`,
+						"CONTENTS": fmt.Sprintf(`
+						[Resolve]
+						DNS "%s"`, proxy_setting.dns),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -402,13 +422,13 @@ network:
       addresses: [ %s/$sub_net ]
       gateway4: $gateway
       nameservers:
-        addresses: [10.248.2.1,172.30.90.4,10.223.45.36]
+        addresses: [%s]
 "
 # Write the YAML configuration to the file
 echo "$config_yaml" | tee /etc/netplan/config.yaml
 ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 touch .netplan_update_done
-netplan apply`, clientIP),
+netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
