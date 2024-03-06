@@ -58,7 +58,8 @@ http {
         ssl_certificate /etc/nginx/ssl/nginx-cert.pem;
         ssl_certificate_key /etc/nginx/ssl/nginx-key.pem;
 
-        proxy_set_header Authorization "Bearer ${auth_token}";
+        # TODO: Until maestro traefik supports to handle 2 tokens(CWT + JWT), nginx shouldn't pass any token
+        #proxy_set_header Authorization "Bearer ${access_token}";
 
         location /health {
             return 200 "NGINX healthy..";
@@ -68,6 +69,24 @@ http {
         location ~ ^/fdo/101/msg/(10|12|255) {
 	    proxy_ssl_server_name on;
             proxy_pass https://${manufacturer_svc};
+        }
+
+    }
+
+    server {
+        listen 8082 ssl;
+        server_name localhost;
+
+        # SSL settings
+        ssl_certificate /etc/nginx/ssl/nginx-cert.pem;
+        ssl_certificate_key /etc/nginx/ssl/nginx-key.pem;
+
+        # TODO: Until maestro traefik supports to handle 2 tokens(CWT + JWT), nginx shouldn't pass any token
+        #proxy_set_header Authorization "Bearer ${access_token}";
+
+        location /health {
+            return 200 "NGINX healthy..";
+            add_header Content-Type text/plain;
         }
 
         location ~ ^/fdo/101/msg/(60|62|64|66|68|70|255) {
