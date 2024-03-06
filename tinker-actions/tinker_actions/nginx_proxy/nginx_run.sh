@@ -10,6 +10,8 @@ then
     echo "Unable to locate release service token. exiting.."
 fi
 
+source /etc/hook/env_config
+
 export access_token=$(cat /dev/shm/idp_access_token)
 export release_token=$(cat /dev/shm/release_token)
 

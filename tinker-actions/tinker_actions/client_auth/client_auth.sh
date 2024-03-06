@@ -47,6 +47,9 @@ enable_ttyS0() {
 
 
 main() {
+
+    source /etc/hook/env_config
+
     while [ $a -lt 3 ];
     do
 	finished_read='False'
