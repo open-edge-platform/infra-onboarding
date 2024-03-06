@@ -709,6 +709,7 @@ delete_invalid_ubuntu_boot_menuoptions () {
 
 # 29. Set kernel configurations
 enable_kernel_config(){
+    useradd -r -c "etcd user" -s /sbin/nologin -M etcd -U
     sysctl -w vm.overcommit_memory=__OVER_COMMIT_MEMORY__ 
     sysctl -w kernel.panic=__KERNEL_PANIC__ 
     sysctl -w kernel.panic_on_oops=__PANIC_ON_OOPS__ 
