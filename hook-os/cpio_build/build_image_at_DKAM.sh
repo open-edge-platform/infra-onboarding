@@ -12,11 +12,36 @@ source ./secure_hookos.sh
 popd
 
 LOCATION_OF_EXTRA_FILES=$PWD/etc
+LOCATION_OF_ENV_CONFIG=$PWD/etc/hook/env_config
 extras_cpio=$PWD/additional_files.cpio.gz
 # old_initramfs=$PWD/initramfs-x86_64
 # new_initramfs=$PWD/initramfs-x86_64_new
 STORE_ALPINE=$STORE_ALPINE_SECUREBOOT/../alpine_image
 
+#######################################################################################################
+create_env_config() {
+    if [ ! -z $keycloak_url ];
+    then
+	echo -e "KEYCLOAK_URL=$keycloak_url" >> $LOCATION_OF_ENV_CONFIG
+    fi
+
+    if [ ! -z $fdo_manufacturer_svc ];
+    then
+	echo -e "fdo_manufacturer_svc=$fdo_manufacturer_svc" >> $LOCATION_OF_ENV_CONFIG
+	echo -e "fdo_owner_svc=$fdo_owner_svc" >> $LOCATION_OF_ENV_CONFIG
+	echo -e "release_svc=$release_svc" >> $LOCATION_OF_ENV_CONFIG
+	echo -e "oci_release_svc=$oci_release_svc" >> $LOCATION_OF_ENV_CONFIG
+	echo -e "tink_stack_svc=$tink_stack_svc" >> $LOCATION_OF_ENV_CONFIG
+	echo -e "tink_server_svc=$tink_server_svc" >> $LOCATION_OF_ENV_CONFIG
+    fi
+
+    if [ ! -z "$extra_hosts" ];
+    then
+	echo -e "EXTRA_HOSTS=$extra_hosts" >> $LOCATION_OF_ENV_CONFIG
+    fi
+
+}
+#######################################################################################################
 #
 #create a new image from exsisting initramfs image after adding the extra_cpio archive into it.
 #
@@ -83,6 +108,7 @@ extract_alpine_tar() {
 }
 
 
+#######################################################################################################
 main() {
 
     # if pax is not installed then check and install
@@ -90,6 +116,8 @@ main() {
     then
 	sudo apt install pax -y
     fi
+
+    create_env_config
 
     pax -x sv4cpio -w etc | gzip -c > $extras_cpio
 
@@ -102,5 +130,5 @@ main() {
     resign_hookos
     popd
 }
-
+#######################################################################################################
 main
