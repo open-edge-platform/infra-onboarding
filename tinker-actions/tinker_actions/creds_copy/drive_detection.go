@@ -13,46 +13,59 @@
 package main
 
 import (
+	"encoding/json"
 	"os/exec"
 	"sort"
-	"strconv"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
 
+type LsblkOutput struct {
+	BlockDevices []DriveInfo `json:"blockdevices`
+}
 type DriveInfo struct {
-	Name string
-	Size uint64
-	Type string
+	Name string `json:"name"`
+	Size uint64 `json:"size"`
+	Type string `json:"type"`
+	Tran string `json:"tran"`
+}
+
+// Get disk type of Drive based on drive name
+func (d DriveInfo) getDiskType() string {
+	if strings.HasPrefix(d.Name, "nvme") {
+		return "nvme"
+	} else if strings.HasPrefix(d.Name, "sd") {
+		return "sd"
+	} else {
+		return "NA"
+	}
 }
 
 func DriveDetection(drives []DriveInfo) (string, error) {
-	// Sort drives based on the defined criteria
-	sort.Sort(bySizeAndPriority(drives))
-
-	// // Display the sorted list of drives
-	log.Infof("Sorted Drives:")
-	for _, drive := range drives {
-		log.Infof("Name: %s, Size: %d Bytes, Type: %s", drive.Name, drive.Size, drive.Type)
-	}
 
 	// Filter out devices with size zero or type not equal to "disk"
 	filteredDrives := filterDrives(drives)
-	// Print the result
+	// Display the filtered list of drives
+	log.Infof("Filtered Drives:")
+	for _, drive := range filteredDrives {
+		log.Infof("%+v\n", drive)
+	}
+	// Sort drives based on the defined criteria
+	sort.Sort(byPriorityAndSize(filteredDrives))
+
 	log.Infof("Filtered and Sorted Drives:")
 	for _, drive := range filteredDrives {
-		log.Infof("Name: %s, Size: %d Bytes, Type: %s", drive.Name, drive.Size, drive.Type)
+		log.Infof("%+v\n", drive)
 	}
 
 	//detected drive
 	if len(filteredDrives) >= 1 {
 		disk := "/dev/" + filteredDrives[0].Name
-		// Check if the drive name starts with "/dev/nvme"
-		if strings.HasPrefix(disk, "/dev/nvme") {
-			disk = disk + "p1"
-		} else {
-			disk = disk + "1"
+		if len(filteredDrives) == 1 {
+			log.Warnln("************************")
+			log.Warnf("Only ONE DISK detected (%s). There will be NO support for persistent volume available for apps and some edge node functionalities will NOT work!", disk)
+			log.Warnln("************************")
 		}
 		return disk, nil
 	} else {
@@ -75,7 +88,7 @@ func GetDrives() ([]DriveInfo, error) {
 	var drives []DriveInfo
 
 	// Command to list all connected storage devices with sizes using lsblk
-	cmd := exec.Command("lsblk", "--output", "NAME,TYPE,SIZE", "-b")
+	cmd := exec.Command("lsblk", "--output", "NAME,TYPE,SIZE,TRAN", "-bldn", "--json")
 
 	// Run the command and capture the output
 	output, err := cmd.CombinedOutput()
@@ -84,50 +97,23 @@ func GetDrives() ([]DriveInfo, error) {
 		return nil, err
 	}
 
-	output_after_removing_traling_whitespaces := strings.TrimSpace(string(output))
-	// Convert the combined output to a list of strings
-	outputLines := strings.Split(string(output_after_removing_traling_whitespaces), "\n")
-	// Print each line in the list
-	log.Infof("Command Output:")
-	for _, line := range outputLines[1:] {
-		line_after_removing_extra_spaces := removeExtraSpaces(line)
-		line := strings.Split(string(line_after_removing_extra_spaces), " ")
-
-		deviceName := line[0]
-		deviceType := line[1]
-		diskSizeInString := line[2]
-		diskSize, err := strconv.ParseUint(string(diskSizeInString), 10, 64)
-
-		if err != nil {
-			log.Infof("Error converting string to uint64:%s", err)
-			return nil, err
-		}
-		drives = append(drives, DriveInfo{
-			Name: string(deviceName),
-			Size: diskSize,
-			Type: string(deviceType),
-		})
+	var lsblkOutput LsblkOutput
+	err = json.Unmarshal([]byte(output), &lsblkOutput)
+	if err != nil {
+		log.Infof("Error running command:%s", err)
+		return nil, err
 	}
 
+	drives = lsblkOutput.BlockDevices
 	return drives, nil
-}
-
-func removeExtraSpaces(input string) string {
-	// Split the string into words
-	words := strings.Fields(input)
-
-	// Join the words back together with a single space
-	result := strings.Join(words, " ")
-
-	return result
 }
 
 func filterDrives(drives []DriveInfo) []DriveInfo {
 	var filteredDrives []DriveInfo
 
 	for _, drive := range drives {
-		// Check conditions: size not zero and type is "disk"
-		if drive.Size != 0 && drive.Type == "disk" {
+		// Check conditions: size not zero and type is "disk" and transport type is not "usb"
+		if drive.Size != 0 && drive.Type == "disk" && drive.Tran != "usb" {
 			filteredDrives = append(filteredDrives, drive)
 		}
 	}
@@ -135,27 +121,30 @@ func filterDrives(drives []DriveInfo) []DriveInfo {
 	return filteredDrives
 }
 
-type bySizeAndPriority []DriveInfo
+type byPriorityAndSize []DriveInfo
 
-func (a bySizeAndPriority) Len() int      { return len(a) }
-func (a bySizeAndPriority) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a bySizeAndPriority) Less(i, j int) bool {
-	if a[i].Size == a[j].Size {
-		// If sizes are equal
-		if strings.HasPrefix(a[i].Name, "nvme") && !strings.HasPrefix(a[j].Name, "nvme") {
-			// If only i has nvme prefix
-			return true
-		} else if !strings.HasPrefix(a[i].Name, "nvme") && strings.HasPrefix(a[j].Name, "nvme") {
-			// If only j has nvme prefix
-			return false
-		} else if strings.HasPrefix(a[i].Name, "nvme") && strings.HasPrefix(a[j].Name, "nvme") {
-			// If both have nvme prefix, choose chronologically
-			return a[i].Name < a[j].Name
-		} else {
-			// If none have nvme prefix, choose chronologically
+var driveTypeRanking = map[string]int{ // Priority: sd >> nvme >> others
+	"sd":   0,
+	"nvme": 1,
+	"NA":   2,
+}
+
+func (a byPriorityAndSize) Len() int      { return len(a) }
+func (a byPriorityAndSize) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a byPriorityAndSize) Less(i, j int) bool {
+	// If Priority is same
+	if driveTypeRanking[a[i].getDiskType()] == driveTypeRanking[a[j].getDiskType()] {
+		// If Size is same
+		if a[i].Size == a[j].Size {
+			// Choose the drive which comes first in alphabetical order
 			return a[i].Name < a[j].Name
 		}
+
+		// Choose the drive with lower size
+		return a[i].Size < a[j].Size
+
 	}
-	// Choose the drive with smallest size
-	return a[i].Size < a[j].Size
+	// Choose the drive with higher priority
+	return driveTypeRanking[a[i].getDiskType()] < driveTypeRanking[a[j].getDiskType()]
+
 }
