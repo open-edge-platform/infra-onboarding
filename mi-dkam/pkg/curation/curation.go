@@ -210,7 +210,6 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	modifiedScript := strings.ReplaceAll(string(content), "__REGISTRY_URL__", harborServer)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__FILE_SERVER__", fileServer)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__AUTH_SERVER__", config.AuthServer)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__GPGKey__", config.GPGKey)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_CLUSTER__", orchCluster)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_INFRA__", orchInfra)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_UPDATE__", orchUpdate)

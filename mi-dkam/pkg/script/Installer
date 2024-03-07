@@ -371,8 +371,14 @@ install_node_agent(){
     VERSION="node-agent-VERSION"
     echo $VERSION
     PKGFILE="node-agent_${VERSION}_amd64.deb" 
+
     echo download node agent
+    new_repo=0
     wget --no-check-certificate --header="Authorization: Bearer $RS_AT" https://${APT_SOURCE_URL}/pool/release/n/node-agent/${PKGFILE} -P $DEBIAN_LOCATION
+    if [ $? -ne 0 ]; then
+        new_repo=1
+        wget --no-check-certificate --header="Authorization: Bearer $RS_AT" https://${APT_SOURCE_URL}/repository/pool/24.03/n/no/${PKGFILE} -P $DEBIAN_LOCATION
+    fi
 
     echo "install node agent"
     apt-get install -y -o Dpkg::Options::="--force-confnew" $DEBIAN_LOCATION/$PKGFILE
@@ -393,9 +399,14 @@ install_node_agent(){
     done
     echo "install other agents below"
 
-    curl -kfsSL "https://$APT_SOURCE_URL/ledgepark-debian-signing-key-gpg-non-prod.pem" -H "Authorization: Bearer $RS_AT" | gpg --dearmor > /usr/share/keyrings/ledgepark-release.gpg
-    echo "deb [signed-by=/usr/share/keyrings/ledgepark-release.gpg] https://localhost:$APT_SOURCE_PROXY_PORT ledgepark release" | tee /etc/apt/sources.list.d/ledgepark-release.list
-    echo "deb [signed-by=/usr/share/keyrings/ledgepark-release.gpg] https://localhost:$APT_SOURCE_PROXY_PORT ledgepark main" | tee -a /etc/apt/sources.list.d/ledgepark-release.list
+    if [ $new_repo -eq 0 ]; then
+        curl -kfsSL "https://$APT_SOURCE_URL/ledgepark-debian-signing-key-gpg-non-prod.pem" -H "Authorization: Bearer $RS_AT" | gpg --dearmor > /usr/share/keyrings/ledgepark-release.gpg
+        echo "deb [signed-by=/usr/share/keyrings/ledgepark-release.gpg] https://localhost:$APT_SOURCE_PROXY_PORT ledgepark release" | tee /etc/apt/sources.list.d/ledgepark-release.list
+        echo "deb [signed-by=/usr/share/keyrings/ledgepark-release.gpg] https://localhost:$APT_SOURCE_PROXY_PORT ledgepark main" | tee -a /etc/apt/sources.list.d/ledgepark-release.list
+    else
+        curl -kfsSL "https://$APT_SOURCE_URL/edge-node.asc" -H "Authorization: Bearer $RS_AT" -o /etc/apt/trusted.gpg.d/edge-node.asc
+        echo "deb https://localhost:$APT_SOURCE_PROXY_PORT/repository 24.03 main" | tee /etc/apt/sources.list.d/edge-node.list
+    fi
 
     apt-get update
 }

@@ -17,7 +17,6 @@ const (
 	DevHarbor              = "amr-registry.caas.intel.com"
 	AuthServer             = "integration-dev.maestro.intel.com"
 	ReleaseVersion         = "latest-dev"
-	GPGKey                 = "ledgepark-debian-signing-key-gpg-non-prod.pem"
 	PVC                    = "/data/"
 	Tag                    = "manifest"
 	PreintTag              = "pre-int/manifest"
