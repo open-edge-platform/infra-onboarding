@@ -98,12 +98,7 @@ func TestConvertInstanceForOnboarding_Err(t *testing.T) {
 		RepoUrl: "osUrl.raw.gz;overlayUrl",
 	}
 	host := &computev1.HostResource{
-		HostNics: []*computev1.HostnicResource{
-			{
-				MacAddr:      "00:00:00:00:00:00",
-				BmcInterface: true,
-			},
-		},
+		PxeMac: "00:00:00:00:00:00",
 	}
 
 	tests := []struct {
@@ -148,27 +143,6 @@ func TestConvertInstanceForOnboarding_Err(t *testing.T) {
 				{RepoUrl: "invalidUrl"},
 			},
 			host:    host,
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name:        "Test case -3",
-			osResources: []*osv1.OperatingSystemResource{osInstance},
-			host:        &computev1.HostResource{},
-			want:        nil,
-			wantErr:     true,
-		},
-		{
-			name:        "Test case - 4",
-			osResources: []*osv1.OperatingSystemResource{osInstance},
-			host: &computev1.HostResource{
-				HostNics: []*computev1.HostnicResource{
-					{
-						MacAddr:      "00:00:00:00:00:00",
-						BmcInterface: false, // BMC interface not enabled
-					},
-				},
-			},
 			want:    nil,
 			wantErr: true,
 		},

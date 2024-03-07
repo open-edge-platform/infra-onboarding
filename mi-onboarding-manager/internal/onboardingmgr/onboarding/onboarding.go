@@ -19,7 +19,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
@@ -346,18 +345,6 @@ func ConvertInstanceForOnboarding(osResources []*osv1.OperatingSystemResource, h
 
 	var overlayURL string
 
-	bmcNics, err := util.GetBmcNicsFromHost(host)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(bmcNics) > 1 {
-		zlog.Warn().Msgf("Using the first BMC NIC, but more than one retrieved: %v.", bmcNics)
-	}
-
-	// we always assume that there is only one BMC NIC for a given host
-	bmcNIC := bmcNics[0]
-
 	for _, osr := range osResources {
 		osURL := osr.RepoUrl
 
@@ -407,8 +394,7 @@ func ConvertInstanceForOnboarding(osResources []*osv1.OperatingSystemResource, h
 			},
 		}
 
-		// Set MAC address of HostnicResource if bmcInterface is true
-		onboardingRequest.Hwdata[0].MacId = bmcNIC.MacAddr
+		onboardingRequest.Hwdata[0].MacId = host.GetPxeMac()
 
 		zlog.Debug().Msgf("Instance resource converted to onboarding request (MAC=%s, OS URL=%s, Overlay URL=%s",
 			onboardingRequest.Hwdata[0].MacId,

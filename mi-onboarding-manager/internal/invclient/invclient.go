@@ -341,6 +341,7 @@ func (c *OnboardingInventoryClient) UpdateHostResource(ctx context.Context, host
 		computev1.HostResourceFieldBmcIp,
 		computev1.HostResourceFieldBmcUsername,
 		computev1.HostResourceFieldBmcPassword,
+		computev1.HostResourceFieldUuid,
 		computev1.HostResourceFieldPxeMac,
 		computev1.HostResourceFieldHostname,
 		// other host fields are updated by Host Resource Manager
@@ -364,28 +365,6 @@ func (c *OnboardingInventoryClient) UpdateHostStateAndRuntimeStatus(ctx context.
 		computev1.HostResourceFieldHostStatus,
 		computev1.HostResourceFieldHostStatusIndicator,
 		computev1.HostResourceFieldHostStatusTimestamp,
-	})
-}
-
-func (c *OnboardingInventoryClient) CreateHostNICResource(ctx context.Context,
-	hostNIC *computev1.HostnicResource,
-) (string, error) {
-	return c.createResource(ctx, &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Hostnic{
-			Hostnic: hostNIC,
-		},
-	})
-}
-
-func (c *OnboardingInventoryClient) UpdateHostNIC(ctx context.Context, hostNIC *computev1.HostnicResource) error {
-	return c.UpdateInvResourceFields(ctx, hostNIC, []string{
-		computev1.HostnicResourceFieldKind,
-		computev1.HostnicResourceFieldDeviceName,
-		computev1.HostnicResourceEdgeHost,
-		computev1.HostnicResourceFieldMacAddr,
-		computev1.HostnicResourceFieldPeerMgmtIp,
-		computev1.HostnicResourceFieldBmcInterface,
-		// other host NIC fields are updated by Host Resource Manager
 	})
 }
 

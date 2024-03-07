@@ -18,7 +18,6 @@ import (
 	provider_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/provider/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
@@ -39,14 +38,7 @@ var (
 			computev1.HostResourceFieldBmcIp,
 			computev1.HostResourceFieldSerialNumber,
 			computev1.HostResourceFieldUuid,
-		},
-	}
-	HostnicFieldmask = &fieldmaskpb.FieldMask{
-		Paths: []string{
-			computev1.HostnicResourceFieldDeviceName,
-			computev1.HostnicResourceEdgeHost,
-			computev1.HostnicResourceFieldMacAddr,
-			computev1.HostnicResourceFieldBmcInterface,
+			computev1.HostResourceFieldPxeMac,
 		},
 	}
 )
@@ -96,12 +88,11 @@ func NewArtifactService(invClient *invclient.OnboardingInventoryClient, inventor
 	}, nil
 }
 
-func CopyNodeReqtoNodetData(payload []*pb.NodeData) ([]*computev1.HostResource, []*computev1.HostnicResource, error) {
-	zlog.Info().Msgf("CopyNodeReqtoNodetData")
+func CopyNodeReqToNodeData(payload []*pb.NodeData) ([]*computev1.HostResource, error) {
+	zlog.Info().Msgf("CopyNodeReqToNodeData")
 
-	zlog.Debug().Msgf("%d", len(payload))
+	zlog.Debug().Msgf("Parsing NodeData of length=%d", len(payload))
 	hosts := make([]*computev1.HostResource, 0)
-	hostNics := make([]*computev1.HostnicResource, 0)
 	for _, s := range payload {
 		for _, hwData := range s.Hwdata {
 			hostres := &computev1.HostResource{
@@ -109,38 +100,16 @@ func CopyNodeReqtoNodetData(payload []*pb.NodeData) ([]*computev1.HostResource, 
 				BmcIp:        hwData.SutIp,
 				SerialNumber: hwData.Serialnum,
 				Uuid:         hwData.Uuid,
+				PxeMac:       hwData.MacId,
 			}
-
-			/* TODO: Implement multiple NIC resources for each Host Resource/Node
-			 * some changes might be required in type HwData struct in protobuf (onboarding.pb.go) file
-			 *
-			 * TODO: This is just for test purporse only.
-			 *       Need to change it either for
-			 *       multiple host resource based on the pdctl command input
-			 *		 create a Jira ticket and address this before GA release
-			 */
-			hostnic := &computev1.HostnicResource{
-				Host:         hostres,
-				MacAddr:      hwData.MacId,
-				DeviceName:   hwData.HostNicDevName,
-				BmcInterface: true,
-			}
-
-			zlog.Debug().Msgf("MAC is %s \n", hwData.MacId)
-			zlog.Debug().Msgf("sut ip is %s \n", hwData.SutIp)
-			zlog.Debug().Msgf("uuid is %s \n", hwData.Uuid)
-			zlog.Debug().Msgf("serial num is %s \n", hwData.Serialnum)
-			zlog.Debug().Msgf("bmc ip is %s \n", hwData.BmcIp)
-			zlog.Debug().Msgf("Host nic dev name is %s \n", hwData.HostNicDevName)
-			zlog.Debug().Msgf("bmc interface is %t \n", hwData.BmcInterface)
+			zlog.Debug().Msgf("Adding HostResource: %v", hostres)
 			hosts = append(hosts, hostres)
-			hostNics = append(hostNics, hostnic)
 		}
 	}
 
-	zlog.Debug().Msgf("%d", len(hosts))
+	zlog.Debug().Msgf("Generates a list of hosts of length=%d", len(hosts))
 
-	return hosts, hostNics, nil
+	return hosts, nil
 }
 
 func CopyNodeDatatoNodeResp(payload []repository.NodeData, result string) ([]*pb.NodeData, error) {
@@ -173,11 +142,10 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 	zlog.Info().Msgf("CreateNodes")
 
 	/* Copy node data from user */
-	hostresdata, hostNics, _ := CopyNodeReqtoNodetData(req.Payload)
-	// TODO: CopyNodeReqtoNodetData currently returns a list of Host/Hostnic resources with just a single element.
-	//  We should change it to either multiple Host/Hostnic resources returned or return a single resource.
+	hostresdata, _ := CopyNodeReqToNodeData(req.Payload)
+	// TODO: CopyNodeReqToNodeData currently returns a list of Host resources with just a single element.
+	//  We should change it to either multiple Host resources returned or return a single resource.
 	host := hostresdata[0]
-	hostNic := hostNics[0]
 	/* Check if any node with the UUID exists already */
 	/* TODO: Need to check this hostresdata array for all the serial numbers existence
 	 *		 already in the system
@@ -201,28 +169,12 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 		return nil, err
 	}
 
-	/* TODO: Need to change it either to single host resource creation or
-	 *       multiple host resource based on the pdctl command input
-	 */
 	hostResID, err = s.invClient.CreateHostResource(ctx, host)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("Cannot create Host resource: %v", host)
 		return nil, err
 	}
 	zlog.Debug().Msgf("CreateHostResource ID = %s", hostResID)
-
-	/* TODO: This is just for test purporse only.
-	 *       Need to change it either for
-	 *       multiple host resource based on the pdctl command input
-	 *		 create a Jira ticket and address this before GA release
-	 */
-	hostNic.Host.ResourceId = hostResID
-	hostNicID, err := s.invClient.CreateHostNICResource(ctx, hostNic)
-	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("Cannot create Hostnic resource: %v", hostNic)
-		return nil, err
-	}
-	zlog.Debug().Msgf("CreateHostNicResource ID = %s", hostNicID)
 
 	if err := s.startZeroTouch(ctx, hostResID); err != nil {
 		zlog.MiSec().MiErr(err).Msgf("startZeroTouch error: %v", err)
@@ -234,7 +186,7 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 
 func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
 	zlog.Info().Msgf("DeleteNodes")
-	hostresdata, _, _ := CopyNodeReqtoNodetData(req.Payload)
+	hostresdata, _ := CopyNodeReqToNodeData(req.Payload)
 
 	/* TODO: Need to change it either to single host resource creation or
 	 *       multiple host resource based on the pdctl command input
@@ -291,18 +243,15 @@ func (s *NodeArtifactService) GetNodes(ctx context.Context, req *pb.NodeRequest)
 		return nil, err
 	}
 
-	zlog.Debug().Msgf("\n HostResource by GetNodes() = %v \n", hostresget)
+	zlog.Debug().Msgf("HostResource by GetNodes() = %v", hostresget)
 
-	if len(hostresget.HostNics) == 0 {
-		zlog.Info().Msgf("GetNodes() : Slice is empty \n")
-	}
 	return &pb.NodeResponse{Payload: req.Payload}, nil
 }
 
 func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
 	zlog.Info().Msgf("UpdateNodes")
 
-	host, bmcNics, _ := CopyNodeReqtoNodetData(req.Payload)
+	host, _ := CopyNodeReqToNodeData(req.Payload)
 
 	/* TODO: Need to change it either to single host resource creation or
 	 *       multiple host resource based on the pdctl command input
@@ -329,7 +278,8 @@ func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeReque
 	}
 
 	if !isSameHost || doHostUpdate {
-		err = s.invClient.UpdateHostResource(ctx, host[0])
+		host[0].ResourceId = hostInv.GetResourceId()
+		err = s.invClient.UpdateInvResourceFields(ctx, host[0], HostFieldmask.Paths)
 		if err != nil {
 			zlog.MiSec().MiErr(err).Msgf("UpdateNodes() : UpdateHostResource() Error : %v", err)
 			return nil, err
@@ -339,48 +289,11 @@ func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeReque
 			"Original Host: %v, Updated Host: %v", hostInv, host[0])
 	}
 
-	bmcNicsInv, err := util.GetBmcNicsFromHost(hostInv)
-	if err != nil {
-		zlog.MiSec().MiErr(err).Msg("Cannot get BMC interfaces from Host resource. Update won't be done.")
-		return &pb.NodeResponse{Payload: req.Payload}, nil
-	}
-
-	// current assumption is that there is always one BMC Hostnic resource
-	// FIXME: we should revisit this assumption in future
-	if len(bmcNicsInv) != 1 || len(bmcNics) != 1 {
-		zlog.MiSec().MiErr(err).Msgf(
-			"Cannot update BMC interfaces as the number of BMC interfaces associated with Host doesn't equal one. "+
-				"Inventory BMC Nics: %v, Updated BMC Nics: %v", bmcNicsInv, bmcNics)
-		return nil, inv_errors.Errorfc(codes.InvalidArgument, "Exactly one BMC interface should be provided")
-	}
-	originalBmcNic := bmcNicsInv[0]
-	updatedBmcNic := bmcNics[0]
-
-	doHostnicUpdate := false
-	isSameHostnic, err := util.IsSameHostnic(originalBmcNic, updatedBmcNic, HostnicFieldmask)
-	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("Failed to compare Hostnic resources, continuing to do update anyway")
-		doHostnicUpdate = true
-	}
-
-	if !isSameHostnic || doHostnicUpdate {
-		updatedBmcNic.ResourceId = originalBmcNic.ResourceId
-		updatedBmcNic.Host.ResourceId = hostInv.ResourceId
-		err = s.invClient.UpdateHostNIC(ctx, updatedBmcNic)
-		if err != nil {
-			zlog.MiSec().MiErr(err).Msgf("UpdateNodes() : UpdateHostnic() Error : %v", err)
-			return nil, err
-		}
-	} else {
-		zlog.Debug().Msgf("Skipping to update Hostnic resource due to no changes. "+
-			"Original Hostnic: %v, Updated Hostnic: %v", originalBmcNic, updatedBmcNic)
-	}
-
 	return &pb.NodeResponse{Payload: req.Payload}, nil
 }
 
 func (s *NodeArtifactService) startZeroTouch(ctx context.Context, hostResID string) error {
-	zlog.Info().Msg("Start zero touch...")
+	zlog.Info().Msgf("Starting zero touch for host ID %s...", hostResID)
 
 	host, err := s.invClient.GetHostResourceByResourceID(ctx, hostResID)
 	if err != nil {
@@ -390,6 +303,8 @@ func (s *NodeArtifactService) startZeroTouch(ctx context.Context, hostResID stri
 
 	// an Instance has been created for the Host, skip
 	if host.Instance != nil {
+		zlog.Debug().Msgf("An Instance (%s) is already created for a host %s",
+			host.GetInstance().GetResourceId(), host.GetResourceId())
 		return nil
 	}
 

@@ -88,7 +88,6 @@ func TestCopyNodeReqtoNodetData(t *testing.T) {
 		name    string
 		args    args
 		want    []*computev1.HostResource
-		want1   []*computev1.HostnicResource
 		wantErr bool
 	}{
 		{
@@ -101,22 +100,18 @@ func TestCopyNodeReqtoNodetData(t *testing.T) {
 			name:    "Non-empty Payload",
 			args:    args{payload: payloads},
 			want:    []*computev1.HostResource{},
-			want1:   []*computev1.HostnicResource{},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1, err := CopyNodeReqtoNodetData(tt.args.payload)
+			got, err := CopyNodeReqToNodeData(tt.args.payload)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("CopyNodeReqtoNodetData() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("CopyNodeReqToNodeData() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if reflect.DeepEqual(got, tt.want) {
-				t.Errorf("CopyNodeReqtoNodetData() got = %v, want %v", got, tt.want)
-			}
-			if reflect.DeepEqual(got1, tt.want1) {
-				t.Errorf("CopyNodeReqtoNodetData() got1 = %v, want %v", got1, tt.want1)
+				t.Errorf("CopyNodeReqToNodeData() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -1837,4 +1832,3 @@ func TestNodeArtifactService_startZeroTouch_Case(t *testing.T) {
 		})
 	}
 }
-

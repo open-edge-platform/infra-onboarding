@@ -6,6 +6,7 @@ package reconcilers
 
 import (
 	"context"
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onbworkflowclient"
@@ -173,14 +174,13 @@ func (ir *InstanceReconciler) reconcileInstance(
 	return request.Ack()
 }
 
-func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
-	bmcNic *computev1.HostnicResource, artifactInfo utils.ArtifactData) utils.DeviceInfo {
+func convertInstanceToDeviceInfo(instance *computev1.InstanceResource, artifactInfo utils.ArtifactData) utils.DeviceInfo {
 	host := instance.GetHost() // eager-loaded
 
 	deviceInfo := utils.DeviceInfo{
 		GUID:            host.GetUuid(),
 		HwSerialID:      host.GetSerialNumber(),
-		HwMacID:         bmcNic.GetMacAddr(), // TODO: from hostnics, maybe we can add "bmc_mac" to Host object in Inventory to avoid querying hostnics?
+		HwMacID:         host.GetPxeMac(),
 		HwIP:            host.GetBmcIp(),
 		SecurityFeature: uint32(instance.GetSecurityFeature()),
 		DiskType:        os.Getenv("DISK_PARTITION"),
@@ -253,17 +253,12 @@ func convertInstanceToArtifactInfo(instance *computev1.InstanceResource) (utils.
 }
 
 func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance *computev1.InstanceResource) error {
-	bmcNic, err := ir.invClient.GetHostBmcNic(ctx, instance.GetHost())
-	if err != nil {
-		return err
-	}
-
 	artifactInfo, err := convertInstanceToArtifactInfo(instance)
 	if err != nil {
 		return err
 	}
 
-	deviceInfo := convertInstanceToDeviceInfo(instance, bmcNic, artifactInfo)
+	deviceInfo := convertInstanceToDeviceInfo(instance, artifactInfo)
 	oldInstance := proto.Clone(instance).(*computev1.InstanceResource)
 
 	zlogInst.Debug().Msgf("Trying to provision Instance %s with OS %s",

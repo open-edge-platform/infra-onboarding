@@ -102,8 +102,8 @@ func TestSouthbound_CreateNodes(t *testing.T) {
 		assert.Equal(t, hostSN, hostInv.GetSerialNumber())
 		assert.Equal(t, hostGUID, hostInv.GetUuid())
 		assert.Equal(t, bmcIP, hostInv.GetBmcIp())
+		assert.Equal(t, "90:49:fa:07:6c:fd", hostInv.GetPxeMac())
 		assert.Equal(t, computev1.BaremetalControllerKind_BAREMETAL_CONTROLLER_KIND_PDU, hostInv.GetBmcKind())
-		require.Len(t, hostInv.GetHostNics(), 1)
 	})
 }
 
@@ -270,55 +270,12 @@ func TestSouthbound_UpdateNodes(t *testing.T) {
 		// do update with new BMC IP and MAC address
 		nodeReq.Payload[0].Hwdata[0].BmcIp = "10.10.10.150"
 		nodeReq.Payload[0].Hwdata[0].MacId = "aa:bb:cc:dd:ee:ff"
-		// should update both Host and Hostnic
+
 		_, err = OMTestClient.UpdateNodes(ctx, nodeReq)
 		require.NoError(t, err)
 
 		// do update again, there should be no request to Inventory now (check logs)
 		_, err = OMTestClient.UpdateNodes(ctx, nodeReq)
 		require.NoError(t, err)
-
-		// change MAC address again, only Hostnic should be updated
-		nodeReq.Payload[0].Hwdata[0].MacId = "aa:bb:cc:dd:ee:gg"
-		_, err = OMTestClient.UpdateNodes(ctx, nodeReq)
-		require.NoError(t, err)
-	})
-
-	t.Run("Error_MoreThanOneBmcNic", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
-		nodeReq := &pb.NodeRequest{
-			Payload: []*pb.NodeData{
-				{
-					Hwdata: []*pb.HwData{
-						{
-							MacId:          "90:49:fa:07:6c:fd",
-							SutIp:          "10.10.1.1",
-							Serialnum:      hostSN,
-							Uuid:           uuid.NewString(),
-							BmcIp:          "10.10.10.10",
-							BmcInterface:   true,
-							HostNicDevName: "bmc0",
-						},
-					},
-				},
-			},
-		}
-		_, err := OMTestClient.CreateNodes(ctx, nodeReq)
-		require.NoError(t, err)
-
-		nodeReq.Payload[0].Hwdata = append(nodeReq.Payload[0].Hwdata, &pb.HwData{
-			MacId:          "90:49:fa:07:6c:ff",
-			SutIp:          "10.10.1.20",
-			Serialnum:      hostSN,
-			Uuid:           uuid.NewString(),
-			BmcIp:          "10.10.10.20",
-			BmcInterface:   true,
-			HostNicDevName: "bmc1",
-		})
-
-		_, err = OMTestClient.UpdateNodes(ctx, nodeReq)
-		require.Error(t, err)
 	})
 }
