@@ -13,9 +13,11 @@ import (
 
 func TestNewWorkflow(t *testing.T) {
 	type args struct {
-		name string
-		ns   string
-		mac  string
+		name        string
+		ns          string
+		mac         string
+		hardwareRef string
+		templateRef string
 	}
 	tests := []struct {
 		name string
@@ -48,7 +50,7 @@ func TestNewWorkflow(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewWorkflow(tt.args.name, tt.args.ns, tt.args.mac); !reflect.DeepEqual(got, tt.want) {
+			if got := NewWorkflow(tt.args.name, tt.args.ns, tt.args.mac, tt.args.hardwareRef, tt.args.templateRef); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewWorkflow() = %v, want %v", got, tt.want)
 			}
 		})

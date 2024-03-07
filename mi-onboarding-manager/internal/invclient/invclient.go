@@ -275,6 +275,41 @@ func (c *OnboardingInventoryClient) GetHostResourceByResourceID(ctx context.Cont
 	return host, nil
 }
 
+func (c *OnboardingInventoryClient) GetHostBmcNic(ctx context.Context, host *computev1.HostResource) (*computev1.HostnicResource, error) {
+	filter := &inv_v1.ResourceFilter{
+		Resource: &inv_v1.Resource{
+			Resource: &inv_v1.Resource_Hostnic{},
+		},
+		Filter: fmt.Sprintf("%s.%s = %q AND %s = true",
+			computev1.HostnicResourceEdgeHost,
+			computev1.HostResourceFieldResourceId,
+			host.GetResourceId(),
+			computev1.HostnicResourceFieldBmcInterface),
+	}
+
+	resources, err := c.listAllResources(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	hostNics, err := util.GetSpecificResourceList[*computev1.HostnicResource](resources)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(hostNics) == 0 {
+		return nil, inv_errors.Errorfc(codes.NotFound,
+			"No BMC interfaces found for Host %s", host.ResourceId)
+	}
+
+	if len(hostNics) > 1 {
+		zlog.Warn().Msgf("More than one BMC interface found for host %s, using the first NIC from the list.",
+			host.GetResourceId())
+	}
+
+	return hostNics[0], nil
+}
+
 func (c *OnboardingInventoryClient) GetHostResourceByUUID(
 	ctx context.Context,
 	uuid string,
@@ -472,6 +507,29 @@ func (c *OnboardingInventoryClient) SetInstanceStatus(ctx context.Context, insta
 	}
 
 	return c.UpdateInvResourceFields(ctx, updateInstance, []string{
+		computev1.InstanceResourceFieldStatus,
+		computev1.InstanceResourceFieldProvisioningStatus,
+		computev1.InstanceResourceFieldProvisioningStatusIndicator,
+		computev1.InstanceResourceFieldProvisioningStatusTimestamp,
+	})
+}
+
+func (c *OnboardingInventoryClient) SetInstanceStatusAndCurrentState(ctx context.Context, instanceID string,
+	currentState computev1.InstanceState,
+	instanceStatus computev1.InstanceStatus,
+	provisioningStatus inv_status.ResourceStatus,
+) error {
+	updateInstance := &computev1.InstanceResource{
+		ResourceId:                  instanceID,
+		CurrentState:                currentState,
+		Status:                      instanceStatus,
+		ProvisioningStatus:          provisioningStatus.Status,
+		ProvisioningStatusIndicator: provisioningStatus.StatusIndicator,
+		ProvisioningStatusTimestamp: time.Now().UTC().String(),
+	}
+
+	return c.UpdateInvResourceFields(ctx, updateInstance, []string{
+		computev1.InstanceResourceFieldCurrentState,
 		computev1.InstanceResourceFieldStatus,
 		computev1.InstanceResourceFieldProvisioningStatus,
 		computev1.InstanceResourceFieldProvisioningStatusIndicator,

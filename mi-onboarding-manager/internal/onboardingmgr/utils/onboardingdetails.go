@@ -53,4 +53,9 @@ const (
 	ProdJammy   = "prod_jammy"
 	ProdFocal   = "prod_focal"
 	ProdFocalMs = "prod_focal-ms"
+
+	ImgTypeBkc     = "bkc"
+	ImgTypeJammy   = "jammy"
+	ImgTypeFocal   = "focal"
+	ImgTypeFocalMs = "focal-ms"
 )

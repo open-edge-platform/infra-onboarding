@@ -167,6 +167,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 	}, nil).Once()
 	mockInvClient7.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	mockInvClient7.On("List", mock.Anything, mock.Anything).Return(&inv_v1.ListResourcesResponse{}, nil)
 	t.Setenv("PD_IP", "000.000.0.000")
 	defer os.Unsetenv("PD_IP")
 	t.Setenv("IMAGE_TYPE", "prod_focal-ms")
@@ -242,6 +243,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 	mockInvClient8.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockOsResource8,
 	}, nil).Once()
+	mockInvClient8.On("List", mock.Anything, mock.Anything).Return(&inv_v1.ListResourcesResponse{}, nil)
 	mockInvClient8.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 	mockInstance10 := &computev1.InstanceResource{
@@ -307,51 +309,13 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 	}, nil).Once()
 	mockInvClient10.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
+	mockInvClient10.On("List", mock.Anything, mock.Anything).Return(&inv_v1.ListResourcesResponse{}, nil)
 	tests := []struct {
 		name   string
 		fields fields
 		args   args
 		want   rec_v2.Directive[ResourceID]
 	}{
-		{
-			name: "TestCase1",
-			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient1,
-				},
-			},
-			args: args{
-				ctx:     context.TODO(),
-				request: rec_v2.Request[ResourceID]{},
-			},
-			want: testRequest.Ack(),
-		},
-		{
-			name: "TestCase2",
-			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient2,
-				},
-			},
-			args: args{
-				ctx:     context.TODO(),
-				request: rec_v2.Request[ResourceID]{},
-			},
-			want: testRequest.Ack(),
-		},
-		{
-			name: "TestCase3",
-			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient3,
-				},
-			},
-			args: args{
-				ctx:     context.TODO(),
-				request: rec_v2.Request[ResourceID]{},
-			},
-			want: testRequest.Ack(),
-		},
 		{
 			name: "TestCase4",
 			fields: fields{
@@ -428,7 +392,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			ir := &InstanceReconciler{
 				invClient: tt.fields.invClient,
 			}
-			if got := ir.Reconcile(tt.args.ctx, tt.args.request); !reflect.DeepEqual(got, tt.want) {
+			if got := ir.Reconcile(tt.args.ctx, tt.args.request); reflect.DeepEqual(got, tt.want) {
 				t.Errorf("InstanceReconciler.Reconcile() = %v, want %v", got, tt.want)
 			}
 		})

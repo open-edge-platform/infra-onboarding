@@ -49,7 +49,7 @@ func newKeycloakSecretService(ctx context.Context) (AuthService, error) {
 	if err != nil {
 		return nil, err
 	}
-	return kss, err
+	return kss, nil
 }
 
 func (k *keycloakService) login(ctx context.Context, keycloakURL string) error {
@@ -69,14 +69,16 @@ func (k *keycloakService) login(ctx context.Context, keycloakURL string) error {
 	return nil
 }
 
-func (k *keycloakService) CreateCredentialsWithUUID(ctx context.Context, uuid string) (interface{}, string, error) {
+func (k *keycloakService) CreateCredentialsWithUUID(ctx context.Context, uuid string) (string, string, error) {
 	edgeNodeClient := getEdgeNodeClientFromTemplate(uuid)
+
+	zlog.Info().Msgf("Creating Keycloak credentials for host %s", uuid)
 
 	id, err := k.keycloakClient.CreateClient(ctx, k.jwtToken.AccessToken, KeycloakRealm, edgeNodeClient)
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to create Keycloak client with UUID %s", uuid)
 		zlog.MiSec().Err(err).Msg(errMsg)
-		return inv_errors.Errorf(errMsg), "", nil
+		return "", "", inv_errors.Errorf(errMsg)
 	}
 
 	zlog.MiSec().Debug().Msgf("Keycloak credentials for host %s created successfully, ID: %s",
@@ -86,23 +88,72 @@ func (k *keycloakService) CreateCredentialsWithUUID(ctx context.Context, uuid st
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to get Keycloak client secret for client ID %s (host UUID %s)", id, uuid)
 		zlog.MiSec().Err(err).Msg(errMsg)
-		return inv_errors.Errorf(errMsg), "", nil
+		return "", "", inv_errors.Errorf(errMsg)
 	}
 
 	if creds.Value == nil {
 		err = inv_errors.Errorf("Received empty client secret for client ID %s (host UUID %s)", id, uuid)
 		zlog.MiSec().Err(err).Msg("")
-		return err, "", err
+		return "", "", err
 	}
 
 	zlog.MiSec().Debug().Msgf("Keycloak client secret for host %s obtained successfully, ID: %s",
 		uuid, id)
 
-	return *creds.Value, *edgeNodeClient.ClientID, nil
+	return *edgeNodeClient.ClientID, *creds.Value, nil
+}
+
+func (k *keycloakService) GetCredentialsByUUID(ctx context.Context, uuid string) (string, string, error) {
+	edgeNodeClientID := getEdgenodeClientName(uuid)
+
+	zlog.Info().Msgf("Getting Keycloak credentials for host %s", uuid)
+
+	clients, err := k.keycloakClient.GetClients(ctx, k.jwtToken.AccessToken, KeycloakRealm, gocloak.GetClientsParams{
+		ClientID: &edgeNodeClientID,
+	})
+	if err != nil {
+		errMsg := fmt.Sprintf("Keycloak client for edge node by UUID %s does not exist", uuid)
+		zlog.MiSec().Err(err).Msg(errMsg)
+		return "", "", inv_errors.Errorf(errMsg)
+	}
+
+	if len(clients) == 0 {
+		errMsg := fmt.Sprintf("No Keycloak clients found for UUID %s", uuid)
+		zlog.MiSec().Err(err).Msg(errMsg)
+		return "", "", inv_errors.Errorfc(codes.NotFound, errMsg)
+	}
+
+	// This should never happen but we could have more than one Keycloak client for a UUID.
+	// We print warning and get first.
+	if len(clients) > 1 {
+		zlog.Warn().Msgf("More than one Keycloak client found for UUID %s, getting first one", uuid)
+	}
+
+	secret := clients[0].Secret
+	// if we received secret as part of GetClients(), return it. Otherwise, use GetClientSecret().
+	if secret != nil {
+		return edgeNodeClientID, *secret, nil
+	}
+
+	id := *clients[0].ID
+	creds, err := k.keycloakClient.GetClientSecret(ctx, k.jwtToken.AccessToken, KeycloakRealm, id)
+	if err != nil {
+		errMsg := fmt.Sprintf("Failed to get Keycloak client secret for client ID %s (host UUID %s)", id, uuid)
+		zlog.MiSec().Err(err).Msg(errMsg)
+		return "", "", inv_errors.Errorf(errMsg)
+	}
+
+	if creds.Value == nil {
+		err = inv_errors.Errorf("Received empty client secret for client ID %s (host UUID %s)", id, uuid)
+		zlog.MiSec().Err(err).Msg("")
+		return "", "", err
+	}
+
+	return edgeNodeClientID, *creds.Value, nil
 }
 
 func (k *keycloakService) RevokeCredentialsByUUID(ctx context.Context, uuid string) error {
-	edgeNodeClientID := fmt.Sprintf("%s%s", ENCredentialsPrefix, uuid)
+	edgeNodeClientID := getEdgenodeClientName(uuid)
 
 	clients, err := k.keycloakClient.GetClients(ctx, k.jwtToken.AccessToken, KeycloakRealm, gocloak.GetClientsParams{
 		ClientID: &edgeNodeClientID,
@@ -153,11 +204,15 @@ func (k *keycloakService) Logout(ctx context.Context) {
 	}
 }
 
+func getEdgenodeClientName(uuid string) string {
+	return fmt.Sprintf("%s%s", ENCredentialsPrefix, uuid)
+}
+
 // based on https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-deployment/blob/6589185238d3c17c168b2f072a2588b6621688ae/helmfile.d/environments/mp-keycloak/base/values.yaml#L366
 func getEdgeNodeClientFromTemplate(uuid string) gocloak.Client {
 	description := fmt.Sprintf("Client to use by Edge Node %s, created by Onboarding Manager at %s",
 		uuid, time.Now().UTC().String())
-	clientID := fmt.Sprintf("edgenode-%s", uuid)
+	clientID := getEdgenodeClientName(uuid)
 	name := fmt.Sprintf("Edge Node %s", uuid)
 	authTypeClientSecret := "client-secret"
 	protocolOpenidConnect := "openid-connect"

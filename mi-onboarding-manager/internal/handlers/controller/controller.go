@@ -26,7 +26,7 @@ var (
 )
 
 const (
-	defaultTickerPeriod = 3 * time.Second
+	defaultTickerPeriod = 1 * time.Second
 	parallelism         = 1
 )
 
@@ -54,9 +54,8 @@ func New(
 	filters[inv_v1.ResourceKind_RESOURCE_KIND_HOST] = hostEventFilter
 
 	instRcnl := reconcilers.NewInstanceReconciler(invClient, enableTracing)
-	const reconcileTimeDuration = 3 * time.Hour
 	instCtrl := rec_v2.NewController[reconcilers.ResourceID](
-		instRcnl.Reconcile, rec_v2.WithTimeout(reconcileTimeDuration), rec_v2.WithParallelism(parallelism))
+		instRcnl.Reconcile, rec_v2.WithParallelism(parallelism))
 	controllers[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instCtrl
 	filters[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instanceEventFilter
 

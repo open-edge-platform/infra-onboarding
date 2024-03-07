@@ -9,7 +9,9 @@ import "context"
 type AuthService interface {
 	// CreateCredentialsWithUUID creates EN credentials based on UUID.
 	// The credentials can be further used by edge node agents.
-	CreateCredentialsWithUUID(ctx context.Context, uuid string) (interface{}, string, error)
+	CreateCredentialsWithUUID(ctx context.Context, uuid string) (string, string, error)
+	// GetCredentialsByUUID obtains EN credentials based on UUID.
+	GetCredentialsByUUID(ctx context.Context, uuid string) (string, string, error)
 	// RevokeCredentialsByUUID revokes EN credentials based on UUID.
 	RevokeCredentialsByUUID(ctx context.Context, uuid string) error
 

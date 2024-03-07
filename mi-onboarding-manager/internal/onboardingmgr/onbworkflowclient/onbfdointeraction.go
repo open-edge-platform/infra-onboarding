@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"net/http"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/auth"
@@ -19,25 +20,29 @@ func SendFileToOwner(ownerIP, ownerSvcPort, guid, clientidsuffix, key string) er
 	attempts := 0
 retry:
 	url := fmt.Sprintf("http://%s:%s/api/v1/owner/resource?filename=%s_%s", ownerIP, ownerSvcPort, guid, clientidsuffix)
-	print(url)
+
+	zlog.Info().Msgf("Sending file %s_%s to FDO owner", guid, clientidsuffix)
+
 	resp, err := http.Post(url, "text/plain", bytes.NewReader([]byte(key)))
 	if err != nil {
-		fmt.Println("Owner resource API failed:", err)
-		return err
+		zlog.MiSec().MiErr(err).Msg("")
+		return inv_errors.Errorf("Failed to send file to FDO owner via resource API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		if attempts < 2 { // Check if we have retries left, considering 0 as the first attempt.12
+		if attempts < 2 { // Check if we have retries left, considering 0 as the first attempt.
 			attempts++
-			fmt.Println("Owner resource API failed:", resp.StatusCode)
+			zlog.Debug().Msgf("Retrying to send file %s_%s to FDO owner, attempts=%d",
+				guid, clientidsuffix, attempts)
 			goto retry
 		}
 
-		return fmt.Errorf("owner api failed with status code %d", resp.StatusCode)
+		return inv_errors.Errorf("Failed to reach FDO Owner API with status code %v, attempts=%d",
+			resp.StatusCode, attempts)
 	}
 
-	fmt.Println("Owner resource API is success", resp.StatusCode)
+	zlog.Debug().Msgf("File %s_%s successfully sent to FDO owner via resource API", guid, clientidsuffix)
 	return nil
 }
 
@@ -45,24 +50,25 @@ func ExecuteSVI(ownerIP, ownerSvcPort, clientidsuffix, clientsecretsuffix string
 	url := fmt.Sprintf("http://%s:%s/api/v1/owner/svi", ownerIP, ownerSvcPort)
 	payload := fmt.Sprintf(`[{"filedesc" : "client_id","resource" : "$(guid)_%s"},{"filedesc" : "client_secret","resource" : "$(guid)_%s"}]`, clientidsuffix, clientsecretsuffix)
 
+	zlog.Info().Msgf("Executing SVI for %s and %s", clientidsuffix, clientsecretsuffix)
+
 	req, err := http.NewRequest("POST", url, bytes.NewBufferString(payload))
 	if err != nil {
-		fmt.Println("Error creating HTTP request:", err)
+		zlog.MiSec().MiErr(err).Msg("")
 		return err
 	}
-	fmt.Println(payload)
-	print(url, payload)
 	req.Header.Set("Content-Type", "text/plain")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error sending HTTP request:", err)
+		zlog.MiSec().MiErr(err).Msg("")
 		return err
 	}
 	defer resp.Body.Close()
 
-	fmt.Println("Owner svi API is success", resp.Status)
+	zlog.Debug().Msgf("Owner SVI API executed successfully for %s and %s", clientidsuffix, clientsecretsuffix)
+
 	return nil
 }
 
@@ -97,10 +103,10 @@ func GetClientData(deviceGUID string) (string, string, error) {
 	}
 	defer authService.Logout(ctx)
 
-	clientSecret, clientID, credsErr := authService.CreateCredentialsWithUUID(ctx, deviceGUID)
+	clientID, clientSecret, credsErr := authService.CreateCredentialsWithUUID(ctx, deviceGUID)
 	if credsErr != nil {
 		return "", "", credsErr
 	}
 
-	return clientSecret.(string), clientID, nil
+	return clientID, clientSecret, nil
 }

@@ -24,12 +24,8 @@ import (
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/tinkerbell"
-	tinkv1alpha1 "github.com/tinkerbell/tink/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -41,23 +37,6 @@ var rvEnabled = flag.Bool("rvenabled", false, "Set to true if you have enabled r
 func GenerateMacIDString(macID string) string {
 	macWithoutColon := strings.ReplaceAll(macID, ":", "")
 	return strings.ToLower(macWithoutColon)
-}
-
-func newK8SClient() (client.Client, error) {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	if schemeErr := tinkv1alpha1.AddToScheme(scheme.Scheme); schemeErr != nil {
-		return nil, schemeErr
-	}
-
-	kubeClient, err := client.New(config, client.Options{Scheme: scheme.Scheme})
-	if err != nil {
-		return nil, err
-	}
-	return kubeClient, nil
 }
 
 func readUIDFromFile(filePath string) (string, error) {
@@ -219,6 +198,7 @@ api:
 	url := "http://" + onrIp + ":" + onrPort + "/api/v1/certificate?alias=" + attestationType
 	resp, err := apiCalls("GET", url, authType, apiUser, onrApiPasswd, []byte{}, deviceinfo.HwMacID)
 	if err != nil {
+		zlog.MiSec().MiErr(err).Msgf("")
 		return "", fmt.Errorf("Error1 Details:%v", err)
 	}
 	defer resp.Body.Close()
@@ -233,6 +213,7 @@ api:
 		url = "http://" + mfgIp + ":" + mfgPort + "/api/v1/mfg/vouchers/" + serialNo
 		resp, err := apiCalls("POST", url, authType, apiUser, mfgApiPasswd, ownerCertificate, deviceinfo.HwMacID)
 		if err != nil {
+			zlog.MiSec().MiErr(err).Msgf("")
 			return "", fmt.Errorf("error Details:%v ", err)
 		}
 		if resp.StatusCode == http.StatusOK {
@@ -246,6 +227,7 @@ api:
 			url = "http://" + onrIp + ":" + onrPort + "/api/v1/owner/vouchers/"
 			resp, err = apiCalls("POST", url, authType, apiUser, onrApiPasswd, extendVoucher, deviceinfo.HwMacID)
 			if err != nil {
+				zlog.MiSec().MiErr(err).Msgf("")
 				return "", fmt.Errorf("error details :%v", err)
 			}
 			if resp.StatusCode == http.StatusOK {
@@ -260,6 +242,7 @@ api:
 					url := fmt.Sprintf("http://%s:%s/api/v1/to0/%s", onrIp, onrPort, deviceGuid)
 					resp, err := apiCalls("GET", url, authType, apiUser, onrApiPasswd, deviceGuid, deviceinfo.HwMacID)
 					if err != nil {
+						zlog.MiSec().MiErr(err).Msgf("")
 						return "", fmt.Errorf("error Details:%v", err)
 					}
 					if resp.StatusCode == http.StatusOK {
@@ -347,7 +330,7 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string, artifacti
 	zlog.Info().Msgf("ProdWorkflowCreation starting for host %s (IP: %s)",
 		deviceInfo.GUID, deviceInfo.HwIP)
 
-	kubeClient, err := newK8SClient()
+	kubeClient, err := tinkerbell.NewK8SClient()
 	if err != nil {
 		return err
 	}
@@ -429,9 +412,8 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string, artifacti
 	}
 	fmt.Printf("template workflow applied workflowname:%s", tmpl.Name)
 
-	wf := tinkerbell.NewWorkflow(fmt.Sprintf("workflow-%s-prod", id), ns, deviceInfo.HwMacID)
-	wf.Spec.HardwareRef = "machine-" + id
-	wf.Spec.TemplateRef = fmt.Sprintf("%s-%s-prod", deviceInfo.ImType, id)
+	wf := tinkerbell.NewWorkflow(fmt.Sprintf("workflow-%s-prod", id), ns, deviceInfo.HwMacID,
+		"machine-"+id, fmt.Sprintf("%s-%s-prod", deviceInfo.ImType, id))
 	if err := kubeClient.Create(ctx, wf); err != nil {
 		return err
 	}
@@ -475,7 +457,7 @@ func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string, artifacti
 }
 
 func DiWorkflowCreation(deviceInfo utils.DeviceInfo) (string, error) {
-	kubeClient, err := newK8SClient()
+	kubeClient, err := tinkerbell.NewK8SClient()
 	if err != nil {
 		return "", err
 	}
@@ -505,9 +487,7 @@ func DiWorkflowCreation(deviceInfo utils.DeviceInfo) (string, error) {
 	}
 	fmt.Printf("template workflow applied workflowname:%s", tmpl.Name)
 
-	wf := tinkerbell.NewWorkflow("workflow-"+id, ns, deviceInfo.HwMacID)
-	wf.Spec.HardwareRef = hw.Name
-	wf.Spec.TemplateRef = tmpl.Name
+	wf := tinkerbell.NewWorkflow("workflow-"+id, ns, deviceInfo.HwMacID, hw.Name, tmpl.Name)
 	if kubeCreateErr := kubeClient.Create(ctx, wf); kubeCreateErr != nil {
 		return "", kubeCreateErr
 	}

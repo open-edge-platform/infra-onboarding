@@ -4,8 +4,13 @@
 package tinkerbell
 
 import (
+	"context"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func NewHardware(name, ns, id, device, ip, gateway string) *tink.Hardware {
@@ -61,4 +66,65 @@ func NewHardware(name, ns, id, device, ip, gateway string) *tink.Hardware {
 	}
 
 	return hw
+}
+
+// TODO (LPIO-1865): We can probably optimize it. Instead of doing GET+CREATE we can try CREATE and check if resource already exists.
+func CreateHardwareIfNotExists(ctx context.Context, k8sCli client.Client, k8sNamespace string, deviceInfo utils.DeviceInfo) error {
+	hwInfo := NewHardware(
+		"machine-"+deviceInfo.GUID,
+		k8sNamespace,
+		deviceInfo.HwMacID,
+		deviceInfo.DiskType, deviceInfo.HwIP, deviceInfo.Gateway)
+
+	obj := &tink.Hardware{}
+	err := k8sCli.Get(ctx, client.ObjectKeyFromObject(hwInfo), obj)
+	if err != nil && errors.IsNotFound(err) {
+		zlog.Debug().Msgf("Creating new Tinkerbell hardware %s for host %s.", hwInfo.Name, deviceInfo.GUID)
+
+		createErr := k8sCli.Create(ctx, hwInfo)
+		if createErr != nil {
+			zlog.MiSec().MiErr(err).Msgf("")
+			return inv_errors.Errorf("Failed to create Tinkerbell hardware %s", hwInfo.Name)
+		}
+
+		return nil
+	}
+
+	if err != nil {
+		zlog.MiSec().MiErr(err).Msgf("")
+		// some other error that may need retry
+		return inv_errors.Errorf("Failed to check if Tinkerbell hardware %s exists.", hwInfo.Name)
+	}
+
+	zlog.Debug().Msgf("Tinkerbell hardware %s for host %s already exists.", hwInfo.Name, deviceInfo.GUID)
+
+	// already exists, do not return error
+	return nil
+}
+
+func DeleteHardwareForHostIfExist(ctx context.Context, k8sNamespace string, hostUUID string) error {
+	zlog.Info().Msgf("Deleting DI workflow resources for host %s", hostUUID)
+
+	kubeClient, err := NewK8SClient()
+	if err != nil {
+		return err
+	}
+
+	hw := &tink.Hardware{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Hardware",
+			APIVersion: "tinkerbell.org/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "machine-" + hostUUID,
+			Namespace: k8sNamespace,
+		},
+	}
+
+	if err = kubeClient.Delete(ctx, hw); err != nil && !errors.IsNotFound(err) {
+		zlog.MiSec().MiErr(err).Msg("")
+		return inv_errors.Errorf("Failed to delete Tink hardware resources for host %s", hostUUID)
+	}
+
+	return nil
 }

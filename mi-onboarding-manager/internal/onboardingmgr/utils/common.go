@@ -6,14 +6,49 @@ SPDX-License-Identifier: Apache-2.0
 package utils
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
-	logging "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"google.golang.org/protobuf/proto"
+
+	"regexp"
+	"strings"
+
+	logging "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 )
+
+func CalculateRootFS(imageType, diskDev string) string {
+	rootFSPartNo := "1"
+
+	if imageType == "bkc" {
+		rootFSPartNo = "1"
+	}
+
+	// Use regular expression to check if diskDev ends with a numeric digit
+	match, _ := regexp.MatchString(".*[0-9]$", diskDev)
+
+	if match {
+		return fmt.Sprintf("p%s", rootFSPartNo)
+	}
+
+	return rootFSPartNo
+}
+
+// ReplaceHostIP finds %host_ip% in the url string and replaces it with ip
+func ReplaceHostIP(url, ip string) string {
+	// Define the regular expression pattern to match #host_ip
+	re := regexp.MustCompile(`%host_ip%`)
+	return re.ReplaceAllString(url, ip)
+}
+
+// TODO : Will scale it in future accordingly
+func IsValidOSURLFormat(osURL string) bool {
+	expectedSuffix := ".raw.gz" // Checks if the OS URL is in the expected format
+	return strings.HasSuffix(osURL, expectedSuffix)
+}
 
 var (
 	clientName = "Onbcommon"

@@ -78,7 +78,7 @@ var (
 	zlogInst = logging.GetLogger(instanceReconcilerLoggerName)
 )
 
-func generateGatewayFromBaseIP(baseIP string) string {
+func GenerateGatewayFromBaseIP(baseIP string) string {
 	// Extract the last part of the base IP and replace it with "1" to get the gateway
 	lastPart := strings.Split(baseIP, ".")[3]
 	return baseIP[:len(baseIP)-len(lastPart)] + "1"
@@ -98,7 +98,7 @@ func createDeviceInfoListNAzureEnv(copyOfRequest *pb.OnboardingRequest) ([]utils
 			SecurityFeature: hw.SecurityFeature,
 			DiskType:        os.Getenv("DISK_PARTITION"),
 			LoadBalancerIP:  os.Getenv("IMG_URL"),
-			Gateway:         generateGatewayFromBaseIP(hw.SutIp),
+			Gateway:         GenerateGatewayFromBaseIP(hw.SutIp),
 			ProvisionerIP:   os.Getenv("PD_IP"),
 			ImType:          os.Getenv("IMAGE_TYPE"),
 			RootfspartNo:    os.Getenv("OVERLAY_URL"),
@@ -189,7 +189,7 @@ func DeviceOnboardingManagerNzt(ctx context.Context, deviceDetails utils.DeviceI
 		deviceDetails.GUID, deviceDetails.HwIP, deviceInfo, artifactinfo)
 
 	// Get client data
-	clientSecret, clientID, err := onbworkflowclient.GetClientData(deviceInfo.GUID)
+	clientID, clientSecret, err := onbworkflowclient.GetClientData(deviceInfo.GUID)
 	if err != nil {
 		return fmt.Errorf("error getting client data: %v", err)
 	}

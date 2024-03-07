@@ -4,6 +4,7 @@
 package reconcilers
 
 import (
+	"google.golang.org/grpc/codes"
 	"time"
 
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
@@ -30,6 +31,29 @@ func HandleInventoryError(err error, request rec_v2.Request[ResourceID]) rec_v2.
 	if inv_errors.IsNotFound(err) || inv_errors.IsAlreadyExists(err) ||
 		inv_errors.IsUnauthenticated(err) || inv_errors.IsPermissionDenied(err) {
 		return request.Ack()
+	}
+
+	if err != nil {
+		return request.Retry(err).With(rec_v2.ExponentialBackoff(minDelay, maxDelay))
+	}
+
+	return nil
+}
+
+func HandleProvisioningError(err error, request rec_v2.Request[ResourceID]) rec_v2.Directive[ResourceID] {
+	if _, ok := grpc_status.FromError(err); !ok {
+		return request.Ack()
+	}
+
+	if inv_errors.IsOperationInProgress(err) {
+		// in progress, schedule next reconciliation cycle
+		// TODO: it should be Requeue when we remove periodic reconciliation in future
+		return request.Retry(err).With(rec_v2.ExponentialBackoff(minDelay, maxDelay))
+	}
+
+	if grpc_status.Convert(err).Code() == codes.Aborted {
+		// unrecoverable error
+		return request.Fail(err)
 	}
 
 	if err != nil {
