@@ -701,8 +701,10 @@ delete_invalid_ubuntu_boot_menuoptions () {
 
     present_boot=$(efibootmgr | grep -i "Bootcurrent" | awk '{print $2}')
     while IFS= read -r boot_part_number; do
-    if [ $boot_part_number -ne $present_boot ]; then
-        efibootmgr -b $boot_part_number -B
+    if [[ "$boot_part_number" = "$present_boot" ]]; then
+            continue;
+    else
+         efibootmgr -b $boot_part_number -B
     fi
     done < <(efibootmgr | grep -i ubuntu | awk '{print $1}'| cut -c 5-8 )
 }
@@ -736,6 +738,20 @@ install_NTP(){
     ufw allow 123/udp 
     systemctl restart ntp
     systemctl status ntp
+}
+
+# 31. Disable unattended upgrades
+disable_unattended_upgrade(){
+config_file="/etc/apt/apt.conf.d/20auto-upgrades"
+if [ -f "$config_file" ]; then
+    sed -i 's/APT::Periodic::Update-Package-Lists "1";/APT::Periodic::Update-Package-Lists "0";/' "$config_file"
+    sed -i 's/APT::Periodic::Unattended-Upgrade "1";/APT::Periodic::Unattended-Upgrade "0";/' "$config_file"
+    echo "APT::Periodic::Update-Package-Lists set to \"0\" in $config_file"
+else
+    echo "Error: $config_file does not exist."
+    exit 1
+fi
+apt remove unattended-upgrades
 }
 
 #extend the disk partition
@@ -782,6 +798,7 @@ install_platform_telemetry_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAM
 install_sriov 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_HWE_kernel 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_syslogrotate_ufw 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+disable_unattended_upgrade 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 
 #Delete the invalid ubuntu boot numbers created from previous installation from boot menu
 delete_invalid_ubuntu_boot_menuoptions  2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
