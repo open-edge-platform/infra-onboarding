@@ -47,13 +47,13 @@ index 0908c72..e5998bf 100644
  			if err != nil {
  				panic(err)
 diff --git a/hook.yaml b/hook.yaml
-index 647e792..81de684 100644
+index 647e792..f935e22 100644
 --- a/hook.yaml
 +++ b/hook.yaml
 @@ -34,6 +34,26 @@ onboot:
        mkdir:
          - /var/lib/dhcpcd
-
+ 
 +  - name: client_auth
 +    image: client_auth:latest
 +    capabilities:
@@ -80,7 +80,7 @@ index 647e792..81de684 100644
 @@ -63,6 +83,13 @@ services:
      binds:
        - /var/run:/var/run
-
+ 
 +  - name: fluent-bit
 +    image: fluent/fluent-bit:2.1.9
 +    binds.add:
@@ -102,7 +102,7 @@ index 647e792..81de684 100644
 @@ -100,6 +128,40 @@ services:
        mkdir:
          - /var/run/docker
-
+ 
 +  - name: nginx
 +    image: nginx_proxy_action:latest
 +    capabilities:
@@ -139,11 +139,11 @@ index 647e792..81de684 100644
 +
  #dbg  - name: sshd
  #dbg    image: linuxkit/sshd:666b4a1a323140aa1f332826164afba506abf597
-
+ 
 @@ -110,6 +172,14 @@ files:
        alias docker-shell='ctr -n services.linuxkit tasks exec --tty --exec-id shell hook-docker sh'
      mode: "0644"
-
+ 
 +  - path: etc/idp/ca.pem
 +    source: files/idp/ca.pem
 +    mode: "0644"
@@ -158,7 +158,7 @@ index 647e792..81de684 100644
 @@ -137,6 +207,18 @@ files:
      source: "files/dhcpcd.conf"
      mode: "0644"
-
+ 
 +  - path: /etc/fluent-bit/fluent-bit.conf
 +    source: "files/fluent-bit/fluent-bit.conf"
 +    mode: "0644"
@@ -174,19 +174,11 @@ index 647e792..81de684 100644
  #dbg  - path: root/.ssh/authorized_keys
  #dbg    source: ~/.ssh/id_rsa.pub
  #dbg    mode: "0600"
-@@ -146,3 +228,12 @@ trust:
+@@ -146,3 +228,4 @@ trust:
    org:
      - linuxkit
      - library
 +
-+onshutdown:
-+  - name: efibootset
-+    image: efibootset:latest
-+    capabilities:
-+      - all
-+    binds.add:
-+      - /dev:/dev
-+      - /dev/console:/dev/console
 diff --git a/rules.mk b/rules.mk
 index b2c5133..93fcdea 100644
 --- a/rules.mk
