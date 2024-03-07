@@ -13,6 +13,7 @@ popd
 
 LOCATION_OF_EXTRA_FILES=$PWD/etc
 LOCATION_OF_ENV_CONFIG=$PWD/etc/hook/env_config
+LOCATION_OF_HOOK_ENV=$PWD/etc/hook/
 extras_cpio=$PWD/additional_files.cpio.gz
 # old_initramfs=$PWD/initramfs-x86_64
 # new_initramfs=$PWD/initramfs-x86_64_new
@@ -20,6 +21,10 @@ STORE_ALPINE=$STORE_ALPINE_SECUREBOOT/../alpine_image
 
 #######################################################################################################
 create_env_config() {
+
+    #Just to double confirm that the folder is available.
+    mkdir -p $LOCATION_OF_HOOK_ENV
+
     if [ ! -z $keycloak_url ];
     then
 	echo -e "KEYCLOAK_URL=$keycloak_url" >> $LOCATION_OF_ENV_CONFIG
@@ -35,9 +40,16 @@ create_env_config() {
 	echo -e "tink_server_svc=$tink_server_svc" >> $LOCATION_OF_ENV_CONFIG
     fi
 
+    if [ ! -z $logging_svc ];
+    then
+	echo -e "logging_svc=$logging_svc" >> $LOCATION_OF_ENV_CONFIG
+    fi
+
+    # only for the extra hosts which is a list we need to add this change the env file needs to
+    # the quotes else the source will fail.
     if [ ! -z "$extra_hosts" ];
     then
-	echo -e "EXTRA_HOSTS=$extra_hosts" >> $LOCATION_OF_ENV_CONFIG
+	echo -e 'EXTRA_HOSTS="'$extra_hosts'"' >> $LOCATION_OF_ENV_CONFIG
     fi
 
 }
