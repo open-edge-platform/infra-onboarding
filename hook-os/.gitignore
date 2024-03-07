@@ -4,3 +4,17 @@
 
 venv_hookos
 artifacts
+
+
+alpine_image
+alpine_image_secureboot
+
+BOOTX64.efi
+boot.key
+client_auth/files/*.pem
+client_auth/scripts/certs/*
+gpg_key
+grub.cfg
+grub_source
+hook
+sb_keys

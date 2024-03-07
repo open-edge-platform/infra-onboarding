@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
 #####################################################################################
 # INTEL CONFIDENTIAL                                                                #
 # Copyright (C) 2023 Intel Corporation                                              #
@@ -14,6 +15,7 @@
 #set -x
 
 source ./config
+
 #######
 GPG_KEY_DIR=$PWD/gpg_key
 SB_KEYS_DIR=$PWD/sb_keys
@@ -25,6 +27,7 @@ GRUB_SRC=$PWD/grub_source
 BOOTX_LOC=$PWD/BOOTX64.efi
 tinkerbell_owner=${load_balancer_ip:-localhost}
 #mac_address_current_device=$(cat /proc/cmdline | grep -o "instance_id=..:..:..:..:..:.. " | awk ' {split($0,a,"="); print a[2]} ')
+#
 mac_address_current_device="net_default_mac_user"
 
 MODULES="fat ext2 part_gpt normal
@@ -160,6 +163,8 @@ sign_all_components() {
 
     popd
 
+    # copy public key used validation of HookOS to archive
+    cp $SB_KEYS_DIR/db.der $STORE_ALPINE_SECUREBOOT/hook_sign_temp/hookos_db.der
 }
 
 uefi_sign_grub_vmlinuz() {
@@ -248,6 +253,9 @@ create_grub_cfg() {
 }
 
 secure_hookos() {
+
+    echo "in secure_hookos()"
+
     #container/host setup
     sudo apt install -y autoconf automake make gcc m4 git gettext autopoint pkg-config autoconf-archive python3 bison flex gawk efitools
     #container/host setup done
