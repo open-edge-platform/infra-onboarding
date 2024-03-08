@@ -45,6 +45,14 @@ func PopulateHostStatus(
 	host.OnboardingStatusIndicator = onboardingStatus.StatusIndicator
 }
 
+func PopulateHostStatusDetail(
+	instance *computev1.InstanceResource,
+	statusDetails string) {
+	host := instance.GetHost() // eager-loaded
+
+	host.ProviderStatusDetail = statusDetails
+}
+
 func PopulateInstanceStatusAndCurrentState(
 	instance *computev1.InstanceResource,
 	currentState computev1.InstanceState,

@@ -12,9 +12,9 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/auth"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/tinkerbell"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/tinkerbell"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
@@ -91,7 +91,7 @@ func CheckStatusOrRunProdWorkflow(ctx context.Context,
 
 	util.PopulateHostStatus(instance,
 		computev1.HostStatus_HOST_STATUS_PROVISIONING,
-		"", // TODO: empty status details for now, add more details in future
+		"", // no details as workflow is not started yet
 		om_status.OnboardingStatusInProgress)
 	// NOTE: this is not used by UI as for now, but update status for future use.
 	util.PopulateInstanceStatusAndCurrentState(
@@ -101,7 +101,7 @@ func CheckStatusOrRunProdWorkflow(ctx context.Context,
 		om_status.ProvisioningStatusInProgress)
 
 	prodWorkflowName := fmt.Sprintf("workflow-%s-prod", deviceInfo.GUID)
-	status, err := getWorkflowStatus(ctx, kubeClient, prodWorkflowName)
+	workflow, err := getWorkflow(ctx, kubeClient, prodWorkflowName)
 	if err != nil && inv_errors.IsNotFound(err) {
 		// This may happen if:
 		// 1) workflow for Instance is not created yet -> proceed to runProdWorkflow()
@@ -121,9 +121,7 @@ func CheckStatusOrRunProdWorkflow(ctx context.Context,
 		return err
 	}
 
-	zlog.Debug().Msgf("Prod workflow status for host %s is %s", deviceInfo.GUID, *status)
-
-	return handleWorkflowStatus(instance, *status,
+	return handleWorkflowStatus(instance, workflow,
 		computev1.HostStatus_HOST_STATUS_PROVISIONED, computev1.HostStatus_HOST_STATUS_PROVISION_FAILED,
 		om_status.ProvisioningStatusDone, om_status.ProvisioningStatusFailed)
 }
@@ -188,7 +186,7 @@ func CheckTO2StatusOrRunFDOActions(ctx context.Context,
 	zlog.Info().Msgf("Checking TO2 status completed for host %s", deviceInfo.GUID)
 
 	util.PopulateHostStatus(instance, computev1.HostStatus_HOST_STATUS_ONBOARDING,
-		"", // TODO: empty status details for now, add more details in future
+		"",
 		om_status.OnboardingStatusInProgress)
 
 	// we need to upload voucher extension before checking TO2 status to get FDO GUID that is needed for TO2 status check.
@@ -207,7 +205,7 @@ func CheckTO2StatusOrRunFDOActions(ctx context.Context,
 		zlog.Debug().Msgf("TO2 process completed for host %s", deviceInfo.GUID)
 		util.PopulateHostStatus(instance,
 			computev1.HostStatus_HOST_STATUS_ONBOARDED,
-			"", // TODO: empty status details for now, add more details in future
+			"",
 			om_status.InitializationDone)
 
 		return nil
@@ -265,11 +263,11 @@ func CheckStatusOrRunDIWorkflow(ctx context.Context, deviceInfo utils.DeviceInfo
 	}
 
 	util.PopulateHostStatus(instance, computev1.HostStatus_HOST_STATUS_INITIALIZING,
-		"", // TODO: empty status details for now, add more details in future
+		"", // no details as workflow is not started yet
 		om_status.InitializationInProgress)
 
 	diWorkflowName := "workflow-" + deviceInfo.GUID
-	status, err := getWorkflowStatus(ctx, kubeClient, diWorkflowName)
+	status, err := getWorkflow(ctx, kubeClient, diWorkflowName)
 	if err != nil && inv_errors.IsNotFound(err) {
 		zlog.Debug().Msgf("DI workflow for host %ss does not yet exist.", deviceInfo.GUID)
 		// This may happen if:
@@ -291,14 +289,12 @@ func CheckStatusOrRunDIWorkflow(ctx context.Context, deviceInfo utils.DeviceInfo
 		return err
 	}
 
-	zlog.Debug().Msgf("DI workflow status for host %s is %s", deviceInfo.GUID, *status)
-
-	return handleWorkflowStatus(instance, *status,
+	return handleWorkflowStatus(instance, status,
 		computev1.HostStatus_HOST_STATUS_INITIALIZED, computev1.HostStatus_HOST_STATUS_INIT_FAILED,
 		om_status.InitializationDone, om_status.InitializationFailed)
 }
 
-func getWorkflowStatus(ctx context.Context, k8sCli client.Client, workflowName string) (*tink.WorkflowState, error) {
+func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName string) (*tink.Workflow, error) {
 	got := &tink.Workflow{}
 	clientErr := k8sCli.Get(ctx, types.NamespacedName{Namespace: k8sNamespace, Name: workflowName}, got)
 	if clientErr != nil && errors.IsNotFound(clientErr) {
@@ -314,7 +310,7 @@ func getWorkflowStatus(ctx context.Context, k8sCli client.Client, workflowName s
 
 	zlog.Debug().Msgf("Workflow %s state: %s", got.Name, got.Status.State)
 
-	return &got.Status.State, nil
+	return got, nil
 }
 
 func runDIWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils.DeviceInfo) error {
@@ -400,27 +396,34 @@ func DeleteProdWorkflowResourcesIfExist(ctx context.Context, hostUUID string) er
 	return tinkerbell.DeleteProdWorkflowResourcesIfExist(ctx, k8sNamespace, hostUUID)
 }
 
-func handleWorkflowStatus(instance *computev1.InstanceResource, status tink.WorkflowState,
+func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.Workflow,
 	onSuccessStatus, onFailureStatus computev1.HostStatus,
 	onSuccessOnboardingStatus, onFailureOnboardingStatus inv_status.ResourceStatus) error {
-	switch status {
+
+	intermediateWorkflowState := tinkerbell.GenerateStatusDetailFromWorkflowState(workflow)
+
+	zlog.Debug().Msgf("Workflow %s status for host %s is %s. Workflow state: %q", workflow.Name,
+		instance.GetHost().GetUuid(),
+		workflow.Status.State,
+		intermediateWorkflowState)
+
+	switch workflow.Status.State {
 	case tink.WorkflowStateSuccess:
 		// success, proceed further
-		util.PopulateHostStatus(instance, onSuccessStatus,
-			"", // TODO: empty status details for now, add more details in future
+		util.PopulateHostStatus(instance, onSuccessStatus, "",
 			onSuccessOnboardingStatus)
 		return nil
 	case tink.WorkflowStateFailed, tink.WorkflowStateTimeout:
 		// indicates unrecoverable error, we should update current_state = ERROR
-		util.PopulateHostStatus(instance, onFailureStatus,
-			"", // TODO: empty status details for now, add more details in future
+		util.PopulateHostStatus(instance, onFailureStatus, intermediateWorkflowState,
 			onFailureOnboardingStatus)
 		return inv_errors.Errorfc(codes.Aborted, "")
 	case "", tink.WorkflowStateRunning, tink.WorkflowStatePending:
 		// not started yet or in progress
+		util.PopulateHostStatusDetail(instance, intermediateWorkflowState)
 		return inv_errors.Errorfr(inv_errors.Reason_OPERATION_IN_PROGRESS, "")
 	default:
-		zlog.MiSec().MiError("Unknown workflow status %s", status)
-		return inv_errors.Errorf("Unknown workflow status %s", status)
+		zlog.MiSec().MiError("Unknown workflow state %s", workflow.Status.State)
+		return inv_errors.Errorf("Unknown workflow state %s", workflow.Status.State)
 	}
 }

@@ -64,7 +64,7 @@ func NewTemplateData(name, ip, clientyp, disk, serial string) ([]byte, error) {
 			},
 			Actions: []Action{
 				{
-					Name:    "store-Alpine",
+					Name:    ActionStoringAlpine,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/store_alpine:0.7.1-dev",
 					Timeout: 500,
 					Environment: map[string]string{
@@ -73,7 +73,7 @@ func NewTemplateData(name, ip, clientyp, disk, serial string) ([]byte, error) {
 					},
 				},
 				{
-					Name:    "run-fdo",
+					Name:    ActionRunFDO,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/fdoclient_action:0.7.1-dev",
 					Timeout: 400,
 					Environment: map[string]string{
@@ -87,7 +87,7 @@ func NewTemplateData(name, ip, clientyp, disk, serial string) ([]byte, error) {
 					},
 				},
 				{
-					Name:    "reboot",
+					Name:    ActionReboot,
 					Image:   "public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest",
 					Timeout: 90,
 					Volumes: []string{

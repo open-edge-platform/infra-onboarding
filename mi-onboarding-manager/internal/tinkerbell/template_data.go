@@ -11,6 +11,37 @@ import (
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 )
 
+const (
+	ActionStreamUbuntuImage          = "stream-ubuntu-image"
+	ActionCopySecrets                = "copy-secrets"
+	ActionGrowPartitionInstallScript = "grow-partition-install-script"
+	ActionInstallOpenssl             = "install-openssl"
+	ActionCreateUser                 = "create-user"
+	ActionEnableSSH                  = "enable-ssh"
+	ActionDisableApparmor            = "disable-apparmor"
+	ActionInstallScriptDownload      = "profile-pkg-and-node-agents-install-script-download"
+	ActionInstallScript              = "service-script-for-profile-pkg-and-node-agents-install"
+	ActionInstallScriptEnable        = "enable-service-script-for-profile-pkg-node-agents"
+	ActionNetplan                    = "write-netplan"
+	ActionNetplanConfigure           = "update-netplan-to-make-ip-static"
+	ActionGrowPartitionService       = "service-script-for-grow-partion-installer"
+	ActionGrowPartitionServiceEnable = "enable-grow-partinstall-service-script"
+	ActionNetplanService             = "service-script-for-netplan-update"
+	ActionNetplanServiceEnable       = "enable-update-netplan.service-script"
+	ActionEfibootset                 = "efibootset-for-diskboot"
+	ActionFdeEncryption              = "fde-encryption"
+	ActionReboot                     = "reboot"
+	ActionCopyENSecrets              = "copy-ensp-node-secrets"
+	ActionStoringAlpine              = "store-Alpine"
+	ActionRunFDO                     = "run-fdo"
+	ActionAddEnvProxy                = "add-env-proxy"
+	ActionAddAptProxy                = "add-apt-proxy"
+	ActionAddDNSNamespace            = "add-dns-namespace"
+	ActionCreateSecretsDirectory     = "create-ensp-node-directory"
+	ActionWriteClientID              = "write-client-id"
+	ActionWriteClientSecret          = "write-client-secret"
+)
+
 type ProxySetup struct {
 	http_proxy  string
 	https_proxy string
@@ -45,7 +76,7 @@ func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIP string) ([]b
 			},
 			Actions: []Action{
 				{
-					Name:    "stream-ubuntu-image",
+					Name:    ActionStreamUbuntuImage,
 					Image:   "quay.io/tinkerbell-actions/image2disk:v1.0.0",
 					Timeout: 9600,
 					Environment: map[string]string{
@@ -56,7 +87,7 @@ func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIP string) ([]b
 				},
 
 				{
-					Name:    "copy-secrets",
+					Name:    ActionCopySecrets,
 					Image:   provIP + ":5015/cred_copy:latest",
 					Timeout: 90,
 					Environment: map[string]string{
@@ -65,7 +96,7 @@ func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIP string) ([]b
 					},
 				},
 				{
-					Name:    "grow-partition-install-script",
+					Name:    ActionGrowPartitionInstallScript,
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
 					Timeout: 90,
 					Environment: map[string]string{
@@ -83,7 +114,7 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 					},
 				},
 				{
-					Name:    "install-openssl",
+					Name:    ActionInstallOpenssl,
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
 					Timeout: 90,
 					Environment: map[string]string{
@@ -95,7 +126,7 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 					},
 				},
 				{
-					Name:    "create-user",
+					Name:    ActionCreateUser,
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
 					Timeout: 90,
 					Environment: map[string]string{
@@ -107,7 +138,7 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 					},
 				},
 				{
-					Name:    "enable-ssh",
+					Name:    ActionEnableSSH,
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
 					Timeout: 90,
 					Environment: map[string]string{
@@ -120,7 +151,7 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 					},
 				},
 				{
-					Name:    "disable-apparmor",
+					Name:    ActionDisableApparmor,
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
 					Timeout: 90,
 					Environment: map[string]string{
@@ -132,7 +163,7 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 					},
 				},
 				{
-					Name:    "write-netplan",
+					Name:    ActionNetplan,
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
 					Timeout: 90,
 					Environment: map[string]string{
@@ -155,7 +186,7 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 					},
 				},
 				{
-					Name:    "service-script-for-grow-partion-installer",
+					Name:    ActionGrowPartitionService,
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
 					Timeout: 200,
 					Environment: map[string]string{
@@ -182,7 +213,7 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 					},
 				},
 				{
-					Name:    "enable-grow-partinstall-service-script",
+					Name:    ActionGrowPartitionServiceEnable,
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
 					Timeout: 200,
 					Environment: map[string]string{
@@ -194,7 +225,7 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 					},
 				},
 				{
-					Name:    "reboot",
+					Name:    ActionReboot,
 					Image:   "public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest",
 					Timeout: 90,
 					Volumes: []string{
@@ -224,7 +255,7 @@ func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gatewa
 			},
 			Actions: []Action{
 				{
-					Name:    "stream-ubuntu-image",
+					Name:    ActionStreamUbuntuImage,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/image2disk:0.7.1-dev",
 					Timeout: 9600,
 					Environment: map[string]string{
@@ -233,7 +264,7 @@ func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gatewa
 					},
 				},
 				{
-					Name:    "add-env-proxy",
+					Name:    ActionAddEnvProxy,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 					Timeout: 90,
 					Environment: map[string]string{
@@ -251,7 +282,7 @@ func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gatewa
 				},
 
 				{
-					Name:    "add-apt-proxy",
+					Name:    ActionAddAptProxy,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 					Timeout: 90,
 					Environment: map[string]string{
@@ -267,7 +298,7 @@ func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gatewa
 					},
 				},
 				{
-					Name:    "add-dns-namespace",
+					Name:    ActionAddDNSNamespace,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 					Timeout: 90,
 					Environment: map[string]string{
@@ -284,7 +315,7 @@ func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gatewa
 				},
 
 				{
-					Name:    "grow-partition-install-script",
+					Name:    ActionGrowPartitionInstallScript,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 					Timeout: 90,
 					Environment: map[string]string{
@@ -301,7 +332,7 @@ touch /usr/local/bin/.grow_part_done`),
 					},
 				},
 				{
-					Name:    "create-user",
+					Name:    ActionCreateUser,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
 					Timeout: 90,
 					Environment: map[string]string{
@@ -313,7 +344,7 @@ touch /usr/local/bin/.grow_part_done`),
 				},
 
 				{
-					Name:    "enable-ssh",
+					Name:    ActionEnableSSH,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
 					Timeout: 90,
 					Environment: map[string]string{
@@ -326,7 +357,7 @@ touch /usr/local/bin/.grow_part_done`),
 				},
 
 				{
-					Name:    "profile-pkg-and-node-agents-install-script-download",
+					Name:    ActionInstallScriptDownload,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
 					Timeout: 200,
 					Environment: map[string]string{
@@ -339,7 +370,7 @@ touch /usr/local/bin/.grow_part_done`),
 					},
 				},
 				{
-					Name:    "service-script-for-profile-pkg-and-node-agents-install",
+					Name:    ActionInstallScript,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 					Timeout: 90,
 					Environment: map[string]string{
@@ -366,7 +397,7 @@ touch /usr/local/bin/.grow_part_done`),
 					},
 				},
 				{
-					Name:    "enable-service-script-for-profile-pkg-node-agents",
+					Name:    ActionInstallScriptEnable,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
 					Timeout: 200,
 					Environment: map[string]string{
@@ -377,7 +408,7 @@ touch /usr/local/bin/.grow_part_done`),
 					},
 				},
 				{
-					Name:    "write-netplan",
+					Name:    ActionNetplan,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 					Timeout: 90,
 					Environment: map[string]string{
@@ -399,7 +430,7 @@ touch /usr/local/bin/.grow_part_done`),
 				},
 
 				{
-					Name:    "update-netplan-to-make-ip-static",
+					Name:    ActionNetplanConfigure,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 					Timeout: 200,
 					Environment: map[string]string{
@@ -437,7 +468,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 				},
 
 				{
-					Name:    "service-script-for-grow-partion-installer",
+					Name:    ActionGrowPartitionService,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 					Timeout: 200,
 					Environment: map[string]string{
@@ -463,7 +494,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 					},
 				},
 				{
-					Name:    "enable-grow-partinstall-service-script",
+					Name:    ActionGrowPartitionServiceEnable,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
 					Timeout: 200,
 					Environment: map[string]string{
@@ -475,7 +506,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 				},
 
 				{
-					Name:    "service-script-for-netplan-update",
+					Name:    ActionNetplanService,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 					Timeout: 200,
 					Environment: map[string]string{
@@ -502,7 +533,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 				},
 
 				{
-					Name:    "enable-update-netplan.service-script",
+					Name:    ActionNetplanServiceEnable,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
 					Timeout: 200,
 					Environment: map[string]string{
@@ -514,19 +545,19 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 				},
 
 				{
-					Name:    "efibootset-for-diskboot",
+					Name:    ActionEfibootset,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/efibootset:0.7.1-dev",
 					Timeout: 300,
 				},
 
 				{
-					Name:    "fde-encryption",
+					Name:    ActionFdeEncryption,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/fde:0.7.1-dev",
 					Timeout: 560,
 				},
 
 				{
-					Name:    "reboot",
+					Name:    ActionReboot,
 					Image:   "public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest",
 					Timeout: 90,
 					Volumes: []string{
@@ -541,7 +572,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 		//Di not enable
 		directoryActions := []Action{
 			{
-				Name:    "create-ensp-node-directory",
+				Name:    ActionCreateSecretsDirectory,
 				Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
 				Timeout: 60,
 				Environment: map[string]string{
@@ -552,7 +583,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 				},
 			},
 			{
-				Name:    "write-client-id",
+				Name:    ActionWriteClientID,
 				Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 				Timeout: 90,
 				Environment: map[string]string{
@@ -566,7 +597,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 				},
 			},
 			{
-				Name:    "write-client-secret",
+				Name:    ActionWriteClientSecret,
 				Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
 				Timeout: 90,
 				Environment: map[string]string{
@@ -584,7 +615,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 		// Find the index of the "grow-partition-install-script" action
 		var growPartitionIndex int
 		for i, action := range wf.Tasks[0].Actions {
-			if action.Name == "grow-partition-install-script" {
+			if action.Name == ActionGrowPartitionInstallScript {
 				growPartitionIndex = i
 				break
 			}
@@ -596,7 +627,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 		//Di is enabled
 		directoryActions := []Action{
 			{
-				Name:    "copy-ensp-node-secrets",
+				Name:    ActionCopyENSecrets,
 				Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cred_copy:0.7.1-dev",
 				Timeout: 90,
 				Environment: map[string]string{
@@ -609,7 +640,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 		// Find the index of the "stream-ubuntu-image" action
 		var streamubuntuimage int
 		for i, action := range wf.Tasks[0].Actions {
-			if action.Name == "stream-ubuntu-image" {
+			if action.Name == ActionStreamUbuntuImage {
 				streamubuntuimage = i
 				break
 			}
@@ -623,7 +654,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 	if osv1.SecurityFeature(securityFeature) != osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION {
 		for i, task := range wf.Tasks {
 			for j, action := range task.Actions {
-				if action.Name == "fde-encryption" {
+				if action.Name == ActionFdeEncryption {
 					// Remove the action from the slice
 					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
 					break
@@ -633,7 +664,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 		// Enable the grow partition
 		for _, task := range wf.Tasks {
 			for _, action := range task.Actions {
-				if action.Name == "enable-grow-partinstall-service-script" {
+				if action.Name == ActionGrowPartitionServiceEnable {
 					if action.Environment["CMD_LINE"] == "systemctl disable install-grow-part.service" {
 						action.Environment["CMD_LINE"] = "systemctl enable install-grow-part.service"
 					}
@@ -681,7 +712,7 @@ func NewTemplateDataProdMS(name, rootPart, _, hostIP, clientIP, gateway, mac, pr
 					},
 				},
 				{
-					Name:    "grow-partition-install-script",
+					Name:    ActionGrowPartitionInstallScript,
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
 					Timeout: 90,
 					Environment: map[string]string{
