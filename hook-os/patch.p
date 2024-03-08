@@ -120,8 +120,8 @@ index 647e792..f935e22 100644
 +      - tink_stack_svc=update_tink_stack_svc
 +      - tink_server_svc=update_tink_server_svc
 +      - release_svc=update_release_svc
-+      - manufacturer_svc=update_manufacturer_svc
-+      - owner_svc=update_owner_svc
++      - fdo_manufacturer_svc=update_manufacturer_svc
++      - fdo_owner_svc=update_owner_svc
 +      - oci_release_svc=update_oci_release_svc
 +      - EXTRA_HOSTS=update_extra_hosts
 +

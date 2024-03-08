@@ -68,7 +68,7 @@ http {
 
         location ~ ^/fdo/101/msg/(10|12|255) {
 	    proxy_ssl_server_name on;
-            proxy_pass https://${manufacturer_svc};
+            proxy_pass https://${fdo_manufacturer_svc};
         }
 
     }
@@ -91,7 +91,7 @@ http {
 
         location ~ ^/fdo/101/msg/(60|62|64|66|68|70|255) {
             proxy_ssl_server_name on;
-            proxy_pass https://${owner_svc};
+            proxy_pass https://${fdo_owner_svc};
         }
     }
 
