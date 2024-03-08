@@ -198,6 +198,11 @@ func (k *keycloakService) RevokeCredentialsByUUID(ctx context.Context, uuid stri
 }
 
 func (k *keycloakService) Logout(ctx context.Context) {
+	// refresh_token is required to logout but it's not provided for all Keycloak clients.
+	// Skip logging out if refresh_token is not provided.
+	if k.jwtToken.RefreshToken == "" {
+		return
+	}
 	if err := k.keycloakClient.Logout(ctx, OnboardingManagerClientName, secrets.GetClientSecret(), KeycloakRealm, k.jwtToken.RefreshToken); err != nil {
 		zlog.MiSec().Err(err).Msgf("Failed to logout from Keycloak")
 		return
