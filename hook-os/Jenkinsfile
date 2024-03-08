@@ -67,7 +67,7 @@ pipeline {
 						}
 						stage('Trivy config scan') {
 							when {
-								anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
+								anyOf { branch 'main'; branch 'release-*'; changeRequest();}
 							}
 							steps {
 								script {
@@ -206,7 +206,7 @@ pipeline {
 				}
 				stage('Push to OCI registry') {
 					when {
-						anyOf { branch 'main'; branch 'feature*'; branch 'release*' }
+						anyOf { branch 'main'; branch 'release*' }
 					}
 					steps {
 							withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'intel-harbor-credentials',
@@ -222,7 +222,7 @@ pipeline {
 				}
 				stage('Version Tag') {
 					when {
-						anyOf { branch 'main'; branch 'feature*'; branch 'release*' }
+						anyOf { branch 'main'; branch 'release*' }
 					}
 					steps {
 						withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
@@ -272,7 +272,7 @@ pipeline {
 				}*/
 				stage('Version dev') {
 					when {
-						anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; }
+						anyOf { branch 'main'; branch 'release-*'; }
 					}
 					steps {
 						withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
