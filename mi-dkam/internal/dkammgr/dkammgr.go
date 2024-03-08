@@ -31,8 +31,10 @@ var tag = config.Tag
 
 func DownloadArtifacts() error {
 	MODE := GetMODE()
+	manifestTag := os.Getenv("MANIFEST_TAG")
 	//MODE := "dev"
 	zlog.MiSec().Info().Msgf("Mode of deployment: %s", MODE)
+	zlog.MiSec().Info().Msgf("Manifest Tag: %s", manifestTag)
 	if MODE == "dev" || MODE == "preint" {
 		fileServer = config.DevFileServer
 		harborServer = config.DevHarbor
@@ -48,7 +50,7 @@ func DownloadArtifacts() error {
 		//Running inside Kubernetes cluster
 		zlog.MiSec().Info().Msgf("Running inside k8 cluster")
 
-		err := download.DownloadArtifacts(fileServer, harborServer, GetScriptDir(), tag)
+		err := download.DownloadArtifacts(fileServer, harborServer, GetScriptDir(), tag, manifestTag)
 		if err != nil {
 			zlog.MiSec().Info().Msgf("Failed to download manifest file: %v", err)
 			return err

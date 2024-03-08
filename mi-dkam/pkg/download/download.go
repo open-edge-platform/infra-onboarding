@@ -97,7 +97,7 @@ func DownloadMicroOS(scriptPath string) (bool, error) {
 
 }
 
-func DownloadArtifacts(fileServer string, harborServer string, scriptPath string, tag string) error {
+func DownloadArtifacts(fileServer string, harborServer string, scriptPath string, tag string, manifestTag string) error {
 	errp := os.Chdir(scriptPath)
 	if errp != nil {
 		zlog.MiSec().Fatal().Err(errp).Msgf("Error changing working directory: %v\n", errp)
@@ -122,7 +122,10 @@ func DownloadArtifacts(fileServer string, harborServer string, scriptPath string
 		},
 	}
 
-	url := config.RSProxyManifest + tag + "/manifests/latest-dev"
+	zlog.MiSec().Info().Msgf("Tag is:%s", manifestTag)
+
+	url := config.RSProxyManifest + tag + "/manifests/" + manifestTag
+	zlog.MiSec().Info().Msgf("Manifest download URL is:%s", url)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
