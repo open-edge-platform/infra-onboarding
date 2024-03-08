@@ -27,8 +27,8 @@ HOOKOS_IDP_FILES=$PWD/hook/files/idp/
 FLUENTBIT_FILES=$PWD/fluent-bit/files
 HOOKOS_FLUENTBIT_FILES=$PWD/hook/files/fluent-bit
 
-NGINX_FILES=$PWD/nginx/files
-HOOKOS_NGINX_FILES=$PWD/hook/files/nginx
+CADDY_FILES=$PWD/caddy/files
+HOOKOS_CADDY_FILES=$PWD/hook/files/caddy
 
 # set this to `gsed` if on macos
 SED_CMD=sed
@@ -80,25 +80,28 @@ get_client_auth() {
     fi
 }
 
-get_nginx_conf() {
-    echo "inside get_nginx_conf"
-    mkdir -p $HOOKOS_NGINX_FILES
-    cp $NGINX_FILES/* $HOOKOS_NGINX_FILES
-
+get_caddy_conf() {
+    mkdir -p $HOOKOS_CADDY_FILES
+    cp $CADDY_FILES/* $HOOKOS_CADDY_FILES
     if [ $? -ne 0 ];
     then
-        echo "Copy of the nginx template to the hook/files folder failed"
-        exit 1
+            echo "Copy of the Caddyfile to the hook/files folder failed"
+            exit 1
     fi
 
     # Update NGINX runtime configs in hook.yaml
     $SED_CMD -i "s|update_tink_stack_svc|$tink_stack_svc|g" hook.yaml
     $SED_CMD -i "s|update_tink_server_svc|$tink_server_svc|g" hook.yaml
     $SED_CMD -i "s|update_release_svc|$release_svc|g" hook.yaml
-    $SED_CMD -i "s|update_logging_svc|$logging_svc|g" hook.yaml
     $SED_CMD -i "s|update_oci_release_svc|$oci_release_svc|g" hook.yaml
     $SED_CMD -i "s|update_manufacturer_svc|$fdo_manufacturer_svc|g" hook.yaml
     $SED_CMD -i "s|update_owner_svc|$fdo_owner_svc|g" hook.yaml
+    $SED_CMD -i "s|update_logging_svc|$logging_svc|g" hook.yaml
+
+    # Update proxy configs
+    $SED_CMD -i "s|update_http_proxy|$http_proxy|g" hook.yaml
+    $SED_CMD -i "s|update_https_proxy|$https_proxy|g" hook.yaml
+    $SED_CMD -i "s|update_no_proxy|$no_proxy|g" hook.yaml
 }
 
 build_hook() {
@@ -159,7 +162,7 @@ build_hook() {
 
       # get the client_auth files and container before running the hook os build.
       get_client_auth
-      get_nginx_conf
+      get_caddy_conf
 
       docker run --rm -e HTTP_PROXY=$http_proxy \
          -e HTTPS_PROXY=$https_proxy \

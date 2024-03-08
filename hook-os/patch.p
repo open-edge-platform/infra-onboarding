@@ -47,7 +47,7 @@ index 0908c72..e5998bf 100644
  			if err != nil {
  				panic(err)
 diff --git a/hook.yaml b/hook.yaml
-index 647e792..f935e22 100644
+index 647e792..a3b71df 100644
 --- a/hook.yaml
 +++ b/hook.yaml
 @@ -34,6 +34,26 @@ onboot:
@@ -99,27 +99,28 @@ index 647e792..f935e22 100644
      runtime:
        mkdir:
          - /var/run/images
-@@ -100,6 +128,40 @@ services:
+@@ -100,6 +128,41 @@ services:
        mkdir:
          - /var/run/docker
  
-+  - name: nginx
-+    image: nginx_proxy_action:latest
++  - name: caddy
++    image: caddy_proxy:latest
 +    capabilities:
 +      - all
 +    binds.add:
 +      - /etc/resolv.conf:/etc/resolv.conf
-+      - /etc/idp/server_cert.pem:/usr/local/share/ca-certificates/maestro.crt
-+      - /etc/idp/server_cert.pem:/etc/nginx/ssl/ensp-orchestrator-ca.crt
-+      - /etc/nginx/templates/nginx.conf.template:/etc/nginx/templates/nginx.conf.template
++      - /etc/idp/ca.pem:/etc/caddy/ensp-orchestrator-ca.crt
++      - /etc/caddy/Caddyfile:/etc/caddy/Caddyfile
 +      - /dev/shm/idp_access_token:/dev/shm/idp_access_token
 +      - /dev/shm/release_token:/dev/shm/release_token
 +      - /etc/hook/env_config:/etc/hook/env_config
++
 +    # Intended docker variables to be populated from environment
 +    env:
 +      - tink_stack_svc=update_tink_stack_svc
 +      - tink_server_svc=update_tink_server_svc
 +      - release_svc=update_release_svc
++      - logging_svc=update_logging_svc
 +      - fdo_manufacturer_svc=update_manufacturer_svc
 +      - fdo_owner_svc=update_owner_svc
 +      - oci_release_svc=update_oci_release_svc
@@ -140,7 +141,7 @@ index 647e792..f935e22 100644
  #dbg  - name: sshd
  #dbg    image: linuxkit/sshd:666b4a1a323140aa1f332826164afba506abf597
  
-@@ -110,6 +172,14 @@ files:
+@@ -110,6 +173,14 @@ files:
        alias docker-shell='ctr -n services.linuxkit tasks exec --tty --exec-id shell hook-docker sh'
      mode: "0644"
  
@@ -155,7 +156,7 @@ index 647e792..f935e22 100644
    - path: etc/motd
      mode: "0644"
      contents: |
-@@ -137,6 +207,18 @@ files:
+@@ -137,6 +208,18 @@ files:
      source: "files/dhcpcd.conf"
      mode: "0644"
  
@@ -163,8 +164,8 @@ index 647e792..f935e22 100644
 +    source: "files/fluent-bit/fluent-bit.conf"
 +    mode: "0644"
 +
-+  - path: etc/nginx/templates/nginx.conf.template
-+    source: "files/nginx/nginx.conf.template"
++  - path: etc/caddy/Caddyfile
++    source: "files/caddy/Caddyfile"
 +    mode: "0644"
 +
 +  - path: etc/hook/env_config
@@ -174,7 +175,7 @@ index 647e792..f935e22 100644
  #dbg  - path: root/.ssh/authorized_keys
  #dbg    source: ~/.ssh/id_rsa.pub
  #dbg    mode: "0600"
-@@ -146,3 +228,4 @@ trust:
+@@ -146,3 +229,4 @@ trust:
    org:
      - linuxkit
      - library

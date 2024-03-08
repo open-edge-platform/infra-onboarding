@@ -52,6 +52,13 @@ create_env_config() {
 	echo -e 'EXTRA_HOSTS="'$extra_hosts'"' >> $LOCATION_OF_ENV_CONFIG
     fi
 
+	# Add proxy configs
+	if [ ! -z "$https_proxy" ];
+	then
+	echo -e "http_proxy=$http_proxy" >> $LOCATION_OF_ENV_CONFIG
+	echo -e "https_proxy=$https_proxy" >> $LOCATION_OF_ENV_CONFIG
+	echo -e "no_proxy=$no_proxy" >> $LOCATION_OF_ENV_CONFIG
+	fi
 }
 #######################################################################################################
 #
