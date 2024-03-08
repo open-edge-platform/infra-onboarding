@@ -32,21 +32,6 @@ localhost:443 {
      }
 }
 
-# Proxy server for fileserver access (duplicate)
-localhost:3443 {
-    bind 127.0.0.1
-    tls /etc/caddy/caddy-cert.pem /etc/caddy/caddy-key.pem
-    reverse_proxy files-rs.internal.ledgepark.intel.com:443 {
-        header_up Authorization "Bearer {$release_token}"
-        header_up Host {upstream_hostport}
-
-        transport http {
-            tls
-        }
-     }
-}
-
-
 # Proxy server for OCI release service
 localhost:7443 {
     bind 127.0.0.1 
