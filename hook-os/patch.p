@@ -47,7 +47,7 @@ index 0908c72..e5998bf 100644
  			if err != nil {
  				panic(err)
 diff --git a/hook.yaml b/hook.yaml
-index 647e792..a3b71df 100644
+index 647e792..2ab0165 100644
 --- a/hook.yaml
 +++ b/hook.yaml
 @@ -34,6 +34,26 @@ onboot:
@@ -109,7 +109,7 @@ index 647e792..a3b71df 100644
 +      - all
 +    binds.add:
 +      - /etc/resolv.conf:/etc/resolv.conf
-+      - /etc/idp/ca.pem:/etc/caddy/ensp-orchestrator-ca.crt
++      - /etc/idp/ca.pem:/usr/local/share/ca-certificates/ensp-orchestrator-ca.crt
 +      - /etc/caddy/Caddyfile:/etc/caddy/Caddyfile
 +      - /dev/shm/idp_access_token:/dev/shm/idp_access_token
 +      - /dev/shm/release_token:/dev/shm/release_token
