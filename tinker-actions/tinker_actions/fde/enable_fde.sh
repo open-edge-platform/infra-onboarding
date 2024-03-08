@@ -287,8 +287,14 @@ partition_other_devices() {
 	cryptsetup luksOpen "/dev/${block_dev}${part_suffix}1" "${block_dev}_crypt" --key-file=$luks_key
 	check_return_value $? "Failed to luks open ${block_dev}${part_suffix}1_crypt"
 
-	mkfs.ext4 -F "/dev/mapper/${block_dev}_crypt"
+	# mkfs.ext4 -F "/dev/mapper/${block_dev}_crypt"
+	pvcreate "/dev/mapper/${block_dev}_crypt"
 	check_return_value $? "Failed to make mkfs ext4 on ${block_dev}_crypt"
+
+	vgcreate lvmvg "/dev/mapper/${block_dev}_crypt"
+	check_return_value $? "Failed to create a lvmvg group"
+
+	echo "vgcreate is completed"
 
 	# add to fstab and crypttab
 	
@@ -298,7 +304,7 @@ partition_other_devices() {
 	mkdir -p /mnt/media/${block_dev}
 	# block_dev_uuid=$(blkid "/dev/mapper/${block_dev}_crypt" -s UUID -o value )
 	fstab_block_dev="/dev/mapper/${block_dev}_crypt /media/${block_dev} ext4 discard,errors=remount-ro       0 1"
-	echo -e "${fstab_block_dev}" >> /mnt/etc/fstab
+	#echo -e "${fstab_block_dev}" >> /mnt/etc/fstab
 
 	mount "/dev/mapper/${block_dev}_crypt" /mnt/media/${block_dev}
     done
@@ -509,7 +515,7 @@ enable_luks(){
     fi
 
     #TODO fix this as part of the deployment yaml
-    # sed -i 's/console=tty1 console=ttyS0/console=ttyS0,115200/' /boot/grub/grub.cfg    
+    # sed -i 's/console=tty1 console=ttyS0/console=ttyS0,115200/' /boot/grub/grub.cfg
     
 EOT
 

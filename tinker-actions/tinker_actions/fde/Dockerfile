@@ -13,6 +13,7 @@ FROM ubuntu:22.04
 
 RUN apt-get update
 RUN apt-get install -y parted cryptsetup-bin tpm2-tools xxd
+RUN apt-get install -y lvm2
 
 COPY enable_fde.sh /
 
