@@ -47,7 +47,7 @@ index 0908c72..e5998bf 100644
  			if err != nil {
  				panic(err)
 diff --git a/hook.yaml b/hook.yaml
-index 647e792..2ab0165 100644
+index 647e792..a42290b 100644
 --- a/hook.yaml
 +++ b/hook.yaml
 @@ -34,6 +34,26 @@ onboot:
@@ -99,7 +99,7 @@ index 647e792..2ab0165 100644
      runtime:
        mkdir:
          - /var/run/images
-@@ -100,6 +128,41 @@ services:
+@@ -100,6 +128,44 @@ services:
        mkdir:
          - /var/run/docker
  
@@ -125,6 +125,9 @@ index 647e792..2ab0165 100644
 +      - fdo_owner_svc=update_owner_svc
 +      - oci_release_svc=update_oci_release_svc
 +      - EXTRA_HOSTS=update_extra_hosts
++      - http_proxy=update_http_proxy
++      - https_proxy=update_https_proxy
++      - no_proxy=update_no_proxy
 +
 +  - name: fdo
 +    image: fdoclient_action:latest
@@ -141,7 +144,7 @@ index 647e792..2ab0165 100644
  #dbg  - name: sshd
  #dbg    image: linuxkit/sshd:666b4a1a323140aa1f332826164afba506abf597
  
-@@ -110,6 +173,14 @@ files:
+@@ -110,6 +176,14 @@ files:
        alias docker-shell='ctr -n services.linuxkit tasks exec --tty --exec-id shell hook-docker sh'
      mode: "0644"
  
@@ -156,7 +159,7 @@ index 647e792..2ab0165 100644
    - path: etc/motd
      mode: "0644"
      contents: |
-@@ -137,6 +208,18 @@ files:
+@@ -137,6 +211,18 @@ files:
      source: "files/dhcpcd.conf"
      mode: "0644"
  
@@ -175,7 +178,7 @@ index 647e792..2ab0165 100644
  #dbg  - path: root/.ssh/authorized_keys
  #dbg    source: ~/.ssh/id_rsa.pub
  #dbg    mode: "0600"
-@@ -146,3 +229,4 @@ trust:
+@@ -146,3 +232,4 @@ trust:
    org:
      - linuxkit
      - library
