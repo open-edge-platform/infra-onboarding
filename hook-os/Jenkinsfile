@@ -17,12 +17,8 @@ def getEnvFromBranch(branch) {
 
 pipeline {
 	agent none
-    triggers {
-        // nightly build between 23:00 a.m. - 23:59 a.m.(Etc/UTC), Monday - Friday:
-        cron(env.BRANCH_NAME =~ /main/ ? 'H 23 * * 1-5' : '')
-    }
     stages {
-		stage('OIE Host') {
+		stage('OIE  Native Host') {
 			agent {
 				label 'oie_maestro_spot'
 			}
@@ -95,22 +91,21 @@ pipeline {
 						}
 					}
 				}
-
 				stage('Setup') {
-						steps {
-							withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
-							{
-								sh '''
-								echo "Setup Build environment"
-								echo "machine github.com" >> $HOME/.netrc
-								echo "    login not-used" >> $HOME/.netrc
-								echo "    password $PASSWORD" >> $HOME/.netrc
-								echo "machine api.github.com" >> $HOME/.netrc
-								echo "    login not-used" >> $HOME/.netrc
-								echo "    password $PASSWORD" >> $HOME/.netrc
-								'''
-							}
+					steps {
+						withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
+						{
+							sh '''
+							echo "Setup Build environment"
+							echo "machine github.com" >> $HOME/.netrc
+							echo "    login not-used" >> $HOME/.netrc
+							echo "    password $PASSWORD" >> $HOME/.netrc
+							echo "machine api.github.com" >> $HOME/.netrc
+							echo "    login not-used" >> $HOME/.netrc
+							echo "    password $PASSWORD" >> $HOME/.netrc
+							'''
 						}
+					}
 				}
 				stage('Version Check') {
 				 	steps {
@@ -177,22 +172,47 @@ pipeline {
 					    }
 					}
 				}
-				stage('Push to OCI harbor') {
+			}
+		}
+		stage('OIE container host') {
+			agent {
+				docker {
+					label 'oie_spot_executor'
+					image 'amr-registry.caas.intel.com/one-intel-edge/rrp-devops/oie_ci_testing:latest'
+					alwaysPull true
+				}
+			}
+			environment {
+				GIT_SHORT_URL=env.GIT_URL.split('/')[4].toString().replaceAll('.git','')
+				SUB_PROJECT_NAME='maestro-i'          //update the sub project name based on your repo, eg:maestro-a/i, springboard
+				authorEmail = sh (script: 'git --no-pager show -s --format=\'%ae\'',returnStdout: true).trim()
+			}
+			stages {
+				stage('Setup') {
+					steps {
+						withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
+						{
+							sh '''
+							echo "Setup Build environment"
+							echo "machine github.com" >> $HOME/.netrc
+							echo "    login not-used" >> $HOME/.netrc
+							echo "    password $PASSWORD" >> $HOME/.netrc
+							echo "machine api.github.com" >> $HOME/.netrc
+							echo "    login not-used" >> $HOME/.netrc
+							echo "    password $PASSWORD" >> $HOME/.netrc
+							'''
+						}
+					}
+				}
+				stage('Push to OCI registry') {
 					when {
 						anyOf { branch 'main'; branch 'feature*'; branch 'release*' }
 					}
-					agent {
-						docker {
-							label 'oie_spot_executor'
-							image 'amr-registry.caas.intel.com/one-intel-edge/rrp-devops/oie_ci_testing:latest'
-							alwaysPull true
-				    		}
-			      		}
 					steps {
-						 withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'intel-harbor-credentials',
-                                        usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
-                        		{
-						        unstash 'alpine_image'
+							withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'intel-harbor-credentials',
+										usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
+								{
+								unstash 'alpine_image'
 								unstash 'grub_source'
 							sh '''
 							/opt/ci/push-oci-package.sh -f 'alpine_image/hook_x86_64.tar.gz grub_source.tar.gz'
@@ -200,21 +220,13 @@ pipeline {
 						}
 					}
 				}
-				// stage('Test Code') {
-					// steps {
-						// echo "Test the code"
-						// sh '''
-						// make test
-						// '''
-					// }
-				// }
 				stage('Version Tag') {
-				 	when {
-				 		anyOf { branch 'main'; branch 'feature*'; branch 'release*' }
-				 	}
-				 	steps {
-				 		withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
-				 			{
+					when {
+						anyOf { branch 'main'; branch 'feature*'; branch 'release*' }
+					}
+					steps {
+						withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
+							{
 							echo "Generate tag if SemVer"
 							sh '''
 							# Use writable user for git
@@ -227,12 +239,12 @@ pipeline {
 							# Tag the version
 							/opt/ci/version-tag.sh
 							'''
-				 		}
-				 	}
+						}
+					}
 				}
-				 /*stage ('Scan Containers') {
-					 when {
-						 anyOf {
+				/*stage ('Scan Containers') {
+						when {
+							anyOf {
 							anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest() }
 						}
 					}
@@ -258,22 +270,6 @@ pipeline {
 						}
 					}
 				}*/
-				// stage('Docker Publish') {
-					// when {
-						// anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; expression{ common.isMatchingCommit(/.*\[push-docker-image\]*/) }; }
-					// }
-					// steps {
-						// withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'intel-harbor-credentials', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
-						// {
-							// sh '''
-							// docker login -u $USERNAME -p $PASSWORD https://amr-registry.caas.intel.com
-							// make docker-push
-							// docker logout
-							// '''
-						// }
-					// }
-				// }
-
 				stage('Version dev') {
 					when {
 						anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; }
@@ -299,57 +295,56 @@ pipeline {
 				}
 			}
 			post {
-					always {
-						jcpSummaryReport()
-						cleanWs()
-					}
-					failure {
-						script {
-							def currentBranch = env.BRANCH_NAME
-							if ((currentBranch ==~ env.branchPattern) && authorEmail?.contains('.intel')) {
-								emailext(
-								subject: "Build failed on main branch for ${GIT_SHORT_URL}",
-								body: "The build on the main branch failed. Please check the logs for more details. Your PR was the last change, this is why you're receiving this email",
-								to: authorEmail,
-								attachLog: true
-								)
-							}
+				always {
+					jcpSummaryReport()
+					cleanWs()
+				}
+				failure {
+					script {
+						def currentBranch = env.BRANCH_NAME
+						if ((currentBranch ==~ env.branchPattern) && authorEmail?.contains('.intel')) {
+							emailext(
+							subject: "Build failed on main branch for ${GIT_SHORT_URL}",
+							body: "The build on the main branch failed. Please check the logs for more details. Your PR was the last change, this is why you're receiving this email",
+							to: authorEmail,
+							attachLog: true
+							)
 						}
 					}
+				}
 			}
-		}
-				
+		}		
 		stage('Execute in file server') {
-            agent {
-                label 'edgenode_internal_deb_file_server'
-            }
-            when {
-        	anyOf { branch 'main'; branch 'release-*' }
-            }
-            steps {
-                script {
+			agent {
+				label 'edgenode_internal_deb_file_server'
+			}
+			when {
+			anyOf { branch 'main'; branch 'release-*' }
+			}
+			steps {
+				script {
 					unstash 'alpine_image'
 					unstash 'grub_source'
 				
-                    def repoVersion = sh(script: 'cat VERSION', returnStdout: true).trim()
-                    def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-                    echo "repoVersion: ${repoVersion}"
-                    if (!repoVersion.contains('-dev')) {
-                        // Perform mkdir and cp steps only if repoVersion doesn't contain '-dev'
-                        sh """
-                            [ -d /srv/repos/apt/debian/fm_en_artifacts/hook-os/${repoVersion}/alpine_image ] || mkdir -p /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}/alpine_image/
-                            cp ${WORKSPACE}/alpine_image/hook_x86_64.tar.gz /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}/alpine_image/hook_x86_64.tar.gz
+					def repoVersion = sh(script: 'cat VERSION', returnStdout: true).trim()
+					def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+					echo "repoVersion: ${repoVersion}"
+					if (!repoVersion.contains('-dev')) {
+						// Perform mkdir and cp steps only if repoVersion doesn't contain '-dev'
+						sh """
+							[ -d /srv/repos/apt/debian/fm_en_artifacts/hook-os/${repoVersion}/alpine_image ] || mkdir -p /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}/alpine_image/
+							cp ${WORKSPACE}/alpine_image/hook_x86_64.tar.gz /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}/alpine_image/hook_x86_64.tar.gz
 							cp ${WORKSPACE}/grub_source.tar.gz /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}/
-                        """
-                    } else {
-                        sh """
-                            [ -d /srv/repos/apt/debian/fm_en_artifacts/hook-os/${repoVersion}-${commitId}/alpine_image ] || mkdir -p /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}-${commitId}/alpine_image/
-                            cp ${WORKSPACE}/alpine_image/hook_x86_64.tar.gz /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}-${commitId}/alpine_image/hook_x86_64.tar.gz
+						"""
+					} else {
+						sh """
+							[ -d /srv/repos/apt/debian/fm_en_artifacts/hook-os/${repoVersion}-${commitId}/alpine_image ] || mkdir -p /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}-${commitId}/alpine_image/
+							cp ${WORKSPACE}/alpine_image/hook_x86_64.tar.gz /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}-${commitId}/alpine_image/hook_x86_64.tar.gz
 							cp ${WORKSPACE}/grub_source.tar.gz /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}-${commitId}/
-                        """
-                    }
-                }
-            }
-        }
-    }
+						"""
+					}
+				}
+			}
+		}
+	}
 }
