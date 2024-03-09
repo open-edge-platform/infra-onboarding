@@ -61,6 +61,7 @@ docker-push:
 	docker tag cred_copy:latest ${DOCKER_TAG}/cred_copy:${BRANCH_NAME}
 	docker tag client_auth:latest ${DOCKER_TAG}/client_auth:${BRANCH_NAME}
 	docker tag nginx_proxy_action:latest ${DOCKER_TAG}/nginx_proxy_action:${BRANCH_NAME}
+	docker tag caddy_proxy:latest ${DOCKER_TAG}/caddy_proxy:${BRANCH_NAME}
 	docker tag image2disk:latest ${DOCKER_TAG}/image2disk:${BRANCH_NAME}
 	docker tag cexec:latest ${DOCKER_TAG}/cexec:${BRANCH_NAME}
 	docker tag writefile:latest ${DOCKER_TAG}/writefile:${BRANCH_NAME}
@@ -73,6 +74,7 @@ docker-push:
 	docker push ${DOCKER_TAG}/cred_copy:${BRANCH_NAME}
 	docker push ${DOCKER_TAG}/client_auth:${BRANCH_NAME}
 	docker push ${DOCKER_TAG}/nginx_proxy_action:${BRANCH_NAME}
+	docker push ${DOCKER_TAG}/caddy_proxy:${BRANCH_NAME}
 	docker push ${DOCKER_TAG}/image2disk:${BRANCH_NAME}
 	docker push ${DOCKER_TAG}/cexec:${BRANCH_NAME}
 	docker push ${DOCKER_TAG}/writefile:${BRANCH_NAME}
@@ -85,6 +87,7 @@ docker-push:
 	docker tag cred_copy:latest ${DOCKER_TAG}/cred_copy:${VERSION}
 	docker tag client_auth:latest ${DOCKER_TAG}/client_auth:${VERSION}
 	docker tag nginx_proxy_action:latest ${DOCKER_TAG}/nginx_proxy_action:${VERSION}
+	docker tag caddy_proxy:latest ${DOCKER_TAG}/caddy_proxy:${VERSION}
 	docker tag image2disk:latest ${DOCKER_TAG}/image2disk:${VERSION}
 	docker tag cexec:latest ${DOCKER_TAG}/cexec:${VERSION}
 	docker tag writefile:latest ${DOCKER_TAG}/writefile:${VERSION}
@@ -97,6 +100,7 @@ docker-push:
 	docker push ${DOCKER_TAG}/cred_copy:${VERSION}
 	docker push ${DOCKER_TAG}/client_auth:${VERSION}
 	docker push ${DOCKER_TAG}/nginx_proxy_action:${VERSION}
+	docker push ${DOCKER_TAG}/caddy_proxy:${VERSION}
 	docker push ${DOCKER_TAG}/image2disk:${VERSION}
 	docker push ${DOCKER_TAG}/cexec:${VERSION}
 	docker push ${DOCKER_TAG}/writefile:${VERSION}

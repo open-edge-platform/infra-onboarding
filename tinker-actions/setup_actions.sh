@@ -22,6 +22,7 @@ fde_setup=./tinker_actions/fde
 creds_copy=./tinker_actions/creds_copy
 client_auth=./tinker_actions/client_auth
 nginx_proxy=./tinker_actions/nginx_proxy
+caddy_proxy=./tinker_actions/caddy
 image2disk=./tinker_actions/image2disk/v1
 cexec=./tinker_actions/cexec/v1
 writefile=./tinker_actions/writefile/v1
@@ -96,6 +97,15 @@ nginxproxy_setup() {
     popd
 }
 
+caddyproxy_setup() {
+
+    pushd $caddy_proxy
+
+    bash -e build.sh
+
+    popd
+}
+
 image2disk_setup() {
 
     pushd $image2disk
@@ -137,6 +147,7 @@ main() {
 
     client_auth_setup
     nginxproxy_setup
+    caddyproxy_setup
     image2disk_setup
     cexec_setup
     writefile_setup
