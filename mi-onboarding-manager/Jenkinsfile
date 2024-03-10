@@ -23,7 +23,7 @@ pipeline {
     agent {
         docker {
             label 'oie_spot_executor'
-            image 'amr-registry.caas.intel.com/one-intel-edge/rrp-devops/oie_ci_testing:2.9.63'
+            image 'amr-registry.caas.intel.com/one-intel-edge/rrp-devops/oie_ci_testing:2.10.1'
             alwaysPull true
             args '--net=host'
         }
@@ -122,7 +122,7 @@ pipeline {
                 sh '''
                 /opt/ci/version-check.sh
                 '''
-            }        
+            }
         }
         stage('Lint Code') {
             steps {
@@ -258,7 +258,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Version dev') {
             when {
                 anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; }
@@ -284,7 +284,7 @@ pipeline {
         }
 
         stage('Scan Binary') {
-            parallel {             
+            parallel {
                 stage('Scan BDBA'){
                     environment {
                         PROJECT_NAME                 = "oie-${GIT_SHORT_URL}"
@@ -317,7 +317,7 @@ pipeline {
                         ]) {
                             sh """
                             [ -d "BDBA" ] || mkdir BDBA
-                        tar -zcvf BDBA/${GIT_SHORT_URL}.tar.gz build 
+                        tar -zcvf BDBA/${GIT_SHORT_URL}.tar.gz build
                             """
                             rbheStaticCodeScan()
                         }
@@ -362,7 +362,7 @@ pipeline {
             }
         }
     }
-    
+
     post {
         always {
             jcpSummaryReport()
