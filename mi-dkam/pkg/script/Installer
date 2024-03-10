@@ -333,9 +333,23 @@ install_node_agent(){
 
 
     #Below code is intended to resolve dependencies for MTLS based apt and bypass need for ESP based provisioning
+    #IMPORTANT: If additional new users or groups need to be created by DKAM, they MUST be added after the users and group created below
+    #to avoid those users or groups being assigned to IDs that are reserved. A list of the reserved UID and GID values are below:
+    #
+    #|----------|------------|--------------|
+    #|   Name   | User/Group | Reserverd ID |
+    #|----------|------------|--------------|
+    #|bm-agents |    Group   |      998     |
+    #|node-agent|    User    |      997     |
+    #|promtheus |    User    |      994     |
+    #|----------|------------|--------------|
 
     groupadd -f bm-agents -g 998 --system
-    id -u node-agent &>/dev/null || useradd node-agent --system -g bm-agents
+    id -u node-agent &>/dev/null || useradd node-agent -u 997 --system -g bm-agents
+    id -u prometheus &>/dev/null || useradd prometheus -u 994 --system -g bm-agents
+    id -u platform-update-agent &>/dev/null || useradd platform-update-agent --system -g bm-agents
+    id -u fluent-bit &>/dev/null || useradd fluent-bit --system -g bm-agents -G adm
+    useradd -r -c "etcd user" -s /sbin/nologin -M etcd -U
 
     echo create required dir structure to persist cert/key
     mkdir -p /etc/lp/node/certs
@@ -722,7 +736,6 @@ delete_invalid_ubuntu_boot_menuoptions () {
 
 # 29. Set kernel configurations
 enable_kernel_config(){
-    useradd -r -c "etcd user" -s /sbin/nologin -M etcd -U
     sysctl -w vm.overcommit_memory=__OVER_COMMIT_MEMORY__ 
     sysctl -w kernel.panic=__KERNEL_PANIC__ 
     sysctl -w kernel.panic_on_oops=__PANIC_ON_OOPS__ 
