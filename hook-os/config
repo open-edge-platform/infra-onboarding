@@ -61,6 +61,12 @@ ftp_proxy=""
 socks_proxy=""
 no_proxy=""
 
+# external proxy
+# Set this to the proxy address (example: "proxy-us.intel.com:911" ) if queries
+# to the orchestrator's vault and keycloak must go through a proxy from where
+# the build is taking place Leave blank if no proxy is being used.
+external_proxy=""
+
 ## nameservers (external, organiational)
 nameserver=("" "" "")
 

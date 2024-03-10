@@ -12,26 +12,37 @@
 # or implied warranties, other than those that are expressly stated in the License. #
 #####################################################################################
 
+set -xu -o pipefail
+
 source ./config
 
 echo "getting intel and cluster certs"
 rm -f client_auth/files/ca.pem
 
+wget_no_proxy="--no-proxy"
+if [ "$external_proxy" != '' ];
+then
+  wget_no_proxy=
+fi
+
 attempt=0
 until [ $attempt -ge 5 ]
 do
-  wget --max-redirect=0 "https://vault.${deployment_dns_extension}/v1/pki_root/ca" --no-proxy --no-check-certificate && break
-  attempt=$[$attempt+1]
+  wget --max-redirect=0 "https://vault.${deployment_dns_extension}/v1/pki_root/ca" $wget_no_proxy --no-check-certificate && break
+  attempt=$((attempt+1))
   sleep 5
 done
 
+set -e
+
 if [ $attempt -eq 5 ]; then
   echo "Failed to download maestro root cert"
-else
-  openssl x509 -in ca -inform der -outform pem > client_auth/files/server_cert.pem
+  exit 1
 fi
 
-wget "https://${deployment_dns_extension}/boots/ca.crt" --no-proxy --no-check-certificate -O boots_ca.crt
+openssl x509 -in ca -inform der -outform pem > client_auth/files/server_cert.pem
+
+wget "https://${deployment_dns_extension}/boots/ca.crt" $wget_no_proxy --no-check-certificate -O boots_ca.crt
 cat boots_ca.crt >> client_auth/files/server_cert.pem
 
 rm ca boots_ca.crt
@@ -43,4 +54,3 @@ for certfile in intel_5A.crt intel_5A_2.crt intel_5B.crt intel_5B_2.crt intel_ro
 do
   curl https://ubit-artifactory-or.intel.com/artifactory/it-btrm-local/intel_cacerts/$certfile >> client_auth/files/ca.pem
 done
-
