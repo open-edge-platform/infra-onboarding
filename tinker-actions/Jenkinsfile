@@ -121,9 +121,6 @@ pipeline {
 					}
 				}
 		}
-		// This stage is required for service/agent repos only
-		// Please remove it for chart repos
-	
 		stage('Version Check') {
 			steps {
 				echo "Check if its a valid code version"
@@ -132,7 +129,6 @@ pipeline {
 				'''
 			}        
 		}
-
 		stage('Lint Code') {
 			steps {
 				sh '''
@@ -157,7 +153,6 @@ pipeline {
 				// '''
 			// }
 		// }
-
 		stage('Validate clean repo') {
 			steps {
 				sh '''
@@ -165,9 +160,6 @@ pipeline {
 				'''
 			}
 		}
-	
-		// This stage is required for service/agent repos only
-		// Please remove it for chart repos
 		stage('Version Tag') {
 			when {
 				anyOf { branch 'main'; branch 'feature*'; branch 'release*' }
@@ -190,11 +182,10 @@ pipeline {
 				}
 			}
 		}
-
 		stage ('Scan Containers') {
 			when {
 				anyOf {
-					anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest() }
+					anyOf { branch 'main'; branch 'release-*'; changeRequest() }
 				}
 			}
 			environment {
@@ -221,7 +212,7 @@ pipeline {
 		}
 		stage('Docker Publish') {
 			when {
-				anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; expression{ common.isMatchingCommit(/.*\[push-docker-image\]*/) }; changeRequest();}
+				anyOf { branch 'main'; branch 'release-*'; expression{ common.isMatchingCommit(/.*\[push-docker-image\]*/) } }
 			}
 			steps {
 				withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'intel-harbor-credentials', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
@@ -236,7 +227,7 @@ pipeline {
 		}
 		stage('Version dev') {
 			when {
-				anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; }
+				anyOf { branch 'main'; branch 'release-*'; }
 			}
 			steps {
 				withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
@@ -255,6 +246,20 @@ pipeline {
 				REVIEWER_1="raphaelvrosa" REVIEWER_2="daniele-moro" /opt/ci/version-dev.sh
 				'''
 				}
+			}
+		}
+		stage('Build Hook-OS') {
+			when {
+				anyOf { branch 'main'; branch 'release-*'; }
+			}
+			steps {
+				script{
+					def downstreamJobPath = 'Edge-Node/Intel Innersource Edge-Node/frameworks.edge.one-intel-edge.edge-node.os-provision.provisioning-hook-os/main'
+					build job: downstreamJobPath, parameters: [
+							booleanParam(name: 'buildHookOs', value: true)
+					]
+				}
+
 			}
 		}
 	}
