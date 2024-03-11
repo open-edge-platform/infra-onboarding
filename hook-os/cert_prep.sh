@@ -40,10 +40,10 @@ if [ $attempt -eq 5 ]; then
   exit 1
 fi
 
-openssl x509 -in ca -inform der -outform pem > client_auth/files/server_cert.pem
+openssl x509 -in ca -inform der -outform pem > client_auth/files/ca.pem
 
 wget "https://${deployment_dns_extension}/boots/ca.crt" $wget_no_proxy --no-check-certificate -O boots_ca.crt
-cat boots_ca.crt >> client_auth/files/server_cert.pem
+cat boots_ca.crt >> client_auth/files/ca.pem
 
 rm ca boots_ca.crt
 
@@ -54,3 +54,16 @@ for certfile in intel_5A.crt intel_5A_2.crt intel_5B.crt intel_5B_2.crt intel_ro
 do
   curl https://ubit-artifactory-or.intel.com/artifactory/it-btrm-local/intel_cacerts/$certfile >> client_auth/files/ca.pem
 done
+
+# Not needed
+# cat ~/mycert.pem >> client_auth/files/ca.pem
+
+# add new line to ca.pem so that public lets-encrypt certificates can be inserted in new line(CSA)
+echo "" >> client_auth/files/ca.pem
+
+# get letsencrypt certs
+for certfile in isrgrootx1.pem lets-encrypt-r3.pem lets-encrypt-e1.pem trustid-x3-root.pem.txt
+do
+  curl https://letsencrypt.org/certs/$certfile >> client_auth/files/ca.pem
+done
+
