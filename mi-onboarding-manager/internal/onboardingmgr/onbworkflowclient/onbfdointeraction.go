@@ -7,13 +7,9 @@ package onbworkflowclient
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"net/http"
-
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/auth"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 )
 
 func SendFileToOwner(ownerIP, ownerSvcPort, guid, clientidsuffix, key string) error {
@@ -70,43 +66,4 @@ func ExecuteSVI(ownerIP, ownerSvcPort, clientidsuffix, clientsecretsuffix string
 	zlog.Debug().Msgf("Owner SVI API executed successfully for %s and %s", clientidsuffix, clientsecretsuffix)
 
 	return nil
-}
-
-func InitializeDeviceSecretData(deviceInfo utils.DeviceInfo) error {
-	// Save details to the database
-	err := SendFileToOwner(deviceInfo.FdoOwnerDNS, deviceInfo.FdoOwnerPort, deviceInfo.FdoGUID, "client_id", deviceInfo.ClientID)
-	if err != nil {
-		return fmt.Errorf("error sending file to owner: %v", err)
-	}
-	err = SendFileToOwner(deviceInfo.FdoOwnerDNS, deviceInfo.FdoOwnerPort, deviceInfo.FdoGUID, "client_secret", deviceInfo.ClientSecret)
-	if err != nil {
-		return fmt.Errorf("error sending file to owner: %v", err)
-	}
-	//doing svi for secret Transfer
-	err = ExecuteSVI(deviceInfo.FdoOwnerDNS, deviceInfo.FdoOwnerPort, "client_id", "client_secret")
-	if err != nil {
-		return fmt.Errorf("error doing svi for clientid: %v", err)
-	}
-
-	// Log completion message
-	zlog.Debug().Msgf("InitializeDeviceSecretData completed for host %s (IP: %s)",
-		deviceInfo.GUID, deviceInfo.HwIP)
-
-	return nil
-}
-
-func GetClientData(deviceGUID string) (string, string, error) {
-	ctx := context.Background()
-	authService, err := auth.AuthServiceFactory(ctx)
-	if err != nil {
-		return "", "", err
-	}
-	defer authService.Logout(ctx)
-
-	clientID, clientSecret, credsErr := authService.CreateCredentialsWithUUID(ctx, deviceGUID)
-	if credsErr != nil {
-		return "", "", credsErr
-	}
-
-	return clientID, clientSecret, nil
 }

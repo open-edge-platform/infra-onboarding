@@ -8,7 +8,6 @@ import (
 	"context"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onbworkflowclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
@@ -185,7 +184,7 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource, artifactI
 		SecurityFeature: uint32(instance.GetSecurityFeature()),
 		DiskType:        os.Getenv("DISK_PARTITION"),
 		LoadBalancerIP:  os.Getenv("IMG_URL"),
-		Gateway:         onboarding.GenerateGatewayFromBaseIP(host.GetBmcIp()),
+		Gateway:         utils.GenerateGatewayFromBaseIP(host.GetBmcIp()),
 		ProvisionerIP:   os.Getenv("PD_IP"),
 		ImType:          os.Getenv("IMAGE_TYPE"),
 		RootfspartNo:    os.Getenv("OVERLAY_URL"),

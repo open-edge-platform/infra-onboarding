@@ -10,8 +10,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 )
 
 func TestSendFileToOwner(t *testing.T) {
@@ -133,32 +131,6 @@ func TestExecuteSVI(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := ExecuteSVI(tt.args.ownerIP, tt.args.ownerSvcPort, tt.args.clientidsuffix, tt.args.clientsecretsuffix); (err != nil) != tt.wantErr {
 				t.Errorf("ExecuteSVI() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestInitializeDeviceSecretData(t *testing.T) {
-	type args struct {
-		deviceInfo utils.DeviceInfo
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
-			args: args{
-				deviceInfo: utils.DeviceInfo{},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := InitializeDeviceSecretData(tt.args.deviceInfo); (err != nil) != tt.wantErr {
-				t.Errorf("InitializeDeviceSecretData() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

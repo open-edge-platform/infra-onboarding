@@ -14,7 +14,6 @@ import (
 	"testing"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,65 +35,10 @@ func generatekubeconfigPath() (string, error) {
 	return kubeconfigPath, err
 }
 
-func TestCaSlculateRootF(t *testing.T) {
-	// Test case 1: imageType is "bkc" and diskDev ends with a numeric digit
-	partition := CalculateRootFS("bkc", "sda1")
-	assert.Equal(t, "p1", partition, "Expected partition 'p1'")
-
-	// Test case 2: imageType is "ms" and diskDev ends with a numeric digit
-	partition = CalculateRootFS("ms", "nvme0n1p2")
-	assert.Equal(t, "p1", partition, "Expected partition 'p1'")
-
-	// Test case 3: imageType is "bkc" and diskDev does not end with a numeric digit
-	partition = CalculateRootFS("bkc", "sdb")
-	assert.Equal(t, "1", partition, "Expected partition '1'")
-
-	// Test case 4: imageType is  "ms" and diskDev ends with a numeric digit
-	partition = CalculateRootFS("other", "nvme0n1p3")
-	assert.Equal(t, "p1", partition, "Expected partition 'p1'")
-}
-
 // MockHTTPServer creates a mock HTTP server and returns its URL.
 func MockHTTPServer(handler http.Handler) (*httptest.Server, string) {
 	server := httptest.NewServer(handler)
 	return server, server.URL
-}
-
-func TestDiWorkflowCreation(t *testing.T) {
-	k, _ := generatekubeconfigPath()
-	type args struct {
-		deviceInfo     utils.DeviceInfo
-		kubeconfigpath string
-	}
-	inputargs := args{
-		deviceInfo:     utils.DeviceInfo{},
-		kubeconfigpath: k,
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
-		{
-			"test",
-			inputargs,
-			"",
-			true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := DiWorkflowCreation(tt.args.deviceInfo)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DiWorkflowCreation() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("DiWorkflowCreation() = %v, want %v", got, tt.want)
-			}
-		})
-	}
 }
 
 func TestVoucherScript(t *testing.T) {
@@ -123,59 +67,6 @@ func TestVoucherScript(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("VoucherScript() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-func TestGetClientData(t *testing.T) {
-	// Mock device GUID
-	mockDeviceGUID := "444C-44ac-6639-2983-3u4u-9475"
-
-	// Call the function being tested
-	clientID, clientSecret, err := GetClientData(mockDeviceGUID)
-
-	// Check if an error was returned
-	if err == nil {
-		t.Error("Expected an error, but got nil")
-	}
-
-	// Check if clientID and clientSecret are empty
-	if clientID != "" {
-		t.Errorf("Expected empty client ID, but got: %s", clientID)
-	}
-	if clientSecret != "" {
-		t.Errorf("Expected empty client secret, but got: %s", clientSecret)
-	}
-}
-func TestProdWorkflowCreation(t *testing.T) {
-	type args struct {
-		deviceInfo   utils.DeviceInfo
-		imgtype      string
-		artifactinfo utils.ArtifactData
-		enableDI     bool
-	}
-	inputargs := args{
-		deviceInfo:   utils.DeviceInfo{},
-		imgtype:      "",
-		artifactinfo: utils.ArtifactData{},
-		enableDI:     false,
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			"test",
-			inputargs,
-			true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := ProdWorkflowCreation(tt.args.deviceInfo, tt.args.imgtype,
-				tt.args.artifactinfo, tt.args.enableDI); (err != nil) != tt.wantErr {
-				t.Errorf("ProdWorkflowCreation() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

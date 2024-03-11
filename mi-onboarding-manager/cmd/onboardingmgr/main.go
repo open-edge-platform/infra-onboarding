@@ -10,8 +10,6 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/controller"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/southbound"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/config"
-	inventory "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/controller"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/secrets"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
@@ -42,8 +40,6 @@ var (
 	termChan  = make(chan bool, 1)
 	sigChan   = make(chan os.Signal, 1)
 )
-
-var manager *inventory.InventoryManager
 
 var (
 	Project   = "frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service"
@@ -107,11 +103,6 @@ func main() {
 			}()
 		}
 	}
-
-	config.Load()
-	conf := config.GetConfig()
-	manager = inventory.NewInventoryManager(conf)
-	zlog.Info().Msgf("Inventory manager %v", manager)
 
 	invClient, err := invclient.NewOnboardingInventoryClientWithOptions(
 		invclient.WithInventoryAddress(*inventoryAddress),

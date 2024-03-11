@@ -7,25 +7,18 @@ package onbworkflowclient
 
 import (
 	"bytes"
-	"context"
 	"flag"
 	"fmt"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"os/user"
-	"regexp"
 	"strings"
-	"time"
-
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/tinkerbell"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 var (
@@ -33,11 +26,6 @@ var (
 	zlog       = logging.GetLogger(clientName)
 )
 var rvEnabled = flag.Bool("rvenabled", false, "Set to true if you have enabled rv")
-
-func GenerateMacIDString(macID string) string {
-	macWithoutColon := strings.ReplaceAll(macID, ":", "")
-	return strings.ToLower(macWithoutColon)
-}
 
 func readUIDFromFile(filePath string) (string, error) {
 	data, err := os.ReadFile(filePath)
@@ -307,234 +295,4 @@ func apiCalls(httpMethod, url, authType, apiUser, onrApiPasswd string, bodyData 
 		return nil, fmt.Errorf("%s request failed with status code:%s", httpMethod, resp.Status)
 	}
 	return resp, nil
-}
-
-func CalculateRootFS(imageType, diskDev string) string {
-	rootFSPartNo := "1"
-
-	if imageType == "bkc" {
-		rootFSPartNo = "1"
-	}
-
-	// Use regular expression to check if diskDev ends with a numeric digit
-	match, _ := regexp.MatchString(".*[0-9]$", diskDev)
-
-	if match {
-		return fmt.Sprintf("p%s", rootFSPartNo)
-	}
-
-	return rootFSPartNo
-}
-
-func ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imgtype string, artifactinfo utils.ArtifactData, enableDI bool) error {
-	zlog.Info().Msgf("ProdWorkflowCreation starting for host %s (IP: %s)",
-		deviceInfo.GUID, deviceInfo.HwIP)
-
-	kubeClient, err := tinkerbell.NewK8SClient()
-	if err != nil {
-		return err
-	}
-
-	var (
-		// TODO: use context from reconciler once refactored to asynchronous handling
-		ctx = context.Background()
-		// TODO: use env variable to get namespace from Helm chart deployment
-		ns       = "maestro-iaas-system"
-		id       = GenerateMacIDString(deviceInfo.HwMacID)
-		tmplName string
-		tmplData []byte
-	)
-	const pollTimeDuration = 20 * time.Second
-
-	if !enableDI {
-		hw := tinkerbell.NewHardware("machine-"+id, ns, deviceInfo.HwMacID,
-			deviceInfo.DiskType, deviceInfo.HwIP, deviceInfo.Gateway)
-
-		if kubeCreateErr := kubeClient.Create(ctx, hw); kubeCreateErr != nil {
-			return kubeCreateErr
-		}
-
-		fmt.Printf("hardware workflow applied hardwarename:%s", hw.Name)
-		fmt.Printf("hardware workflow Image URL :%s", deviceInfo.LoadBalancerIP)
-	}
-
-	switch imgtype {
-	case utils.ProdBkc:
-		tmplName = fmt.Sprintf("bkc-%s-prod", id)
-		deviceInfo.ClientImgName = "jammy-server-cloudimg-amd64.raw.gz"
-		deviceInfo.ImType = "bkc"
-		deviceInfo.Rootfspart = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
-		deviceInfo.LoadBalancerIP = artifactinfo.BkcURL
-		deviceInfo.RootfspartNo = artifactinfo.BkcBasePkgURL
-		tmplData, err = tinkerbell.NewTemplateDataProdBKC(tmplName, deviceInfo.Rootfspart, deviceInfo.RootfspartNo,
-			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.ClientImgName, deviceInfo.ProvisionerIP, deviceInfo.SecurityFeature, deviceInfo.ClientID, deviceInfo.ClientSecret, enableDI)
-		if err != nil {
-			return err
-		}
-	case utils.ProdFocal:
-		tmplName = fmt.Sprintf("focal-%s-prod", id)
-		deviceInfo.ClientImgName = "focal-server-cloudimg-amd64.raw.gz"
-		deviceInfo.ImType = "focal"
-		deviceInfo.Rootfspart = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
-		tmplData, err = tinkerbell.NewTemplateDataProd(tmplName, deviceInfo.Rootfspart,
-			deviceInfo.RootfspartNo, deviceInfo.LoadBalancerIP, deviceInfo.ProvisionerIP)
-		if err != nil {
-			return err
-		}
-	case utils.ProdFocalMs:
-		tmplName = fmt.Sprintf("focal-ms-%s-prod", id)
-		deviceInfo.ImType = "focal-ms"
-		deviceInfo.Rootfspart = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
-		tmplData, err = tinkerbell.NewTemplateDataProdMS(tmplName, deviceInfo.Rootfspart, deviceInfo.RootfspartNo,
-			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.HwMacID, deviceInfo.ProvisionerIP)
-		if err != nil {
-			return err
-		}
-	default:
-		tmplName = fmt.Sprintf("focal-%s-prod", id)
-		deviceInfo.ClientImgName = "jammy-server-cloudimg-amd64.raw.gz"
-		deviceInfo.ImType = "jammy"
-		deviceInfo.Rootfspart = CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
-		tmplData, err = tinkerbell.NewTemplateDataProd(tmplName, deviceInfo.Rootfspart,
-			deviceInfo.RootfspartNo, deviceInfo.LoadBalancerIP, deviceInfo.ProvisionerIP)
-		if err != nil {
-			return err
-		}
-	}
-
-	fmt.Println("production workflow started.......................................")
-	// have notification from sut
-	log.Printf("ROOTFS_PART_NO %s /// ROOTFS_PARTITION %s", deviceInfo.RootfspartNo, deviceInfo.Rootfspart)
-
-	tmpl := tinkerbell.NewTemplate(string(tmplData), tmplName, ns)
-	if err := kubeClient.Create(ctx, tmpl); err != nil {
-		return err
-	}
-	fmt.Printf("template workflow applied workflowname:%s", tmpl.Name)
-
-	wf := tinkerbell.NewWorkflow(fmt.Sprintf("workflow-%s-prod", id), ns, deviceInfo.HwMacID,
-		"machine-"+id, fmt.Sprintf("%s-%s-prod", deviceInfo.ImType, id))
-	if err := kubeClient.Create(ctx, wf); err != nil {
-		return err
-	}
-	fmt.Printf("workflow applied workflowname:%s", wf.Name)
-
-	check := func() (bool, error) {
-		err := kubeClient.Get(ctx, types.NamespacedName{Namespace: wf.Namespace, Name: wf.Name}, wf)
-		if err != nil {
-			return false, err
-		}
-		log.Printf("Workflow %s state: %s\n", wf.Name, wf.Status.State)
-		return strings.EqualFold(string(wf.Status.State), "STATE_SUCCESS"), nil
-	}
-
-	if err := wait.PollUntilContextTimeout(ctx, pollTimeDuration, time.Hour, false, func(_ context.Context) (bool, error) {
-		success, err := check()
-		if err != nil {
-			log.Printf("Error checking workflow status: %v", err)
-			return false, err
-		}
-		if success {
-			log.Printf("Workflow %s has reached STATE_SUCCESS", wf.Name)
-		}
-		return success, nil
-	}); err != nil {
-		return fmt.Errorf("workflow did not reach STATE_SUCCESS: %w", err)
-	}
-
-	////////////////////////////////To workflow Cleanup//////////////////////////
-	if err := kubeClient.Delete(ctx, tmpl); err != nil {
-		log.Printf("error while deleting template: %v", err)
-		return err
-	}
-
-	if err := kubeClient.Delete(ctx, wf); err != nil {
-		log.Printf("error while deleting workflow: %v", err)
-		return err
-	}
-
-	return nil
-}
-
-func DiWorkflowCreation(deviceInfo utils.DeviceInfo) (string, error) {
-	kubeClient, err := tinkerbell.NewK8SClient()
-	if err != nil {
-		return "", err
-	}
-
-	// TODO: use context from reconciler once refactored to asynchronous handling
-	ctx := context.Background()
-	ns := "maestro-iaas-system"
-	id := GenerateMacIDString(deviceInfo.HwMacID)
-	const pollTimeDuration = 20 * time.Second
-
-	hw := tinkerbell.NewHardware("machine-"+id, ns, deviceInfo.HwMacID,
-		deviceInfo.DiskType, deviceInfo.HwIP, deviceInfo.Gateway)
-	if kubeCreateErr := kubeClient.Create(ctx, hw); kubeCreateErr != nil {
-		return "", kubeCreateErr
-	}
-	fmt.Printf("hardware workflow applied hardwarename:%s", hw.Name)
-
-	tmplName := "fdodi-" + id
-	tmplData, err := tinkerbell.NewTemplateData(tmplName, deviceInfo.HwIP, "CLIENT-SDK-TPM",
-		deviceInfo.DiskType, deviceInfo.HwSerialID)
-	if err != nil {
-		return "", err
-	}
-	tmpl := tinkerbell.NewTemplate(string(tmplData), tmplName, ns)
-	if kubeCreateErr := kubeClient.Create(ctx, tmpl); kubeCreateErr != nil {
-		return "", kubeCreateErr
-	}
-	fmt.Printf("template workflow applied workflowname:%s", tmpl.Name)
-
-	wf := tinkerbell.NewWorkflow("workflow-"+id, ns, deviceInfo.HwMacID, hw.Name, tmpl.Name)
-	if kubeCreateErr := kubeClient.Create(ctx, wf); kubeCreateErr != nil {
-		return "", kubeCreateErr
-	}
-	fmt.Printf("workflow applied workflowname:%s", wf.Name)
-
-	check := func() (bool, error) {
-		clientErr := kubeClient.Get(ctx, types.NamespacedName{Namespace: wf.Namespace, Name: wf.Name}, wf)
-		if clientErr != nil {
-			return false, clientErr
-		}
-		log.Printf("Workflow %s state: %s\n", wf.Name, wf.Status.State)
-		return strings.EqualFold(string(wf.Status.State), "STATE_SUCCESS"), nil
-	}
-
-	if err = wait.PollUntilContextTimeout(ctx, pollTimeDuration, 2*time.Hour, false, func(_ context.Context) (bool, error) {
-		success, statusErr := check()
-		if statusErr != nil {
-			log.Printf("Error checking workflow status: %v", statusErr)
-			return false, statusErr
-		}
-		if success {
-			log.Printf("Workflow %s has reached STATE_SUCCESS", wf.Name)
-		}
-		return success, nil
-	}); err != nil {
-		return "", fmt.Errorf("workflow did not reach STATE_SUCCESS: %w", err)
-	}
-
-	/////////////////////Voucher extension//////////////////////
-
-	guid, err := VoucherScript(deviceInfo)
-	if err != nil {
-		// fmt.Printf("Error: %v\n", err)
-		zlog.Err(err).Msg("Failed to  voucher Extension")
-	} else {
-		fmt.Printf("GUID: %s\n", guid)
-		zlog.Info().Msgf("FDO-GUID  %s for the UUID  %s", guid, deviceInfo.GUID)
-	}
-
-	////////////////////////////////Di workflow Cleanup//////////////////////////
-	if kubeDeleteErr := kubeClient.Delete(ctx, tmpl); kubeDeleteErr != nil {
-		return "", kubeDeleteErr
-	}
-
-	if kubeDeleteErr := kubeClient.Delete(ctx, wf); kubeDeleteErr != nil {
-		return "", kubeDeleteErr
-	}
-
-	return guid, nil
 }
