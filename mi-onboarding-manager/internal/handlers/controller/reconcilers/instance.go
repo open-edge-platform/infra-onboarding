@@ -68,7 +68,9 @@ func (ir *InstanceReconciler) Reconcile(ctx context.Context,
 		return directive
 	}
 
-	if instance.CurrentState == computev1.InstanceState_INSTANCE_STATE_ERROR {
+	// the only allowed path from the ERROR state is DELETED
+	if instance.CurrentState == computev1.InstanceState_INSTANCE_STATE_ERROR &&
+		instance.DesiredState != computev1.InstanceState_INSTANCE_STATE_DELETED {
 		// current_state set to ERROR by previous reconciliation cycles
 		// We don't have auto-recovery mechanisms. The previous reconciliation cycle should
 		// set providerStatusDetail to provide feedback to user.

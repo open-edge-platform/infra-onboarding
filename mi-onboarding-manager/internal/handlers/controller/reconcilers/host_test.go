@@ -7,9 +7,21 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/auth"
+	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
+	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
+	statusv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/status/v1"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
+	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
+	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 
@@ -23,8 +35,174 @@ import (
 
 func TestMain(m *testing.M) {
 	*common.FlagDisableCredentialsManagement = true
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	projectRoot := filepath.Dir(filepath.Dir(filepath.Dir(filepath.Dir(wd))))
+	policyPath := projectRoot + "/build"
+	migrationsDir := projectRoot + "/build"
+
+	inv_testing.StartTestingEnvironment(policyPath, "", migrationsDir)
 	run := m.Run() // run all tests
+	inv_testing.StopTestingEnvironment()
+
 	os.Exit(run)
+}
+
+func TestReconcileHost(t *testing.T) {
+	currAuthServiceFactory := auth.AuthServiceFactory
+	currFlagDisableCredentialsManagement := *common.FlagDisableCredentialsManagement
+	defer func() {
+		auth.AuthServiceFactory = currAuthServiceFactory
+		*common.FlagDisableCredentialsManagement = currFlagDisableCredentialsManagement
+	}()
+
+	*common.FlagDisableCredentialsManagement = false
+	auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(false, false, true)
+
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+
+	hostReconciler := NewHostReconciler(om_testing.InvClient, true)
+	require.NotNil(t, hostReconciler)
+
+	hostController := rec_v2.NewController[ResourceID](hostReconciler.Reconcile, rec_v2.WithParallelism(1))
+	// do not Stop() to avoid races, should be safe in tests
+
+	host := inv_testing.CreateHostNoCleanup(t, nil, nil, nil, nil)
+	hostNic := inv_testing.CreateHostNicNoCleanup(t, host)
+	hostStorage := inv_testing.CreateHostStorageNoCleanup(t, host)
+	hostUsb := inv_testing.CreateHostusbNoCleanup(t, host)
+	hostGpu := inv_testing.CreatHostGPUNoCleanup(t, host)
+	nicIP := inv_testing.CreateIPAddress(t, hostNic, false)
+
+	hostID := host.GetResourceId()
+
+	runReconcilationFunc := func() {
+		select {
+		case ev, ok := <-inv_testing.TestClientsEvents[inv_testing.RMClient]:
+			require.True(t, ok, "No events received")
+			err := hostController.Reconcile(ResourceID(ev.Event.ResourceId))
+			assert.NoError(t, err, "Reconciliation failed")
+		case <-time.After(1 * time.Second):
+			t.Fatalf("No events received within timeout")
+		}
+		time.Sleep(1 * time.Second)
+	}
+
+	runReconcilationFunc()
+	om_testing.AssertHost(t, hostID,
+		computev1.HostState_HOST_STATE_ONBOARDED,
+		computev1.HostState_HOST_STATE_UNSPECIFIED,
+		computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
+		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+
+	// hostnic event
+	<-inv_testing.TestClientsEvents[inv_testing.RMClient]
+	// hoststorage event
+	<-inv_testing.TestClientsEvents[inv_testing.RMClient]
+	// hostusb event
+	<-inv_testing.TestClientsEvents[inv_testing.RMClient]
+	// hostgpu event
+	<-inv_testing.TestClientsEvents[inv_testing.RMClient]
+
+	// try to delete first, should fail to revoke, so state will be unchanged
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	fmk := fieldmaskpb.FieldMask{Paths: []string{computev1.HostResourceFieldDesiredState}}
+	res := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: &computev1.HostResource{
+				ResourceId:   hostID,
+				DesiredState: computev1.HostState_HOST_STATE_DELETED,
+			},
+		},
+	}
+	_, err := inv_testing.TestClients[inv_testing.APIClient].Update(ctx, hostID, &fmk, res)
+	require.NoError(t, err)
+
+	runReconcilationFunc()
+
+	om_testing.AssertHost(t, hostID,
+		computev1.HostState_HOST_STATE_DELETED,
+		computev1.HostState_HOST_STATE_UNSPECIFIED,
+		computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
+		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+
+	// untrusted
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	res = &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: &computev1.HostResource{
+				ResourceId:   hostID,
+				DesiredState: computev1.HostState_HOST_STATE_UNTRUSTED,
+			},
+		},
+	}
+	_, err = inv_testing.TestClients[inv_testing.APIClient].Update(ctx, hostID, &fmk, res)
+	require.NoError(t, err)
+
+	runReconcilationFunc()
+
+	// auth service mock should return error, so no success
+	om_testing.AssertHost(t, hostID,
+		computev1.HostState_HOST_STATE_UNTRUSTED,
+		computev1.HostState_HOST_STATE_UNSPECIFIED,
+		computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
+		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+
+	auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(false, false, false)
+
+	_, err = inv_testing.TestClients[inv_testing.APIClient].Update(ctx, hostID, &fmk, res)
+	require.NoError(t, err)
+	runReconcilationFunc()
+
+	om_testing.AssertHost(t, hostID,
+		computev1.HostState_HOST_STATE_UNTRUSTED,
+		computev1.HostState_HOST_STATE_UNTRUSTED,
+		computev1.HostStatus_HOST_STATUS_INVALIDATED,
+		om_status.AuthorizationStatusInvalidated)
+
+	// delete
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	res = &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: &computev1.HostResource{
+				ResourceId:   hostID,
+				DesiredState: computev1.HostState_HOST_STATE_DELETED,
+			},
+		},
+	}
+	_, err = inv_testing.TestClients[inv_testing.APIClient].Update(ctx, hostID, &fmk, res)
+	require.NoError(t, err)
+
+	runReconcilationFunc()
+
+	_, err = inv_testing.TestClients[inv_testing.APIClient].Get(ctx, host.GetResourceId())
+	require.True(t, inv_errors.IsNotFound(err))
+
+	_, err = inv_testing.TestClients[inv_testing.APIClient].Get(ctx, hostNic.GetResourceId())
+	require.True(t, inv_errors.IsNotFound(err))
+
+	_, err = inv_testing.TestClients[inv_testing.APIClient].Get(ctx, hostStorage.GetResourceId())
+	require.True(t, inv_errors.IsNotFound(err))
+
+	_, err = inv_testing.TestClients[inv_testing.APIClient].Get(ctx, hostUsb.GetResourceId())
+	require.True(t, inv_errors.IsNotFound(err))
+
+	_, err = inv_testing.TestClients[inv_testing.APIClient].Get(ctx, hostGpu.GetResourceId())
+	require.True(t, inv_errors.IsNotFound(err))
+
+	_, err = inv_testing.TestClients[inv_testing.APIClient].Get(ctx, nicIP.GetResourceId())
+	require.True(t, inv_errors.IsNotFound(err))
 }
 
 func TestNewHostReconciler(t *testing.T) {

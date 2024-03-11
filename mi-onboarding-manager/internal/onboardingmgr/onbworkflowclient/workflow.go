@@ -84,7 +84,7 @@ func CheckStatusOrRunProdWorkflow(ctx context.Context,
 ) error {
 	zlog.Info().Msgf("Checking status of Prod workflow for host %s", deviceInfo.GUID)
 
-	kubeClient, err := tinkerbell.NewK8SClient()
+	kubeClient, err := tinkerbell.K8sClientFactory()
 	if err != nil {
 		return err
 	}
@@ -257,7 +257,7 @@ func CheckStatusOrRunDIWorkflow(ctx context.Context, deviceInfo utils.DeviceInfo
 
 	zlog.Info().Msgf("Checking status of DI workflow for host %s", deviceInfo.GUID)
 
-	kubeClient, err := tinkerbell.NewK8SClient()
+	kubeClient, err := tinkerbell.K8sClientFactory()
 	if err != nil {
 		return err
 	}

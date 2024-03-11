@@ -11,7 +11,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func NewK8SClient() (client.Client, error) {
+var K8sClientFactory = newK8SClient
+
+func newK8SClient() (client.Client, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msg("")

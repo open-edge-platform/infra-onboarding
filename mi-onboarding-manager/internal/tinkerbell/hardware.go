@@ -105,7 +105,7 @@ func CreateHardwareIfNotExists(ctx context.Context, k8sCli client.Client, k8sNam
 func DeleteHardwareForHostIfExist(ctx context.Context, k8sNamespace string, hostUUID string) error {
 	zlog.Info().Msgf("Deleting DI workflow resources for host %s", hostUUID)
 
-	kubeClient, err := NewK8SClient()
+	kubeClient, err := K8sClientFactory()
 	if err != nil {
 		return err
 	}

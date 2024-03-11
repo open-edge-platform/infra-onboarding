@@ -65,7 +65,7 @@ func CreateWorkflowIfNotExists(ctx context.Context, k8sCli client.Client, workfl
 func DeleteProdWorkflowResourcesIfExist(ctx context.Context, k8sNamespace string, hostUUID string) error {
 	zlog.Info().Msgf("Deleting prod workflow resources for host %s", hostUUID)
 
-	kubeClient, err := NewK8SClient()
+	kubeClient, err := K8sClientFactory()
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func DeleteProdWorkflowResourcesIfExist(ctx context.Context, k8sNamespace string
 func DeleteDIWorkflowResourcesIfExist(ctx context.Context, k8sNamespace string, hostUUID string) error {
 	zlog.Info().Msgf("Deleting DI template for host %s", hostUUID)
 
-	kubeClient, err := NewK8SClient()
+	kubeClient, err := K8sClientFactory()
 	if err != nil {
 		return err
 	}

@@ -23,11 +23,12 @@ import (
 var (
 	loggerName = "OnboardingController"
 	zlog       = logging.GetLogger(loggerName)
+
+	defaultTickerPeriod = 1 * time.Second
 )
 
 const (
-	defaultTickerPeriod = 1 * time.Second
-	parallelism         = 1
+	parallelism = 1
 )
 
 type Filter func(event *inv_v1.SubscribeEventsResponse) bool
@@ -140,13 +141,15 @@ func (obc *OnboardingController) filterEvent(event *inv_v1.SubscribeEventsRespon
 		zlog.Debug().Msgf("No filter found for resource kind %s, accepting all events", expectedKind)
 		return true
 	}
+
 	return filter(event)
 }
 
 func (obc *OnboardingController) reconcileAll(ctx context.Context) error {
-	zlog.Debug().Msgf("Reconciling all instances")
+	zlog.Debug().Msgf("Reconciling all resources")
 
 	resourceKinds := []inv_v1.ResourceKind{
+		inv_v1.ResourceKind_RESOURCE_KIND_HOST,
 		inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE,
 		inv_v1.ResourceKind_RESOURCE_KIND_OS,
 	}

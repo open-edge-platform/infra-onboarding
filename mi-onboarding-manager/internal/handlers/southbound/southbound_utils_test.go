@@ -16,6 +16,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/southbound"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding"
+	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
@@ -29,7 +30,6 @@ import (
 )
 
 var (
-	clientName     = "TestOnboardingInventoryClient"
 	defaultTimeout = 120 * time.Second
 	zlog           = logging.GetLogger("Onboarding-Manager-Southbound-Testing")
 
@@ -70,25 +70,6 @@ func CreateSouthboundOMClient(target string,
 	return southboundClient, conn, nil
 }
 
-// CreateNetworkingClient is an helper function to create a new Networking Client.
-func createInventoryOnboardingClientForTesting() {
-	resourceKinds := []inv_v1.ResourceKind{
-		inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE,
-		inv_v1.ResourceKind_RESOURCE_KIND_HOST,
-		inv_v1.ResourceKind_RESOURCE_KIND_OS,
-	}
-	err := inv_testing.CreateClient(clientName, inv_v1.ClientKind_CLIENT_KIND_RESOURCE_MANAGER, resourceKinds, "")
-	if err != nil {
-		zlog.Fatal().Err(err).Msg("Cannot create Inventory OnboardingRM client")
-	}
-
-	InvClient, err = invclient.NewOnboardingInventoryClient(inv_testing.TestClients[clientName],
-		inv_testing.TestClientsEvents[clientName])
-	if err != nil {
-		zlog.Fatal().Err(err).Msg("Cannot create Inventory OnboardingRM client")
-	}
-}
-
 // Create the bufconn listener used for the client/server onboarding manager communication.
 func createBufConn() {
 	// https://pkg.go.dev/google.golang.org/grpc/test/bufconn#Listener
@@ -98,7 +79,7 @@ func createBufConn() {
 
 // Helper function to create a southbound gRPC server for host manager.
 func createOnboardingManagerSouthboundAPI() {
-	sbHandler := southbound.NewSBHandlerWithListener(BufconnLis, InvClient, southbound.SBHandlerConfig{
+	sbHandler := southbound.NewSBHandlerWithListener(BufconnLis, om_testing.InvClient, southbound.SBHandlerConfig{
 		EnableTracing: false, // be explicit
 	})
 	err := sbHandler.Start()
@@ -113,7 +94,7 @@ func StartOnboardingManagerTestingEnvironment() {
 	// Boostrap c/s connectivity using bufconn
 	createBufConn()
 	// Bootstrap Inventory client
-	createInventoryOnboardingClientForTesting()
+	om_testing.CreateInventoryOnboardingClientForTesting()
 	// Bootstrap SB server
 	createOnboardingManagerSouthboundAPI()
 	// Bootstrap the clients
@@ -132,9 +113,7 @@ func StopOnboardingManagerTestingEnvironment() {
 	if SBHandler != nil {
 		SBHandler.Stop()
 	}
-	if InvClient != nil {
-		InvClient.Close()
-	}
+	om_testing.DeleteInventoryOnboardingClientForTesting()
 }
 
 // Starts all Inventory and Onboarding Manager requirements to test OM southbound client.

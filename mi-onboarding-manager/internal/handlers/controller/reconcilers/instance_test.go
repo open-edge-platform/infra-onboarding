@@ -7,19 +7,183 @@ package reconcilers
 import (
 	"context"
 	"errors"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
+	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/tinkerbell"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
+	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	v16 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
 	"github.com/stretchr/testify/mock"
 )
+
+// FIXME: remove and use Inventory helper once RepoURL is made configurable in the Inv library
+func createOsWithArgs(tb testing.TB, doCleanup bool,
+) (osr *osv1.OperatingSystemResource) {
+	tb.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	osr = &osv1.OperatingSystemResource{
+		Name:              "for unit testing purposes",
+		UpdateSources:     []string{"test entries"},
+		RepoUrl:           "example.raw.gz",
+		ProfileName:       inv_testing.GenerateRandomProfileName(),
+		Sha256:            inv_testing.GenerateRandomSha256(),
+		InstalledPackages: "intel-opencl-icd\nintel-level-zero-gpu\nlevel-zero",
+		SecurityFeature:   osv1.SecurityFeature_SECURITY_FEATURE_UNSPECIFIED,
+	}
+	resp, err := inv_testing.GetClient(tb, inv_testing.APIClient).Create(ctx,
+		&inv_v1.Resource{Resource: &inv_v1.Resource_Os{Os: osr}})
+	require.NoError(tb, err)
+	osr.ResourceId = resp.ResourceId
+	if doCleanup {
+		tb.Cleanup(func() { inv_testing.DeleteResource(tb, osr.ResourceId) })
+	}
+
+	return osr
+}
+
+func TestReconcileInstance(t *testing.T) {
+	currK8sClientFactory := tinkerbell.K8sClientFactory
+	currFlagEnableDeviceInitialization := *common.FlagDisableCredentialsManagement
+	defer func() {
+		tinkerbell.K8sClientFactory = currK8sClientFactory
+		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
+	}()
+
+	// TODO: test with DI enabled, once FDO client is refactored
+	*common.FlagEnableDeviceInitialization = false
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
+
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+
+	instanceReconciler := NewInstanceReconciler(om_testing.InvClient, true)
+	require.NotNil(t, instanceReconciler)
+
+	instanceController := rec_v2.NewController[ResourceID](instanceReconciler.Reconcile, rec_v2.WithParallelism(1))
+	// do not Stop() to avoid races, should be safe in tests
+
+	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	osRes := createOsWithArgs(t, true)
+	instance := inv_testing.CreateInstanceNoCleanup(t, host, osRes)
+	instanceID := instance.GetResourceId()
+
+	runReconcilationFunc := func() {
+		select {
+		case ev, ok := <-om_testing.InvClient.Watcher:
+			require.True(t, ok, "No events received")
+			expectedKind, err := util.GetResourceKindFromResourceID(ev.Event.ResourceId)
+			require.NoError(t, err)
+			if expectedKind == inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE {
+				err = instanceController.Reconcile(ResourceID(ev.Event.ResourceId))
+				assert.NoError(t, err, "Reconciliation failed")
+			}
+		case <-time.After(1 * time.Second):
+			t.Fatalf("No events received within timeout")
+		}
+		time.Sleep(1 * time.Second)
+	}
+
+	runReconcilationFunc()
+	om_testing.AssertInstance(t, instanceID,
+		computev1.InstanceState_INSTANCE_STATE_RUNNING,
+		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
+		computev1.InstanceStatus_INSTANCE_STATUS_UNSPECIFIED)
+
+	// getting rid of the Host event
+	<-om_testing.InvClient.Watcher
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// provision
+	fmk := fieldmaskpb.FieldMask{Paths: []string{computev1.InstanceResourceFieldDesiredState}}
+	res := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Instance{
+			Instance: &computev1.InstanceResource{
+				ResourceId:   instanceID,
+				DesiredState: computev1.InstanceState_INSTANCE_STATE_RUNNING,
+			},
+		},
+	}
+	_, err := inv_testing.TestClients[inv_testing.APIClient].Update(ctx, instanceID, &fmk, res)
+	require.NoError(t, err)
+
+	runReconcilationFunc()
+
+	om_testing.AssertInstance(t, instanceID,
+		computev1.InstanceState_INSTANCE_STATE_RUNNING,
+		computev1.InstanceState_INSTANCE_STATE_RUNNING,
+		computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONED)
+
+	// run again, current_state == desired_state
+	runReconcilationFunc()
+
+	// move into the error state
+	res = &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Instance{
+			Instance: &computev1.InstanceResource{
+				ResourceId:   instanceID,
+				CurrentState: computev1.InstanceState_INSTANCE_STATE_ERROR,
+			},
+		},
+	}
+	_, err = inv_testing.TestClients[inv_testing.RMClient].Update(ctx, instanceID,
+		&fieldmaskpb.FieldMask{Paths: []string{computev1.InstanceResourceFieldCurrentState}}, res)
+	require.NoError(t, err)
+
+	runReconcilationFunc()
+	om_testing.AssertInstance(t, instanceID,
+		computev1.InstanceState_INSTANCE_STATE_RUNNING,
+		computev1.InstanceState_INSTANCE_STATE_ERROR,
+		computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONED)
+
+	// delete
+	// first try will fail
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, true)
+
+	res = &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Instance{
+			Instance: &computev1.InstanceResource{
+				ResourceId:   instanceID,
+				DesiredState: computev1.InstanceState_INSTANCE_STATE_DELETED,
+			},
+		},
+	}
+	_, err = inv_testing.TestClients[inv_testing.APIClient].Update(ctx, instanceID, &fmk, res)
+	require.NoError(t, err)
+
+	runReconcilationFunc()
+
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
+
+	_, err = inv_testing.TestClients[inv_testing.APIClient].Update(ctx, instanceID, &fmk, res)
+	require.NoError(t, err)
+
+	runReconcilationFunc()
+
+	_, err = inv_testing.TestClients[inv_testing.APIClient].Get(ctx, instanceID)
+	require.True(t, inv_errors.IsNotFound(err))
+}
 
 func TestNewInstanceReconciler(t *testing.T) {
 	type args struct {
