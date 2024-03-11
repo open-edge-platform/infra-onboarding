@@ -30,6 +30,18 @@ localhost:443 {
             tls
         }
      }
+
+    log {
+        level DEBUG
+        format filter {
+            wrap console
+            fields {
+                resp_headers delete
+                request>headers delete
+                request>tls delete
+            }
+        }
+    }
 }
 
 # Proxy server for OCI release service
@@ -42,6 +54,18 @@ localhost:7443 {
 
         transport http {
             tls
+        }
+    }
+
+    log {
+        level DEBUG
+        format filter {
+            wrap console
+            fields {
+                resp_headers delete
+                request>headers delete
+                request>tls delete
+            }
         }
     }
 }
@@ -59,6 +83,18 @@ localhost:8081 {
             tls_server_name {$manufacturer_svc}
         }
     }
+
+    log {
+        level DEBUG
+        format filter {
+            wrap console
+            fields {
+                resp_headers delete
+                request>headers delete
+                request>tls delete
+            }
+        }
+    }
 }
 
 # Proxy server for FDO owner service
@@ -74,6 +110,18 @@ localhost:8082 {
             tls_server_name {$owner_svc}
         }
     }
+
+    log {
+        level DEBUG
+        format filter {
+            wrap console
+            fields {
+                resp_headers delete
+                request>headers delete
+                request>tls delete
+            }
+        }
+    }
 }
 
 # Proxy server(HTTP) to route tink stack routes 
@@ -85,6 +133,18 @@ localhost:8082 {
         transport http {
             tls
             tls_server_name {$tink_stack_svc}
+        }
+    }
+
+    log {
+        level DEBUG
+        format filter {
+            wrap console
+            fields {
+                resp_headers delete
+                request>headers delete
+                request>tls delete
+            }
         }
     }
 }
@@ -100,6 +160,18 @@ localhost:8082 {
             tls_server_name {$tink_server_svc}
         }
     }
+
+    log {
+        level DEBUG
+        format filter {
+            wrap console
+            fields {
+                resp_headers delete
+                request>headers delete
+                request>tls delete
+            }
+        }
+    }
 }
 
 # Server to route fluent-bit logs to Loki/Grafana
@@ -113,6 +185,18 @@ localhost:24224 {
         transport http {
             tls
             tls_server_name {$logging_svc}
+        }
+    }
+
+    log {
+        level DEBUG
+        format filter {
+            wrap console
+            fields {
+                resp_headers delete
+                request>headers delete
+                request>tls delete
+            }
         }
     }
 }
