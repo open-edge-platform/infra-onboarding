@@ -17,6 +17,9 @@ def getEnvFromBranch(branch) {
 
 pipeline {
 	agent none
+	 parameters {
+        booleanParam(name: 'buildHookOs ', defaultValue: false, description: 'Build just hook-os')
+    }
     stages {
 		stage('OIE  Native Host') {
 			agent {
@@ -67,7 +70,7 @@ pipeline {
 						}
 						stage('Trivy config scan') {
 							when {
-								anyOf { branch 'main'; branch 'release-*'; changeRequest();}
+								anyOf { branch 'main'; branch 'release-*'; changeRequest() }
 							}
 							steps {
 								script {
@@ -108,6 +111,9 @@ pipeline {
 					}
 				}
 				stage('Version Check') {
+					when {
+						expression { params.buildHookOs == false }
+					}
 				 	steps {
 				 		echo "Check if its a valid code version"
 				 		sh '''
@@ -222,7 +228,10 @@ pipeline {
 				}
 				stage('Version Tag') {
 					when {
-						anyOf { branch 'main'; branch 'release*' }
+						allOf {
+							expression { env.BRANCH_NAME == 'main' || env.BRANCH_NAME.startsWith('release') }
+							expression { params.buildHookOs == false }
+						}
 					}
 					steps {
 						withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
@@ -272,7 +281,10 @@ pipeline {
 				}*/
 				stage('Version dev') {
 					when {
-						anyOf { branch 'main'; branch 'release-*'; }
+						allOf {
+							expression { env.BRANCH_NAME == 'main' || env.BRANCH_NAME.startsWith('release') }
+							expression { params.buildHookOs == false }
+						}
 					}
 					steps {
 						withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
