@@ -3,6 +3,20 @@
 echo "==== iPXE boot success, chainloading Micro-OS ==== "
 
 set tink_url <TINK_STACK_URL>
-echo sleeping for 3s
+echo "Sleeping for 3s"
 sleep 3
-dhcp && chain ${tink_url}/discover.php?mac=${mac}&&uuid=${uuid}&&serial_id=${serial}&&en_ip=${ip}&&boot_url=${tink_url}
+
+# Get DHCP address, w/ 10 second timeout
+ifconf --timeout 10000 || goto debugshell
+
+# display network settings before chainloading
+echo "Network Configuration"
+ifstat
+route
+
+# chainload tink
+chain ${tink_url}/discover.php?mac=${mac}&&uuid=${uuid}&&serial_id=${serial}&&en_ip=${ip}&&boot_url=${tink_url} || goto debugshell
+
+# debugging shell, have to hit key within 10s timeout to enter, or iPXE will exit
+:debugshell
+prompt --timeout 10000 Press any key for iPXE command line... && shell || exit
