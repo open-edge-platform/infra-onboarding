@@ -775,13 +775,125 @@ else
 fi
 apt remove unattended-upgrades
 }
+#LVM partition 
+create_lvm_partition(){
+disk=$1
+echo "starting the LVM creation for the disk volume $disk"
+#erase the disk data if already presnet
+dd if=/dev/zero of=/dev/$disk bs=512 count=100
+echo "successfully deleted the data from the disk" 
 
+#create the partition
+parted -s "/dev/$disk" mklabel gpt mkpart primary 0% 100%
+partprobe
+fdisk -l "/dev/$disk"
+
+if [[ "$disk" == *"nvme"* ]]; then
+    part_number=p
+else
+    part_number=""
+fi
+#remove previously created lvm if exist
+vgs=$(vgs --noheadings -o vg_name)
+#remove trailing and leading spaces
+vgs=$(echo "$vgs" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+if [ ! -z $vgs ]; then
+    vgremove -f "$vgs"
+    echo "successfully deleted the previous lvm"
+fi
+#remove previously created pv if exist
+pvs=$(pvs --noheadings -o pv_name)
+pvs=$(echo "$pvs" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+if [ ! -z $pvs ]; then
+    pvremove -f "$pvs"
+    echo "successfully deleted the previous pvs"
+fi
+
+#pv create
+pvcreate /dev/${disk}${part_number}1
+if [ $? -eq 0 ]; then
+    echo "Successfuly done pvcreate" 
+else
+    echo "Failure in pvcreate"  
+fi
+#vgcreate
+vgcreate lvmvg /dev/${disk}${part_number}1
+
+if [ $? -eq 0 ]; then
+    echo "Successfuly done vgcreate" 
+else
+    echo "Failure in vgcreate" 
+fi
+vgscan
+vgchange -ay
+
+if [ $? -eq 0 ]; then
+    echo "Successfuly created the logical volume group" 
+else
+    echo "Failure in creating the logical volume group" 
+fi
+}
+
+#LVM partition for secondary disk
+lvm_part_setup_for_secondary_disk(){
+
+#check if FDE enabled , if not enabled  do the LVM for the secondary disk
+if [ ! -f /dev/mapper/rootfs_crypt ]; then
+    
+    echo "FDE not enabled and starting the LVM creation"    
+    #check for NVME && SATA disk types
+    disk_list=$(lsblk -o NAME -n -d | grep -v "loop*" | awk '{print $1}')
+
+    for disk_name in $disk_list
+    do
+        #add to disk_list only if its nvme or sata 
+        if [[ "$disk_name" == *"nvme"* ]] || [[ "$disk_name" = *"sd"* ]]; then
+
+            #exclude the pendrive from device list if its attahced
+            removable=$(lsblk -n -d -o RM "/dev/$disk_name")
+            if [ $removable -ne 1 ]; then
+                final_disk_list+=("$disk_name")
+            fi
+        else
+            continue;
+        fi
+    done
+    #do not do lvm creation if only one disk presnet
+    num_disks=${#final_disk_list[@]}
+
+    if [ $num_disks -gt 1 ]; then
+        echo "found secondary disk for LVM creation"
+        #find the disk where os not installed for lvm creation
+        rootfs=$(df /boot/efi | awk 'NR==2 {print $1}')
+        if [[ "$disk_name" == *"nvme"* ]]; then
+            os_disk=$(echo "$rootfs" | grep -oE 'nvme[0-9]+n[0-9]+' | head -n 1)
+        fi
+        if [[ "$disk_name" == *"sd"* ]]; then
+            os_disk=$(echo "$rootfs" | grep -oE 'sd[a-z]+' | head -n 1)
+        fi
+        #create lvm for the secondary disk
+        for lvm_disk in "${final_disk_list[@]}"
+        do
+	    #skip for rootfs disk
+            if [[ "$lvm_disk" == "$os_disk" ]]; then
+                    continue;
+            else
+                 #disk with no rootfs and can be used for the LVM creation
+                 create_lvm_partition $lvm_disk
+                 break
+            fi
+        done
+    fi
+fi
+}
 ssh_config(){
 #remove enabling ssh from ufw
 ufw delete allow ssh &>/dev/null
 ufw reload
 }
 
+#create the lvm for the seconary disk
+lvm_part_setup_for_secondary_disk 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 #extend the disk partition
 #parition_extention  2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_dependencies 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
