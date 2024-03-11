@@ -44,7 +44,7 @@ Addition functions accomplished by these scripts are listed below.
    deployment_dns_extension=kind.internal
    ```
 
-2. Update NGINX runtime configurations according to Maestro deployment.
+2. Update Caddy runtime configurations according to Maestro deployment.
 
    ```
    Example:
