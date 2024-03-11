@@ -132,7 +132,7 @@ func GetReleaseArtifactList(filePath string) (Config, error) {
 
 func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	parentDir := filepath.Dir(filepath.Dir(pwd))
-
+	beginString := "rm /etc/apt/apt.conf"
 	scriptDir := filepath.Join(parentDir, "pkg", "script")
 	installerPath := filepath.Join(scriptDir, "Installer")
 	scriptFileName := ""
@@ -294,7 +294,7 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 		kindLines = append(kindLines, "     hostname=\"${parts[1]}\"")
 		kindLines = append(kindLines, "     echo \"$ip $hostname\" >> /etc/hosts")
 		kindLines = append(kindLines, "done")
-		AddProxies(scriptFileName, kindLines)
+		AddProxies(scriptFileName, kindLines, beginString)
 
 	} else {
 		zlog.MiSec().Info().Msg("Its not a kind cluster")
@@ -331,7 +331,30 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 
 	}
 
-	AddProxies(scriptFileName, newLines)
+	//Disable ssh for production environment
+	var sshLines []string
+	zlog.MiSec().Info().Msgf("Mode is:%s", MODE)
+	if MODE == "dev" {
+		zlog.MiSec().Info().Msgf("Mode is:%s", MODE)
+		sshLines = append(sshLines, "sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config.d/60-cloudimg-settings.conf")
+
+	} else {
+		zlog.MiSec().Info().Msgf("Mode is:%s", MODE)
+		sshLines = append(sshLines, "ssh_config_file=\"/etc/ssh/sshd_config.d/60-cloudimg-settings.conf\"")
+		sshLines = append(sshLines, "if [ -f \"$ssh_config_file\" ]; then")
+		sshLines = append(sshLines, "  if grep -q \"^PasswordAuthentication yes\" \"$ssh_config_file\"; then")
+		sshLines = append(sshLines, "    sed -i 's/^PasswordAuthentication yes/PasswordAuthentication no/' \"$ssh_config_file\"")
+		sshLines = append(sshLines, "  else")
+		sshLines = append(sshLines, "    echo \"Password-based authentication is already disabled or configured differently.\"")
+		sshLines = append(sshLines, "  fi")
+		sshLines = append(sshLines, "else")
+		sshLines = append(sshLines, "  echo \"SSH configuration file not found: $ssh_config_file\"")
+		sshLines = append(sshLines, "fi")
+
+	}
+	sshLines = append(sshLines, "sudo service sshd restart")
+	AddProxies(scriptFileName, sshLines, "ssh_config(){")
+	AddProxies(scriptFileName, newLines, beginString)
 
 	return scriptFileName
 }
@@ -357,7 +380,7 @@ func copyFile(src, dst string) error {
 	return nil
 }
 
-func AddProxies(fileName string, newLines []string) {
+func AddProxies(fileName string, newLines []string, beginLine string) {
 	// Read the content of the file
 	file, err := os.Open(fileName)
 	if err != nil {
@@ -375,7 +398,7 @@ func AddProxies(fileName string, newLines []string) {
 		lines = append(lines, line)
 
 		// Check if the current line matches the target line
-		if strings.TrimSpace(line) == "rm /etc/apt/apt.conf" {
+		if strings.TrimSpace(line) == beginLine {
 			foundTargetLine = true
 			// Insert the new lines after the target line
 			lines = append(lines, newLines...)

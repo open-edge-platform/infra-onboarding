@@ -37,8 +37,6 @@ export PKI_ROLE=__ORCH_PKI_ROLE__
 # 1. Install dependencies
 install_dependencies() {
     echo "Install all dependencies."
-    sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config.d/60-cloudimg-settings.conf
-    sudo service sshd restart
     apt-get update
     sudo apt-get install -y curl jq wget openssh-server unzip apparmor iptables lvm2 cryptsetup lxc mosquitto tpm2-abrmd tpm2-tools software-properties-common ntp python3-venv git jq libpq5
     echo -e "\e[32m[install git debootstrap python3-pip]\e[0m"
@@ -778,6 +776,12 @@ fi
 apt remove unattended-upgrades
 }
 
+ssh_config(){
+#remove enabling ssh from ufw
+ufw delete allow ssh &>/dev/null
+ufw reload
+}
+
 #extend the disk partition
 #parition_extention  2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_dependencies 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
@@ -823,7 +827,7 @@ install_sriov 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_HWE_kernel 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 install_syslogrotate_ufw 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 disable_unattended_upgrade 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-
+ssh_config 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 #Delete the invalid ubuntu boot numbers created from previous installation from boot menu
 delete_invalid_ubuntu_boot_menuoptions  2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 
