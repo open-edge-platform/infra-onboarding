@@ -62,8 +62,18 @@ localhost:7443 {
 localhost:8081 {
     bind 127.0.0.1 
     tls /etc/caddy/caddy-cert.pem /etc/caddy/caddy-key.pem
+
+    reverse_proxy /fdo/101/msg/10 {$fdo_manufacturer_svc}:443 {
+	header_up Authorization "Bearer {$access_token}"
+        header_up Host {upstream_hostport}
+
+        transport http {
+            tls
+            tls_server_name {$fdo_manufacturer_svc}
+        }
+    }
+
     reverse_proxy {$fdo_manufacturer_svc}:443 {
-	#header_up Authorization "Bearer {$access_token}"
         header_up Host {upstream_hostport}
 
         transport http {
@@ -77,8 +87,18 @@ localhost:8081 {
 localhost:8082 {
     bind 127.0.0.1 
     tls /etc/caddy/caddy-cert.pem /etc/caddy/caddy-key.pem
+
+    reverse_proxy /fdo/101/msg/60 {$fdo_owner_svc}:443 {
+        header_up Authorization "Bearer {$access_token}"
+        header_up Host {upstream_hostport}
+
+        transport http {
+            tls
+            tls_server_name {$fdo_owner_svc}
+        }
+    }
+
     reverse_proxy {$fdo_owner_svc}:443 {
-        #header_up Authorization "Bearer {$access_token}"
         header_up Host {upstream_hostport}
 
         transport http {
