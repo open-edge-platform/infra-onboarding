@@ -7,14 +7,10 @@ module github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra
 go 1.21
 
 require (
-	github.com/apex/log v1.9.0
-	github.com/gocql/gocql v1.6.0
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.0.4
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory v0.10.6
-	github.com/jinzhu/configor v1.2.1
 	github.com/onosproject/onos-lib-go v0.10.24
 	github.com/pkg/errors v0.9.1
-	github.com/scylladb/gocqlx/v2 v2.8.0
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
@@ -29,7 +25,6 @@ require (
 require (
 	github.com/Nerzal/gocloak/v13 v13.9.0
 	github.com/google/uuid v1.4.0
-	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
 	k8s.io/api v0.29.1
 	sigs.k8s.io/controller-runtime v0.15.0
 )
@@ -38,7 +33,6 @@ require (
 	ariga.io/atlas v0.10.0 // indirect
 	entgo.io/contrib v0.4.5 // indirect
 	entgo.io/ent v0.12.2 // indirect
-	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/Shopify/sarama v1.31.1 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
@@ -56,7 +50,6 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v1.0.2 // indirect
 	github.com/ericchiang/oidc v0.0.0-20160908143337-11f62933e071 // indirect
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
-	github.com/fatih/color v1.13.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.1 // indirect
@@ -79,7 +72,6 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0 // indirect
-	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
@@ -130,7 +122,6 @@ require (
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/rs/zerolog v1.31.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
-	github.com/scylladb/go-reflectx v1.0.1 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
