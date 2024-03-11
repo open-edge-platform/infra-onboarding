@@ -55,9 +55,6 @@ do
   curl https://ubit-artifactory-or.intel.com/artifactory/it-btrm-local/intel_cacerts/$certfile >> client_auth/files/ca.pem
 done
 
-# Not needed
-# cat ~/mycert.pem >> client_auth/files/ca.pem
-
 # add new line to ca.pem so that public lets-encrypt certificates can be inserted in new line(CSA)
 echo "" >> client_auth/files/ca.pem
 
