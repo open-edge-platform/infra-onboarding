@@ -45,6 +45,18 @@ enable_ttyS0() {
     echo "$finished_read" > "$pipe"
 }
 
+enable_ttyS1() {
+    echo "Provide Username and password for the IDP"
+    setsid bash -c "echo 'Provide Username and password for the IDP' <> /dev/ttyS1 >&0 2>&1"
+    setsid bash -c 'read -p "Username: " username <> /dev/ttyS1 >&0 2>&1 && [[ ! -z "$username" ]] && echo $username > /idp_username'
+    setsid bash -c 'read -s -p "Password: " password <> /dev/ttyS1 >&0 2>&1 && [[ ! -z "$password" ]] && echo $password > /idp_password'
+
+    setsid bash -c "echo -e '\nUsername, Password received: Processing' <> /dev/ttyS1 >&0 2>&1"
+
+    finished_read='True'
+    echo "$finished_read" > "$pipe"
+}
+
 
 main() {
 
@@ -57,6 +69,7 @@ main() {
 
 	enable_ttyS0 &
 	enable_tty0 &
+	enable_ttyS1 &
 
 	check=0
 	while [ ${finished_read} != 'True' ]
