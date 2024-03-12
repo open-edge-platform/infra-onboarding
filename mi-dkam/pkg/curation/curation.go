@@ -19,9 +19,9 @@ import (
 )
 
 var zlog = logging.GetLogger("MIDKAMAuth")
-var fileServer = config.ProdFileServer
-var harborServer = config.ProdHarbor
-var registryService = config.RegistryServiceProd
+
+var fileServer string
+var registryService string
 var agentsList []AgentsVersion
 
 type AgentsVersion struct {
@@ -44,11 +44,8 @@ func GetCuratedScript(profile string, platform string) string {
 	MODE := os.Getenv("MODE")
 	//MODE := "dev"
 
-	if MODE == "dev" || MODE == "preint" {
-		fileServer = config.DevFileServer
-		harborServer = config.DevHarbor
-		registryService = config.RegistryServiceDev
-	}
+	fileServer = os.Getenv("FILE_SERVER")
+	registryService = os.Getenv("REGISTRY_SERVICE")
 	zlog.MiSec().Info().Msgf("MODE: %s", MODE)
 
 	//Current dir
@@ -207,7 +204,7 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 
 	// Substitute relevant data in the script
 	//modifiedScript := strings.ReplaceAll(string(content), "__SUBSTITUTE_PACKAGE_COMMANDS__", packages)
-	modifiedScript := strings.ReplaceAll(string(content), "__REGISTRY_URL__", harborServer)
+	modifiedScript := strings.ReplaceAll(string(content), "__REGISTRY_URL__", registryService)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__FILE_SERVER__", fileServer)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__AUTH_SERVER__", config.AuthServer)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_CLUSTER__", orchCluster)
@@ -262,6 +259,38 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 
 	// Remove the function from the script
 	if netip_enable_flag == "static" {
+		newcontent := []byte(modifiedScript)
+		newScript := bytes.Replace(newcontent, newcontent[startIdx:endIdx+1], []byte{}, 1)
+		modifiedScript = string(newScript)
+		// Remove any lines containing calls to the function
+		lines := strings.Split(string(modifiedScript), "\n")
+		for i := range lines {
+			if strings.Contains(lines[i], functionToRemove) {
+				lines[i] = ""
+			}
+		}
+		modifiedScript = strings.Join(lines, "\n")
+	}
+
+	// Save the modified script to the specified output path
+	err = os.WriteFile(scriptFileName, []byte(modifiedScript), 0644)
+	if err != nil {
+		zlog.MiSec().Fatal().Err(err).Msgf("Error: %v", err)
+	}
+
+	functionToRemove = "install_intel_CAcertificates"
+	// Find the start and end positions of the function
+	startIdx = strings.Index(modifiedScript, functionToRemove)
+	if startIdx == -1 {
+		fmt.Println("Function not found in script")
+	}
+	endIdx = strings.Index(modifiedScript[startIdx:], "}") + startIdx
+	if endIdx == -1 {
+		fmt.Println("Function end not found in script")
+	}
+
+	// Remove the function from the script
+	if MODE == "prod" {
 		newcontent := []byte(modifiedScript)
 		newScript := bytes.Replace(newcontent, newcontent[startIdx:endIdx+1], []byte{}, 1)
 		modifiedScript = string(newScript)

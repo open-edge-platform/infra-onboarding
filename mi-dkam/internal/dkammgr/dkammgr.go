@@ -24,9 +24,6 @@ type Service struct {
 
 var zlog = logging.GetLogger("MIDKAMgRPC")
 var url string
-
-var fileServer = config.ProdFileServer
-var harborServer = config.ProdHarbor
 var tag = config.Tag
 
 func DownloadArtifacts() error {
@@ -35,10 +32,6 @@ func DownloadArtifacts() error {
 	//MODE := "dev"
 	zlog.MiSec().Info().Msgf("Mode of deployment: %s", MODE)
 	zlog.MiSec().Info().Msgf("Manifest Tag: %s", manifestTag)
-	if MODE == "dev" || MODE == "preint" {
-		fileServer = config.DevFileServer
-		harborServer = config.DevHarbor
-	}
 
 	if MODE == "preint" {
 		tag = config.Tag
@@ -50,7 +43,7 @@ func DownloadArtifacts() error {
 		//Running inside Kubernetes cluster
 		zlog.MiSec().Info().Msgf("Running inside k8 cluster")
 
-		err := download.DownloadArtifacts(fileServer, harborServer, GetScriptDir(), tag, manifestTag)
+		err := download.DownloadArtifacts(GetScriptDir(), tag, manifestTag)
 		if err != nil {
 			zlog.MiSec().Info().Msgf("Failed to download manifest file: %v", err)
 			return err

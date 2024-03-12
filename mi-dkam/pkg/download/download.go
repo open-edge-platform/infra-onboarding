@@ -97,7 +97,7 @@ func DownloadMicroOS(scriptPath string) (bool, error) {
 
 }
 
-func DownloadArtifacts(fileServer string, harborServer string, scriptPath string, tag string, manifestTag string) error {
+func DownloadArtifacts(scriptPath string, tag string, manifestTag string) error {
 	errp := os.Chdir(scriptPath)
 	if errp != nil {
 		zlog.MiSec().Fatal().Err(errp).Msgf("Error changing working directory: %v\n", errp)

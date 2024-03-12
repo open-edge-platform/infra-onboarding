@@ -295,7 +295,7 @@ install_node_agent(){
     #AT=$(curl -kX POST -u "$CLIENT_ID:$CLIENT_SECRET" -d "grant_type=client_credentials" https://keycloak.kind.internal/realms/master/protocol/openid-connect/token | jq -r '.access_token')
     # get JWT access token from Keycloack
     AT=$(curl -s -X POST https://__KEYCLOAK__/realms/master/protocol/openid-connect/token \
-	-d "username=lp-admin-user" -d "password=ChangeMeOn1stLogin!" -d "grant_type=password" \
+	-d "username=all-groups-example-user" -d "password=ChangeMeOn1stLogin!" -d "grant_type=password" \
 	-d "client_id=ledge-park-system" -d "scope=openid" | jq -r '.access_token')
 
     echo $AT
@@ -920,6 +920,7 @@ else
     install_helm 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 fi
 if [ ! -f /usr/local/share/ca-certificates/IntelCA7B-Base64.crt ]; then
+    echo "File not present"
     install_intel_CAcertificates 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 fi
 
