@@ -53,6 +53,11 @@ remove_pxe=$(sed "s/,,/,/g" <<< $remove_pxe)
 
 final_bootorder=$remove_pxe","$pxe_boot_number
 final_bootorder=$(sed "s/,,/,/g" <<< $final_bootorder)
+#check if comma or some invalid boot number at the begining
+if [ "${final_bootorder:0:1}" = "," ]; then
+    # Remove the comma
+    final_bootorder="${final_bootorder:1}"
+fi
 efibootmgr --bootorder $final_bootorder
 echo "Made PXE the last in the boot order"
 # #####################################################################################
