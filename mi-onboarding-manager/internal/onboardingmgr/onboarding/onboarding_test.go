@@ -281,7 +281,6 @@ func TestHandleSecureBootMismatch_Case2(t *testing.T) {
 
 func TestOnboardingManager_SecureBootStatus(t *testing.T) {
 	type fields struct {
-		OnBoardingEBServer pb.OnBoardingEBServer
 		OnBoardingSBServer pb.OnBoardingSBServer
 	}
 	type args struct {

@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 
@@ -41,9 +40,6 @@ var (
 type InstanceReconciler struct {
 	invClient     *invclient.OnboardingInventoryClient
 	enableTracing bool
-}
-type OnboardingManager struct {
-	pb.OnBoardingEBServer
 }
 
 func NewInstanceReconciler(c *invclient.OnboardingInventoryClient, enableTracing bool) *InstanceReconciler {

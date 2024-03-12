@@ -11,7 +11,6 @@ import (
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding"
-	repository "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/persistence"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
@@ -112,90 +111,6 @@ func TestCopyNodeReqtoNodetData(t *testing.T) {
 			}
 			if reflect.DeepEqual(got, tt.want) {
 				t.Errorf("CopyNodeReqToNodeData() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestCopyNodeDatatoNodeResp(t *testing.T) {
-	type args struct {
-		payload []repository.NodeData
-		result  string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    []*pb.NodeData
-		wantErr bool
-	}{
-		{
-			name: "Test with SUCCESS result",
-			args: args{
-				payload: []repository.NodeData{
-					{
-						ID: "1", HwID: "hw1", FwArtID: "fw1", OsArtID: "os1", AppArtID: "app1", PlatformArtID: "plat1",
-						PlatformType: "type1", DeviceType: "device1", DeviceInfoAgent: "agent1", DeviceStatus: "status1",
-					},
-					{
-						ID: "2", HwID: "hw2", FwArtID: "fw2", OsArtID: "os2", AppArtID: "app2", PlatformArtID: "plat2",
-						PlatformType: "type2", DeviceType: "device2", DeviceInfoAgent: "agent2", DeviceStatus: "status2",
-					},
-				},
-				result: "SUCCESS",
-			},
-			want: []*pb.NodeData{
-				{
-					NodeId: "1", HwId: "hw1", FwArtifactId: "fw1", OsArtifactId: "os1", AppArtifactId: "app1",
-					PlatArtifactId: "plat1", PlatformType: "type1", DeviceType: "device1", DeviceInfoAgent: "agent1",
-					DeviceStatus: "status1", Result: 0,
-				},
-				{
-					NodeId: "2", HwId: "hw2", FwArtifactId: "fw2", OsArtifactId: "os2", AppArtifactId: "app2",
-					PlatArtifactId: "plat2", PlatformType: "type2", DeviceType: "device2", DeviceInfoAgent: "agent2",
-					DeviceStatus: "status2", Result: 0,
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "Test with FAILURE result",
-			args: args{
-				payload: []repository.NodeData{
-					{
-						ID: "3", HwID: "hw3", FwArtID: "fw3", OsArtID: "os3", AppArtID: "app3", PlatformArtID: "plat3",
-						PlatformType: "type3", DeviceType: "device3", DeviceInfoAgent: "agent3", DeviceStatus: "status3",
-					},
-					{
-						ID: "4", HwID: "hw4", FwArtID: "fw4", OsArtID: "os4", AppArtID: "app4", PlatformArtID: "plat4",
-						PlatformType: "type4", DeviceType: "device4", DeviceInfoAgent: "agent4", DeviceStatus: "status4",
-					},
-				},
-				result: "FAILURE",
-			},
-			want: []*pb.NodeData{
-				{
-					NodeId: "3", HwId: "hw3", FwArtifactId: "fw3", OsArtifactId: "os3", AppArtifactId: "app3",
-					PlatArtifactId: "plat3", PlatformType: "type3", DeviceType: "device3",
-					DeviceInfoAgent: "agent3", DeviceStatus: "status3", Result: 1,
-				},
-				{
-					NodeId: "4", HwId: "hw4", FwArtifactId: "fw4", OsArtifactId: "os4", AppArtifactId: "app4",
-					PlatArtifactId: "plat4", PlatformType: "type4", DeviceType: "device4",
-					DeviceInfoAgent: "agent4", DeviceStatus: "status4", Result: 1,
-				},
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := CopyNodeDatatoNodeResp(tt.args.payload, tt.args.result)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("CopyNodeDatatoNodeResp() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("CopyNodeDatatoNodeResp() = %v, want %v", got, tt.want)
 			}
 		})
 	}

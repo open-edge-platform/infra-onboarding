@@ -12,9 +12,6 @@
     - [NodeData](#onboardingmgr-NodeData)
     - [NodeRequest](#onboardingmgr-NodeRequest)
     - [NodeResponse](#onboardingmgr-NodeResponse)
-    - [OnboardingParams](#onboardingmgr-OnboardingParams)
-    - [OnboardingRequest](#onboardingmgr-OnboardingRequest)
-    - [OnboardingResponse](#onboardingmgr-OnboardingResponse)
     - [Ports](#onboardingmgr-Ports)
     - [Proxy](#onboardingmgr-Proxy)
     - [SecureBootResponse](#onboardingmgr-SecureBootResponse)
@@ -28,7 +25,6 @@
     - [SecureBootStatRequest.Status](#onboardingmgr-SecureBootStatRequest-Status)
   
     - [NodeArtifactServiceNB](#onboardingmgr-NodeArtifactServiceNB)
-    - [OnBoardingEB](#onboardingmgr-OnBoardingEB)
     - [OnBoardingSB](#onboardingmgr-OnBoardingSB)
   
 - [Scalar Value Types](#scalar-value-types)
@@ -199,60 +195,6 @@ Node App Artifact ID to be stored here.This ID is retured to GetArtifacts{id} |
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | payload | [NodeData](#onboardingmgr-NodeData) | repeated | Payload data |
-
-
-
-
-
-
-<a name="onboardingmgr-OnboardingParams"></a>
-
-### OnboardingParams
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| pd_ip | [string](#string) |  | Platform Director IP |
-| pd_mac | [string](#string) |  | Platform Director MAC |
-| load_balancer_ip | [string](#string) |  | Load balancer IP |
-| disk_partition | [string](#string) |  | Disk Partition Details |
-| proxy | [Proxy](#onboardingmgr-Proxy) |  | Proxy Details |
-| port | [Ports](#onboardingmgr-Ports) |  | Agent Port Details |
-| env | [string](#string) |  | System Environment variables |
-
-
-
-
-
-
-<a name="onboardingmgr-OnboardingRequest"></a>
-
-### OnboardingRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| artifactData | [ArtifactData](#onboardingmgr-ArtifactData) | repeated |  |
-| hwdata | [HwData](#onboardingmgr-HwData) | repeated |  |
-| cusParams | [CustomerParams](#onboardingmgr-CustomerParams) |  |  |
-| OnbParams | [OnboardingParams](#onboardingmgr-OnboardingParams) |  |  |
-
-
-
-
-
-
-<a name="onboardingmgr-OnboardingResponse"></a>
-
-### OnboardingResponse
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| status | [string](#string) |  |  |
 
 
 
@@ -430,16 +372,6 @@ Artifact &amp; Node Endpoints towards Inventory Manager
 | GetNodes | [NodeRequest](#onboardingmgr-NodeRequest) | [NodeResponse](#onboardingmgr-NodeResponse) |  |
 | UpdateNodes | [NodeRequest](#onboardingmgr-NodeRequest) | [NodeResponse](#onboardingmgr-NodeResponse) |  |
 | DeleteNodes | [NodeRequest](#onboardingmgr-NodeRequest) | [NodeResponse](#onboardingmgr-NodeResponse) |  |
-
-
-<a name="onboardingmgr-OnBoardingEB"></a>
-
-### OnBoardingEB
-Services exposed to EB by Onboarding Manager
-
-| Method Name | Request Type | Response Type | Description |
-| ----------- | ------------ | ------------- | ------------|
-| StartOnboarding | [OnboardingRequest](#onboardingmgr-OnboardingRequest) | [OnboardingResponse](#onboardingmgr-OnboardingResponse) | Initialize connection with node |
 
 
 <a name="onboardingmgr-OnBoardingSB"></a>

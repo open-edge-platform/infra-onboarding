@@ -23,12 +23,6 @@ service NodeArtifactServiceNB {
   rpc DeleteNodes(NodeRequest) returns (NodeResponse) {}
 }
 
-// Services exposed to EB by Onboarding Manager
-service OnBoardingEB {
-  // Initialize connection with node
-  rpc StartOnboarding(OnboardingRequest) returns (OnboardingResponse);
-}
-
 service OnBoardingSB {
   // updates secureboot BIOS status in Edge Node
   rpc SecureBootStatus(SecureBootStatRequest) returns (SecureBootResponse);
@@ -139,31 +133,10 @@ message Ports {
   string tele_mgr_port = 4; // Telemetry manager port
 }
 
-message OnboardingParams {
-  string pd_ip = 1; // Platform Director IP
-  string pd_mac = 2; // Platform Director MAC
-  string load_balancer_ip = 3; // Load balancer IP
-  string disk_partition = 4; // Disk Partition Details
-  Proxy proxy = 5; // Proxy Details
-  Ports port = 6; // Agent Port Details
-  string env = 7; // System Environment variables
-}
-
 message CustomerParams {
   string dps_scope_id = 5; // DPS Scope ID
   string dps_registration_id = 6; // DPS registration ID
   string dps_enrollment_sym_key = 7; // DPS Enrollment Symetric Key
-}
-
-message OnboardingRequest {
-  repeated ArtifactData artifactData = 1;
-  repeated HwData hwdata = 2;
-  CustomerParams cusParams = 3;
-  OnboardingParams OnbParams = 4;
-}
-
-message OnboardingResponse {
-  string status = 1;
 }
 
 message SecureBootStatRequest {

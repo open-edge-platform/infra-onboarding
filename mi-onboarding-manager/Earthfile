@@ -37,13 +37,11 @@ all:
 build:
     BUILD +build-onboardingmgr
     BUILD +docker-onboardingmgr
-    BUILD +build-onboardingcli
     BUILD +build-pdctl
 
 build-onboarding-stack:
     BUILD +build-onboardingmgr
     BUILD +docker-onboardingmgr
-    BUILD +build-onboardingcli
     BUILD +build-pdctl
     BUILD +build-onboardingmgrtest
 
@@ -69,16 +67,6 @@ docker-onboardingmgr:
     COPY (+build-onboardingmgr/onboardingmgr --version=$version) .
     ENTRYPOINT ["/onboardingmgr"]
     SAVE IMAGE $DOCKER_REGISTRY/$DOCKER_REPOSITORY/$IMG_NAME:$VERSION
-
-build-onboardingcli:
-    ARG version='0.0.0-unknown'
-    WORKDIR /work
-    COPY . .
-    RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOARCH=amd64 GOOS=linux \
-        go build -trimpath -o build/onboardingcli \
-            -ldflags "-s -w -extldflags '-static' -X main.Version=$version" \
-            ./internal/onboardingmgr/test/client/client_eb.go
-    SAVE ARTIFACT build/onboardingcli AS LOCAL build/onboardingcli
 
 build-pdctl:
     ARG version='0.0.0-unknown'

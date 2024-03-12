@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	repository "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/persistence"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
@@ -110,32 +109,6 @@ func CopyNodeReqToNodeData(payload []*pb.NodeData) ([]*computev1.HostResource, e
 	zlog.Debug().Msgf("Generates a list of hosts of length=%d", len(hosts))
 
 	return hosts, nil
-}
-
-func CopyNodeDatatoNodeResp(payload []repository.NodeData, result string) ([]*pb.NodeData, error) {
-	zlog.Info().Msg("CopyNodeDatatoNodeResp")
-	data := make([]*pb.NodeData, 0)
-	for _, s := range payload {
-		art2 := pb.NodeData{
-			NodeId:          s.ID,
-			HwId:            s.HwID,
-			FwArtifactId:    s.FwArtID,
-			OsArtifactId:    s.OsArtID,
-			AppArtifactId:   s.AppArtID,
-			PlatArtifactId:  s.PlatformArtID,
-			PlatformType:    s.PlatformType,
-			DeviceType:      s.DeviceType,
-			DeviceInfoAgent: s.DeviceInfoAgent,
-			DeviceStatus:    s.DeviceStatus,
-		}
-		if result == "SUCCESS" {
-			art2.Result = 0
-		} else {
-			art2.Result = 1
-		}
-		data = append(data, &art2)
-	}
-	return data, nil
 }
 
 func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
