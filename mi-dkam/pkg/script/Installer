@@ -749,17 +749,27 @@ enable_kernel_config(){
 install_NTP(){
     apt-get update
     apt-get install -y ntp
+    apt-get update
+    apt-get install -y systemd-timesyncd
     cp /etc/ntp.conf /etc/ntp.conf.bak
+    cp /etc/systemd/timesyncd.conf /etc/systemd/timesyncd.conf.bak
     ntpServers=__NTP_SERVERS__
+    timeServers="NTP="
     IFS=',' read -ra servers <<< "$ntpServers"
     for server in "${servers[@]}"; do
         if ! grep -q "^server $server" /etc/ntp.conf; then
             echo "server $server" | sudo tee -a /etc/ntp.conf > /dev/null
         fi
+        timeServers="$timeServers $server"
     done
+    sed  's/.*#NTP=*./'"$timeServers"'/g' /etc/systemd/timesyncd.conf | sudo tee /etc/systemd/timesyncd.conf >/dev/null
     ufw allow 123/udp 
+    service ntp reload
     systemctl restart ntp
     systemctl status ntp
+    systemctl restart systemd-timesyncd.service
+    timedatectl set-ntp true
+    systemctl status systemd-timesyncd.service
 }
 
 # 31. Disable unattended upgrades
