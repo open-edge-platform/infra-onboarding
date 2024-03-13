@@ -19,6 +19,7 @@ pipeline {
 	agent none
 	 parameters {
         booleanParam(name: 'buildHookOs ', defaultValue: false, description: 'Build just hook-os')
+		string(name: 'version', defaultValue: '', description: 'Tinker action version from parent repository')
     }
     stages {
 		stage('OIE  Native Host') {
@@ -148,7 +149,12 @@ pipeline {
 						echo 'no_proxy=localhost,*.intel.com,*intel.com,192.168.0.0/16,172.16.0.0/12,127.0.0.0/8,10.0.0.0/8,/var/run/docker.sock,.internal' >> config
 						echo 'keycloak_url=keycloak.validation.maestro.intel.com' >> config
 						"""
-						def tag = sh(script: 'cat TINKER_ACTIONS_VERSION', returnStdout: true).trim()
+						def tag = ''
+						if (params.buildHookOs) {
+							tag = params.version
+						} else {
+							tag = sh(script: 'cat TINKER_ACTIONS_VERSION', returnStdout: true).trim()
+						}
 						images_list = []
 						images = sh(script: "cat patch.p | grep -i '+.*image:.*:.*\$' | awk -F: '{print \$2}'", returnStdout: true).trim()
 						images_list = images.split("\n")
