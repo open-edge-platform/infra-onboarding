@@ -5,25 +5,26 @@ package tinkerbell
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
-	"testing"
 )
 
 func TestWorkflowActionToStatusDetail(t *testing.T) {
 	diWorkflowData, err := NewTemplateData("test-di", "10.10.1.1", "CLIENT-SDK-TPM",
-		"/dev/sda", "12345678")
+		"/dev/sda", "12345678", "")
 	require.NoError(t, err)
 
 	prodBkcWorkflowWithDIData, err := NewTemplateDataProdBKC("test-prod-bkc-di", "", "",
 		"", "", "", "", "",
-		1, "", "", true)
+		1, "", "", true, "")
 	require.NoError(t, err)
 
 	prodBkcWorkflowWithoutDIData, err := NewTemplateDataProdBKC("test-prod-bkc", "", "",
 		"", "", "", "", "",
-		1, "", "", false)
+		1, "", "", false, "")
 	require.NoError(t, err)
 
 	prodWorkflowData, err := NewTemplateDataProd("test-prod", "", "", "", "")

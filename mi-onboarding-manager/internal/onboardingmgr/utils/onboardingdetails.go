@@ -31,11 +31,13 @@ type (
 		FdoOwnerPort      string
 		FdoMfgPort        string
 		FdoRvPort         string
+		TinkerVersion     string
 	}
 
 	ArtifactData struct {
 		BkcURL        string
 		BkcBasePkgURL string
+		TinkerVersion string
 	}
 	Groupinfo struct {
 		Group   string

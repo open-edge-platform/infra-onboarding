@@ -7,7 +7,7 @@ module github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra
 go 1.21
 
 require (
-	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.0.4
+	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.0.20-0.20240313104603-8d8698f68850
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory v0.10.6
 	github.com/onosproject/onos-lib-go v0.10.24
 	github.com/pkg/errors v0.9.1
@@ -102,6 +102,7 @@ require (
 	github.com/labstack/echo/v4 v4.11.2 // indirect
 	github.com/labstack/gommon v0.4.0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
+	github.com/magefile/mage v1.15.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect

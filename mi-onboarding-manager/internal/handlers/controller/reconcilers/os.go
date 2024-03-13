@@ -5,6 +5,7 @@ package reconcilers
 
 import (
 	"context"
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/tracing"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
@@ -142,7 +143,7 @@ func PopulateOSResourceFromDKAMResponse(dkamResponse *dkam.GetArtifactsResponse)
 			osv1.OperatingSystemResourceFieldRepoUrl,
 		},
 	}
-	result := dkamResponse.OsUrl + ";" + dkamResponse.OverlayscriptUrl
+	result := dkamResponse.OsUrl + ";" + dkamResponse.OverlayscriptUrl + ";" + dkamResponse.TinkActionVersion
 	osr.RepoUrl = result
 
 	return osr, fieldmask, nil

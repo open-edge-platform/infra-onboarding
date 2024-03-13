@@ -6,6 +6,7 @@ package tinkerbell
 import (
 	"context"
 	"fmt"
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
@@ -41,7 +42,7 @@ func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (
 	case utils.ImgTypeBkc:
 		tmplData, err = NewTemplateDataProdBKC(tmplName, deviceInfo.Rootfspart, deviceInfo.RootfspartNo,
 			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.ClientImgName, deviceInfo.ProvisionerIP,
-			deviceInfo.SecurityFeature, deviceInfo.ClientID, deviceInfo.ClientSecret, *common.FlagEnableDeviceInitialization)
+			deviceInfo.SecurityFeature, deviceInfo.ClientID, deviceInfo.ClientSecret, *common.FlagEnableDeviceInitialization, deviceInfo.TinkerVersion)
 		if err != nil {
 			return nil, err
 		}
@@ -72,7 +73,7 @@ func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (
 func GenerateTemplateForDI(k8sNamespace string, deviceInfo utils.DeviceInfo) (*tink.Template, error) {
 	tmplName := "fdodi-" + deviceInfo.GUID
 	tmplData, err := NewTemplateData(tmplName, deviceInfo.ProvisionerIP, "CLIENT-SDK-TPM",
-		deviceInfo.DiskType, deviceInfo.HwSerialID)
+		deviceInfo.DiskType, deviceInfo.HwSerialID, deviceInfo.TinkerVersion)
 	if err != nil {
 		// failed to marshal template data
 		zlog.MiSec().MiErr(err).Msg("")

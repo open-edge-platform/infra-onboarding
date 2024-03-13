@@ -64,11 +64,12 @@ func TestMarshal(t *testing.T) {
 
 func TestNewTemplateData(t *testing.T) {
 	type args struct {
-		name     string
-		ip       string
-		clientyp string
-		disk     string
-		serial   string
+		name          string
+		ip            string
+		clientyp      string
+		disk          string
+		serial        string
+		tinkerVersion string
 	}
 	wf := Workflow{}
 	want, _ := marshalWorkflow(&wf)
@@ -93,7 +94,7 @@ func TestNewTemplateData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewTemplateData(tt.args.name, tt.args.ip, tt.args.clientyp, tt.args.disk, tt.args.serial)
+			got, err := NewTemplateData(tt.args.name, tt.args.ip, tt.args.clientyp, tt.args.disk, tt.args.serial, tt.args.tinkerVersion)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewTemplateData() error = %v, wantErr %v", err, tt.wantErr)
 				return

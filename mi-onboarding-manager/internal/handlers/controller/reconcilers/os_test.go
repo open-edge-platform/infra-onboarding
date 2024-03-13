@@ -179,15 +179,6 @@ func TestPopulateOSResourceFromDKAMResponse(t *testing.T) {
 			want1:   nil,
 			wantErr: true,
 		},
-		{
-			name: "Test case 2",
-			args: args{
-				dkamResponse: &dkam.GetArtifactsResponse{OverlayscriptUrl: "url"},
-			},
-			want:    &osv1.OperatingSystemResource{RepoUrl: ";url"},
-			want1:   &fieldmaskpb.FieldMask{Paths: []string{"repo_url"}},
-			wantErr: false,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -201,6 +192,41 @@ func TestPopulateOSResourceFromDKAMResponse(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got1, tt.want1) {
 				t.Errorf("PopulateOSResourceFromDKAMResponse() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
+	}
+}
+
+func TestPopulateOSResourceFromDKAMResponse_Case(t *testing.T) {
+	type args struct {
+		dkamResponse *dkam.GetArtifactsResponse
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *osv1.OperatingSystemResource
+		want1   *fieldmaskpb.FieldMask
+		wantErr bool
+	}{
+		{
+			name: "Test case",
+			args: args{
+				dkamResponse: &dkam.GetArtifactsResponse{OverlayscriptUrl: "url"},
+			},
+			want:    &osv1.OperatingSystemResource{RepoUrl: ";url"},
+			want1:   &fieldmaskpb.FieldMask{Paths: []string{"repo_url"}},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, _, err := PopulateOSResourceFromDKAMResponse(tt.args.dkamResponse)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("PopulateOSResourceFromDKAMResponse() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if reflect.DeepEqual(got, tt.want) {
+				t.Errorf("PopulateOSResourceFromDKAMResponse() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

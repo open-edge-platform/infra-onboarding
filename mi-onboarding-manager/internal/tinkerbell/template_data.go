@@ -239,7 +239,7 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 	return marshalWorkflow(&wf)
 }
 
-func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gateway, _, _ string, securityFeature uint32, clientID, clientSecret string, enableDI bool) ([]byte, error) {
+func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gateway, _, _ string, securityFeature uint32, clientID, clientSecret string, enableDI bool, tinkerversion string) ([]byte, error) {
 	proxy_setting := GetProxyEnv()
 	wf := Workflow{
 		Version:       "0.1",
@@ -256,7 +256,7 @@ func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gatewa
 			Actions: []Action{
 				{
 					Name:    ActionStreamUbuntuImage,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/image2disk:0.7.1-dev",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/image2disk:" + tinkerversion,
 					Timeout: 9600,
 					Environment: map[string]string{
 						"IMG_URL":    hostIP,
@@ -265,7 +265,7 @@ func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gatewa
 				},
 				{
 					Name:    ActionAddEnvProxy,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
 					Timeout: 90,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
@@ -283,7 +283,7 @@ func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gatewa
 
 				{
 					Name:    ActionAddAptProxy,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
 					Timeout: 90,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
@@ -299,7 +299,7 @@ func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gatewa
 				},
 				{
 					Name:    ActionAddDNSNamespace,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
 					Timeout: 90,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
@@ -316,7 +316,7 @@ func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gatewa
 
 				{
 					Name:    ActionGrowPartitionInstallScript,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
 					Timeout: 90,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
@@ -333,7 +333,7 @@ touch /usr/local/bin/.grow_part_done`),
 				},
 				{
 					Name:    ActionCreateUser,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:" + tinkerversion,
 					Timeout: 90,
 					Environment: map[string]string{
 						"FS_TYPE":             "ext4",
@@ -345,7 +345,7 @@ touch /usr/local/bin/.grow_part_done`),
 
 				{
 					Name:    ActionEnableSSH,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:" + tinkerversion,
 					Timeout: 90,
 					Environment: map[string]string{
 						"FS_TYPE":             "ext4",
@@ -358,7 +358,7 @@ touch /usr/local/bin/.grow_part_done`),
 
 				{
 					Name:    ActionInstallScriptDownload,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:" + tinkerversion,
 					Timeout: 200,
 					Environment: map[string]string{
 						"FS_TYPE":             "ext4",
@@ -371,7 +371,7 @@ touch /usr/local/bin/.grow_part_done`),
 				},
 				{
 					Name:    ActionInstallScript,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
 					Timeout: 90,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
@@ -398,7 +398,7 @@ touch /usr/local/bin/.grow_part_done`),
 				},
 				{
 					Name:    ActionInstallScriptEnable,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:" + tinkerversion,
 					Timeout: 200,
 					Environment: map[string]string{
 						"FS_TYPE":             "ext4",
@@ -409,7 +409,7 @@ touch /usr/local/bin/.grow_part_done`),
 				},
 				{
 					Name:    ActionNetplan,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
 					Timeout: 90,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
@@ -431,7 +431,7 @@ touch /usr/local/bin/.grow_part_done`),
 
 				{
 					Name:    ActionNetplanConfigure,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
 					Timeout: 200,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
@@ -469,7 +469,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 
 				{
 					Name:    ActionGrowPartitionService,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
 					Timeout: 200,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
@@ -495,7 +495,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 				},
 				{
 					Name:    ActionGrowPartitionServiceEnable,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:" + tinkerversion,
 					Timeout: 200,
 					Environment: map[string]string{
 						"FS_TYPE":             "ext4",
@@ -507,7 +507,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 
 				{
 					Name:    ActionNetplanService,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
 					Timeout: 200,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
@@ -534,7 +534,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 
 				{
 					Name:    ActionNetplanServiceEnable,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:" + tinkerversion,
 					Timeout: 200,
 					Environment: map[string]string{
 						"FS_TYPE":             "ext4",
@@ -546,13 +546,13 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 
 				{
 					Name:    ActionEfibootset,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/efibootset:0.7.1-dev",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/efibootset:" + tinkerversion,
 					Timeout: 300,
 				},
 
 				{
 					Name:    ActionFdeEncryption,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/fde:0.7.1-dev",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/fde:" + tinkerversion,
 					Timeout: 560,
 				},
 
@@ -573,7 +573,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 		directoryActions := []Action{
 			{
 				Name:    ActionCreateSecretsDirectory,
-				Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:0.7.1-dev",
+				Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:" + tinkerversion,
 				Timeout: 60,
 				Environment: map[string]string{
 					"FS_TYPE":             "ext4",
@@ -584,7 +584,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 			},
 			{
 				Name:    ActionWriteClientID,
-				Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
+				Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
 				Timeout: 90,
 				Environment: map[string]string{
 					"FS_TYPE":   "ext4",
@@ -598,7 +598,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 			},
 			{
 				Name:    ActionWriteClientSecret,
-				Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:0.7.1-dev",
+				Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
 				Timeout: 90,
 				Environment: map[string]string{
 					"FS_TYPE":   "ext4",
@@ -628,7 +628,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 		directoryActions := []Action{
 			{
 				Name:    ActionCopyENSecrets,
-				Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cred_copy:0.7.1-dev",
+				Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cred_copy:" + tinkerversion,
 				Timeout: 90,
 				Environment: map[string]string{
 					"OS_DST_DIR": "/etc/ensp/node/client-credentials/",

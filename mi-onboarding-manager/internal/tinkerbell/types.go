@@ -49,7 +49,7 @@ func unmarshalWorkflow(yamlContent []byte) (*Workflow, error) {
 	return &workflow, nil
 }
 
-func NewTemplateData(name, ip, clientyp, disk, serial string) ([]byte, error) {
+func NewTemplateData(name, ip, clientyp, disk, serial, tinkerversion string) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -65,7 +65,7 @@ func NewTemplateData(name, ip, clientyp, disk, serial string) ([]byte, error) {
 			Actions: []Action{
 				{
 					Name:    ActionStoringAlpine,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/store_alpine:0.7.1-dev",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/store_alpine:" + tinkerversion,
 					Timeout: 500,
 					Environment: map[string]string{
 						"BLOCK_DEVICE": disk,
@@ -74,7 +74,7 @@ func NewTemplateData(name, ip, clientyp, disk, serial string) ([]byte, error) {
 				},
 				{
 					Name:    ActionRunFDO,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/fdoclient_action:0.7.1-dev",
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/fdoclient_action:" + tinkerversion,
 					Timeout: 400,
 					Environment: map[string]string{
 						"DATA_PARTITION_LBL": "CREDS",

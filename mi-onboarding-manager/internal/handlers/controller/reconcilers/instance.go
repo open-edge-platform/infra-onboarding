@@ -7,6 +7,9 @@ package reconcilers
 import (
 	"context"
 
+	"os"
+	"strings"
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onbworkflowclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
@@ -18,8 +21,6 @@ import (
 	"google.golang.org/grpc/codes"
 	grpc_status "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"os"
-	"strings"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
@@ -194,6 +195,7 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource, artifactI
 	}
 
 	deviceInfo.Rootfspart = utils.CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
+	deviceInfo.TinkerVersion = artifactInfo.TinkerVersion
 
 	switch deviceInfo.ImType {
 	case utils.ProdBkc:
@@ -235,10 +237,15 @@ func convertInstanceToArtifactInfo(instance *computev1.InstanceResource) (utils.
 	}
 
 	var overlayURL string
+	var tinkerVersion string
 	if len(invURL) > 1 {
 		overlayURL = invURL[1]
 	}
-
+	
+	if len(invURL) > 2 {
+	        tinkerVersion = invURL[2]
+	}
+	
 	sutIP := instance.GetHost().GetBmcIp()
 	osURL = utils.ReplaceHostIP(osURL, sutIP)
 	overlayURL = utils.ReplaceHostIP(overlayURL, sutIP)
@@ -246,6 +253,7 @@ func convertInstanceToArtifactInfo(instance *computev1.InstanceResource) (utils.
 	return utils.ArtifactData{
 		BkcURL:        osURL,
 		BkcBasePkgURL: overlayURL,
+		TinkerVersion: tinkerVersion,
 	}, nil
 }
 
