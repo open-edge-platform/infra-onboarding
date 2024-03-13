@@ -255,9 +255,13 @@ pipeline {
 			steps {
 				script{
 					def downstreamJobPath = 'Edge-Node/Intel Innersource Edge-Node/frameworks.edge.one-intel-edge.edge-node.os-provision.provisioning-hook-os/main'
-					build job: downstreamJobPath, parameters: [
-							booleanParam(name: 'buildHookOs', value: true)
-					]
+					def version = readFile('VERSION').trim()
+					if (!version.contains('-dev')) {
+						build job: downstreamJobPath, parameters: [
+								booleanParam(name: 'buildHookOs', value: true),
+								string(name: 'version', value: version)
+						]
+					}
 				}
 
 			}
