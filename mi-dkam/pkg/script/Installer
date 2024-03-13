@@ -848,7 +848,7 @@ fi
 lvm_part_setup_for_secondary_disk(){
 
 #check if FDE enabled , if not enabled  do the LVM for the secondary disk
-if [ ! -f /dev/mapper/rootfs_crypt ]; then
+if [ ! -L /dev/mapper/rootfs_crypt ]; then
     
     echo "FDE not enabled and starting the LVM creation"    
     #check for NVME && SATA disk types
