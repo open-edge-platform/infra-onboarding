@@ -4,7 +4,7 @@
 // - protoc             v3.21.9
 // source: dkam.proto
 
-package pb
+package dkammgr
 
 import (
 	context "context"
@@ -35,7 +35,7 @@ func NewDkamServiceClient(cc grpc.ClientConnInterface) DkamServiceClient {
 
 func (c *dkamServiceClient) GetArtifacts(ctx context.Context, in *GetArtifactsRequest, opts ...grpc.CallOption) (*GetArtifactsResponse, error) {
 	out := new(GetArtifactsResponse)
-	err := c.cc.Invoke(ctx, "/infrastructure.edge.iaas.platform.dkammgr.DkamService/GetArtifacts", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/dkammgr.DkamService/GetArtifacts", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func _DkamService_GetArtifacts_Handler(srv interface{}, ctx context.Context, dec
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/infrastructure.edge.iaas.platform.dkammgr.DkamService/GetArtifacts",
+		FullMethod: "/dkammgr.DkamService/GetArtifacts",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DkamServiceServer).GetArtifacts(ctx, req.(*GetArtifactsRequest))
@@ -92,7 +92,7 @@ func _DkamService_GetArtifacts_Handler(srv interface{}, ctx context.Context, dec
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var DkamService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "infrastructure.edge.iaas.platform.dkammgr.DkamService",
+	ServiceName: "dkammgr.DkamService",
 	HandlerType: (*DkamServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

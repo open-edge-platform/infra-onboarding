@@ -76,7 +76,7 @@ func (server *Service) GetArtifacts(ctx context.Context, req *pb.GetArtifactsReq
 	zlog.MiSec().Info().Msgf("Profile Name %s", profile)
 	zlog.MiSec().Info().Msgf("Platform %s", platform)
 
-	filename := GetCuratedScript(profile, platform)
+	filename, tinkeraction_version := GetCuratedScript(profile, platform)
 	scriptName := strings.Split(filename, "/")
 	proxyIP := "http://%host_ip%/tink-stack"
 	zlog.MiSec().Info().Msgf("proxyIP %s", proxyIP)
@@ -86,12 +86,12 @@ func (server *Service) GetArtifacts(ctx context.Context, req *pb.GetArtifactsReq
 	zlog.MiSec().Info().Msgf("osUrl %s", osUrl)
 
 	zlog.MiSec().Info().Msg("Return Manifest file.")
-	return &pb.GetArtifactsResponse{StatusCode: true, OsUrl: osUrl, OverlayscriptUrl: url}, nil
+	return &pb.GetArtifactsResponse{StatusCode: true, OsUrl: osUrl, OverlayscriptUrl: url, TinkActionVersion: tinkeraction_version}, nil
 }
 
-func GetCuratedScript(profile string, platform string) string {
-	filename := curation.GetCuratedScript(profile, platform)
-	return filename
+func GetCuratedScript(profile string, platform string) (string, string) {
+	filename, version := curation.GetCuratedScript(profile, platform)
+	return filename, version
 }
 
 func GetServerUrl() string {

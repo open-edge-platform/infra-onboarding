@@ -36,11 +36,21 @@ type Config struct {
 	BMA struct {
 		Debs []AgentsVersion `yaml:"debs"`
 	} `yaml:"bma"`
+	Provisioning struct {
+		Images []Image `yaml:"images"`
+	} `yaml:"provisioning"`
 }
 
 var configs Config
 
-func GetCuratedScript(profile string, platform string) string {
+type Image struct {
+	Description string `yaml:"description"`
+	Registry    string `yaml:"registry"`
+	Image       string `yaml:"image"`
+	Version     string `yaml:"version"`
+}
+
+func GetCuratedScript(profile string, platform string) (string, string) {
 	MODE := os.Getenv("MODE")
 	//MODE := "dev"
 
@@ -67,6 +77,17 @@ func GetCuratedScript(profile string, platform string) string {
 	if exists {
 		zlog.MiSec().Info().Msg("Path exists:")
 		releaseFilePath = yamlFile
+		tmp_yaml_file := filepath.Join(scriptDir, config.ReleaseVersion+".yaml")
+		zlog.MiSec().Info().Msg("Remove latest-dev.yaml temp file")
+		yamlexists, err := PathExists(tmp_yaml_file)
+		if err != nil {
+			zlog.MiSec().Info().Msgf("Error checking path %v", err)
+		}
+		if yamlexists {
+			if err := os.Remove(tmp_yaml_file); err != nil {
+				zlog.MiSec().Fatal().Err(err).Msgf("Error removing temporary file: latest-dev.yaml: %v", err)
+			}
+		}
 	} else {
 		zlog.MiSec().Info().Msg("Path not exists:")
 		releaseFilePath = filepath.Join(scriptDir, config.ReleaseVersion+".yaml")
@@ -75,13 +96,28 @@ func GetCuratedScript(profile string, platform string) string {
 	zlog.MiSec().Info().Msg(releaseFilePath)
 	configs, err := GetReleaseArtifactList(releaseFilePath)
 	agentsList = append(agentsList, configs.BMA.Debs...)
+	tinkeractionList := configs.Provisioning.Images
+	var tinkeraction_version string
+	if len(tinkeractionList) != 0 {
+		for _, image := range tinkeractionList {
+			if image.Image == "one-intel-edge/edge-node/tinker-actions/client_auth" {
+				zlog.MiSec().Info().Msgf("Tinker action:%s", image.Version)
+				tinkeraction_version = image.Version
+			}
+		}
+	}
+
 	zlog.MiSec().Info().Msgf("Agents List' %s", agentsList)
 	if len(agentsList) == 0 {
 		zlog.MiSec().Info().Msg("Failed to get the agent list")
-		return err.Error()
+		return err.Error(), "Tinker action version not found"
+	}
+	if len(tinkeraction_version) == 0 {
+		zlog.MiSec().Info().Msg("Failed to get the Tinker action version")
+		return err.Error(), "Tinker action version not found"
 	}
 	filename := CreateOverlayScript(currentDir, profile, MODE)
-	return filename
+	return filename, tinkeraction_version
 
 }
 

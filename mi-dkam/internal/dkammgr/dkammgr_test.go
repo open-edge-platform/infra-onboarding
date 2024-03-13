@@ -84,13 +84,17 @@ func TestDownloadArtifacts(t *testing.T) {
 //}
 
 func TestGetCuratedScript(t *testing.T) {
-	filename := GetCuratedScript("profile", "platform")
+	filename, version := GetCuratedScript("profile", "platform")
 
 	// Check if the returned filename matches the expected format
 	expectedFilename := "installer.sh"
 	if filename != expectedFilename {
 		t.Errorf("Expected filename '%s', but got '%s'", expectedFilename, filename)
 	}
+	if len(version) == 0 {
+		t.Errorf("Version not found")
+	}
+
 }
 
 func TestServerUrl(t *testing.T) {

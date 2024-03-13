@@ -27,6 +27,7 @@ func GetArtifacts(client pb.DkamServiceClient) {
 	zlog.MiSec().Info().Msgf("Result: %s", res)
 	zlog.MiSec().Info().Msgf("OS url: %s", res.OsUrl)
 	zlog.MiSec().Info().Msgf("Overlay script URL: %s", res.OverlayscriptUrl)
+	zlog.MiSec().Info().Msgf("Tinker Actiom version: %s", res.TinkActionVersion)
 
 }
 
