@@ -89,10 +89,10 @@ func Test_keycloakService_login(t *testing.T) {
 			name: "Test Case",
 			fields: fields{
 				keycloakClient: &gocloak.GoCloak{},
-				jwtToken: &gocloak.JWT{},
+				jwtToken:       &gocloak.JWT{},
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx:         context.Background(),
 				keycloakURL: "",
 			},
 			wantErr: true,
@@ -110,3 +110,4 @@ func Test_keycloakService_login(t *testing.T) {
 		})
 	}
 }
+

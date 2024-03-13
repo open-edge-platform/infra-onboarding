@@ -13,6 +13,7 @@ import (
 
 	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
+	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
@@ -24,7 +25,7 @@ func TestInitOnboarding(t *testing.T) {
 		invClient *invclient.OnboardingInventoryClient
 		dkamAddr  string
 	}
-	mockInvClient := &MockInventoryClient{}
+	mockInvClient := &onboarding.MockInventoryClient{}
 	inputargs := args{
 		invClient: &invclient.OnboardingInventoryClient{
 			Client: mockInvClient,
@@ -101,7 +102,7 @@ func TestHandleSecureBootMismatch(t *testing.T) {
 		ctx context.Context
 		req *pb.SecureBootResponse
 	}
-	mockClient := &MockInventoryClient{}
+	mockClient := &onboarding.MockInventoryClient{}
 	_invClient = &invclient.OnboardingInventoryClient{
 		Client: mockClient,
 	}
@@ -133,7 +134,7 @@ func TestHandleSecureBootMismatch_Case(t *testing.T) {
 		ctx context.Context
 		req *pb.SecureBootResponse
 	}
-	mockClient := &MockInventoryClient{}
+	mockClient := &onboarding.MockInventoryClient{}
 	mockHost := &computev1.HostResource{
 		ResourceId: "host-084d9b08",
 		Instance: &computev1.InstanceResource{
@@ -183,7 +184,7 @@ func TestHandleSecureBootMismatch_Case1(t *testing.T) {
 		ctx context.Context
 		req *pb.SecureBootResponse
 	}
-	mockClient := &MockInventoryClient{}
+	mockClient := &onboarding.MockInventoryClient{}
 	mockHost := &computev1.HostResource{
 		ResourceId: "host-084d9b08",
 		Instance: &computev1.InstanceResource{
@@ -233,7 +234,7 @@ func TestHandleSecureBootMismatch_Case2(t *testing.T) {
 		ctx context.Context
 		req *pb.SecureBootResponse
 	}
-	mockClient := &MockInventoryClient{}
+	mockClient := &onboarding.MockInventoryClient{}
 	mockHost := &computev1.HostResource{
 		ResourceId: "host-084d9b08",
 		Instance: &computev1.InstanceResource{
@@ -320,3 +321,4 @@ func TestOnboardingManager_SecureBootStatus(t *testing.T) {
 		})
 	}
 }
+

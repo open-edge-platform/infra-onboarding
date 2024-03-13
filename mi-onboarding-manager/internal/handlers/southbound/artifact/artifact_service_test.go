@@ -10,10 +10,11 @@ import (
 	"testing"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding"
+	onboarding_mocks "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
+	providerv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/provider/v1"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -23,7 +24,7 @@ func TestNewArtifactService(t *testing.T) {
 	type args struct {
 		invClient *invclient.OnboardingInventoryClient
 	}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	tests := []struct {
 		name    string
 		args    args
@@ -141,7 +142,7 @@ func TestNodeArtifactService_CreateNodes_Case(t *testing.T) {
 			Host: host,
 		},
 	}
-	mockInvClient1 := &onboarding.MockInventoryClient{}
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource2,
 	}, nil)
@@ -197,7 +198,7 @@ func TestNodeArtifactService_CreateNodes_Case1(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	mockInvClient1 := &onboarding.MockInventoryClient{}
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient1.On("List", mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.ListResourcesResponse{}, errors.New("err"))
 	tests := []struct {
@@ -276,7 +277,7 @@ func TestNodeArtifactService_CreateNodes_Case2(t *testing.T) {
 			Host: host,
 		},
 	}
-	mockInvClient1 := &onboarding.MockInventoryClient{}
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource2,
 	}, errors.New("err"))
@@ -336,7 +337,7 @@ func TestNodeArtifactService_CreateNodes_Case3(t *testing.T) {
 		Payload: payloads,
 	}
 	mockResource2 := &inv_v1.Resource{}
-	mockInvClient1 := &onboarding.MockInventoryClient{}
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource2,
 	}, status.Error(codes.NotFound, "Node not found"))
@@ -405,7 +406,7 @@ func TestNodeArtifactService_CreateNodes_Case4(t *testing.T) {
 		Payload: payloads,
 	}
 	mockResource2 := &inv_v1.Resource{}
-	mockInvClient1 := &onboarding.MockInventoryClient{}
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource2,
 	}, status.Error(codes.NotFound, "Node not found"))
@@ -468,7 +469,7 @@ func TestNodeArtifactService_DeleteNodes_Case1(t *testing.T) {
 			Host: host,
 		},
 	}
-	mockclient := new(onboarding.MockInventoryClient)
+	mockclient := &onboarding_mocks.MockInventoryClient{}
 	mockResources := &inv_v1.ListResourcesResponse{
 		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
 	}
@@ -558,7 +559,7 @@ func TestNodeArtifactService_DeleteNodes_Case2(t *testing.T) {
 	mockResources := &inv_v1.ListResourcesResponse{
 		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
 	}
-	mockclient := new(onboarding.MockInventoryClient)
+	mockclient := &onboarding_mocks.MockInventoryClient{}
 	mockclient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, errors.New("err"))
 	tests := []struct {
 		name    string
@@ -607,7 +608,7 @@ func TestNodeArtifactService_DeleteNodes_Case3(t *testing.T) {
 	mockResources := &inv_v1.ListResourcesResponse{
 		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
 	}
-	mockclient := new(onboarding.MockInventoryClient)
+	mockclient := &onboarding_mocks.MockInventoryClient{}
 	mockclient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
 	mockclient.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
@@ -678,7 +679,7 @@ func TestNodeArtifactService_DeleteNodes_Case4(t *testing.T) {
 	mockResources := &inv_v1.ListResourcesResponse{
 		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
 	}
-	mockclient := new(onboarding.MockInventoryClient)
+	mockclient := &onboarding_mocks.MockInventoryClient{}
 	mockclient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
 	mockclient.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
@@ -743,7 +744,7 @@ func TestNodeArtifactService_DeleteNodes_Case5(t *testing.T) {
 	mockResources := &inv_v1.ListResourcesResponse{
 		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
 	}
-	mockclient := new(onboarding.MockInventoryClient)
+	mockclient := &onboarding_mocks.MockInventoryClient{}
 	mockclient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
 	mockclient.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
@@ -806,7 +807,7 @@ func TestNodeArtifactService_DeleteNodes_Case6(t *testing.T) {
 		Resource: &inv_v1.Resource_Host{},
 	}
 	mockResources := &inv_v1.ListResourcesResponse{}
-	mockclient := new(onboarding.MockInventoryClient)
+	mockclient := &onboarding_mocks.MockInventoryClient{}
 	mockclient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
 	mockclient.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
@@ -879,7 +880,7 @@ func TestNodeArtifactService_DeleteNodes_Case7(t *testing.T) {
 	mockResources := &inv_v1.ListResourcesResponse{
 		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}, {Resource: mockResource2}},
 	}
-	mockclient := new(onboarding.MockInventoryClient)
+	mockclient := &onboarding_mocks.MockInventoryClient{}
 	mockclient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
 	mockclient.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
@@ -938,7 +939,7 @@ func TestNodeArtifactService_GetNodes_Case1(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	host := &computev1.HostResource{
 		ResourceId: "host-084d9b08",
 		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
@@ -1013,7 +1014,7 @@ func TestNodeArtifactService_GetNodes_Case2(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	host := &computev1.HostResource{
 		ResourceId: "host-084d9b08",
 		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
@@ -1085,7 +1086,7 @@ func TestNodeArtifactService_GetNodes_Case3(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	host := &computev1.HostResource{
 		ResourceId: "host-084d9b08",
 		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
@@ -1160,7 +1161,7 @@ func TestNodeArtifactService_UpdateNodes_Case1(t *testing.T) {
 	}
 	hostNic := &computev1.HostnicResource{ResourceId: "hostnic-084d9b08"}
 	hostNics := []*computev1.HostnicResource{hostNic}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	host := &computev1.HostResource{
 		ResourceId: "host-084d9b08",
 		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
@@ -1240,7 +1241,7 @@ func TestNodeArtifactService_UpdateNodes_Case2(t *testing.T) {
 	}
 	hostNic := &computev1.HostnicResource{ResourceId: "hostnic-084d9b08"}
 	hostNics := []*computev1.HostnicResource{hostNic}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	host := &computev1.HostResource{
 		ResourceId: "host-084d9b08",
 		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
@@ -1321,7 +1322,7 @@ func TestNodeArtifactService_UpdateNodes_Case3(t *testing.T) {
 	}
 	hostNic := &computev1.HostnicResource{ResourceId: "hostnic-084d9b08"}
 	hostNics := []*computev1.HostnicResource{hostNic}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	host := &computev1.HostResource{
 		ResourceId: "host-084d9b08",
 		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
@@ -1399,7 +1400,7 @@ func TestNodeArtifactService_UpdateNodes_Case4(t *testing.T) {
 	}
 	hostNic := &computev1.HostnicResource{ResourceId: "hostnic-084d9b08"}
 	hostNics := []*computev1.HostnicResource{hostNic}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	host := &computev1.HostResource{
 		ResourceId: "host-084d9b08",
 		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
@@ -1477,7 +1478,7 @@ func TestNodeArtifactService_UpdateNodes_Case5(t *testing.T) {
 	}
 	hostNic := &computev1.HostnicResource{ResourceId: "hostnic-084d9b08"}
 	hostNics := []*computev1.HostnicResource{hostNic}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	host := &computev1.HostResource{
 		ResourceId: "host-084d9b08",
 		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
@@ -1553,7 +1554,7 @@ func TestNodeArtifactService_UpdateNodes_Case6(t *testing.T) {
 	}
 	hostNic := &computev1.HostnicResource{ResourceId: "hostnic-084d9b08", BmcInterface: true}
 	hostNics := []*computev1.HostnicResource{hostNic}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	host := &computev1.HostResource{
 		ResourceId: "host-084d9b08",
 		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
@@ -1644,7 +1645,7 @@ func TestNodeArtifactService_startZeroTouch(t *testing.T) {
 			Host: mockHost,
 		},
 	}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	mockResources1 := &inv_v1.ListResourcesResponse{
 		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource}},
 	}
@@ -1663,7 +1664,7 @@ func TestNodeArtifactService_startZeroTouch(t *testing.T) {
 					Client: mockInvClient,
 				},
 				invClientAPI: &invclient.OnboardingInventoryClient{
-					Client: &onboarding.MockInventoryClient{},
+					Client: &onboarding_mocks.MockInventoryClient{},
 				},
 			},
 			args: args{
@@ -1705,7 +1706,7 @@ func TestNodeArtifactService_startZeroTouch_Case(t *testing.T) {
 			Host: mockHost,
 		},
 	}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	mockResources1 := &inv_v1.ListResourcesResponse{
 		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource}},
 	}
@@ -1724,7 +1725,7 @@ func TestNodeArtifactService_startZeroTouch_Case(t *testing.T) {
 					Client: mockInvClient,
 				},
 				invClientAPI: &invclient.OnboardingInventoryClient{
-					Client: &onboarding.MockInventoryClient{},
+					Client: &onboarding_mocks.MockInventoryClient{},
 				},
 			},
 			args: args{
@@ -1732,6 +1733,473 @@ func TestNodeArtifactService_startZeroTouch_Case(t *testing.T) {
 				hostResID: "host-084d9b08",
 			},
 			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &NodeArtifactService{
+				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+				invClient:                                tt.fields.invClient,
+				invClientAPI:                             tt.fields.invClientAPI,
+			}
+			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostResID); (err != nil) != tt.wantErr {
+				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestNewArtifactService_Case(t *testing.T) {
+	type args struct {
+		invClient     *invclient.OnboardingInventoryClient
+		inventoryAdr  string
+		enableTracing bool
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *NodeArtifactService
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				invClient: &invclient.OnboardingInventoryClient{
+					Client: &onboarding_mocks.MockInventoryClient{},
+				},
+				inventoryAdr:  "addr",
+				enableTracing: false,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewArtifactService(tt.args.invClient, tt.args.inventoryAdr, tt.args.enableTracing)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewArtifactService() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewArtifactService() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNodeArtifactService_CreateNodes_Case5(t *testing.T) {
+	type fields struct {
+		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
+		invClient                                *invclient.OnboardingInventoryClient
+	}
+	type args struct {
+		ctx context.Context
+		req *pb.NodeRequest
+	}
+	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+	hwdatas := []*pb.HwData{hwdata}
+	payload := pb.NodeData{Hwdata: hwdatas}
+	payloads := []*pb.NodeData{&payload}
+	mockRequest := &pb.NodeRequest{
+		Payload: payloads,
+	}
+	mockResource2 := &inv_v1.Resource{}
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
+	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
+		Resource: mockResource2,
+	}, status.Error(codes.NotFound, "Node not found"))
+	mockInvClient1.On("Create", mock.Anything, mock.Anything).Return(&inv_v1.CreateResourceResponse{
+		ResourceId: "host-b8be78c0",
+	}, nil).Once()
+	mockInvClient1.On("Create", mock.Anything, mock.Anything).Return(&inv_v1.CreateResourceResponse{
+		ResourceId: "host-b8be78c0",
+	}, errors.New("err")).Once()
+	mockResources := &inv_v1.ListResourcesResponse{
+		// Resources: nil,
+	}
+	mockInvClient1.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources,
+		status.Error(codes.NotFound, "Node not found"))
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *pb.NodeResponse
+		wantErr bool
+	}{
+		{
+			name:   "Positive",
+			fields: fields{invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient1}},
+			args: args{
+				ctx: context.TODO(),
+				req: mockRequest,
+			},
+			want:    nil,
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &NodeArtifactService{
+				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+				invClient:                                tt.fields.invClient,
+			}
+			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NodeArtifactService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NodeArtifactService.CreateNodes() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNodeArtifactService_UpdateNodes_Case7(t *testing.T) {
+	type fields struct {
+		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
+		invClient                                *invclient.OnboardingInventoryClient
+	}
+	type args struct {
+		ctx context.Context
+		req *pb.NodeRequest
+	}
+	hostNic := &computev1.HostnicResource{ResourceId: "hostnic-084d9b08", BmcInterface: true}
+	hostNics := []*computev1.HostnicResource{hostNic}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
+	host := &computev1.HostResource{
+		ResourceId: "host-084d9b08",
+		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+		HostNics:   hostNics,
+	}
+	mockResource := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: host,
+		},
+	}
+	mockResources := &inv_v1.ListResourcesResponse{
+		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource}},
+	}
+	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil).Once()
+	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
+		Resource: mockResource,
+	}, nil).Once()
+	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil).Once()
+	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err")).Once()
+	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+	hwdatas := []*pb.HwData{hwdata}
+	payload := pb.NodeData{Hwdata: hwdatas}
+	payloads := []*pb.NodeData{&payload}
+	mockRequest := &pb.NodeRequest{
+		Payload: payloads,
+	}
+
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *pb.NodeResponse
+		wantErr bool
+	}{
+		{
+			name: "Test case 1",
+			fields: fields{
+				invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient},
+			},
+			args: args{
+				ctx: context.Background(),
+				req: mockRequest,
+			},
+			want:    nil,
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &NodeArtifactService{
+				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+				invClient:                                tt.fields.invClient,
+			}
+			got, err := s.UpdateNodes(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NodeArtifactService.UpdateNodes() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NodeArtifactService.UpdateNodes() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNodeArtifactService_startZeroTouch_Case1(t *testing.T) {
+	type fields struct {
+		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
+		invClient                                *invclient.OnboardingInventoryClient
+		invClientAPI                             *invclient.OnboardingInventoryClient
+	}
+	type args struct {
+		ctx       context.Context
+		hostResID string
+	}
+	mockHost := &computev1.HostResource{
+		ResourceId: "host-084d9b08",
+	}
+	mockResource := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: mockHost,
+		},
+	}
+	mockResource1 := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Provider{
+			Provider: &providerv1.ProviderResource{
+				Name: "fm_onboarding",
+			},
+		},
+	}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
+	mockResources1 := &inv_v1.ListResourcesResponse{
+		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource1}},
+	}
+	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{Resource: mockResource}, nil).Once()
+	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources1, nil).Once()
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			fields: fields{
+				invClient: &invclient.OnboardingInventoryClient{
+					Client: mockInvClient,
+				},
+				invClientAPI: &invclient.OnboardingInventoryClient{
+					Client: &onboarding_mocks.MockInventoryClient{},
+				},
+			},
+			args: args{
+				ctx:       context.Background(),
+				hostResID: "host-084d9b08",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &NodeArtifactService{
+				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+				invClient:                                tt.fields.invClient,
+				invClientAPI:                             tt.fields.invClientAPI,
+			}
+			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostResID); (err != nil) != tt.wantErr {
+				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestNodeArtifactService_startZeroTouch_Case2(t *testing.T) {
+	type fields struct {
+		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
+		invClient                                *invclient.OnboardingInventoryClient
+		invClientAPI                             *invclient.OnboardingInventoryClient
+	}
+	type args struct {
+		ctx       context.Context
+		hostResID string
+	}
+	mockHost := &computev1.HostResource{
+		ResourceId: "host-084d9b08",
+	}
+	mockResource := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: mockHost,
+		},
+	}
+	mockResource1 := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Provider{
+			Provider: &providerv1.ProviderResource{
+				Config: "config",
+				Name:   "fm_onboarding",
+			},
+		},
+	}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
+	mockResources1 := &inv_v1.ListResourcesResponse{
+		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource1}},
+	}
+	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{Resource: mockResource}, nil).Once()
+	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources1, nil).Once()
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			fields: fields{
+				invClient: &invclient.OnboardingInventoryClient{
+					Client: mockInvClient,
+				},
+				invClientAPI: &invclient.OnboardingInventoryClient{
+					Client: &onboarding_mocks.MockInventoryClient{},
+				},
+			},
+			args: args{
+				ctx:       context.Background(),
+				hostResID: "host-084d9b08",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &NodeArtifactService{
+				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+				invClient:                                tt.fields.invClient,
+				invClientAPI:                             tt.fields.invClientAPI,
+			}
+			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostResID); (err != nil) != tt.wantErr {
+				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestNodeArtifactService_startZeroTouch_Case3(t *testing.T) {
+	type fields struct {
+		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
+		invClient                                *invclient.OnboardingInventoryClient
+		invClientAPI                             *invclient.OnboardingInventoryClient
+	}
+	type args struct {
+		ctx       context.Context
+		hostResID string
+	}
+	mockHost := &computev1.HostResource{
+		ResourceId: "host-084d9b08",
+	}
+	mockResource := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: mockHost,
+		},
+	}
+	mockResource1 := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Provider{
+			Provider: &providerv1.ProviderResource{
+				Config: "{\"defaultOs\":\"linux\",\"autoProvision\":true}",
+				Name:   "fm_onboarding",
+			},
+		},
+	}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
+	mockResources1 := &inv_v1.ListResourcesResponse{
+		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource1}},
+	}
+	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{Resource: mockResource}, nil).Once()
+	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources1, nil).Once()
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
+	mockInvClient1.On("Create", mock.Anything, mock.Anything).Return(&inv_v1.CreateResourceResponse{}, nil).Once()
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			fields: fields{
+				invClient: &invclient.OnboardingInventoryClient{
+					Client: mockInvClient,
+				},
+				invClientAPI: &invclient.OnboardingInventoryClient{
+					Client: mockInvClient1,
+				},
+			},
+			args: args{
+				ctx:       context.Background(),
+				hostResID: "host-084d9b08",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &NodeArtifactService{
+				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+				invClient:                                tt.fields.invClient,
+				invClientAPI:                             tt.fields.invClientAPI,
+			}
+			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostResID); (err != nil) != tt.wantErr {
+				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestNodeArtifactService_startZeroTouch_Case4(t *testing.T) {
+	type fields struct {
+		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
+		invClient                                *invclient.OnboardingInventoryClient
+		invClientAPI                             *invclient.OnboardingInventoryClient
+	}
+	type args struct {
+		ctx       context.Context
+		hostResID string
+	}
+	mockHost := &computev1.HostResource{
+		ResourceId: "host-084d9b08",
+	}
+	mockResource := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: mockHost,
+		},
+	}
+	mockResource1 := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Provider{
+			Provider: &providerv1.ProviderResource{
+				Config: "{\"defaultOs\":\"linux\",\"autoProvision\":true}",
+				Name:   "fm_onboarding",
+			},
+		},
+	}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
+	mockResources1 := &inv_v1.ListResourcesResponse{
+		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource1}},
+	}
+	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{Resource: mockResource}, nil).Once()
+	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources1, nil).Once()
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
+	mockInvClient1.On("Create", mock.Anything, mock.Anything).Return(&inv_v1.CreateResourceResponse{}, errors.New("err")).Once()
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			fields: fields{
+				invClient: &invclient.OnboardingInventoryClient{
+					Client: mockInvClient,
+				},
+				invClientAPI: &invclient.OnboardingInventoryClient{
+					Client: mockInvClient1,
+				},
+			},
+			args: args{
+				ctx:       context.Background(),
+				hostResID: "host-084d9b08",
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding"
+	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
@@ -562,3 +562,96 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 		})
 	}
 }
+
+func TestInstanceReconciler_reconcileInstance(t *testing.T) {
+	type fields struct {
+		invClient *invclient.OnboardingInventoryClient
+	}
+	type args struct {
+		ctx      context.Context
+		request  rec_v2.Request[ResourceID]
+		instance *computev1.InstanceResource
+	}
+	mockInvClient := &onboarding.MockInventoryClient{}
+	mockResource := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: &computev1.HostResource{
+				ResourceId: "host-084d9b07",
+				Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+				HostNics: []*computev1.HostnicResource{
+					{
+						ResourceId:   "hostnic-084d9b08",
+						BmcInterface: true,
+					},
+				},
+				BmcIp: "00.00.00.00",
+			},
+		},
+	}
+	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
+		Resource: mockResource,
+	}, errors.New("err")).Once()
+	host := &computev1.HostResource{
+		ResourceId: "host-084d9b08",
+		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+	}
+	mockResource2 := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: host,
+		},
+	}
+	mockResources := &inv_v1.ListResourcesResponse{
+		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
+	}
+	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil).Once()
+	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   rec_v2.Directive[ResourceID]
+	}{
+		{
+			name: "Test Case",
+			fields: fields{
+				invClient: &invclient.OnboardingInventoryClient{
+					Client: mockInvClient,
+				},
+			},
+			args: args{
+				ctx:     context.Background(),
+				request: rec_v2.Request[ResourceID]{},
+				instance: &computev1.InstanceResource{
+					DesiredState: computev1.InstanceState_INSTANCE_STATE_RUNNING,
+					Host: &computev1.HostResource{
+						ResourceId:       "host-084d9b08",
+						LegacyHostStatus: computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
+						HostNics: []*computev1.HostnicResource{
+							{
+								ResourceId:   "hostnic-084d9b08",
+								BmcInterface: true,
+							},
+						},
+						BmcIp: "00.00.00.00",
+					},
+
+					Os: &v16.OperatingSystemResource{
+						RepoUrl: "osUrl.raw.gz;overlayUrl",
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ir := &InstanceReconciler{
+				invClient: tt.fields.invClient,
+			}
+			if got := ir.reconcileInstance(tt.args.ctx, tt.args.request, tt.args.instance); reflect.DeepEqual(got, tt.want) {
+				t.Errorf("InstanceReconciler.reconcileInstance() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+

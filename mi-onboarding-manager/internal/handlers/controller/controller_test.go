@@ -17,7 +17,7 @@ import (
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/controller/reconcilers"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding"
+	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
 	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
@@ -683,3 +683,88 @@ func TestOnboardingController_filterEvent(t *testing.T) {
 		})
 	}
 }
+
+func TestOnboardingController_filterEvent_Case(t *testing.T) {
+	type fields struct {
+		filters map[inv_v1.ResourceKind]Filter
+	}
+	type args struct {
+		event *inv_v1.SubscribeEventsResponse
+	}
+	mockEventValid := &inv_v1.SubscribeEventsResponse{
+		ClientUuid: "valid_resource_id",
+		EventKind:  inv_v1.SubscribeEventsResponse_EVENT_KIND_CREATED,
+	}
+	mockEventInvalid := &inv_v1.SubscribeEventsResponse{
+		ResourceId: "host-084d9b08",
+		EventKind:  inv_v1.SubscribeEventsResponse_EVENT_KIND_CREATED,
+	}
+	mockEventInvalids := &inv_v1.SubscribeEventsResponse{
+		ResourceId: "inst-084d9b08",
+		EventKind:  inv_v1.SubscribeEventsResponse_EVENT_KIND_CREATED,
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   bool
+	}{
+		{
+			name: "TestCase1",
+			fields: fields{
+				filters: map[inv_v1.ResourceKind]Filter{
+					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(event *inv_v1.SubscribeEventsResponse) bool {
+						return true
+					},
+				},
+			},
+			args: args{
+				event: mockEventValid,
+			},
+			want: false,
+		},
+		{
+			name: "TestCase2",
+			fields: fields{
+				filters: map[inv_v1.ResourceKind]Filter{
+					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(event *inv_v1.SubscribeEventsResponse) bool {
+						return false
+					},
+				},
+			},
+			args: args{
+				event: mockEventInvalid,
+			},
+			want: true,
+		},
+		{
+			name: "TestCase4",
+			fields: fields{
+				filters: map[inv_v1.ResourceKind]Filter{
+					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(event *inv_v1.SubscribeEventsResponse) bool {
+						return false
+					},
+				},
+			},
+			args: args{
+				event: mockEventInvalids,
+			},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			obc := &OnboardingController{
+				filters: tt.fields.filters,
+			}
+			if got := obc.filterEvent(tt.args.event); got != tt.want {
+				t.Errorf("OnboardingController.filterEvent() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+	defer func ()  {
+		os.Remove("internal/handlers/controller/__debug_bin2723494166")	
+	}()
+}
+
