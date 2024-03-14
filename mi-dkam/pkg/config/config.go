@@ -21,6 +21,6 @@ const (
 	Artifact        = "one-intel-edge/edgenode/en/manifest"
 	ImageUrl        = "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
 	ImageFileName   = "jammy-server-cloudimg-amd64.raw.gz"
-	RSProxy         = "http://rs-proxy-files.rs-proxy.svc.cluster.local:8081/publish/"
+	RSProxy         = "http://rs-proxy.rs-proxy.svc.cluster.local:8081/v2/one-intel-edge/edge-node/file/provisioning-hook-os/"
 	RSProxyManifest = "http://rs-proxy.rs-proxy.svc.cluster.local:8081/v2/one-intel-edge/edge-node/en/"
 )

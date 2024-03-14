@@ -20,7 +20,8 @@ BIOS_CN=GA
 O=INTEL
 OU=NEX
 C=IN
-
+RSA_KEY_SIZE=4096
+HASH_SIZE=512
 
 generate_bios_certs() {
 	echo "====== Generating BIOS Certificate ======="
@@ -34,21 +35,22 @@ generate_bios_certs() {
 		GUID=$(uuidgen)
 		echo $GUID
 
-		openssl req -new -x509 -newkey rsa:2048 -keyout pk.key -out pk.crt -days 3650 -subj "/CN=Secure Boot PK/" -nodes -sha256
-		openssl req -new -x509 -newkey rsa:2048 -keyout kek.key -out kek.crt -days 3650 -subj "/CN=Secure Boot KEK/" -nodes -sha256
-		openssl req -new -x509 -newkey rsa:2048 -keyout db.key -out db.crt -days 3650 -subj "/CN=Secure Boot DB/" -nodes -sha256
+		[ -f $SB_KEYS_DIR/pk.crt ]    || openssl req -newkey rsa:$RSA_KEY_SIZE -nodes -keyout pk.key -new -x509 -sha$HASH_SIZE -days 3650 -subj "/CN=Secure Boot PK/" -out pk.crt
+		[ -f $SB_KEYS_DIR/pk.der ]    || openssl x509 -outform DER -in pk.crt -out pk.der
+		[ -f $SB_KEYS_DIR/pk.esl ]    || cert-to-efi-sig-list -g $GUID pk.crt pk.esl
+		[ -f $SB_KEYS_DIR/pk.auth ]   || sign-efi-sig-list -g $GUID -k pk.key -c pk.crt pk pk.esl pk.auth
+		[ -f $SB_KEYS_DIR/nopk.auth ] || sign-efi-sig-list -g $GUID -c pk.crt -k pk.key pk /dev/null nopk.auth
 
-		cert-to-efi-sig-list -g $GUID pk.crt pk.esl
-		cert-to-efi-sig-list -g $GUID kek.crt kek.esl
-		cert-to-efi-sig-list -g $GUID db.crt db.esl
+		[ -f $SB_KEYS_DIR/kek.crt ] || openssl req -newkey rsa:$RSA_KEY_SIZE -nodes -keyout kek.key -new -x509 -sha$HASH_SIZE -days 3650 -subj "/CN=Secure Boot KEK/" -out kek.crt
+		[ -f $SB_KEYS_DIR/kek.der ] || openssl x509 -outform DER -in kek.crt -out kek.der
+		[ -f $SB_KEYS_DIR/kek.esl ] || cert-to-efi-sig-list -g $GUID kek.crt kek.esl
+		[ -f $SB_KEYS_DIR/kek.auth ] || sign-efi-sig-list -g $GUID -k pk.key -c pk.crt kek kek.esl kek.auth
 
-		sign-efi-sig-list -g $GUID -k pk.key -c pk.crt PK pk.esl pk.auth
-		sign-efi-sig-list -g $GUID -k pk.key -c pk.crt kek kek.esl kek.auth
-		sign-efi-sig-list -g $GUID -k kek.key -c kek.crt db db.esl db.auth
+		[ -f $SB_KEYS_DIR/db.crt ] || openssl req -newkey rsa:$RSA_KEY_SIZE -nodes -keyout db.key -new -x509 -sha$HASH_SIZE -days 3650 -subj "/CN=Secure Boot DB/" -out db.crt
+		[ -f $SB_KEYS_DIR/db.der ] || openssl x509 -outform DER -in db.crt -out db.der
+		[ -f $SB_KEYS_DIR/db.esl ] || cert-to-efi-sig-list -g $GUID db.crt db.esl
+		[ -f $SB_KEYS_DIR/db.auth ] || sign-efi-sig-list -g $GUID -k kek.key -c kek.crt db db.esl db.auth
 
-		openssl x509 -in pk.crt -out pk.der -outform DER
-		openssl x509 -in kek.crt -out kek.der -outform DER
-		openssl x509 -in db.crt -out db.der -outform DER
 
 		echo "======== Save db.der file to enroll inside UEFI BIOS Secure Boot Settings ========="
 
