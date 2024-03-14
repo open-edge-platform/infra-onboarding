@@ -18,6 +18,11 @@ const (
 	maxDelay = 30 * time.Second
 )
 
+var (
+	retryMinDelay = minDelay
+	retryMaxDelay = maxDelay
+)
+
 type ResourceID string
 
 func (id ResourceID) String() string {
@@ -49,7 +54,7 @@ func HandleProvisioningError(err error, request rec_v2.Request[ResourceID]) rec_
 	if inv_errors.IsOperationInProgress(err) {
 		// in progress, schedule next reconciliation cycle
 		// TODO: it should be Requeue when we remove periodic reconciliation in future
-		return request.Retry(err).With(rec_v2.ExponentialBackoff(minDelay, maxDelay))
+		return request.Retry(err).With(rec_v2.ExponentialBackoff(retryMinDelay, retryMaxDelay))
 	}
 
 	if grpc_status.Convert(err).Code() == codes.Aborted {
@@ -58,7 +63,7 @@ func HandleProvisioningError(err error, request rec_v2.Request[ResourceID]) rec_
 	}
 
 	if err != nil {
-		return request.Retry(err).With(rec_v2.ExponentialBackoff(minDelay, maxDelay))
+		return request.Retry(err).With(rec_v2.ExponentialBackoff(retryMinDelay, retryMaxDelay))
 	}
 
 	return nil
