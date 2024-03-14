@@ -8,7 +8,6 @@ touch $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 
 CLIENT_ID=$(cat /etc/ensp/node/client-credentials/client_id)
 CLIENT_SECRET=$(cat /etc/ensp/node/client-credentials/client_secret)
-DEBIAN_LOCATION=${DEBIAN_LOCATION:-/etc/ensp/node}
 
 PROVISIONING_URL=${PROVISIONING_URL:-"localhost"}
 ACCESS_TOKEN_URL=__KEYCLOAK_URL__
@@ -18,21 +17,18 @@ IMG_REGISTRY_URL=__IMG_REGISTRY_URL__
 APT_SOURCE_PROXY_PORT=__ORCH_APT_PORT__
 IMG_REGISTRY_PROXY_PORT=__ORCH_IMG_PORT__
 
-export REGISTRY_URL=__REGISTRY_URL__
-export ORCH_C_URL=__ORCH_CLUSTER__
-export ORCH_I_URL=__ORCH_INFRA__
-export ORCH_PLATFORM_OBSERVABILITY_HOST=__ORCH_PLATFORM_OBS_HOST__
-export ORCH_PLATFORM_OBSERVABILITY_PORT=__ORCH_PLATFORM_OBS_PORT__
-# export PROVISIONING_URL=192.168.1.11:8080
-# export PROVISIONING_APT_MIRROR_URL=192.168.1.11:443
-export OBSERVABILITY_METRICS_HOST=__ORCH_PLATFORM_OBS_METRICS_HOST__
-export OBSERVABILITY_METRICS_PORT=__ORCH_PLATFORM_OBS_METRICS_PORT__
-export MAINTENANCE_MANAGER_URL=__ORCH_UPDATE__
-export TELEMETRY_MANAGER_URL=__ORCH_TELEMETRY_HOST__:__ORCH_TELEMETRY_PORT__
-export RELEASE_SERVER=__FILE_SERVER__
-export VAULT_URL=__ORCH_VAULT__
-export PKI_PATH=__ORCH_PKI_PATH__
-export PKI_ROLE=__ORCH_PKI_ROLE__
+REGISTRY_URL=__REGISTRY_URL__
+ORCH_C_URL=__ORCH_CLUSTER__
+ORCH_I_URL=__ORCH_INFRA__
+ORCH_PLATFORM_OBSERVABILITY_HOST=__ORCH_PLATFORM_OBS_HOST__
+ORCH_PLATFORM_OBSERVABILITY_PORT=__ORCH_PLATFORM_OBS_PORT__
+OBSERVABILITY_METRICS_HOST=__ORCH_PLATFORM_OBS_METRICS_HOST__
+OBSERVABILITY_METRICS_PORT=__ORCH_PLATFORM_OBS_METRICS_PORT__
+MAINTENANCE_MANAGER_URL=__ORCH_UPDATE__
+TELEMETRY_MANAGER_URL=__ORCH_TELEMETRY_HOST__:__ORCH_TELEMETRY_PORT__
+RELEASE_SERVER=__FILE_SERVER__
+
+CA_CERT="__CA_CERT__"
 
 # 1. Install dependencies
 install_dependencies() {
@@ -216,14 +212,6 @@ updateDockerClientProxy() {
     dockerDir=${USER_DOCKER_CONFIG%/*}
     mkdir -p "$dockerDir"
 
-    sudo ls ${ROOT_DOCKER_CONFIG} > /dev/null
-    if [ $? -eq 0 ];then
-        root_config_proxies=$(sudo cat ${ROOT_DOCKER_CONFIG} | jo proxies="$config_default" -D -f -)
-    else
-        root_config_proxies=$(jo proxies="$config_default" -D)
-    fi
-    echo "$root_config_proxies" | jo -D -f - -p | sudo tee "$ROOT_DOCKER_CONFIG"
-
     sudo ls ${USER_DOCKER_CONFIG} > /dev/null
     if [ $? -eq 0 ];then
         user_config_proxies=$(cat ${USER_DOCKER_CONFIG} | jo proxies="$config_default" -D -f -)
@@ -269,8 +257,7 @@ install_helm() {
 # 6. Get Token
 install_cleanup() {
     echo "Agents cleanup."
-    apt-get -y purge node-agent vault
-    apt-get -y purge nginx nginx-common nginx-core
+    apt-get -y purge node-agent caddy
     apt-get -y purge cluster-agent
     apt-get -y purge hardware-discovery-agent
     apt-get -y purge ensp-ke-installer
@@ -279,56 +266,27 @@ install_cleanup() {
     apt-get purge -y platform-observability-agent
     apt-get -y purge platform-update-agent
     apt-get autoremove -y
-    rm -f /etc/ensp/node/node-agent*
     rm -rf /etc/ensp/node/tokens /etc/ensp/node/certs /etc/ensp/node/.keys
-    umount /etc/lp/node/.apt/.keys /etc/lp/node/.apt/certs
-    rm -rf /etc/lp/node
-    rm -rf /etc/ensp/node/tokens
 }
 
 # 7. Install Node Agent
 install_node_agent(){
-    apt-get install -y jq
+
     echo "get access token from orchestrator"
 
-    ## m2m crdentials cannot be used to obtain a mTLS cert for client, hence using hardcoded username/password for stop gap solution
-    #AT=$(curl -kX POST -u "$CLIENT_ID:$CLIENT_SECRET" -d "grant_type=client_credentials" https://keycloak.kind.internal/realms/master/protocol/openid-connect/token | jq -r '.access_token')
     # get JWT access token from Keycloack
-    AT=$(curl -s -X POST https://__KEYCLOAK__/realms/master/protocol/openid-connect/token \
-	-d "username=all-groups-example-user" -d "password=ChangeMeOn1stLogin!" -d "grant_type=password" \
-	-d "client_id=ledge-park-system" -d "scope=openid" | jq -r '.access_token')
+    AT=$(curl -kX POST -u "$CLIENT_ID:$CLIENT_SECRET" -d "grant_type=client_credentials" https://__KEYCLOAK__/realms/master/protocol/openid-connect/token | jq -r '.access_token')
 
-    echo $AT
-
-    #echo persist access token
-    #echo $AT | tee /etc/ensp/node/tokens/node-agent/access_token
-
-    echo obtain release service token
+    echo "obtain release service token"
     RS_AT=$(curl -k -XGET https://__RELEASE_FQDN__/token -H "Authorization: Bearer $AT")
-    echo $RS_AT
-    #echo persist release service token
-    #echo $RS_AT | tee /etc/ensp/node/tokens/release-service/access_token
-    echo "Get Vault certificates."
 
-    # Login to valut using JWT
-    export VAULT_TOKEN=$(curl -s -k -X POST https://__VAULT__/v1/auth/jwt/login \
-    --header 'Content-Type: application/json' \
-    --data '{"jwt" : "'"$AT"'"}' | jq -r .auth.client_token)
-    echo $VAULT_TOKEN
-    echo "Logged in to vault"
-
-    # Request cert & private key from Vault
-    curl -s -k --header "X-Vault-Token: ${VAULT_TOKEN}" \
-    --request POST --data '{ "common_name": "'"$(cat /sys/class/dmi/id/product_uuid)"'", "ttl": "60d" }' "https://__VAULT__/v1/pki_int_edge_node/issue/maestro" > response.json
-
-    echo "Issued a fresh cert/key pair"
-
-    # Convert Vault response to certificates
-    jq -r .data.certificate response.json > host-cert.pem
-    jq -r .data.ca_chain[0] response.json >> host-cert.pem
-    jq -r .data.ca_chain[1] response.json >> host-cert.pem
-    jq -r .data.private_key response.json > host-key.pem
-
+    echo "setup oras"
+    ORAS_VERSION="1.1.0"
+    curl -LO "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz"
+    mkdir -p oras-install/
+    tar -zxf oras_${ORAS_VERSION}_*.tar.gz -C oras-install/
+    sudo mv oras-install/oras /usr/local/bin/
+    rm -rf oras_${ORAS_VERSION}_*.tar.gz oras-install/
 
     #Below code is intended to resolve dependencies for MTLS based apt and bypass need for ESP based provisioning
     #IMPORTANT: If additional new users or groups need to be created by DKAM, they MUST be added after the users and group created below
@@ -349,24 +307,10 @@ install_node_agent(){
     id -u fluent-bit &>/dev/null || useradd fluent-bit --system -g bm-agents -G adm
     useradd -r -c "etcd user" -s /sbin/nologin -M etcd -U
 
-    echo create required dir structure to persist cert/key
-    mkdir -p /etc/lp/node/certs
-    mkdir -p /etc/lp/node/.keys
-    #mkdir -p /etc/ensp/node/tokens/node-agent
-    #mkdir -p /etc/ensp/node/tokens/release-service
-    cp ./host-cert.pem /etc/lp/node/certs
-    cp ./host-key.pem /etc/lp/node/.keys
-    chmod -R 750 /etc/lp/node
-    #chmod -R 750 /etc/ensp/node/tokens
     chmod -R 700 /etc/ensp/node/client-credentials
-    chown -R node-agent:bm-agents /etc/lp/node
     chown -R node-agent:bm-agents /etc/ensp/node
 
     echo "node-agent node-agent/onboarding.serviceURL string ${ORCH_I_URL}" | debconf-set-selections
-    echo "node-agent node-agent/vault.serviceURL string ${VAULT_URL}" | debconf-set-selections
-    echo "node-agent node-agent/vault.pkiRole string ${PKI_ROLE}" | debconf-set-selections
-    echo "node-agent node-agent/vault.pkiPath string ${PKI_PATH}" | debconf-set-selections
-    echo "node-agent node-agent/provisioning.serviceURL string ${PROVISIONING_URL}" | debconf-set-selections
     echo "node-agent node-agent/auth.accessTokenURL string ${ACCESS_TOKEN_URL}" | debconf-set-selections
     echo "node-agent node-agent/auth.rsTokenURL string ${RELEASE_TOKEN_URL}" | debconf-set-selections
     echo "node-agent node-agent/proxy.aptSourceURL string ${APT_SOURCE_URL}" | debconf-set-selections
@@ -374,29 +318,25 @@ install_node_agent(){
     echo "node-agent node-agent/proxy.imgRegistryURL string ${IMG_REGISTRY_URL}" | debconf-set-selections
     echo "node-agent node-agent/proxy.imgRegistryProxyPort string ${IMG_REGISTRY_PROXY_PORT}" | debconf-set-selections
 
-    apt-get -y install gpg
-    curl https://apt.releases.hashicorp.com/gpg | gpg --dearmor > /usr/share/keyrings/hashicorp-archive-keyring.gpg
-    echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" > /etc/apt/sources.list.d/hashicorp.list
+    apt-get -y install gpg debian-keyring debian-archive-keyring apt-transport-https curl
+    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor > /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
+
     apt-get update
 
     echo "Install node agent..."
     VERSION="node-agent-VERSION"
     echo $VERSION
-    PKGFILE="node-agent_${VERSION}_amd64.deb" 
+    PKGFILE="./node-agent_${VERSION}_amd64.deb"
 
-    echo download node agent
-    new_repo=0
-    wget --no-check-certificate --header="Authorization: Bearer $RS_AT" https://${APT_SOURCE_URL}/pool/release/n/node-agent/${PKGFILE} -P $DEBIAN_LOCATION
-    if [ $? -ne 0 ]; then
-        new_repo=1
-        wget --no-check-certificate --header="Authorization: Bearer $RS_AT" https://${APT_SOURCE_URL}/repository/pool/24.03/n/no/${PKGFILE} -P $DEBIAN_LOCATION
-    fi
+    echo "download node agent"
+    echo "${RS_AT}" | oras pull "${IMG_REGISTRY_URL}/one-intel-edge/edge-node/deb/node-agent:$VERSION" --password-stdin
 
     echo "install node agent"
-    apt-get install -y -o Dpkg::Options::="--force-confnew" $DEBIAN_LOCATION/$PKGFILE
+    apt-get install -y -o Dpkg::Options::="--force-confnew" "${PKGFILE}"
 
     echo "remove node agent debian"
-    rm -f $DEBIAN_LOCATION/$PKGFILE
+    rm -f "${PKGFILE}"
 
     echo "wait for node agent and client proxy to start"
     while true; do
@@ -409,16 +349,10 @@ install_node_agent(){
             sleep 5
         fi
     done
-    echo "install other agents below"
 
-    if [ $new_repo -eq 0 ]; then
-        curl -kfsSL "https://$APT_SOURCE_URL/ledgepark-debian-signing-key-gpg-non-prod.pem" -H "Authorization: Bearer $RS_AT" | gpg --dearmor > /usr/share/keyrings/ledgepark-release.gpg
-        echo "deb [signed-by=/usr/share/keyrings/ledgepark-release.gpg] https://localhost:$APT_SOURCE_PROXY_PORT ledgepark release" | tee /etc/apt/sources.list.d/ledgepark-release.list
-        echo "deb [signed-by=/usr/share/keyrings/ledgepark-release.gpg] https://localhost:$APT_SOURCE_PROXY_PORT ledgepark main" | tee -a /etc/apt/sources.list.d/ledgepark-release.list
-    else
-        curl -kfsSL "https://$APT_SOURCE_URL/edge-node.asc" -H "Authorization: Bearer $RS_AT" -o /etc/apt/trusted.gpg.d/edge-node.asc
-        echo "deb https://localhost:$APT_SOURCE_PROXY_PORT/repository 24.03 main" | tee /etc/apt/sources.list.d/edge-node.list
-    fi
+    echo "setup apt source"
+    curl -kfsSL "https://$APT_SOURCE_URL/edge-node.asc" -H "Authorization: Bearer $RS_AT" -o /etc/apt/trusted.gpg.d/edge-node.asc
+    echo "deb https://localhost:$APT_SOURCE_PROXY_PORT/repository 24.03 main" | tee /etc/apt/sources.list.d/edge-node.list
 
     apt-get update
 }
@@ -556,16 +490,6 @@ echo "Install Platform Update agent..."
 apt-get update
 VERSION="platform-update-agent-VERSION"
 echo $VERSION
-apt-get install -y bindfs
-mkdir -p /etc/lp/node/.apt/certs /etc/lp/node/.apt/.keys
-chown -R _apt:bm-agents /etc/lp/node/.apt
-chmod -R 100 /etc/lp/node/.apt
-
-bindfs -o nonempty --force-user=_apt --force-group=bm-agents --perms=400,u+D /etc/lp/node/certs/.apt /etc/lp/node/.apt/certs
-bindfs -o nonempty --force-user=_apt --force-group=bm-agents --perms=400,u+D /etc/lp/node/.keys/.apt /etc/lp/node/.apt/.keys
-
-echo "/etc/lp/node/certs/.apt /etc/lp/node/.apt/certs fuse.bindfs force-user=_apt,force-group=bm-agents,perms=400:u+D 0 0" >> /etc/fstab
-echo "/etc/lp/node/.keys/.apt /etc/lp/node/.apt/.keys fuse.bindfs force-user=_apt,force-group=bm-agents,perms=400:u+D 0 0" >> /etc/fstab
 
 echo "platform-update-agent platform-update-agent/bmaDebURL string ${RELEASE_SERVER}" | debconf-set-selections
 echo "platform-update-agent platform-update-agent/updateServiceURL string ${MAINTENANCE_MANAGER_URL}" | debconf-set-selections
@@ -694,7 +618,7 @@ sudo ufw logging low
 
 # 26. Install CA certificate
 install_CA_cert(){
-    curl -XGET https://__VAULT__/v1/pki_root/ca/pem -k | sudo tee /usr/local/share/ca-certificates/kind.crt && sudo update-ca-certificates
+    echo "$CA_CERT" > /usr/local/share/ca-certificates/orch-ca.crt && update-ca-certificates -f
 }
 
 # 27. Enable netIp
@@ -783,7 +707,7 @@ else
     echo "Error: $config_file does not exist."
     exit 1
 fi
-apt remove unattended-upgrades
+apt remove -y unattended-upgrades
 }
 #LVM partition 
 create_lvm_partition(){

@@ -188,8 +188,6 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 
 	zlog.MiSec().Info().Msg("File copied successfully.")
 
-	//packages := strings.Join(packageList, ",")
-
 	// Read the installer
 	content, err := os.ReadFile(scriptFileName)
 	if err != nil {
@@ -205,13 +203,8 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	orchPlatformObsMetricsPort := os.Getenv("ORCH_PLATFORM_OBS_METRICS_PORT")
 	orchTelemetryHost := os.Getenv("ORCH_TELEMETRY_HOST")
 	orchTelemetryPort := os.Getenv("ORCH_TELEMETRY_PORT")
-	orchVault := os.Getenv("ORCH_VAULT")
 	orchKeycloak := os.Getenv("ORCH_KEYCLOAK")
 	orchRelease := os.Getenv("ORCH_RELEASE")
-	orchPkiRole := os.Getenv("ORCH_PKI_ROLE")
-	orchPkiPath := os.Getenv("ORCH_PKI_PATH")
-	// azureUser := os.Getenv("USERNAME")
-	// azurePassword := os.Getenv("PASSWORD")
 	orchAptSrcPort := os.Getenv("ORCH_APT_PORT")
 	orchImgRegProxyPort := os.Getenv("ORCH_IMG_PORT")
 
@@ -221,10 +214,6 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	noProxy := os.Getenv("NO_PROXY")
 	ftpProxy := os.Getenv("FTP_PROXY")
 	sockProxy := os.Getenv("SOCKS_PROXY")
-
-	//KEYCLOAK and VAULT
-	//keycloak := os.Getenv("KEYCLOAK_URL")
-	vault := os.Getenv("VAULT_URL")
 
 	//Extra hosts
 	extra_hosts := os.Getenv("EXTRA_HOSTS")
@@ -238,6 +227,19 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	//NTP configurations
 	ntpServer := os.Getenv("NTP_SERVERS")
 
+	caexists, err := PathExists("/etc/ssl/orch-ca-cert/ca.crt")
+	if err != nil {
+		zlog.MiSec().Info().Msgf("Error checking path %v", err)
+		zlog.MiSec().Fatal().Err(err).Msgf("Error: %v", err)
+	}
+
+	var caContent []byte
+	if caexists {
+		caContent, err = os.ReadFile("/etc/ssl/orch-ca-cert/ca.crt")
+		if err != nil {
+			panic(err)
+		}
+	}
 	// Substitute relevant data in the script
 	//modifiedScript := strings.ReplaceAll(string(content), "__SUBSTITUTE_PACKAGE_COMMANDS__", packages)
 	modifiedScript := strings.ReplaceAll(string(content), "__REGISTRY_URL__", registryService)
@@ -252,13 +254,7 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PLATFORM_OBS_METRICS_PORT__", orchPlatformObsMetricsPort)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_TELEMETRY_HOST__", orchTelemetryHost)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_TELEMETRY_PORT__", orchTelemetryPort)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_VAULT__", orchVault)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PKI_ROLE__", orchPkiRole)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PKI_PATH__", orchPkiPath)
-	// modifiedScript = strings.ReplaceAll(modifiedScript, "__USERNAME__", azureUser)
-	// modifiedScript = strings.ReplaceAll(modifiedScript, "__PASSWORD__", azurePassword)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__KEYCLOAK__", strings.Split(orchKeycloak, ":")[0])
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__VAULT__", vault)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__RELEASE_FQDN__", strings.Split(orchRelease, ":")[0])
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__KEYCLOAK_URL__", orchKeycloak)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__RELEASE_TOKEN_URL__", orchRelease)
@@ -270,6 +266,7 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__PANIC_ON_OOPS__", systemConfigKernelPanicOnOops)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__MAX_USER_INSTANCE__", systemConfigFsInotifyMaxUserInstances)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__NTP_SERVERS__", ntpServer)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__CA_CERT__", string(caContent))
 	// Loop through the agentsList
 	for _, agent := range agentsList {
 		// Access the fields of each struct
@@ -279,7 +276,6 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 
 	//netplan
 	netip_enable_flag := os.Getenv("NETIP")
-	//netip_enable_flag := "dynamic"
 	// Name of the function to remove
 	functionToRemove := "enable_netipplan"
 
