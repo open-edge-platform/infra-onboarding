@@ -6,27 +6,25 @@ package reconcilers
 
 import (
 	"context"
-
 	"os"
 	"strings"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onbworkflowclient"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
-	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
-	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/tracing"
+	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
 	"google.golang.org/grpc/codes"
 	grpc_status "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onbworkflowclient"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
+	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
-
-	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
+	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/tracing"
 )
 
 const (
@@ -71,8 +69,11 @@ func (ir *InstanceReconciler) Reconcile(ctx context.Context,
 		// current_state set to ERROR by previous reconciliation cycles
 		// We don't have auto-recovery mechanisms. The previous reconciliation cycle should
 		// set providerStatusDetail to provide feedback to user.
-		// ATM I (Tomasz) believe that a user should delete via UI and re-configure host again, once the issue is fixed (e.g., wrong BIOS settings, etc.)
-		zlogInst.Warn().Msgf("Current state of Instance %s is ERROR. Reconciliation won't happen until the Instance is re-created.", instance.GetResourceId())
+		// ATM I (Tomasz) believe that a user should delete via UI and re-configure host again,
+		// once the issue is fixed (e.g., wrong BIOS settings, etc.)
+		zlogInst.Warn().Msgf(
+			"Current state of Instance %s is ERROR. Reconciliation won't happen until the Instance is re-created.",
+			instance.GetResourceId())
 		return request.Ack()
 	}
 
@@ -87,32 +88,34 @@ func (ir *InstanceReconciler) Reconcile(ctx context.Context,
 func (ir *InstanceReconciler) updateHostInstanceStatusAndCurrentState(
 	ctx context.Context,
 	oldInstance *computev1.InstanceResource,
-	newInstance *computev1.InstanceResource) {
-
+	newInstance *computev1.InstanceResource,
+) {
 	newHost := newInstance.GetHost()
-	zlogInst.Debug().Msgf("Updating Host %s status with %s, status details: %s, onboarding status: %q",
-		newHost.GetUuid(), newHost.GetLegacyHostStatus(), newHost.GetProviderStatusDetail(), newHost.GetOnboardingStatus())
+	//nolint:staticcheck // this field will be deprecated soon
+	zlogInst.Debug().Msgf("Updating Host %s status with %s, status details: %s, onboarding status: %q", newHost.GetUuid(),
+		newHost.GetLegacyHostStatus(), newHost.GetProviderStatusDetail(), newHost.GetOnboardingStatus())
 
 	if !util.IsSameHostStatus(oldInstance.GetHost(), newHost) {
 		if err := ir.invClient.SetHostStatus(
-			ctx,
-			newHost.GetResourceId(),
-			newHost.GetLegacyHostStatus(),
-			newHost.GetProviderStatusDetail(),
+			ctx, newHost.GetResourceId(),
+			//nolint:staticcheck // this field will be deprecated soon
+			newHost.GetLegacyHostStatus(), newHost.GetProviderStatusDetail(),
 			inv_status.New(newHost.GetOnboardingStatus(), newHost.GetOnboardingStatusIndicator())); err != nil {
 			zlogInst.MiSec().MiErr(err).Msgf("Failed to update host %s status", newHost.GetResourceId())
 		}
 	}
 
 	zlogInst.Debug().Msgf("Updating Instance %s with state %s and status %s, provisioning status: %q",
-		newInstance.GetResourceId(), newInstance.GetCurrentState(), newInstance.GetStatus(), newInstance.GetProvisioningStatus())
+		newInstance.GetResourceId(), newInstance.GetCurrentState(),
+		newInstance.GetStatus(), //nolint:staticcheck // this field will be deprecated soon
+		newInstance.GetProvisioningStatus())
 
 	if !util.IsSameInstanceStatusAndState(oldInstance, newInstance) {
 		if err := ir.invClient.SetInstanceStatusAndCurrentState(
 			ctx,
 			newInstance.GetResourceId(),
 			newInstance.GetCurrentState(),
-			newInstance.GetStatus(),
+			newInstance.GetStatus(), //nolint:staticcheck // this field will be deprecated soon
 			inv_status.New(newInstance.GetProvisioningStatus(), newInstance.GetProvisioningStatusIndicator()),
 		); err != nil {
 			zlogInst.MiSec().MiErr(err).Msgf("Failed to update instance %s status", newInstance.GetResourceId())
@@ -129,7 +132,8 @@ func (ir *InstanceReconciler) reconcileInstance(
 	host := instance.GetHost()
 
 	zlogInst.Info().Msgf("Reconciling Instance with ID %s, with Current state: %v, Desired state: %v, HostState: %s",
-		instance.GetResourceId(), instance.GetCurrentState(), instance.GetDesiredState(), host.GetLegacyHostStatus())
+		instance.GetResourceId(), instance.GetCurrentState(), instance.GetDesiredState(),
+		host.GetLegacyHostStatus()) //nolint:staticcheck // this field will be deprecated soon
 
 	if instance.GetDesiredState() == computev1.InstanceState_INSTANCE_STATE_RUNNING {
 		err := ir.tryProvisionInstance(ctx, instance)
@@ -217,6 +221,7 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource, artifactI
 }
 
 func convertInstanceToArtifactInfo(instance *computev1.InstanceResource) (utils.ArtifactData, error) {
+	const checkInvURLLength = 2
 	if instance.GetOs() == nil {
 		// this should not happen but just in case
 		return utils.ArtifactData{}, inv_errors.Errorfc(codes.InvalidArgument,
@@ -241,11 +246,11 @@ func convertInstanceToArtifactInfo(instance *computev1.InstanceResource) (utils.
 	if len(invURL) > 1 {
 		overlayURL = invURL[1]
 	}
-	
-	if len(invURL) > 2 {
-	        tinkerVersion = invURL[2]
+
+	if len(invURL) > checkInvURLLength {
+		tinkerVersion = invURL[2]
 	}
-	
+
 	sutIP := instance.GetHost().GetBmcIp()
 	osURL = utils.ReplaceHostIP(osURL, sutIP)
 	overlayURL = utils.ReplaceHostIP(overlayURL, sutIP)
@@ -264,6 +269,7 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 	}
 
 	deviceInfo := convertInstanceToDeviceInfo(instance, artifactInfo)
+	//nolint:errcheck // this function currently not returning any error to handle
 	oldInstance := proto.Clone(instance).(*computev1.InstanceResource)
 
 	zlogInst.Debug().Msgf("Trying to provision Instance %s with OS %s",
@@ -280,18 +286,18 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 	}()
 
 	// 1. Check status of DI workflow and initiate it if not running
-	if err = onbworkflowclient.CheckStatusOrRunDIWorkflow(ctx, deviceInfo, instance); err != nil {
-		return err
+	if diErr := onbworkflowclient.CheckStatusOrRunDIWorkflow(ctx, deviceInfo, instance); diErr != nil {
+		return diErr
 	}
 
 	// 2. Check status of FDO, we won't progress to next steps until TO2 is completed
-	if err = onbworkflowclient.CheckTO2StatusOrRunFDOActions(ctx, deviceInfo, instance); err != nil {
-		return err
+	if fdoErr := onbworkflowclient.CheckTO2StatusOrRunFDOActions(ctx, deviceInfo, instance); fdoErr != nil {
+		return fdoErr
 	}
 
 	// 3. Check status of Prod Workflow and initiate it if not running
-	if err = onbworkflowclient.CheckStatusOrRunProdWorkflow(ctx, deviceInfo, instance); err != nil {
-		return err
+	if prodErr := onbworkflowclient.CheckStatusOrRunProdWorkflow(ctx, deviceInfo, instance); prodErr != nil {
+		return prodErr
 	}
 
 	util.PopulateInstanceStatusAndCurrentState(instance,
@@ -318,9 +324,5 @@ func (ir *InstanceReconciler) cleanupProvisioningResources(
 		}
 	}
 
-	if err := onbworkflowclient.DeleteTinkHardwareForHostIfExist(ctx, instance.GetHost().GetUuid()); err != nil {
-		return err
-	}
-
-	return nil
+	return onbworkflowclient.DeleteTinkHardwareForHostIfExist(ctx, instance.GetHost().GetUuid())
 }

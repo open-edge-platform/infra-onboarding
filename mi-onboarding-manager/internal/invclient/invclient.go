@@ -11,6 +11,10 @@ import (
 	"time"
 
 	uuid_lib "github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
+
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	network_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/network/v1"
@@ -22,9 +26,6 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 const (
@@ -275,7 +276,8 @@ func (c *OnboardingInventoryClient) GetHostResourceByResourceID(ctx context.Cont
 	return host, nil
 }
 
-func (c *OnboardingInventoryClient) GetHostBmcNic(ctx context.Context, host *computev1.HostResource) (*computev1.HostnicResource, error) {
+func (c *OnboardingInventoryClient) GetHostBmcNic(ctx context.Context, host *computev1.HostResource,
+) (*computev1.HostnicResource, error) {
 	filter := &inv_v1.ResourceFilter{
 		Resource: &inv_v1.Resource{
 			Resource: &inv_v1.Resource_Hostnic{},

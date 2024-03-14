@@ -6,7 +6,7 @@ package auth
 import "context"
 
 // AuthService implements the authorization service to create or revoke EN credentials.
-type AuthService interface {
+type AuthService interface { //nolint:revive // Need this interface name for more readable.
 	// CreateCredentialsWithUUID creates EN credentials based on UUID.
 	// The credentials can be further used by edge node agents.
 	CreateCredentialsWithUUID(ctx context.Context, uuid string) (string, string, error)

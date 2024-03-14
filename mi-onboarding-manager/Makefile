@@ -103,8 +103,9 @@ buf-gen: ## compile protoc files into code
 go-dependency: ## install go dependency tooling
 	$(GOCMD) install github.com/bufbuild/buf/cmd/buf@v${BUFVERSION_REQ}
 
-go-lint: ## run go lint
-	golangci-lint linters
+lint: ## lint code
+	golangci-lint --version
+	golangci-lint run --config .golangci.yml
 
 db-start: ## Start the local postgres database. See: db-stop
 	if [ -z "`docker ps -aq -f name=^inv-db`" ]; then \
@@ -151,12 +152,8 @@ clean:
 	rm -rf api/proto/
 	rm -rf ${APIPKG_DIR}/*.go
 
-help:	
-	@printf "%-20s %s\n" "Target" "Description"
-	@printf "%-20s %s\n" "------" "-----------"
-	@make -pqR : 2>/dev/null \
-        | awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' \
-        | sort \
-        | egrep -v -e '^[^[:alnum:]]' -e '^$@$$' \
-        | xargs -I _ sh -c 'printf "%-20s " _; make _ -nB | (grep -i "^# Help:" || echo "") | tail -1 | sed "s/^# Help: //g"'
-	
+help: ## Print help for each target
+	@echo inventory make targets
+	@echo
+	@grep '^[[:alnum:]_-]*:.* ##' $(MAKEFILE_LIST) \
+    | sort | awk 'BEGIN {FS=":.* ## "}; {printf "%-25s %s\n", $$1, $$2};'

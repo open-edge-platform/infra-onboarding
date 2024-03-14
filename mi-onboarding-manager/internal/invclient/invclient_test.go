@@ -13,6 +13,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
+
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
@@ -23,13 +31,6 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client/cache"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 type MockInventoryClient struct {
@@ -1571,8 +1572,8 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 
 			// only get/delete if valid test and hasn't failed otherwise may segfault
 			if !t.Failed() && tt.valid {
-				hostInv, err1 := OnboardingTestClient.GetHostResourceByUUID(ctx, host.Uuid)
-				require.NoError(t, err1)
+				hostInv, hostErr := OnboardingTestClient.GetHostResourceByUUID(ctx, host.Uuid)
+				require.NoError(t, hostErr)
 				require.NotNil(t, hostInv)
 
 				assert.Equal(t, tt.args.hostCurrentState, hostInv.GetCurrentState())

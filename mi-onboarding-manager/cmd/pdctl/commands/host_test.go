@@ -14,12 +14,14 @@ import (
 	"sync"
 	"testing"
 
-	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
-	pbinv "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
-	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
+	onboarding_mocks "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
+	pbinv "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
+	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
 )
 
 func TestHostResourceCmd(t *testing.T) {
@@ -85,8 +87,12 @@ func TestHostResourceCmd_Case(t *testing.T) {
 	err := RootCmd.Execute()
 	assert.Error(t, err)
 }
+
 func TestHostResourceCmd_Case1(t *testing.T) {
-	wd, _ := os.Getwd()
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Failed to get working dir: %v", err)
+	}
 	wd, _ = strings.CutSuffix(wd, "/commands")
 	wds := wd + "/yaml/artifact_sample.yaml"
 	actual := new(bytes.Buffer)
@@ -94,9 +100,10 @@ func TestHostResourceCmd_Case1(t *testing.T) {
 	RootCmd.SetOut(actual)
 	RootCmd.SetErr(actual)
 	RootCmd.SetArgs([]string{"add", "--addr=localhost:50751", "--insecure", "--input_file=" + wds})
-	err := RootCmd.Execute()
+	err = RootCmd.Execute()
 	assert.Error(t, err)
 }
+
 func TestHostResourceCmd_Update_Case1(t *testing.T) {
 	actual := new(bytes.Buffer)
 	RootCmd := HostResourceCmd()
@@ -106,13 +113,14 @@ func TestHostResourceCmd_Update_Case1(t *testing.T) {
 	err := RootCmd.Execute()
 	assert.Error(t, err)
 }
+
 func TestNewInventoryClient(t *testing.T) {
 	type args struct {
 		ctx  context.Context
 		wg   *sync.WaitGroup
 		addr string
 	}
-	mockClient := &onboarding.MockInventoryClient{}
+	mockClient := &onboarding_mocks.MockInventoryClient{}
 	tests := []struct {
 		name    string
 		args    args
@@ -153,22 +161,26 @@ type mockNodeArtifactServiceNBServer struct {
 	mock.Mock
 }
 
-func (m *mockNodeArtifactServiceNBServer) CreateArtifacts(ctx context.Context, req *pbinv.ArtifactRequest) (*pbinv.ArtifactResponse, error) {
+func (m *mockNodeArtifactServiceNBServer) CreateArtifacts(ctx context.Context, req *pbinv.ArtifactRequest,
+) (*pbinv.ArtifactResponse, error) {
 	args := m.Called(ctx, req)
 	return args.Get(0).(*pbinv.ArtifactResponse), args.Error(1)
 }
 
-func (m *mockNodeArtifactServiceNBServer) GetArtifacts(ctx context.Context, req *pbinv.ArtifactRequest) (*pbinv.ArtifactResponse, error) {
+func (m *mockNodeArtifactServiceNBServer) GetArtifacts(ctx context.Context, req *pbinv.ArtifactRequest,
+) (*pbinv.ArtifactResponse, error) {
 	args := m.Called(ctx, req)
 	return args.Get(0).(*pbinv.ArtifactResponse), args.Error(1)
 }
 
-func (m *mockNodeArtifactServiceNBServer) UpdateArtifactsById(ctx context.Context, req *pbinv.ArtifactRequest) (*pbinv.ArtifactResponse, error) {
+func (m *mockNodeArtifactServiceNBServer) UpdateArtifactsById(ctx context.Context, req *pbinv.ArtifactRequest,
+) (*pbinv.ArtifactResponse, error) {
 	args := m.Called(ctx, req)
 	return args.Get(0).(*pbinv.ArtifactResponse), args.Error(1)
 }
 
-func (m *mockNodeArtifactServiceNBServer) DeleteArtifacts(ctx context.Context, req *pbinv.ArtifactRequest) (*pbinv.ArtifactResponse, error) {
+func (m *mockNodeArtifactServiceNBServer) DeleteArtifacts(ctx context.Context, req *pbinv.ArtifactRequest,
+) (*pbinv.ArtifactResponse, error) {
 	args := m.Called(ctx, req)
 	return args.Get(0).(*pbinv.ArtifactResponse), args.Error(1)
 }
@@ -192,7 +204,6 @@ func (m *mockNodeArtifactServiceNBServer) DeleteNodes(ctx context.Context, req *
 	args := m.Called(ctx, req)
 	return args.Get(0).(*pbinv.NodeResponse), args.Error(1)
 }
-func (m *mockNodeArtifactServiceNBServer) mustEmbedUnimplementedNodeArtifactServiceNBServer() {}
 
 func Test_getNodes(t *testing.T) {
 	mockClient := &mockNodeArtifactServiceNBServer{}
@@ -205,11 +216,11 @@ func Test_getNodes(t *testing.T) {
 	pbinv.RegisterNodeArtifactServiceNBServer(grpcServer, mockClient)
 	go func() {
 		defer lis.Close()
-		if err := grpcServer.Serve(lis); err != nil {
-			t.Fatalf("Failed to serve: %v", err)
+		if grpcErr := grpcServer.Serve(lis); grpcErr != nil {
+			t.Fatalf("Failed to serve: %v", grpcErr)
 		}
 	}()
-	conn, err := grpc.Dial("localhost:30051", grpc.WithInsecure())
+	conn, err := grpc.Dial("localhost:30051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial server: %v", err)
 	}
@@ -262,11 +273,11 @@ func Test_updateNodes(t *testing.T) {
 	pbinv.RegisterNodeArtifactServiceNBServer(grpcServer, mockClient)
 	go func() {
 		defer lis.Close()
-		if err := grpcServer.Serve(lis); err != nil {
-			t.Fatalf("Failed to serve: %v", err)
+		if grpcErr := grpcServer.Serve(lis); grpcErr != nil {
+			t.Fatalf("Failed to serve: %v", grpcErr)
 		}
 	}()
-	conn, err := grpc.Dial("localhost:20051", grpc.WithInsecure())
+	conn, err := grpc.Dial("localhost:20051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial server: %v", err)
 	}
@@ -318,11 +329,11 @@ func Test_deleteNodes(t *testing.T) {
 	pbinv.RegisterNodeArtifactServiceNBServer(grpcServer, mockClient)
 	go func() {
 		defer lis.Close()
-		if err := grpcServer.Serve(lis); err != nil {
-			t.Fatalf("Failed to serve: %v", err)
+		if grpcErr := grpcServer.Serve(lis); grpcErr != nil {
+			t.Fatalf("Failed to serve: %v", grpcErr)
 		}
 	}()
-	conn, err := grpc.Dial("localhost:10051", grpc.WithInsecure())
+	conn, err := grpc.Dial("localhost:10051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial server: %v", err)
 	}
@@ -374,11 +385,11 @@ func Test_addNodes(t *testing.T) {
 	pbinv.RegisterNodeArtifactServiceNBServer(grpcServer, mockClient)
 	go func() {
 		defer lis.Close()
-		if err := grpcServer.Serve(lis); err != nil {
-			t.Fatalf("Failed to serve: %v", err)
+		if grpcErr := grpcServer.Serve(lis); grpcErr != nil {
+			t.Fatalf("Failed to serve: %v", grpcErr)
 		}
 	}()
-	conn, err := grpc.Dial("localhost:12051", grpc.WithInsecure())
+	conn, err := grpc.Dial("localhost:12051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial server: %v", err)
 	}

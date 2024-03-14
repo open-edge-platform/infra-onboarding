@@ -25,11 +25,13 @@ type Task struct {
 }
 
 type Action struct {
-	Name        string            `yaml:"name"`
-	Image       string            `yaml:"image"`
-	Timeout     int64             `yaml:"timeout"`
-	Command     []string          `yaml:"command,omitempty"`
-	OnTimeout   []string          `yaml:"on-timeout,omitempty"`
+	Name    string   `yaml:"name"`
+	Image   string   `yaml:"image"`
+	Timeout int64    `yaml:"timeout"`
+	Command []string `yaml:"command,omitempty"`
+	//nolint:tagliatelle // Renaming the yaml keys may effect while unmarshalling/marshaling so, used nolint.
+	OnTimeout []string `yaml:"on-timeout,omitempty"`
+	//nolint:tagliatelle // Renaming the yaml keys may effect while unmarshalling/marshaling so, used nolint.
 	OnFailure   []string          `yaml:"on-failure,omitempty"`
 	Volumes     []string          `yaml:"volumes,omitempty"`
 	Environment map[string]string `yaml:"environment,omitempty"`
@@ -53,7 +55,7 @@ func NewTemplateData(name, ip, clientyp, disk, serial, tinkerversion string) ([]
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
-		GlobalTimeout: 8000,
+		GlobalTimeout: timeOutMax8000,
 		Tasks: []Task{{
 			Name:       "os-installation-di",
 			WorkerAddr: "{{.device_1}}",
@@ -66,7 +68,7 @@ func NewTemplateData(name, ip, clientyp, disk, serial, tinkerversion string) ([]
 				{
 					Name:    ActionStoringAlpine,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/store_alpine:" + tinkerversion,
-					Timeout: 500,
+					Timeout: timeOutAvg560,
 					Environment: map[string]string{
 						"BLOCK_DEVICE": disk,
 						"PARTITION_SZ": "500MB",
@@ -75,7 +77,7 @@ func NewTemplateData(name, ip, clientyp, disk, serial, tinkerversion string) ([]
 				{
 					Name:    ActionRunFDO,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/fdoclient_action:" + tinkerversion,
-					Timeout: 400,
+					Timeout: timeOutAvg560,
 					Environment: map[string]string{
 						"DATA_PARTITION_LBL": "CREDS",
 						"FDO_RUN_TYPE":       "di",
@@ -89,7 +91,7 @@ func NewTemplateData(name, ip, clientyp, disk, serial, tinkerversion string) ([]
 				{
 					Name:    ActionReboot,
 					Image:   "public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Volumes: []string{
 						"/worker:/worker",
 					},

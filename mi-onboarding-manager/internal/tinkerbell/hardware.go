@@ -5,12 +5,14 @@ package tinkerbell
 
 import (
 	"context"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
+
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 )
 
 func NewHardware(name, ns, id, device, ip, gateway string) *tink.Hardware {
@@ -55,7 +57,7 @@ func NewHardware(name, ns, id, device, ip, gateway string) *tink.Hardware {
 							Gateway: gateway,
 							Netmask: "255.255.255.0",
 						},
-						LeaseTime:   86400,
+						LeaseTime:   leaseTime86400,
 						MAC:         id,
 						NameServers: []string{"10.248.2.1", "172.30.90.4", "10.223.45.36"},
 						UEFI:        true,
@@ -68,8 +70,10 @@ func NewHardware(name, ns, id, device, ip, gateway string) *tink.Hardware {
 	return hw
 }
 
-// TODO (LPIO-1865): We can probably optimize it. Instead of doing GET+CREATE we can try CREATE and check if resource already exists.
-func CreateHardwareIfNotExists(ctx context.Context, k8sCli client.Client, k8sNamespace string, deviceInfo utils.DeviceInfo) error {
+// TODO (LPIO-1865): We can probably optimize it.
+// Instead of doing GET+CREATE we can try CREATE and check if resource already exists.
+func CreateHardwareIfNotExists(ctx context.Context, k8sCli client.Client, k8sNamespace string, deviceInfo utils.DeviceInfo,
+) error {
 	hwInfo := NewHardware(
 		"machine-"+deviceInfo.GUID,
 		k8sNamespace,
@@ -102,7 +106,7 @@ func CreateHardwareIfNotExists(ctx context.Context, k8sCli client.Client, k8sNam
 	return nil
 }
 
-func DeleteHardwareForHostIfExist(ctx context.Context, k8sNamespace string, hostUUID string) error {
+func DeleteHardwareForHostIfExist(ctx context.Context, k8sNamespace, hostUUID string) error {
 	zlog.Info().Msgf("Deleting DI workflow resources for host %s", hostUUID)
 
 	kubeClient, err := K8sClientFactory()

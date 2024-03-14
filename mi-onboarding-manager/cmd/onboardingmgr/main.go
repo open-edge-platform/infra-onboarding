@@ -7,6 +7,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/controller"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/southbound"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
@@ -17,10 +22,6 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/oam"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/tracing"
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
 )
 
 var (
@@ -33,7 +34,7 @@ var (
 	oamServerAddress = flag.String(oam.OamServerAddress, "", oam.OamServerAddressDescription)
 	enableTracing    = flag.Bool(tracing.EnableTracing, false, tracing.EnableTracingDescription)
 	traceURL         = flag.String(tracing.TraceURL, "", tracing.TraceURLDescription)
-	// see also internal/common/flags.go for other flags
+	// see also internal/common/flags.go for other flags.
 
 	wg        = sync.WaitGroup{}
 	readyChan = make(chan bool, 1)

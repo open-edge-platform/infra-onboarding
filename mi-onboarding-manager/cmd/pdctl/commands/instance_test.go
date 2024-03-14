@@ -13,15 +13,15 @@ import (
 	"strings"
 	"testing"
 
-	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
-	pbinv "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
+	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 )
 
 func TestInstanceResourceCmd_Get(t *testing.T) {
-
 	actual := new(bytes.Buffer)
 	RootCmd := InstanceResourceCmd()
 	RootCmd.SetOut(actual)
@@ -53,7 +53,6 @@ func TestInstanceResourceCmd_Update(t *testing.T) {
 }
 
 func TestInstanceResourceCmd_Delete(t *testing.T) {
-
 	actual := new(bytes.Buffer)
 	RootCmd := InstanceResourceCmd()
 	RootCmd.SetOut(actual)
@@ -75,7 +74,10 @@ func TestInstanceResourceCmd_Create_Case(t *testing.T) {
 }
 
 func TestInstanceResourceCmd_Create_Case1(t *testing.T) {
-	wd, _ := os.Getwd()
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Failed to get working dir: %v", err)
+	}
 	wd, _ = strings.CutSuffix(wd, "/commands")
 	wds := wd + "/yaml/artifact_sample.yaml"
 	actual := new(bytes.Buffer)
@@ -83,12 +85,11 @@ func TestInstanceResourceCmd_Create_Case1(t *testing.T) {
 	RootCmd.SetOut(actual)
 	RootCmd.SetErr(actual)
 	RootCmd.SetArgs([]string{"create", "--addr=localhost:56051", "--insecure", "--input_file=" + wds})
-	err := RootCmd.Execute()
+	err = RootCmd.Execute()
 	assert.Error(t, err)
 }
 
 func TestInstanceResourceCmd_Get_Case(t *testing.T) {
-
 	actual := new(bytes.Buffer)
 	RootCmd := InstanceResourceCmd()
 	RootCmd.SetOut(actual)
@@ -130,7 +131,6 @@ func TestInstanceResourceCmd_Update_Case1(t *testing.T) {
 }
 
 func TestInstanceResourceCmd_Delete_Case(t *testing.T) {
-
 	actual := new(bytes.Buffer)
 	RootCmd := InstanceResourceCmd()
 	RootCmd.SetOut(actual)
@@ -143,20 +143,20 @@ func TestInstanceResourceCmd_Delete_Case(t *testing.T) {
 
 func Test_getArtifacts(t *testing.T) {
 	mockClient := &mockNodeArtifactServiceNBServer{}
-	mockClient.On("GetArtifacts", mock.Anything, mock.Anything).Return(&pbinv.ArtifactResponse{}, nil)
+	mockClient.On("GetArtifacts", mock.Anything, mock.Anything).Return(&pb.ArtifactResponse{}, nil)
 	lis, err := net.Listen("tcp", "localhost:13051")
 	if err != nil {
 		t.Fatalf("Failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
-	pbinv.RegisterNodeArtifactServiceNBServer(grpcServer, mockClient)
+	pb.RegisterNodeArtifactServiceNBServer(grpcServer, mockClient)
 	go func() {
 		defer lis.Close()
-		if err := grpcServer.Serve(lis); err != nil {
-			t.Fatalf("Failed to serve: %v", err)
+		if grpcErr := grpcServer.Serve(lis); grpcErr != nil {
+			t.Fatalf("Failed to serve: %v", grpcErr)
 		}
 	}()
-	conn, err := grpc.Dial("localhost:13051", grpc.WithInsecure())
+	conn, err := grpc.Dial("localhost:13051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial server: %v", err)
 	}
@@ -177,7 +177,7 @@ func Test_getArtifacts(t *testing.T) {
 			args: args{
 				ctx:      context.Background(),
 				cc:       conn,
-				artifact: &pbinv.ArtifactData{},
+				artifact: &pb.ArtifactData{},
 			},
 			want:    &artifactData{},
 			wantErr: false,
@@ -199,20 +199,20 @@ func Test_getArtifacts(t *testing.T) {
 
 func Test_createArtifacts(t *testing.T) {
 	mockClient := &mockNodeArtifactServiceNBServer{}
-	mockClient.On("CreateArtifacts", mock.Anything, mock.Anything).Return(&pbinv.ArtifactResponse{}, nil)
+	mockClient.On("CreateArtifacts", mock.Anything, mock.Anything).Return(&pb.ArtifactResponse{}, nil)
 	lis, err := net.Listen("tcp", "localhost:14051")
 	if err != nil {
 		t.Fatalf("Failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
-	pbinv.RegisterNodeArtifactServiceNBServer(grpcServer, mockClient)
+	pb.RegisterNodeArtifactServiceNBServer(grpcServer, mockClient)
 	go func() {
 		defer lis.Close()
-		if err := grpcServer.Serve(lis); err != nil {
-			t.Fatalf("Failed to serve: %v", err)
+		if grpcErr := grpcServer.Serve(lis); grpcErr != nil {
+			t.Fatalf("Failed to serve: %v", grpcErr)
 		}
 	}()
-	conn, err := grpc.Dial("localhost:14051", grpc.WithInsecure())
+	conn, err := grpc.Dial("localhost:14051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial server: %v", err)
 	}
@@ -233,7 +233,7 @@ func Test_createArtifacts(t *testing.T) {
 			args: args{
 				ctx:      context.Background(),
 				cc:       conn,
-				artifact: &pbinv.ArtifactData{},
+				artifact: &pb.ArtifactData{},
 			},
 			want:    &artifactData{},
 			wantErr: false,
@@ -255,20 +255,20 @@ func Test_createArtifacts(t *testing.T) {
 
 func Test_updateArtifactsById(t *testing.T) {
 	mockClient := &mockNodeArtifactServiceNBServer{}
-	mockClient.On("UpdateArtifactsById", mock.Anything, mock.Anything).Return(&pbinv.ArtifactResponse{}, nil)
+	mockClient.On("UpdateArtifactsById", mock.Anything, mock.Anything).Return(&pb.ArtifactResponse{}, nil)
 	lis, err := net.Listen("tcp", "localhost:15051")
 	if err != nil {
 		t.Fatalf("Failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
-	pbinv.RegisterNodeArtifactServiceNBServer(grpcServer, mockClient)
+	pb.RegisterNodeArtifactServiceNBServer(grpcServer, mockClient)
 	go func() {
 		defer lis.Close()
-		if err := grpcServer.Serve(lis); err != nil {
-			t.Fatalf("Failed to serve: %v", err)
+		if grpcErr := grpcServer.Serve(lis); grpcErr != nil {
+			t.Fatalf("Failed to serve: %v", grpcErr)
 		}
 	}()
-	conn, err := grpc.Dial("localhost:15051", grpc.WithInsecure())
+	conn, err := grpc.Dial("localhost:15051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial server: %v", err)
 	}
@@ -290,7 +290,7 @@ func Test_updateArtifactsById(t *testing.T) {
 			args: args{
 				ctx:      context.Background(),
 				cc:       conn,
-				artifact: &pbinv.ArtifactData{},
+				artifact: &pb.ArtifactData{},
 			},
 			want:    &artifactData{},
 			wantErr: false,
@@ -312,20 +312,20 @@ func Test_updateArtifactsById(t *testing.T) {
 
 func Test_deleteArtifacts(t *testing.T) {
 	mockClient := &mockNodeArtifactServiceNBServer{}
-	mockClient.On("DeleteArtifacts", mock.Anything, mock.Anything).Return(&pbinv.ArtifactResponse{}, nil)
+	mockClient.On("DeleteArtifacts", mock.Anything, mock.Anything).Return(&pb.ArtifactResponse{}, nil)
 	lis, err := net.Listen("tcp", "localhost:16051")
 	if err != nil {
 		t.Fatalf("Failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
-	pbinv.RegisterNodeArtifactServiceNBServer(grpcServer, mockClient)
+	pb.RegisterNodeArtifactServiceNBServer(grpcServer, mockClient)
 	go func() {
 		defer lis.Close()
-		if err := grpcServer.Serve(lis); err != nil {
-			t.Fatalf("Failed to serve: %v", err)
+		if grpcErr := grpcServer.Serve(lis); grpcErr != nil {
+			t.Fatalf("Failed to serve: %v", grpcErr)
 		}
 	}()
-	conn, err := grpc.Dial("localhost:16051", grpc.WithInsecure())
+	conn, err := grpc.Dial("localhost:16051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial server: %v", err)
 	}
@@ -346,7 +346,7 @@ func Test_deleteArtifacts(t *testing.T) {
 			args: args{
 				ctx:      context.Background(),
 				cc:       conn,
-				artifact: &pbinv.ArtifactData{},
+				artifact: &pb.ArtifactData{},
 			},
 			want:    &artifactData{},
 			wantErr: false,

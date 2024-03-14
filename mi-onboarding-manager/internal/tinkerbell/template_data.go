@@ -31,41 +31,54 @@ const (
 	ActionEfibootset                 = "efibootset-for-diskboot"
 	ActionFdeEncryption              = "fde-encryption"
 	ActionReboot                     = "reboot"
-	ActionCopyENSecrets              = "copy-ensp-node-secrets"
+	ActionCopyENSecrets              = "copy-ensp-node-secrets" //nolint:gosec // hardcoded secrets need to handle in future.
 	ActionStoringAlpine              = "store-Alpine"
 	ActionRunFDO                     = "run-fdo"
 	ActionAddEnvProxy                = "add-env-proxy"
 	ActionAddAptProxy                = "add-apt-proxy"
 	ActionAddDNSNamespace            = "add-dns-namespace"
-	ActionCreateSecretsDirectory     = "create-ensp-node-directory"
+	ActionCreateSecretsDirectory     = "create-ensp-node-directory" //nolint:gosec // hardcoded secrets need to handle in future.
 	ActionWriteClientID              = "write-client-id"
 	ActionWriteClientSecret          = "write-client-secret"
 )
 
 type ProxySetup struct {
-	http_proxy  string
-	https_proxy string
-	no_proxy    string
-	dns         string
+	httpProxy  string
+	httpsProxy string
+	noProxy    string
+	dns        string
 }
+
+const (
+	hardWareDesk             = "{{ index .Hardware.Disks 0 }}"
+	tinkActionWriteFileImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:"
+	tinkActionCexecImage     = "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:"
+	timeOutMax9800           = 9800
+	timeOutMax8000           = 8000
+	timeOutAvg560            = 560
+	timeOutAvg200            = 200
+	timeOutMin90             = 90
+	timeOutMin30             = 30
+	leaseTime86400           = 86400
+)
 
 func GetProxyEnv() ProxySetup {
+	var proxySettings ProxySetup
 
-	var proxy_settings ProxySetup
+	proxySettings.httpProxy = os.Getenv("EN_HTTP_PROXY")
+	proxySettings.httpsProxy = os.Getenv("EN_HTTPS_PROXY")
+	proxySettings.noProxy = os.Getenv("EN_NO_PROXY")
+	proxySettings.dns = os.Getenv("EN_NAMESERVERS")
 
-	proxy_settings.http_proxy = os.Getenv("EN_HTTP_PROXY")
-	proxy_settings.https_proxy = os.Getenv("EN_HTTPS_PROXY")
-	proxy_settings.no_proxy = os.Getenv("EN_NO_PROXY")
-	proxy_settings.dns = os.Getenv("EN_NAMESERVERS")
-
-	return proxy_settings
+	return proxySettings
 }
 
+//nolint:funlen // May effect the functionality, need to simplify this in future
 func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIP string) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
-		GlobalTimeout: 9800,
+		GlobalTimeout: timeOutMax9800,
 		Tasks: []Task{{
 			Name:       "os-installation",
 			WorkerAddr: "{{.device_1}}",
@@ -78,9 +91,9 @@ func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIP string) ([]b
 				{
 					Name:    ActionStreamUbuntuImage,
 					Image:   "quay.io/tinkerbell-actions/image2disk:v1.0.0",
-					Timeout: 9600,
+					Timeout: timeOutMax9800,
 					Environment: map[string]string{
-						"DEST_DISK":  "{{ index .Hardware.Disks 0 }}",
+						"DEST_DISK":  hardWareDesk,
 						"IMG_URL":    fmt.Sprintf("http://%s:8080/focal-server-cloudimg-amd64.raw.gz", hostIP),
 						"COMPRESSED": "true",
 					},
@@ -89,18 +102,18 @@ func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIP string) ([]b
 				{
 					Name:    ActionCopySecrets,
 					Image:   provIP + ":5015/cred_copy:latest",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE": "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"BLOCK_DEVICE": hardWareDesk + rootPart,
 						"FS_TYPE":      "ext4",
 					},
 				},
 				{
 					Name:    ActionGrowPartitionInstallScript,
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"DEST_DISK": hardWareDesk + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/usr/local/bin/grow_part.sh",
 						"CONTENTS": fmt.Sprintf(`#!/bin/bash
@@ -116,9 +129,9 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 				{
 					Name:    ActionInstallOpenssl,
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"BLOCK_DEVICE":        hardWareDesk + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
@@ -128,9 +141,9 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 				{
 					Name:    ActionCreateUser,
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"BLOCK_DEVICE":        hardWareDesk + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
@@ -140,9 +153,9 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 				{
 					Name:    ActionEnableSSH,
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"BLOCK_DEVICE":        hardWareDesk + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
@@ -153,9 +166,9 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 				{
 					Name:    ActionDisableApparmor,
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"BLOCK_DEVICE":        hardWareDesk + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
@@ -165,9 +178,9 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 				{
 					Name:    ActionNetplan,
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"DEST_DISK": hardWareDesk + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/netplan/config.yaml",
 						"CONTENTS": `
@@ -188,9 +201,9 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 				{
 					Name:    ActionGrowPartitionService,
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
-					Timeout: 200,
+					Timeout: timeOutAvg200,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"DEST_DISK": hardWareDesk + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/systemd/system/install-grow-part.service",
 						"CONTENTS": `
@@ -215,9 +228,9 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 				{
 					Name:    ActionGrowPartitionServiceEnable,
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 200,
+					Timeout: timeOutAvg200,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"BLOCK_DEVICE":        hardWareDesk + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
@@ -227,7 +240,7 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 				{
 					Name:    ActionReboot,
 					Image:   "public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Volumes: []string{
 						"/worker:/worker",
 					},
@@ -239,12 +252,15 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 	return marshalWorkflow(&wf)
 }
 
-func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gateway, _, _ string, securityFeature uint32, clientID, clientSecret string, enableDI bool, tinkerversion string) ([]byte, error) {
-	proxy_setting := GetProxyEnv()
+//nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
+func NewTemplateDataProdBKC(name, _, rootPartNo, hostIP, clientIP, _, _, _ string,
+	securityFeature uint32, clientID, clientSecret string, enableDI bool, tinkerversion string,
+) ([]byte, error) {
+	proxySetting := GetProxyEnv()
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
-		GlobalTimeout: 9800,
+		GlobalTimeout: timeOutMax9800,
 		Tasks: []Task{{
 			Name:       "os-installation",
 			WorkerAddr: "{{.device_1}}",
@@ -257,7 +273,7 @@ func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gatewa
 				{
 					Name:    ActionStreamUbuntuImage,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/image2disk:" + tinkerversion,
-					Timeout: 9600,
+					Timeout: timeOutMax9800,
 					Environment: map[string]string{
 						"IMG_URL":    hostIP,
 						"COMPRESSED": "true",
@@ -265,15 +281,15 @@ func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gatewa
 				},
 				{
 					Name:    ActionAddEnvProxy,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
-					Timeout: 90,
+					Image:   tinkActionWriteFileImage + tinkerversion,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/environment",
 						"CONTENTS": fmt.Sprintf(`
 						http_proxy=%s
 						https_proxy=%s
-						no_proxy=%s`, proxy_setting.http_proxy, proxy_setting.https_proxy, proxy_setting.no_proxy),
+						no_proxy=%s`, proxySetting.httpProxy, proxySetting.httpsProxy, proxySetting.noProxy),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -283,14 +299,14 @@ func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gatewa
 
 				{
 					Name:    ActionAddAptProxy,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
-					Timeout: 90,
+					Image:   tinkActionWriteFileImage + tinkerversion,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/apt/apt.conf",
 						"CONTENTS": fmt.Sprintf(`
 						Acquire::http::Proxy "%s";
-						Acquire::https::Proxy "%s";`, proxy_setting.http_proxy, proxy_setting.https_proxy),
+						Acquire::https::Proxy "%s";`, proxySetting.httpProxy, proxySetting.httpsProxy),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -299,14 +315,14 @@ func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gatewa
 				},
 				{
 					Name:    ActionAddDNSNamespace,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
-					Timeout: 90,
+					Image:   tinkActionWriteFileImage + tinkerversion,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/systemd/resolved.conf",
 						"CONTENTS": fmt.Sprintf(`
 						[Resolve]
-						DNS "%s"`, proxy_setting.dns),
+						DNS "%s"`, proxySetting.dns),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -316,15 +332,15 @@ func NewTemplateDataProdBKC(name, rootPart, rootPartNo, hostIP, clientIP, gatewa
 
 				{
 					Name:    ActionGrowPartitionInstallScript,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
-					Timeout: 90,
+					Image:   tinkActionWriteFileImage + tinkerversion,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/usr/local/bin/grow_part.sh",
-						"CONTENTS": fmt.Sprintf(`#!/bin/bash
+						"CONTENTS": `#!/bin/bash
 growpart $DEST_DISK 1 
 resize2fs $DEST_DISK$ID 
-touch /usr/local/bin/.grow_part_done`),
+touch /usr/local/bin/.grow_part_done`,
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -333,8 +349,8 @@ touch /usr/local/bin/.grow_part_done`),
 				},
 				{
 					Name:    ActionCreateUser,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:" + tinkerversion,
-					Timeout: 90,
+					Image:   tinkActionCexecImage + tinkerversion,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
@@ -345,8 +361,8 @@ touch /usr/local/bin/.grow_part_done`),
 
 				{
 					Name:    ActionEnableSSH,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:" + tinkerversion,
-					Timeout: 90,
+					Image:   tinkActionCexecImage + tinkerversion,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
@@ -358,8 +374,8 @@ touch /usr/local/bin/.grow_part_done`),
 
 				{
 					Name:    ActionInstallScriptDownload,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:" + tinkerversion,
-					Timeout: 200,
+					Image:   tinkActionCexecImage + tinkerversion,
+					Timeout: timeOutAvg200,
 					Environment: map[string]string{
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
@@ -371,8 +387,8 @@ touch /usr/local/bin/.grow_part_done`),
 				},
 				{
 					Name:    ActionInstallScript,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
-					Timeout: 90,
+					Image:   tinkActionWriteFileImage + tinkerversion,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/systemd/system/install-profile-pkgs-and-node-agent.service",
@@ -398,8 +414,8 @@ touch /usr/local/bin/.grow_part_done`),
 				},
 				{
 					Name:    ActionInstallScriptEnable,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:" + tinkerversion,
-					Timeout: 200,
+					Image:   tinkActionCexecImage + tinkerversion,
+					Timeout: timeOutAvg200,
 					Environment: map[string]string{
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
@@ -409,8 +425,8 @@ touch /usr/local/bin/.grow_part_done`),
 				},
 				{
 					Name:    ActionNetplan,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
-					Timeout: 90,
+					Image:   tinkActionWriteFileImage + tinkerversion,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/netplan/config.yaml",
@@ -431,8 +447,8 @@ touch /usr/local/bin/.grow_part_done`),
 
 				{
 					Name:    ActionNetplanConfigure,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
-					Timeout: 200,
+					Image:   tinkActionWriteFileImage + tinkerversion,
+					Timeout: timeOutAvg200,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/home/user/Setup/update_netplan_config.sh",
@@ -459,7 +475,7 @@ network:
 echo "$config_yaml" | tee /etc/netplan/config.yaml
 ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 touch .netplan_update_done
-netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
+netplan apply`, clientIP, strings.ReplaceAll(proxySetting.dns, " ", ", ")),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -469,8 +485,8 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 
 				{
 					Name:    ActionGrowPartitionService,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
-					Timeout: 200,
+					Image:   tinkActionWriteFileImage + tinkerversion,
+					Timeout: timeOutAvg200,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/systemd/system/install-grow-part.service",
@@ -495,8 +511,8 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 				},
 				{
 					Name:    ActionGrowPartitionServiceEnable,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:" + tinkerversion,
-					Timeout: 200,
+					Image:   tinkActionCexecImage + tinkerversion,
+					Timeout: timeOutAvg200,
 					Environment: map[string]string{
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
@@ -507,8 +523,8 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 
 				{
 					Name:    ActionNetplanService,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
-					Timeout: 200,
+					Image:   tinkActionWriteFileImage + tinkerversion,
+					Timeout: timeOutAvg200,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/systemd/system/update-netplan.service",
@@ -534,8 +550,8 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 
 				{
 					Name:    ActionNetplanServiceEnable,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:" + tinkerversion,
-					Timeout: 200,
+					Image:   tinkActionCexecImage + tinkerversion,
+					Timeout: timeOutAvg200,
 					Environment: map[string]string{
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
@@ -547,19 +563,19 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 				{
 					Name:    ActionEfibootset,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/efibootset:" + tinkerversion,
-					Timeout: 300,
+					Timeout: timeOutAvg560,
 				},
 
 				{
 					Name:    ActionFdeEncryption,
 					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/fde:" + tinkerversion,
-					Timeout: 560,
+					Timeout: timeOutAvg560,
 				},
 
 				{
 					Name:    ActionReboot,
 					Image:   "public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Volumes: []string{
 						"/worker:/worker",
 					},
@@ -569,12 +585,12 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 	}
 
 	if !enableDI {
-		//Di not enable
+		// Di not enable
 		directoryActions := []Action{
 			{
 				Name:    ActionCreateSecretsDirectory,
-				Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec:" + tinkerversion,
-				Timeout: 60,
+				Image:   tinkActionCexecImage + tinkerversion,
+				Timeout: timeOutMin90,
 				Environment: map[string]string{
 					"FS_TYPE":             "ext4",
 					"CHROOT":              "y",
@@ -584,8 +600,8 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 			},
 			{
 				Name:    ActionWriteClientID,
-				Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
-				Timeout: 90,
+				Image:   tinkActionWriteFileImage + tinkerversion,
+				Timeout: timeOutMin90,
 				Environment: map[string]string{
 					"FS_TYPE":   "ext4",
 					"DEST_PATH": "/etc/ensp/node/client-credentials/client_id",
@@ -598,8 +614,8 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 			},
 			{
 				Name:    ActionWriteClientSecret,
-				Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile:" + tinkerversion,
-				Timeout: 90,
+				Image:   tinkActionWriteFileImage + tinkerversion,
+				Timeout: timeOutMin90,
 				Environment: map[string]string{
 					"FS_TYPE":   "ext4",
 					"DEST_PATH": "/etc/ensp/node/client-credentials/client_secret",
@@ -622,14 +638,15 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 		}
 
 		// Insert the new actions after the "grow-partition-install-script" action
-		wf.Tasks[0].Actions = append(wf.Tasks[0].Actions[:growPartitionIndex+1], append(directoryActions, wf.Tasks[0].Actions[growPartitionIndex+1:]...)...)
+		wf.Tasks[0].Actions = append(wf.Tasks[0].Actions[:growPartitionIndex+1],
+			append(directoryActions, wf.Tasks[0].Actions[growPartitionIndex+1:]...)...)
 	} else {
-		//Di is enabled
+		// Di is enabled
 		directoryActions := []Action{
 			{
 				Name:    ActionCopyENSecrets,
 				Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/cred_copy:" + tinkerversion,
-				Timeout: 90,
+				Timeout: timeOutMin90,
 				Environment: map[string]string{
 					"OS_DST_DIR": "/etc/ensp/node/client-credentials/",
 					"FS_TYPE":    "ext4",
@@ -647,7 +664,8 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 		}
 
 		// Insert the new actions after the "grow-partition-install-script" action
-		wf.Tasks[0].Actions = append(wf.Tasks[0].Actions[:streamubuntuimage+1], append(directoryActions, wf.Tasks[0].Actions[streamubuntuimage+1:]...)...)
+		wf.Tasks[0].Actions = append(wf.Tasks[0].Actions[:streamubuntuimage+1],
+			append(directoryActions, wf.Tasks[0].Actions[streamubuntuimage+1:]...)...)
 	}
 
 	// FDE removal if security feature flag is not set for FDE
@@ -672,17 +690,17 @@ netplan apply`, clientIP, strings.ReplaceAll(proxy_setting.dns, " ", ", ")),
 				}
 			}
 		}
-
 	}
-
 	return marshalWorkflow(&wf)
 }
 
-func NewTemplateDataProdMS(name, rootPart, _, hostIP, clientIP, gateway, mac, provIP string) ([]byte, error) {
+//nolint:funlen // May effect the functionality, need to simplify this in future
+func NewTemplateDataProdMS(name, rootPart, _, hostIP, clientIP, gateway, mac, provIP string,
+) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
-		GlobalTimeout: 9800,
+		GlobalTimeout: timeOutMax9800,
 		Tasks: []Task{{
 			Name:       "os-installation",
 			WorkerAddr: "{{.device_1}}",
@@ -695,9 +713,9 @@ func NewTemplateDataProdMS(name, rootPart, _, hostIP, clientIP, gateway, mac, pr
 				{
 					Name:    "stream-ubuntu-image",
 					Image:   "quay.io/tinkerbell-actions/image2disk:v1.0.0",
-					Timeout: 9600,
+					Timeout: timeOutMax9800,
 					Environment: map[string]string{
-						"DEST_DISK":  "{{ index .Hardware.Disks 0 }}",
+						"DEST_DISK":  hardWareDesk,
 						"IMG_URL":    fmt.Sprintf("http://%s:8080/focal-server-cloudimg-amd64.raw.gz", hostIP),
 						"COMPRESSED": "true",
 					},
@@ -705,18 +723,18 @@ func NewTemplateDataProdMS(name, rootPart, _, hostIP, clientIP, gateway, mac, pr
 				{
 					Name:    "copy-secrets",
 					Image:   provIP + ":5015/cred_copy:latest",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE": "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"BLOCK_DEVICE": hardWareDesk + rootPart,
 						"FS_TYPE":      "ext4",
 					},
 				},
 				{
 					Name:    ActionGrowPartitionInstallScript,
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"DEST_DISK": hardWareDesk + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/usr/local/bin/grow_part.sh",
 						"CONTENTS": fmt.Sprintf(`#!/bin/bash
@@ -732,9 +750,9 @@ touch /usr/local/bin/.grow_part_done`, rootPart, rootPart),
 				{
 					Name:    "add-env-proxies",
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"DEST_DISK": hardWareDesk + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/environment",
 						"CONTENTS": `
@@ -750,9 +768,9 @@ touch /usr/local/bin/.grow_part_done`, rootPart, rootPart),
 				{
 					Name:    "create-docker-proxy-directory",
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"BLOCK_DEVICE":        hardWareDesk + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
@@ -763,9 +781,9 @@ touch /usr/local/bin/.grow_part_done`, rootPart, rootPart),
 				{
 					Name:    "add-docker-proxies",
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"DEST_DISK": hardWareDesk + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/systemd/system/docker.service.d/proxy.conf",
 						"CONTENTS": `
@@ -782,9 +800,9 @@ touch /usr/local/bin/.grow_part_done`, rootPart, rootPart),
 				{
 					Name:    "install-openssl",
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"BLOCK_DEVICE":        hardWareDesk + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
@@ -794,9 +812,9 @@ touch /usr/local/bin/.grow_part_done`, rootPart, rootPart),
 				{
 					Name:    "create-user",
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"BLOCK_DEVICE":        hardWareDesk + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
@@ -806,9 +824,9 @@ touch /usr/local/bin/.grow_part_done`, rootPart, rootPart),
 				{
 					Name:    "hookos-bootmenu-delete-script",
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"DEST_DISK": hardWareDesk + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/tmp/hook_part_del.sh",
 						"CONTENTS": `#!/bin/bash
@@ -824,9 +842,9 @@ done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )`,
 				{
 					Name:    "executing-del-hookos-from-boot-menu",
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"BLOCK_DEVICE":        hardWareDesk + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
@@ -836,9 +854,9 @@ done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )`,
 				{
 					Name:    "enable-ssh",
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"BLOCK_DEVICE":        hardWareDesk + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
@@ -849,9 +867,9 @@ done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )`,
 				{
 					Name:    "write-netplan",
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"DEST_DISK": hardWareDesk + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/netplan/config.yaml",
 						"CONTENTS": fmt.Sprintf(`
@@ -876,9 +894,9 @@ done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )`,
 				{
 					Name:    "download-kernel-deb-files",
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"BLOCK_DEVICE":        hardWareDesk + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
@@ -893,9 +911,9 @@ done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )`,
 				{
 					Name:    "install-kernel",
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"BLOCK_DEVICE":        hardWareDesk + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
@@ -905,9 +923,9 @@ done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )`,
 				{
 					Name:    "download-azure-scripts",
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"BLOCK_DEVICE":        hardWareDesk + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
@@ -925,9 +943,9 @@ done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )`,
 				{
 					Name:    "service-script-for-azure-dps-installer",
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"DEST_DISK": hardWareDesk + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/systemd/system/install-azure-dps.service",
 						"CONTENTS": `
@@ -952,9 +970,9 @@ done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )`,
 				{
 					Name:    "enable-service-script",
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"BLOCK_DEVICE":        hardWareDesk + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
@@ -964,9 +982,9 @@ done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )`,
 				{
 					Name:    "service-script-for-grow-partion-installer",
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
-					Timeout: 200,
+					Timeout: timeOutAvg200,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"DEST_DISK": hardWareDesk + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/systemd/system/install-grow-part.service",
 						"CONTENTS": `
@@ -991,9 +1009,9 @@ done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )`,
 				{
 					Name:    "enable-grow-partinstall-service-script",
 					Image:   "quay.io/tinkerbell-actions/cexec:v1.0.0",
-					Timeout: 200,
+					Timeout: timeOutAvg200,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"BLOCK_DEVICE":        hardWareDesk + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
@@ -1004,9 +1022,9 @@ done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )`,
 				{
 					Name:    "add-apt-proxies",
 					Image:   "quay.io/tinkerbell-actions/writefile:v1.0.0",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"DEST_DISK": "{{ index .Hardware.Disks 0 }}" + rootPart,
+						"DEST_DISK": hardWareDesk + rootPart,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/apt/apt.conf",
 						"CONTENTS": `
@@ -1021,7 +1039,7 @@ done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )`,
 				{
 					Name:    "reboot",
 					Image:   "public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest",
-					Timeout: 90,
+					Timeout: timeOutMin90,
 					Volumes: []string{
 						"/worker:/worker",
 					},

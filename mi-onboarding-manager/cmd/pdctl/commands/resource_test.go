@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func TestInstanceResCmds(t *testing.T) {
@@ -38,7 +39,10 @@ func TestInstanceResCmds_Create(t *testing.T) {
 	RootCmd := InstanceResCmds()
 	RootCmd.SetOut(actual)
 	RootCmd.SetErr(actual)
-	RootCmd.SetArgs([]string{"create", "--addr=localhost:50061", "--insecure", "resource-id=123", "--hostID=123", "--kind=123", "--osID=123"})
+	RootCmd.SetArgs([]string{
+		"create", "--addr=localhost:50061", "--insecure", "resource-id=123",
+		"--hostID=123", "--kind=123", "--osID=123",
+	})
 	err := RootCmd.Execute()
 	assert.Error(t, err)
 }
@@ -98,7 +102,10 @@ func TestHostResCmds_Create(t *testing.T) {
 	RootCmd := HostResCmds()
 	RootCmd.SetOut(actual)
 	RootCmd.SetErr(actual)
-	RootCmd.SetArgs([]string{"create", "--addr=localhost:50067", "--insecure", "--hostname=hostname", "--sut-ip=123", "--uuid=123"})
+	RootCmd.SetArgs([]string{
+		"create", "--addr=localhost:50067", "--insecure", "--hostname=hostname",
+		"--sut-ip=123", "--uuid=123",
+	})
 	err := RootCmd.Execute()
 	assert.Error(t, err)
 }
@@ -145,7 +152,7 @@ func TestInstanceResCmds_Case(t *testing.T) {
 			t.Fatalf("Failed to serve: %v", err)
 		}
 	}()
-	conn, connerr := grpc.Dial("localhost:17051", grpc.WithInsecure())
+	conn, connerr := grpc.Dial("localhost:17051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if connerr != nil {
 		t.Fatalf("Failed to dial server: %v", connerr)
 	}
@@ -158,4 +165,3 @@ func TestInstanceResCmds_Case(t *testing.T) {
 	err := RootCmd.Execute()
 	assert.Error(t, err)
 }
-

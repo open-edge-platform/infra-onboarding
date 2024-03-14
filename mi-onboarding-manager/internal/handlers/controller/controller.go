@@ -9,15 +9,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/controller/reconcilers"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
-
-	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
 	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
 	"github.com/pkg/errors"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/controller/reconcilers"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
+	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
 )
 
 var (
@@ -112,7 +112,9 @@ func (obc *OnboardingController) controlLoop(ctx context.Context) {
 				zlog.Debug().Msgf("Event %v is not allowed by filter", ev.Event)
 				continue
 			}
-			obc.reconcileResource(ev.Event.ResourceId)
+			if err := obc.reconcileResource(ev.Event.ResourceId); err != nil {
+				zlog.MiSec().MiErr(err).Msgf("reconciliation resource failed")
+			}
 		case <-ticker.C:
 			if err := obc.reconcileAll(ctx); err != nil {
 				zlog.MiSec().MiErr(err).Msgf("full reconciliation failed")

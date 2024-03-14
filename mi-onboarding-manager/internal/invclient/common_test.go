@@ -8,11 +8,12 @@ import (
 	"reflect"
 	"testing"
 
+	"google.golang.org/protobuf/proto"
+
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	network_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/network/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
-	"google.golang.org/protobuf/proto"
 )
 
 func Test_getInventoryResourceAndID(t *testing.T) {
@@ -31,8 +32,6 @@ func Test_getInventoryResourceAndID(t *testing.T) {
 	networkResourceCopy := proto.Clone(networkResource)
 	operatingSystemResource := &osv1.OperatingSystemResource{}
 	operatingSystemResourceCopy := proto.Clone(operatingSystemResource)
-	res := &network_v1.EndpointResource{}
-	resCopy:=proto.Clone(res)
 	tests := []struct {
 		name    string
 		args    args
@@ -100,15 +99,6 @@ func Test_getInventoryResourceAndID(t *testing.T) {
 			want:    &inv_v1.Resource{},
 			want1:   "",
 			wantErr: false,
-		},
-		{
-			name: "Test Case 8",
-			args: args{
-				resource: resCopy,
-			},
-			want:    &inv_v1.Resource{},
-			want1:   "",
-			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

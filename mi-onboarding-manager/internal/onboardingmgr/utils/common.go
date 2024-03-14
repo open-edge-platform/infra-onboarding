@@ -25,8 +25,10 @@ func CalculateRootFS(imageType, diskDev string) string {
 	}
 
 	// Use regular expression to check if diskDev ends with a numeric digit
-	match, _ := regexp.MatchString(".*[0-9]$", diskDev)
-
+	match, err := regexp.MatchString(".*[0-9]$", diskDev)
+	if err != nil {
+		return rootFSPartNo
+	}
 	if match {
 		return fmt.Sprintf("p%s", rootFSPartNo)
 	}
@@ -34,14 +36,14 @@ func CalculateRootFS(imageType, diskDev string) string {
 	return rootFSPartNo
 }
 
-// ReplaceHostIP finds %host_ip% in the url string and replaces it with ip
+// ReplaceHostIP finds %host_ip% in the url string and replaces it with ip.
 func ReplaceHostIP(url, ip string) string {
 	// Define the regular expression pattern to match #host_ip
 	re := regexp.MustCompile(`%host_ip%`)
 	return re.ReplaceAllString(url, ip)
 }
 
-// TODO : Will scale it in future accordingly
+// TODO : Will scale it in future accordingly.
 func IsValidOSURLFormat(osURL string) bool {
 	expectedSuffix := ".raw.gz" // Checks if the OS URL is in the expected format
 	return strings.HasSuffix(osURL, expectedSuffix)

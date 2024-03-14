@@ -20,13 +20,11 @@ import (
 	"net/http/httptest"
 	"os"
 	"os/user"
-	"path/filepath"
 	"reflect"
 	"testing"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -35,17 +33,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 )
 
-func generatekubeconfigPath() (string, error) {
-	currentUser, err := user.Current()
-	if err != nil {
-		return "", err
-	}
-
-	kubeconfigPath := filepath.Join(currentUser.HomeDir, ".kube", "config")
-	return kubeconfigPath, err
-}
+const voucherEndPoint = "/api/v1/owner/vouchers/"
 
 // MockHTTPServer creates a mock HTTP server and returns its URL.
 func MockHTTPServer(handler http.Handler) (*httptest.Server, string) {
@@ -423,7 +415,7 @@ func TestVoucherScript_Case(t *testing.T) {
 		} else if r.URL.Path == "/api/v1/certificate?alias=SECP256R1" {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Mock voucher response"))
-		} else if r.URL.Path == "/api/v1/owner/vouchers/" {
+		} else if r.URL.Path == voucherEndPoint {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Mock owner voucher response"))
 		} else if r.URL.Path == "/api/v1/to0/Mock owner voucher response" {
@@ -447,7 +439,7 @@ func TestVoucherScript_Case(t *testing.T) {
 		} else if r.URL.Path == "/api/v1/certificate?alias=SECP256R1" {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Mock voucher response"))
-		} else if r.URL.Path == "/api/v1/owner/vouchers/" {
+		} else if r.URL.Path == voucherEndPoint {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Mock owner voucher response"))
 		} else if r.URL.Path == "/api/v1/to0/" {
@@ -601,7 +593,7 @@ func TestVoucherScript_Case1(t *testing.T) {
 		} else if r.URL.Path == "/api/v1/certificate?alias=SECP256R1" {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Mock voucher response"))
-		} else if r.URL.Path == "/api/v1/owner/vouchers/" {
+		} else if r.URL.Path == voucherEndPoint {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Mock owner voucher response"))
 		} else if r.URL.Path == "/api/v1/to0/Mock owner voucher response" {
@@ -625,7 +617,7 @@ func TestVoucherScript_Case1(t *testing.T) {
 		} else if r.URL.Path == "/api/v1/certificate?alias=SECP256R1" {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Mock voucher response"))
-		} else if r.URL.Path == "/api/v1/owner/vouchers/" {
+		} else if r.URL.Path == voucherEndPoint {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Mock owner voucher response"))
 		} else if r.URL.Path == "/api/v1/to0/" {
@@ -721,7 +713,7 @@ func TestVoucherScript_Case2(t *testing.T) {
 		} else if r.URL.Path == "/api/v1/certificate?alias=SECP256R1" {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("Mock voucher response"))
-		} else if r.URL.Path == "/api/v1/owner/vouchers/" {
+		} else if r.URL.Path == voucherEndPoint {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Mock owner voucher response"))
 		} else if r.URL.Path == "/api/v1/to0/Mock owner voucher response" {
@@ -745,7 +737,7 @@ func TestVoucherScript_Case2(t *testing.T) {
 		} else if r.URL.Path == "/api/v1/certificate?alias=SECP256R1" {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("Mock voucher response"))
-		} else if r.URL.Path == "/api/v1/owner/vouchers/" {
+		} else if r.URL.Path == voucherEndPoint {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Mock owner voucher response"))
 		} else if r.URL.Path == "/api/v1/to0/" {
@@ -839,7 +831,7 @@ func TestVoucherScript_Case3(t *testing.T) {
 		} else if r.URL.Path == "/api/v1/certificate?alias=SECP256R1" {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Mock voucher response"))
-		} else if r.URL.Path == "/api/v1/owner/vouchers/" {
+		} else if r.URL.Path == voucherEndPoint {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Mock owner voucher response"))
 		} else if r.URL.Path == "/api/v1/to0/Mock owner voucher response" {
@@ -863,7 +855,7 @@ func TestVoucherScript_Case3(t *testing.T) {
 		} else if r.URL.Path == "/api/v1/certificate?alias=SECP256R1" {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Mock voucher response"))
-		} else if r.URL.Path == "/api/v1/owner/vouchers/" {
+		} else if r.URL.Path == voucherEndPoint {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Mock owner voucher response"))
 		} else if r.URL.Path == "/api/v1/to0/" {
@@ -957,7 +949,7 @@ func TestVoucherScript_Case4(t *testing.T) {
 		} else if r.URL.Path == "/api/v1/certificate?alias=SECP256R1" {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Mock voucher response"))
-		} else if r.URL.Path == "/api/v1/owner/vouchers/" {
+		} else if r.URL.Path == voucherEndPoint {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("Mock owner voucher response"))
 		} else if r.URL.Path == "/api/v1/to0/Mock owner voucher response" {
@@ -981,7 +973,7 @@ func TestVoucherScript_Case4(t *testing.T) {
 		} else if r.URL.Path == "/api/v1/certificate?alias=SECP256R1" {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Mock voucher response"))
-		} else if r.URL.Path == "/api/v1/owner/vouchers/" {
+		} else if r.URL.Path == voucherEndPoint {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("Mock owner voucher response"))
 		} else if r.URL.Path == "/api/v1/to0/" {
@@ -1076,7 +1068,7 @@ func TestVoucherScript_Case5(t *testing.T) {
 		} else if r.URL.Path == "/api/v1/certificate?alias=SECP256R1" {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Mock voucher response"))
-		} else if r.URL.Path == "/api/v1/owner/vouchers/" {
+		} else if r.URL.Path == voucherEndPoint {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Mock owner voucher response"))
 		} else if r.URL.Path == "/api/v1/to0/Mock owner voucher response" {
@@ -1100,7 +1092,7 @@ func TestVoucherScript_Case5(t *testing.T) {
 		} else if r.URL.Path == "/api/v1/certificate?alias=SECP256R1" {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Mock voucher response"))
-		} else if r.URL.Path == "/api/v1/owner/vouchers/" {
+		} else if r.URL.Path == voucherEndPoint {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Mock owner voucher response"))
 		} else if r.URL.Path == "/api/v1/to0/" {
@@ -1134,7 +1126,6 @@ func Test_apiCalls(t *testing.T) {
 		apiUser      string
 		onrApiPasswd string
 		bodyData     []byte
-		hwMac        string
 	}
 	tests := []struct {
 		name    string
@@ -1159,7 +1150,7 @@ func Test_apiCalls(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := apiCalls(tt.args.httpMethod, tt.args.url, tt.args.authType, tt.args.apiUser, tt.args.onrApiPasswd, tt.args.bodyData, tt.args.hwMac)
+			got, err := apiCalls(tt.args.httpMethod, tt.args.url, tt.args.apiUser, tt.args.onrApiPasswd, tt.args.bodyData)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("apiCalls() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1170,4 +1161,3 @@ func Test_apiCalls(t *testing.T) {
 		})
 	}
 }
-

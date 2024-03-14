@@ -6,7 +6,8 @@ package testing
 
 import (
 	"context"
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
+	"strings"
+
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
@@ -15,7 +16,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
+
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 )
 
 type k8sCliMock struct {

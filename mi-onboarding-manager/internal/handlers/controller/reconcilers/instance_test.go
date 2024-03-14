@@ -7,29 +7,30 @@ package reconcilers
 import (
 	"context"
 	"errors"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
-	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/tinkerbell"
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
-	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
 
+	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
+	onboarding_mocks "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
+	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/tinkerbell"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	v16 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
-	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
-	"github.com/stretchr/testify/mock"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
+	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
 )
 
 // FIXME: remove and use Inventory helper once RepoURL is made configurable in the Inv library
@@ -222,7 +223,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 		request rec_v2.Request[ResourceID]
 	}
 	testRequest := rec_v2.Request[ResourceID]{}
-	mockInvClient1 := &onboarding.MockInventoryClient{}
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{}, errors.New("err"))
 
 	mockInstance2 := &computev1.InstanceResource{
@@ -234,7 +235,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			Instance: mockInstance2,
 		},
 	}
-	mockInvClient2 := &onboarding.MockInventoryClient{}
+	mockInvClient2 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient2.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource2,
 	}, nil)
@@ -247,7 +248,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			Instance: mockInstance3,
 		},
 	}
-	mockInvClient3 := &onboarding.MockInventoryClient{}
+	mockInvClient3 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient3.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource3,
 	}, nil)
@@ -259,14 +260,14 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			Instance: mockInstance4,
 		},
 	}
-	mockInvClient4 := &onboarding.MockInventoryClient{}
+	mockInvClient4 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient4.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource4,
 	}, nil)
 	mockInvClient4.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 
-	mockInvClient5 := &onboarding.MockInventoryClient{}
+	mockInvClient5 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient5.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource4,
 	}, nil)
@@ -318,7 +319,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			Os: mockOs7,
 		},
 	}
-	mockInvClient7 := &onboarding.MockInventoryClient{}
+	mockInvClient7 := &onboarding_mocks.MockInventoryClient{}
 
 	mockInvClient7.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource7,
@@ -396,7 +397,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			Os: mockOs8,
 		},
 	}
-	mockInvClient8 := &onboarding.MockInventoryClient{}
+	mockInvClient8 := &onboarding_mocks.MockInventoryClient{}
 
 	mockInvClient8.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource8,
@@ -460,7 +461,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			Os: mockOs10,
 		},
 	}
-	mockInvClient10 := &onboarding.MockInventoryClient{}
+	mockInvClient10 := &onboarding_mocks.MockInventoryClient{}
 
 	mockInvClient10.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource10,
@@ -572,7 +573,7 @@ func TestInstanceReconciler_reconcileInstance(t *testing.T) {
 		request  rec_v2.Request[ResourceID]
 		instance *computev1.InstanceResource
 	}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	mockResource := &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Host{
 			Host: &computev1.HostResource{
@@ -654,4 +655,3 @@ func TestInstanceReconciler_reconcileInstance(t *testing.T) {
 		})
 	}
 }
-

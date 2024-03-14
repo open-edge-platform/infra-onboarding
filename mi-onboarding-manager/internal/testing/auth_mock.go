@@ -5,9 +5,11 @@ package testing
 
 import (
 	"context"
+
+	"github.com/stretchr/testify/mock"
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/auth"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
-	"github.com/stretchr/testify/mock"
 )
 
 type authServiceMock struct {

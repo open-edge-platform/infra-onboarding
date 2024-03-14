@@ -11,17 +11,18 @@ import (
 	"reflect"
 	"testing"
 
-	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
-	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
-	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
+
+	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
+	onboarding_mocks "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
+	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 )
 
 func TestNewOsReconciler(t *testing.T) {
@@ -63,10 +64,10 @@ func TestOsReconciler_Reconcile(t *testing.T) {
 	testRequest := rec_v2.Request[ResourceID]{
 		ID: ResourceID("test-id"),
 	}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{}, errors.New("err"))
 	t.Setenv("DISABLE_FEATUREX", "true")
-	mockInvClient1 := &onboarding.MockInventoryClient{}
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: &inv_v1.Resource{
 			Resource: &inv_v1.Resource_Os{
@@ -244,7 +245,7 @@ func TestOsReconciler_Reconcile_Case(t *testing.T) {
 		ID: ResourceID("test-id"),
 	}
 	t.Setenv("DISABLE_FEATUREX", "true")
-	mockInvClient1 := &onboarding.MockInventoryClient{}
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: &inv_v1.Resource{
 			Resource: &inv_v1.Resource_Os{
@@ -340,7 +341,7 @@ func TestOsReconciler_reconcileOsInstance(t *testing.T) {
 	testRequest := rec_v2.Request[ResourceID]{
 		ID: ResourceID("test-id"),
 	}
-	mockInvClient1 := &onboarding.MockInventoryClient{}
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
 	tests := []struct {
 		name   string
 		fields fields

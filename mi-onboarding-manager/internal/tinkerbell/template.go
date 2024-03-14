@@ -7,13 +7,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 )
 
 func NewTemplate(tpData, name, ns string) *tink.Template {
@@ -33,7 +34,11 @@ func NewTemplate(tpData, name, ns string) *tink.Template {
 	return tp
 }
 
-// see https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/blob/1a9621b4f8d5146659b680518052a3b7a24d0867/internal/onboardingmgr/onbworkflowclient/workflowcreator.go#L1044
+/*
+	see https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/
+
+blob/1a9621b4f8d5146659b680518052a3b7a24d0867/internal/onboardingmgr/onbworkflowclient/workflowcreator.go#L1044.
+*/
 func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (*tink.Template, error) {
 	tmplName := fmt.Sprintf("%s-%s-prod", deviceInfo.ImType, deviceInfo.GUID)
 	var tmplData []byte
@@ -42,7 +47,8 @@ func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (
 	case utils.ImgTypeBkc:
 		tmplData, err = NewTemplateDataProdBKC(tmplName, deviceInfo.Rootfspart, deviceInfo.RootfspartNo,
 			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.ClientImgName, deviceInfo.ProvisionerIP,
-			deviceInfo.SecurityFeature, deviceInfo.ClientID, deviceInfo.ClientSecret, *common.FlagEnableDeviceInitialization, deviceInfo.TinkerVersion)
+			deviceInfo.SecurityFeature, deviceInfo.ClientID, deviceInfo.ClientSecret, *common.FlagEnableDeviceInitialization,
+			deviceInfo.TinkerVersion)
 		if err != nil {
 			return nil, err
 		}
@@ -84,7 +90,8 @@ func GenerateTemplateForDI(k8sNamespace string, deviceInfo utils.DeviceInfo) (*t
 	return tmpl, nil
 }
 
-// TODO (LPIO-1865): We can probably optimize it. Instead of doing GET+CREATE we can try CREATE and check if resource already exists.
+// TODO (LPIO-1865): We can probably optimize it.
+// Instead of doing GET+CREATE we can try CREATE and check if resource already exists.
 func CreateTemplateIfNotExists(ctx context.Context, k8sCli client.Client, template *tink.Template) error {
 	got := &tink.Template{}
 	err := k8sCli.Get(ctx, client.ObjectKeyFromObject(template), got)

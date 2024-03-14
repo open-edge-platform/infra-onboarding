@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"time"
 
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
@@ -17,7 +19,6 @@ import (
 	provider_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/provider/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
-	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 const (
@@ -43,6 +44,7 @@ var (
 )
 
 type (
+	//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
 	ProviderConfig struct {
 		// the Resource ID of the OS profile
 		DefaultOs     string `json:"defaultOs"`
@@ -52,13 +54,14 @@ type (
 	NodeArtifactService struct {
 		pb.UnimplementedNodeArtifactServiceNBServer
 		invClient *invclient.OnboardingInventoryClient
-		//TODO: remove this later https://jira.devtools.intel.com/browse/LPIO-1829
+		// TODO: remove this later https://jira.devtools.intel.com/browse/LPIO-1829
 		invClientAPI *invclient.OnboardingInventoryClient
 	}
 )
 
 // NewArtifactService is a constructor function.
-func NewArtifactService(invClient *invclient.OnboardingInventoryClient, inventoryAdr string, enableTracing bool) (*NodeArtifactService, error) {
+func NewArtifactService(invClient *invclient.OnboardingInventoryClient, inventoryAdr string, enableTracing bool,
+) (*NodeArtifactService, error) {
 	if invClient == nil {
 		return nil, inv_errors.Errorf("invClient is nil in NewArtifactService")
 	}
@@ -70,7 +73,7 @@ func NewArtifactService(invClient *invclient.OnboardingInventoryClient, inventor
 	if inventoryAdr == "" {
 		zlog.Warn().Msg("Unable to start onboarding inventory API server client, empty inventory address")
 	} else {
-		//TODO: remove this later https://jira.devtools.intel.com/browse/LPIO-1829
+		// TODO: remove this later https://jira.devtools.intel.com/browse/LPIO-1829
 		invClientAPI, err = invclient.NewOnboardingInventoryClientWithOptions(
 			invclient.WithInventoryAddress(inventoryAdr),
 			invclient.WithEnableTracing(enableTracing),
@@ -115,7 +118,11 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 	zlog.Info().Msgf("CreateNodes")
 
 	/* Copy node data from user */
-	hostresdata, _ := CopyNodeReqToNodeData(req.Payload)
+	hostresdata, err := CopyNodeReqToNodeData(req.Payload)
+	if err != nil {
+		zlog.MiSec().MiErr(err).Msgf("CopyNodeReqToNodeData error: %v", err)
+		return nil, err
+	}
 	// TODO: CopyNodeReqToNodeData currently returns a list of Host resources with just a single element.
 	//  We should change it to either multiple Host resources returned or return a single resource.
 	host := hostresdata[0]
@@ -123,7 +130,7 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 	/* TODO: Need to check this hostresdata array for all the serial numbers existence
 	 *		 already in the system
 	 */
-	_, err := s.invClient.GetHostResourceByUUID(ctx, host.Uuid)
+	_, err = s.invClient.GetHostResourceByUUID(ctx, host.Uuid)
 
 	switch {
 	case inv_errors.IsNotFound(err):
@@ -131,9 +138,9 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 
 	case err == nil:
 		zlog.Debug().Msgf("Create op : Node and its Host Resource Already Exist for GUID %s \n", host.Uuid)
-		if err := s.startZeroTouch(ctx, host.ResourceId); err != nil {
-			zlog.MiSec().MiErr(err).Msgf("startZeroTouch error: %v", err)
-			return nil, err
+		if ztErr := s.startZeroTouch(ctx, host.ResourceId); ztErr != nil {
+			zlog.MiSec().MiErr(ztErr).Msgf("startZeroTouch error: %v", ztErr)
+			return nil, ztErr
 		}
 		return &pb.NodeResponse{Payload: req.Payload}, nil
 
@@ -159,8 +166,11 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 
 func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
 	zlog.Info().Msgf("DeleteNodes")
-	hostresdata, _ := CopyNodeReqToNodeData(req.Payload)
-
+	hostresdata, err := CopyNodeReqToNodeData(req.Payload)
+	if err != nil {
+		zlog.MiSec().MiErr(err).Msgf("CopyNodeReqToNodeData error: %v", err)
+		return nil, err
+	}
 	/* TODO: Need to change it either to single host resource creation or
 	 *       multiple host resource based on the pdctl command input
 	 */
@@ -202,11 +212,11 @@ func (s *NodeArtifactService) GetNodes(ctx context.Context, req *pb.NodeRequest)
 
 	/* Check if any node with the serial num exists or not */
 	hostresget, err := s.invClient.GetHostResourceByUUID(ctx, guid)
-
+	var tempErr error
 	switch {
 	case inv_errors.IsNotFound(err):
 		zlog.MiSec().MiErr(err).Msgf("Get op : Node Doesn't Exist for GUID %s\n", guid)
-		return nil, nil
+		return nil, tempErr
 
 	case err == nil:
 		zlog.Debug().Msgf("Get op : Node and its Host Resource Already Exist for GUID %s \n", guid)
@@ -224,7 +234,11 @@ func (s *NodeArtifactService) GetNodes(ctx context.Context, req *pb.NodeRequest)
 func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
 	zlog.Info().Msgf("UpdateNodes")
 
-	host, _ := CopyNodeReqToNodeData(req.Payload)
+	host, err := CopyNodeReqToNodeData(req.Payload)
+	if err != nil {
+		zlog.MiSec().MiErr(err).Msgf("CopyNodeReqToNodeData error: %v", err)
+		return nil, err
+	}
 
 	/* TODO: Need to change it either to single host resource creation or
 	 *       multiple host resource based on the pdctl command input
@@ -308,11 +322,16 @@ func (s *NodeArtifactService) startZeroTouch(ctx context.Context, hostResID stri
 	}
 
 	// if AutoProvision is set, create an Instance for the Host with the OS set to the value of the default OS
+	return s.checkNCreateInstance(ctx, pconf, host)
+}
+
+func (s *NodeArtifactService) checkNCreateInstance(ctx context.Context, pconf ProviderConfig, host *computev1.HostResource,
+) error {
 	if pconf.AutoProvision {
 		instance := &computev1.InstanceResource{
-			Kind:         computev1.InstanceKind(computev1.InstanceKind_INSTANCE_KIND_METAL),
+			Kind:         computev1.InstanceKind_INSTANCE_KIND_METAL,
 			DesiredState: computev1.InstanceState_INSTANCE_STATE_RUNNING,
-			CurrentState: computev1.InstanceState(computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED),
+			CurrentState: computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
 			Host: &computev1.HostResource{
 				ResourceId: host.ResourceId,
 			},

@@ -8,14 +8,15 @@ import (
 	"context"
 	"sync"
 
+	"github.com/stretchr/testify/mock"
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
+
 	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client/cache"
-	"github.com/stretchr/testify/mock"
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 type MockInventoryClient struct {

@@ -5,26 +5,35 @@
 package invclient
 
 import (
-	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
+	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	network_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/network/v1"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 )
 
 func getInventoryResourceAndID(resource proto.Message) (*inv_v1.Resource, string, error) {
 	invResource := &inv_v1.Resource{}
-	var invResourceID string
 
 	if resource == nil {
 		err := inv_errors.Errorfc(codes.InvalidArgument, "no resource provided")
 		zlog.MiSec().MiErr(err).Msgf("getInventoryResourceAndID")
-		return nil, invResourceID, err
+		return nil, "", err
 	}
 
+	invResourceID, err := setInventoryResourceAndID(resource, invResource)
+	if err != nil {
+		return invResource, invResourceID, err
+	}
+
+	return invResource, invResourceID, nil
+}
+
+func setInventoryResourceAndID(resource proto.Message, invResource *inv_v1.Resource) (string, error) {
+	var invResourceID string
 	switch res := resource.(type) {
 	case *computev1.HostResource:
 		invResource.Resource = &inv_v1.Resource_Host{
@@ -69,8 +78,7 @@ func getInventoryResourceAndID(resource proto.Message) (*inv_v1.Resource, string
 	default:
 		err := inv_errors.Errorfc(codes.InvalidArgument, "unsupported resource type: %t", resource)
 		zlog.MiSec().MiErr(err).Msg("getInventoryResourceAndID")
-		return nil, invResourceID, err
+		return invResourceID, err
 	}
-
-	return invResource, invResourceID, nil
+	return invResourceID, nil
 }

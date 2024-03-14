@@ -4,12 +4,13 @@
 package reconcilers
 
 import (
-	"google.golang.org/grpc/codes"
 	"time"
 
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
+	"google.golang.org/grpc/codes"
 	grpc_status "google.golang.org/grpc/status"
+
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 )
 
 const (

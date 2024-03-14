@@ -5,6 +5,7 @@ package secrets
 
 import (
 	"context"
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
@@ -12,6 +13,7 @@ import (
 )
 
 const (
+	//nolint:gosec // hardcoded secrets need to handle in future.
 	onboardingCredentialsSecretName = "host-manager-m2m-client-secret"
 )
 
@@ -35,8 +37,7 @@ type SecretService interface {
 	GetClientSecret()
 }
 
-type secretService struct {
-}
+type secretService struct{}
 
 func Init(ctx context.Context) error {
 	return inst.init(ctx)

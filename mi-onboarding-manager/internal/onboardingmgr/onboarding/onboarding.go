@@ -9,20 +9,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"os"
-
-	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
-
-	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
-	logging "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
-
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
+	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
+	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
+	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
+	logging "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 )
 
 var (
@@ -31,10 +29,11 @@ var (
 	_invClient *invclient.OnboardingInventoryClient
 )
 
-type OnboardingManager struct {
+type Manager struct {
 	pb.OnBoardingSBServer
 }
 
+//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
 type ResponseData struct {
 	To2CompletedOn string `json:"to2CompletedOn"`
 	To0Expiry      string `json:"to0Expiry"`
@@ -109,14 +108,16 @@ func IsSecureBootConfigAtEdgeNodeMismatch(ctx context.Context, req *pb.SecureBoo
 		((instanceDetails.Instance.GetSecurityFeature().String() == "SECURITY_FEATURE_NONE") &&
 			(req.Result.String() == "SUCCESS")) {
 		// If there's a mismatch, update the instance status to INSTANCE_STATE_ERROR
-		err := UpdateInstanceStatusByGUID(ctx, _invClient, req.Guid, computev1.InstanceStatus_INSTANCE_STATUS_ERROR, om_status.OnboardingStatusFailed)
+		err := UpdateInstanceStatusByGUID(ctx, _invClient, req.Guid, computev1.InstanceStatus_INSTANCE_STATUS_ERROR,
+			om_status.OnboardingStatusFailed)
 		if err != nil {
 			zlog.Err(err).Msg("Failed to Update the instance status")
 			return err
 		}
 
 		// Update host status with fail status and statusDetails
-		err = UpdateHostStatusByHostGUID(ctx, _invClient, req.Guid, computev1.HostStatus_HOST_STATUS_BOOT_FAILED, "SecureBoot status mismatch", om_status.OnboardingStatusFailed)
+		err = UpdateHostStatusByHostGUID(ctx, _invClient, req.Guid, computev1.HostStatus_HOST_STATUS_BOOT_FAILED,
+			"SecureBoot status mismatch", om_status.OnboardingStatusFailed)
 		if err != nil {
 			zlog.Err(err).Msg("Failed to Update the host status")
 			return err
@@ -132,13 +133,12 @@ func IsSecureBootConfigAtEdgeNodeMismatch(ctx context.Context, req *pb.SecureBoo
 	return nil
 }
 
-func (s *OnboardingManager) SecureBootStatus(ctx context.Context, req *pb.SecureBootStatRequest) (*pb.SecureBootResponse, error) {
+func (s *Manager) SecureBootStatus(ctx context.Context, req *pb.SecureBootStatRequest) (*pb.SecureBootResponse, error) {
 	zlog.Info().Msgf("------- SecureBootStatus() ----------------\n")
 	resp := &pb.SecureBootResponse{
 		Guid:   req.Guid,
 		Result: pb.SecureBootResponse_Status(req.Result),
 	}
-	//	err := HandleSecureBootMismatch(ctx, resp)
 	err := IsSecureBootConfigAtEdgeNodeMismatch(ctx, resp)
 	if err != nil {
 		return resp, errors.New("SecureBoot Status mismatch")

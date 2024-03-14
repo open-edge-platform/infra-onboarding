@@ -9,6 +9,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+
+	tink "github.com/tinkerbell/tink/api/v1alpha1"
+	"google.golang.org/grpc/codes"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/auth"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
@@ -18,33 +27,35 @@ import (
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
-	tink "github.com/tinkerbell/tink/api/v1alpha1"
-	"google.golang.org/grpc/codes"
-	"io"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
-	"net/http"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
 type ResponseData struct {
 	To2CompletedOn string `json:"to2CompletedOn"`
 	To0Expiry      string `json:"to0Expiry"`
 }
 
-// TODO (LPIO-1863): avoid hardcoding
+// TODO (LPIO-1863): avoid hardcoding.
 const k8sNamespace = "maestro-iaas-system"
 
 func checkTO2StatusCompleted(_ context.Context, deviceInfo utils.DeviceInfo) (bool, error) {
 	// Make an HTTP GET request
-	to2URL := fmt.Sprintf("http://%s:%s/api/v1/owner/state/%s", deviceInfo.FdoOwnerDNS, deviceInfo.FdoOwnerPort, deviceInfo.FdoGUID)
-	response, err := http.Get(to2URL)
+	to2URL := fmt.Sprintf("http://%s:%s/api/v1/owner/state/%s",
+		deviceInfo.FdoOwnerDNS, deviceInfo.FdoOwnerPort, deviceInfo.FdoGUID)
+	response, err := http.NewRequestWithContext(context.Background(), http.MethodGet, to2URL, http.NoBody)
 	if err != nil {
 		respErr := inv_errors.Errorf("Error making HTTP GET request %v", err)
 		zlog.MiSec().MiErr(err).Msgf("")
 		return false, respErr
 	}
-	defer response.Body.Close()
+	httpClient := &http.Client{}
+	resp, err := httpClient.Do(response)
+	if err != nil {
+		respErr := inv_errors.Errorf("Error making HTTP GET request %v", err)
+		zlog.MiSec().MiErr(err).Msgf("")
+		return false, respErr
+	}
+	defer resp.Body.Close()
 	// Read response body
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
@@ -143,8 +154,8 @@ func runProdWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils
 
 	// NOTE: IMO (Tomasz) this is a one-time operation that should be done when a host is discovered and created.
 	// So it shouldn't be here (move to host reconciler?)
-	if err := tinkerbell.CreateHardwareIfNotExists(ctx, k8sCli, k8sNamespace, deviceInfo); err != nil {
-		return err
+	if createHwErr := tinkerbell.CreateHardwareIfNotExists(ctx, k8sCli, k8sNamespace, deviceInfo); createHwErr != nil {
+		return createHwErr
 	}
 
 	prodTemplate, err := tinkerbell.GenerateTemplateForProd(k8sNamespace, deviceInfo)
@@ -153,19 +164,19 @@ func runProdWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils
 		return inv_errors.Errorf("Failed to generate Tinkerbell prod template for host %s", deviceInfo.GUID)
 	}
 
-	if err = tinkerbell.CreateTemplateIfNotExists(ctx, k8sCli, prodTemplate); err != nil {
-		return err
+	if createTemplErr := tinkerbell.CreateTemplateIfNotExists(ctx, k8sCli, prodTemplate); createTemplErr != nil {
+		return createTemplErr
 	}
 
 	prodWorkflow := tinkerbell.NewWorkflow(
 		fmt.Sprintf("workflow-%s-prod", deviceInfo.GUID),
 		k8sNamespace,
 		deviceInfo.HwMacID,
-		"machine-"+deviceInfo.GUID,
+		hwPrefixName+deviceInfo.GUID,
 		fmt.Sprintf("%s-%s-prod", deviceInfo.ImType, deviceInfo.GUID))
 
-	if err = tinkerbell.CreateWorkflowIfNotExists(ctx, k8sCli, prodWorkflow); err != nil {
-		return err
+	if createWFErr := tinkerbell.CreateWorkflowIfNotExists(ctx, k8sCli, prodWorkflow); createWFErr != nil {
+		return createWFErr
 	}
 
 	zlog.Debug().Msgf("Prod workflow %s for host %s created successfully", prodWorkflow.Name, deviceInfo.GUID)
@@ -177,7 +188,8 @@ func runProdWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils
 // If it's already completed, this function returns immediately.
 // If it's not yet completed, it runs a series of actions to ensure TO2 gets completed.
 func CheckTO2StatusOrRunFDOActions(ctx context.Context,
-	deviceInfo utils.DeviceInfo, instance *computev1.InstanceResource) error {
+	deviceInfo utils.DeviceInfo, instance *computev1.InstanceResource,
+) error {
 	if !*common.FlagEnableDeviceInitialization {
 		zlog.Warn().Msgf("enableDeviceInitialization is set to false, skipping FDO actions")
 		return nil
@@ -211,8 +223,8 @@ func CheckTO2StatusOrRunFDOActions(ctx context.Context,
 		return nil
 	}
 
-	if err = runFDOActionsIfNeeded(ctx, deviceInfo); err != nil {
-		return err
+	if fdoErr := runFDOActionsIfNeeded(ctx, deviceInfo); fdoErr != nil {
+		return fdoErr
 	}
 
 	// in progress
@@ -240,7 +252,7 @@ func runFDOActionsIfNeeded(ctx context.Context, deviceInfo utils.DeviceInfo) err
 		return inv_errors.Errorf("Failed to send client_secret file to FDO owner: %v", err)
 	}
 
-	//doing svi for secret Transfer
+	// doing svi for secret Transfer
 	err = ExecuteSVI(deviceInfo.FdoOwnerDNS, deviceInfo.FdoOwnerPort, "client_id", "client_secret")
 	if err != nil {
 		return inv_errors.Errorf("Failed to initiate secure transfer of FDO files: %v", err)
@@ -329,9 +341,9 @@ func runDIWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils.D
 		return err
 	}
 
-	diWorkflow := tinkerbell.NewWorkflow("workflow-"+deviceInfo.GUID,
+	diWorkflow := tinkerbell.NewWorkflow(workFlowPrefixName+deviceInfo.GUID,
 		k8sNamespace, deviceInfo.HwMacID,
-		"machine-"+deviceInfo.GUID,
+		hwPrefixName+deviceInfo.GUID,
 		"fdodi-"+deviceInfo.GUID)
 
 	if err := tinkerbell.CreateWorkflowIfNotExists(ctx, k8sCli, diWorkflow); err != nil {
@@ -360,7 +372,7 @@ func uploadFDOVoucherScript(_ context.Context, deviceInfo utils.DeviceInfo) (str
 	return fdoGUID, nil
 }
 
-// TODO (LPIO-1865)
+// TODO (LPIO-1865).
 func createENCredentialsIfNotExists(ctx context.Context, deviceInfo utils.DeviceInfo) (string, string, error) {
 	authService, err := auth.AuthServiceFactory(ctx)
 	if err != nil {
@@ -398,8 +410,8 @@ func DeleteProdWorkflowResourcesIfExist(ctx context.Context, hostUUID string) er
 
 func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.Workflow,
 	onSuccessStatus, onFailureStatus computev1.HostStatus,
-	onSuccessOnboardingStatus, onFailureOnboardingStatus inv_status.ResourceStatus) error {
-
+	onSuccessOnboardingStatus, onFailureOnboardingStatus inv_status.ResourceStatus,
+) error {
 	intermediateWorkflowState := tinkerbell.GenerateStatusDetailFromWorkflowState(workflow)
 
 	zlog.Debug().Msgf("Workflow %s status for host %s is %s. Workflow state: %q", workflow.Name,

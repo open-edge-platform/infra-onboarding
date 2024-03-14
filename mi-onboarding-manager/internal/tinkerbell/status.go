@@ -5,6 +5,7 @@ package tinkerbell
 
 import (
 	"fmt"
+
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 )
 
@@ -68,6 +69,10 @@ func GenerateStatusDetailFromWorkflowState(workflow *tink.Workflow) string {
 		return ""
 	}
 
+	return prepareStatusDetails(totalActions, actions)
+}
+
+func prepareStatusDetails(totalActions int, actions []tink.Action) string {
 	currActionNumber := 1
 	message := ""
 	for _, action := range actions {

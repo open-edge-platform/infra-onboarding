@@ -124,11 +124,27 @@ pipeline {
                 '''
             }
         }
+        stage('License Check') {
+            steps {
+                sh '''
+                echo "License checking the code"
+                make license
+                '''
+            }
+        }
+        stage('Build') {
+            steps {
+                sh '''
+                eval \$(ssh-agent) > /dev/null
+                make build
+                '''
+            }
+        }
         stage('Lint Code') {
             steps {
                 sh '''
                 echo "Linting the code"
-                make lint-ci
+                make lint
                 '''
             }
         }
@@ -139,14 +155,6 @@ pipeline {
                 make clean
                 make generate-ci
                 bash -c "diff -u <(echo -n) <(git diff)"
-                '''
-            }
-        }
-        stage('Build') {
-            steps {
-                sh '''
-                eval \$(ssh-agent) > /dev/null
-                make build
                 '''
             }
         }

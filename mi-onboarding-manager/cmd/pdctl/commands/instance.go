@@ -9,13 +9,13 @@ import (
 	"errors"
 	"os"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 	"gopkg.in/yaml.v2"
 
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 func InstanceResourceCmd() *cobra.Command {

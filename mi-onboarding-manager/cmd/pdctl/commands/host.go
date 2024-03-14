@@ -9,13 +9,12 @@ import (
 	"errors"
 	"os"
 
-	"google.golang.org/grpc"
-
-	pbinv "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
-	"gopkg.in/yaml.v2"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"google.golang.org/grpc"
+	"gopkg.in/yaml.v2"
+
+	pbinv "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 )
 
 type OSinstance struct {

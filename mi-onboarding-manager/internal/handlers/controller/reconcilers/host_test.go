@@ -13,24 +13,24 @@ import (
 	"testing"
 	"time"
 
+	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/auth"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
+	onboarding_mocks "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
 	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
+	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
+	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	statusv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/status/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/fieldmaskpb"
-
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
-	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
-	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
-	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestMain(m *testing.M) {
@@ -244,7 +244,7 @@ func TestHostReconciler_Reconcile_Case1(t *testing.T) {
 	testRequest := rec_v2.Request[ResourceID]{
 		ID: ResourceID("test-id"),
 	}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{}, errors.New("err"))
 	mockHost := &computev1.HostResource{
 		DesiredState: computev1.HostState_HOST_STATE_UNSPECIFIED,
@@ -255,7 +255,7 @@ func TestHostReconciler_Reconcile_Case1(t *testing.T) {
 			Host: mockHost,
 		},
 	}
-	mockInvClient1 := &onboarding.MockInventoryClient{}
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource,
 	}, nil)
@@ -268,7 +268,7 @@ func TestHostReconciler_Reconcile_Case1(t *testing.T) {
 			Host: mockHost2,
 		},
 	}
-	mockInvClient2 := &onboarding.MockInventoryClient{}
+	mockInvClient2 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient2.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource2,
 	}, nil)
@@ -285,7 +285,7 @@ func TestHostReconciler_Reconcile_Case1(t *testing.T) {
 			Host: mockHost3,
 		},
 	}
-	mockInvClient3 := &onboarding.MockInventoryClient{}
+	mockInvClient3 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient3.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource3,
 	}, nil)
@@ -304,11 +304,12 @@ func TestHostReconciler_Reconcile_Case1(t *testing.T) {
 			Host: mockHost4,
 		},
 	}
-	mockInvClient4 := &onboarding.MockInventoryClient{}
+	mockInvClient4 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient4.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource4,
 	}, nil)
-	mockInvClient4.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	mockInvClient4.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 	mockHost5 := &computev1.HostResource{
 		DesiredState: computev1.HostState_HOST_STATE_UNTRUSTED,
 		// CurrentState: computev1.HostState_HOST_STATE_UNSPECIFIED,
@@ -318,11 +319,12 @@ func TestHostReconciler_Reconcile_Case1(t *testing.T) {
 			Host: mockHost5,
 		},
 	}
-	mockInvClient5 := &onboarding.MockInventoryClient{}
+	mockInvClient5 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient5.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource5,
 	}, nil)
-	mockInvClient5.On("Update", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
+	mockInvClient5.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
 	tests := []struct {
 		name   string
 		fields fields
@@ -415,10 +417,10 @@ func TestHostReconciler_deleteHost(t *testing.T) {
 		ctx  context.Context
 		host *computev1.HostResource
 	}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	mockInvClient1 := &onboarding.MockInventoryClient{}
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient1.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
 	tests := []struct {
@@ -468,10 +470,10 @@ func TestHostReconciler_deleteHostGpuByHost(t *testing.T) {
 		ctx     context.Context
 		hostres *computev1.HostResource
 	}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 
 	mockInvClient.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, nil)
-	mockInvClient1 := &onboarding.MockInventoryClient{}
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
 
 	mockInvClient1.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, errors.New("err"))
 	tests := []struct {
@@ -533,10 +535,10 @@ func TestHostReconciler_deleteHostNicByHost(t *testing.T) {
 		ctx     context.Context
 		hostres *computev1.HostResource
 	}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, nil)
 	mockInvClient.On("List", mock.Anything, mock.Anything).Return(&inv_v1.ListResourcesResponse{}, nil)
-	mockInvClient1 := &onboarding.MockInventoryClient{}
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient1.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, errors.New("err"))
 	mockInvClient1.On("List", mock.Anything, mock.Anything).Return(&inv_v1.ListResourcesResponse{}, errors.New("err"))
 	tests := []struct {
@@ -600,10 +602,10 @@ func TestHostReconciler_deleteIPsByHostNic(t *testing.T) {
 		// Resource: &computev1.HostnicResource{},
 	}
 	mockResources := []*inv_v1.GetResourceResponse{{Resource: resource}}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, nil)
 	mockInvClient.On("List", mock.Anything, mock.Anything).Return(&inv_v1.ListResourcesResponse{}, nil)
-	mockInvClient1 := &onboarding.MockInventoryClient{}
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient1.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, nil)
 	mockInvClient1.On("List", mock.Anything, mock.Anything).Return(&inv_v1.ListResourcesResponse{Resources: mockResources}, nil)
 	tests := []struct {
@@ -659,10 +661,10 @@ func TestHostReconciler_deleteHostStorageByHost(t *testing.T) {
 		ctx     context.Context
 		hostres *computev1.HostResource
 	}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, nil)
 	mockInvClient.On("List", mock.Anything, mock.Anything).Return(&inv_v1.ListResourcesResponse{}, nil)
-	mockInvClient1 := &onboarding.MockInventoryClient{}
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient1.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, errors.New("err"))
 	mockInvClient1.On("List", mock.Anything, mock.Anything).Return(&inv_v1.ListResourcesResponse{}, errors.New("err"))
 	tests := []struct {
@@ -722,10 +724,10 @@ func TestHostReconciler_deleteHostUsbByHost(t *testing.T) {
 		ctx  context.Context
 		host *computev1.HostResource
 	}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, nil)
 	mockInvClient.On("List", mock.Anything, mock.Anything).Return(&inv_v1.ListResourcesResponse{}, nil)
-	mockInvClient1 := &onboarding.MockInventoryClient{}
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient1.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, errors.New("err"))
 	mockInvClient1.On("List", mock.Anything, mock.Anything).Return(&inv_v1.ListResourcesResponse{}, errors.New("err"))
 	tests := []struct {
@@ -795,7 +797,7 @@ func TestHostReconciler_Reconcile(t *testing.T) {
 			Host: mockHost3,
 		},
 	}
-	mockInvClient3 := &onboarding.MockInventoryClient{}
+	mockInvClient3 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient3.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
 		Resource: mockResource3,
 	}, nil)
@@ -858,7 +860,7 @@ func TestHostReconciler_revokeHostCredentials(t *testing.T) {
 			name: "Test Case",
 			fields: fields{
 				invClient: &invclient.OnboardingInventoryClient{
-					Client: &onboarding.MockInventoryClient{},
+					Client: &onboarding_mocks.MockInventoryClient{},
 				},
 			},
 			args: args{
@@ -899,7 +901,7 @@ func TestHostReconciler_revokeHostCredentials_Case(t *testing.T) {
 			name: "Test Case",
 			fields: fields{
 				invClient: &invclient.OnboardingInventoryClient{
-					Client: &onboarding.MockInventoryClient{},
+					Client: &onboarding_mocks.MockInventoryClient{},
 				},
 			},
 			args: args{
@@ -919,9 +921,7 @@ func TestHostReconciler_revokeHostCredentials_Case(t *testing.T) {
 			}
 		})
 	}
-	defer func() {
-		common.FlagDisableCredentialsManagement = flag.Bool("", true, "")
-	}()
+	*common.FlagDisableCredentialsManagement = true
 }
 
 func TestHostReconciler_reconcileHost(t *testing.T) {
@@ -933,7 +933,7 @@ func TestHostReconciler_reconcileHost(t *testing.T) {
 		request rec_v2.Request[ResourceID]
 		host    *computev1.HostResource
 	}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 	tests := []struct {
@@ -979,10 +979,10 @@ func TestHostReconciler_deleteHost_Case(t *testing.T) {
 		ctx  context.Context
 		host *computev1.HostResource
 	}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	mockInvClient1 := &onboarding.MockInventoryClient{}
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient1.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
 	tests := []struct {
@@ -1026,7 +1026,7 @@ func TestHostReconciler_deleteHost_Case1(t *testing.T) {
 		ctx  context.Context
 		host *computev1.HostResource
 	}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 	mockInvClient.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, errors.New("err"))
@@ -1081,7 +1081,7 @@ func TestHostReconciler_deleteHost_Case2(t *testing.T) {
 		ctx  context.Context
 		host *computev1.HostResource
 	}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 	mockInvClient.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, nil).Once()
@@ -1142,7 +1142,7 @@ func TestHostReconciler_deleteHost_Case3(t *testing.T) {
 		ctx  context.Context
 		host *computev1.HostResource
 	}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 	mockInvClient.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, nil).Once()
@@ -1208,7 +1208,7 @@ func TestHostReconciler_deleteHostNicByHost_Case(t *testing.T) {
 		ctx     context.Context
 		hostres *computev1.HostResource
 	}
-	mockInvClient := &onboarding.MockInventoryClient{}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient.On("Delete", mock.Anything, mock.Anything).Return(&inv_v1.DeleteResourceResponse{}, errors.New("err"))
 	mockInvClient.On("List", mock.Anything, mock.Anything).Return(&inv_v1.ListResourcesResponse{}, nil)
 	tests := []struct {
@@ -1244,4 +1244,3 @@ func TestHostReconciler_deleteHostNicByHost_Case(t *testing.T) {
 		})
 	}
 }
-

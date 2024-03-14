@@ -11,13 +11,14 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/mock"
+
 	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestInitOnboarding(t *testing.T) {
@@ -307,7 +308,7 @@ func TestOnboardingManager_SecureBootStatus(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &OnboardingManager{
+			s := &Manager{
 				OnBoardingSBServer: tt.fields.OnBoardingSBServer,
 			}
 			got, err := s.SecureBootStatus(tt.args.ctx, tt.args.req)

@@ -7,9 +7,9 @@ package onbworkflowclient
 
 import (
 	"bytes"
+	"context"
 	"flag"
 	"fmt"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"io"
 	"log"
 	"net/http"
@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 )
 
 var (
@@ -26,6 +27,12 @@ var (
 	zlog       = logging.GetLogger(clientName)
 )
 var rvEnabled = flag.Bool("rvenabled", false, "Set to true if you have enabled rv")
+
+const (
+	hwPrefixName       = "machine-"
+	workFlowPrefixName = "workflow-"
+	retryAttempts      = 2
+)
 
 func readUIDFromFile(filePath string) (string, error) {
 	data, err := os.ReadFile(filePath)
@@ -116,57 +123,47 @@ func VoucherExtension(hostIP, deviceSerial string) (string, error) {
 
 func VoucherScript(deviceinfo utils.DeviceInfo) (string, error) {
 	var (
-		attestationType  string
-		mfgIp            string
-		onrIp            string
-		apiUser          string
-		mfgApiPasswd     string
-		onrApiPasswd     string
-		mfgPort          string
-		onrPort          string
-		authType         string
-		serialNo         string
-		statusCode       int
-		deviceGuid       []byte
-		extendVoucher    []byte
-		ownerCertificate []byte
+		attestationType string
+		mfgIP           string
+		onrIP           string
+		apiUser         string
+		mfgAPIPasswd    string
+		onrAPIPasswd    string
+		mfgPort         string
+		onrPort         string
+		serialNo        string
 	)
-
+	const httpPrefix = "http://"
 	attestationType = "SECP256R1"
-	authType = "digest"
-	mfgIp = deviceinfo.FdoMfgDNS
-	onrIp = deviceinfo.FdoOwnerDNS
+	mfgIP = deviceinfo.FdoMfgDNS
+	onrIP = deviceinfo.FdoOwnerDNS
 	mfgPort = deviceinfo.FdoMfgPort
 	onrPort = deviceinfo.FdoOwnerPort
 	serialNo = deviceinfo.HwSerialID
 
-	//default values
-	defaultAttestationType := "SECP256R1"
-	defaultMfgIp := "mi-fdo-mfg"
-	defaultOnrIp := "mi-fdo-owner"
-	defaultApiUser := "apiUser"
-	defaultMfgApiPasswd := ""
-	defaultOnrApiPasswd := ""
+	// default values
+	defaultMfgIP := "mi-fdo-mfg"
+	defaultOnrIP := "mi-fdo-owner"
+	defaultAPIUser := "apiUser"
+	defaultMfgAPIPasswd := ""
+	defaultOnrAPIPasswd := ""
 	defaultmfgPort := "58039"
 	defaultonrPort := "58042"
 
-	if attestationType == "" {
-		attestationType = defaultAttestationType
+	if mfgIP == "" {
+		mfgIP = defaultMfgIP
 	}
-	if mfgIp == "" {
-		mfgIp = defaultMfgIp
-	}
-	if onrIp == "" {
-		onrIp = defaultOnrIp
+	if onrIP == "" {
+		onrIP = defaultOnrIP
 	}
 	if apiUser == "" {
-		apiUser = defaultApiUser
+		apiUser = defaultAPIUser
 	}
-	if mfgApiPasswd == "" {
-		mfgApiPasswd = defaultMfgApiPasswd
+	if mfgAPIPasswd == "" {
+		mfgAPIPasswd = defaultMfgAPIPasswd
 	}
-	if onrApiPasswd == "" {
-		onrApiPasswd = defaultOnrApiPasswd
+	if onrAPIPasswd == "" {
+		onrAPIPasswd = defaultOnrAPIPasswd
 	}
 	if mfgPort == "" {
 		mfgPort = defaultmfgPort
@@ -174,120 +171,140 @@ func VoucherScript(deviceinfo utils.DeviceInfo) (string, error) {
 	if onrPort == "" {
 		onrPort = defaultonrPort
 	}
-	if authType == "" {
-		return "", fmt.Errorf("auth method is mandatory")
-	}
 	if serialNo == "" {
 		return "", fmt.Errorf("serial number of device is mandatory")
 	}
 	// TODO : remove the use of Goto statement
+	guid, err := triggerTOApiCalls(httpPrefix, onrIP, onrPort, attestationType, apiUser,
+		onrAPIPasswd, mfgIP, mfgPort, serialNo, mfgAPIPasswd)
+	if err != nil {
+		return "", err
+	}
+	return guid, nil
+}
+
+//nolint:cyclop // May effect the functionality, need to simplify this in future
+func triggerTOApiCalls(httpPrefix, onrIP, onrPort, attestationType, apiUser, onrAPIPasswd,
+	mfgIP, mfgPort, serialNo, mfgAPIPasswd string,
+) (string, error) {
+	var (
+		statusCode       int
+		deviceGUID       []byte
+		extendVoucher    []byte
+		ownerCertificate []byte
+	)
+	// TODO : remove the use of Goto statement
 api:
-	//used to GET the certificate
-	url := "http://" + onrIp + ":" + onrPort + "/api/v1/certificate?alias=" + attestationType
-	resp, err := apiCalls("GET", url, authType, apiUser, onrApiPasswd, []byte{}, deviceinfo.HwMacID)
+	// used to GET the certificate
+	url := httpPrefix + onrIP + ":" + onrPort + "/api/v1/certificate?alias=" + attestationType
+	resp1, err := apiCalls("GET", url, apiUser, onrAPIPasswd, []byte{})
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("")
-		return "", fmt.Errorf("Error1 Details:%v", err)
+		return "", fmt.Errorf("Error1 Details:%w", err)
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusOK {
-		ownerCertificate, err = io.ReadAll(resp.Body)
+	defer resp1.Body.Close()
+	if resp1.StatusCode == http.StatusOK {
+		ownerCertificate, err = io.ReadAll(resp1.Body)
 		if err != nil {
-			return "", fmt.Errorf("error reading the file:%v", err)
+			return "", fmt.Errorf("error reading the file:%w", err)
 		}
 		statusCode = 0
 	api2:
-		//used GET the mfg voucher
-		url = "http://" + mfgIp + ":" + mfgPort + "/api/v1/mfg/vouchers/" + serialNo
-		resp, err := apiCalls("POST", url, authType, apiUser, mfgApiPasswd, ownerCertificate, deviceinfo.HwMacID)
+		// used GET the mfg voucher
+		url = httpPrefix + mfgIP + ":" + mfgPort + "/api/v1/mfg/vouchers/" + serialNo
+		resp2, err := apiCalls("POST", url, apiUser, mfgAPIPasswd, ownerCertificate)
 		if err != nil {
 			zlog.MiSec().MiErr(err).Msgf("")
-			return "", fmt.Errorf("error Details:%v ", err)
+			return "", fmt.Errorf("error Details:%w ", err)
 		}
-		if resp.StatusCode == http.StatusOK {
-			extendVoucher, err = io.ReadAll(resp.Body)
+		defer resp2.Body.Close()
+		if resp2.StatusCode == http.StatusOK {
+			extendVoucher, err = io.ReadAll(resp2.Body)
 			if err != nil {
-				return "", fmt.Errorf("error writing the response to the file:%v", err)
+				return "", fmt.Errorf("error writing the response to the file:%w", err)
 			}
 			statusCode = 0
 		api3:
-			//used GET the owner voucher
-			url = "http://" + onrIp + ":" + onrPort + "/api/v1/owner/vouchers/"
-			resp, err = apiCalls("POST", url, authType, apiUser, onrApiPasswd, extendVoucher, deviceinfo.HwMacID)
+			// used GET the owner voucher
+			url = httpPrefix + onrIP + ":" + onrPort + "/api/v1/owner/vouchers/"
+			resp3, err := apiCalls("POST", url, apiUser, onrAPIPasswd, extendVoucher)
 			if err != nil {
 				zlog.MiSec().MiErr(err).Msgf("")
-				return "", fmt.Errorf("error details :%v", err)
+				return "", fmt.Errorf("error details :%w", err)
 			}
-			if resp.StatusCode == http.StatusOK {
-				deviceGuid, err = io.ReadAll(resp.Body)
+			defer resp3.Body.Close()
+			if resp3.StatusCode == http.StatusOK {
+				deviceGUID, err = io.ReadAll(resp3.Body)
 				if err != nil {
-					return "", fmt.Errorf("error reading the file:%v", err)
+					return "", fmt.Errorf("error reading the file:%w", err)
 				}
 				statusCode = 0
 			api4:
 				if *rvEnabled {
-					//starts TO0
-					url := fmt.Sprintf("http://%s:%s/api/v1/to0/%s", onrIp, onrPort, deviceGuid)
-					resp, err := apiCalls("GET", url, authType, apiUser, onrApiPasswd, deviceGuid, deviceinfo.HwMacID)
+					// starts TO0
+					url := fmt.Sprintf("http://%s:%s/api/v1/to0/%s", onrIP, onrPort, deviceGUID)
+					resp4, err := apiCalls("GET", url, apiUser, onrAPIPasswd, deviceGUID)
 					if err != nil {
 						zlog.MiSec().MiErr(err).Msgf("")
-						return "", fmt.Errorf("error Details:%v", err)
+						return "", fmt.Errorf("error Details:%w", err)
 					}
-					if resp.StatusCode == http.StatusOK {
-						return string(deviceGuid), nil
-					} else {
-						statusCode++
-						if statusCode < 2 {
-							goto api4
-						}
-						return "", fmt.Errorf("failure in triggering TO0 for %s with GUID %s ", serialNo, deviceGuid)
+					defer resp4.Body.Close()
+					if resp4.StatusCode == http.StatusOK {
+						return string(deviceGUID), nil
 					}
-				} else {
-					return string(deviceGuid), nil
+					statusCode++
+					if statusCode < retryAttempts {
+						goto api4
+					}
+					return "", fmt.Errorf("failure in triggering TO0 for %s with GUID %s ", serialNo, deviceGUID)
 				}
-			} else {
-				statusCode++
-				if statusCode < 2 {
-					goto api3
-				}
-				return "", fmt.Errorf("failure in uploading voucher to owner for device with serial number %s with response code: %d", serialNo, resp.StatusCode)
+				return string(deviceGUID), nil
 			}
-		} else {
 			statusCode++
-			if statusCode < 2 {
-				goto api2
+			if statusCode < retryAttempts {
+				goto api3
 			}
-			return "", fmt.Errorf("failure in getting extended voucher for device with serial number %s with response code: %d", serialNo, resp.StatusCode)
+			return "",
+				fmt.Errorf("failure in uploading voucher to owner for device with serial number %s with response code: %d",
+					serialNo, resp3.StatusCode)
 		}
-	} else {
 		statusCode++
-		if statusCode < 2 {
-			goto api
+		if statusCode < retryAttempts {
+			goto api2
 		}
-		return "", fmt.Errorf("failure in getting owner certificate for type %s with response code: %d", attestationType, resp.StatusCode)
+		return "", fmt.Errorf("failure in getting extended voucher for device with serial number %s with response code: %d",
+			serialNo, resp2.StatusCode)
 	}
+	statusCode++
+	if statusCode < retryAttempts {
+		goto api
+	}
+	return "", fmt.Errorf("failure in getting owner certificate for type %s with response code: %d",
+		attestationType, resp1.StatusCode)
 }
 
-func apiCalls(httpMethod, url, authType, apiUser, onrApiPasswd string, bodyData []byte, hwMac string) (*http.Response, error) {
-	var client *http.Client
+func apiCalls(httpMethod, url, apiUser, onrAPIPasswd string, bodyData []byte) (*http.Response, error) {
+	var httpClient *http.Client
+	authType := "digest"
 	reader := bytes.NewReader(bodyData)
-	req, err := http.NewRequest(httpMethod, url, nil)
+	req, err := http.NewRequestWithContext(context.Background(), httpMethod, url, http.NoBody)
 	if err != nil {
 		return nil, err
 	}
 	if httpMethod == "POST" {
 		req.Body = io.NopCloser(reader)
 	}
-	if strings.ToLower(authType) == "digest" {
-		req.SetBasicAuth(apiUser, onrApiPasswd)
-		client = &http.Client{}
-	} else if strings.ToLower(authType) == "mtls" {
+	switch strings.ToLower(authType) {
+	case "digest":
+		req.SetBasicAuth(apiUser, onrAPIPasswd)
+		httpClient = &http.Client{}
+	case "mtls":
 		return nil, fmt.Errorf("MTLS authentication is not supported over HTTP")
-	} else {
+	default:
 		return nil, fmt.Errorf("provided Auth type is not valid")
 	}
 	req.Header.Add("Content-Type", "text/plain")
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}

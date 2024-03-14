@@ -10,10 +10,11 @@ import (
 	"time"
 
 	"github.com/Nerzal/gocloak/v13"
+	"google.golang.org/grpc/codes"
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/secrets"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
-	"google.golang.org/grpc/codes"
 )
 
 var zlog = logging.GetLogger("OMKeycloakService")
@@ -203,7 +204,8 @@ func (k *keycloakService) Logout(ctx context.Context) {
 	if k.jwtToken.RefreshToken == "" {
 		return
 	}
-	if err := k.keycloakClient.Logout(ctx, OnboardingManagerClientName, secrets.GetClientSecret(), KeycloakRealm, k.jwtToken.RefreshToken); err != nil {
+	if err := k.keycloakClient.Logout(ctx, OnboardingManagerClientName, secrets.GetClientSecret(),
+		KeycloakRealm, k.jwtToken.RefreshToken); err != nil {
 		zlog.MiSec().Err(err).Msgf("Failed to logout from Keycloak")
 		return
 	}
@@ -213,7 +215,11 @@ func getEdgenodeClientName(uuid string) string {
 	return fmt.Sprintf("%s%s", ENCredentialsPrefix, uuid)
 }
 
-// based on https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-deployment/blob/6589185238d3c17c168b2f072a2588b6621688ae/helmfile.d/environments/mp-keycloak/base/values.yaml#L366
+/*
+	based on https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-deployment/blob/
+
+6589185238d3c17c168b2f072a2588b6621688ae/helmfile.d/environments/mp-keycloak/base/values.yaml#L366.
+*/
 func getEdgeNodeClientFromTemplate(uuid string) gocloak.Client {
 	description := fmt.Sprintf("Client to use by Edge Node %s, created by Onboarding Manager at %s",
 		uuid, time.Now().UTC().String())

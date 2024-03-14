@@ -6,12 +6,14 @@ package tinkerbell
 import (
 	"context"
 	"fmt"
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
+
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 )
 
 var (
@@ -41,7 +43,8 @@ func NewWorkflow(name, ns, mac, hardwareRef, templateRef string) *tink.Workflow 
 	return wf
 }
 
-// TODO (LPIO-1865): We can probably optimize it. Instead of doing GET+CREATE we can try CREATE and check if resource already exists.
+// TODO (LPIO-1865): We can probably optimize it.
+// Instead of doing GET+CREATE we can try CREATE and check if resource already exists.
 func CreateWorkflowIfNotExists(ctx context.Context, k8sCli client.Client, workflow *tink.Workflow) error {
 	got := &tink.Workflow{}
 	err := k8sCli.Get(ctx, client.ObjectKeyFromObject(workflow), got)
@@ -62,7 +65,7 @@ func CreateWorkflowIfNotExists(ctx context.Context, k8sCli client.Client, workfl
 	return nil
 }
 
-func DeleteProdWorkflowResourcesIfExist(ctx context.Context, k8sNamespace string, hostUUID string) error {
+func DeleteProdWorkflowResourcesIfExist(ctx context.Context, k8sNamespace, hostUUID string) error {
 	zlog.Info().Msgf("Deleting prod workflow resources for host %s", hostUUID)
 
 	kubeClient, err := K8sClientFactory()
@@ -109,7 +112,7 @@ func DeleteProdWorkflowResourcesIfExist(ctx context.Context, k8sNamespace string
 	return nil
 }
 
-func DeleteDIWorkflowResourcesIfExist(ctx context.Context, k8sNamespace string, hostUUID string) error {
+func DeleteDIWorkflowResourcesIfExist(ctx context.Context, k8sNamespace, hostUUID string) error {
 	zlog.Info().Msgf("Deleting DI template for host %s", hostUUID)
 
 	kubeClient, err := K8sClientFactory()

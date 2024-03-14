@@ -101,8 +101,5 @@ func Test_secretService_init(t *testing.T) {
 			}
 		})
 	}
-	defer func() {
-		common.FlagDisableCredentialsManagement = flag.Bool("", false, "")
-	}()
+	common.FlagDisableCredentialsManagement = flag.Bool("", false, "")
 }
-

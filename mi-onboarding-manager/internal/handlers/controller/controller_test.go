@@ -5,24 +5,25 @@ package controller
 
 import (
 	"context"
-	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
-	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"os"
 	"path/filepath"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/controller/reconcilers"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
-	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
-	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
 	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/controller/reconcilers"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
+	onboarding_mocks "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
+	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
+	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
+	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
+	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
 )
 
 func TestMain(m *testing.M) {
@@ -351,16 +352,16 @@ func TestNew(t *testing.T) {
 }
 
 func TestOnboardingController_Start(t *testing.T) {
-	invClient := &onboarding.MockInventoryClient{}
+	invClient := &onboarding_mocks.MockInventoryClient{}
 	invClient.On("FindAll", mock.Anything, mock.Anything, mock.Anything).
 		Return([]string{}, nil)
-	invClient1 := &onboarding.MockInventoryClient{}
+	invClient1 := &onboarding_mocks.MockInventoryClient{}
 	invClient1.On("FindAll", mock.Anything, mock.Anything, mock.Anything).
 		Return([]string{}, errors.New("Error"))
-	invClient2 := &onboarding.MockInventoryClient{}
+	invClient2 := &onboarding_mocks.MockInventoryClient{}
 	invClient2.On("FindAll", mock.Anything, mock.Anything, mock.Anything).
 		Return([]string{"64-567"}, nil)
-	invClient3 := &onboarding.MockInventoryClient{}
+	invClient3 := &onboarding_mocks.MockInventoryClient{}
 	invClient3.On("FindAll", mock.Anything, mock.Anything, mock.Anything).
 		Return([]string{"os-567"}, nil)
 	type fields struct {
@@ -763,8 +764,7 @@ func TestOnboardingController_filterEvent_Case(t *testing.T) {
 			}
 		})
 	}
-	defer func ()  {
-		os.Remove("internal/handlers/controller/__debug_bin2723494166")	
+	defer func() {
+		os.Remove("internal/handlers/controller/__debug_bin2723494166")
 	}()
 }
-
