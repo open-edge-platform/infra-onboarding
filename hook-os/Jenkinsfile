@@ -230,10 +230,7 @@ pipeline {
 				}
 				stage('Version Tag') {
 					when {
-						allOf {
-							expression { env.BRANCH_NAME == 'main' || env.BRANCH_NAME.startsWith('release') }
-							expression { params.buildHookOs == false }
-						}
+						expression { env.BRANCH_NAME == 'main' || env.BRANCH_NAME.startsWith('release') && params.buildHookOs == false }
 					}
 					steps {
 						withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
@@ -283,10 +280,7 @@ pipeline {
 				}*/
 				stage('Version dev') {
 					when {
-						allOf {
-							expression { env.BRANCH_NAME == 'main' || env.BRANCH_NAME.startsWith('release') }
-							expression { params.buildHookOs == false }
-						}
+						expression { env.BRANCH_NAME == 'main' || env.BRANCH_NAME.startsWith('release') && params.buildHookOs == false }
 					}
 					steps {
 						withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
