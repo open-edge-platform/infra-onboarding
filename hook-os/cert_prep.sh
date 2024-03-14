@@ -16,32 +16,14 @@ set -xu -o pipefail
 
 source ./config
 
-echo "getting intel and cluster certs"
+echo "Getting intel and cluster certs. Ensure KUBECONFIG file for the Orchestrator cluster is copied to $HOME/.kube/config path"
 rm -f client_auth/files/ca.pem
 
-wget_no_proxy="--no-proxy"
-if [ "$external_proxy" != '' ];
-then
-  wget_no_proxy=
-fi
+# Copy maestro-ca.crt from kubernetes secret
+kubectl get secret gateway-ca-cert -n maestro-iaas-system -o jsonpath='{.data.*}' | base64 -d > client_auth/files/ca.pem
 
-attempt=0
-until [ $attempt -ge 5 ]
-do
-  wget --max-redirect=0 "https://vault.${deployment_dns_extension}/v1/pki_root/ca" $wget_no_proxy --no-check-certificate && break
-  attempt=$((attempt+1))
-  sleep 5
-done
-
-set -e
-
-if [ $attempt -eq 5 ]; then
-  echo "Failed to download maestro root cert"
-  exit 1
-fi
-
-openssl x509 -in ca -inform der -outform pem > client_auth/files/ca.pem
-
+# Add new line to ca.pem so that tinkerbell certificate can be inserted in new line
+echo "" >> client_auth/files/ca.pem
 wget "https://${deployment_dns_extension}/boots/ca.crt" $wget_no_proxy --no-check-certificate -O boots_ca.crt
 cat boots_ca.crt >> client_auth/files/ca.pem
 
