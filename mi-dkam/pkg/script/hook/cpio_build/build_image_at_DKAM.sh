@@ -90,32 +90,24 @@ get_cert(){
 	fi
 
 	# Get CA certificates
-	cp /etc/ssl/orch-ca-cert/ca.crt $IDP/server_cert.pem
+	cp /etc/ssl/orch-ca-cert/ca.crt "$IDP"/server_cert.pem
+	cp /etc/ssl/orch-ca-cert/ca.crt "$IDP"/ca.pem
 
 	#Boots certificates
-	#echo "" >> $IDP/server_cert.pem
-	cat /etc/ssl/boots-ca-cert/ca.crt >> $IDP/server_cert.pem
+	echo "" >> "$IDP"/ca.pem
+	cat /etc/ssl/boots-ca-cert/ca.crt >> "$IDP"/ca.pem
 
 	#Intel CA
-	echo $mode
+	echo "$mode"
 	if [ "$mode" == "dev" ]; then
 		echo "mode:"
-		echo "" >> $IDP/server_cert.pem
+		echo "" >> "$IDP"/ca.pem
 		#export no_proxy=$no_proxy,ubit-artifactory-or.intel.com
 		for certfile in intel_5A.crt intel_5A_2.crt intel_5B.crt intel_5B_2.crt intel_root.crt
 		do
-		curl https://ubit-artifactory-or.intel.com/artifactory/it-btrm-local/intel_cacerts/$certfile >> $IDP/server_cert.pem
+		curl https://ubit-artifactory-or.intel.com/artifactory/it-btrm-local/intel_cacerts/$certfile >> "$IDP"/ca.pem
 		done
 	fi
-	# get letsencrypt certs
-	echo "" >> $IDP/server_cert.pem
-	for certfile in isrgrootx1.pem lets-encrypt-r3.pem lets-encrypt-e1.pem trustid-x3-root.pem.txt
-	do
-		curl https://letsencrypt.org/certs/$certfile >> $IDP/server_cert.pem
-		echo $certfile
-	done
-	
-	cp $IDP/server_cert.pem $IDP/ca.pem
 }
 #######################################################################################################
 #
