@@ -32,21 +32,28 @@
 
 #set -x
 
-
 TLS=${FDO_TLS:-'https'}
-IP_ADDRESS=${FDO_MFGIP:-'192.168.1.1'}
+IP_ADDRESS=${FDO_MFGIP:-'localhost'}
 PORT=${FDO_MPORT:-8038}
 MSTRING=${DEVICE_SERIAL:-'abcd12345'}
 TYPE=${TYPE:-'CLIENT-SDK'}
 
+
+#discover the ip address on internal proxy route
+if [ $IP_ADDRESS = "localhost" ]; then
+  PROXYADDR=$(ip route get 1 | head -n 1 | grep -o 'src\s[.0-9a-z]\+' | awk '{print $2}')
+  # check if docker network
+  if echo "$PROXYADDR" | grep -q '^172'; then
+      PROXYADDR=$(ip route | grep default | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b")
+  fi
+  IP_ADDRESS=$PROXYADDR
+fi
 
 echo "TLS : $TLS"
 echo "IP_ADDRESS : $IP_ADDRESS"
 echo "PORT : $PORT"
 echo "MSTRING : $MSTRING"
 echo "TYPE : $TYPE"
-
-
 
 #mkdir /target/
 mkdir -p /target/boot/
@@ -58,18 +65,16 @@ if [ "$MSTRING" = "0" ]; then
 fi
 echo "MSTRING=$MSTRING" | tee /target/boot/SerialNo.txt
 
-
 # Method to run DI using Client-SDK TPM.
-runClientSdkTpmDi()
-{
+runClientSdkTpmDi() {
   # Retry 3 times by default incase the Platform does not support CLIENT-INTEL.
   FDO_RETRIES=${FDO_RETRIES:-3}
-  for run in `seq 1 $FDO_RETRIES`; do
+  for run in $(seq 1 $FDO_RETRIES); do
     echo "Trying to DI the system: $run"
     sh /tpm-fdoout/utils/tpm_make_ready_ecdsa.sh -i -e 256 -p /tpm-fdoout/data
-    echo -n ${MSTRING} > /tpm-fdoout/data/manufacturer_sn.bin
-    echo -n ${MSTRING} > /tpm-fdoout/data/manufacturer_mod.bin
-    echo -n ${TLS}://${IP_ADDRESS}:${PORT} > /tpm-fdoout/data/manufacturer_addr.bin
+    echo -n ${MSTRING} >/tpm-fdoout/data/manufacturer_sn.bin
+    echo -n ${MSTRING} >/tpm-fdoout/data/manufacturer_mod.bin
+    echo -n ${TLS}://${IP_ADDRESS}:${PORT} >/tpm-fdoout/data/manufacturer_addr.bin
     mkdir /data
     cp -rf /tpm-fdoout/data/* /data/
 
@@ -88,7 +93,7 @@ runClientSdkTpmDi()
       cp -rf /data/* /target/boot/data/
       export CLIENT_SDK_TPM_DI_STATUS=Success
       echo "*** Serial=$MSTRING CLIENT_SDK_TPM_DI_SUCCESSFUL***"
-      break;
+      break
     else
       echo '**CLIENT_SDK_TPM_DI_FAILED**' | tee /target/boot/CLIENT_SDK_TPM_DI_STATUS
       export CLIENT_SDK_TPM_DI_STATUS=Fail
@@ -98,14 +103,13 @@ runClientSdkTpmDi()
 }
 
 # Method to run DI using Client-SDK x86.
-runClientSdkDi()
-{
-  echo -n ${TLS}://${IP_ADDRESS}:${PORT} > /fdoout/data/manufacturer_addr.bin
-  echo -n ${MSTRING} > /fdoout/data/manufacturer_sn.bin
-  echo -n ${MSTRING} > /fdoout/data/manufacturer_mod.bin
+runClientSdkDi() {
+  echo -n ${TLS}://${IP_ADDRESS}:${PORT} >/fdoout/data/manufacturer_addr.bin
+  echo -n ${MSTRING} >/fdoout/data/manufacturer_sn.bin
+  echo -n ${MSTRING} >/fdoout/data/manufacturer_mod.bin
   # Retry 3 times by default incase the Platform does not support CLIENT-INTEL.
   FDO_RETRIES=${FDO_RETRIES:-3}
-  for run in `seq 1 $FDO_RETRIES`; do
+  for run in $(seq 1 $FDO_RETRIES); do
     echo "Trying to DI the system: $run"
     rm -rf /data
     mkdir /data
@@ -125,7 +129,7 @@ runClientSdkDi()
       mkdir /target/boot/data/
       cp -rf /data/* /target/boot/data/
       echo "*** Serial=$MSTRING CLIENT_SDK_DI_SUCCESSFUL***"
-      break;
+      break
     else
       echo '**CLIENT_SDK_DI_FAILED**' | tee /target/boot/CLIENT_SDK_DI_STATUS
       echo "*** Serial=$MSTRING CLIENT_SDK_DI_FAILED***"
@@ -134,14 +138,13 @@ runClientSdkDi()
 }
 
 # Method to run DI using Client-SDK CSE.
-runClientSdkCSEDi()
-{
-  echo -n ${TLS}://${IP_ADDRESS}:${PORT} > /cse-fdoout/data/manufacturer_addr.bin
-  echo -n ${MSTRING} > /cse-fdoout/data/manufacturer_sn.bin
-  echo -n ${MSTRING} > /cse-fdoout/data/manufacturer_mod.bin
+runClientSdkCSEDi() {
+  echo -n ${TLS}://${IP_ADDRESS}:${PORT} >/cse-fdoout/data/manufacturer_addr.bin
+  echo -n ${MSTRING} >/cse-fdoout/data/manufacturer_sn.bin
+  echo -n ${MSTRING} >/cse-fdoout/data/manufacturer_mod.bin
   # Retry 3 times by default incase the Platform does not support CLIENT-INTEL.
   FDO_RETRIES=${FDO_RETRIES:-3}
-  for run in `seq 1 $FDO_RETRIES`; do
+  for run in $(seq 1 $FDO_RETRIES); do
     echo "Trying to DI the system: $run"
     rm -rf /data
     mkdir /data
@@ -161,7 +164,7 @@ runClientSdkCSEDi()
       mkdir /target/boot/data/
       cp -rf /data/* /target/boot/data/
       echo "*** Serial=$MSTRING CLIENT_SDK_CSE_DI_SUCCESSFUL***"
-      break;
+      break
     else
       echo '**CLIENT_SDK_CSE_DI_FAILED**' | tee /target/boot/CLIENT_SDK_CSE_DI_STATUS
       echo "*** Serial=$MSTRING CLIENT_SDK_CSE_DI_FAILED***"
@@ -170,52 +173,58 @@ runClientSdkCSEDi()
 }
 
 case "$TYPE" in
-  CLIENT-SDK-TPM)
-    echo "Trying to DI the system using Client-SDK TPM"
-    runClientSdkTpmDi
-    ;;
-  CLIENT-SDK)
-    echo "Trying to DI the system using Client-SDK"
-    runClientSdkDi
-    ;;
-  CLIENT-SDK-CSE)
-    echo "Trying to DI the system using Client-SDK CSE"
-    runClientSdkCSEDi
-    ;;
-  *)
-    echo "Trying to DI the system using CSME framework (CLIENT-INTEL)"
-    runClientIntelDi
-    DI_STATUS="**DI_FAILED**"
-    if [ -e /target/boot/SerialNo.txt -a -e /target/boot/CLIENT_INTEL_DI_STATUS ]; then
-      DI_STATUS=`cat /target/boot/CLIENT_INTEL_DI_STATUS`
-      if [ "$DI_STATUS" = "**CLIENT_INTEL_DI_FAILED**" ]; then
-        echo "================================================================================================="
-        echo "This System lacks DAL framework and CSE based FDO (CLIENT-SDK-CSE) init will be tried"
-        echo "================================================================================================="
-        runClientSdkCSEDi
-        if [ -e /target/boot/SerialNo.txt -a -e /target/boot/CLIENT_SDK_CSE_DI_STATUS ]; then
-          DI_STATUS=`cat /target/boot/CLIENT_SDK_CSE_DI_STATUS`
-          if [ "$DI_STATUS" = "**CLIENT_SDK_CSE_DI_FAILED**" ]; then
-            echo "================================================================================================="
-            echo "This System lacks DAL and CSE framework. TPM based FDO (CLIENT-SDK-TPM) init will be tried"
-            echo "================================================================================================="
-            runClientSdkTpmDi
-            if [ -e /target/boot/SerialNo.txt -a -e /target/boot/CLIENT_SDK_TPM_DI_STATUS ]; then
-              DI_STATUS=`cat /target/boot/CLIENT_SDK_TPM_DI_STATUS`
-              if [ "$DI_STATUS" = "**CLIENT_SDK_TPM_DI_FAILED**" ]; then
-                echo "================================================================================================="
-                echo "This System lacks DAL, CSE and TPM. Software Key based FDO (CLIENT-SDK) init will be accomplished"
-                echo "================================================================================================="
-                runClientSdkDi
-                DI_STATUS=`cat /target/boot/CLIENT_SDK_DI_STATUS`
-              fi
+CLIENT-SDK-TPM)
+  echo "Trying to DI the system using Client-SDK TPM"
+  runClientSdkTpmDi
+  ;;
+CLIENT-SDK)
+  echo "Trying to DI the system using Client-SDK"
+  runClientSdkDi
+  ;;
+CLIENT-SDK-CSE)
+  echo "Trying to DI the system using Client-SDK CSE"
+  runClientSdkCSEDi
+  ;;
+*)
+  echo "Trying to DI the system using CSME framework (CLIENT-INTEL)"
+  runClientIntelDi
+  DI_STATUS="**DI_FAILED**"
+  if [ -e /target/boot/SerialNo.txt -a -e /target/boot/CLIENT_INTEL_DI_STATUS ]; then
+    DI_STATUS=$(cat /target/boot/CLIENT_INTEL_DI_STATUS)
+    if [ "$DI_STATUS" = "**CLIENT_INTEL_DI_FAILED**" ]; then
+      echo "================================================================================================="
+      echo "This System lacks DAL framework and CSE based FDO (CLIENT-SDK-CSE) init will be tried"
+      echo "================================================================================================="
+      runClientSdkCSEDi
+      if [ -e /target/boot/SerialNo.txt -a -e /target/boot/CLIENT_SDK_CSE_DI_STATUS ]; then
+        DI_STATUS=$(cat /target/boot/CLIENT_SDK_CSE_DI_STATUS)
+        if [ "$DI_STATUS" = "**CLIENT_SDK_CSE_DI_FAILED**" ]; then
+          echo "================================================================================================="
+          echo "This System lacks DAL and CSE framework. TPM based FDO (CLIENT-SDK-TPM) init will be tried"
+          echo "================================================================================================="
+          runClientSdkTpmDi
+          if [ -e /target/boot/SerialNo.txt -a -e /target/boot/CLIENT_SDK_TPM_DI_STATUS ]; then
+            DI_STATUS=$(cat /target/boot/CLIENT_SDK_TPM_DI_STATUS)
+            if [ "$DI_STATUS" = "**CLIENT_SDK_TPM_DI_FAILED**" ]; then
+              echo "================================================================================================="
+              echo "This System lacks DAL, CSE and TPM. Software Key based FDO (CLIENT-SDK) init will be accomplished"
+              echo "================================================================================================="
+              runClientSdkDi
+              DI_STATUS=$(cat /target/boot/CLIENT_SDK_DI_STATUS)
             fi
           fi
         fi
       fi
     fi
-    echo "$DI_STATUS"
-    ;;
+  fi
+  echo "$DI_STATUS"
+  ;;
 esac
+
+if [ $(echo $DI_STATUS | grep -oP "DI_FAILED") ]; then
+  #  echo "DI Failed"
+  exit 1
+fi
+
 # mount the /CRED partition as /target folder
 ####  umount  /target

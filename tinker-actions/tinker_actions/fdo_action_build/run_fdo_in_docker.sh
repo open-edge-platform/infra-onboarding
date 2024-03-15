@@ -25,10 +25,9 @@
 # CLIENT_SDK_DI_STATUS
 
 # Check if NGINX proxy service is up
-until [ $(curl -w "%{http_code}" --output /dev/null -s -k https://localhost:8081/health) != 200 ]
-do
-    echo "NGINX server still not up, wait for 10 sec"
-    sleep 10
+until [ $(curl -w "%{http_code}" --output /dev/null -s -k https://localhost:8081/health) != 200 ]; do
+  echo "NGINX server still not up, wait for 10 sec"
+  sleep 10
 done
 
 echo "NGINX server is up, resuming FDO operations.."
@@ -39,27 +38,34 @@ FDO_RUN_TYPE=${FDO_RUN_TYPE:-'to'}
 
 PARTITION_LBL=${DATA_PARTITION_LBL:-'CREDS'}
 # mount the /CRED partition as /target folder
-mkdir -p  /target
-ret=$(mount  -L ${PARTITION_LBL} /target)
+mkdir -p /target
+ret=$(mount -L ${PARTITION_LBL} /target)
 
 if [ "$?" -ne 0 ]; then
   echo "No partion Found with CREDS Label"
   exit 1
-fi 
-
-
-if [[ $FDO_RUN_TYPE == 'di' ]] ; then
-    bash /usr/bin/run_fdo_di.sh
-    ##TODO check retturn values and debug
-else
-    bash /usr/bin/run_fdo_to.sh
-    if [ -e "/dev/shm" ] && [ -r "/dev/shm" ]; then
-      cp -rf /target/boot /dev/shm/
-      echo "fdo data copied at /dev/shm/boot."
-    else
-      echo "/dev/shm is not available or not readable."
-    fi
 fi
 
+ret=0
+if [[ $FDO_RUN_TYPE == 'di' ]]; then
+  bash /usr/bin/run_fdo_di.sh
+  ##TODO check retturn values and debug
+  if [ $? -ne 0 ]; then
+    echo "DI Failed"
+    ret=1
+    #      exit 1
+  fi
+else
+  bash /usr/bin/run_fdo_to.sh
 
-umount  /target
+  if [ -e "/dev/shm" ] && [ -r "/dev/shm" ]; then
+    cp -rf /target/boot /dev/shm/
+    echo "fdo data copied at /dev/shm/boot."
+  else
+    echo "/dev/shm is not available or not readable."
+  fi
+fi
+
+umount /target
+
+exit $ret
