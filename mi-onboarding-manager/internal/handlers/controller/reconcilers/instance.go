@@ -184,6 +184,7 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource, artifactI
 		HwSerialID:      host.GetSerialNumber(),
 		HwMacID:         host.GetPxeMac(),
 		HwIP:            host.GetBmcIp(),
+		Hostname:        host.GetResourceId(), // we use resource ID as hostname to uniquely identify a host
 		SecurityFeature: uint32(instance.GetSecurityFeature()),
 		DiskType:        os.Getenv("DISK_PARTITION"),
 		LoadBalancerIP:  os.Getenv("IMG_URL"),

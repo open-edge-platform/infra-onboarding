@@ -40,6 +40,8 @@ const (
 	ActionCreateSecretsDirectory     = "create-ensp-node-directory" //nolint:gosec // hardcoded secrets need to handle in future.
 	ActionWriteClientID              = "write-client-id"
 	ActionWriteClientSecret          = "write-client-secret"
+	ActionWriteHostname              = "write-hostname"
+	ActionWriteEtcHosts              = "Write-Hosts-etc"
 )
 
 type ProxySetup struct {
@@ -254,7 +256,7 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 
 //nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
 func NewTemplateDataProdBKC(name, _, rootPartNo, hostIP, clientIP, _, _, _ string,
-	securityFeature uint32, clientID, clientSecret string, enableDI bool, tinkerversion string,
+	securityFeature uint32, clientID, clientSecret string, enableDI bool, tinkerversion string, hostname string,
 ) ([]byte, error) {
 	proxySetting := GetProxyEnv()
 	wf := Workflow{
@@ -307,6 +309,37 @@ func NewTemplateDataProdBKC(name, _, rootPartNo, hostIP, clientIP, _, _, _ strin
 						"CONTENTS": fmt.Sprintf(`
 						Acquire::http::Proxy "%s";
 						Acquire::https::Proxy "%s";`, proxySetting.httpProxy, proxySetting.httpsProxy),
+						"UID":     "0",
+						"GID":     "0",
+						"MODE":    "0755",
+						"DIRMODE": "0755",
+					},
+				},
+				{
+					Name:    ActionWriteHostname,
+					Image:   tinkActionWriteFileImage + tinkerversion,
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":   "ext4",
+						"DEST_PATH": "/etc/hostname",
+						"CONTENTS": fmt.Sprintf(`
+%s`, hostname),
+						"UID":     "0",
+						"GID":     "0",
+						"MODE":    "0755",
+						"DIRMODE": "0755",
+					},
+				},
+				{
+					Name:    ActionWriteEtcHosts,
+					Image:   tinkActionWriteFileImage + tinkerversion,
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":   "ext4",
+						"DEST_PATH": "/etc/hosts",
+						"CONTENTS": fmt.Sprintf(`
+127.0.0.1 %s
+            `, hostname),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",

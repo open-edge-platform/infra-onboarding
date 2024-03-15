@@ -32,6 +32,7 @@ type (
 		FdoMfgPort        string
 		FdoRvPort         string
 		TinkerVersion     string
+		Hostname          string
 	}
 
 	ArtifactData struct {

@@ -48,7 +48,7 @@ func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (
 		tmplData, err = NewTemplateDataProdBKC(tmplName, deviceInfo.Rootfspart, deviceInfo.RootfspartNo,
 			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.ClientImgName, deviceInfo.ProvisionerIP,
 			deviceInfo.SecurityFeature, deviceInfo.ClientID, deviceInfo.ClientSecret, *common.FlagEnableDeviceInitialization,
-			deviceInfo.TinkerVersion)
+			deviceInfo.TinkerVersion, deviceInfo.Hostname)
 		if err != nil {
 			return nil, err
 		}

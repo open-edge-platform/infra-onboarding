@@ -19,12 +19,12 @@ func TestWorkflowActionToStatusDetail(t *testing.T) {
 
 	prodBkcWorkflowWithDIData, err := NewTemplateDataProdBKC("test-prod-bkc-di", "", "",
 		"", "", "", "", "",
-		1, "", "", true, "")
+		1, "", "", true, "", "")
 	require.NoError(t, err)
 
 	prodBkcWorkflowWithoutDIData, err := NewTemplateDataProdBKC("test-prod-bkc", "", "",
 		"", "", "", "", "",
-		1, "", "", false, "")
+		1, "", "", false, "", "")
 	require.NoError(t, err)
 
 	prodWorkflowData, err := NewTemplateDataProd("test-prod", "", "", "", "")

@@ -62,6 +62,7 @@ func TestNewTemplateDataProdBKC(t *testing.T) {
 		securityFeature uint32
 		enableDI        bool
 		tinkerVersion   string
+		hostname        string
 	}
 	wf := Workflow{}
 	want, _ := marshalWorkflow(&wf)
@@ -82,7 +83,7 @@ func TestNewTemplateDataProdBKC(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewTemplateDataProdBKC(tt.args.name, tt.args.rootPart, tt.args.rootPartNo, tt.args.hostIP, tt.args.clientIP, tt.args.gateway, tt.args.in8, tt.args.in9, tt.args.securityFeature, tt.args.clientID, tt.args.clientSecret, tt.args.enableDI, tt.args.tinkerVersion)
+			got, err := NewTemplateDataProdBKC(tt.args.name, tt.args.rootPart, tt.args.rootPartNo, tt.args.hostIP, tt.args.clientIP, tt.args.gateway, tt.args.in8, tt.args.in9, tt.args.securityFeature, tt.args.clientID, tt.args.clientSecret, tt.args.enableDI, tt.args.tinkerVersion, tt.args.hostname)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewTemplateDataProdBKC() error = %v, wantErr %v", err, tt.wantErr)
 				return
