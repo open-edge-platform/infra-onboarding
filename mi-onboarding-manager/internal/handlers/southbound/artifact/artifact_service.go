@@ -130,7 +130,7 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 	/* TODO: Need to check this hostresdata array for all the serial numbers existence
 	 *		 already in the system
 	 */
-	_, err = s.invClient.GetHostResourceByUUID(ctx, host.Uuid)
+	hostInv, err := s.invClient.GetHostResourceByUUID(ctx, host.Uuid)
 
 	switch {
 	case inv_errors.IsNotFound(err):
@@ -138,7 +138,7 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 
 	case err == nil:
 		zlog.Debug().Msgf("Create op : Node and its Host Resource Already Exist for GUID %s \n", host.Uuid)
-		if ztErr := s.startZeroTouch(ctx, host.ResourceId); ztErr != nil {
+		if ztErr := s.startZeroTouch(ctx, hostInv.ResourceId); ztErr != nil {
 			zlog.MiSec().MiErr(ztErr).Msgf("startZeroTouch error: %v", ztErr)
 			return nil, ztErr
 		}
@@ -284,7 +284,7 @@ func (s *NodeArtifactService) startZeroTouch(ctx context.Context, hostResID stri
 
 	host, err := s.invClient.GetHostResourceByResourceID(ctx, hostResID)
 	if err != nil {
-		zlog.Err(err).Msgf("Skipping, no host resource found with (uuid=%s)", hostResID)
+		zlog.Err(err).Msgf("Skipping, no host found with resource ID %s", hostResID)
 		return nil
 	}
 
