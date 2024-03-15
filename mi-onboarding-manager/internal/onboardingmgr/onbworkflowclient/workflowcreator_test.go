@@ -12,7 +12,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"math/big"
 	"net"
@@ -364,7 +363,6 @@ func TestVoucherScript_Case(t *testing.T) {
 	if err := os.MkdirAll(scriptDir, 0755); err != nil {
 		t.Fatalf("Error creating directory: %v\n", err)
 	}
-	fmt.Printf("Directory %s created successfully.\n", scriptDir)
 	certOut, err := os.Create(scriptDir + "/ca-cert.pem")
 	if err != nil {
 		t.Fatalf("Failed to create certificate file: %v", err)
@@ -455,12 +453,11 @@ func TestVoucherScript_Case(t *testing.T) {
 	defer server1.Close()
 	// hostIP := ""
 	// deviceSerial := "123"
-	result, err := VoucherScript(utils.DeviceInfo{
+	_, err = VoucherScript(utils.DeviceInfo{
 		HwSerialID:  "123",
 		FdoOwnerDNS: "localhost",
 		FdoMfgDNS:   "localhost",
 	})
-	fmt.Println(result)
 	assert.NoError(t, err)
 	defer func() {
 		rvEnabled = flag.Bool("rvenabl", false, "Set to true if you have enabled rv")
@@ -474,17 +471,15 @@ func TestVoucherExtension_Case(t *testing.T) {
 	}
 	scriptDir := usr.HomeDir + "/pri-fidoiot/component-samples/demo/scripts/"
 	if err := os.MkdirAll(scriptDir, 0755); err != nil {
-		fmt.Printf("Error creating directory: %v\n", err)
+
 		return
 	}
-	fmt.Printf("Directory %s created successfully.\n", scriptDir)
 	scriptContent := []byte("#!/bin/bash\n\n# Your script content here\n")
 	shFilePath := scriptDir + "extend_upload.sh"
 	if err := ioutil.WriteFile(shFilePath, scriptContent, 0755); err != nil {
 		t.Fatalf("Error creating shell script file: %v", err)
 	}
 
-	fmt.Printf("Shell script file %s created successfully.\n", shFilePath)
 	defer func() {
 		if err := os.RemoveAll(scriptDir); err != nil {
 			t.Fatalf("Error removing directory: %v", err)
@@ -542,7 +537,6 @@ func TestVoucherScript_Case1(t *testing.T) {
 	if err := os.MkdirAll(scriptDir, 0755); err != nil {
 		t.Fatalf("Error creating directory: %v\n", err)
 	}
-	fmt.Printf("Directory %s created successfully.\n", scriptDir)
 	certOut, err := os.Create(scriptDir + "/ca-cert.pem")
 	if err != nil {
 		t.Fatalf("Failed to create certificate file: %v", err)
@@ -631,12 +625,11 @@ func TestVoucherScript_Case1(t *testing.T) {
 	server1.Listener = listeners
 	server1.Start()
 	defer server1.Close()
-	result, err := VoucherScript(utils.DeviceInfo{
+	_, err = VoucherScript(utils.DeviceInfo{
 		HwSerialID:  "123",
 		FdoOwnerDNS: "localhost",
 		FdoMfgDNS:   "localhost",
 	})
-	fmt.Println(result)
 	assert.NoError(t, err)
 	defer func() {
 		rvEnabled = flag.Bool("rvabl", false, "Set to true if you have enabled rv")
@@ -662,7 +655,6 @@ func TestVoucherScript_Case2(t *testing.T) {
 	if err := os.MkdirAll(scriptDir, 0755); err != nil {
 		t.Fatalf("Error creating directory: %v\n", err)
 	}
-	fmt.Printf("Directory %s created successfully.\n", scriptDir)
 	certOut, err := os.Create(scriptDir + "/ca-cert.pem")
 	if err != nil {
 		t.Fatalf("Failed to create certificate file: %v", err)
@@ -751,12 +743,11 @@ func TestVoucherScript_Case2(t *testing.T) {
 	server1.Listener = listeners
 	server1.Start()
 	defer server1.Close()
-	result, err := VoucherScript(utils.DeviceInfo{
+	_, err = VoucherScript(utils.DeviceInfo{
 		HwSerialID:  "123",
 		FdoOwnerDNS: "localhost",
 		FdoMfgDNS:   "localhost",
 	})
-	fmt.Println(result)
 	assert.Error(t, err)
 }
 
@@ -780,7 +771,6 @@ func TestVoucherScript_Case3(t *testing.T) {
 	if err := os.MkdirAll(scriptDir, 0755); err != nil {
 		t.Fatalf("Error creating directory: %v\n", err)
 	}
-	fmt.Printf("Directory %s created successfully.\n", scriptDir)
 	certOut, err := os.Create(scriptDir + "/ca-cert.pem")
 	if err != nil {
 		t.Fatalf("Failed to create certificate file: %v", err)
@@ -869,12 +859,11 @@ func TestVoucherScript_Case3(t *testing.T) {
 	server1.Listener = listeners
 	server1.Start()
 	defer server1.Close()
-	result, err := VoucherScript(utils.DeviceInfo{
+	_, err = VoucherScript(utils.DeviceInfo{
 		HwSerialID:  "123",
 		FdoOwnerDNS: "localhost",
 		FdoMfgDNS:   "localhost",
 	})
-	fmt.Println(result)
 	assert.Error(t, err)
 }
 
@@ -898,7 +887,6 @@ func TestVoucherScript_Case4(t *testing.T) {
 	if err := os.MkdirAll(scriptDir, 0755); err != nil {
 		t.Fatalf("Error creating directory: %v\n", err)
 	}
-	fmt.Printf("Directory %s created successfully.\n", scriptDir)
 	certOut, err := os.Create(scriptDir + "/ca-cert.pem")
 	if err != nil {
 		t.Fatalf("Failed to create certificate file: %v", err)
@@ -987,12 +975,11 @@ func TestVoucherScript_Case4(t *testing.T) {
 	server1.Listener = listeners
 	server1.Start()
 	defer server1.Close()
-	result, err := VoucherScript(utils.DeviceInfo{
+	_, err = VoucherScript(utils.DeviceInfo{
 		HwSerialID:  "123",
 		FdoOwnerDNS: "localhost",
 		FdoMfgDNS:   "localhost",
 	})
-	fmt.Println(result)
 	assert.Error(t, err)
 }
 
@@ -1017,7 +1004,6 @@ func TestVoucherScript_Case5(t *testing.T) {
 	if err := os.MkdirAll(scriptDir, 0755); err != nil {
 		t.Fatalf("Error creating directory: %v\n", err)
 	}
-	fmt.Printf("Directory %s created successfully.\n", scriptDir)
 	certOut, err := os.Create(scriptDir + "/ca-cert.pem")
 	if err != nil {
 		t.Fatalf("Failed to create certificate file: %v", err)
@@ -1106,12 +1092,11 @@ func TestVoucherScript_Case5(t *testing.T) {
 	server1.Listener = listeners
 	server1.Start()
 	defer server1.Close()
-	result, err := VoucherScript(utils.DeviceInfo{
+	_, err = VoucherScript(utils.DeviceInfo{
 		HwSerialID:  "123",
 		FdoOwnerDNS: "localhost",
 		FdoMfgDNS:   "localhost",
 	})
-	fmt.Println(result)
 	assert.Error(t, err)
 	defer func() {
 		rvEnabled = flag.Bool("ren", true, "Set to true if you have enabled rv")

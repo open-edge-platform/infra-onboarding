@@ -11,7 +11,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -48,9 +47,9 @@ func unsetEnvironmentVariables() {
 
 	for _, variable := range variablesToUnset {
 		if err := os.Unsetenv(variable); err != nil {
-			fmt.Printf("Failed to unset %s: %v\n", variable, err)
+			zlog.MiSec().MiErr(err).Msgf("Failed to unset %s", variable)
 		} else {
-			fmt.Printf("Unset %s\n", variable)
+			zlog.Debug().Msgf("Unset %s", variable)
 		}
 	}
 }
@@ -73,7 +72,7 @@ func VoucherExtension(hostIP, deviceSerial string) (string, error) {
 		return "", chdirErr
 	}
 
-	log.Printf("Job %s has completed", scriptDir)
+	zlog.Debug().Msgf("Job %s has completed", scriptDir)
 	unsetEnvironmentVariables()
 	variableName := "https_proxy"
 
@@ -81,9 +80,9 @@ func VoucherExtension(hostIP, deviceSerial string) (string, error) {
 	val, present := os.LookupEnv(variableName)
 
 	if present {
-		fmt.Printf("%s env variable present with value: %s\n", variableName, val)
+		zlog.Debug().Msgf("%s env variable present with value: %s\n", variableName, val)
 	} else {
-		fmt.Printf("%s env variable not present\n", variableName)
+		zlog.Debug().Msgf("%s env variable not present\n", variableName)
 	}
 
 	// Make the script executable
@@ -91,7 +90,7 @@ func VoucherExtension(hostIP, deviceSerial string) (string, error) {
 	if runErr := cmdChmod.Run(); runErr != nil {
 		return "", runErr
 	}
-	fmt.Printf("host ip: %s\n", hostIP)
+	zlog.Debug().Msgf("host ip: %s\n", hostIP)
 
 	// Run the shell script with arguments
 	cmdExtendUpload := exec.Command("./extend_upload.sh", "-m", "sh", "-c",
@@ -102,14 +101,14 @@ func VoucherExtension(hostIP, deviceSerial string) (string, error) {
 		return "", fmt.Errorf("error executing script: %w, Output: %s", err, output)
 	}
 
-	fmt.Printf("Script Output: voucher done\n%s\n", output)
+	zlog.Debug().Msgf("Script Output: voucher done\n%s\n", output)
 	// Create the GUID file path
 	guidFilePath := deviceSerial + "_guid.txt"
 
 	// Read the GUID from the file
 	uid, err := readUIDFromFile(guidFilePath)
 	if err != nil {
-		log.Printf("Error reading UID from file: %v", err)
+		zlog.MiSec().MiErr(err).Msgf("Error reading UID from file")
 		// You can handle this error as needed, e.g., return an error or retry.
 		return "", err
 	}

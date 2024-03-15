@@ -13,19 +13,21 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"syscall"
 
+	"github.com/mgechev/revive/logging"
 	log "github.com/sirupsen/logrus"
 )
 
 const mountAction = "/mountAction"
 
+var zlog = logging.GetLogger("Deployment-Onboarding-TinkActions-CredsCopy")
+
 func main() {
-	fmt.Printf("creds_copy - Copy folder\n------------------------\n")
+	zlog.Debug().Msgf("creds_copy - Copy folder------------------------")
 
 	// Parse the environment variables that are passed into the action
 	blockDevice := os.Getenv("BLOCK_DEVICE")
@@ -62,16 +64,16 @@ func main() {
 
 	err = CopyFolder(src, dest)
 	if err != nil {
-		fmt.Printf("Error copying folder: %v\n", err)
+		zlog.MiSec().MiErr(err).Msgf("Error copying folder")
 	} else {
-		fmt.Println("Folder copied successfully.")
+		zlog.Debug().Msgf("Folder copied successfully.")
 	}
 
 	err = syscall.Unmount(mountAction, syscall.MNT_DETACH)
 	if err != nil {
-		fmt.Printf("Error unmounting: %v\n", err)
+		zlog.MiSec().MiErr(err).Msgf("Error unmounting")
 	} else {
-		fmt.Println("Unmounted successfully.")
+		zlog.Debug().Msgf("Unmounted successfully.")
 	}
 }
 
