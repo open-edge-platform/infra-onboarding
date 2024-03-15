@@ -17,6 +17,7 @@ func IsSameHostStatus(
 	newHost *computev1.HostResource,
 ) bool {
 	return oldHost.LegacyHostStatus == newHost.LegacyHostStatus && //nolint:staticcheck // this field will be deprecated soon
+		oldHost.ProviderStatusDetail == newHost.ProviderStatusDetail && //nolint:staticcheck // this field will be deprecated soon
 		oldHost.OnboardingStatusIndicator == newHost.OnboardingStatusIndicator &&
 		oldHost.OnboardingStatus == newHost.OnboardingStatus
 }
