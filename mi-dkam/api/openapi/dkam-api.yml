@@ -1,0 +1,817 @@
+openapi: 3.0.1
+
+info:
+ title: DKAM Service API
+ version: 0.1.0-dev
+ license:
+    name: Intel License
+    url: https://intel.com/licenses/TBD
+paths:
+
+#TODO Need to revisit all the strings for max and min size and allowed charactors
+
+#
+# The Profiles resource can be used by administrators and users
+# to create and persist profiles in the DKAM database. Properties
+# for administrators can allow for the profiles to be visible/shared
+# across all tenants but are read-only. Otherwise profiles created
+# by a user belongs to that user and visible to that user only.
+#
+  /profiles:
+    get:
+      summary: Retrieves all profiles
+      description: Get all custom and global user / profiles identifiers.
+      parameters:
+        - name: name
+          in: query
+          schema:
+            $ref: '#/components/schemas/Name'
+          description: Filter profiles by name
+        - name: author
+          in: query
+          schema:
+            $ref: '#/components/schemas/Name'
+          description: Filter profiles by author
+        - name: version
+          in: query
+          schema:
+            $ref: '#/components/schemas/Version'
+      tags:
+        - Profiles
+      responses:
+        '200':
+          description: A list of all custom profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProfileResource'
+        '400':
+          $ref: '#/components/responses/400-BadRequest'
+        '401':
+          $ref: '#/components/responses/401-Unauthorized'
+        '403':
+          $ref: '#/components/responses/403-Forbidden'
+        '404':
+          $ref: '#/components/responses/404-NotFound'
+        '429':
+          $ref: '#/components/responses/429-TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500-InternalServerError'
+        '501':
+          $ref: '#/components/responses/501-Unimplemented'
+        '503':
+          $ref: '#/components/responses/503-ServiceUnavailable'
+    post:
+      summary: Creates a new profile
+      description: Create a new profile for Edge Node that can be used to generate an Edge Node install package.
+      tags:
+        - Profiles
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileData'
+      responses:
+        '201':
+          description: The profile resource was created, unique ID of the profile returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Id'
+          headers:
+            Location:
+              description: Contains the URI of the created resource
+              required: true
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/400-BadRequest'
+        '401':
+          $ref: '#/components/responses/401-Unauthorized'
+        '403':
+          $ref: '#/components/responses/403-Forbidden'
+        '404':
+          $ref: '#/components/responses/404-NotFound'
+        '429':
+          $ref: '#/components/responses/429-TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500-InternalServerError'
+        '501':
+          $ref: '#/components/responses/501-Unimplemented'
+        '503':
+          $ref: '#/components/responses/503-ServiceUnavailable'
+
+  '/profiles/{ProfileId}':
+    parameters:
+      - name: ProfileId
+        schema:
+          $ref: '#/components/schemas/Id'
+        description: The unique profile identifier
+        in: path
+        required: true
+    get:
+      summary: Retrieves a profile by ID
+      description: Get a profile resource object by its unique identiier.
+      tags:
+        - Profiles
+      responses:
+        '200':
+          description: The requested profile resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResource'
+        '400':
+          $ref: '#/components/responses/400-BadRequest'
+        '401':
+          $ref: '#/components/responses/401-Unauthorized'
+        '403':
+          $ref: '#/components/responses/403-Forbidden'
+        '404':
+          $ref: '#/components/responses/404-NotFound'
+        '429':
+          $ref: '#/components/responses/429-TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500-InternalServerError'
+        '501':
+          $ref: '#/components/responses/501-Unimplemented'
+        '503':
+          $ref: '#/components/responses/503-ServiceUnavailable'
+    put:
+      summary: Updates a profile
+      description: Update a profile resource by its unique identifier.
+      tags:
+        - Profiles
+      responses:
+        '200':
+          description: The requested profile resource was updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileData'
+    delete:
+      summary: Deletes a profile
+      description: Delete a the profile resource identified by the ID
+      tags:
+        - Profiles
+      responses:
+        '204':
+          description: "The profile was successfully deleted"
+        '400':
+          $ref: '#/components/responses/400-BadRequest'
+        '401':
+          $ref: '#/components/responses/401-Unauthorized'
+        '403':
+          $ref: '#/components/responses/403-Forbidden'
+        '404':
+          $ref: '#/components/responses/404-NotFound'
+        '429':
+          $ref: '#/components/responses/429-TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500-InternalServerError'
+        '501':
+          $ref: '#/components/responses/501-Unimplemented'
+        '503':
+          $ref: '#/components/responses/503-ServiceUnavailable'
+#
+# User and ADMIN: These SKU APIs are used for users and administrators
+# to get details of available SKUs. A SKU can only be created by an
+# administrator (Intel). A user can enumerate existing SKUs and get
+# metadata information about a SKU and use a SKU for generation of
+# an install package. An administrator can use the /admin/SKUs API
+# to manage entire SKU definitions including adding, updating, removing
+# SKUs and see entire profile details a SKU is composed of.
+#
+  /skus:
+    get:
+      summary: Retrieves all SKUs
+      description: Get all Intel predefined (curated) SKUs
+      parameters:
+        - name: name
+          in: query
+          schema:
+            $ref: '#/components/schemas/Name'
+          description: Filter SKUs by name
+        - name: author
+          in: query
+          schema:
+            $ref: '#/components/schemas/Name'
+          description: Filter SKUs by author
+        - name: version
+          in: query
+          schema:
+            $ref: '#/components/schemas/Version'
+        - name: platform
+          in: query
+          schema:
+            type: string
+          description: Filter SKUs by platform
+      tags:
+        - SKUs
+      responses:
+        '200':
+          description: An array of all curated skus
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SKUResource'
+        '400':
+          $ref: '#/components/responses/400-BadRequest'
+        '401':
+          $ref: '#/components/responses/401-Unauthorized'
+        '403':
+          $ref: '#/components/responses/403-Forbidden'
+        '404':
+          $ref: '#/components/responses/404-NotFound'
+        '429':
+          $ref: '#/components/responses/429-TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500-InternalServerError'
+        '501':
+          $ref: '#/components/responses/501-Unimplemented'
+        '503':
+          $ref: '#/components/responses/503-ServiceUnavailable'
+
+  '/skus/{SKUId}':
+    parameters:
+      - name: SKUId
+        schema:
+          $ref: '#/components/schemas/Id'
+          # TODO: Need to decide if we should replace SKUId by /components/schemas/Id
+        description: The unique SKU Identifier
+        in: path
+        required: true
+    get:
+      summary: Retrieves a SKU by ID
+      description: Get a SKU resource identified by the ID which contains its metadata.
+      tags:
+        - SKUs
+      responses:
+        '200':
+          description: The requested SKU resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SKUResource'
+        '400':
+          $ref: '#/components/responses/400-BadRequest'
+        '401':
+          $ref: '#/components/responses/401-Unauthorized'
+        '403':
+          $ref: '#/components/responses/403-Forbidden'
+        '404':
+          $ref: '#/components/responses/404-NotFound'
+        '429':
+          $ref: '#/components/responses/429-TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500-InternalServerError'
+        '501':
+          $ref: '#/components/responses/501-Unimplemented'
+        '503':
+          $ref: '#/components/responses/503-ServiceUnavailable'
+
+  '/skus/{SKUId}/install-pkg':
+    parameters:
+      - name: SKUId
+        schema:
+          $ref: '#/components/schemas/Id'
+        description: The unique SKU Identifier
+        in: path
+        required: true
+    get:
+      summary: Retrieves the SKU's install package
+      description: Downloads a base-64 encoded install package defined by the SKU.
+      tags:
+        - SKUs
+      responses:
+        '200':
+          description: The requested install script
+          content:
+            application/text:
+              schema:
+                type: string
+                format: base64
+        '400':
+          $ref: '#/components/responses/400-BadRequest'
+        '401':
+          $ref: '#/components/responses/401-Unauthorized'
+        '403':
+          $ref: '#/components/responses/403-Forbidden'
+        '404':
+          $ref: '#/components/responses/404-NotFound'
+        '429':
+          $ref: '#/components/responses/429-TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500-InternalServerError'
+        '501':
+          $ref: '#/components/responses/501-Unimplemented'
+        '503':
+          $ref: '#/components/responses/503-ServiceUnavailable'
+
+  '/admin/skus':
+   post:
+      summary: Creates a SKU (Admin)
+      description: Create a new SKU resource (Admin) and bind it to a profile.
+      tags:
+        - SKUs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SKUResource'
+      responses:
+        '201':
+          description: The requested SKU was successfully created, unique ID of the SKU returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Id'
+          headers:
+            Location:
+              description: Contains the URI of the created resource
+              required: true
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/400-BadRequest'
+        '401':
+          $ref: '#/components/responses/401-Unauthorized'
+        '403':
+          $ref: '#/components/responses/403-Forbidden'
+        '404':
+          $ref: '#/components/responses/404-NotFound'
+        '429':
+          $ref: '#/components/responses/429-TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500-InternalServerError'
+        '501':
+          $ref: '#/components/responses/501-Unimplemented'
+        '503':
+          $ref: '#/components/responses/503-ServiceUnavailable'
+ 
+  '/admin/skus/{SKUId}':
+    parameters:
+      - name: SKUId
+        schema:
+          $ref: '#/components/schemas/Id'
+        description: The unique SKU Identifier
+        in: path
+        required: true
+    get:
+      #TODO /skus/{SKUId} is also returning profile. Need to change it or remove this GET for admin
+      summary: Retrieves a SKU (Admin)
+      description: Get a SKU resource, all details including profile (Admin)
+      tags:
+        - SKUs
+      responses:
+        '200':
+          description: The requested SKU resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SKUResource'
+        '400':
+          $ref: '#/components/responses/400-BadRequest'
+        '401':
+          $ref: '#/components/responses/401-Unauthorized'
+        '403':
+          $ref: '#/components/responses/403-Forbidden'
+        '404':
+          $ref: '#/components/responses/404-NotFound'
+        '429':
+          $ref: '#/components/responses/429-TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500-InternalServerError'
+        '501':
+          $ref: '#/components/responses/501-Unimplemented'
+        '503':
+          $ref: '#/components/responses/503-ServiceUnavailable'
+    put:
+      summary: Updates a SKU (Admin)
+      description: Update a SKU resource (Admin)
+      tags:
+        - SKUs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SKUResource'
+      responses:
+        '200':
+          description: The requested SKU resource was updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SKUResource'
+    delete:
+      summary: Deletes a SKU (Admin)
+      description: Deletes a SKU resource (Admin)
+      tags:
+        - SKUs
+      responses:
+        '204':
+          description: "The SKU was successfully deleted"
+        '400':
+          $ref: '#/components/responses/400-BadRequest'
+        '401':
+          $ref: '#/components/responses/401-Unauthorized'
+        '403':
+          $ref: '#/components/responses/403-Forbidden'
+        '404':
+          $ref: '#/components/responses/404-NotFound'
+        '429':
+          $ref: '#/components/responses/429-TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500-InternalServerError'
+        '501':
+          $ref: '#/components/responses/501-Unimplemented'
+        '503':
+          $ref: '#/components/responses/503-ServiceUnavailable'
+#
+# ADMIN Only: These module APIs are for updating and managing modules in the DKAM
+# database. Modules are the smallest unit of composability of a profile construct.
+#  
+  '/admin/modules/':
+    get:
+      summary: Retrieves all modules (Admin)
+      description: Get all the modules
+      parameters:
+        - name: name
+          in: query
+          schema:
+            $ref: '#/components/schemas/Name'
+          description: Filter profiles by name
+        - name: version
+          in: query
+          schema:
+            $ref: '#/components/schemas/Version'
+          description: Filter profiles by verrsion
+      tags:
+        - Modules
+      responses:
+        '200':
+          description: A list of all modules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModuleResource'
+        '400':
+          $ref: '#/components/responses/400-BadRequest'
+        '401':
+          $ref: '#/components/responses/401-Unauthorized'
+        '403':
+          $ref: '#/components/responses/403-Forbidden'
+        '404':
+          $ref: '#/components/responses/404-NotFound'
+        '429':
+          $ref: '#/components/responses/429-TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500-InternalServerError'
+        '501':
+          $ref: '#/components/responses/501-Unimplemented'
+        '503':
+          $ref: '#/components/responses/503-ServiceUnavailable'
+    post:
+      summary: Creates a new module
+      description: Create a new module resource (Admin)
+      tags:
+        - Modules
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModuleData'
+      responses:
+        '201':
+          description: The module resource was created, unique ID of the module returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Id'
+          headers:
+            Location:
+              description: Contains the URI of the created resource
+              required: true
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/400-BadRequest'
+        '401':
+          $ref: '#/components/responses/401-Unauthorized'
+        '403':
+          $ref: '#/components/responses/403-Forbidden'
+        '404':
+          $ref: '#/components/responses/404-NotFound'
+        '429':
+          $ref: '#/components/responses/429-TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500-InternalServerError'
+        '501':
+          $ref: '#/components/responses/501-Unimplemented'
+        '503':
+          $ref: '#/components/responses/503-ServiceUnavailable'
+   
+  '/admin/modules/{ModuleId}/':
+    parameters:
+      - name: ModuleId
+        schema:
+          $ref: '#/components/schemas/Id'
+        description: The unique module Identifier
+        in: path
+        required: true
+    get:
+      summary: Retrieves a module.
+      description: Get a module resource (Admin)
+      tags:
+        - Modules
+      responses:
+        '200':
+          description: The requested module resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleResource'
+     
+    put:
+      summary: Update a module.
+      description: Update a module resource (Admin)
+      tags:
+        - Modules
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModuleData'
+      responses:
+        '200':
+          description: The requested module resource was updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleResource'
+    delete:
+      summary: Deletes a module.
+      description: Delete a module resource (Admin)
+      tags:
+        - Modules
+      responses:
+        '204':
+          description: "The module was successfully deleted"
+        '400':
+          $ref: '#/components/responses/400-BadRequest'
+        '401':
+          $ref: '#/components/responses/401-Unauthorized'
+        '403':
+          $ref: '#/components/responses/403-Forbidden'
+        '404':
+          $ref: '#/components/responses/404-NotFound'
+        '429':
+          $ref: '#/components/responses/429-TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500-InternalServerError'
+        '501':
+          $ref: '#/components/responses/501-Unimplemented'
+        '503':
+          $ref: '#/components/responses/503-ServiceUnavailable'
+     
+components:
+  schemas:
+    Name:
+      type: string
+      pattern: '^[a-zA-Z0-9_ -]+$'
+      maxLength: 32
+
+    Version:
+      type: string
+      pattern: '^(0|[1-9]\d{0,2})\.(0|[1-9]\d{0,2})\.(0|[1-9]\d{0,2})(-[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*)?$'
+      description: A version string following the format XX.YY.ZZ with an optional pre-release identifier.
+      example: 1.0.0-alpha
+
+    Id:
+      type: object
+      properties:
+        id:
+          description: The unique ID of the resource, prefixed with one of the allowed prefixes (e.g., 'pro-123e4567-f89a-72d3-a456-426614174021', 'sku-342e4567-e89b-16d3-a456-326614174543', , 'mod-783e4567-e89b-12a3-a443-566614174456').
+          type: string
+          pattern: '^(sku-|pro-|mod-)[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+
+    SKUResource:
+      allOf:
+        - $ref: '#/components/schemas/Id'
+        - $ref: '#/components/schemas/SKUData'
+    SKUData:
+      description: A SKU resource instance
+      required:
+        - name
+        - version
+        - author
+        - platform
+      type: object
+      properties:
+        name:
+          $ref: '#/components/schemas/Name'
+        author:
+          $ref: '#/components/schemas/Name'
+        description:
+          description: A user friendly description of the module
+          type: string
+          maxLength: 64
+        version:
+          $ref: '#/components/schemas/Version'
+        platform: 
+          anyOf:
+            - $ref: '#/components/schemas/PlatformXeon'
+            - $ref: '#/components/schemas/PlatformCore'
+        profile:
+          $ref: '#/components/schemas/ProfileResource'
+    PlatformXeon:
+      description: Describes a Xeon platform
+      type: object
+      required:
+        - generation
+      properties:
+        generation:
+          type: string
+          enum: [3rd, 4th]
+    PlatformCore:
+      description: Describes a Core platform
+      type: object
+      required:
+        - generation
+      properties:
+        generation:
+          type: string
+          enum: [12th, 13th, 14th]
+
+    ProfileResource:
+      description: SW profile for Edge platform
+      oneOf:
+        - allOf:
+          - $ref: '#/components/schemas/Id'
+          - $ref: '#/components/schemas/ProfileData'
+        - allOf:
+          - $ref: '#/components/schemas/Id'
+          - $ref: '#/components/schemas/ProfileData'
+          - $ref: '#/components/schemas/ModuleList'
+    ProfileData:
+      type: object
+      required:
+        - name
+        - author
+        - version
+        - shared
+        - modules
+      properties:
+        name:
+          $ref: '#/components/schemas/Name'
+        author:
+          $ref: '#/components/schemas/Name'
+        description:
+          description: A user friendly description of the module
+          type: string
+          maxLength: 64
+        version:
+          $ref: '#/components/schemas/Version'
+        shared:
+          description: Indicates if the profile is private or shared
+          type: boolean
+    ModuleList:
+      description: All modules in a profile
+      type: array
+      items:
+        $ref: '#/components/schemas/ModuleResource'
+      minItems: 1
+    ModuleResource:
+      allOf:
+        - $ref: '#/components/schemas/Id'
+        - $ref: '#/components/schemas/ModuleData'
+    ModuleData:
+      type: object
+      properties:
+        name:
+          $ref: '#/components/schemas/Name'
+        description:
+          description: A user friendly description of the module
+          type: string
+          maxLength: 64
+        version:
+          $ref: '#/components/schemas/Version'
+        module-deps:
+          description: Module dependencies identified by *module-name*
+          type: array
+          items:
+            $ref: '#/components/schemas/Name'
+        components:
+          description: Component defined by the module
+          type: array
+          items:
+            $ref: '#/components/schemas/ComponentData'
+          minItems: 1
+
+    ComponentData:
+      description: Defines a software component included in a module definitions
+      type: object
+      properties:
+        name:
+          $ref: '#/components/schemas/Name'
+        description:
+          description: A user friendly description of the componentb
+          type: string
+          maxLength: 64
+        type:
+          description: The type of software artifact
+          enum:
+            - ARTIFACT_TYPE_UNSPECIFIED
+            - ARTIFACT_TYPE_DEBIAN
+            - ARTIFACT_TYPE_CONTAINER
+            - ARTIFACT_TYPE_HELM
+        script:
+          description: The associated install script of the component
+          type: string
+          format: byte  # Base64-encoded install script
+
+    ProblemDetails:
+      description: A problem detail to carry a message in a HTTP error response.
+      type: object
+      properties:
+        message:
+          description: 'Contains detailed information about the problem, such as its source data that can be used for debugging purposes.'
+          type: string
+          readOnly: true
+
+  responses:
+    400-BadRequest:
+      description: Object in payload not properly formulated
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    401-Unauthorized:
+      description: 'Request was not uthenticated.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    403-Forbidden:
+      description: 'Request was not authorized.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    404-NotFound:
+      description: No resource found at the URI
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    408-Timeout:
+      description: Request timeout
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    409-Conflict:
+      description: Request could not be processed in the current state of the resource
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    429-TooManyRequests:
+      description: Too many requests have been sent in a given amount of time
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    422-UnprocessableEntity:
+      description: Unprocessable entity in parsing body request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    500-InternalServerError:
+      description: The provider is currently unable to handle the request due to an internal error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    501-Unimplemented:
+      description: The resource or method is not implemented.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    503-ServiceUnavailable:
+      description: The provider is currently unable to handle the request due to a temporary overload
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
