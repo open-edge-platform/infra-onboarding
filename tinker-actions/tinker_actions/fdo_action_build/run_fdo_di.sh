@@ -39,14 +39,9 @@ MSTRING=${DEVICE_SERIAL:-'abcd12345'}
 TYPE=${TYPE:-'CLIENT-SDK'}
 
 
-#discover the ip address on internal proxy route
+#use discovered ip address on internal proxy route
 if [ $IP_ADDRESS = "localhost" ]; then
-  PROXYADDR=$(ip route get 1 | head -n 1 | grep -o 'src\s[.0-9a-z]\+' | awk '{print $2}')
-  # check if docker network
-  if echo "$PROXYADDR" | grep -q '^172'; then
-      PROXYADDR=$(ip route | grep default | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b")
-  fi
-  IP_ADDRESS=$PROXYADDR
+  IP_ADDRESS=${PROXYADDR:-'localhost'}
 fi
 
 echo "TLS : $TLS"

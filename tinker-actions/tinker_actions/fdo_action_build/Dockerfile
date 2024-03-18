@@ -118,6 +118,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
   openssl \
   wget \
   libnghttp2-dev \
+  iproute2 \
   bsdmainutils && apt-get clean
 
 # Install curl built from fdo-client-sdk-builder

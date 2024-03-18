@@ -24,13 +24,21 @@
 # CLIENT_SDK_TPM_DI_STATUS
 # CLIENT_SDK_DI_STATUS
 
+PROXYADDR=$(ip route get 1 | head -n 1 | grep -o 'src\s[.0-9a-z]\+' | awk '{print $2}')
+# check if docker network
+if echo "$default_ip" | grep -q '^172'; then
+    PROXYADDR=$(ip route | grep default | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b")
+fi
+export PROXYADDR=$PROXYADDR
+
+
 # Check if NGINX proxy service is up
-until [ $(curl -w "%{http_code}" --output /dev/null -s -k https://localhost:8081/health) != 200 ]; do
-  echo "NGINX server still not up, wait for 10 sec"
+until [ $(curl -w "%{http_code}" --output /dev/null -s -k https://$PROXYADDR:8081/health) = 200 ]; do
+  echo "Internal Proxy server still not up, wait for 10 sec"
   sleep 10
 done
 
-echo "NGINX server is up, resuming FDO operations.."
+echo "Internal Proxy server is up, resuming FDO operations.."
 
 # mount the /CRED partition as /target folder
 ## sudo mount  -L ${DATA_PARTITION_LBL} /target
