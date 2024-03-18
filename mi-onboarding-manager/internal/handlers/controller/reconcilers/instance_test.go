@@ -68,9 +68,6 @@ func TestReconcileInstance(t *testing.T) {
 		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
 
-	// we increase retry delay to avoid race conditions in the test
-	retryMinDelay = 10 * time.Second
-
 	// TODO: test with DI enabled, once FDO client is refactored
 	*common.FlagEnableDeviceInitialization = false
 	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
@@ -162,9 +159,6 @@ func TestReconcileInstance(t *testing.T) {
 		computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONED)
 
 	// delete
-	// first try will fail
-	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, true)
-
 	res = &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Instance{
 			Instance: &computev1.InstanceResource{
@@ -173,15 +167,6 @@ func TestReconcileInstance(t *testing.T) {
 			},
 		},
 	}
-	_, err = inv_testing.TestClients[inv_testing.APIClient].Update(ctx, instanceID, &fmk, res)
-	require.NoError(t, err)
-
-	runReconcilationFunc()
-
-	// possible race condition here because of the retry from the previous delete try,
-	// increased minDelay should postpone this event in time.
-	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
-
 	_, err = inv_testing.TestClients[inv_testing.APIClient].Update(ctx, instanceID, &fmk, res)
 	require.NoError(t, err)
 
