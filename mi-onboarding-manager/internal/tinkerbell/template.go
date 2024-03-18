@@ -78,7 +78,7 @@ func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (
 
 func GenerateTemplateForDI(k8sNamespace string, deviceInfo utils.DeviceInfo) (*tink.Template, error) {
 	tmplName := "fdodi-" + deviceInfo.GUID
-	tmplData, err := NewTemplateData(tmplName, deviceInfo.ProvisionerIP, "CLIENT-SDK-TPM",
+	tmplData, err := NewTemplateData(tmplName, deviceInfo.HwIP, "CLIENT-SDK-TPM",
 		deviceInfo.DiskType, deviceInfo.HwSerialID, deviceInfo.TinkerVersion)
 	if err != nil {
 		// failed to marshal template data
