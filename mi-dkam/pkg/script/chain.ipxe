@@ -1,22 +1,46 @@
 #!ipxe
 
-echo "==== iPXE boot success, chainloading Micro-OS ==== "
+echo ==== iPXE boot success, chainloading Micro-OS ====
 
 set tink_url <TINK_STACK_URL>
-echo "Sleeping for 3s"
+echo Sleeping for 3s
 sleep 3
 
-# Get DHCP address, w/ 10 second timeout
-ifconf --timeout 10000 || goto debugshell
+# initiate index for retry loop of DHCP
+set idx:int32 0
+set retry_limit:int32 5
+
+# get DHCP address, w/ infinite timeout
+:registerwithnetwork
+echo 
+echo => Registering with Network
+ifconf --timeout=-1 && goto networkconfig || iseq ${idx} ${retry_limit} && goto ifconferror || inc idx && echo Unable to register with network && echo RETRY NO ${idx} && goto registerwithnetwork
 
 # display network settings before chainloading
+:networkconfig
+echo 
 echo "Network Configuration"
 ifstat
 route
 
-# chainload tink
-chain ${tink_url}/discover.php?mac=${mac}&&uuid=${uuid}&&serial_id=${serial}&&en_ip=${ip}&&boot_url=${tink_url} || goto debugshell
 
-# debugging shell, have to hit key within 10s timeout to enter, or iPXE will exit
-:debugshell
-prompt --timeout 10000 Press any key for iPXE command line... && shell || exit
+# chainload tink
+:chainload
+echo 
+echo => Chainloading to CDN-NGINX
+echo 
+echo sleeping for 5s
+sleep 5
+chain ${tink_url}/discover.php?mac=${mac}&&uuid=${uuid}&&serial_id=${serial}&&en_ip=${ip}&&boot_url=${tink_url} || goto chainloaderror
+
+:ifconferror
+echo 
+echo Error: Could not connect to network via ifconf
+echo Retry with UEFI HTTP Boot again
+shell
+
+:chainloaderror
+echo 
+echo Error: Could not chainload to CDN NGINX
+echo Retry with UEFI HTTP Boot again
+shell
