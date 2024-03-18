@@ -28,6 +28,8 @@ DOCKER_REGISTRY         ?= amr-registry.caas.intel.com
 DOCKER_REPOSITORY       ?= one-intel-edge/maestro-i
 DOCKER_TAG              := ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}
 
+SCRIPTS_DIR     := ./pkg/script/Installer
+
 # Postgres DB configuration and credentials for testing. This mimics the Aurora
 # production environment.
 export PGUSER=admin
@@ -65,7 +67,7 @@ docker-push:
 
 #lint-ci: license go-lint
 
-lint-ci: go-lint license
+lint-ci: go-lint license shellcheck
 
 # Maintenance and lint targets
 license: $(VENV_NAME) ## Check licensing with the reuse tool.
@@ -76,6 +78,9 @@ license: $(VENV_NAME) ## Check licensing with the reuse tool.
 go-lint: ## run go lint
 	golangci-lint linters
 
+shellcheck: ## Check all shell scripts
+	shellcheck --version
+	shellcheck $(SCRIPTS_DIR)
 
 lint:
 	@# Help: Runs lint stage
