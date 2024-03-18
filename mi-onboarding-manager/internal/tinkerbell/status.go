@@ -77,10 +77,15 @@ func GenerateStatusDetailFromWorkflowState(workflow *tink.Workflow) string {
 func prepareStatusDetails(totalActions int, actions []tink.Action) string {
 	currActionNumber := 1
 	message := ""
-	for _, action := range actions {
+	for i, action := range actions {
 		if action.Name == "" {
 			zlog.Warn().Msgf("A Tink action with empty name, invalid workflow")
 			return ""
+		}
+
+		// find first non-success action, unless it's last action
+		if action.Status == tink.WorkflowStateSuccess && i != len(actions)-1 {
+			continue
 		}
 
 		statusDetail, ok := workflowStepToStatusDetail[action.Name]
@@ -89,25 +94,21 @@ func prepareStatusDetails(totalActions int, actions []tink.Action) string {
 			statusDetail = action.Name
 		}
 
-		if action.Status == tink.WorkflowStatePending || action.Status == tink.WorkflowStateRunning || action.Status == "" {
-			currActionNumber++
-			break
-		}
+		message = statusDetail
 
 		if action.Status == tink.WorkflowStateFailed {
 			message = fmt.Sprintf("%s failed", statusDetail)
 			if action.Message != "" {
 				message += fmt.Sprintf(": %s", action.Message)
 			}
-			break
 		}
 
 		if action.Status == tink.WorkflowStateTimeout {
 			message = fmt.Sprintf("%s timeout", statusDetail)
-			break
 		}
 
-		message = statusDetail
+		currActionNumber = i + 1
+		break
 	}
 
 	return fmt.Sprintf("%d/%d: %s", currActionNumber, totalActions, message)

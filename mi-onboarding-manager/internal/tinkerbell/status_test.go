@@ -147,6 +147,28 @@ func TestGenerateStatusDetailFromWorkflowState(t *testing.T) {
 			want: fmt.Sprintf("1/1: %s", workflowStepToStatusDetail[ActionReboot]),
 		},
 		{
+			name: "Multiple actions - workflow not completed 0",
+			args: args{
+				workflow: &tink.Workflow{Status: tink.WorkflowStatus{
+					Tasks: []tink.Task{
+						{
+							Actions: []tink.Action{
+								{
+									Name:   ActionAddAptProxy,
+									Status: "",
+								},
+								{
+									Name:   ActionReboot,
+									Status: "",
+								},
+							},
+						},
+					},
+				}},
+			},
+			want: fmt.Sprintf("1/2: %s", workflowStepToStatusDetail[ActionAddAptProxy]),
+		},
+		{
 			name: "Multiple actions - workflow not completed 1",
 			args: args{
 				workflow: &tink.Workflow{Status: tink.WorkflowStatus{
@@ -170,7 +192,7 @@ func TestGenerateStatusDetailFromWorkflowState(t *testing.T) {
 					},
 				}},
 			},
-			want: fmt.Sprintf("2/3: %s", workflowStepToStatusDetail[ActionAddAptProxy]),
+			want: fmt.Sprintf("3/3: %s", workflowStepToStatusDetail[ActionReboot]),
 		},
 		{
 			name: "Multiple actions - workflow not completed 2",
@@ -196,7 +218,7 @@ func TestGenerateStatusDetailFromWorkflowState(t *testing.T) {
 					},
 				}},
 			},
-			want: fmt.Sprintf("2/3: %s", workflowStepToStatusDetail[ActionAddAptProxy]),
+			want: fmt.Sprintf("3/3: %s", workflowStepToStatusDetail[ActionReboot]),
 		},
 		{
 			name: "Multiple actions - workflow not completed 3",
@@ -222,7 +244,7 @@ func TestGenerateStatusDetailFromWorkflowState(t *testing.T) {
 					},
 				}},
 			},
-			want: fmt.Sprintf("2/3: %s", workflowStepToStatusDetail[ActionAddAptProxy]),
+			want: fmt.Sprintf("3/3: %s", workflowStepToStatusDetail[ActionReboot]),
 		},
 		{
 			name: "Unknown action",
@@ -248,7 +270,7 @@ func TestGenerateStatusDetailFromWorkflowState(t *testing.T) {
 					},
 				}},
 			},
-			want: fmt.Sprintf("2/3: %s", "unknown-action"),
+			want: fmt.Sprintf("3/3: %s", workflowStepToStatusDetail[ActionReboot]),
 		},
 		{
 			name: "Failed action",
@@ -271,7 +293,7 @@ func TestGenerateStatusDetailFromWorkflowState(t *testing.T) {
 					},
 				}},
 			},
-			want: fmt.Sprintf("1/2: %s failed: some message", workflowStepToStatusDetail[ActionAddAptProxy]),
+			want: fmt.Sprintf("2/2: %s failed: some message", workflowStepToStatusDetail[ActionAddAptProxy]),
 		},
 		{
 			name: "First action failed",
@@ -314,7 +336,7 @@ func TestGenerateStatusDetailFromWorkflowState(t *testing.T) {
 					},
 				}},
 			},
-			want: fmt.Sprintf("1/2: %s failed", workflowStepToStatusDetail[ActionAddAptProxy]),
+			want: fmt.Sprintf("2/2: %s failed", workflowStepToStatusDetail[ActionAddAptProxy]),
 		},
 		{
 			name: "Timed out action",
@@ -337,7 +359,7 @@ func TestGenerateStatusDetailFromWorkflowState(t *testing.T) {
 					},
 				}},
 			},
-			want: fmt.Sprintf("1/2: %s timeout", workflowStepToStatusDetail[ActionAddAptProxy]),
+			want: fmt.Sprintf("2/2: %s timeout", workflowStepToStatusDetail[ActionAddAptProxy]),
 		},
 	}
 	for _, tt := range tests {
