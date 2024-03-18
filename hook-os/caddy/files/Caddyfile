@@ -59,8 +59,7 @@ localhost:7443 {
 }
 
 # Proxy server for FDO manufacturer service
-localhost:8081 {
-    bind 127.0.0.1 
+"localhost.internal":8081 {
     tls /etc/caddy/caddy-cert.pem /etc/caddy/caddy-key.pem
 
     respond /health "Caddy healthy!!" 200
@@ -86,8 +85,7 @@ localhost:8081 {
 }
 
 # Proxy server for FDO owner service
-localhost:8082 {
-    bind 127.0.0.1 
+"localhost.internal":8082 {
     tls /etc/caddy/caddy-cert.pem /etc/caddy/caddy-key.pem
 
     respond /health "Caddy healthy!!" 200
