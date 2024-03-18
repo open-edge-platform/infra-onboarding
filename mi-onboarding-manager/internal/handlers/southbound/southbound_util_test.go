@@ -6,8 +6,9 @@ import (
 	"net"
 	"testing"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 	"google.golang.org/grpc"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 )
 
 func TestSBHandler_Stop(t *testing.T) {

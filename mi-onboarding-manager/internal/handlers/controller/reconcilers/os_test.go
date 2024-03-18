@@ -310,6 +310,7 @@ func (m *MockClientConn) NewStream(ctx context.Context, desc *grpc.StreamDesc, m
 	argsMock := m.Called(ctx, desc, method, opts)
 	return argsMock.Get(0).(grpc.ClientStream), argsMock.Error(1)
 }
+
 func TestOsReconciler_reconcileOsInstance(t *testing.T) {
 	os.Setenv("DKAMHOST", "localhost")
 	os.Setenv("DKAMPORT", "7513")

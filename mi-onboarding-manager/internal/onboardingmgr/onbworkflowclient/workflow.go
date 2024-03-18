@@ -20,13 +20,31 @@ import (
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/auth"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/fdoclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/tinkerbell"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
+)
+
+// TODO (LPIO-1863): avoid hardcoding.
+const (
+	k8sNamespace = "maestro-iaas-system"
+
+	hwPrefixName       = "machine-"
+	workFlowPrefixName = "workflow-"
+
+	//nolint:lll // keep long line for better readability
+	sviInfoPayload = `[{"filedesc" : "client_id","resource" : "$(guid)_%s"},{"filedesc" : "client_secret","resource" : "$(guid)_%s"}]`
+)
+
+var (
+	clientName = "Workflow"
+	zlog       = logging.GetLogger(clientName)
 )
 
 //nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
@@ -34,9 +52,6 @@ type ResponseData struct {
 	To2CompletedOn string `json:"to2CompletedOn"`
 	To0Expiry      string `json:"to0Expiry"`
 }
-
-// TODO (LPIO-1863): avoid hardcoding.
-const k8sNamespace = "maestro-iaas-system"
 
 func checkTO2StatusCompleted(_ context.Context, deviceInfo utils.DeviceInfo) (bool, error) {
 	// Make an HTTP GET request
@@ -240,20 +255,23 @@ func runFDOActionsIfNeeded(ctx context.Context, deviceInfo utils.DeviceInfo) err
 		return err
 	}
 
-	err = SendFileToOwner(deviceInfo.FdoOwnerDNS, deviceInfo.FdoOwnerPort, deviceInfo.FdoGUID, "client_id", clientID)
+	clientIDFilename := fmt.Sprintf("%s_%s", deviceInfo.FdoGUID, "client_id")
+	err = fdoclient.SendFileToOwner(ctx, clientIDFilename, clientID)
 	if err != nil {
 		zlog.MiErr(err).Msg("")
 		return inv_errors.Errorf("Failed to send client_id file to FDO owner: %v", err)
 	}
 
-	err = SendFileToOwner(deviceInfo.FdoOwnerDNS, deviceInfo.FdoOwnerPort, deviceInfo.FdoGUID, "client_secret", clientSecret)
+	clientSecretFilename := fmt.Sprintf("%s_%s", deviceInfo.FdoGUID, "client_secret")
+	err = fdoclient.SendFileToOwner(ctx, clientSecretFilename, clientSecret)
 	if err != nil {
 		zlog.MiErr(err).Msg("")
 		return inv_errors.Errorf("Failed to send client_secret file to FDO owner: %v", err)
 	}
 
+	payload := fmt.Sprintf(sviInfoPayload, "client_id", "client_secret")
 	// doing svi for secret Transfer
-	err = ExecuteSVI(deviceInfo.FdoOwnerDNS, deviceInfo.FdoOwnerPort, "client_id", "client_secret")
+	err = fdoclient.ExecuteSVI(ctx, payload)
 	if err != nil {
 		return inv_errors.Errorf("Failed to initiate secure transfer of FDO files: %v", err)
 	}
@@ -355,12 +373,10 @@ func runDIWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils.D
 	return nil
 }
 
-func uploadFDOVoucherScript(_ context.Context, deviceInfo utils.DeviceInfo) (string, error) {
+func uploadFDOVoucherScript(ctx context.Context, deviceInfo utils.DeviceInfo) (string, error) {
 	zlog.Info().Msgf("Uploading FDO voucher script for host %s", deviceInfo.GUID)
 
-	/////////////////////Voucher extension//////////////////////
-	// TODO (LPIO-1864): VoucherScript makes retries, we should refactor it
-	fdoGUID, err := VoucherScript(deviceInfo)
+	fdoGUID, err := fdoclient.DoVoucherExtension(ctx, deviceInfo)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("Failed to upload FDO voucher extensions for host %s", deviceInfo.GUID)
 		return "", err

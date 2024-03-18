@@ -21,7 +21,7 @@ import (
 	"os"
 	"testing"
 	"time"
-	
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
@@ -32,6 +32,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+const voucherEndPoint = "/api/v1/owner/vouchers/"
 
 func Test_checkTO2StatusCompleted(t *testing.T) {
 	type args struct {
@@ -1023,14 +1025,14 @@ func Test_runDIWorkflow(t *testing.T) {
 		{
 			name: "Test Case",
 			args: args{
-				ctx: context.Background(),
+				ctx:    context.Background(),
 				k8sCli: mockClient,
 			},
 		},
 		{
 			name: "Test Case1",
 			args: args{
-				ctx: context.Background(),
+				ctx:    context.Background(),
 				k8sCli: mockClient1,
 			},
 			wantErr: true,
