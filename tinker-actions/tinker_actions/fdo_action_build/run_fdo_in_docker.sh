@@ -23,19 +23,28 @@
 # CLIENT_INTEL_DI_STATUS
 # CLIENT_SDK_TPM_DI_STATUS
 # CLIENT_SDK_DI_STATUS
+MAX_RETRIES_CADDY=3
+retry_count=0
 
 PROXYADDR=$(ip route get 1 | head -n 1 | grep -o 'src\s[.0-9a-z]\+' | awk '{print $2}')
 # check if docker network
 if echo "$default_ip" | grep -q '^172'; then
-    PROXYADDR=$(ip route | grep default | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b")
+  PROXYADDR=$(ip route | grep default | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b")
 fi
-export PROXYADDR=$PROXYADDR
-
+#add  host to the system
+echo "localhost.internal $PROXYADDR" | sudo tee -a /etc/hosts
 
 # Check if NGINX proxy service is up
-until [ $(curl -w "%{http_code}" --output /dev/null -s -k https://$PROXYADDR:8081/health) = 200 ]; do
-  echo "Internal Proxy server still not up, wait for 10 sec"
-  sleep 10
+until [ $(curl -w "%{http_code}" --output /dev/null -s -k https://localhost.internal:8081/health) = 200 ]; do
+  ((retry_count++))
+  if [ $retry_count -lt $MAX_RETRIES_CADDY ]; then
+    echo "Internal Proxy server still not up, wait for 10 sec"
+    sleep 10
+  else
+    echo "Maximum retries reached. Proxy Not up. Exiting..."
+    exit 1
+  fi
+
 done
 
 echo "Internal Proxy server is up, resuming FDO operations.."

@@ -33,16 +33,10 @@
 #set -x
 
 TLS=${FDO_TLS:-'https'}
-IP_ADDRESS=${FDO_MFGIP:-'localhost'}
+IP_ADDRESS=${FDO_MFGIP:-'localhost.internal'}
 PORT=${FDO_MPORT:-8038}
 MSTRING=${DEVICE_SERIAL:-'abcd12345'}
 TYPE=${TYPE:-'CLIENT-SDK'}
-
-
-#use discovered ip address on internal proxy route
-if [ $IP_ADDRESS = "localhost" ]; then
-  IP_ADDRESS=${PROXYADDR:-'localhost'}
-fi
 
 echo "TLS : $TLS"
 echo "IP_ADDRESS : $IP_ADDRESS"
