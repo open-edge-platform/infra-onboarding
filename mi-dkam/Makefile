@@ -53,15 +53,15 @@ $(VENV_NAME): requirements.txt
 
 ##### CI Targets #####
 
-all: 
+all:
 	@# Help: Runs build, lint, test stage
-	build lint test 	
-	
-docker-build:
+	build lint test
+
+docker-build: go-vendor
 	@export DOCKER_REGISTRY=${DOCKER_REGISTRY} DOCKER_REPOSITORY=${DOCKER_REPOSITORY} IMG_NAME=${IMG_NAME} VERSION=${IMG_VERSION} &&  earthly -V +all
 
 docker-push:
-	docker push ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}:${IMG_VERSION} 
+	docker push ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}:${IMG_VERSION}
 
 #lint-ci: license go-lint
 
@@ -77,6 +77,9 @@ go-lint: ## run go lint
 	golangci-lint linters
 
 
+go-vendor:
+	go mod vendor
+
 lint:
 	@# Help: Runs lint stage
 	@echo "---MAKEFILE LINT---"
@@ -84,7 +87,7 @@ lint:
 	@echo "---END MAKEFILE LINT---"
 
 test:
-	go test ./... --race -coverprofile cover.out -covermode atomic
+	go test --race -coverprofile cover.out -coverpkg=$$(go list ./... | grep -v "api/grpc" | tr '\n' ,)  -covermode atomic ./...
 	gocover-cobertura < cover.out > coverage.xml
 	
 coverage:

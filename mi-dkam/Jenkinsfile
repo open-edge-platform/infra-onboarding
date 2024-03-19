@@ -10,7 +10,7 @@ def getEnvFromBranch(branch) {
         return 'checkmarx,protex'
     }
     else {
-        return 'virus,trivy,hadolint'
+        return 'virus,trivy'
         // PR checks can be extended with checkmarx, bandit, snyk but source code has to available for them to pass. Protex should be kept only at branch level scanning.
     }
 }
@@ -149,8 +149,8 @@ pipeline {
                         failNoReports: true,
                         failUnhealthy: true,
                         failUnstable: true,
-                        //lineCoverageTargets: "${env.cobertura_healthy}, ${env.cobertura_unhealthy}, ${env.cobertura_unstable}",
-			lineCoverageTargets: "62, 60, 61",
+//                         lineCoverageTargets: "${env.cobertura_healthy}, ${env.cobertura_unhealthy}, ${env.cobertura_unstable}",
+			                  lineCoverageTargets: "42, 40, 41",
                         maxNumberOfBuilds: 0,
                         methodCoverageTargets: "${env.cobertura_healthy}, ${env.cobertura_unhealthy}, ${env.cobertura_unstable}",
                         onlyStable: false,

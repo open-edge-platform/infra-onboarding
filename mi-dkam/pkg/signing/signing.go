@@ -6,12 +6,11 @@ package signing
 import (
 	"io"
 	"net/url"
+	"os"
 	"os/exec"
 	"strings"
 
-	"os"
-
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/logging"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 )
 
 var zlog = logging.GetLogger("MIDKAMAuth")

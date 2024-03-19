@@ -3,3 +3,9 @@
 # SPDX-License-Identifier: LicenseRef-Intel
 
 venv_midkammgr
+vendor
+build/*
+.idea
+.vscode
+.DS_Store
+cover.out
