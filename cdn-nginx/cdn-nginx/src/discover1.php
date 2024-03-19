@@ -1,10 +1,38 @@
 <?php
-$input_mac = filter_input(INPUT_GET, 'mac');
-$input_uuid = filter_input(INPUT_GET, 'uuid');
-$input_serial_id = filter_input(INPUT_GET, 'serial_id');
-$input_en_ip = filter_input(INPUT_GET, 'en_ip');
-$input_boot_url = filter_input(INPUT_GET, 'boot_url');
+// Validate and sanitize inputs
+$input_mac = filter_input(INPUT_GET, 'mac', FILTER_VALIDATE_MAC);
+$input_uuid = filter_input(INPUT_GET, 'uuid', FILTER_SANITIZE_STRING);
+$input_serial_id = filter_input(INPUT_GET, 'serial_id', FILTER_SANITIZE_STRING);
+$input_en_ip = filter_input(INPUT_GET, 'en_ip', FILTER_VALIDATE_IP);
+$input_boot_url = filter_input(INPUT_GET, 'boot_url', FILTER_VALIDATE_URL);
 
+// Check and return error if any input is null/invalid and print which input is null/invalid
+if (empty($input_mac) || empty($input_uuid) || empty($input_serial_id) || empty($input_en_ip) || empty($input_boot_url)) {
+  $emptyInputs = [];
+  if (empty($input_mac)) {
+    $emptyInputs[] = 'mac';
+  }
+  if (empty($input_uuid)) {
+    $emptyInputs[] = 'uuid';
+  }
+  if (empty($input_serial_id)) {
+    $emptyInputs[] = 'serial_id';
+  }
+  if (empty($input_en_ip)) {
+    $emptyInputs[] = 'en_ip';
+  }
+  if (empty($input_boot_url)) {
+    $emptyInputs[] = 'boot_url';
+  }
+  $errorMessage = 'Error: Missing or invalid input parameters for ' . implode(', ', $emptyInputs);
+  $custom_ipxe = <<<EOT
+#!ipxe
+echo $errorMessage
+sleep 5
+EOT;
+printf($custom_ipxe);
+  exit();
+}
 function update_en_details($mac, $uuid, $serial_id, $ip) {
   $data = array(
     'mac' => $mac,
@@ -40,7 +68,7 @@ if ( $response != "pass" ){
 #!ipxe
 echo Unable to update inventory for $input_mac . Retrying after 30 seconds.
 sleep 30
-chain {$input_boot_url}/discover.php?mac=\${mac}&&uuid=\${uuid}&&serial_id=\${serial}&&en_ip=${input_en_ip}&&boot_url={$input_boot_url}
+chain {$input_boot_url}/discover.php?mac=\${mac}&&uuid=\${uuid}&&serial_id=\${serial}&&en_ip=\${ip}&&boot_url={$input_boot_url}
 EOT;
 printf($custom_ipxe);
   }else{

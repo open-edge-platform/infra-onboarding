@@ -1,6 +1,26 @@
 <?php
-$input_mac = filter_input(INPUT_GET, 'mac');
-$input_boot_url = filter_input(INPUT_GET, 'boot_url');
+// Validate and sanitize inputs
+$input_mac = filter_input(INPUT_GET, 'mac', FILTER_VALIDATE_MAC);
+$input_boot_url = filter_input(INPUT_GET, 'boot_url', FILTER_VALIDATE_URL);
+
+// Check and return error if any input is null/invalid and print which input is null/invalid
+if (empty($input_mac) || empty($input_boot_url)) {
+  $emptyInputs = [];
+  if (empty($input_mac)) {
+    $emptyInputs[] = 'mac';
+  }
+  if (empty($input_boot_url)) {
+    $emptyInputs[] = 'boot_url';
+  }
+  $errorMessage = 'Error: Missing or invalid input parameters for ' . implode(', ', $emptyInputs);
+  $custom_ipxe = <<<EOT
+#!ipxe
+echo $errorMessage
+sleep 5
+EOT;
+  printf($custom_ipxe);
+  exit();
+}
 
 function get_auto_ipxe($mac) {
   $data = array(
@@ -30,15 +50,16 @@ function get_auto_ipxe($mac) {
 }
 
 $response = get_auto_ipxe($input_mac);
-if ( empty($response) ){
+if (empty($response)) {
   $custom_ipxe = <<<EOT
 #!ipxe
-echo Unable to fetch workflow (iPXE script not returned). Retrying after 30 seconds to check the workflow
+echo  Retrying until the workflow is created by the Onboarding Manager or done manually.
 sleep 30
 chain {$input_boot_url}/chain.php?mac=\${mac}&&boot_url={$input_boot_url}
 EOT;
-printf($custom_ipxe);
-  }else{
-printf($response);
-  }
+  printf($custom_ipxe);
+} else {
+  $response = filter_var($response, FILTER_SANITIZE_STRING);
+  printf($response);
+}
 ?>
