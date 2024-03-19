@@ -117,7 +117,7 @@ main() {
 	#login to IDP keycloak
 	# proxy if not set then the code will not be able to invoke curl.
 
-	access_token=$(curl -X POST https://$KEYCLOAK_URL/realms/master/protocol/openid-connect/token \
+	access_token=$(curl --cacert /usr/local/share/ca-certificates/IDP_keyclock.crt -X POST https://$KEYCLOAK_URL/realms/master/protocol/openid-connect/token \
 			    -d "username=$username" \
 			    -d "password=$password" \
 			    -d "grant_type=password" \
@@ -143,7 +143,7 @@ main() {
 	printf "%s" "$access_token" > "$idp_folder/idp_access_token"
 
 	release_server_url=$(sed "s/keycloak/release/g" <<< $KEYCLOAK_URL)
-	release_token=$(curl -X GET https://$release_server_url/token -H "Authorization: Bearer $access_token")
+	release_token=$(curl --cacert /usr/local/share/ca-certificates/IDP_keyclock.crt -X GET https://$release_server_url/token -H "Authorization: Bearer $access_token")
 	printf "%s" "$release_token" > "$idp_folder/release_token"
 
     else
