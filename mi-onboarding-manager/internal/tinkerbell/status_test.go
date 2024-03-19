@@ -13,7 +13,7 @@ import (
 )
 
 func TestWorkflowActionToStatusDetail(t *testing.T) {
-	diWorkflowData, err := NewTemplateData("test-di", "10.10.1.1", "CLIENT-SDK-TPM",
+	diWorkflowData, err := NewDITemplateData("test-di", "10.10.1.1", "CLIENT-SDK-TPM",
 		"/dev/sda", "12345678", "")
 	require.NoError(t, err)
 

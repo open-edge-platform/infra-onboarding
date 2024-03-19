@@ -5,7 +5,6 @@ package tinkerbell
 
 import (
 	"context"
-	"fmt"
 
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -40,7 +39,8 @@ func NewTemplate(tpData, name, ns string) *tink.Template {
 blob/1a9621b4f8d5146659b680518052a3b7a24d0867/internal/onboardingmgr/onbworkflowclient/workflowcreator.go#L1044.
 */
 func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (*tink.Template, error) {
-	tmplName := fmt.Sprintf("%s-%s-prod", deviceInfo.ImType, deviceInfo.GUID)
+	tmplName := GetProdTemplateName(deviceInfo.ImType, deviceInfo.GUID)
+
 	var tmplData []byte
 	var err error
 	switch deviceInfo.ImType {
@@ -77,8 +77,9 @@ func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (
 }
 
 func GenerateTemplateForDI(k8sNamespace string, deviceInfo utils.DeviceInfo) (*tink.Template, error) {
-	tmplName := "fdodi-" + deviceInfo.GUID
-	tmplData, err := NewTemplateData(tmplName, deviceInfo.HwIP, "CLIENT-SDK-TPM",
+	tmplName := GetDITemplateName(deviceInfo.GUID)
+
+	tmplData, err := NewDITemplateData(tmplName, deviceInfo.HwIP, "CLIENT-SDK-TPM",
 		deviceInfo.DiskType, deviceInfo.HwSerialID, deviceInfo.TinkerVersion)
 	if err != nil {
 		// failed to marshal template data
@@ -90,8 +91,22 @@ func GenerateTemplateForDI(k8sNamespace string, deviceInfo utils.DeviceInfo) (*t
 	return tmpl, nil
 }
 
+func GenerateTemplateForNodeReboot(k8sNamespace string, deviceInfo utils.DeviceInfo) (*tink.Template, error) {
+	tmplName := GetRebootTemplateName(deviceInfo.GUID)
+	tmplData, err := NewRebootTemplateData(tmplName)
+	if err != nil {
+		// failed to marshal template data
+		zlog.MiSec().MiErr(err).Msg("")
+		return nil, inv_errors.Errorf("Failed to generate Reboot template resources for host %s", deviceInfo.GUID)
+	}
+
+	tmpl := NewTemplate(string(tmplData), tmplName, k8sNamespace)
+	return tmpl, nil
+}
+
 // TODO (LPIO-1865): We can probably optimize it.
-// Instead of doing GET+CREATE we can try CREATE and check if resource already exists.
+//
+//	Instead of doing GET+CREATE we can try CREATE and check if resource already exists.
 func CreateTemplateIfNotExists(ctx context.Context, k8sCli client.Client, template *tink.Template) error {
 	got := &tink.Template{}
 	err := k8sCli.Get(ctx, client.ObjectKeyFromObject(template), got)

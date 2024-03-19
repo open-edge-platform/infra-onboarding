@@ -18,13 +18,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	"github.com/stretchr/testify/mock"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 )
 
 func TestNewHardware(t *testing.T) {
@@ -83,7 +84,7 @@ func Test_newK8SClient(t *testing.T) {
 	}
 	path := "/var"
 	dummypath := "/run/secrets/kubernetes.io/serviceaccount/"
-	cerr := os.MkdirAll(path+dummypath, 0755)
+	cerr := os.MkdirAll(path+dummypath, 0o755)
 	if cerr != nil {
 		t.Fatalf("Error creating directory: %v", cerr)
 	}
@@ -169,7 +170,7 @@ func TestDeleteHardwareForHostIfExist(t *testing.T) {
 	}
 	path := "/var"
 	dummypath := "/run/secrets/kubernetes.io/serviceaccount/"
-	cerr := os.MkdirAll(path+dummypath, 0755)
+	cerr := os.MkdirAll(path+dummypath, 0o755)
 	if cerr != nil {
 		t.Fatalf("Error creating directory: %v", cerr)
 	}

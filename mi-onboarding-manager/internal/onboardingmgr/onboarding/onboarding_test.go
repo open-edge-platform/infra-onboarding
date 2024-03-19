@@ -322,4 +322,3 @@ func TestOnboardingManager_SecureBootStatus(t *testing.T) {
 		})
 	}
 }
-

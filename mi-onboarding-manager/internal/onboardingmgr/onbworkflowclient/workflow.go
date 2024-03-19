@@ -35,9 +35,6 @@ import (
 const (
 	k8sNamespace = "maestro-iaas-system"
 
-	hwPrefixName       = "machine-"
-	workFlowPrefixName = "workflow-"
-
 	//nolint:lll // keep long line for better readability
 	sviInfoPayload = `[{"filedesc" : "client_id","resource" : "$(guid)_%s"},{"filedesc" : "client_secret","resource" : "$(guid)_%s"}]`
 )
@@ -57,22 +54,31 @@ func checkTO2StatusCompleted(_ context.Context, deviceInfo utils.DeviceInfo) (bo
 	// Make an HTTP GET request
 	to2URL := fmt.Sprintf("http://%s:%s/api/v1/owner/state/%s",
 		deviceInfo.FdoOwnerDNS, deviceInfo.FdoOwnerPort, deviceInfo.FdoGUID)
-	response, err := http.NewRequestWithContext(context.Background(), http.MethodGet, to2URL, http.NoBody)
+	request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, to2URL, http.NoBody)
 	if err != nil {
 		respErr := inv_errors.Errorf("Error making HTTP GET request %v", err)
 		zlog.MiSec().MiErr(err).Msgf("")
 		return false, respErr
 	}
 	httpClient := &http.Client{}
-	resp, err := httpClient.Do(response)
+	resp, err := httpClient.Do(request)
 	if err != nil {
 		respErr := inv_errors.Errorf("Error making HTTP GET request %v", err)
 		zlog.MiSec().MiErr(err).Msgf("")
 		return false, respErr
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		errMsg := fmt.Sprintf("Failed to perform API call to %s with status code %v",
+			to2URL, resp.StatusCode)
+		err = inv_errors.Errorf(errMsg)
+		zlog.MiErr(err).Msg("")
+		return false, err
+	}
+
 	// Read response body
-	body, err := io.ReadAll(response.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		respErr := inv_errors.Errorf("Error while reading resp body %v", err)
 		zlog.MiSec().MiErr(err).Msgf("")
@@ -115,24 +121,13 @@ func CheckStatusOrRunProdWorkflow(ctx context.Context,
 		return err
 	}
 
-	util.PopulateHostStatus(instance,
-		computev1.HostStatus_HOST_STATUS_PROVISIONING,
-		"", // no details as workflow is not started yet
-		om_status.OnboardingStatusInProgress)
-	// NOTE: this is not used by UI as for now, but update status for future use.
-	util.PopulateInstanceStatusAndCurrentState(
-		instance,
-		instance.GetCurrentState(),
-		computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONING,
-		om_status.ProvisioningStatusInProgress)
-
-	prodWorkflowName := fmt.Sprintf("workflow-%s-prod", deviceInfo.GUID)
+	prodWorkflowName := tinkerbell.GetProdWorkflowName(deviceInfo.GUID)
 	workflow, err := getWorkflow(ctx, kubeClient, prodWorkflowName)
 	if err != nil && inv_errors.IsNotFound(err) {
 		// This may happen if:
 		// 1) workflow for Instance is not created yet -> proceed to runProdWorkflow()
 		// 2) we already finished & removed workflow for Instance -> in this case we should never get here
-		runErr := runProdWorkflow(ctx, kubeClient, deviceInfo)
+		runErr := runProdWorkflow(ctx, kubeClient, deviceInfo, instance)
 		if runErr != nil {
 			return runErr
 		}
@@ -147,13 +142,50 @@ func CheckStatusOrRunProdWorkflow(ctx context.Context,
 		return err
 	}
 
+	util.PopulateHostStatus(instance,
+		computev1.HostStatus_HOST_STATUS_PROVISIONING,
+		"", // no details as workflow is not started yet
+		om_status.ProvisioningStatusInProgress)
+	// NOTE: this is not used by UI as for now, but update status for future use.
+	util.PopulateInstanceStatusAndCurrentState(
+		instance,
+		instance.GetCurrentState(),
+		computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONING,
+		om_status.ProvisioningStatusInProgress)
+
 	return handleWorkflowStatus(instance, workflow,
 		computev1.HostStatus_HOST_STATUS_PROVISIONED, computev1.HostStatus_HOST_STATUS_PROVISION_FAILED,
 		om_status.ProvisioningStatusDone, om_status.ProvisioningStatusFailed)
 }
 
-func runProdWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils.DeviceInfo) error {
+func runProdWorkflow(
+	ctx context.Context, k8sCli client.Client, deviceInfo utils.DeviceInfo, instance *computev1.InstanceResource,
+) error {
 	zlog.Info().Msgf("Creating prod workflow for host %s", deviceInfo.GUID)
+
+	if *common.FlagEnableDeviceInitialization {
+		zlog.Debug().Msgf("Checking TO2 status completed for host %s", deviceInfo.GUID)
+
+		util.PopulateHostStatus(instance, computev1.HostStatus_HOST_STATUS_ONBOARDING,
+			"",
+			om_status.OnboardingStatusInProgress)
+
+		// we should wait until TO2 process is completed before running prod workflow
+		isCompleted, err := checkTO2StatusCompleted(ctx, deviceInfo)
+		if err != nil {
+			return err
+		}
+
+		if !isCompleted {
+			zlog.Debug().Msgf("TO2 process still not completed for host %s", deviceInfo.GUID)
+			return inv_errors.Errorfr(inv_errors.Reason_OPERATION_IN_PROGRESS, "TO2 process started, waiting for it to complete")
+		}
+
+		util.PopulateHostStatus(instance,
+			computev1.HostStatus_HOST_STATUS_ONBOARDED,
+			"",
+			om_status.OnboardingStatusDone)
+	}
 
 	if !*common.FlagEnableDeviceInitialization {
 		// normally EN credentials should be created as part of the device initialization phase,
@@ -184,11 +216,11 @@ func runProdWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils
 	}
 
 	prodWorkflow := tinkerbell.NewWorkflow(
-		fmt.Sprintf("workflow-%s-prod", deviceInfo.GUID),
+		tinkerbell.GetProdWorkflowName(deviceInfo.GUID),
 		k8sNamespace,
 		deviceInfo.HwMacID,
-		hwPrefixName+deviceInfo.GUID,
-		fmt.Sprintf("%s-%s-prod", deviceInfo.ImType, deviceInfo.GUID))
+		tinkerbell.GetTinkHardwareName(deviceInfo.GUID),
+		tinkerbell.GetProdTemplateName(deviceInfo.ImType, deviceInfo.GUID))
 
 	if createWFErr := tinkerbell.CreateWorkflowIfNotExists(ctx, k8sCli, prodWorkflow); createWFErr != nil {
 		return createWFErr
@@ -199,58 +231,23 @@ func runProdWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils
 	return nil
 }
 
-// CheckTO2StatusOrRunFDOActions checks if TO2 protocol is completed.
-// If it's already completed, this function returns immediately.
-// If it's not yet completed, it runs a series of actions to ensure TO2 gets completed.
-func CheckTO2StatusOrRunFDOActions(ctx context.Context,
-	deviceInfo utils.DeviceInfo, instance *computev1.InstanceResource,
-) error {
+// RunFDOActions runs all required FDO actions such as voucher extension and SVI calls.
+func RunFDOActions(ctx context.Context, deviceInfo *utils.DeviceInfo) error {
 	if !*common.FlagEnableDeviceInitialization {
 		zlog.Warn().Msgf("enableDeviceInitialization is set to false, skipping FDO actions")
 		return nil
 	}
 
-	zlog.Info().Msgf("Checking TO2 status completed for host %s", deviceInfo.GUID)
-
-	util.PopulateHostStatus(instance, computev1.HostStatus_HOST_STATUS_ONBOARDING,
-		"",
-		om_status.OnboardingStatusInProgress)
+	zlog.Debug().Msgf("Running FDO actions for host %s", deviceInfo.GUID)
 
 	// we need to upload voucher extension before checking TO2 status to get FDO GUID that is needed for TO2 status check.
-	fdoGUID, err := uploadFDOVoucherScript(ctx, deviceInfo)
+	fdoGUID, err := uploadFDOVoucherScript(ctx, *deviceInfo)
 	if err != nil {
 		return err
 	}
 	deviceInfo.FdoGUID = fdoGUID
 
-	isCompleted, err := checkTO2StatusCompleted(ctx, deviceInfo)
-	if err != nil {
-		return err
-	}
-
-	if isCompleted {
-		zlog.Debug().Msgf("TO2 process completed for host %s", deviceInfo.GUID)
-		util.PopulateHostStatus(instance,
-			computev1.HostStatus_HOST_STATUS_ONBOARDED,
-			"",
-			om_status.InitializationDone)
-
-		return nil
-	}
-
-	if fdoErr := runFDOActionsIfNeeded(ctx, deviceInfo); fdoErr != nil {
-		return fdoErr
-	}
-
-	// in progress
-	return inv_errors.Errorfr(inv_errors.Reason_OPERATION_IN_PROGRESS, "TO2 status not completed yet for host %s",
-		deviceInfo.GUID)
-}
-
-func runFDOActionsIfNeeded(ctx context.Context, deviceInfo utils.DeviceInfo) error {
-	zlog.Info().Msgf("Running FDO actions for host %s", deviceInfo.GUID)
-
-	clientID, clientSecret, err := createENCredentialsIfNotExists(ctx, deviceInfo)
+	clientID, clientSecret, err := createENCredentialsIfNotExists(ctx, *deviceInfo)
 	if err != nil {
 		return err
 	}
@@ -276,6 +273,8 @@ func runFDOActionsIfNeeded(ctx context.Context, deviceInfo utils.DeviceInfo) err
 		return inv_errors.Errorf("Failed to initiate secure transfer of FDO files: %v", err)
 	}
 
+	zlog.Debug().Msgf("FDO actions successfully executed for host %s", deviceInfo.GUID)
+
 	return nil
 }
 
@@ -285,7 +284,7 @@ func CheckStatusOrRunDIWorkflow(ctx context.Context, deviceInfo utils.DeviceInfo
 		return nil
 	}
 
-	zlog.Info().Msgf("Checking status of DI workflow for host %s", deviceInfo.GUID)
+	zlog.Debug().Msgf("Checking status of DI workflow for host %s", deviceInfo.GUID)
 
 	kubeClient, err := tinkerbell.K8sClientFactory()
 	if err != nil {
@@ -296,10 +295,10 @@ func CheckStatusOrRunDIWorkflow(ctx context.Context, deviceInfo utils.DeviceInfo
 		"", // no details as workflow is not started yet
 		om_status.InitializationInProgress)
 
-	diWorkflowName := "workflow-" + deviceInfo.GUID
+	diWorkflowName := tinkerbell.GetDIWorkflowName(deviceInfo.GUID)
 	status, err := getWorkflow(ctx, kubeClient, diWorkflowName)
 	if err != nil && inv_errors.IsNotFound(err) {
-		zlog.Debug().Msgf("DI workflow for host %ss does not yet exist.", deviceInfo.GUID)
+		zlog.Debug().Msgf("DI workflow for host %s does not yet exist.", deviceInfo.GUID)
 		// This may happen if:
 		// 1) workflow for Instance is not created yet -> proceed to runWorkflow()
 		// 2) we already finished & removed workflow for Instance -> in this case we should never get here
@@ -324,12 +323,57 @@ func CheckStatusOrRunDIWorkflow(ctx context.Context, deviceInfo utils.DeviceInfo
 		om_status.InitializationDone, om_status.InitializationFailed)
 }
 
+func CheckStatusOrRunRebootWorkflow(
+	ctx context.Context, deviceInfo utils.DeviceInfo, instance *computev1.InstanceResource,
+) error {
+	if !*common.FlagEnableDeviceInitialization {
+		zlog.Warn().Msgf("enableDeviceInitialization is set to false, skipping running reboot workflow")
+		return nil
+	}
+
+	zlog.Debug().Msgf("Checking status of Reboot workflow for host %s", deviceInfo.GUID)
+
+	kubeClient, err := tinkerbell.K8sClientFactory()
+	if err != nil {
+		return err
+	}
+
+	rebootWorkflowName := tinkerbell.GetRebootWorkflowName(deviceInfo.GUID)
+	status, err := getWorkflow(ctx, kubeClient, rebootWorkflowName)
+	if err != nil && inv_errors.IsNotFound(err) {
+		zlog.Debug().Msgf("Reboot workflow for host %s does not yet exist.", deviceInfo.GUID)
+		// This may happen if:
+		// 1) workflow for Instance is not created yet -> proceed to runWorkflow()
+		// 2) we already finished & removed workflow for Instance -> in this case we should never get here
+		runErr := runRebootWorkflow(ctx, kubeClient, deviceInfo)
+		if runErr != nil {
+			return runErr
+		}
+
+		// runRebootWorkflow returned no error, but we return an error here so that the upper layer can handle it appropriately
+		// and reconcile until the workflow is finished.
+		return inv_errors.Errorfr(inv_errors.Reason_OPERATION_IN_PROGRESS, "Reboot workflow started, waiting for it to complete")
+	}
+
+	if err != nil {
+		// some unexpected error, we fail to get workflow status
+		return err
+	}
+
+	// keep statuses from the DI workflow on success
+	return handleWorkflowStatus(instance, status,
+		//nolint:staticcheck // the field will be deprecated soon
+		instance.GetHost().GetLegacyHostStatus(), computev1.HostStatus_HOST_STATUS_INIT_FAILED,
+		inv_status.New(instance.GetProvisioningStatus(), instance.GetProvisioningStatusIndicator()),
+		om_status.InitializationFailed)
+}
+
 func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName string) (*tink.Workflow, error) {
 	got := &tink.Workflow{}
 	clientErr := k8sCli.Get(ctx, types.NamespacedName{Namespace: k8sNamespace, Name: workflowName}, got)
 	if clientErr != nil && errors.IsNotFound(clientErr) {
 		zlog.MiSec().MiErr(clientErr).Msg("")
-		return nil, inv_errors.Errorfc(codes.NotFound, "Cannot get workflow %s status", workflowName)
+		return nil, inv_errors.Errorfc(codes.NotFound, "Workflow %s doesn't exist", workflowName)
 	}
 
 	if clientErr != nil {
@@ -359,16 +403,44 @@ func runDIWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils.D
 		return err
 	}
 
-	diWorkflow := tinkerbell.NewWorkflow(workFlowPrefixName+deviceInfo.GUID,
+	diWorkflow := tinkerbell.NewWorkflow(
+		tinkerbell.GetDIWorkflowName(deviceInfo.GUID),
 		k8sNamespace, deviceInfo.HwMacID,
-		hwPrefixName+deviceInfo.GUID,
-		"fdodi-"+deviceInfo.GUID)
+		tinkerbell.GetTinkHardwareName(deviceInfo.GUID),
+		tinkerbell.GetDITemplateName(deviceInfo.GUID))
 
 	if err := tinkerbell.CreateWorkflowIfNotExists(ctx, k8sCli, diWorkflow); err != nil {
 		return err
 	}
 
 	zlog.Debug().Msgf("DI workflow %s for host %s created successfully", diWorkflow.Name, deviceInfo.GUID)
+
+	return nil
+}
+
+func runRebootWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils.DeviceInfo) error {
+	zlog.Info().Msgf("Creating Reboot workflow for host %s", deviceInfo.GUID)
+
+	rebootTemplate, err := tinkerbell.GenerateTemplateForNodeReboot(k8sNamespace, deviceInfo)
+	if err != nil {
+		return err
+	}
+
+	if err := tinkerbell.CreateTemplateIfNotExists(ctx, k8sCli, rebootTemplate); err != nil {
+		return err
+	}
+
+	rebootWorkflow := tinkerbell.NewWorkflow(
+		tinkerbell.GetRebootWorkflowName(deviceInfo.GUID),
+		k8sNamespace, deviceInfo.HwMacID,
+		tinkerbell.GetTinkHardwareName(deviceInfo.GUID),
+		tinkerbell.GetRebootTemplateName(deviceInfo.GUID))
+
+	if err := tinkerbell.CreateWorkflowIfNotExists(ctx, k8sCli, rebootWorkflow); err != nil {
+		return err
+	}
+
+	zlog.Debug().Msgf("Reboot workflow %s for host %s created successfully", rebootWorkflow.Name, deviceInfo.GUID)
 
 	return nil
 }
@@ -420,8 +492,12 @@ func DeleteDIWorkflowResourcesIfExist(ctx context.Context, hostUUID string) erro
 	return tinkerbell.DeleteDIWorkflowResourcesIfExist(ctx, k8sNamespace, hostUUID)
 }
 
-func DeleteProdWorkflowResourcesIfExist(ctx context.Context, hostUUID string) error {
-	return tinkerbell.DeleteProdWorkflowResourcesIfExist(ctx, k8sNamespace, hostUUID)
+func DeleteRebootWorkflowResourcesIfExist(ctx context.Context, hostUUID string) error {
+	return tinkerbell.DeleteRebootWorkflowResourcesIfExist(ctx, k8sNamespace, hostUUID)
+}
+
+func DeleteProdWorkflowResourcesIfExist(ctx context.Context, hostUUID, imgType string) error {
+	return tinkerbell.DeleteProdWorkflowResourcesIfExist(ctx, k8sNamespace, hostUUID, imgType)
 }
 
 func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.Workflow,

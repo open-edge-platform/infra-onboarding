@@ -286,19 +286,25 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 		ir.updateHostInstanceStatusAndCurrentState(ctx, oldInstance, instance)
 	}()
 
-	// 1. Check status of DI workflow and initiate it if not running
-	if diErr := onbworkflowclient.CheckStatusOrRunDIWorkflow(ctx, deviceInfo, instance); diErr != nil {
-		return diErr
+	// 1. Check status of DI workflow and initiate if it's not running
+	if err := onbworkflowclient.CheckStatusOrRunDIWorkflow(ctx, deviceInfo, instance); err != nil {
+		return err
 	}
 
-	// 2. Check status of FDO, we won't progress to next steps until TO2 is completed
-	if fdoErr := onbworkflowclient.CheckTO2StatusOrRunFDOActions(ctx, deviceInfo, instance); fdoErr != nil {
-		return fdoErr
+	// 2. Run FDO actions
+	if err := onbworkflowclient.RunFDOActions(ctx, &deviceInfo); err != nil {
+		return err
 	}
 
-	// 3. Check status of Prod Workflow and initiate it if not running
-	if prodErr := onbworkflowclient.CheckStatusOrRunProdWorkflow(ctx, deviceInfo, instance); prodErr != nil {
-		return prodErr
+	// 3. Check status of Reboot workflow and initiate if it's not running
+	if err := onbworkflowclient.CheckStatusOrRunRebootWorkflow(ctx, deviceInfo, instance); err != nil {
+		return err
+	}
+
+	// 4. Check status of Prod Workflow and initiate if it's not running.
+	//    NOTE that Prod workflow will only start if TO2 process is completed.
+	if err := onbworkflowclient.CheckStatusOrRunProdWorkflow(ctx, deviceInfo, instance); err != nil {
+		return err
 	}
 
 	util.PopulateInstanceStatusAndCurrentState(instance,
@@ -315,11 +321,23 @@ func (ir *InstanceReconciler) cleanupProvisioningResources(
 ) error {
 	zlogInst.Info().Msgf("Cleaning up all provisioning resources for host %s", instance.GetHost().GetUuid())
 
-	if err := onbworkflowclient.DeleteProdWorkflowResourcesIfExist(ctx, instance.GetHost().GetUuid()); err != nil {
+	// TODO (LPIO-1912): replace with single function to get image type based on env var
+	artifactInfo, err := convertInstanceToArtifactInfo(instance)
+	if err != nil {
+		return err
+	}
+
+	deviceInfo := convertInstanceToDeviceInfo(instance, artifactInfo)
+
+	if err := onbworkflowclient.DeleteProdWorkflowResourcesIfExist(
+		ctx, instance.GetHost().GetUuid(), deviceInfo.ImType); err != nil {
 		return err
 	}
 
 	if *common.FlagEnableDeviceInitialization {
+		if err := onbworkflowclient.DeleteRebootWorkflowResourcesIfExist(ctx, instance.GetHost().GetUuid()); err != nil {
+			return err
+		}
 		if err := onbworkflowclient.DeleteDIWorkflowResourcesIfExist(ctx, instance.GetHost().GetUuid()); err != nil {
 			return err
 		}

@@ -91,4 +91,3 @@ func TestPopulateInstanceStatusAndCurrentState(t *testing.T) {
 		})
 	}
 }
-

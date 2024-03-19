@@ -15,7 +15,7 @@ import (
 
 const (
 	minDelay = 1 * time.Second
-	maxDelay = 30 * time.Second
+	maxDelay = 60 * time.Second
 )
 
 var (

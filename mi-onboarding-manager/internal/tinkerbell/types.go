@@ -51,7 +51,7 @@ func unmarshalWorkflow(yamlContent []byte) (*Workflow, error) {
 	return &workflow, nil
 }
 
-func NewTemplateData(name, ip, clientyp, disk, serial, tinkerversion string) ([]byte, error) {
+func NewDITemplateData(name, ip, clientyp, disk, serial, tinkerversion string) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -88,6 +88,27 @@ func NewTemplateData(name, ip, clientyp, disk, serial, tinkerversion string) ([]
 						"FDO_TLS":            "https",
 					},
 				},
+			},
+		}},
+	}
+
+	return marshalWorkflow(&wf)
+}
+
+func NewRebootTemplateData(name string) ([]byte, error) {
+	wf := Workflow{
+		Version:       "0.1",
+		Name:          name,
+		GlobalTimeout: timeOutMax8000,
+		Tasks: []Task{{
+			Name:       "node-reboot",
+			WorkerAddr: "{{.device_1}}",
+			Volumes: []string{
+				"/dev:/dev",
+				"/dev/console:/dev/console",
+				"/lib/firmware:/lib/firmware:ro",
+			},
+			Actions: []Action{
 				{
 					Name:    ActionReboot,
 					Image:   "public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest",

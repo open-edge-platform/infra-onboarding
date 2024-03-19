@@ -24,7 +24,7 @@ var (
 	loggerName = "OnboardingController"
 	zlog       = logging.GetLogger(loggerName)
 
-	defaultTickerPeriod = 1 * time.Second
+	defaultTickerPeriod = 60 * time.Second
 )
 
 const (

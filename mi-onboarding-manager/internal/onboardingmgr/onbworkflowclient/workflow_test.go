@@ -11,6 +11,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -19,18 +20,22 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
-	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
-	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
+	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
+	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 )
 
 const voucherEndPoint = "/api/v1/owner/vouchers/"
@@ -70,23 +75,20 @@ func Test_checkTO2StatusCompleted(t *testing.T) {
 }
 
 func Test_checkTO2StatusCompleted_Case(t *testing.T) {
-	listener, err := net.Listen("tcp", "localhost:58042")
-	if err != nil {
-		t.Fatalf("Error creating listener: %v", err)
-	}
-	defer listener.Close()
-	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v1/owner/state/" {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/owner/state/id" {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Mock owner voucher response"))
+			w.Write([]byte(`{
+				"to2CompletedOn": "completed",
+				"to0Expiry": ""
+				}`))
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 			w.Write([]byte("Not found"))
 		}
 	}))
-	server.Listener = listener
-	server.Start()
 	defer server.Close()
+
 	type args struct {
 		in0        context.Context
 		deviceInfo utils.DeviceInfo
@@ -98,17 +100,30 @@ func Test_checkTO2StatusCompleted_Case(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case1",
+			name: "Success",
 			args: args{
 				in0: context.Background(),
 				deviceInfo: utils.DeviceInfo{
-					FdoOwnerDNS:  "localhost",
-					FdoOwnerPort: "58042",
+					FdoOwnerDNS:  "127.0.0.1",
+					FdoOwnerPort: strings.Split(server.URL, ":")[2],
 					FdoGUID:      "id",
 				},
 			},
-			want:    false,
+			want:    true,
 			wantErr: false,
+		},
+		{
+			name: "Failed",
+			args: args{
+				in0: context.Background(),
+				deviceInfo: utils.DeviceInfo{
+					FdoOwnerDNS:  "127.0.0.1",
+					FdoOwnerPort: strings.Split(server.URL, ":")[2],
+					// empty fdoGUID to return error
+				},
+			},
+			want:    false,
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -126,12 +141,7 @@ func Test_checkTO2StatusCompleted_Case(t *testing.T) {
 }
 
 func Test_checkTO2StatusCompleted_Case1(t *testing.T) {
-	listener, err := net.Listen("tcp", "localhost:58042")
-	if err != nil {
-		t.Fatalf("Error creating listener: %v", err)
-	}
-	defer listener.Close()
-	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v1/owner/state/id" {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`{
@@ -143,9 +153,8 @@ func Test_checkTO2StatusCompleted_Case1(t *testing.T) {
 			w.Write([]byte("Not found"))
 		}
 	}))
-	server.Listener = listener
-	server.Start()
 	defer server.Close()
+
 	type args struct {
 		in0        context.Context
 		deviceInfo utils.DeviceInfo
@@ -161,8 +170,8 @@ func Test_checkTO2StatusCompleted_Case1(t *testing.T) {
 			args: args{
 				in0: context.Background(),
 				deviceInfo: utils.DeviceInfo{
-					FdoOwnerDNS:  "localhost",
-					FdoOwnerPort: "58042",
+					FdoOwnerDNS:  "127.0.0.1",
+					FdoOwnerPort: strings.Split(server.URL, ":")[2],
 					FdoGUID:      "id",
 				},
 			},
@@ -281,7 +290,7 @@ func Test_checkTO2StatusCompleted_Case3(t *testing.T) {
 					FdoGUID:      "id",
 				},
 			},
-			want:    false,
+			want:    true,
 			wantErr: false,
 		},
 	}
@@ -353,7 +362,7 @@ func TestCheckStatusOrRunProdWorkflow_Case1(t *testing.T) {
 	}
 	path := "/var"
 	dummypath := "/run/secrets/kubernetes.io/serviceaccount/"
-	cerr := os.MkdirAll(path+dummypath, 0755)
+	cerr := os.MkdirAll(path+dummypath, 0o755)
 	if cerr != nil {
 		t.Fatalf("Error creating directory: %v", cerr)
 	}
@@ -421,112 +430,6 @@ func TestCheckStatusOrRunProdWorkflow_Case1(t *testing.T) {
 	}
 }
 
-func TestCheckTO2StatusOrRunFDOActions(t *testing.T) {
-	listener, err := net.Listen("tcp", "localhost:58042")
-	if err != nil {
-		t.Fatalf("Error creating listener: %v", err)
-	}
-	defer listener.Close()
-	listeners, lerr := net.Listen("tcp", "localhost:58039")
-	if lerr != nil {
-		t.Fatalf("Error creating listener: %v", err)
-	}
-	defer listeners.Close()
-	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v1/certificate" {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Mock certificate response"))
-		} else if r.URL.Path == "/api/v1/mfg/vouchers/123" {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Mock voucher response"))
-		} else if r.URL.Path == "/api/v1/certificate?alias=SECP256R1" {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Mock voucher response"))
-		} else if r.URL.Path == voucherEndPoint {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Mock owner voucher response"))
-		} else if r.URL.Path == "/api/v1/owner/state/123" {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{
-				"to2CompletedOn": "",
-				"to0Expiry": ""
-				}`))
-		} else if r.URL.Path == "/api/v1/to0/Mock owner voucher response" {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Mock TO0 response"))
-		} else {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{
-				"to2CompletedOn": "",
-				"to0Expiry": ""
-				}`))
-		}
-	}))
-	server.Listener = listener
-	server.Start()
-	defer server.Close()
-	server1 := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v1/certificate" {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Mock certificate response"))
-		} else if r.URL.Path == "/api/v1/mfg/vouchers/123" {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Mock voucher response"))
-		} else if r.URL.Path == "/api/v1/certificate?alias=SECP256R1" {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Mock voucher response"))
-		} else if r.URL.Path == voucherEndPoint {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Mock owner voucher response"))
-		} else if r.URL.Path == "/api/v1/to0/" {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Mock TO0 response"))
-		} else {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("Not found"))
-		}
-	}))
-	server1.Listener = listeners
-	server1.Start()
-	defer server1.Close()
-	type args struct {
-		ctx        context.Context
-		deviceInfo utils.DeviceInfo
-		instance   *computev1.InstanceResource
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
-			args: args{
-				ctx: context.Background(),
-				deviceInfo: utils.DeviceInfo{
-					HwSerialID:   "123",
-					FdoOwnerDNS:  "localhost",
-					FdoMfgDNS:    "localhost",
-					FdoOwnerPort: "58042",
-				},
-				instance: &computev1.InstanceResource{
-					Host: &computev1.HostResource{
-						ResourceId: "host-084d9b08",
-					},
-				},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := CheckTO2StatusOrRunFDOActions(tt.args.ctx, tt.args.deviceInfo, tt.args.instance); (err != nil) != tt.wantErr {
-				t.Errorf("CheckTO2StatusOrRunFDOActions() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestCheckStatusOrRunDIWorkflow(t *testing.T) {
 	type args struct {
 		ctx        context.Context
@@ -586,7 +489,7 @@ func TestCheckStatusOrRunDIWorkflow_Case1(t *testing.T) {
 	}
 	path := "/var"
 	dummypath := "/run/secrets/kubernetes.io/serviceaccount/"
-	cerr := os.MkdirAll(path+dummypath, 0755)
+	cerr := os.MkdirAll(path+dummypath, 0o755)
 	if cerr != nil {
 		t.Fatalf("Error creating directory: %v", cerr)
 	}
@@ -729,7 +632,7 @@ func TestDeleteProdWorkflowResourcesIfExist(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := DeleteProdWorkflowResourcesIfExist(tt.args.ctx, tt.args.hostUUID); (err != nil) != tt.wantErr {
+			if err := DeleteProdWorkflowResourcesIfExist(tt.args.ctx, tt.args.hostUUID, "bkc"); (err != nil) != tt.wantErr {
 				t.Errorf("DeleteProdWorkflowResourcesIfExist() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -969,45 +872,20 @@ func (m MockClient) SubResource(subResource string) client.SubResourceClient {
 	args := m.Called(subResource)
 	return args.Get(0).(client.SubResourceClient)
 }
-func Test_runProdWorkflow(t *testing.T) {
-	type args struct {
-		ctx        context.Context
-		k8sCli     client.Client
-		deviceInfo utils.DeviceInfo
-	}
-	mockClient := MockClient{}
-	mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	mockClient1 := MockClient{}
-	mockClient1.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
-			args: args{
-				k8sCli: mockClient,
-			},
-		},
-		{
-			name: "Test Case1",
-			args: args{
-				k8sCli: mockClient1,
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := runProdWorkflow(tt.args.ctx, tt.args.k8sCli, tt.args.deviceInfo); (err != nil) != tt.wantErr {
-				t.Errorf("runProdWorkflow() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
 
-func Test_runDIWorkflow(t *testing.T) {
+func Test_runProdWorkflow(t *testing.T) {
+	resp := &ResponseData{
+		To2CompletedOn: "completed",
+		To0Expiry:      "",
+	}
+	jsonData, err := json.Marshal(resp)
+	require.NoError(t, err)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		w.Write(jsonData)
+	}))
+	defer srv.Close()
+
 	type args struct {
 		ctx        context.Context
 		k8sCli     client.Client
@@ -1027,6 +905,61 @@ func Test_runDIWorkflow(t *testing.T) {
 			args: args{
 				ctx:    context.Background(),
 				k8sCli: mockClient,
+				deviceInfo: utils.DeviceInfo{
+					FdoOwnerDNS:  "127.0.0.1",
+					FdoOwnerPort: strings.Split(srv.URL, ":")[2],
+					GUID:         uuid.NewString(),
+					FdoGUID:      uuid.NewString(),
+				},
+			},
+		},
+		{
+			name: "Test Case1",
+			args: args{
+				k8sCli: mockClient1,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := runProdWorkflow(tt.args.ctx, tt.args.k8sCli, tt.args.deviceInfo, &computev1.InstanceResource{
+				Host: &computev1.HostResource{},
+			}); (err != nil) != tt.wantErr {
+				t.Errorf("runProdWorkflow() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_runDIWorkflow(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	type args struct {
+		ctx        context.Context
+		k8sCli     client.Client
+		deviceInfo utils.DeviceInfo
+	}
+	mockClient := MockClient{}
+	mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	mockClient1 := MockClient{}
+	mockClient1.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				ctx:    context.Background(),
+				k8sCli: mockClient,
+				deviceInfo: utils.DeviceInfo{
+					FdoOwnerDNS: srv.URL,
+				},
 			},
 		},
 		{

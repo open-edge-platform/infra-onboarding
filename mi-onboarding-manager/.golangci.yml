@@ -165,6 +165,8 @@ linters-settings:
           - github.com/Nerzal/gocloak
           - github.com/scylladb/gocqlx
           - sigs.k8s.io/controller-runtime/pkg/client
+          - sigs.k8s.io/controller-runtime/pkg/log
+          - sigs.k8s.io/controller-runtime/pkg/log/zap
           - github.com/stretchr/testify
         deny:
       Test:

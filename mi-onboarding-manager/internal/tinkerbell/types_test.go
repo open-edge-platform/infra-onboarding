@@ -94,13 +94,13 @@ func TestNewTemplateData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewTemplateData(tt.args.name, tt.args.ip, tt.args.clientyp, tt.args.disk, tt.args.serial, tt.args.tinkerVersion)
+			got, err := NewDITemplateData(tt.args.name, tt.args.ip, tt.args.clientyp, tt.args.disk, tt.args.serial, tt.args.tinkerVersion)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NewTemplateData() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("NewDITemplateData() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewTemplateData() = %v, want %v", got, tt.want)
+				t.Errorf("NewDITemplateData() = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -75,7 +75,7 @@ func NewHardware(name, ns, id, device, ip, gateway string) *tink.Hardware {
 func CreateHardwareIfNotExists(ctx context.Context, k8sCli client.Client, k8sNamespace string, deviceInfo utils.DeviceInfo,
 ) error {
 	hwInfo := NewHardware(
-		"machine-"+deviceInfo.GUID,
+		GetTinkHardwareName(deviceInfo.GUID),
 		k8sNamespace,
 		deviceInfo.HwMacID,
 		deviceInfo.DiskType, deviceInfo.HwIP, deviceInfo.Gateway)

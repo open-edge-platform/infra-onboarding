@@ -8,6 +8,8 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 )
@@ -15,6 +17,8 @@ import (
 var K8sClientFactory = newK8SClient
 
 func newK8SClient() (client.Client, error) {
+	logf.SetLogger(zap.New(zap.WriteTo(zlog)))
+
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msg("")
