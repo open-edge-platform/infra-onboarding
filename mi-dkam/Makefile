@@ -1,4 +1,4 @@
-# Maestro-I API Makefile
+# DKAM manager Makefile
 
 # SPDX-FileCopyrightText: (C) 2022 Intel Corporation
 # SPDX-License-Identifier: LicenseRef-Intel
