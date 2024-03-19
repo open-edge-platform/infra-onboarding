@@ -6,8 +6,8 @@ SETUP_STATUS_FILENAME="install_pkgs_status"
 SCRIPT_DIR=$(pwd)
 touch $SCRIPT_DIR/$SETUP_STATUS_FILENAME
 
-CLIENT_ID=$(cat /etc/ensp/node/client-credentials/client_id)
-CLIENT_SECRET=$(cat /etc/ensp/node/client-credentials/client_secret)
+CLIENT_ID=$(cat /etc/intel_edge_node/client-credentials/client_id)
+CLIENT_SECRET=$(cat /etc/intel_edge_node/client-credentials/client_secret)
 
 PROVISIONING_URL=${PROVISIONING_URL:-"localhost"}
 ACCESS_TOKEN_URL=__KEYCLOAK_URL__
@@ -266,7 +266,7 @@ install_cleanup() {
     apt-get purge -y platform-observability-agent
     apt-get -y purge platform-update-agent
     apt-get autoremove -y
-    rm -rf /etc/ensp/node/tokens /etc/ensp/node/certs /etc/ensp/node/.keys
+    rm -rf /etc/intel_edge_node/tokens /etc/intel_edge_node/certs /etc/intel_edge_node/.keys
 }
 
 # 7. Install Node Agent
@@ -307,8 +307,8 @@ install_node_agent(){
     id -u fluent-bit &>/dev/null || useradd fluent-bit --system -g bm-agents -G adm
     useradd -r -c "etcd user" -s /sbin/nologin -M etcd -U
 
-    chmod -R 700 /etc/ensp/node/client-credentials
-    chown -R node-agent:bm-agents /etc/ensp/node
+    chmod -R 700 /etc/intel_edge_node/client-credentials
+    chown -R node-agent:bm-agents /etc/intel_edge_node
 
     echo "node-agent node-agent/onboarding.serviceURL string ${ORCH_I_URL}" | debconf-set-selections
     echo "node-agent node-agent/auth.accessTokenURL string ${ACCESS_TOKEN_URL}" | debconf-set-selections
