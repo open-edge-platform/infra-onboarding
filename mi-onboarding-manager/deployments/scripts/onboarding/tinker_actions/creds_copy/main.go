@@ -58,7 +58,7 @@ func main() {
 
 	dst_folder := os.Getenv("OS_DST_DIR")
 	if dst_folder == "" {
-		dst_folder = "/etc/ensp/node"
+		dst_folder = "/etc/intel_edge_node"
 	}
 	dest := filepath.Join(mountAction, dst_folder)
 
