@@ -97,11 +97,6 @@ get_caddy_conf() {
     $SED_CMD -i "s|update_manufacturer_svc|$fdo_manufacturer_svc|g" hook.yaml
     $SED_CMD -i "s|update_owner_svc|$fdo_owner_svc|g" hook.yaml
     $SED_CMD -i "s|update_logging_svc|$logging_svc|g" hook.yaml
-
-    # Update proxy configs
-    $SED_CMD -i "s|update_http_proxy|$http_proxy|g" hook.yaml
-    $SED_CMD -i "s|update_https_proxy|$https_proxy|g" hook.yaml
-    $SED_CMD -i "s|update_no_proxy|$no_proxy|g" hook.yaml
 }
 
 build_hook() {
