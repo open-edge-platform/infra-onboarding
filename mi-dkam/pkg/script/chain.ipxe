@@ -14,7 +14,7 @@ set retry_limit:int32 5
 :registerwithnetwork
 echo 
 echo => Registering with Network
-ifconf --timeout=-1 && goto networkconfig || iseq ${idx} ${retry_limit} && goto ifconferror || inc idx && echo Unable to register with network && echo RETRY NO ${idx} && goto registerwithnetwork
+ifconf --timeout=-1 && goto networkconfig || iseq ${idx} ${retry_limit} && goto ifconferror || inc idx && echo Unable to obtain the IP address && echo RETRY NO ${idx} && goto registerwithnetwork
 
 # display network settings before chainloading
 :networkconfig
@@ -35,12 +35,12 @@ chain ${tink_url}/discover.php?mac=${mac}&&uuid=${uuid}&&serial_id=${serial}&&en
 
 :ifconferror
 echo 
-echo Error: Could not connect to network via ifconf
-echo Retry with UEFI HTTP Boot again
+echo Error: Unable to obtain the IP address, even after multiple attempts. Please ensure your edge node is reachable from your DHCP server.
+echo Retry with UEFI HTTP Boot again.
 shell
 
 :chainloaderror
 echo 
-echo Error: Could not chainload to CDN NGINX
-echo Retry with UEFI HTTP Boot again
+echo Error: Unable to reach the cloud instance to proceed with the next step.
+echo Retry with UEFI HTTP Boot again.
 shell
