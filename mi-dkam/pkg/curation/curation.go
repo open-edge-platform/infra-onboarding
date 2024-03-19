@@ -6,6 +6,7 @@ package curation
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -39,6 +40,14 @@ type Config struct {
 	Provisioning struct {
 		Images []Image `yaml:"images"`
 	} `yaml:"provisioning"`
+}
+
+// Rule UFW Firewall structure in JSON, expected to be provided as environment variable.
+type Rule struct {
+	SourceIp string `json:"sourceIp,omitempty"`
+	Ports    string `json:"ports,omitempty"`
+	IpVer    string `json:"ipVer,omitempty"`
+	Protocol string `json:"protocol,omitemptyx"`
 }
 
 var configs Config
@@ -227,6 +236,11 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	//NTP configurations
 	ntpServer := os.Getenv("NTP_SERVERS")
 
+	//Firewall configurations
+	firewallReqAllow := os.Getenv("FIREWALL_REQ_ALLOW")
+	zlog.Info().Msg(firewallReqAllow)
+	firewallCfgAllow := os.Getenv("FIREWALL_CFG_ALLOW")
+	zlog.Info().Msg(firewallCfgAllow)
 	caexists, err := PathExists("/etc/ssl/orch-ca-cert/ca.crt")
 	if err != nil {
 		zlog.MiSec().Info().Msgf("Error checking path %v", err)
@@ -412,6 +426,23 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	AddProxies(scriptFileName, sshLines, "ssh_config(){")
 	AddProxies(scriptFileName, newLines, beginString)
 
+	zlog.MiSec().Debug().Msgf("Starting modifying ufw Rules")
+
+	// Parse each rule map into a Rule struct
+	rules, err := ParseJSONUfwRules(firewallReqAllow)
+	if err != nil {
+		zlog.MiSec().MiErr(err).Msgf("Error while un-marshaling the UFW req firewall Rules")
+	}
+	rules2, err := ParseJSONUfwRules(firewallCfgAllow)
+	if err != nil {
+		zlog.MiSec().MiErr(err).Msgf("Error while un-marshaling the UFW cfg firewall Rules")
+	}
+	ufwCommands := make([]string, len(rules)+len(rules2))
+	for i, rule := range append(rules, rules2...) {
+		ufwCommands[i] = "    " + GenerateUFWCommand(rule)
+	}
+	AddFirewallRules(scriptFileName, ufwCommands)
+
 	return scriptFileName
 }
 
@@ -478,4 +509,88 @@ func AddProxies(fileName string, newLines []string, beginLine string) {
 		return
 	}
 
+}
+
+// GenerateUFWCommand convert a Rule into the corresponding ufw command.
+func GenerateUFWCommand(rule Rule) string {
+	if rule.SourceIp != "" {
+		if rule.Protocol != "" {
+			if rule.Ports != "" {
+				return fmt.Sprintf("ufw allow from %s to any port %s proto %s", rule.SourceIp, rule.Ports, rule.Protocol)
+			} else {
+				return fmt.Sprintf("ufw allow from %s proto %s", rule.SourceIp, rule.Protocol)
+			}
+		} else {
+			if rule.Ports != "" {
+				return fmt.Sprintf("ufw allow from %s to any port %s", rule.SourceIp, rule.Ports)
+			} else {
+				return fmt.Sprintf("ufw allow from %s", rule.SourceIp)
+			}
+		}
+	} else {
+		if rule.Protocol != "" {
+			if rule.Ports != "" {
+				return fmt.Sprintf("ufw allow port %s proto %s", rule.Ports, rule.Protocol)
+			} else {
+				return fmt.Sprintf("ufw allow proto %s", rule.Protocol)
+			}
+		} else {
+			if rule.Ports != "" {
+				return fmt.Sprintf("ufw allow port %s", rule.Ports)
+			} else {
+				return fmt.Sprintf("echo Firewall rule not set %d", 0)
+			}
+		}
+	}
+}
+
+func AddFirewallRules(fileName string, newLines []string) {
+	// Read the content of the file
+	file, err := os.Open(fileName)
+	if err != nil {
+		zlog.MiSec().Fatal().Err(err).Msgf("Error: %v", err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	var lines []string
+	foundTargetLine := false
+
+	// Scan through the file and locate the target line
+	for scanner.Scan() {
+		line := scanner.Text()
+		lines = append(lines, line)
+
+		// Check if the current line matches the target line
+		if strings.TrimSpace(line) == "ufw default allow outgoing" {
+			foundTargetLine = true
+			// Insert the new lines after the target line
+			lines = append(lines, newLines...)
+		}
+	}
+	// If the target line was not found, return an error
+	if !foundTargetLine {
+		zlog.MiSec().Fatal().Err(err).Msgf("target line '%s' not found in the file", "#!/bin/bash")
+	}
+
+	// Write the modified content back to the file
+	err = os.WriteFile(fileName, []byte(strings.Join(lines, "\n")), 0644)
+	if err != nil {
+		zlog.MiSec().Fatal().Err(err).Msgf("Error: %v", err)
+		return
+	}
+}
+
+// ParseJSONUfwRules parse the ufw rule provided as JSON, expected JSON is expected to
+// follow the JSON defined by Rule struct. Exported for testing purposes.
+func ParseJSONUfwRules(ufwRules string) ([]Rule, error) {
+	if ufwRules == "" {
+		return make([]Rule, 0), nil
+	}
+	var rules []Rule
+	err := json.Unmarshal([]byte(ufwRules), &rules)
+	if err != nil {
+		return nil, err
+	}
+	return rules, nil
 }

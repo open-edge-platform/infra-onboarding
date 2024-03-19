@@ -79,23 +79,10 @@ install_dependencies() {
 install_fws(){
  # Enable UFW
     echo "Enable firwell"
-    sudo systemctl enable ufw
-    echo "y" | sudo ufw enable
-    sudo ufw default allow outgoing
-    sudo ufw allow 2379/tcp
-    sudo ufw allow 2380/tcp
-    sudo ufw allow 6443/tcp
-    sudo ufw allow 9345/tcp
-    sudo ufw allow 10250/tcp
-    sudo ufw allow 5473/tcp    
-    sudo ufw allow 22/tcp
-    sudo ufw allow 80/tcp
-    sudo ufw allow 443/tcp
-    sudo ufw allow 2376/tcp
-    sudo ufw allow 8472/tcp
-    sudo ufw allow 9090/tcp
-    sudo ufw allow 10254/tcp
-    sudo ufw reload
+    systemctl enable ufw
+    echo "y" | ufw enable
+    ufw default allow outgoing
+    ufw reload
 }
 
 # Get the latest version from github repo release.
