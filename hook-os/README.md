@@ -44,7 +44,7 @@ Addition functions accomplished by these scripts are listed below.
    deployment_dns_extension=kind.internal
    ```
 
-2. Update Caddy runtime configurations according to Maestro deployment.
+2. Update Caddy runtime configurations according to Edge Orchestration deployment.
 
    ```
    Example:
@@ -58,7 +58,7 @@ Addition functions accomplished by these scripts are listed below.
    ```
 
 3. [Optional] Update host IP/FQDN mapping(comma separated) values in
-   `extra_hosts` if Maestro is deployed on Kind cluster, or in Coder.
+   `extra_hosts` if Edge Orchestration is deployed on Kind cluster, or in Coder.
 
    ```
    Example:

@@ -18,7 +18,7 @@ jobs:
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          if [[ "$PR_BODY" =~ \|[\ ]?Jira\ ticket[\ ]?\|[\ ]?LP[A-Z0-9]*[\ ]? ]]; then
+          if [[ "$PR_BODY" =~ \|[\ ]?Jira\ ticket[\ ]?\|[\ ]?[LP|NEXFM][A-Z0-9]*[\ ]? ]]; then
             echo "body_contains_jira=true" >> $GITHUB_ENV
           else
             echo "body_contains_jira=false" >> $GITHUB_ENV
