@@ -15,7 +15,7 @@
 ver=latest
 
 # Generate self signed certificate and key
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout caddy-key.pem -out caddy-cert.pem -subj "/CN=localhost"
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout caddy-key.pem -out caddy-cert.pem -subj "/CN=localhost/CN=localhost.internal"
 
 ## # Build the container
 docker pull caddy:latest
