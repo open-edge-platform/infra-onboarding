@@ -5,7 +5,7 @@ Currently NGINX client proxies are configured for FDO, Tink Agent and APT.
 
 ## Steps to build and deploy NGINX client proxy
 
-1. Copy Maestro Root CA certificate `ensp-orchestrator-ca.crt` to `/usr/local/share/ca-certificates` directory.
+1. Copy Edge Orchestration Root CA certificate `ensp-orchestrator-ca.crt` to `/usr/local/share/ca-certificates` directory.
 2. Build NGINX docker image with self signed certificate and key
 	`bash build.sh`
 3. Get JWT token from Keycloak service
@@ -28,4 +28,4 @@ NOTE:
 2. To add customization to proxy routes, add it in location block in nginx.conf.template file and pass it as volume mount in docker run command.
 3. Pass Orchestrator root CA certificate as volume mount to NGINX docker container
 4. Make sure to add cluster FQDN (for eg, kind.internal) to `no_proxy` list in `/etc/environment` for Coder based deployments
-5. manufacuturer_svc and owner_svc FQDNS are not yet available on FM. So as workaround pass any available FM fqdns. `For eg: tink-stack.kind.internal` This is workaround for now to proceed with NGINX proxy for TINK and APT clients.
+5. manufacuturer_svc and owner_svc FQDNS are not yet available on Edge Infrastructure Manager. So as workaround pass any available Edge Infrastructure Manager fqdns. `For eg: tink-stack.kind.internal` This is workaround for now to proceed with NGINX proxy for TINK and APT clients.
