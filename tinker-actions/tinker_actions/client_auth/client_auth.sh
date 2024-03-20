@@ -121,7 +121,7 @@ main() {
 			    -d "username=$username" \
 			    -d "password=$password" \
 			    -d "grant_type=password" \
-			    -d "client_id=ledge-park-system" \
+			    -d "client_id=system-client" \
 			    -d "scope=openid" | jq -r '.access_token')
 
 	if [[ $access_token == 'null' ]];
