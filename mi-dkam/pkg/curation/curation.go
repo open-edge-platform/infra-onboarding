@@ -251,9 +251,42 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	if caexists {
 		caContent, err = os.ReadFile("/etc/ssl/orch-ca-cert/ca.crt")
 		if err != nil {
-			panic(err)
+			zlog.MiSec().Error().Msgf("Error: %v", err)
 		}
 	}
+
+	dockerFilePath := filepath.Join(scriptDir, "docker.key")
+
+	dockerKeyExists, err := PathExists(dockerFilePath)
+	if err != nil {
+		zlog.MiSec().Info().Msgf("Error checking path %v", err)
+		zlog.MiSec().Fatal().Err(err).Msgf("Error: %v", err)
+	}
+
+	var dockerContent []byte
+	if dockerKeyExists {
+		dockerContent, err = os.ReadFile(dockerFilePath)
+		if err != nil {
+			zlog.MiSec().Error().Msgf("Error: %v", err)
+		}
+	}
+
+	caddyFilePath := filepath.Join(scriptDir, "gpg.key")
+
+	caddyKeyExists, err := PathExists(caddyFilePath)
+	if err != nil {
+		zlog.MiSec().Info().Msgf("Error checking path %v", err)
+		zlog.MiSec().Fatal().Err(err).Msgf("Error: %v", err)
+	}
+
+	var caddyContent []byte
+	if caddyKeyExists {
+		caddyContent, err = os.ReadFile(caddyFilePath)
+		if err != nil {
+			zlog.MiSec().Error().Msgf("Error: %v", err)
+		}
+	}
+
 	// Substitute relevant data in the script
 	//modifiedScript := strings.ReplaceAll(string(content), "__SUBSTITUTE_PACKAGE_COMMANDS__", packages)
 	modifiedScript := strings.ReplaceAll(string(content), "__REGISTRY_URL__", registryService)
@@ -281,6 +314,8 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__MAX_USER_INSTANCE__", systemConfigFsInotifyMaxUserInstances)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__NTP_SERVERS__", ntpServer)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__CA_CERT__", string(caContent))
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__DOCKER_KEY__", string(dockerContent))
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__CADDY_KEY__", string(caddyContent))
 	// Loop through the agentsList
 	for _, agent := range agentsList {
 		// Access the fields of each struct

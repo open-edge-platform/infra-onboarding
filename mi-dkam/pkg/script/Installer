@@ -29,6 +29,8 @@ TELEMETRY_MANAGER_URL=__ORCH_TELEMETRY_HOST__:__ORCH_TELEMETRY_PORT__
 RELEASE_SERVER=__FILE_SERVER__
 
 CA_CERT="__CA_CERT__"
+DOCKER_GPG_KEY="__DOCKER_KEY__"
+CADDY_GPG_KEY="__CADDY_KEY__"
 
 # 1. Install dependencies
 install_dependencies() {
@@ -53,25 +55,35 @@ install_dependencies() {
 
     which yq_linux_amd64
     if [ $? -ne 0 ]; then
-    echo "Download yq and install on provisioning host."
-    KSURL=https://github.com/mikefarah/yq/releases/latest
-    lversion=$(get_github_latest_vesion "$KSURL")
-    version=${YQ_VERSION:-$lversion}
-    echo "The latest yq version is: $lversion, will download version: $version"
-    url=https://github.com/mikefarah/yq/releases/download/${version}/yq_linux_amd64.tar.gz
-    download_github_url "$url"
-    tmpyq=/tmp/yq_linux_amd64
-    if [ -d "$tmpyq" ];then
-        sudo rm -rf "$tmpyq"
-    fi
-    mkdir -p $tmpyq
-    mv yq_linux_amd64.tar.gz $tmpyq
-    tar -xzvf $tmpyq/yq_linux_amd64.tar.gz -C "$tmpyq"
-    sudo mv "$tmpyq"/yq_linux_amd64 /usr/local/bin/yq_linux_amd64
+        echo "Download yq and install on provisioning host."
+        version="v4.42.1"
+        expected_checksum="99fc7fd4874daaceb8a718264afccc8f777413fa655c7e16063cfa87d39efe3a"
+        echo "yq download version: $version"
+        url=https://github.com/mikefarah/yq/releases/download/${version}/yq_linux_amd64.tar.gz
+        download_github_url "$url"
+        if [ -f "yq_linux_amd64.tar.gz" ]; then
+            actual_checksum=$(sha256sum "yq_linux_amd64.tar.gz" | awk '{print $1}')
+            if [ "$actual_checksum" != "$expected_checksum" ]; then
+                echo "Checksum mismatch. File may be corrupted."
+                exit 1
+            fi
+            echo "Checksum verification successful."
+        else
+            echo "Downloaded file does not exist. Aborting installation."
+            exit 1
+        fi
+        tmpyq=/tmp/yq_linux_amd64
+        if [ -d "$tmpyq" ];then
+            sudo rm -rf "$tmpyq"
+        fi
+        mkdir -p $tmpyq
+        mv yq_linux_amd64.tar.gz $tmpyq
+        tar -xzvf $tmpyq/yq_linux_amd64.tar.gz -C "$tmpyq"
+        sudo mv "$tmpyq"/yq_linux_amd64 /usr/local/bin/yq_linux_amd64
     fi
     which yq
     if [ $? -ne 0 ]; then
-    sudo ln -s yq_linux_amd64 /usr/local/bin/yq
+        sudo ln -s yq_linux_amd64 /usr/local/bin/yq
     fi   
 }
 
@@ -159,7 +171,7 @@ install_docker() {
 
     echo -e "\e[32m[install docker]\e[0m"
     if [ ! -e /etc/apt/keyrings/docker.gpg ]; then
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        cat <<< "$DOCKER_GPG_KEY" | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
         sudo chmod a+r /etc/apt/keyrings/docker.gpg
         echo \
         "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
@@ -228,13 +240,22 @@ updateDockerdProxy() {
 # 5. Install helm
 install_helm() {
     echo "Install helm"
-    local latest_release_url="https://api.github.com/repos/helm/helm/releases/latest"
-    latest_release_response=$( curl -L --silent --show-error --fail "$latest_release_url" 2>&1 || true )
-    O_TAG=$( echo "$latest_release_response" | grep '"tag_name"' | sed -E 's/.*"(v[0-9\.]+)".*/\1/g' )
-    TAG=${O_TAG:-v3.12.3}
+    TAG="v3.12.3"
+    expected_checksum="1b2313cd198d45eab00cc37c38f6b1ca0a948ba279c29e322bdf426d406129b5"
     HELM_DIST="helm-$TAG-linux-amd64.tar.gz"
     DOWNLOAD_URL="https://get.helm.sh/$HELM_DIST"
     wget $DOWNLOAD_URL
+    if [ -f "helm-v3.12.3-linux-amd64.tar.gz" ]; then
+        actual_checksum=$(sha256sum "helm-v3.12.3-linux-amd64.tar.gz" | awk '{print $1}')
+        if [ "$actual_checksum" != "$expected_checksum" ]; then
+                echo "Checksum mismatch. File may be corrupted."
+                exit 1
+            fi
+            echo "Checksum verification successful."
+    else
+        echo "Downloaded file does not exist. Aborting installation."
+        exit 1
+    fi
     tar -xvf $HELM_DIST
     mv linux-amd64/helm  /usr/bin/
     rm -rf $HELM_DIST linux-amd64
@@ -259,17 +280,52 @@ install_cleanup() {
 # 7. Install Node Agent
 install_node_agent(){
 
+    # Temp file to store response
+    tempfile=$(mktemp)
+
     echo "get access token from orchestrator"
+    # Save the response to the temporary file
+    curl -X POST -u "$CLIENT_ID:$CLIENT_SECRET" -d "grant_type=client_credentials" https://__KEYCLOAK__/realms/master/protocol/openid-connect/token -o $tempfile
 
-    # get JWT access token from Keycloack
-    AT=$(curl -kX POST -u "$CLIENT_ID:$CLIENT_SECRET" -d "grant_type=client_credentials" https://__KEYCLOAK__/realms/master/protocol/openid-connect/token | jq -r '.access_token')
+    # Check the exit status of curl
+    if [ $? -ne 0 ]; then
+        echo "error in getting Keycloak token"
+        rm $tempfile
+        exit 1
+    fi
 
-    echo "obtain release service token"
-    RS_AT=$(curl -k -XGET https://__RELEASE_FQDN__/token -H "Authorization: Bearer $AT")
+    # Parse the response with jq
+    AT=$(jq -r '.access_token' $tempfile)
+    rm $tempfile
+
+    # Get RS token now
+    tempfile=$(mktemp)
+    curl -s -f -XGET https://__RELEASE_FQDN__/token -H "Authorization: Bearer $AT" -o $tempfile
+
+    if [ $? -ne 0 ]; then
+        echo "error in getting Release Service token"
+        rm $tempfile
+        exit 1
+    fi
+
+    RS_AT=$(cat $tempfile)
+    rm $tempfile
 
     echo "setup oras"
     ORAS_VERSION="1.1.0"
+    expected_checksum="e09e85323b24ccc8209a1506f142e3d481e6e809018537c6b3db979c891e6ad7"
     curl -LO "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz"
+    if [ -f "oras_1.1.0_linux_amd64.tar.gz" ]; then
+        actual_checksum=$(sha256sum "oras_1.1.0_linux_amd64.tar.gz" | awk '{print $1}')
+        if [ "$actual_checksum" != "$expected_checksum" ]; then
+                echo "Checksum mismatch. File may be corrupted."
+                exit 1
+            fi
+            echo "Checksum verification successful."
+    else
+        echo "Downloaded file does not exist. Aborting installation."
+        exit 1
+    fi
     mkdir -p oras-install/
     tar -zxf oras_${ORAS_VERSION}_*.tar.gz -C oras-install/
     sudo mv oras-install/oras /usr/local/bin/
@@ -306,7 +362,7 @@ install_node_agent(){
     echo "node-agent node-agent/proxy.imgRegistryProxyPort string ${IMG_REGISTRY_PROXY_PORT}" | debconf-set-selections
 
     apt-get -y install gpg debian-keyring debian-archive-keyring apt-transport-https curl
-    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor > /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+    cat <<< "$CADDY_GPG_KEY" | gpg --dearmor > /usr/share/keyrings/caddy-stable-archive-keyring.gpg
     curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
 
     apt-get update
@@ -318,6 +374,11 @@ install_node_agent(){
 
     echo "download node agent"
     echo "${RS_AT}" | oras pull "${IMG_REGISTRY_URL}/one-intel-edge/edge-node/deb/node-agent:$VERSION" --password-stdin
+
+    if [ ! -f "${PKGFILE}" ]; then
+        echo "node agent debian could not be downloaded. Aborting installation"
+        exit 1
+    fi
 
     echo "install node agent"
     apt-get install -y -o Dpkg::Options::="--force-confnew" "${PKGFILE}"
