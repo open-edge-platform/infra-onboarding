@@ -1,7 +1,7 @@
 #!/bin/bash
 ########################################################################################################
 #
-#  This file is for automating the installation of Tinkerbell and related packages for IaaS  Project WS3.
+#  This file is for automating the installation of Tinkerbell and related packages for Edge Infrastructure Manager Project WS3.
 #  This covers Setup Host with
 #     Proxy Settings, Kubernetes, RKE2 Cluster, tinkerbell stack ,ect ..
 #  Author: Jayanthi, Shankar Srinivas  <shankar.srinivas.jayanthi@intel.com>

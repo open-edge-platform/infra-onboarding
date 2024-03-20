@@ -23,9 +23,9 @@ It will do the following things
  
 Prequisite:
  
-1. There are 3 servers with Internet connected acting as Ngnix server, FM server and Edge Node(DELL XR12) respectively.
+1. There are 3 servers with Internet connected acting as Ngnix server, Edge Infrastructure Manager server and Edge Node(DELL XR12) respectively.
  
-2. The ngnix server and FM Server are manually installed ubuntu 22.04 server with proper network proxy setting. Ngnix server needs tool installation of openssl, docker, efitools, git, gcc, make, liblzma-dev.
+2. The ngnix server and Edge Infrastructure Manager Server are manually installed ubuntu 22.04 server with proper network proxy setting. Ngnix server needs tool installation of openssl, docker, efitools, git, gcc, make, liblzma-dev.
  
 Note: Nginx server is the temporary solution before CDN boot is available. Release service in AWS cloud is not available for 0.7.0. and will be ready in the future.
  
@@ -65,7 +65,7 @@ As seen in the docker run command example we are mounting two folders to the con
  
     ```bash
 
-    set loadbalancer <LOADBALANCER> # IP address of FM Server
+    set loadbalancer <LOADBALANCER> # IP address of Edge Infrastructure Manager Server
 
     set macaddress <MAC_ADDRESS>    # MAC address of Edge Node iPXE Boot NIC
 
@@ -189,7 +189,7 @@ cd frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-s
 
 ```
 
-## Run the Maestro Inventory Service in new window
+## Run the Edge Orchestration Inventory Service in new window
  
 ```
 
@@ -245,7 +245,7 @@ go run main.go
 
 ```
  
-## Run the Maestro Inventory Service in new window
+## Run the Edge Orchestration Inventory Service in new window
  
     ```bash
 
@@ -609,7 +609,7 @@ cd cmd/onboardingmgr
 go run main.go
 ```
 
-## Run the Maestro Inventory Service in new window
+## Run the Edge Orchestration Inventory Service in new window
 
 ```
 git clone https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory

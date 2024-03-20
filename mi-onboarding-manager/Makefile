@@ -1,4 +1,4 @@
-# FM Onboarding Manager Makefile
+# Edge Infrastructure Manager Onboarding Manager Makefile
 
 # SPDX-FileCopyrightText: (C) 2024 Intel Corporation
 # SPDX-License-Identifier: LicenseRef-Intel

@@ -100,7 +100,7 @@ Note: make sure your dkam is running to get the urls
 
 # 5. Test Node Operations : Create, Get, Update, and Delete nodes using gRPC client
 
-## 5.1 Run the Maestro Inventory Service
+## 5.1 Run the Edge Orchestration Inventory Service
 ```
 git clone https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory
 
