@@ -4,6 +4,7 @@
 package signing
 
 import (
+	"errors"
 	"io"
 	"net/url"
 	"os"
@@ -121,8 +122,19 @@ func SignHookOS(scriptPath string) (bool, error) {
 	}
 	zlog.Info().Msgf("Script output: %s", string(mdresult))
 
-	buildCmd := exec.Command("bash", "./build_image_at_DKAM.sh", os.Getenv("MODE"))
-	zlog.Info().Msgf("buildCmd: %s", buildCmd)
+	mode := os.Getenv("MODE")
+	if mode == "" {
+		mode = "prod"
+	}
+
+	allowedValues := []string{"dev", "prod"}
+	if !contains(allowedValues, mode) {
+		zlog.MiSec().Fatal().Err(mdErr).Msg("Invalid MODE")
+		err := errors.New("invalid mode input")
+		return false, err
+	}
+
+	buildCmd := exec.Command("bash", "./build_image_at_DKAM.sh", mode)
 	output, buildErr := buildCmd.CombinedOutput()
 	if buildErr != nil {
 		zlog.MiSec().Fatal().Err(buildErr).Msgf("Failed to sign microOS script %v", buildErr)
@@ -137,6 +149,15 @@ func SignHookOS(scriptPath string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func contains(slice []string, s string) bool {
+	for _, item := range slice {
+		if item == s {
+			return true
+		}
+	}
+	return false
 }
 
 func BuildSignIpxe(scriptPath string, dnsName string) (bool, error) {
