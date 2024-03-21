@@ -217,7 +217,7 @@ func (c *OnboardingInventoryClient) listAndReturnHost(
 	}
 	err = util.CheckListOutputIsSingular(resources)
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msg("Obtained non-singular Host resource")
+		zlog.Info().Msgf("Obtained non-singular Host resource")
 		return nil, err
 	}
 	host := resources[0].GetHost()

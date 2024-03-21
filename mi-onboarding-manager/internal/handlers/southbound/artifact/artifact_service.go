@@ -134,7 +134,7 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 
 	switch {
 	case inv_errors.IsNotFound(err):
-		zlog.MiSec().MiErr(err).Msgf("Create op : Node Doesn't Exist for GUID %s\n", host.Uuid)
+		zlog.Info().Msgf("Create op : Node Doesn't Exist for GUID %s\n", host.Uuid)
 
 	case err == nil:
 		zlog.Debug().Msgf("Create op : Node and its Host Resource Already Exist for GUID %s \n", host.Uuid)
