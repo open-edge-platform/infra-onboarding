@@ -147,9 +147,8 @@ main() {
 	printf "%s" "$release_token" > "$idp_folder/release_token"
 
     else
-	echo "Incorrect username and password provided: rebooting now"
+	echo "Incorrect username and password provided."
 	sleep 5
-	reboot
     fi
 }
 
