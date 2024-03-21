@@ -14,7 +14,7 @@ ARG DOCKER_REPOSITORY=$(echo $DOCKER_REPOSITORY)
 ARG IMG_NAME=$(echo $IMG_NAME)
 ARG VERSION=$(echo $VERSION)
 
-FROM golang:1.20.2-alpine3.17
+FROM golang:1.21.8-bullseye
 ENV http_proxy=$http_proxy
 ENV https_proxy=$https_proxy
 ENV no_proxy=$no_proxy
