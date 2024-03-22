@@ -13,24 +13,23 @@ import (
 	"testing"
 	"time"
 
-	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/fieldmaskpb"
-
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 	onboarding_mocks "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/tinkerbell"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
-	v16 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
+	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 // FIXME: remove and use Inventory helper once RepoURL is made configurable in the Inv library
@@ -271,7 +270,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			Name:       "name",
 			MgmtIp:     "00.00.00.00",
 		},
-		Os: &v16.OperatingSystemResource{
+		Os: &osv1.OperatingSystemResource{
 			ResourceId:  "os-093dd2d7",
 			ProfileName: "profilename",
 			RepoUrl:     "osUrl;overlayUrl",
@@ -300,7 +299,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 		},
 	}
 
-	mockOs7 := &v16.OperatingSystemResource{
+	mockOs7 := &osv1.OperatingSystemResource{
 		ResourceId:  "os-093dd2d7",
 		ProfileName: "profilename",
 	}
@@ -351,7 +350,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 				},
 			},
 		},
-		Os: &v16.OperatingSystemResource{
+		Os: &osv1.OperatingSystemResource{
 			ResourceId:  "os-093dd2d7",
 			ProfileName: "profilename",
 			RepoUrl:     "osUrl;overlayUrl",
@@ -377,7 +376,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 		},
 	}
 
-	mockOs8 := &v16.OperatingSystemResource{
+	mockOs8 := &osv1.OperatingSystemResource{
 		ResourceId:  "os-093dd2d7",
 		ProfileName: "profilename",
 		RepoUrl:     "osUrl;overlayUrl",
@@ -415,7 +414,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 				},
 			},
 		},
-		Os: &v16.OperatingSystemResource{
+		Os: &osv1.OperatingSystemResource{
 			ResourceId:  "os-093dd2d7",
 			ProfileName: "profilename",
 			RepoUrl:     "osUrl;overlayUrl",
@@ -441,7 +440,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 		},
 	}
 
-	mockOs10 := &v16.OperatingSystemResource{
+	mockOs10 := &osv1.OperatingSystemResource{
 		ResourceId:  "os-093dd2d7",
 		ProfileName: "profilename",
 		RepoUrl:     "osUrl;overlayUrl",
@@ -627,7 +626,7 @@ func TestInstanceReconciler_reconcileInstance(t *testing.T) {
 						BmcIp: "00.00.00.00",
 					},
 
-					Os: &v16.OperatingSystemResource{
+					Os: &osv1.OperatingSystemResource{
 						RepoUrl: "osUrl.raw.gz;overlayUrl",
 					},
 				},
@@ -645,3 +644,167 @@ func TestInstanceReconciler_reconcileInstance(t *testing.T) {
 		})
 	}
 }
+
+func Test_convertInstanceToDeviceInfo(t *testing.T) {
+	os.Setenv("DISK_PARTITION", "DISK_PARTITION")
+	os.Setenv("IMG_URL", "IMG_URL")
+	os.Setenv("PD_IP", "PD_IP")
+	os.Setenv("IMAGE_TYPE", "prod_bkc")
+	os.Setenv("OVERLAY_URL", "OVERLAY_URL")
+	os.Setenv("FDO_MFG_URL", "FDO_MFG_URL")
+	os.Setenv("FDO_OWNER_URL", "FDO_OWNER_URL")
+	os.Setenv("FDO_MFG_PORT", "FDO_MFG_PORT")
+	os.Setenv("FDO_OWNER_PORT", "FDO_OWNER_PORT")
+	os.Setenv("FDO_RV_PORT", "FDO_RV_PORT")
+	defer func() {
+		os.Unsetenv("DISK_PARTITION")
+		os.Unsetenv("IMG_URL")
+		os.Unsetenv("PD_IP")
+		os.Unsetenv("IMAGE_TYPE")
+		os.Unsetenv("OVERLAY_URL")
+		os.Unsetenv("FDO_MFG_URL")
+		os.Unsetenv("FDO_OWNER_URL")
+		os.Unsetenv("FDO_MFG_PORT")
+		os.Unsetenv("FDO_OWNER_PORT")
+		os.Unsetenv("FDO_RV_PORT")
+	}()
+	type args struct {
+		instance     *computev1.InstanceResource
+		artifactInfo utils.ArtifactData
+	}
+	tests := []struct {
+		name string
+		args args
+		want utils.DeviceInfo
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				instance: &computev1.InstanceResource{
+					Host: &computev1.HostResource{
+						BmcIp: "000.0.0.0",
+					},
+					SecurityFeature: osv1.SecurityFeature_SECURITY_FEATURE_UNSPECIFIED,
+				},
+			},
+			want: utils.DeviceInfo{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := convertInstanceToDeviceInfo(tt.args.instance, tt.args.artifactInfo); reflect.DeepEqual(got, tt.want) {
+				t.Errorf("convertInstanceToDeviceInfo() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_convertInstanceToDeviceInfo_Case(t *testing.T) {
+	os.Setenv("DISK_PARTITION", "DISK_PARTITION")
+	os.Setenv("IMG_URL", "IMG_URL")
+	os.Setenv("PD_IP", "PD_IP")
+	os.Setenv("IMAGE_TYPE", "prod_focal")
+	os.Setenv("OVERLAY_URL", "OVERLAY_URL")
+	os.Setenv("FDO_MFG_URL", "FDO_MFG_URL")
+	os.Setenv("FDO_OWNER_URL", "FDO_OWNER_URL")
+	os.Setenv("FDO_MFG_PORT", "FDO_MFG_PORT")
+	os.Setenv("FDO_OWNER_PORT", "FDO_OWNER_PORT")
+	os.Setenv("FDO_RV_PORT", "FDO_RV_PORT")
+	defer func() {
+		os.Unsetenv("DISK_PARTITION")
+		os.Unsetenv("IMG_URL")
+		os.Unsetenv("PD_IP")
+		os.Unsetenv("IMAGE_TYPE")
+		os.Unsetenv("OVERLAY_URL")
+		os.Unsetenv("FDO_MFG_URL")
+		os.Unsetenv("FDO_OWNER_URL")
+		os.Unsetenv("FDO_MFG_PORT")
+		os.Unsetenv("FDO_OWNER_PORT")
+		os.Unsetenv("FDO_RV_PORT")
+	}()
+	type args struct {
+		instance     *computev1.InstanceResource
+		artifactInfo utils.ArtifactData
+	}
+	tests := []struct {
+		name string
+		args args
+		want utils.DeviceInfo
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				instance: &computev1.InstanceResource{
+					Host: &computev1.HostResource{
+						BmcIp: "000.0.0.0",
+					},
+					SecurityFeature: osv1.SecurityFeature_SECURITY_FEATURE_UNSPECIFIED,
+				},
+			},
+			want: utils.DeviceInfo{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := convertInstanceToDeviceInfo(tt.args.instance, tt.args.artifactInfo); reflect.DeepEqual(got, tt.want) {
+				t.Errorf("convertInstanceToDeviceInfo() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+
+func Test_convertInstanceToDeviceInfo_Case1(t *testing.T) {
+	os.Setenv("DISK_PARTITION", "DISK_PARTITION")
+	os.Setenv("IMG_URL", "IMG_URL")
+	os.Setenv("PD_IP", "PD_IP")
+	os.Setenv("IMAGE_TYPE", "prod_focal-ms")
+	os.Setenv("OVERLAY_URL", "OVERLAY_URL")
+	os.Setenv("FDO_MFG_URL", "FDO_MFG_URL")
+	os.Setenv("FDO_OWNER_URL", "FDO_OWNER_URL")
+	os.Setenv("FDO_MFG_PORT", "FDO_MFG_PORT")
+	os.Setenv("FDO_OWNER_PORT", "FDO_OWNER_PORT")
+	os.Setenv("FDO_RV_PORT", "FDO_RV_PORT")
+	defer func() {
+		os.Unsetenv("DISK_PARTITION")
+		os.Unsetenv("IMG_URL")
+		os.Unsetenv("PD_IP")
+		os.Unsetenv("IMAGE_TYPE")
+		os.Unsetenv("OVERLAY_URL")
+		os.Unsetenv("FDO_MFG_URL")
+		os.Unsetenv("FDO_OWNER_URL")
+		os.Unsetenv("FDO_MFG_PORT")
+		os.Unsetenv("FDO_OWNER_PORT")
+		os.Unsetenv("FDO_RV_PORT")
+	}()
+	type args struct {
+		instance     *computev1.InstanceResource
+		artifactInfo utils.ArtifactData
+	}
+	tests := []struct {
+		name string
+		args args
+		want utils.DeviceInfo
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				instance: &computev1.InstanceResource{
+					Host: &computev1.HostResource{
+						BmcIp: "000.0.0.0",
+					},
+					SecurityFeature: osv1.SecurityFeature_SECURITY_FEATURE_UNSPECIFIED,
+				},
+			},
+			want: utils.DeviceInfo{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := convertInstanceToDeviceInfo(tt.args.instance, tt.args.artifactInfo); reflect.DeepEqual(got, tt.want) {
+				t.Errorf("convertInstanceToDeviceInfo() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
