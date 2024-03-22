@@ -21,8 +21,8 @@ const (
 	Artifact               = "one-intel-edge/edgenode/en/manifest"
 	ImageUrl               = "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
 	ImageFileName          = "jammy-server-cloudimg-amd64.raw.gz"
-	RSProxy                = "http://rs-proxy.rs-proxy.svc.cluster.local:8081/v2/one-intel-edge/edge-node/file/provisioning-hook-os/"
-	RSProxyManifest        = "http://rs-proxy.rs-proxy.svc.cluster.local:8081/v2/one-intel-edge/edge-node/en/"
+	RSProxy                = "http://rs-proxy.rs-proxy.svc:8081/v2/one-intel-edge/edge-node/file/provisioning-hook-os/"
+	RSProxyManifest        = "http://rs-proxy.rs-proxy.svc:8081/v2/one-intel-edge/edge-node/en/"
 	OrchCACertificateFile  = "/etc/ssl/orch-ca-cert/ca.crt"
 	BootsCaCertificateFile = "/etc/ssl/boots-ca-cert/ca.crt"
 )
