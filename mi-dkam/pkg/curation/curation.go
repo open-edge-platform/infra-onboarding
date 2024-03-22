@@ -176,7 +176,7 @@ func GetReleaseArtifactList(filePath string) (Config, error) {
 
 func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	parentDir := filepath.Dir(filepath.Dir(pwd))
-	beginString := "rm /etc/apt/apt.conf"
+	beginString := "true >/etc/environment"
 	scriptDir := filepath.Join(parentDir, "pkg", "script")
 	installerPath := filepath.Join(scriptDir, "Installer")
 	scriptFileName := ""
@@ -428,16 +428,36 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 				newLines = append(newLines, fmt.Sprintf("%s=\"%s\"", key, value))
 			}
 		}
-		newLines = append(newLines, "if grep -q \"http_proxy\" /etc/environment && grep -q \"https_proxy\" /etc/environment && grep -q \"ftp_proxy\" /etc/environment && grep -q \"no_proxy\" /etc/environment; then")
-		newLines = append(newLines, "    echo \"Proxies are already present in /etc/environment.\"")
-		newLines = append(newLines, "else")
-		newLines = append(newLines, "    echo \"http_proxy=$http_proxy\" >> /etc/environment;")
-		newLines = append(newLines, "    echo \"https_proxy=$https_proxy\" >> /etc/environment;")
-		newLines = append(newLines, "    echo \"ftp_proxy=$ftp_proxy\" >> /etc/environment;")
-		newLines = append(newLines, "    echo \"socks_server=$socks_proxy\" >> /etc/environment;")
-		newLines = append(newLines, "    echo \"no_proxy=$no_proxy\" >> /etc/environment;")
+		if httpProxy != "" {
+			newLines = append(newLines, "if ! grep -q \"http_proxy\" /etc/environment; then")
+			newLines = append(newLines, "    echo \"http_proxy=$http_proxy\" >> /etc/environment;")
+			newLines = append(newLines, "fi")
+		}
+
+		if httpsProxy != "" {
+			newLines = append(newLines, "if ! grep -q \"https_proxy\" /etc/environment; then")
+			newLines = append(newLines, "    echo \"https_proxy=$https_proxy\" >> /etc/environment;")
+			newLines = append(newLines, "fi")
+		}
+
+		if ftpProxy != "" {
+			newLines = append(newLines, "if ! grep -q \"ftp_proxy\" /etc/environment; then")
+			newLines = append(newLines, "    echo \"ftp_proxy=$ftp_proxy\" >> /etc/environment;")
+			newLines = append(newLines, "fi")
+		}
+
+		if sockProxy != "" {
+			newLines = append(newLines, "if ! grep -q \"socks_proxy\" /etc/environment; then")
+			newLines = append(newLines, "    echo \"socks_server=$socks_proxy\" >> /etc/environment;")
+			newLines = append(newLines, "fi")
+		}
+
+		if noProxy != "" {
+			newLines = append(newLines, "if ! grep -q \"no_proxy\" /etc/environment; then")
+			newLines = append(newLines, "    echo \"no_proxy=$no_proxy\" >> /etc/environment;")
+			newLines = append(newLines, "fi")
+		}
 		newLines = append(newLines, "    echo \"Proxies added to /etc/environment.\"")
-		newLines = append(newLines, "fi")
 		newLines = append(newLines, ". /etc/environment;")
 		newLines = append(newLines, "export http_proxy https_proxy ftp_proxy socks_server no_proxy;")
 

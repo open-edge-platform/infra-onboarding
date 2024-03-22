@@ -1,13 +1,28 @@
 #!/bin/bash
 
->/etc/environment
-rm /etc/apt/apt.conf
+set -euo pipefail
+
+if [ -f /etc/apt/apt.conf ]; then
+    rm /etc/apt/apt.conf
+fi
+true >/etc/environment
 SETUP_STATUS_FILENAME="install_pkgs_status"
 SCRIPT_DIR=$(pwd)
-touch $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+touch "$SCRIPT_DIR/$SETUP_STATUS_FILENAME"
 
-CLIENT_ID=$(cat /etc/intel_edge_node/client-credentials/client_id)
-CLIENT_SECRET=$(cat /etc/intel_edge_node/client-credentials/client_secret)
+if [ -s "/etc/intel_edge_node/client-credentials/client_id" ]; then
+    CLIENT_ID=$(cat /etc/intel_edge_node/client-credentials/client_id)
+else
+    echo "CLIENT ID does not exists"
+    exit 1
+fi
+
+if [ -s "/etc/intel_edge_node/client-credentials/client_secret" ]; then
+    CLIENT_SECRET=$(cat /etc/intel_edge_node/client-credentials/client_secret)
+else
+     echo "CLIENT SECRET does not exists"
+     exit 1
+fi
 
 PROVISIONING_URL=${PROVISIONING_URL:-"localhost"}
 ACCESS_TOKEN_URL=__KEYCLOAK_URL__
@@ -17,7 +32,6 @@ IMG_REGISTRY_URL=__IMG_REGISTRY_URL__
 APT_SOURCE_PROXY_PORT=__ORCH_APT_PORT__
 IMG_REGISTRY_PROXY_PORT=__ORCH_IMG_PORT__
 
-REGISTRY_URL=__REGISTRY_URL__
 ORCH_C_URL=__ORCH_CLUSTER__
 ORCH_I_URL=__ORCH_INFRA__
 ORCH_PLATFORM_OBSERVABILITY_HOST=__ORCH_PLATFORM_OBS_HOST__
@@ -29,32 +43,17 @@ TELEMETRY_MANAGER_URL=__ORCH_TELEMETRY_HOST__:__ORCH_TELEMETRY_PORT__
 RELEASE_SERVER=__FILE_SERVER__
 
 CA_CERT="__CA_CERT__"
-DOCKER_GPG_KEY="__DOCKER_KEY__"
 CADDY_GPG_KEY="__CADDY_KEY__"
 
 # 1. Install dependencies
 install_dependencies() {
     echo "Install all dependencies."
+    rm -f /etc/apt/sources.list.d/edge-node.list
     apt-get update
-    sudo apt-get install -y curl jq wget openssh-server unzip apparmor iptables lvm2 cryptsetup lxc mosquitto tpm2-abrmd tpm2-tools software-properties-common ntp python3-venv git jq libpq5
-    echo -e "\e[32m[install git debootstrap python3-pip]\e[0m"
-    sudo apt install -y git debootstrap python3-pip
+    echo -e "\e[32m[install git python3-pip]\e[0m"
+    sudo apt-get install -y curl wget openssh-server unzip apparmor iptables lvm2 cryptsetup lxc mosquitto tpm2-abrmd tpm2-tools software-properties-common ntp python3-venv git jq libpq5 python3-pip ca-certificates gnupg dmidecode
 
-    snaphp=$(sudo snap get system proxy.http)
-    ret=$?
-    if [ $ret -ne 0 ]; then
-    echo "proxy not set for snap."
-    fi
-    if [ "$snaphp" !=  "$http_proxy" ] && [ -n "$http_proxy" ]; then
-    echo "set proxy.http as $http_proxy for snap."
-    sudo snap set system proxy.http=$http_proxy
-    echo "set proxy.https as $https_proxy for snap."
-    sudo snap set system proxy.https=$https_proxy
-    fi
-    sudo snap install jo
-
-    which yq_linux_amd64
-    if [ $? -ne 0 ]; then
+    if ! command -v yq_linux_amd64 &> /dev/null; then
         echo "Download yq and install on provisioning host."
         version="v4.42.1"
         expected_checksum="99fc7fd4874daaceb8a718264afccc8f777413fa655c7e16063cfa87d39efe3a"
@@ -81,8 +80,7 @@ install_dependencies() {
         tar -xzvf $tmpyq/yq_linux_amd64.tar.gz -C "$tmpyq"
         sudo mv "$tmpyq"/yq_linux_amd64 /usr/local/bin/yq_linux_amd64
     fi
-    which yq
-    if [ $? -ne 0 ]; then
+    if [ ! -L /usr/local/bin/yq ]; then
         sudo ln -s yq_linux_amd64 /usr/local/bin/yq
     fi   
 }
@@ -97,23 +95,6 @@ install_fws(){
     ufw reload
 }
 
-# Get the latest version from github repo release.
-get_github_latest_vesion() {
-  KSURL="$1"
-  # curl -Ls -w %{url_effective} -o /dev/null "$KSURL"
-  LASTURL=""
-  LASTURL=$(curl "$KSURL" -s -L -I -o /dev/null -w '%{url_effective}')
-  ret=$?
-  if [ $ret -ne 0 ]; then
-      LASTURL=$(wget -O /dev/null --content-disposition "$KSURL"  2>&1 |awk '/^Location: /{print $2}')
-      ret=$?
-      if [ $ret -ne 0 ]; then
-          echo "Error: Can not find the latest ksonnet version by wget."
-      fi
-  fi
-  LATES=${LASTURL##*/}
-  echo "$LATES"
-}
 
 # Get the release from github repo.
 download_github_url() {
@@ -131,7 +112,7 @@ download_github_url() {
 install_intel_CAcertificates() {
     echo "Install intel CA certificates."
     export no_proxy=$no_proxy,__FILE_SERVER__
-    export NO_PROXY=$NO_PROXY,__FILE_SERVER__
+    export NO_PROXY=$no_proxy,__FILE_SERVER__
     # wget  http://owrdropbox.intel.com/dropbox/public/Ansible/certificates/IntelCA5A-base64.crt
     # wget  http://owrdropbox.intel.com/dropbox/public/Ansible/certificates/IntelCA5B-base64.crt
     # wget  http://owrdropbox.intel.com/dropbox/public/Ansible/certificates/IntelSHA256RootCA-base64.crt
@@ -151,128 +132,17 @@ install_intel_CAcertificates() {
     update-ca-certificates
 }
 
-# 4. Install Docker
-install_docker() {
-    echo "Install docker"
-    if [ ! -f /etc/sudoers.d/"$USER" ]; then
-        echo "$USER ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/"$USER"
-        echo "" "  $USER added to /etc/sudoers.d/"
-    else
-        echo "warn" "  $USER already exists in /etc/sudoers.d/"
-    fi
-
-    # Install Tools
-    echo -e "\e[32m[apt update]\e[0m"
-    sudo apt update
-    echo -e "\e[32m[install ca-certificates curl gnupg jq dmidecode]\e[0m"
-    sudo apt install -y ca-certificates curl gnupg jq dmidecode
-
-    sudo install -m 0755 -d /etc/apt/keyrings
-
-    echo -e "\e[32m[install docker]\e[0m"
-    if [ ! -e /etc/apt/keyrings/docker.gpg ]; then
-        cat <<< "$DOCKER_GPG_KEY" | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-        sudo chmod a+r /etc/apt/keyrings/docker.gpg
-        echo \
-        "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-        "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
-        sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-        sudo apt update
-        sudo apt install -y docker-ce
-    fi
-
-    if [ ! -e "/etc/systemd/system/docker.service.d/http-proxy.conf" ]; then
-        updateDockerdProxy
-
-        # Enable docker
-        sudo systemctl daemon-reload
-        sudo systemctl restart docker
-        sudo systemctl enable docker
-
-        # Add user into docker group
-        sudo usermod -aG docker $USER
-        sudo systemctl restart docker
-        sudo systemctl daemon-reload
-        sudo chmod 666 /var/run/docker.sock
-    fi
-    updateDockerClientProxy
-}
-
-# Update docker proxies
-updateDockerClientProxy() {
-    # Proxy for docker
-    ROOT_DOCKER_CONFIG="/root/.docker/config.json"
-    USER_DOCKER_CONFIG="$HOME/.docker/config.json"
-    config_proxy=$(jo httpProxy=$http_proxy httpsProxy=$https_proxy noProxy=$no_proxy)
-    config_default=$(jo default="$config_proxy")
-
-    dockerDir=${ROOT_DOCKER_CONFIG%/*}
-    sudo mkdir -p "$dockerDir"
-    dockerDir=${USER_DOCKER_CONFIG%/*}
-    mkdir -p "$dockerDir"
-
-    sudo ls ${USER_DOCKER_CONFIG} > /dev/null
-    if [ $? -eq 0 ];then
-        user_config_proxies=$(cat ${USER_DOCKER_CONFIG} | jo proxies="$config_default" -D -f -)
-    else
-        user_config_proxies=$(jo proxies="$config_default" -D)
-    fi
-
-    echo "$user_config_proxies" | jo -D -f - -p | sudo tee "$USER_DOCKER_CONFIG"
-}
-
-#Update dockerd proxies
-updateDockerdProxy() {
-    if [ ! -d "/etc/systemd/system/docker.service.d" ];then
-        sudo mkdir -p /etc/systemd/system/docker.service.d
-    fi
-    echo """
-    # SPDX-FileCopyrightText: (C) 2023 Intel Corporation
-    # SPDX-License-Identifier: LicenseRef-Intel
-
-    [Service]
-    Environment=\"HTTP_PROXY=$http_proxy\"
-    Environment=\"HTTPS_PROXY=$http_proxy\"
-    Environment=\"NO_PROXY=$no_proxy\"
-    """ | sudo tee /etc/systemd/system/docker.service.d/http-proxy.conf
-}
-
-# 5. Install helm
-install_helm() {
-    echo "Install helm"
-    TAG="v3.12.3"
-    expected_checksum="1b2313cd198d45eab00cc37c38f6b1ca0a948ba279c29e322bdf426d406129b5"
-    HELM_DIST="helm-$TAG-linux-amd64.tar.gz"
-    DOWNLOAD_URL="https://get.helm.sh/$HELM_DIST"
-    wget $DOWNLOAD_URL
-    if [ -f "helm-v3.12.3-linux-amd64.tar.gz" ]; then
-        actual_checksum=$(sha256sum "helm-v3.12.3-linux-amd64.tar.gz" | awk '{print $1}')
-        if [ "$actual_checksum" != "$expected_checksum" ]; then
-                echo "Checksum mismatch. File may be corrupted."
-                exit 1
-            fi
-            echo "Checksum verification successful."
-    else
-        echo "Downloaded file does not exist. Aborting installation."
-        exit 1
-    fi
-    tar -xvf $HELM_DIST
-    mv linux-amd64/helm  /usr/bin/
-    rm -rf $HELM_DIST linux-amd64
-
-}
-
 # 6. Get Token
 install_cleanup() {
     echo "Agents cleanup."
-    apt-get -y purge node-agent caddy
-    apt-get -y purge cluster-agent
-    apt-get -y purge hardware-discovery-agent
-    apt-get -y purge ensp-ke-installer
+    apt-get -y purge node-agent caddy || true
+    apt-get -y purge cluster-agent || true
+    apt-get -y purge hardware-discovery-agent || true
+    apt-get -y purge ensp-ke-installer || true
 
-    apt-get -y purge ensp-orch-installer
-    apt-get purge -y platform-observability-agent
-    apt-get -y purge platform-update-agent
+    apt-get -y purge ensp-orch-installer || true
+    apt-get purge -y platform-observability-agent || true
+    apt-get -y purge platform-update-agent || true
     apt-get autoremove -y
     rm -rf /etc/intel_edge_node/tokens /etc/intel_edge_node/certs /etc/intel_edge_node/.keys
 }
@@ -285,31 +155,31 @@ install_node_agent(){
 
     echo "get access token from orchestrator"
     # Save the response to the temporary file
-    curl -X POST -u "$CLIENT_ID:$CLIENT_SECRET" -d "grant_type=client_credentials" https://__KEYCLOAK__/realms/master/protocol/openid-connect/token -o $tempfile
+    curl -X POST -u "$CLIENT_ID:$CLIENT_SECRET" -d "grant_type=client_credentials" https://__KEYCLOAK__/realms/master/protocol/openid-connect/token -o "$tempfile"
 
     # Check the exit status of curl
-    if [ $? -ne 0 ]; then
+    if [ ! -s "$tempfile" ]; then
         echo "error in getting Keycloak token"
-        rm $tempfile
+        rm "$tempfile"
         exit 1
     fi
 
     # Parse the response with jq
-    AT=$(jq -r '.access_token' $tempfile)
-    rm $tempfile
+    AT=$(jq -r '.access_token' "$tempfile")
+    rm "$tempfile"
 
     # Get RS token now
     tempfile=$(mktemp)
-    curl -s -f -XGET https://__RELEASE_FQDN__/token -H "Authorization: Bearer $AT" -o $tempfile
+    curl -XGET https://__RELEASE_FQDN__/token -H "Authorization: Bearer $AT" -o "$tempfile"
 
-    if [ $? -ne 0 ]; then
+    if [ ! -s "$tempfile" ]; then
         echo "error in getting Release Service token"
-        rm $tempfile
+        rm "$tempfile"
         exit 1
     fi
 
-    RS_AT=$(cat $tempfile)
-    rm $tempfile
+    RS_AT=$(cat "$tempfile")
+    rm "$tempfile"
 
     echo "setup oras"
     ORAS_VERSION="1.1.0"
@@ -348,7 +218,16 @@ install_node_agent(){
     id -u prometheus &>/dev/null || useradd prometheus -u 994 --system -g bm-agents
     id -u platform-update-agent &>/dev/null || useradd platform-update-agent --system -g bm-agents
     id -u fluent-bit &>/dev/null || useradd fluent-bit --system -g bm-agents -G adm
-    useradd -r -c "etcd user" -s /sbin/nologin -M etcd -U
+    USERNAME="etcd"
+
+    # Check if the etcd already exists
+    if id "$USERNAME" &>/dev/null; then
+        echo "User '$USERNAME' already exists."
+    else
+        # Add the etcd if it doesn't exist
+        useradd -r -c "etcd user" -s /sbin/nologin -M "$USERNAME" -U
+        echo "User '$USERNAME' added successfully."
+    fi
 
     chmod -R 700 /etc/intel_edge_node/client-credentials
     chown -R node-agent:bm-agents /etc/intel_edge_node
@@ -408,7 +287,6 @@ install_node_agent(){
 
 # 8. Install Cluster Agent
 install_cluster_agent(){
-echo $ID_TOKEN
 echo "Install Cluster agent..."
 VERSION="cluster-agent-VERSION"
 echo $VERSION
@@ -545,18 +423,6 @@ apt-get -y install platform-update-agent="$VERSION"
 systemctl status -l --no-pager platform-update-agent
 }
 
-#increase the disk partiton
-parition_extention() {
-set -e  # Enable exit on error
-echo "$(date): Extentending DISK size.............."
-drive=$(lsblk -no pkname $(findmnt -n / | awk '{ print $2 }'))
-new_partition=$(lsblk -npo name /dev/$drive | tail -n1)
-trimmed_partition=${new_partition#*/}
-sudo growpart /dev/$drive 3
-sudo resize2fs /$trimmed_partition
-set +e  # Disable exit on error
-}
-
 # 21. SRIOV configurations
 install_sriov(){
 sudo sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX="intel_iommu=on iommu=pt pci=realloc console=tty1 console=ttyS0,115200"/' /etc/default/grub
@@ -593,7 +459,7 @@ fi
 
 sudo rm -rf /etc/cron.ensp
 sudo mkdir -p /etc/cron.ensp
-sudo tee /etc/cron.ensp/logrotate << END
+sudo tee /etc/cron.ensp/logrotate << 'END'
 #!/bin/sh
 /usr/sbin/logrotate /etc/logrotate.conf
 EXITVALUE=$?
@@ -605,7 +471,7 @@ END
 
 sudo chmod +x /etc/cron.ensp/logrotate
 
-sudo tee /etc/logrotate.d/rsyslog << END
+sudo tee /etc/logrotate.d/rsyslog << 'END'
 /var/log/syslog
 /var/log/mail.info
 /var/log/mail.warn
@@ -643,7 +509,7 @@ sudo /usr/sbin/logrotate /etc/logrotate.conf
 
 # 25. Install log end
 install_syslogrotate_ufw(){
-sudo tee /etc/logrotate.d/ufw << END
+sudo tee /etc/logrotate.d/ufw << 'END'
 /var/log/ufw.log
 {
         rotate 4
@@ -696,13 +562,13 @@ enable_netipplan() {
 
 # 28. delete the invalid ubuntu boot menu options
 delete_invalid_ubuntu_boot_menuoptions () {
-
+    echo "Inside boot order change function"
     present_boot=$(efibootmgr | grep -i "Bootcurrent" | awk '{print $2}')
     while IFS= read -r boot_part_number; do
     if [[ "$boot_part_number" = "$present_boot" ]]; then
             continue;
     else
-         efibootmgr -b $boot_part_number -B
+         efibootmgr -b "$boot_part_number" -B
     fi
     done < <(efibootmgr | grep -i ubuntu | awk '{print $1}'| cut -c 5-8 )
 }
@@ -723,8 +589,6 @@ enable_kernel_config(){
 # 30. Enable NTP configuration
 install_NTP(){
     apt-get update
-    apt-get install -y ntp
-    apt-get update
     apt-get install -y systemd-timesyncd
     cp /etc/ntp.conf /etc/ntp.conf.bak
     cp /etc/systemd/timesyncd.conf /etc/systemd/timesyncd.conf.bak
@@ -740,8 +604,6 @@ install_NTP(){
     sed  's/.*#NTP=*./'"$timeServers"'/g' /etc/systemd/timesyncd.conf | sudo tee /etc/systemd/timesyncd.conf >/dev/null
     ufw allow 123/udp 
     service ntp reload
-    systemctl restart ntp
-    systemctl status ntp
     systemctl restart systemd-timesyncd.service
     timedatectl set-ntp true
     systemctl status systemd-timesyncd.service
@@ -765,7 +627,7 @@ create_lvm_partition(){
 disk=$1
 echo "starting the LVM creation for the disk volume $disk"
 #erase the disk data if already presnet
-dd if=/dev/zero of=/dev/$disk bs=512 count=100
+dd if=/dev/zero of=/dev/"$disk" bs=512 count=100
 echo "successfully deleted the data from the disk" 
 
 #create the partition
@@ -782,29 +644,26 @@ fi
 vgs=$(vgs --noheadings -o vg_name)
 #remove trailing and leading spaces
 vgs=$(echo "$vgs" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-if [ ! -z $vgs ]; then
+if [ -n "$vgs" ]; then
     vgremove -f "$vgs"
     echo "successfully deleted the previous lvm"
 fi
 #remove previously created pv if exist
 pvs=$(pvs --noheadings -o pv_name)
 pvs=$(echo "$pvs" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-if [ ! -z $pvs ]; then
+if [ -n "$pvs" ]; then
     pvremove -f "$pvs"
     echo "successfully deleted the previous pvs"
 fi
 
 #pv create
-pvcreate /dev/${disk}${part_number}1
-if [ $? -eq 0 ]; then
+if pvcreate "/dev/${disk}${part_number}1"; then
     echo "Successfuly done pvcreate" 
 else
     echo "Failure in pvcreate"  
 fi
 #vgcreate
-vgcreate lvmvg /dev/${disk}${part_number}1
-
-if [ $? -eq 0 ]; then
+if vgcreate lvmvg /dev/"${disk}""${part_number}"1; then
     echo "Successfuly done vgcreate" 
 else
     echo "Failure in vgcreate" 
@@ -812,7 +671,7 @@ fi
 vgscan
 vgchange -ay
 
-if [ $? -eq 0 ]; then
+if vgchange -ay; then
     echo "Successfuly created the logical volume group" 
 else
     echo "Failure in creating the logical volume group" 
@@ -827,7 +686,7 @@ if [ ! -L /dev/mapper/rootfs_crypt ]; then
     
     echo "FDE not enabled and starting the LVM creation"    
     #check for NVME && SATA disk types
-    disk_list=$(lsblk -o NAME -n -d | grep -v "loop*" | awk '{print $1}')
+    disk_list=$(lsblk -o NAME -n -d | grep -v "loop[0-9]*" | awk '{print $1}')
 
     for disk_name in $disk_list
     do
@@ -836,7 +695,7 @@ if [ ! -L /dev/mapper/rootfs_crypt ]; then
 
             #exclude the pendrive from device list if its attahced
             removable=$(lsblk -n -d -o RM "/dev/$disk_name")
-            if [ $removable -ne 1 ]; then
+            if [ "$removable" -ne 1 ]; then
                 final_disk_list+=("$disk_name")
             fi
         else
@@ -846,7 +705,7 @@ if [ ! -L /dev/mapper/rootfs_crypt ]; then
     #do not do lvm creation if only one disk presnet
     num_disks=${#final_disk_list[@]}
 
-    if [ $num_disks -gt 1 ]; then
+    if [ "$num_disks" -gt 1 ]; then
         echo "found secondary disk for LVM creation"
         #find the disk where os not installed for lvm creation
         rootfs=$(df /boot/efi | awk 'NR==2 {print $1}')
@@ -864,7 +723,7 @@ if [ ! -L /dev/mapper/rootfs_crypt ]; then
                     continue;
             else
                  #disk with no rootfs and can be used for the LVM creation
-                 create_lvm_partition $lvm_disk
+                 create_lvm_partition "$lvm_disk"
                  break
             fi
         done
@@ -872,65 +731,51 @@ if [ ! -L /dev/mapper/rootfs_crypt ]; then
 fi
 }
 ssh_config(){
-sudo service sshd stop
-sudo service sshd disable
+sudo systemctl stop ssh
+sudo systemctl disable ssh
 #remove enabling ssh from ufw
 ufw delete allow ssh &>/dev/null
 ufw reload
 }
 
 #create the lvm for the seconary disk
-lvm_part_setup_for_secondary_disk 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-enable_netipplan 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-#extend the disk partition
-#parition_extention  2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_dependencies 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_fws 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-if command -v docker &> /dev/null ; then
-    echo "Docker is already installed."
-else
-    install_docker 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-fi
-
-if command -v helm &> /dev/null ; then
-    echo "helm is already installed."
-else
-    install_helm 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-fi
+lvm_part_setup_for_secondary_disk 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+enable_netipplan 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_dependencies 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_fws 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 if [ ! -f /usr/local/share/ca-certificates/IntelCA7B-Base64.crt ]; then
     echo "File not present"
-    install_intel_CAcertificates 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+    install_intel_CAcertificates 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 fi
 
-enable_kernel_config 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_NTP 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_syslogrotate_job 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+enable_kernel_config 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_NTP 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_syslogrotate_job 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 echo "Install agents..........................."
-install_CA_cert 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_cleanup 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_node_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_cluster_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_hardware_discovery_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_platform_observability_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_trtl 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_inbm_cloudadapter_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_inbm_dispatcher_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_inbm_configuration_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_inbm_telemetry_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_inbm_diagnostic_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_mqtt 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_tpm_provision 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_inbc_program 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_platform_update_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_platform_telemetry_agent 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_sriov 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_HWE_kernel 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-install_syslogrotate_ufw 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-disable_unattended_upgrade 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
-# Uncomment ssh_config function in the last RC release for production
-#ssh_config 2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+install_CA_cert 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_cleanup 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_node_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_cluster_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_hardware_discovery_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_platform_observability_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_trtl 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_inbm_cloudadapter_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_inbm_dispatcher_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_inbm_configuration_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_inbm_telemetry_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_inbm_diagnostic_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_mqtt 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_tpm_provision 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_inbc_program 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_platform_update_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_platform_telemetry_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_sriov 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_HWE_kernel 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_syslogrotate_ufw 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+disable_unattended_upgrade 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+ssh_config 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 #Delete the invalid ubuntu boot numbers created from previous installation from boot menu
-delete_invalid_ubuntu_boot_menuoptions  2>&1 | tee -a $SCRIPT_DIR/$SETUP_STATUS_FILENAME
+delete_invalid_ubuntu_boot_menuoptions  2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 
-echo "Installation done" > $SCRIPT_DIR/.base_pkg_install_done
+echo "Installation done" > "$SCRIPT_DIR"/.base_pkg_install_done
 sudo reboot
