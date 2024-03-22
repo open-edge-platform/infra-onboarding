@@ -47,7 +47,7 @@ type Rule struct {
 	SourceIp string `json:"sourceIp,omitempty"`
 	Ports    string `json:"ports,omitempty"`
 	IpVer    string `json:"ipVer,omitempty"`
-	Protocol string `json:"protocol,omitemptyx"`
+	Protocol string `json:"protocol,omitempty"`
 }
 
 var configs Config
@@ -104,6 +104,7 @@ func GetCuratedScript(profile string, platform string) (string, string) {
 
 	zlog.MiSec().Info().Msg(releaseFilePath)
 	configs, err := GetReleaseArtifactList(releaseFilePath)
+	agentsList = []AgentsVersion{}
 	agentsList = append(agentsList, configs.BMA.Debs...)
 	tinkeractionList := configs.Provisioning.Images
 	var tinkeraction_version string
