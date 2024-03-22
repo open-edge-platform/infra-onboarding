@@ -32,7 +32,7 @@ if echo "$default_ip" | grep -q '^172'; then
   PROXYADDR=$(ip route | grep default | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b")
 fi
 #add  host to the system
-echo "localhost.internal $PROXYADDR" | sudo tee -a /etc/hosts
+echo "$PROXYADDR localhost.internal1 localhost.internal2" | sudo tee -a /etc/hosts
 
 # Check if NGINX proxy service is up
 until [ $(curl -w "%{http_code}" --output /dev/null -s -k https://localhost.internal:8081/health) = 200 ]; do

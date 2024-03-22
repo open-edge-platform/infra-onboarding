@@ -33,7 +33,7 @@
 #set -x
 
 TLS=${FDO_TLS:-'https'}
-IP_ADDRESS=${FDO_MFGIP:-'localhost.internal'}
+IP_ADDRESS=${FDO_MFGIP:-'localhost.internal1'}
 PORT=${FDO_MPORT:-8038}
 MSTRING=${DEVICE_SERIAL:-'abcd12345'}
 TYPE=${TYPE:-'CLIENT-SDK'}
