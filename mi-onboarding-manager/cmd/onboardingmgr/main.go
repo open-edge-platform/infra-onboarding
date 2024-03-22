@@ -12,6 +12,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/auth"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/controller"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/southbound"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
@@ -82,6 +83,7 @@ func setupOamServerAndSetReady(enableTracing bool, oamServerAddress string) {
 	}
 }
 
+//nolint:cyclop // it's a main, complexity is 11
 func main() {
 	// Print a summary of the build
 	printSummary()
@@ -117,6 +119,10 @@ func main() {
 
 	if initErr := secrets.Init(context.Background()); initErr != nil {
 		zlog.MiSec().Fatal().Err(initErr).Msgf("Unable to initialize required secrets")
+	}
+
+	if authInitErr := auth.Init(); authInitErr != nil {
+		zlog.MiSec().Fatal().Err(authInitErr).Msgf("Unable to initialize auth service")
 	}
 
 	onboardingController, err := controller.New(invClient, *enableTracing)

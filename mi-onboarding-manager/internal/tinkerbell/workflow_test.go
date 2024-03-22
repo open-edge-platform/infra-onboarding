@@ -95,7 +95,7 @@ func TestDeleteDIWorkflowResourcesIfExist(t *testing.T) {
 	}
 	path := "/var"
 	dummypath := "/run/secrets/kubernetes.io/serviceaccount/"
-	cerr := os.MkdirAll(path+dummypath, 0755)
+	cerr := os.MkdirAll(path+dummypath, 0o755)
 	if cerr != nil {
 		t.Fatalf("Error creating directory: %v", cerr)
 	}

@@ -110,4 +110,3 @@ func Test_keycloakService_login(t *testing.T) {
 		})
 	}
 }
-
