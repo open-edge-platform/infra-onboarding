@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"net"
 
 	"gopkg.in/yaml.v2"
 
@@ -549,30 +550,37 @@ func AddProxies(fileName string, newLines []string, beginLine string) {
 
 // GenerateUFWCommand convert a Rule into the corresponding ufw command.
 func GenerateUFWCommand(rule Rule) string {
+	ipAddr := ""
 	if rule.SourceIp != "" {
+		ip := net.ParseIP(rule.SourceIp)
+		if ip == nil {
+			ipAddr = "$(dig +short " + rule.SourceIp + " | tail -n1)"
+		} else {
+			ipAddr = rule.SourceIp
+		}
 		if rule.Protocol != "" {
 			if rule.Ports != "" {
-				return fmt.Sprintf("ufw allow from %s to any port %s proto %s", rule.SourceIp, rule.Ports, rule.Protocol)
+				return fmt.Sprintf("ufw allow from %s to any port %s proto %s", ipAddr, rule.Ports, rule.Protocol)
 			} else {
-				return fmt.Sprintf("ufw allow from %s proto %s", rule.SourceIp, rule.Protocol)
+				return fmt.Sprintf("ufw allow from %s proto %s", ipAddr, rule.Protocol)
 			}
 		} else {
 			if rule.Ports != "" {
-				return fmt.Sprintf("ufw allow from %s to any port %s", rule.SourceIp, rule.Ports)
+				return fmt.Sprintf("ufw allow from %s to any port %s", ipAddr, rule.Ports)
 			} else {
-				return fmt.Sprintf("ufw allow from %s", rule.SourceIp)
+				return fmt.Sprintf("ufw allow from %s", ipAddr)
 			}
 		}
 	} else {
 		if rule.Protocol != "" {
 			if rule.Ports != "" {
-				return fmt.Sprintf("ufw allow port %s proto %s", rule.Ports, rule.Protocol)
+				return fmt.Sprintf("ufw allow in to any port %s proto %s", rule.Ports, rule.Protocol)
 			} else {
-				return fmt.Sprintf("ufw allow proto %s", rule.Protocol)
+				return fmt.Sprintf("echo Firewall rule not set %d", 0)
 			}
 		} else {
 			if rule.Ports != "" {
-				return fmt.Sprintf("ufw allow port %s", rule.Ports)
+				return fmt.Sprintf("ufw allow in to any port %s", rule.Ports)
 			} else {
 				return fmt.Sprintf("echo Firewall rule not set %d", 0)
 			}

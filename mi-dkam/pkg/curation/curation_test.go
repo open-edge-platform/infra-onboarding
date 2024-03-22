@@ -128,7 +128,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 				IpVer:    "ipv4",
 				Protocol: "tcp",
 			},
-			expectedUfwCommand: "ufw allow from kind.internal to any port 6443,10250 proto tcp",
+			expectedUfwCommand: "ufw allow from $(dig +short kind.internal | tail -n1) to any port 6443,10250 proto tcp",
 		},
 		"rule2": {
 			ufwRule: Rule{
@@ -137,7 +137,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 				Protocol: "tcp",
 				Ports:    "2379,2380,6443,9345,10250,5473",
 			},
-			expectedUfwCommand: "ufw allow port 2379,2380,6443,9345,10250,5473 proto tcp",
+			expectedUfwCommand: "ufw allow in to any port 2379,2380,6443,9345,10250,5473 proto tcp",
 		},
 		"rule3": {
 			ufwRule: Rule{
@@ -146,7 +146,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 				Protocol: "",
 				Ports:    "7946",
 			},
-			expectedUfwCommand: "ufw allow port 7946",
+			expectedUfwCommand: "ufw allow in to any port 7946",
 		},
 		"rule4": {
 			ufwRule: Rule{
@@ -155,7 +155,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 				Protocol: "udp",
 				Ports:    "123",
 			},
-			expectedUfwCommand: "ufw allow port 123 proto udp",
+			expectedUfwCommand: "ufw allow in to any port 123 proto udp",
 		},
 	}
 	for tcname, tc := range tests {
