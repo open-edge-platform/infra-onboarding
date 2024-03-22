@@ -689,6 +689,9 @@ enable_netipplan() {
     netplan apply
 
     echo "Config.yaml file updated successfully."
+    sed -i '/[Resolve]/d'  /etc/systemd/resolved.conf
+    sed -i '/DNS/d'  /etc/systemd/resolved.conf
+
 }
 
 # 28. delete the invalid ubuntu boot menu options
