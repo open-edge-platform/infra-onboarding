@@ -33,6 +33,9 @@ const (
 
 var AuthServiceFactory = newKeycloakSecretService
 
+// enClientRoles is a global variable that stores edge node client roles
+// fetched from the edge node client template.
+// These roles will be applied to all new edge node clients.
 var enClientRoles = map[string]string{}
 
 type keycloakService struct {
@@ -70,7 +73,8 @@ func (k *keycloakService) login(ctx context.Context, keycloakURL string) error {
 	k.keycloakClient = client
 	k.jwtToken = jwtToken
 
-	// for safety, if Init() was not called
+	// initialize default edge node client roles,
+	// if the Keycloak service is created for the first time.
 	if len(enClientRoles) == 0 {
 		rolesErr := k.fetchAndSetDefaultEdgeNodeClientRoles(ctx)
 		if rolesErr != nil {
@@ -80,10 +84,6 @@ func (k *keycloakService) login(ctx context.Context, keycloakURL string) error {
 
 	zlog.MiSec().Debug().Msgf("Keycloak client logged in successfully")
 	return nil
-}
-
-func (k *keycloakService) Init(ctx context.Context) error {
-	return k.fetchAndSetDefaultEdgeNodeClientRoles(ctx)
 }
 
 func (k *keycloakService) fetchAndSetDefaultEdgeNodeClientRoles(ctx context.Context) error {

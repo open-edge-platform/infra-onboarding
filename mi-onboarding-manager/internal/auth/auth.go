@@ -15,8 +15,6 @@ const (
 // AuthService implements the authorization service to create or revoke EN credentials.
 // Remember to call auth.Init() at the very beginning.
 type AuthService interface { //nolint:revive // Need this interface name for more readable.
-	// Init initializes the auth service. It should only be called once at the very beginning.
-	Init(ctx context.Context) error
 	// CreateCredentialsWithUUID creates EN credentials based on UUID.
 	// The credentials can be further used by edge node agents.
 	CreateCredentialsWithUUID(ctx context.Context, uuid string) (string, string, error)
@@ -35,11 +33,13 @@ func Init() error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
+	// Note that this function only creates auth service and logs out immediately.
+	// The assumption is that AuthServiceFactory will perform all necessary initializations.
 	authService, err := AuthServiceFactory(ctx)
 	if err != nil {
 		return err
 	}
 	defer authService.Logout(ctx)
 
-	return authService.Init(ctx)
+	return nil
 }

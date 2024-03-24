@@ -35,11 +35,6 @@ func (a *authServiceMock) Logout(ctx context.Context) {
 	a.Called()
 }
 
-func (a *authServiceMock) Init(ctx context.Context) error {
-	args := a.Called()
-	return args.Error(0)
-}
-
 func AuthServiceMockFactory(createShouldFail, getShouldFail, revokeShouldFail bool) func(ctx context.Context) (auth.AuthService, error) {
 	authMock := &authServiceMock{}
 
@@ -62,8 +57,6 @@ func AuthServiceMockFactory(createShouldFail, getShouldFail, revokeShouldFail bo
 	}
 
 	authMock.On("Logout", mock.Anything, mock.Anything).Return()
-
-	authMock.On("Init", mock.Anything).Return(nil)
 
 	return func(ctx context.Context) (auth.AuthService, error) {
 		return authMock, nil
