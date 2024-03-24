@@ -6,6 +6,8 @@ package auth
 import (
 	"context"
 	"time"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 )
 
 const (
@@ -30,6 +32,12 @@ type AuthService interface { //nolint:revive // Need this interface name for mor
 
 // Init bootstraps the auth service library. Must be called after secrets.Init().
 func Init() error {
+	if *common.FlagDisableCredentialsManagement {
+		zlog.Warn().Msgf("disableCredentialsManagement flag is set to false, " +
+			"skip auth initialization")
+		return nil
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
