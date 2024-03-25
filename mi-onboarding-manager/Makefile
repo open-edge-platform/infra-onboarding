@@ -32,8 +32,9 @@ DOCKER_TAG              := ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}
 BASE_BRANCH ?= main
 
 # Path variables
-APIPKG_DIR := pkg/api
-BUILD_DIR  := build
+APIPKG_DIR  := pkg/api
+BUILD_DIR   := build
+SECRETS_DIR := /var/run/secrets
 
 # Tools versions
 GOLINTVERSION_HAVE        := $(shell golangci-lint version | sed 's/.*version //' | sed 's/ .*//')
@@ -83,6 +84,10 @@ lint-ci: license go-lint buf-lint
 ${BUILD_DIR}:
 	mkdir -p ${BUILD_DIR}
 
+${SECRETS_DIR}:
+	sudo mkdir -p ${SECRETS_DIR}
+	sudo chown ${CURRENT_UID}:${CURRENT_GID} -R ${SECRETS_DIR}
+
 # Maintenance and lint targets
 license: $(VENV_NAME) ## Check licensing with the reuse tool.
 	. ./$</bin/activate; set -u;\
@@ -110,7 +115,7 @@ lint: ## lint code
 db-start: ## Start the local postgres database. See: db-stop
 	if [ -z "`docker ps -aq -f name=^inv-db`" ]; then \
 		echo POSTGRES_PASSWORD=$$PGPASSWORD -e POSTGRES_DB=$$PGDATABASE -e POSTGRES_USER=$$PGUSER -d postgres:$(POSTGRES_VERSION); \
-		docker run --name inv-db --rm -p 5432:5432 -e POSTGRES_PASSWORD=$$PGPASSWORD -e POSTGRES_DB=$$PGDATABASE -e POSTGRES_USER=$$PGUSER -d postgres:$(POSTGRES_VERSION); \
+		docker run --name inv-db --rm --network=host -e POSTGRES_PASSWORD=$$PGPASSWORD -e POSTGRES_DB=$$PGDATABASE -e POSTGRES_USER=$$PGUSER -d postgres:$(POSTGRES_VERSION); \
 	fi
 
 db-stop: ## Stop the local postgres database. See: db-start
@@ -127,7 +132,7 @@ go-tidy: ## go mod tidy
 go-vendor:
 	$(GOCMD) mod vendor
 
-test: ${BUILD_DIR} ## run tests, generate output
+test: ${BUILD_DIR} ${SECRETS_DIR} ## run tests, generate output
 	$(MAKE) db-stop
 	$(MAKE) db-start
 	$(GOCMD) test -race -v -p 1 -coverpkg=$$(go list ./... | grep -v 'api/grpc/onboardingmgr' | grep -v 'pkg/api' | grep -v 'internal/onboardingmgr/onboarding/onboardingmocks' | grep -v 'internal/testing' | tr '\n' ,) -coverprofile=${BUILD_DIR}/coverage.out -covermode atomic ./... | tee \
