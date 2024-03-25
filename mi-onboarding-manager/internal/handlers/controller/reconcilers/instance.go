@@ -29,6 +29,8 @@ import (
 
 const (
 	instanceReconcilerLoggerName = "InstanceReconciler"
+
+	EnvImageType = "IMAGE_TYPE"
 )
 
 // Misc variables.
@@ -176,8 +178,32 @@ func (ir *InstanceReconciler) reconcileInstance(
 	return request.Ack()
 }
 
+func getImageType() string {
+	imgType := os.Getenv(EnvImageType)
+	if imgType == "" {
+		zlogInst.Warn().Msgf("%s env var is not set, using default image type: %s",
+			EnvImageType, utils.ImgTypeJammy)
+		return utils.ImgTypeJammy
+	}
+
+	switch imgType {
+	case utils.ProdBkc:
+		return utils.ImgTypeBkc
+	case utils.ProdFocal:
+		return utils.ImgTypeFocal
+	case utils.ProdFocalMs:
+		return utils.ImgTypeFocalMs
+	default:
+		zlogInst.Warn().Msgf("Unknown image type set %s, using default image type %s",
+			imgType, utils.ImgTypeJammy)
+		return utils.ImgTypeJammy
+	}
+}
+
 func convertInstanceToDeviceInfo(instance *computev1.InstanceResource, artifactInfo utils.ArtifactData) utils.DeviceInfo {
 	host := instance.GetHost() // eager-loaded
+
+	imageType := getImageType()
 
 	deviceInfo := utils.DeviceInfo{
 		GUID:            host.GetUuid(),
@@ -190,7 +216,7 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource, artifactI
 		LoadBalancerIP:  os.Getenv("IMG_URL"),
 		Gateway:         utils.GenerateGatewayFromBaseIP(host.GetBmcIp()),
 		ProvisionerIP:   os.Getenv("PD_IP"),
-		ImType:          os.Getenv("IMAGE_TYPE"),
+		ImType:          imageType,
 		RootfspartNo:    os.Getenv("OVERLAY_URL"),
 		FdoMfgDNS:       os.Getenv("FDO_MFG_URL"),
 		FdoOwnerDNS:     os.Getenv("FDO_OWNER_URL"),
@@ -203,19 +229,14 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource, artifactI
 	deviceInfo.TinkerVersion = artifactInfo.TinkerVersion
 
 	switch deviceInfo.ImType {
-	case utils.ProdBkc:
+	case utils.ImgTypeBkc:
 		deviceInfo.ClientImgName = "jammy-server-cloudimg-amd64.raw.gz"
-		deviceInfo.ImType = utils.ImgTypeBkc
 		deviceInfo.LoadBalancerIP = artifactInfo.BkcURL
 		deviceInfo.RootfspartNo = artifactInfo.BkcBasePkgURL
-	case utils.ProdFocal:
+	case utils.ImgTypeFocal:
 		deviceInfo.ClientImgName = "focal-server-cloudimg-amd64.raw.gz"
-		deviceInfo.ImType = utils.ImgTypeFocal
-	case utils.ProdFocalMs:
-		deviceInfo.ImType = utils.ImgTypeFocalMs
 	default:
 		deviceInfo.ClientImgName = "jammy-server-cloudimg-amd64.raw.gz"
-		deviceInfo.ImType = utils.ImgTypeJammy
 	}
 
 	return deviceInfo
@@ -321,16 +342,10 @@ func (ir *InstanceReconciler) cleanupProvisioningResources(
 ) error {
 	zlogInst.Info().Msgf("Cleaning up all provisioning resources for host %s", instance.GetHost().GetUuid())
 
-	// TODO (LPIO-1912): replace with single function to get image type based on env var
-	artifactInfo, err := convertInstanceToArtifactInfo(instance)
-	if err != nil {
-		return err
-	}
-
-	deviceInfo := convertInstanceToDeviceInfo(instance, artifactInfo)
+	imageType := getImageType()
 
 	if err := onbworkflowclient.DeleteProdWorkflowResourcesIfExist(
-		ctx, instance.GetHost().GetUuid(), deviceInfo.ImType); err != nil {
+		ctx, instance.GetHost().GetUuid(), imageType); err != nil {
 		return err
 	}
 
