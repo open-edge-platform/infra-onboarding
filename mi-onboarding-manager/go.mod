@@ -8,7 +8,7 @@ go 1.21
 
 require (
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.1.0
-	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory v0.10.10-0.20240325114842-bef637a8df5e
+	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory v0.11.0
 	github.com/onosproject/onos-lib-go v0.10.24
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.0
