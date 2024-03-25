@@ -4,9 +4,7 @@
 package southbound_test
 
 import (
-	"context"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -26,8 +24,7 @@ var (
 func TestSouthbound_CreateNodes(t *testing.T) {
 	// already exists, don't create
 	t.Run("AlreadyExists", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
+		ctx := createOutgoingContextWithENJWT(t)
 
 		h1 := inv_testing.CreateHost(t, nil, nil, nil, nil)
 		inCreate := &pb.NodeRequest{
@@ -52,7 +49,7 @@ func TestSouthbound_CreateNodes(t *testing.T) {
 	})
 
 	t.Run("Error_CannotGetHostByUUID", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := inv_testing.CreateContextWithJWT(t)
 		defer cancel()
 		inCreate := &pb.NodeRequest{
 			Payload: []*pb.NodeData{
@@ -76,8 +73,7 @@ func TestSouthbound_CreateNodes(t *testing.T) {
 	})
 
 	t.Run("Success", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
+		ctx := createOutgoingContextWithENJWT(t)
 		bmcIP := "10.10.1.1"
 		inCreate := &pb.NodeRequest{
 			Payload: []*pb.NodeData{
@@ -110,7 +106,7 @@ func TestSouthbound_CreateNodes(t *testing.T) {
 
 func TestSouthbound_DeleteNodes(t *testing.T) {
 	t.Run("Error_CannotGetHostByUUID", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := inv_testing.CreateContextWithJWT(t)
 		defer cancel()
 		nodeReq := &pb.NodeRequest{
 			Payload: []*pb.NodeData{
@@ -134,8 +130,7 @@ func TestSouthbound_DeleteNodes(t *testing.T) {
 	})
 
 	t.Run("NotFound", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
+		ctx := createOutgoingContextWithENJWT(t)
 		nodeReq := &pb.NodeRequest{
 			Payload: []*pb.NodeData{
 				{
@@ -158,8 +153,7 @@ func TestSouthbound_DeleteNodes(t *testing.T) {
 	})
 
 	t.Run("Success_Delete", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
+		ctx := createOutgoingContextWithENJWT(t)
 
 		hostUUID := uuid.NewString()
 		nodeReq := &pb.NodeRequest{
@@ -195,8 +189,7 @@ func TestSouthbound_DeleteNodes(t *testing.T) {
 
 func TestSouthbound_UpdateNodes(t *testing.T) {
 	t.Run("NotFound", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
+		ctx := createOutgoingContextWithENJWT(t)
 
 		inUpdate := &pb.NodeRequest{
 			Payload: []*pb.NodeData{
@@ -221,7 +214,7 @@ func TestSouthbound_UpdateNodes(t *testing.T) {
 	})
 
 	t.Run("Error_CannotGetHostByUUID", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := inv_testing.CreateContextWithJWT(t)
 		defer cancel()
 		inUpdate := &pb.NodeRequest{
 			Payload: []*pb.NodeData{
@@ -245,8 +238,7 @@ func TestSouthbound_UpdateNodes(t *testing.T) {
 	})
 
 	t.Run("Success_Update", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
+		ctx := createOutgoingContextWithENJWT(t)
 
 		nodeReq := &pb.NodeRequest{
 			Payload: []*pb.NodeData{

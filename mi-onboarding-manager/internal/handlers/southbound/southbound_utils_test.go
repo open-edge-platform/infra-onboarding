@@ -26,6 +26,7 @@ import (
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/policy/rbac"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
 )
@@ -39,10 +40,18 @@ var (
 	OMTestClientConn *grpc.ClientConn
 	BufconnLis       *bufconn.Listener
 	InvClient        *invclient.OnboardingInventoryClient
+	rbacRules        = "../../../rego/authz.rego"
 )
 
 // Internal parameters for bufconn testing.
 const bufferSize = util.Megabyte
+
+func createOutgoingContextWithENJWT(t *testing.T) context.Context {
+	t.Helper()
+	_, jwtToken, err := inv_testing.CreateENJWT(t)
+	require.NoError(t, err)
+	return rbac.AddJWTToTheOutgoingContext(context.Background(), jwtToken)
+}
 
 func CreateSouthboundOMClient(target string,
 	bufconnLis *bufconn.Listener,
@@ -82,6 +91,7 @@ func createBufConn() {
 func createOnboardingManagerSouthboundAPI() {
 	sbHandler := southbound.NewSBHandlerWithListener(BufconnLis, om_testing.InvClient, southbound.SBHandlerConfig{
 		EnableTracing: false, // be explicit
+		RBAC:          rbacRules,
 	})
 	err := sbHandler.Start()
 	if err != nil {

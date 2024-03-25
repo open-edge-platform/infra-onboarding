@@ -12,6 +12,7 @@ import (
 	"os"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 
 	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
@@ -21,12 +22,15 @@ import (
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	logging "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/policy/rbac"
 )
 
 var (
-	clientName = "Onboarding"
-	zlog       = logging.GetLogger(clientName)
-	_invClient *invclient.OnboardingInventoryClient
+	clientName  = "Onboarding"
+	zlog        = logging.GetLogger(clientName)
+	_invClient  *invclient.OnboardingInventoryClient
+	rbacPolicy  *rbac.Policy
+	authEnabled = false
 )
 
 type Manager struct {
@@ -39,12 +43,23 @@ type ResponseData struct {
 	To0Expiry      string `json:"to0Expiry"`
 }
 
-func InitOnboarding(invClient *invclient.OnboardingInventoryClient, _ string) {
+func InitOnboarding(invClient *invclient.OnboardingInventoryClient, _ string, enableAuth bool, rbacRules string) {
 	if invClient == nil {
 		zlog.Debug().Msgf("Warning: invClient is nil")
 		return
 	}
 	_invClient = invClient
+
+	var err error
+	if enableAuth {
+		zlog.Info().Msgf("Authentication is enabled, starting RBAC server for Onboarding manager")
+		// start OPA server with policies
+		rbacPolicy, err = rbac.New(rbacRules)
+		if err != nil {
+			zlog.Fatal().Msg("Failed to start RBAC OPA server")
+		}
+	}
+	authEnabled = enableAuth
 }
 
 func GetOSResourceFromDkamService(ctx context.Context, profilename, platform string) (*dkam.GetArtifactsResponse, error) {
@@ -135,6 +150,14 @@ func IsSecureBootConfigAtEdgeNodeMismatch(ctx context.Context, req *pb.SecureBoo
 
 func (s *Manager) SecureBootStatus(ctx context.Context, req *pb.SecureBootStatRequest) (*pb.SecureBootResponse, error) {
 	zlog.Info().Msgf("------- SecureBootStatus() ----------------\n")
+	if authEnabled {
+		// this request requires read and write permissions
+		if !rbacPolicy.IsRequestAuthorized(ctx, rbac.GetKey) || !rbacPolicy.IsRequestAuthorized(ctx, rbac.UpdateKey) {
+			err := inv_errors.Errorfc(codes.Unauthenticated, "Request is blocked by RBAC")
+			zlog.MiSec().MiErr(err).Msgf("Request SecureBootStatus is not authenticated")
+			return nil, err
+		}
+	}
 	resp := &pb.SecureBootResponse{
 		Guid:   req.Guid,
 		Result: pb.SecureBootResponse_Status(req.Result),

@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
@@ -19,18 +20,26 @@ import (
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/policy/rbac"
+	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
 )
+
+const rbacRules = "../../../rego/authz.rego"
 
 func TestInitOnboarding(t *testing.T) {
 	type args struct {
-		invClient *invclient.OnboardingInventoryClient
-		dkamAddr  string
+		invClient  *invclient.OnboardingInventoryClient
+		dkamAddr   string
+		enableAuth bool
+		rbac       string
 	}
 	mockInvClient := &onboarding.MockInventoryClient{}
 	inputargs := args{
 		invClient: &invclient.OnboardingInventoryClient{
 			Client: mockInvClient,
 		},
+		enableAuth: true,
+		rbac:       rbacRules,
 	}
 	inputargs1 := args{
 		invClient: nil,
@@ -50,7 +59,7 @@ func TestInitOnboarding(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			InitOnboarding(tt.args.invClient, tt.args.dkamAddr)
+			InitOnboarding(tt.args.invClient, tt.args.dkamAddr, tt.args.enableAuth, tt.args.rbac)
 		})
 	}
 }
@@ -282,6 +291,10 @@ func TestHandleSecureBootMismatch_Case2(t *testing.T) {
 }
 
 func TestOnboardingManager_SecureBootStatus(t *testing.T) {
+	var err error
+	// starting RBAC server
+	rbacPolicy, err = rbac.New(rbacRules)
+	require.NoError(t, err)
 	type fields struct {
 		OnBoardingSBServer pb.OnBoardingSBServer
 	}
@@ -289,6 +302,9 @@ func TestOnboardingManager_SecureBootStatus(t *testing.T) {
 		ctx context.Context
 		req *pb.SecureBootStatRequest
 	}
+	_, jwtToken, err := inv_testing.CreateENJWT(t)
+	require.NoError(t, err)
+	ctx := rbac.AddJWTToTheIncomingContext(context.Background(), jwtToken)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -299,10 +315,19 @@ func TestOnboardingManager_SecureBootStatus(t *testing.T) {
 		{
 			name: "Test Case",
 			args: args{
-				ctx: context.Background(),
+				ctx: ctx,
 				req: &pb.SecureBootStatRequest{},
 			},
 			want:    &pb.SecureBootResponse{},
+			wantErr: true,
+		},
+		{
+			name: "NoJWT",
+			args: args{
+				ctx: context.Background(),
+				req: &pb.SecureBootStatRequest{},
+			},
+			want:    nil,
 			wantErr: true,
 		},
 	}

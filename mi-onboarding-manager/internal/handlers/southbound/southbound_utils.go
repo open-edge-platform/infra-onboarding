@@ -25,6 +25,8 @@ type SBHandlerConfig struct {
 	ServerAddress    string
 	InventoryAddress string
 	EnableTracing    bool
+	EnableAuth       bool
+	RBAC             string
 }
 
 type SBHandler struct {
@@ -57,7 +59,7 @@ func NewSBHandlerWithListener(listener net.Listener,
 
 func (sbh *SBHandler) Start() error {
 	nodeArtifactService, err := artifact.NewArtifactService(sbh.invClient,
-		sbh.cfg.InventoryAddress, sbh.cfg.EnableTracing)
+		sbh.cfg.InventoryAddress, sbh.cfg.EnableTracing, sbh.cfg.EnableAuth, sbh.cfg.RBAC)
 	if err != nil {
 		return err
 	}

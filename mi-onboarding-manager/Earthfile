@@ -54,6 +54,7 @@ build-onboardingmgr:
             -ldflags "-s -w -extldflags '-static' -X main.Version=$version" \
             ./cmd/onboardingmgr
     SAVE ARTIFACT build/onboardingmgr
+    SAVE ARTIFACT rego/authz.rego
     
 build-onboardingmgrtest:
     ARG version='0.0.0-unknown'
@@ -65,6 +66,7 @@ docker-onboardingmgr:
     FROM scratch
     ARG version='0.0.0-unknown'
     COPY (+build-onboardingmgr/onboardingmgr --version=$version) .
+    COPY +build-onboardingmgr/authz.rego /rego/authz.rego
     ENTRYPOINT ["/onboardingmgr"]
     SAVE IMAGE $DOCKER_REGISTRY/$DOCKER_REPOSITORY/$IMG_NAME:$VERSION
 

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -19,11 +20,24 @@ import (
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	providerv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/provider/v1"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/policy/rbac"
+	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
 )
+
+const rbacRules = "../../../../rego/authz.rego"
+
+func createIncomingContextWithENJWT(t *testing.T) context.Context {
+	t.Helper()
+	_, jwtToken, err := inv_testing.CreateENJWT(t)
+	require.NoError(t, err)
+	return rbac.AddJWTToTheIncomingContext(context.Background(), jwtToken)
+}
 
 func TestNewArtifactService(t *testing.T) {
 	type args struct {
-		invClient *invclient.OnboardingInventoryClient
+		invClient  *invclient.OnboardingInventoryClient
+		enableAuth bool
+		rbac       string
 	}
 	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	tests := []struct {
@@ -38,6 +52,8 @@ func TestNewArtifactService(t *testing.T) {
 				invClient: &invclient.OnboardingInventoryClient{
 					Client: mockInvClient,
 				},
+				enableAuth: true,
+				rbac:       "../../../../rego/authz.rego",
 			},
 			want:    &NodeArtifactService{},
 			wantErr: false,
@@ -53,7 +69,7 @@ func TestNewArtifactService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewArtifactService(tt.args.invClient, "", false)
+			got, err := NewArtifactService(tt.args.invClient, "", false, tt.args.enableAuth, tt.args.rbac)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewArtifactService() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -122,7 +138,11 @@ func TestNodeArtifactService_CreateNodes_Case(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -151,6 +171,7 @@ func TestNodeArtifactService_CreateNodes_Case(t *testing.T) {
 		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
 	}
 	mockInvClient1.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
+	ctx := createIncomingContextWithENJWT(t)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -162,13 +183,31 @@ func TestNodeArtifactService_CreateNodes_Case(t *testing.T) {
 			name: "Negative1",
 			fields: fields{invClient: &invclient.OnboardingInventoryClient{
 				Client: mockInvClient1,
-			}},
+			},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
 			args: args{
-				ctx: context.TODO(),
+				ctx: ctx,
 				req: mockRequest,
 			},
 			want:    &pb.NodeResponse{Payload: payloads},
 			wantErr: false,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{invClient: &invclient.OnboardingInventoryClient{
+				Client: mockInvClient1,
+			},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: mockRequest,
+			},
+			want:    nil,
+			wantErr: true,
 		},
 	}
 
@@ -177,6 +216,8 @@ func TestNodeArtifactService_CreateNodes_Case(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -194,7 +235,11 @@ func TestNodeArtifactService_CreateNodes_Case1(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -202,6 +247,8 @@ func TestNodeArtifactService_CreateNodes_Case1(t *testing.T) {
 	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
 	mockInvClient1.On("List", mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.ListResourcesResponse{}, errors.New("err"))
+	ctx, cancel := inv_testing.CreateContextWithJWT(t)
+	defer cancel()
 	tests := []struct {
 		name    string
 		fields  fields
@@ -210,8 +257,39 @@ func TestNodeArtifactService_CreateNodes_Case1(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:   "Positive",
-			fields: fields{invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient1}},
+			name: "Positive",
+			fields: fields{invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: ctx,
+				req: &pb.NodeRequest{
+					Payload: []*pb.NodeData{
+						{
+							Hwdata: []*pb.HwData{
+								{
+									BmcIp:          "123",
+									Serialnum:      "123",
+									Uuid:           "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+									MacId:          "00.00.00.00",
+									HostNicDevName: "abc",
+									BmcInterface:   true,
+								},
+							},
+						},
+					},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "Negative",
+			fields: fields{invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
 			args: args{
 				ctx: context.TODO(),
 				req: &pb.NodeRequest{
@@ -240,6 +318,8 @@ func TestNodeArtifactService_CreateNodes_Case1(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -257,7 +337,11 @@ func TestNodeArtifactService_CreateNodes_Case2(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -284,6 +368,8 @@ func TestNodeArtifactService_CreateNodes_Case2(t *testing.T) {
 	}, errors.New("err"))
 	mockInvClient1.On("List", mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.ListResourcesResponse{}, errors.New("err"))
+	ctx, cancel := inv_testing.CreateContextWithJWT(t)
+	defer cancel()
 	tests := []struct {
 		name    string
 		fields  fields
@@ -292,8 +378,24 @@ func TestNodeArtifactService_CreateNodes_Case2(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:   "Negative1",
-			fields: fields{invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient1}},
+			name: "Negative1",
+			fields: fields{invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: ctx,
+				req: mockRequest,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
 			args: args{
 				ctx: context.TODO(),
 				req: mockRequest,
@@ -308,6 +410,8 @@ func TestNodeArtifactService_CreateNodes_Case2(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -325,7 +429,11 @@ func TestNodeArtifactService_CreateNodes_Case3(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -353,6 +461,7 @@ func TestNodeArtifactService_CreateNodes_Case3(t *testing.T) {
 	}
 	mockInvClient1.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources,
 		status.Error(codes.NotFound, "Node not found"))
+	ctx := createIncomingContextWithENJWT(t)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -361,14 +470,30 @@ func TestNodeArtifactService_CreateNodes_Case3(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:   "Positive",
-			fields: fields{invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient1}},
+			name: "Positive",
+			fields: fields{invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
 			args: args{
-				ctx: context.TODO(),
+				ctx: ctx,
 				req: mockRequest,
 			},
 			want:    &pb.NodeResponse{Payload: payloads},
 			wantErr: false,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: mockRequest,
+			},
+			want:    nil,
+			wantErr: true,
 		},
 	}
 
@@ -377,6 +502,8 @@ func TestNodeArtifactService_CreateNodes_Case3(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -394,7 +521,11 @@ func TestNodeArtifactService_CreateNodes_Case4(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -415,6 +546,8 @@ func TestNodeArtifactService_CreateNodes_Case4(t *testing.T) {
 	mockResources := &inv_v1.ListResourcesResponse{}
 	mockInvClient1.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources,
 		status.Error(codes.NotFound, "Node not found"))
+	ctx, cancel := inv_testing.CreateContextWithJWT(t)
+	defer cancel()
 	tests := []struct {
 		name    string
 		fields  fields
@@ -423,8 +556,24 @@ func TestNodeArtifactService_CreateNodes_Case4(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:   "Negative",
-			fields: fields{invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient1}},
+			name: "Negative",
+			fields: fields{invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: ctx,
+				req: mockRequest,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
 			args: args{
 				ctx: context.TODO(),
 				req: mockRequest,
@@ -439,6 +588,8 @@ func TestNodeArtifactService_CreateNodes_Case4(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -456,7 +607,11 @@ func TestNodeArtifactService_DeleteNodes_Case1(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -488,6 +643,7 @@ func TestNodeArtifactService_DeleteNodes_Case1(t *testing.T) {
 	hwdatas1 := []*pb.HwData{hwdata1}
 	payload1 := pb.NodeData{Hwdata: hwdatas1}
 	payloads1 := []*pb.NodeData{&payload1}
+	ctx := createIncomingContextWithENJWT(t)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -498,10 +654,12 @@ func TestNodeArtifactService_DeleteNodes_Case1(t *testing.T) {
 		{
 			name: "Positive",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{Client: mockclient},
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				enableAuth: true,
+				rbac:       rbacServer,
 			},
 			args: args{
-				ctx: context.TODO(),
+				ctx: ctx,
 				req: &pb.NodeRequest{Payload: payloads},
 			},
 			want:    &pb.NodeResponse{Payload: payloads},
@@ -510,7 +668,23 @@ func TestNodeArtifactService_DeleteNodes_Case1(t *testing.T) {
 		{
 			name: "Negative",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{Client: mockclient},
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: ctx,
+				req: &pb.NodeRequest{Payload: payloads1},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				enableAuth: true,
+				rbac:       rbacServer,
 			},
 			args: args{
 				ctx: context.TODO(),
@@ -526,6 +700,8 @@ func TestNodeArtifactService_DeleteNodes_Case1(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.DeleteNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -543,7 +719,11 @@ func TestNodeArtifactService_DeleteNodes_Case2(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -568,13 +748,30 @@ func TestNodeArtifactService_DeleteNodes_Case2(t *testing.T) {
 		args    args
 		want    *pb.NodeResponse
 		wantErr bool
-	}{}
+	}{
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: nil,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.DeleteNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -592,7 +789,11 @@ func TestNodeArtifactService_DeleteNodes_Case3(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -620,6 +821,8 @@ func TestNodeArtifactService_DeleteNodes_Case3(t *testing.T) {
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
+	ctx, cancel := inv_testing.CreateContextWithJWT(t)
+	defer cancel()
 	tests := []struct {
 		name    string
 		fields  fields
@@ -630,7 +833,23 @@ func TestNodeArtifactService_DeleteNodes_Case3(t *testing.T) {
 		{
 			name: "Positive",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{Client: mockclient},
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: ctx,
+				req: &pb.NodeRequest{Payload: payloads},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				enableAuth: true,
+				rbac:       rbacServer,
 			},
 			args: args{
 				ctx: context.TODO(),
@@ -646,6 +865,8 @@ func TestNodeArtifactService_DeleteNodes_Case3(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.DeleteNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -663,7 +884,11 @@ func TestNodeArtifactService_DeleteNodes_Case4(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -691,6 +916,7 @@ func TestNodeArtifactService_DeleteNodes_Case4(t *testing.T) {
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
+	ctx := createIncomingContextWithENJWT(t)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -701,14 +927,30 @@ func TestNodeArtifactService_DeleteNodes_Case4(t *testing.T) {
 		{
 			name: "Positive",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{Client: mockclient},
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				enableAuth: true,
+				rbac:       rbacServer,
 			},
 			args: args{
-				ctx: context.TODO(),
+				ctx: ctx,
 				req: &pb.NodeRequest{Payload: payloads},
 			},
 			want:    &pb.NodeResponse{Payload: payloads},
 			wantErr: false,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: nil,
+			},
+			want:    nil,
+			wantErr: true,
 		},
 	}
 
@@ -717,6 +959,8 @@ func TestNodeArtifactService_DeleteNodes_Case4(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.DeleteNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -734,7 +978,11 @@ func TestNodeArtifactService_DeleteNodes_Case5(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -756,6 +1004,8 @@ func TestNodeArtifactService_DeleteNodes_Case5(t *testing.T) {
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
+	ctx, cancel := inv_testing.CreateContextWithJWT(t)
+	defer cancel()
 	tests := []struct {
 		name    string
 		fields  fields
@@ -766,7 +1016,23 @@ func TestNodeArtifactService_DeleteNodes_Case5(t *testing.T) {
 		{
 			name: "Negative",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{Client: mockclient},
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: ctx,
+				req: &pb.NodeRequest{Payload: payloads},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				enableAuth: true,
+				rbac:       rbacServer,
 			},
 			args: args{
 				ctx: context.TODO(),
@@ -782,6 +1048,8 @@ func TestNodeArtifactService_DeleteNodes_Case5(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.DeleteNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -799,7 +1067,11 @@ func TestNodeArtifactService_DeleteNodes_Case6(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -819,6 +1091,7 @@ func TestNodeArtifactService_DeleteNodes_Case6(t *testing.T) {
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
+	ctx := createIncomingContextWithENJWT(t)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -829,16 +1102,32 @@ func TestNodeArtifactService_DeleteNodes_Case6(t *testing.T) {
 		{
 			name: "Negative",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{Client: mockclient},
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				enableAuth: true,
+				rbac:       rbacServer,
 			},
 			args: args{
-				ctx: context.TODO(),
+				ctx: ctx,
 				req: &pb.NodeRequest{Payload: payloads},
 			},
 			want: &pb.NodeResponse{
 				Payload: payloads,
 			},
 			wantErr: false,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: nil,
+			},
+			want:    nil,
+			wantErr: true,
 		},
 	}
 
@@ -847,6 +1136,8 @@ func TestNodeArtifactService_DeleteNodes_Case6(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.DeleteNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -864,7 +1155,11 @@ func TestNodeArtifactService_DeleteNodes_Case7(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -892,6 +1187,8 @@ func TestNodeArtifactService_DeleteNodes_Case7(t *testing.T) {
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
+	ctx, cancel := inv_testing.CreateContextWithJWT(t)
+	defer cancel()
 	tests := []struct {
 		name    string
 		fields  fields
@@ -902,11 +1199,27 @@ func TestNodeArtifactService_DeleteNodes_Case7(t *testing.T) {
 		{
 			name: "Negative",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{Client: mockclient},
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: ctx,
+				req: &pb.NodeRequest{Payload: payloads},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				enableAuth: true,
+				rbac:       rbacServer,
 			},
 			args: args{
 				ctx: context.TODO(),
-				req: &pb.NodeRequest{Payload: payloads},
+				req: nil,
 			},
 			want:    nil,
 			wantErr: true,
@@ -918,6 +1231,8 @@ func TestNodeArtifactService_DeleteNodes_Case7(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.DeleteNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -935,7 +1250,11 @@ func TestNodeArtifactService_GetNodes_Case1(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -965,6 +1284,7 @@ func TestNodeArtifactService_GetNodes_Case1(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
+	ctx := createIncomingContextWithENJWT(t)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -975,16 +1295,32 @@ func TestNodeArtifactService_GetNodes_Case1(t *testing.T) {
 		{
 			name: "Positive",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx: ctx,
 				req: mockRequest,
 			},
 			want: &pb.NodeResponse{
 				Payload: payloads,
 			},
 			wantErr: false,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: nil,
+			},
+			want:    nil,
+			wantErr: true,
 		},
 	}
 
@@ -993,6 +1329,8 @@ func TestNodeArtifactService_GetNodes_Case1(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.GetNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -1010,7 +1348,11 @@ func TestNodeArtifactService_GetNodes_Case2(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -1039,6 +1381,7 @@ func TestNodeArtifactService_GetNodes_Case2(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
+	ctx := createIncomingContextWithENJWT(t)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1049,14 +1392,30 @@ func TestNodeArtifactService_GetNodes_Case2(t *testing.T) {
 		{
 			name: "Positive",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx: ctx,
 				req: mockRequest,
 			},
 			want:    nil,
 			wantErr: false,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: nil,
+			},
+			want:    nil,
+			wantErr: true,
 		},
 	}
 
@@ -1065,6 +1424,8 @@ func TestNodeArtifactService_GetNodes_Case2(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.GetNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -1082,7 +1443,11 @@ func TestNodeArtifactService_GetNodes_Case3(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -1112,6 +1477,8 @@ func TestNodeArtifactService_GetNodes_Case3(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
+	ctx, cancel := inv_testing.CreateContextWithJWT(t)
+	defer cancel()
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1122,11 +1489,27 @@ func TestNodeArtifactService_GetNodes_Case3(t *testing.T) {
 		{
 			name: "Negative",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx: ctx,
 				req: mockRequest,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: nil,
 			},
 			want:    nil,
 			wantErr: true,
@@ -1138,6 +1521,8 @@ func TestNodeArtifactService_GetNodes_Case3(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.GetNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -1155,7 +1540,11 @@ func TestNodeArtifactService_UpdateNodes_Case1(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -1189,7 +1578,7 @@ func TestNodeArtifactService_UpdateNodes_Case1(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-
+	ctx := createIncomingContextWithENJWT(t)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1200,16 +1589,32 @@ func TestNodeArtifactService_UpdateNodes_Case1(t *testing.T) {
 		{
 			name: "Test case 1",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx: ctx,
 				req: mockRequest,
 			},
 			want: &pb.NodeResponse{
 				Payload: payloads,
 			},
 			wantErr: false,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: nil,
+			},
+			want:    nil,
+			wantErr: true,
 		},
 	}
 
@@ -1218,6 +1623,8 @@ func TestNodeArtifactService_UpdateNodes_Case1(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.UpdateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -1235,7 +1642,11 @@ func TestNodeArtifactService_UpdateNodes_Case2(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -1270,7 +1681,7 @@ func TestNodeArtifactService_UpdateNodes_Case2(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-
+	ctx := createIncomingContextWithENJWT(t)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1281,16 +1692,32 @@ func TestNodeArtifactService_UpdateNodes_Case2(t *testing.T) {
 		{
 			name: "Test case 1",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx: ctx,
 				req: mockRequest,
 			},
 			want: &pb.NodeResponse{
 				Payload: payloads,
 			},
 			wantErr: false,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: nil,
+			},
+			want:    nil,
+			wantErr: true,
 		},
 	}
 
@@ -1299,6 +1726,8 @@ func TestNodeArtifactService_UpdateNodes_Case2(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.UpdateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -1316,7 +1745,11 @@ func TestNodeArtifactService_UpdateNodes_Case3(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -1350,7 +1783,8 @@ func TestNodeArtifactService_UpdateNodes_Case3(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-
+	ctx, cancel := inv_testing.CreateContextWithJWT(t)
+	defer cancel()
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1361,11 +1795,27 @@ func TestNodeArtifactService_UpdateNodes_Case3(t *testing.T) {
 		{
 			name: "Test case 1",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx: ctx,
 				req: mockRequest,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: nil,
 			},
 			want:    nil,
 			wantErr: true,
@@ -1377,6 +1827,8 @@ func TestNodeArtifactService_UpdateNodes_Case3(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.UpdateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -1394,7 +1846,11 @@ func TestNodeArtifactService_UpdateNodes_Case4(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -1428,7 +1884,8 @@ func TestNodeArtifactService_UpdateNodes_Case4(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-
+	ctx, cancel := inv_testing.CreateContextWithJWT(t)
+	defer cancel()
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1439,11 +1896,27 @@ func TestNodeArtifactService_UpdateNodes_Case4(t *testing.T) {
 		{
 			name: "Test case 1",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx: ctx,
 				req: mockRequest,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: nil,
 			},
 			want:    nil,
 			wantErr: true,
@@ -1455,6 +1928,8 @@ func TestNodeArtifactService_UpdateNodes_Case4(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.UpdateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -1472,7 +1947,11 @@ func TestNodeArtifactService_UpdateNodes_Case5(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -1504,7 +1983,8 @@ func TestNodeArtifactService_UpdateNodes_Case5(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-
+	ctx, cancel := inv_testing.CreateContextWithJWT(t)
+	defer cancel()
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1515,11 +1995,27 @@ func TestNodeArtifactService_UpdateNodes_Case5(t *testing.T) {
 		{
 			name: "Test case 1",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx: ctx,
 				req: mockRequest,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: nil,
 			},
 			want:    nil,
 			wantErr: true,
@@ -1531,6 +2027,8 @@ func TestNodeArtifactService_UpdateNodes_Case5(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.UpdateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -1548,7 +2046,11 @@ func TestNodeArtifactService_UpdateNodes_Case6(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -1582,7 +2084,7 @@ func TestNodeArtifactService_UpdateNodes_Case6(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-
+	ctx := createIncomingContextWithENJWT(t)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1593,16 +2095,32 @@ func TestNodeArtifactService_UpdateNodes_Case6(t *testing.T) {
 		{
 			name: "Test case 1",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx: ctx,
 				req: mockRequest,
 			},
 			want: &pb.NodeResponse{
 				Payload: payloads,
 			},
 			wantErr: false,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: nil,
+			},
+			want:    nil,
+			wantErr: true,
 		},
 	}
 
@@ -1611,6 +2129,8 @@ func TestNodeArtifactService_UpdateNodes_Case6(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.UpdateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -1755,6 +2275,8 @@ func TestNewArtifactService_Case(t *testing.T) {
 		invClient     *invclient.OnboardingInventoryClient
 		inventoryAdr  string
 		enableTracing bool
+		enableAuth    bool
+		rbac          string
 	}
 	tests := []struct {
 		name    string
@@ -1770,6 +2292,8 @@ func TestNewArtifactService_Case(t *testing.T) {
 				},
 				inventoryAdr:  "addr",
 				enableTracing: false,
+				enableAuth:    true,
+				rbac:          "../../../../rego/authz.rego",
 			},
 			want:    nil,
 			wantErr: true,
@@ -1777,7 +2301,7 @@ func TestNewArtifactService_Case(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewArtifactService(tt.args.invClient, tt.args.inventoryAdr, tt.args.enableTracing)
+			got, err := NewArtifactService(tt.args.invClient, tt.args.inventoryAdr, tt.args.enableTracing, tt.args.enableAuth, tt.args.rbac)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewArtifactService() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1793,7 +2317,11 @@ func TestNodeArtifactService_CreateNodes_Case5(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -1821,6 +2349,7 @@ func TestNodeArtifactService_CreateNodes_Case5(t *testing.T) {
 	}
 	mockInvClient1.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources,
 		status.Error(codes.NotFound, "Node not found"))
+	ctx := createIncomingContextWithENJWT(t)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1829,14 +2358,30 @@ func TestNodeArtifactService_CreateNodes_Case5(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:   "Positive",
-			fields: fields{invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient1}},
+			name: "Positive",
+			fields: fields{invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: ctx,
+				req: mockRequest,
+			},
+			want:    nil,
+			wantErr: false,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
 			args: args{
 				ctx: context.TODO(),
 				req: mockRequest,
 			},
 			want:    nil,
-			wantErr: false,
+			wantErr: true,
 		},
 	}
 
@@ -1845,13 +2390,15 @@ func TestNodeArtifactService_CreateNodes_Case5(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if reflect.DeepEqual(got, tt.want) {
+			if reflect.DeepEqual(got, tt.want) && !tt.wantErr {
 				t.Errorf("NodeArtifactService.CreateNodes() = %v, want %v", got, tt.want)
 			}
 		})
@@ -1862,7 +2409,11 @@ func TestNodeArtifactService_UpdateNodes_Case7(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
 	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
 		req *pb.NodeRequest
@@ -1898,7 +2449,7 @@ func TestNodeArtifactService_UpdateNodes_Case7(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-
+	ctx := createIncomingContextWithENJWT(t)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1909,14 +2460,30 @@ func TestNodeArtifactService_UpdateNodes_Case7(t *testing.T) {
 		{
 			name: "Test case 1",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx: ctx,
 				req: mockRequest,
 			},
 			want:    nil,
 			wantErr: false,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: mockRequest,
+			},
+			want:    nil,
+			wantErr: true,
 		},
 	}
 
@@ -1925,13 +2492,15 @@ func TestNodeArtifactService_UpdateNodes_Case7(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
 			}
 			got, err := s.UpdateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.UpdateNodes() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if reflect.DeepEqual(got, tt.want) {
+			if reflect.DeepEqual(got, tt.want) && !tt.wantErr {
 				t.Errorf("NodeArtifactService.UpdateNodes() = %v, want %v", got, tt.want)
 			}
 		})

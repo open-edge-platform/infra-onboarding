@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
@@ -19,6 +20,7 @@ import (
 	provider_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/provider/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/policy/rbac"
 )
 
 const (
@@ -56,20 +58,31 @@ type (
 		invClient *invclient.OnboardingInventoryClient
 		// TODO: remove this later https://jira.devtools.intel.com/browse/LPIO-1829
 		invClientAPI *invclient.OnboardingInventoryClient
+		rbac         *rbac.Policy
+		authEnabled  bool
 	}
 )
 
 // NewArtifactService is a constructor function.
 func NewArtifactService(invClient *invclient.OnboardingInventoryClient, inventoryAdr string, enableTracing bool,
+	enableAuth bool, rbacRules string,
 ) (*NodeArtifactService, error) {
 	if invClient == nil {
 		return nil, inv_errors.Errorf("invClient is nil in NewArtifactService")
 	}
 
-	var (
-		invClientAPI *invclient.OnboardingInventoryClient
-		err          error
-	)
+	var rbacPolicy *rbac.Policy
+	var err error
+	if enableAuth {
+		zlog.Info().Msgf("Authentication is enabled, starting RBAC server for Artifact Service")
+		// start OPA server with policies
+		rbacPolicy, err = rbac.New(rbacRules)
+		if err != nil {
+			zlog.Fatal().Msg("Failed to start RBAC OPA server")
+		}
+	}
+
+	var invClientAPI *invclient.OnboardingInventoryClient
 	if inventoryAdr == "" {
 		zlog.Warn().Msg("Unable to start onboarding inventory API server client, empty inventory address")
 	} else {
@@ -87,6 +100,8 @@ func NewArtifactService(invClient *invclient.OnboardingInventoryClient, inventor
 	return &NodeArtifactService{
 		invClient:    invClient,
 		invClientAPI: invClientAPI,
+		rbac:         rbacPolicy,
+		authEnabled:  enableAuth,
 	}, nil
 }
 
@@ -116,6 +131,14 @@ func CopyNodeReqToNodeData(payload []*pb.NodeData) ([]*computev1.HostResource, e
 
 func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
 	zlog.Info().Msgf("CreateNodes")
+	if s.authEnabled {
+		// checking if JWT contains write permission
+		if !s.rbac.IsRequestAuthorized(ctx, rbac.CreateKey) {
+			err := inv_errors.Errorfc(codes.PermissionDenied, "Request is blocked by RBAC")
+			zlog.MiSec().MiErr(err).Msgf("Request CreateNodes is not authenticated")
+			return nil, err
+		}
+	}
 
 	/* Copy node data from user */
 	hostresdata, err := CopyNodeReqToNodeData(req.Payload)
@@ -130,6 +153,7 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 	/* TODO: Need to check this hostresdata array for all the serial numbers existence
 	 *		 already in the system
 	 */
+
 	hostInv, err := s.invClient.GetHostResourceByUUID(ctx, host.Uuid)
 
 	switch {
@@ -166,6 +190,14 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 
 func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
 	zlog.Info().Msgf("DeleteNodes")
+	if s.authEnabled {
+		// checking if JWT contains valid claim
+		if !s.rbac.IsRequestAuthorized(ctx, rbac.DeleteKey) {
+			err := inv_errors.Errorfc(codes.PermissionDenied, "Request is blocked by RBAC")
+			zlog.MiSec().MiErr(err).Msgf("Request DeleteNodes is not authenticated")
+			return nil, err
+		}
+	}
 	hostresdata, err := CopyNodeReqToNodeData(req.Payload)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("CopyNodeReqToNodeData error: %v", err)
@@ -207,6 +239,13 @@ func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.NodeReque
 
 func (s *NodeArtifactService) GetNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
 	zlog.Info().Msgf("GetNodes")
+	if s.authEnabled {
+		if !s.rbac.IsRequestAuthorized(ctx, rbac.GetKey) {
+			err := inv_errors.Errorfc(codes.PermissionDenied, "Request is blocked by RBAC")
+			zlog.MiSec().MiErr(err).Msgf("Request GetNodes is not authenticated")
+			return nil, err
+		}
+	}
 
 	guid := req.Payload[0].Hwdata[0].Uuid
 
@@ -231,8 +270,17 @@ func (s *NodeArtifactService) GetNodes(ctx context.Context, req *pb.NodeRequest)
 	return &pb.NodeResponse{Payload: req.Payload}, nil
 }
 
+//nolint:cyclop // cyclomatic complexity is high due to switch statement and multiple error handling
 func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
 	zlog.Info().Msgf("UpdateNodes")
+	if s.authEnabled {
+		// checking if JWT contains write permissions
+		if !s.rbac.IsRequestAuthorized(ctx, rbac.UpdateKey) {
+			err := inv_errors.Errorfc(codes.PermissionDenied, "Request is blocked by RBAC")
+			zlog.MiSec().MiErr(err).Msgf("Request UpdateNodes is not authenticated")
+			return nil, err
+		}
+	}
 
 	host, err := CopyNodeReqToNodeData(req.Payload)
 	if err != nil {

@@ -11,6 +11,8 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 )
 
+const rbacRules = "../../../rego/authz.rego"
+
 func TestSBHandler_Stop(t *testing.T) {
 	lis, err := net.Listen("tcp", "localhost:16541")
 	if err != nil {
@@ -43,6 +45,9 @@ func TestSBHandler_Stop(t *testing.T) {
 			fields: fields{
 				invClient: &invclient.OnboardingInventoryClient{},
 				server:    grpcServer,
+				cfg: SBHandlerConfig{
+					RBAC: rbacRules,
+				},
 			},
 		},
 	}

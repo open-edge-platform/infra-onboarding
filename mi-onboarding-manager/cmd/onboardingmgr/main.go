@@ -22,6 +22,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/flags"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/oam"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/policy/rbac"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/tracing"
 )
 
@@ -35,6 +36,8 @@ var (
 	oamServerAddress = flag.String(oam.OamServerAddress, "", oam.OamServerAddressDescription)
 	enableTracing    = flag.Bool(tracing.EnableTracing, false, tracing.EnableTracingDescription)
 	traceURL         = flag.String(tracing.TraceURL, "", tracing.TraceURLDescription)
+	enableAuth       = flag.Bool(rbac.EnableAuth, true, rbac.EnableAuthDescription)
+	rbacRules        = flag.String(rbac.RbacRules, "/rego/authz.rego", rbac.RbacRulesDescription)
 	// see also internal/common/flags.go for other flags.
 
 	wg        = sync.WaitGroup{}
@@ -115,7 +118,7 @@ func main() {
 		zlog.MiSec().Fatal().Err(err).Msgf("Unable to start onboarding inventory client")
 	}
 
-	onboarding.InitOnboarding(invClient, *dkamAddr)
+	onboarding.InitOnboarding(invClient, *dkamAddr, *enableAuth, *rbacRules)
 
 	if initErr := secrets.Init(context.Background()); initErr != nil {
 		zlog.MiSec().Fatal().Err(initErr).Msgf("Unable to initialize required secrets")
@@ -139,6 +142,8 @@ func main() {
 		ServerAddress:    *serverAddress,
 		EnableTracing:    *enableTracing,
 		InventoryAddress: *inventoryAddress,
+		EnableAuth:       *enableAuth,
+		RBAC:             *rbacRules,
 	})
 	if err != nil {
 		zlog.MiSec().Fatal().Err(err).Msgf("Unable to create southbound handler")
