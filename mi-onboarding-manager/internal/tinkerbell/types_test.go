@@ -105,3 +105,34 @@ func TestNewTemplateData(t *testing.T) {
 		})
 	}
 }
+
+func TestNewRebootTemplateData(t *testing.T) {
+	type args struct {
+		name string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				name: "name",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewRebootTemplateData(tt.args.name)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewRebootTemplateData() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewRebootTemplateData() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
