@@ -75,7 +75,7 @@ docker-dkammgr:
         m4 git gettext autopoint pkg-config \
         autoconf-archive python3 bison flex \
         gawk efitools sbsigntool gnupg uuid-runtime \
-        pigz qemu-utils pax curl
+        pigz qemu-utils pax curl unzip
     ARG version='0.0.0-unknown'
     WORKDIR /home/$USERNAME
     COPY pkg /home/$USERNAME/pkg

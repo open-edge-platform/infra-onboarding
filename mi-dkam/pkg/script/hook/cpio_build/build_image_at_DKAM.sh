@@ -102,11 +102,16 @@ get_cert(){
 	if [ "$mode" == "dev" ]; then
 		echo "mode:"
 		echo "" >> "$IDP"/ca.pem
-		#export no_proxy=$no_proxy,ubit-artifactory-or.intel.com
-		for certfile in intel_5A.crt intel_5A_2.crt intel_5B.crt intel_5B_2.crt intel_root.crt
-		do
-		curl https://ubit-artifactory-or.intel.com/artifactory/it-btrm-local/intel_cacerts/$certfile >> "$IDP"/ca.pem
+		mkdir temp
+		curl -o tmp.zip http://certificates.intel.com/repository/certificates/IntelSHA2RootChain-Base64.zip
+		unzip tmp.zip -d temp
+		for file in temp/*; do
+			if [ -f "$file" ]; then
+				cat "$file" >> "$IDP"/ca.pem
+			fi
 		done
+		rm tmp.zip
+		rm -rf temp
 	fi
 }
 #######################################################################################################
