@@ -653,15 +653,9 @@ components:
           enum: [12th, 13th, 14th]
 
     ProfileResource:
-      description: SW profile for Edge platform
-      oneOf:
-        - allOf:
-          - $ref: '#/components/schemas/Id'
-          - $ref: '#/components/schemas/ProfileData'
-        - allOf:
-          - $ref: '#/components/schemas/Id'
-          - $ref: '#/components/schemas/ProfileData'
-          - $ref: '#/components/schemas/ModuleList'
+      allOf:
+        - $ref: '#/components/schemas/Id'
+        - $ref: '#/components/schemas/ProfileData'
     ProfileData:
       type: object
       required:
@@ -683,7 +677,9 @@ components:
           $ref: '#/components/schemas/Version'
         shared:
           description: Indicates if the profile is private or shared
-          type: boolean
+          type: boolean         
+        modulelist:
+         $ref: '#/components/schemas/ModuleList'
     ModuleList:
       description: All modules in a profile
       type: array
