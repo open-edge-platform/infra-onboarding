@@ -311,6 +311,7 @@ func compressImage(inputFile, outputFile string) error {
 }
 
 func DownloadUbuntuImage(imageUrl string, format string, file string, fileName string) error {
+	// TODO(NEXFMPID-3359): avoid hardcoded file names, and use tmp folder for temporary files
 	zlog.Info().Msgf("Inside Download and Raw form conversion...")
 	// Check and install dependencies if necessary
 	if err := ensureDependencies(); err != nil {

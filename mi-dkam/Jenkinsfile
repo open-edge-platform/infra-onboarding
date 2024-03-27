@@ -139,6 +139,7 @@ pipeline {
             steps {
                 echo "Test the code"
                 sh '''
+                apt-get update && apt-get install -y pigz qemu-utils
                 make test
                 '''
             }
