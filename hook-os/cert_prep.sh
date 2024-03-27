@@ -24,18 +24,25 @@ kubectl get secret gateway-ca-cert -n maestro-iaas-system -o jsonpath='{.data.*}
 
 # Add new line to ca.pem so that tinkerbell certificate can be inserted in new line
 echo "" >> client_auth/files/ca.pem
-wget "https://${deployment_dns_extension}/boots/ca.crt" $wget_no_proxy --no-check-certificate -O boots_ca.crt
+wget "https://${deployment_dns_extension}/boots/ca.crt" --no-check-certificate -O boots_ca.crt
 cat boots_ca.crt >> client_auth/files/ca.pem
 
-rm ca boots_ca.crt
+rm boots_ca.crt
 
 # Add new line to ca.pem so that intel ca certificates can be inserted in new line
 echo "" >> client_auth/files/ca.pem
 
-for certfile in intel_5A.crt intel_5A_2.crt intel_5B.crt intel_5B_2.crt intel_root.crt
-do
-  curl https://ubit-artifactory-or.intel.com/artifactory/it-btrm-local/intel_cacerts/$certfile >> client_auth/files/ca.pem
+mkdir certs_tmp
+curl -o certs.zip http://certificates.intel.com/repository/certificates/IntelSHA2RootChain-Base64.zip
+unzip certs.zip -d certs_tmp
+for file in certs_tmp/*; do
+    if [ -f "$file" ]; then
+	cat "$file" >> client_auth/files/ca.pem
+    fi
 done
+
+rm certs.zip
+rm -rf certs_tmp
 
 # add new line to ca.pem so that public lets-encrypt certificates can be inserted in new line(CSA)
 echo "" >> client_auth/files/ca.pem
