@@ -72,7 +72,7 @@ do_image_download_bg() {
         hostip=$(ip route | grep default | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b")
     fi
     pushd /
-    wget http://$hostip/tink-stack/hook_x86_64.tar.gz -nv
+    wget http://$hostip:8090/tink-stack/hook_x86_64.tar.gz -nv
     ret=$?
     popd
     if [ $ret -ne 0 ]; then
