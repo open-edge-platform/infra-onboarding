@@ -9,10 +9,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
-	"net"
 
 	"gopkg.in/yaml.v2"
 
@@ -465,6 +465,7 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 
 	//Disable ssh for production environment
 	var sshLines []string
+	var userDisableLines []string
 	zlog.MiSec().Info().Msgf("Mode is:%s", MODE)
 	if MODE == "prod" {
 		zlog.MiSec().Info().Msgf("Mode is:%s", MODE)
@@ -478,10 +479,13 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 		sshLines = append(sshLines, "else")
 		sshLines = append(sshLines, "  echo \"SSH configuration file not found: $ssh_config_file\"")
 		sshLines = append(sshLines, "fi")
+		userDisableLines = append(userDisableLines, "")
+		userDisableLines = append(userDisableLines, "usermod -L -e 1 user")
 	}
 
 	AddProxies(scriptFileName, sshLines, "ssh_config(){")
 	AddProxies(scriptFileName, newLines, beginString)
+	AddProxies(scriptFileName, userDisableLines, "set -euo pipefail")
 
 	zlog.MiSec().Debug().Msgf("Starting modifying ufw Rules")
 
