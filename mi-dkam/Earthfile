@@ -63,7 +63,7 @@ build-dkammgr:
     SAVE ARTIFACT build/dkammgr AS LOCAL ./build/dkammgr
 
 docker-dkammgr:
-    FROM ubuntu:latest
+    FROM debian:12
     ARG USERNAME=appuser
     ARG USER_UID=1000
     ARG USER_GID=$USER_UID
