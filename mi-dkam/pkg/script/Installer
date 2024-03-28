@@ -709,10 +709,10 @@ if [ ! -L /dev/mapper/rootfs_crypt ]; then
         echo "found secondary disk for LVM creation"
         #find the disk where os not installed for lvm creation
         rootfs=$(df /boot/efi | awk 'NR==2 {print $1}')
-        if [[ "$disk_name" == *"nvme"* ]]; then
+        if [[ "$rootfs" == *"nvme"* ]]; then
             os_disk=$(echo "$rootfs" | grep -oE 'nvme[0-9]+n[0-9]+' | head -n 1)
         fi
-        if [[ "$disk_name" == *"sd"* ]]; then
+        if [[ "$rootfs" == *"sd"* ]]; then
             os_disk=$(echo "$rootfs" | grep -oE 'sd[a-z]+' | head -n 1)
         fi
         #create lvm for the secondary disk
