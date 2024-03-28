@@ -391,20 +391,6 @@ touch /usr/local/bin/.grow_part_done`,
 						"CMD_LINE":            "useradd -p $(openssl passwd -1 user) -s /bin/bash -d /home/user/ -m -G sudo user",
 					},
 				},
-
-				{
-					Name:    ActionEnableSSH,
-					Image:   tinkActionCexecImage + tinkerversion,
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE": "ssh-keygen -A;sed -i 's/^PasswordAuthentication " +
-							"no/#PasswordAuthentication yes/g' /etc/ssh/sshd_config",
-					},
-				},
-
 				{
 					Name:    ActionInstallScriptDownload,
 					Image:   tinkActionCexecImage + tinkerversion,
