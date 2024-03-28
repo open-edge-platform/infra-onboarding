@@ -16,7 +16,7 @@
 # such intellectual property rights must be express and approved by Intel in writing.
 
 ################################################################################
-FROM ubuntu:22.04 as fdo-client-sdk-builder
+FROM debian:12 as fdo-client-sdk-builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y && apt-get upgrade -y && apt-get install -y \
@@ -104,7 +104,7 @@ RUN make -j$(nproc)
 RUN bash utils/keys_gen.sh .
 
 ################################################################################
-FROM ubuntu:22.04 as FDO-DI
+FROM debian:12 as FDO-DI
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \
