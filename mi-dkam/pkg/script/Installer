@@ -43,7 +43,6 @@ TELEMETRY_MANAGER_URL=__ORCH_TELEMETRY_HOST__:__ORCH_TELEMETRY_PORT__
 RELEASE_SERVER=__FILE_SERVER__
 
 CA_CERT="__CA_CERT__"
-CADDY_GPG_KEY="__CADDY_KEY__"
 
 # 1. Install dependencies
 install_dependencies() {
@@ -240,13 +239,26 @@ install_node_agent(){
     echo "node-agent node-agent/proxy.imgRegistryURL string ${IMG_REGISTRY_URL}" | debconf-set-selections
     echo "node-agent node-agent/proxy.imgRegistryProxyPort string ${IMG_REGISTRY_PROXY_PORT}" | debconf-set-selections
 
-    apt-get -y install gpg debian-keyring debian-archive-keyring apt-transport-https curl
-    cat <<< "$CADDY_GPG_KEY" | gpg --dearmor > /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
+    echo "Install caddy for node agent..."
 
-    apt-get update
+    echo "download caddy deb package..."
+    CADDY_VERSION="caddy-VERSION"
+    CADDY_PKGFILE="./caddy_${CADDY_VERSION}_linux_amd64.deb"
+    echo "${RS_AT}" | oras pull "${IMG_REGISTRY_URL}/one-intel-edge/edge-node/deb/caddy:$CADDY_VERSION" --password-stdin
+
+    if [ ! -f "${CADDY_PKGFILE}" ]; then
+        echo "caddy debian package could not be downloaded. Aborting installation"
+        exit 1
+    fi
+
+    echo "install caddy"
+    apt-get install -y "${CADDY_PKGFILE}"
+
+    echo "remove caddy debian"
+    rm -f "${CADDY_PKGFILE}"
 
     echo "Install node agent..."
+    echo "download node agent..."
     VERSION="node-agent-VERSION"
     echo $VERSION
     PKGFILE="./node-agent_${VERSION}_amd64.deb"
@@ -779,3 +791,4 @@ delete_invalid_ubuntu_boot_menuoptions  2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATU
 
 echo "Installation done" > "$SCRIPT_DIR"/.base_pkg_install_done
 sudo reboot
+
