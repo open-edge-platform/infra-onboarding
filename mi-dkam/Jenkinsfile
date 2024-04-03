@@ -145,7 +145,7 @@ pipeline {
             }
             post{
                 success{
-                    cobertura coberturaReportFile: 'coverage.xml', 
+                    cobertura coberturaReportFile: 'build/coverage.xml',
                         conditionalCoverageTargets: "${env.cobertura_healthy}, ${env.cobertura_unhealthy}, ${env.cobertura_unstable}", 
                         failNoReports: true,
                         failUnhealthy: true,

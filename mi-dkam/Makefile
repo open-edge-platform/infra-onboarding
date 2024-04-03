@@ -17,6 +17,8 @@ CURRENT_GID := $(shell id -g)
 PROJECT_NAME := dkammgr
 BINARY_NAME  := midkammgr
 
+BUILD_DIR  := build
+
 # Code versions, tags, and so on
 VERSION       := $(shell cat VERSION)
 VERSION_MAJOR := $(shell cut -c 1 VERSION)
@@ -90,10 +92,12 @@ lint:
 	echo $@
 	@echo "---END MAKEFILE LINT---"
 
-test:
-	go test --race -coverprofile cover.out -coverpkg=$$(go list ./... | grep -v "api/grpc" | tr '\n' ,)  -covermode atomic ./...
-	gocover-cobertura < cover.out > coverage.xml
-	
+test: ${BUILD_DIR}
+	go test --race -coverprofile ${BUILD_DIR}/cover.out -coverpkg=$$(go list ./... | grep -v "api/grpc" | tr '\n' ,)  -covermode atomic ./...
+	gocover-cobertura < ${BUILD_DIR}/cover.out > ${BUILD_DIR}/coverage.xml
+	go tool cover -html=${BUILD_DIR}/cover.out -o ${BUILD_DIR}/coverage.html
+	go tool cover -func ${BUILD_DIR}/cover.out -o ${BUILD_DIR}/function_coverage.log
+
 coverage:
 	@# Help: Runs coverage stage
 	@echo "---MAKEFILE COVERAGE---"
@@ -113,3 +117,5 @@ help:
         | egrep -v -e '^[^[:alnum:]]' -e '^$@$$' \
         | xargs -I _ sh -c 'printf "%-20s " _; make _ -nB | (grep -i "^# Help:" || echo "") | tail -1 | sed "s/^# Help: //g"'
 	
+${BUILD_DIR}:
+	mkdir -p ${BUILD_DIR}
