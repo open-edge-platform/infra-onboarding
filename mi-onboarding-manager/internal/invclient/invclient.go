@@ -613,7 +613,6 @@ func (c *OnboardingInventoryClient) ListIPAddresses(ctx context.Context, hostNic
 func (c *OnboardingInventoryClient) FindAllResources(ctx context.Context,
 	kinds []inv_v1.ResourceKind,
 ) ([]string, error) {
-	fmk := &fieldmaskpb.FieldMask{Paths: []string{}}
 	var allResources []string
 	for _, kind := range kinds {
 		res, err := util.GetResourceFromKind(kind)
@@ -621,8 +620,7 @@ func (c *OnboardingInventoryClient) FindAllResources(ctx context.Context,
 			return nil, err
 		}
 		filter := &inv_v1.ResourceFilter{
-			Resource:  res,
-			FieldMask: fmk,
+			Resource: res,
 		}
 		resources, err := c.Client.FindAll(ctx, filter)
 		if err != nil {
@@ -635,7 +633,6 @@ func (c *OnboardingInventoryClient) FindAllResources(ctx context.Context,
 
 func (c *OnboardingInventoryClient) GetProviderResources(ctx context.Context) ([]*provider_v1.ProviderResource, error) {
 	filter := &inv_v1.ResourceFilter{
-		FieldMask: &fieldmaskpb.FieldMask{Paths: []string{}},
 		Resource: &inv_v1.Resource{
 			Resource: &inv_v1.Resource_Provider{},
 		},
