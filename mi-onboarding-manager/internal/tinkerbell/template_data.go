@@ -62,7 +62,22 @@ const (
 	timeOutMin90             = 90
 	timeOutMin30             = 30
 	leaseTime86400           = 86400
+
+	envTinkerImageVersion     = "TINKER_IMAGE_VERSION"
+	defaultTinkerImageVersion = "v1.0.0"
 )
+
+// if `tinkerImageVersion` is non-empty, its value is returned,
+// then it tries to retrieve value from envar, otherwise default value is returned.
+func getTinkerImageVersion(tinkerImageVersion string) string {
+	if tinkerImageVersion != "" {
+		return tinkerImageVersion
+	}
+	if v := os.Getenv(envTinkerImageVersion); v != "" {
+		return v
+	}
+	return defaultTinkerImageVersion
+}
 
 func GetProxyEnv() ProxySetup {
 	var proxySettings ProxySetup
@@ -76,7 +91,8 @@ func GetProxyEnv() ProxySetup {
 }
 
 //nolint:funlen // May effect the functionality, need to simplify this in future
-func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIP string) ([]byte, error) {
+func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIP, tinkerVersion string) ([]byte, error) {
+	tinkerImgVersion := getTinkerImageVersion(tinkerVersion)
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -92,7 +108,7 @@ func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIP string) ([]b
 			Actions: []Action{
 				{
 					Name:    ActionStreamUbuntuImage,
-					Image:   "quay.io/tinkerbell-actions/image2disk:v1.0.0",
+					Image:   "quay.io/tinkerbell-actions/image2disk:" + tinkerImgVersion,
 					Timeout: timeOutMax9800,
 					Environment: map[string]string{
 						"DEST_DISK":  hardWareDesk,
@@ -258,6 +274,7 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 func NewTemplateDataProdBKC(name, _, rootPartNo, hostIP, clientIP, _, _, _ string,
 	securityFeature uint32, clientID, clientSecret string, enableDI bool, tinkerversion string, hostname string,
 ) ([]byte, error) {
+	tinkerImgVersion := getTinkerImageVersion(tinkerversion)
 	proxySetting := GetProxyEnv()
 	wf := Workflow{
 		Version:       "0.1",
@@ -274,7 +291,7 @@ func NewTemplateDataProdBKC(name, _, rootPartNo, hostIP, clientIP, _, _, _ strin
 			Actions: []Action{
 				{
 					Name:    ActionStreamUbuntuImage,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/image2disk:" + tinkerversion,
+					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/image2disk:" + tinkerImgVersion,
 					Timeout: timeOutMax9800,
 					Environment: map[string]string{
 						"IMG_URL":    hostIP,
@@ -714,8 +731,8 @@ netplan apply`, clientIP, strings.ReplaceAll(proxySetting.dns, " ", ", ")),
 }
 
 //nolint:funlen // May effect the functionality, need to simplify this in future
-func NewTemplateDataProdMS(name, rootPart, _, hostIP, clientIP, gateway, mac, provIP string,
-) ([]byte, error) {
+func NewTemplateDataProdMS(name, rootPart, _, hostIP, clientIP, gateway, mac, provIP, tinkerVersion string) ([]byte, error) {
+	tinkerImgVersion := getTinkerImageVersion(tinkerVersion)
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -731,7 +748,7 @@ func NewTemplateDataProdMS(name, rootPart, _, hostIP, clientIP, gateway, mac, pr
 			Actions: []Action{
 				{
 					Name:    "stream-ubuntu-image",
-					Image:   "quay.io/tinkerbell-actions/image2disk:v1.0.0",
+					Image:   "quay.io/tinkerbell-actions/image2disk:" + tinkerImgVersion,
 					Timeout: timeOutMax9800,
 					Environment: map[string]string{
 						"DEST_DISK":  hardWareDesk,

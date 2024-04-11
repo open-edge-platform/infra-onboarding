@@ -29,6 +29,7 @@ import (
 
 const (
 	instanceReconcilerLoggerName = "InstanceReconciler"
+	checkInvURLLength            = 2
 
 	EnvImageType = "IMAGE_TYPE"
 )
@@ -243,7 +244,6 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource, artifactI
 }
 
 func convertInstanceToArtifactInfo(instance *computev1.InstanceResource) (utils.ArtifactData, error) {
-	const checkInvURLLength = 2
 	if instance.GetOs() == nil {
 		// this should not happen but just in case
 		return utils.ArtifactData{}, inv_errors.Errorfc(codes.InvalidArgument,
@@ -263,8 +263,11 @@ func convertInstanceToArtifactInfo(instance *computev1.InstanceResource) (utils.
 			"Invalid format of OS url: %s", osURL)
 	}
 
-	var overlayURL string
-	var tinkerVersion string
+	var (
+		overlayURL    string
+		tinkerVersion string
+	)
+
 	if len(invURL) > 1 {
 		overlayURL = invURL[1]
 	}

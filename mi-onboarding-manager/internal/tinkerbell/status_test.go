@@ -27,7 +27,7 @@ func TestWorkflowActionToStatusDetail(t *testing.T) {
 		1, "", "", false, "", "")
 	require.NoError(t, err)
 
-	prodWorkflowData, err := NewTemplateDataProd("test-prod", "", "", "", "")
+	prodWorkflowData, err := NewTemplateDataProd("test-prod", "", "", "", "", "")
 
 	diWorkflow, err := unmarshalWorkflow(diWorkflowData)
 	require.NoError(t, err)

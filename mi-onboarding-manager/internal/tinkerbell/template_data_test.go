@@ -35,7 +35,7 @@ func TestNewTemplateDataProd(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewTemplateDataProd(tt.args.name, tt.args.rootPart, tt.args.rootPartNo, tt.args.hostIP, tt.args.provIP)
+			got, err := NewTemplateDataProd(tt.args.name, tt.args.rootPart, tt.args.rootPartNo, tt.args.hostIP, tt.args.provIP, "")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewTemplateDataProd() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -126,7 +126,7 @@ func TestNewTemplateDataProdMS(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := NewTemplateDataProdMS(tt.args.name, tt.args.rootPart, tt.args.rootPartNo,
-				tt.args.hostIP, tt.args.clientIP, tt.args.gateway, tt.args.mac, tt.args.provIP)
+				tt.args.hostIP, tt.args.clientIP, tt.args.gateway, tt.args.mac, tt.args.provIP, "")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewTemplateDataProdMS() error = %v, wantErr %v", err, tt.wantErr)
 				return
