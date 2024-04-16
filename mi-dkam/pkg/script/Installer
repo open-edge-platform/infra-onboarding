@@ -634,6 +634,18 @@ else
 fi
 apt remove -y unattended-upgrades
 }
+
+# 32. Install License Agent
+install_license_agent(){
+echo "Install License agent..."
+VERSION="license-agent-VERSION"
+echo $VERSION
+apt-get update
+echo " license-agent license-agent/customer.id string 12139414" | debconf-set-selections
+apt-get install -y -o Dpkg::Options::="--force-confnew" license-agent="$VERSION"
+systemctl status -l --no-pager license-agent
+}
+
 #LVM partition 
 create_lvm_partition(){
 disk=$1
@@ -785,6 +797,7 @@ install_sriov 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_HWE_kernel 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_syslogrotate_ufw 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 disable_unattended_upgrade 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_license_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 ssh_config 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 #Delete the invalid ubuntu boot numbers created from previous installation from boot menu
 delete_invalid_ubuntu_boot_menuoptions  2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
