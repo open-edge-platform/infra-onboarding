@@ -291,7 +291,7 @@ install_node_agent(){
 
     echo "setup apt source"
     curl -kfsSL "https://$APT_SOURCE_URL/edge-node.asc" -H "Authorization: Bearer $RS_AT" -o /etc/apt/trusted.gpg.d/edge-node.asc
-    echo "deb https://localhost:$APT_SOURCE_PROXY_PORT/repository 24.03 main" | tee /etc/apt/sources.list.d/edge-node.list
+    echo "deb https://localhost:$APT_SOURCE_PROXY_PORT/repository __APT_SRC__ main" | tee /etc/apt/sources.list.d/edge-node.list
 
     apt-get update
 }

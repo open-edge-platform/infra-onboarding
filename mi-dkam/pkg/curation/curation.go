@@ -25,6 +25,7 @@ var zlog = logging.GetLogger("MIDKAMAuth")
 var fileServer string
 var registryService string
 var agentsList []AgentsVersion
+var distribution string
 
 type AgentsVersion struct {
 	Package string `yaml:"package"`
@@ -41,6 +42,19 @@ type Config struct {
 	Provisioning struct {
 		Images []Image `yaml:"images"`
 	} `yaml:"provisioning"`
+	Metadata struct {
+		DebianRepositories []struct {
+			Name         string `yaml:"name"`
+			URL          string `yaml:"url"`
+			Architecture string `yaml:"architecture"`
+			Key          string `yaml:"key"`
+			Section      string `yaml:"section"`
+			Distribution string `yaml:"distribution"`
+			Root         string `yaml:"root"`
+			ThirdParty   bool   `yaml:"thirdParty"`
+			AuthType     string `yaml:"authType"`
+		} `yaml:"debianRepositories"`
+	} `yaml:"metadata"`
 }
 
 // Rule UFW Firewall structure in JSON, expected to be provided as environment variable.
@@ -108,6 +122,7 @@ func GetCuratedScript(profile string, platform string) (string, string) {
 	agentsList = []AgentsVersion{}
 	agentsList = append(agentsList, configs.BMA.Debs...)
 	tinkeractionList := configs.Provisioning.Images
+	distribution = configs.Metadata.DebianRepositories[0].Distribution
 	var tinkeraction_version string
 	if len(tinkeractionList) != 0 {
 		for _, image := range tinkeractionList {
@@ -318,6 +333,7 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__CA_CERT__", string(caContent))
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__DOCKER_KEY__", string(dockerContent))
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__CADDY_KEY__", string(caddyContent))
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__APT_SRC__", string(distribution))
 	// Loop through the agentsList
 	for _, agent := range agentsList {
 		// Access the fields of each struct
