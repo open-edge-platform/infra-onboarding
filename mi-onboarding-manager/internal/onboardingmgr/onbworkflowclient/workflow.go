@@ -31,10 +31,7 @@ import (
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 )
 
-// TODO (LPIO-1863): avoid hardcoding.
 const (
-	k8sNamespace = "maestro-iaas-system"
-
 	//nolint:lll // keep long line for better readability
 	sviInfoPayload = `[{"filedesc" : "client_id","resource" : "$(guid)_%s"},{"filedesc" : "client_secret","resource" : "$(guid)_%s"}]`
 )
@@ -53,7 +50,7 @@ type ResponseData struct {
 func checkTO2StatusCompleted(_ context.Context, deviceInfo utils.DeviceInfo) (bool, error) {
 	// Make an HTTP GET request
 	to2URL := fmt.Sprintf("http://%s:%s/api/v1/owner/state/%s",
-		deviceInfo.FdoOwnerDNS, deviceInfo.FdoOwnerPort, deviceInfo.FdoGUID)
+		util.FdoOwnerDNS(), util.FdoOwnerPort(), deviceInfo.FdoGUID)
 	request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, to2URL, http.NoBody)
 	if err != nil {
 		respErr := inv_errors.Errorf("Error making HTTP GET request %v", err)
@@ -201,11 +198,11 @@ func runProdWorkflow(
 
 	// NOTE: IMO (Tomasz) this is a one-time operation that should be done when a host is discovered and created.
 	// So it shouldn't be here (move to host reconciler?)
-	if createHwErr := tinkerbell.CreateHardwareIfNotExists(ctx, k8sCli, k8sNamespace, deviceInfo); createHwErr != nil {
+	if createHwErr := tinkerbell.CreateHardwareIfNotExists(ctx, k8sCli, util.K8sNamespace(), deviceInfo); createHwErr != nil {
 		return createHwErr
 	}
 
-	prodTemplate, err := tinkerbell.GenerateTemplateForProd(k8sNamespace, deviceInfo)
+	prodTemplate, err := tinkerbell.GenerateTemplateForProd(util.K8sNamespace(), deviceInfo)
 	if err != nil {
 		zlog.MiErr(err).Msg("")
 		return inv_errors.Errorf("Failed to generate Tinkerbell prod template for host %s", deviceInfo.GUID)
@@ -217,10 +214,10 @@ func runProdWorkflow(
 
 	prodWorkflow := tinkerbell.NewWorkflow(
 		tinkerbell.GetProdWorkflowName(deviceInfo.GUID),
-		k8sNamespace,
+		util.K8sNamespace(),
 		deviceInfo.HwMacID,
 		tinkerbell.GetTinkHardwareName(deviceInfo.GUID),
-		tinkerbell.GetProdTemplateName(deviceInfo.ImType, deviceInfo.GUID))
+		tinkerbell.GetProdTemplateName(deviceInfo.ImgType, deviceInfo.GUID))
 
 	if createWFErr := tinkerbell.CreateWorkflowIfNotExists(ctx, k8sCli, prodWorkflow); createWFErr != nil {
 		return createWFErr
@@ -370,7 +367,7 @@ func CheckStatusOrRunRebootWorkflow(
 
 func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName string) (*tink.Workflow, error) {
 	got := &tink.Workflow{}
-	clientErr := k8sCli.Get(ctx, types.NamespacedName{Namespace: k8sNamespace, Name: workflowName}, got)
+	clientErr := k8sCli.Get(ctx, types.NamespacedName{Namespace: util.K8sNamespace(), Name: workflowName}, got)
 	if clientErr != nil && errors.IsNotFound(clientErr) {
 		zlog.MiSec().MiErr(clientErr).Msg("")
 		return nil, inv_errors.Errorfc(codes.NotFound, "Workflow %s doesn't exist", workflowName)
@@ -390,11 +387,11 @@ func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName string)
 func runDIWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils.DeviceInfo) error {
 	zlog.Info().Msgf("Creating DI workflow for host %s", deviceInfo.GUID)
 
-	if err := tinkerbell.CreateHardwareIfNotExists(ctx, k8sCli, k8sNamespace, deviceInfo); err != nil {
+	if err := tinkerbell.CreateHardwareIfNotExists(ctx, k8sCli, util.K8sNamespace(), deviceInfo); err != nil {
 		return err
 	}
 
-	diTemplate, err := tinkerbell.GenerateTemplateForDI(k8sNamespace, deviceInfo)
+	diTemplate, err := tinkerbell.GenerateTemplateForDI(util.K8sNamespace(), deviceInfo)
 	if err != nil {
 		return err
 	}
@@ -405,7 +402,7 @@ func runDIWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils.D
 
 	diWorkflow := tinkerbell.NewWorkflow(
 		tinkerbell.GetDIWorkflowName(deviceInfo.GUID),
-		k8sNamespace, deviceInfo.HwMacID,
+		util.K8sNamespace(), deviceInfo.HwMacID,
 		tinkerbell.GetTinkHardwareName(deviceInfo.GUID),
 		tinkerbell.GetDITemplateName(deviceInfo.GUID))
 
@@ -421,7 +418,7 @@ func runDIWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils.D
 func runRebootWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils.DeviceInfo) error {
 	zlog.Info().Msgf("Creating Reboot workflow for host %s", deviceInfo.GUID)
 
-	rebootTemplate, err := tinkerbell.GenerateTemplateForNodeReboot(k8sNamespace, deviceInfo)
+	rebootTemplate, err := tinkerbell.GenerateTemplateForNodeReboot(util.K8sNamespace(), deviceInfo)
 	if err != nil {
 		return err
 	}
@@ -432,7 +429,7 @@ func runRebootWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo uti
 
 	rebootWorkflow := tinkerbell.NewWorkflow(
 		tinkerbell.GetRebootWorkflowName(deviceInfo.GUID),
-		k8sNamespace, deviceInfo.HwMacID,
+		util.K8sNamespace(), deviceInfo.HwMacID,
 		tinkerbell.GetTinkHardwareName(deviceInfo.GUID),
 		tinkerbell.GetRebootTemplateName(deviceInfo.GUID))
 
@@ -485,19 +482,19 @@ func createENCredentialsIfNotExists(ctx context.Context, deviceInfo utils.Device
 }
 
 func DeleteTinkHardwareForHostIfExist(ctx context.Context, hostUUID string) error {
-	return tinkerbell.DeleteHardwareForHostIfExist(ctx, k8sNamespace, hostUUID)
+	return tinkerbell.DeleteHardwareForHostIfExist(ctx, util.K8sNamespace(), hostUUID)
 }
 
 func DeleteDIWorkflowResourcesIfExist(ctx context.Context, hostUUID string) error {
-	return tinkerbell.DeleteDIWorkflowResourcesIfExist(ctx, k8sNamespace, hostUUID)
+	return tinkerbell.DeleteDIWorkflowResourcesIfExist(ctx, util.K8sNamespace(), hostUUID)
 }
 
 func DeleteRebootWorkflowResourcesIfExist(ctx context.Context, hostUUID string) error {
-	return tinkerbell.DeleteRebootWorkflowResourcesIfExist(ctx, k8sNamespace, hostUUID)
+	return tinkerbell.DeleteRebootWorkflowResourcesIfExist(ctx, util.K8sNamespace(), hostUUID)
 }
 
 func DeleteProdWorkflowResourcesIfExist(ctx context.Context, hostUUID, imgType string) error {
-	return tinkerbell.DeleteProdWorkflowResourcesIfExist(ctx, k8sNamespace, hostUUID, imgType)
+	return tinkerbell.DeleteProdWorkflowResourcesIfExist(ctx, util.K8sNamespace(), hostUUID, imgType)
 }
 
 func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.Workflow,

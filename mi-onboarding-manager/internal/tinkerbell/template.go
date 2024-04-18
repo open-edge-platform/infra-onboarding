@@ -13,6 +13,7 @@ import (
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 )
 
@@ -39,35 +40,37 @@ func NewTemplate(tpData, name, ns string) *tink.Template {
 blob/1a9621b4f8d5146659b680518052a3b7a24d0867/internal/onboardingmgr/onbworkflowclient/workflowcreator.go#L1044.
 */
 func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (*tink.Template, error) {
-	tmplName := GetProdTemplateName(deviceInfo.ImType, deviceInfo.GUID)
-
-	var tmplData []byte
-	var err error
-	switch deviceInfo.ImType {
+	var (
+		tmplName      = GetProdTemplateName(deviceInfo.ImgType, deviceInfo.GUID)
+		tinkerVersion = getTinkerImageVersion(deviceInfo.TinkerVersion)
+		tmplData      []byte
+		err           error
+	)
+	switch deviceInfo.ImgType {
 	case utils.ImgTypeBkc:
-		tmplData, err = NewTemplateDataProdBKC(tmplName, deviceInfo.Rootfspart, deviceInfo.RootfspartNo,
-			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.ClientImgName, deviceInfo.ProvisionerIP,
+		tmplData, err = NewTemplateDataProdBKC(tmplName, deviceInfo.Rootfspart, util.OverlayURL,
+			util.ImgURL, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.ClientImgName, util.ProvisionerIP,
 			deviceInfo.SecurityFeature, deviceInfo.ClientID, deviceInfo.ClientSecret, *common.FlagEnableDeviceInitialization,
-			deviceInfo.TinkerVersion, deviceInfo.Hostname)
+			tinkerVersion, deviceInfo.Hostname)
 		if err != nil {
 			return nil, err
 		}
 	case utils.ImgTypeFocal:
 		tmplData, err = NewTemplateDataProd(tmplName, deviceInfo.Rootfspart,
-			deviceInfo.RootfspartNo, deviceInfo.LoadBalancerIP, deviceInfo.ProvisionerIP, deviceInfo.TinkerVersion)
+			util.OverlayURL, util.ImgURL, util.ProvisionerIP, tinkerVersion)
 		if err != nil {
 			return nil, err
 		}
 	case utils.ImgTypeFocalMs:
-		tmplData, err = NewTemplateDataProdMS(tmplName, deviceInfo.Rootfspart, deviceInfo.RootfspartNo,
-			deviceInfo.LoadBalancerIP, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.HwMacID,
-			deviceInfo.ProvisionerIP, deviceInfo.TinkerVersion)
+		tmplData, err = NewTemplateDataProdMS(tmplName, deviceInfo.Rootfspart, util.OverlayURL,
+			util.ImgURL, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.HwMacID,
+			util.ProvisionerIP, tinkerVersion)
 		if err != nil {
 			return nil, err
 		}
 	default:
 		tmplData, err = NewTemplateDataProd(tmplName, deviceInfo.Rootfspart,
-			deviceInfo.RootfspartNo, deviceInfo.LoadBalancerIP, deviceInfo.ProvisionerIP, deviceInfo.TinkerVersion)
+			util.OverlayURL, util.ImgURL, util.ProvisionerIP, tinkerVersion)
 		if err != nil {
 			return nil, err
 		}
@@ -79,9 +82,9 @@ func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (
 
 func GenerateTemplateForDI(k8sNamespace string, deviceInfo utils.DeviceInfo) (*tink.Template, error) {
 	tmplName := GetDITemplateName(deviceInfo.GUID)
-
+	tinkerVersion := getTinkerImageVersion(deviceInfo.TinkerVersion)
 	tmplData, err := NewDITemplateData(tmplName, deviceInfo.HwIP, "CLIENT-SDK-TPM",
-		deviceInfo.DiskType, deviceInfo.HwSerialID, deviceInfo.TinkerVersion)
+		util.DiskType, deviceInfo.HwSerialID, tinkerVersion)
 	if err != nil {
 		// failed to marshal template data
 		zlog.MiSec().MiErr(err).Msg("")

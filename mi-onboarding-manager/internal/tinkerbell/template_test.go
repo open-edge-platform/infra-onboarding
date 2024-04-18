@@ -85,7 +85,7 @@ func TestGenerateTemplateForProd(t *testing.T) {
 			name: "Test Case1",
 			args: args{
 				deviceInfo: utils.DeviceInfo{
-					ImType: utils.ImgTypeBkc,
+					ImgType: utils.ImgTypeBkc,
 				},
 			},
 			want:    nil,
@@ -95,7 +95,7 @@ func TestGenerateTemplateForProd(t *testing.T) {
 			name: "Test Case2",
 			args: args{
 				deviceInfo: utils.DeviceInfo{
-					ImType: utils.ImgTypeFocal,
+					ImgType: utils.ImgTypeJammy,
 				},
 			},
 			want:    nil,
@@ -105,7 +105,7 @@ func TestGenerateTemplateForProd(t *testing.T) {
 			name: "Test Case3",
 			args: args{
 				deviceInfo: utils.DeviceInfo{
-					ImType: utils.ImgTypeFocalMs,
+					ImgType: utils.ImgTypeFocalMs,
 				},
 			},
 			want:    nil,

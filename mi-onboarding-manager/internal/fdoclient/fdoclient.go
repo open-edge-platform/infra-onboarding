@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 )
@@ -23,19 +23,8 @@ var DefaultClient = NewFDOClient()
 const (
 	apiUser = "apiUser"
 
-	ContentTypeTextPlain = "text/plain"
-
+	ContentTypeTextPlain       = "text/plain"
 	CertificateAttestationType = "SECP256R1"
-
-	DefaultOwnerURL  = "mi-fdo-owner"
-	DefaultOwnerPort = "58042"
-	DefaultMfgURL    = "mi-fdo-mfg"
-	DefaultMfgPort   = "58039"
-
-	EnvOwnerURL  = "FDO_OWNER_URL"
-	EnvOwnerPort = "FDO_OWNER_PORT"
-	EnvMfgURL    = "FDO_MFG_URL"
-	EnvMfgPort   = "FDO_MFG_PORT"
 )
 
 // HTTPClient used to hide external library under interface to enable testing.
@@ -60,28 +49,24 @@ type Client struct {
 func NewFDOClient() *Client {
 	fdoCli := &Client{}
 
-	ownerURL := os.Getenv(EnvOwnerURL)
+	ownerURL := util.FdoOwnerDNS()
 	if ownerURL == "" {
-		zlog.MiSec().Warn().Msgf("%s env variable is not set, using default value %s", EnvOwnerURL, DefaultOwnerURL)
-		ownerURL = DefaultOwnerURL
+		zlog.MiSec().Warn().Msgf("%s env variable is not set", util.EnvFdoOwnerDNS)
 	}
 
-	ownerPort := os.Getenv(EnvOwnerPort)
+	ownerPort := util.FdoOwnerPort()
 	if ownerPort == "" {
-		zlog.MiSec().Warn().Msgf("%s env variable is not set, using default value %s", EnvOwnerPort, DefaultOwnerPort)
-		ownerPort = DefaultOwnerPort
+		zlog.MiSec().Warn().Msgf("%s env variable is not set", util.EnvFdoOwnerPort)
 	}
 
-	mfgURL := os.Getenv(EnvMfgURL)
+	mfgURL := util.FdoMfgDNS()
 	if mfgURL == "" {
-		zlog.MiSec().Warn().Msgf("%s env variable is not set, using default value %s", EnvMfgURL, DefaultMfgURL)
-		mfgURL = DefaultMfgURL
+		zlog.MiSec().Warn().Msgf("%s env variable is not set", util.EnvFdoMfgDNS)
 	}
 
-	mfgPort := os.Getenv(EnvMfgPort)
+	mfgPort := util.FdoMfgPort()
 	if mfgPort == "" {
-		zlog.MiSec().Warn().Msgf("%s env variable is not set, using default value %s", EnvMfgPort, DefaultMfgPort)
-		mfgPort = DefaultMfgPort
+		zlog.MiSec().Warn().Msgf("%s env variable is not set", util.EnvFdoMfgPort)
 	}
 
 	fdoCli.OwnerSvc = fmt.Sprintf("http://%s:%s/api/v1", ownerURL, ownerPort)

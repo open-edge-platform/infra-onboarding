@@ -11,13 +11,13 @@ type (
 		HwMacID           string
 		HwIP              string
 		DiskType          string
-		LoadBalancerIP    string
+		ImgURL            string
 		Gateway           string
-		RootfspartNo      string
+		OverlayURL        string
 		Rootfspart        string
 		ClientImgName     string
 		ProvisionerIP     string
-		ImType            string
+		ImgType           string
 		DpsScopeID        string
 		DpsRegistrationID string
 		DpsSymmKey        string
@@ -26,11 +26,6 @@ type (
 		FdoGUID           string
 		ClientID          string
 		ClientSecret      string
-		FdoOwnerDNS       string
-		FdoMfgDNS         string
-		FdoOwnerPort      string
-		FdoMfgPort        string
-		FdoRvPort         string
 		TinkerVersion     string
 		Hostname          string
 	}

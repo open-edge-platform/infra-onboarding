@@ -4,6 +4,8 @@
 package util
 
 import (
+	"os"
+
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
@@ -11,6 +13,48 @@ import (
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
 )
+
+const (
+	EnvImageType     = "IMAGE_TYPE"
+	EnvDiskType      = "DISK_PARTITION"
+	EnvImgURL        = "IMG_URL"
+	EnvProvisionerIP = "PD_IP"
+	EnvOverlayURL    = "OVERLAY_URL"
+	EnvFdoMfgDNS     = "FDO_MFG_URL"
+	EnvFdoMfgPort    = "FDO_MFG_PORT"
+	EnvFdoOwnerDNS   = "FDO_OWNER_URL"
+	EnvFdoOwnerPort  = "FDO_OWNER_PORT"
+	EnvFdoRvPort     = "FDO_RV_PORT"
+	EnvK8sNamespace  = "MI_K8S_NAMESPACE"
+
+	defaultOwnerURL  = "mi-fdo-owner"
+	defaultOwnerPort = "58042"
+	defaultMfgURL    = "mi-fdo-mfg"
+	defaultMfgPort   = "58039"
+)
+
+var (
+	DiskType      = os.Getenv(EnvDiskType)
+	ImgURL        = os.Getenv(EnvImgURL)
+	ProvisionerIP = os.Getenv(EnvProvisionerIP)
+	OverlayURL    = os.Getenv(EnvOverlayURL)
+	FdoRvPort     = os.Getenv(EnvFdoRvPort)
+	FdoMfgDNS     = GetEnvWithDefault(EnvFdoMfgDNS, defaultMfgURL)
+	FdoMfgPort    = GetEnvWithDefault(EnvFdoMfgPort, defaultMfgPort)
+	FdoOwnerDNS   = GetEnvWithDefault(EnvFdoOwnerDNS, defaultOwnerURL)
+	FdoOwnerPort  = GetEnvWithDefault(EnvFdoOwnerPort, defaultOwnerPort)
+	K8sNamespace  = GetEnvWithDefault(EnvK8sNamespace, "maestro-iaas-system")
+)
+
+func GetEnvWithDefault(key, defaultVal string) func() string {
+	return func() string {
+		v, found := os.LookupEnv(key)
+		if found && v != "" {
+			return v
+		}
+		return defaultVal
+	}
+}
 
 func IsSameHostStatus(
 	oldHost *computev1.HostResource,

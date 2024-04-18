@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -23,22 +23,15 @@ func TestNewFDOClient(t *testing.T) {
 	t.Run("Use defaults", func(t *testing.T) {
 		fdoClient := NewFDOClient()
 		require.NotNil(t, fdoClient)
-		assert.Equal(t, fmt.Sprintf("http://%s:%s/api/v1", DefaultOwnerURL, DefaultOwnerPort), fdoClient.OwnerSvc)
-		assert.Equal(t, fmt.Sprintf("http://%s:%s/api/v1", DefaultMfgURL, DefaultMfgPort), fdoClient.MfgSvc)
+		assert.Equal(t, fmt.Sprintf("http://%s:%s/api/v1", util.FdoOwnerDNS(), util.FdoOwnerPort()), fdoClient.OwnerSvc)
+		assert.Equal(t, fmt.Sprintf("http://%s:%s/api/v1", util.FdoMfgDNS(), util.FdoMfgPort()), fdoClient.MfgSvc)
 	})
 
 	t.Run("Use env vars", func(t *testing.T) {
-		os.Setenv(EnvOwnerURL, "example")
-		os.Setenv(EnvOwnerPort, "1234")
-		os.Setenv(EnvMfgURL, "example")
-		os.Setenv(EnvMfgPort, "5678")
-
-		defer func() {
-			os.Unsetenv(EnvOwnerURL)
-			os.Unsetenv(EnvOwnerPort)
-			os.Unsetenv(EnvMfgURL)
-			os.Unsetenv(EnvMfgPort)
-		}()
+		t.Setenv(util.EnvFdoOwnerDNS, "example")
+		t.Setenv(util.EnvFdoOwnerPort, "1234")
+		t.Setenv(util.EnvFdoMfgDNS, "example")
+		t.Setenv(util.EnvFdoMfgPort, "5678")
 
 		fdoClient := NewFDOClient()
 		require.NotNil(t, fdoClient)

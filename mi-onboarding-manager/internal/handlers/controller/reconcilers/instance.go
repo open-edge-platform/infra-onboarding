@@ -30,8 +30,7 @@ import (
 const (
 	instanceReconcilerLoggerName = "InstanceReconciler"
 	checkInvURLLength            = 2
-
-	EnvImageType = "IMAGE_TYPE"
+	ClientImgName                = "jammy-server-cloudimg-amd64.raw.gz"
 )
 
 // Misc variables.
@@ -180,10 +179,10 @@ func (ir *InstanceReconciler) reconcileInstance(
 }
 
 func getImageType() string {
-	imgType := os.Getenv(EnvImageType)
+	imgType := os.Getenv(util.EnvImageType)
 	if imgType == "" {
 		zlogInst.Warn().Msgf("%s env var is not set, using default image type: %s",
-			EnvImageType, utils.ImgTypeJammy)
+			util.EnvImageType, utils.ImgTypeJammy)
 		return utils.ImgTypeJammy
 	}
 
@@ -213,31 +212,20 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource, artifactI
 		HwIP:            host.GetBmcIp(),
 		Hostname:        host.GetResourceId(), // we use resource ID as hostname to uniquely identify a host
 		SecurityFeature: uint32(instance.GetSecurityFeature()),
-		DiskType:        os.Getenv("DISK_PARTITION"),
-		LoadBalancerIP:  os.Getenv("IMG_URL"),
 		Gateway:         utils.GenerateGatewayFromBaseIP(host.GetBmcIp()),
-		ProvisionerIP:   os.Getenv("PD_IP"),
-		ImType:          imageType,
-		RootfspartNo:    os.Getenv("OVERLAY_URL"),
-		FdoMfgDNS:       os.Getenv("FDO_MFG_URL"),
-		FdoOwnerDNS:     os.Getenv("FDO_OWNER_URL"),
-		FdoMfgPort:      os.Getenv("FDO_MFG_PORT"),
-		FdoOwnerPort:    os.Getenv("FDO_OWNER_PORT"),
-		FdoRvPort:       os.Getenv("FDO_RV_PORT"),
+		ImgType:         imageType,
+		ProvisionerIP:   util.ProvisionerIP,
+		ImgURL:          util.ImgURL,
+		DiskType:        util.DiskType,
+		Rootfspart:      utils.CalculateRootFS(imageType, util.DiskType),
+		OverlayURL:      util.OverlayURL,
+		TinkerVersion:   artifactInfo.TinkerVersion,
+		ClientImgName:   ClientImgName,
 	}
 
-	deviceInfo.Rootfspart = utils.CalculateRootFS(deviceInfo.ImType, deviceInfo.DiskType)
-	deviceInfo.TinkerVersion = artifactInfo.TinkerVersion
-
-	switch deviceInfo.ImType {
-	case utils.ImgTypeBkc:
-		deviceInfo.ClientImgName = "jammy-server-cloudimg-amd64.raw.gz"
-		deviceInfo.LoadBalancerIP = artifactInfo.BkcURL
-		deviceInfo.RootfspartNo = artifactInfo.BkcBasePkgURL
-	case utils.ImgTypeFocal:
-		deviceInfo.ClientImgName = "focal-server-cloudimg-amd64.raw.gz"
-	default:
-		deviceInfo.ClientImgName = "jammy-server-cloudimg-amd64.raw.gz"
+	if imageType == utils.ImgTypeBkc {
+		deviceInfo.ImgURL = artifactInfo.BkcURL
+		deviceInfo.OverlayURL = artifactInfo.BkcBasePkgURL
 	}
 
 	return deviceInfo

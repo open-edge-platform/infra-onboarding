@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 )
@@ -104,9 +105,7 @@ func Test_checkTO2StatusCompleted_Case(t *testing.T) {
 			args: args{
 				in0: context.Background(),
 				deviceInfo: utils.DeviceInfo{
-					FdoOwnerDNS:  "127.0.0.1",
-					FdoOwnerPort: strings.Split(server.URL, ":")[2],
-					FdoGUID:      "id",
+					FdoGUID: "id",
 				},
 			},
 			want:    true,
@@ -115,10 +114,8 @@ func Test_checkTO2StatusCompleted_Case(t *testing.T) {
 		{
 			name: "Failed",
 			args: args{
-				in0: context.Background(),
+				in0:        context.Background(),
 				deviceInfo: utils.DeviceInfo{
-					FdoOwnerDNS:  "127.0.0.1",
-					FdoOwnerPort: strings.Split(server.URL, ":")[2],
 					// empty fdoGUID to return error
 				},
 			},
@@ -128,6 +125,8 @@ func Test_checkTO2StatusCompleted_Case(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv(util.EnvFdoOwnerDNS, "127.0.0.1")
+			t.Setenv(util.EnvFdoOwnerPort, strings.Split(server.URL, ":")[2])
 			got, err := checkTO2StatusCompleted(tt.args.in0, tt.args.deviceInfo)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("checkTO2StatusCompleted() error = %v, wantErr %v", err, tt.wantErr)
@@ -170,9 +169,7 @@ func Test_checkTO2StatusCompleted_Case1(t *testing.T) {
 			args: args{
 				in0: context.Background(),
 				deviceInfo: utils.DeviceInfo{
-					FdoOwnerDNS:  "127.0.0.1",
-					FdoOwnerPort: strings.Split(server.URL, ":")[2],
-					FdoGUID:      "id",
+					FdoGUID: "id",
 				},
 			},
 			want:    false,
@@ -181,6 +178,8 @@ func Test_checkTO2StatusCompleted_Case1(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv(util.EnvFdoOwnerDNS, "127.0.0.1")
+			t.Setenv(util.EnvFdoOwnerPort, strings.Split(server.URL, ":")[2])
 			got, err := checkTO2StatusCompleted(tt.args.in0, tt.args.deviceInfo)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("checkTO2StatusCompleted() error = %v, wantErr %v", err, tt.wantErr)
@@ -226,9 +225,7 @@ func Test_checkTO2StatusCompleted_Case2(t *testing.T) {
 			args: args{
 				in0: context.Background(),
 				deviceInfo: utils.DeviceInfo{
-					FdoOwnerDNS:  "localhost",
-					FdoOwnerPort: "58042",
-					FdoGUID:      "id",
+					FdoGUID: "id",
 				},
 			},
 			want:    false,
@@ -237,6 +234,8 @@ func Test_checkTO2StatusCompleted_Case2(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv(util.EnvFdoOwnerDNS, "localhost")
+			t.Setenv(util.EnvFdoOwnerPort, "58042")
 			got, err := checkTO2StatusCompleted(tt.args.in0, tt.args.deviceInfo)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("checkTO2StatusCompleted() error = %v, wantErr %v", err, tt.wantErr)
@@ -285,9 +284,7 @@ func Test_checkTO2StatusCompleted_Case3(t *testing.T) {
 			args: args{
 				in0: context.Background(),
 				deviceInfo: utils.DeviceInfo{
-					FdoOwnerDNS:  "localhost",
-					FdoOwnerPort: "58042",
-					FdoGUID:      "id",
+					FdoGUID: "id",
 				},
 			},
 			want:    true,
@@ -296,6 +293,8 @@ func Test_checkTO2StatusCompleted_Case3(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv(util.EnvFdoOwnerDNS, "localhost")
+			t.Setenv(util.EnvFdoOwnerPort, "58042")
 			got, err := checkTO2StatusCompleted(tt.args.in0, tt.args.deviceInfo)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("checkTO2StatusCompleted() error = %v, wantErr %v", err, tt.wantErr)
@@ -338,8 +337,8 @@ func TestCheckStatusOrRunProdWorkflow(t *testing.T) {
 }
 
 func TestCheckStatusOrRunProdWorkflow_Case1(t *testing.T) {
-	os.Setenv("KUBERNETES_SERVICE_HOST", "localhost")
-	os.Setenv("KUBERNETES_SERVICE_PORT", "2521")
+	t.Setenv("KUBERNETES_SERVICE_HOST", "localhost")
+	t.Setenv("KUBERNETES_SERVICE_PORT", "2521")
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		fmt.Println("Failed to generate private key:", err)
@@ -465,8 +464,8 @@ func TestCheckStatusOrRunDIWorkflow(t *testing.T) {
 }
 
 func TestCheckStatusOrRunDIWorkflow_Case1(t *testing.T) {
-	os.Setenv("KUBERNETES_SERVICE_HOST", "localhost")
-	os.Setenv("KUBERNETES_SERVICE_PORT", "2521")
+	t.Setenv("KUBERNETES_SERVICE_HOST", "localhost")
+	t.Setenv("KUBERNETES_SERVICE_PORT", "2521")
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		fmt.Println("Failed to generate private key:", err)
@@ -891,9 +890,9 @@ func Test_runProdWorkflow(t *testing.T) {
 		k8sCli     client.Client
 		deviceInfo utils.DeviceInfo
 	}
-	mockClient := MockClient{}
+	mockClient := &MockClient{}
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	mockClient1 := MockClient{}
+	mockClient1 := &MockClient{}
 	mockClient1.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
 	tests := []struct {
 		name    string
@@ -906,10 +905,8 @@ func Test_runProdWorkflow(t *testing.T) {
 				ctx:    context.Background(),
 				k8sCli: mockClient,
 				deviceInfo: utils.DeviceInfo{
-					FdoOwnerDNS:  "127.0.0.1",
-					FdoOwnerPort: strings.Split(srv.URL, ":")[2],
-					GUID:         uuid.NewString(),
-					FdoGUID:      uuid.NewString(),
+					GUID:    uuid.NewString(),
+					FdoGUID: uuid.NewString(),
 				},
 			},
 		},
@@ -923,6 +920,8 @@ func Test_runProdWorkflow(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv(util.EnvFdoOwnerDNS, "127.0.0.1")
+			t.Setenv(util.EnvFdoOwnerPort, strings.Split(srv.URL, ":")[2])
 			if err := runProdWorkflow(tt.args.ctx, tt.args.k8sCli, tt.args.deviceInfo, &computev1.InstanceResource{
 				Host: &computev1.HostResource{},
 			}); (err != nil) != tt.wantErr {
@@ -943,9 +942,9 @@ func Test_runDIWorkflow(t *testing.T) {
 		k8sCli     client.Client
 		deviceInfo utils.DeviceInfo
 	}
-	mockClient := MockClient{}
+	mockClient := &MockClient{}
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	mockClient1 := MockClient{}
+	mockClient1 := &MockClient{}
 	mockClient1.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
 	tests := []struct {
 		name    string
@@ -955,11 +954,9 @@ func Test_runDIWorkflow(t *testing.T) {
 		{
 			name: "Test Case",
 			args: args{
-				ctx:    context.Background(),
-				k8sCli: mockClient,
-				deviceInfo: utils.DeviceInfo{
-					FdoOwnerDNS: srv.URL,
-				},
+				ctx:        context.Background(),
+				k8sCli:     mockClient,
+				deviceInfo: utils.DeviceInfo{},
 			},
 		},
 		{
@@ -973,6 +970,7 @@ func Test_runDIWorkflow(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv(util.EnvFdoOwnerDNS, srv.URL)
 			if err := runDIWorkflow(tt.args.ctx, tt.args.k8sCli, tt.args.deviceInfo); (err != nil) != tt.wantErr {
 				t.Errorf("runDIWorkflow() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -993,17 +991,16 @@ func TestRunFDOActions(t *testing.T) {
 		{
 			name: "Test Case",
 			args: args{
-				ctx: context.Background(),
-				deviceInfo: &utils.DeviceInfo{
-					FdoOwnerDNS:  "localhost",
-					FdoOwnerPort: "58042",
-				},
+				ctx:        context.Background(),
+				deviceInfo: &utils.DeviceInfo{},
 			},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv(util.EnvFdoOwnerDNS, "localhost")
+			t.Setenv(util.EnvFdoOwnerPort, "58042")
 			if err := RunFDOActions(tt.args.ctx, tt.args.deviceInfo); (err != nil) != tt.wantErr {
 				t.Errorf("RunFDOActions() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -1041,8 +1038,8 @@ func TestCheckStatusOrRunRebootWorkflow(t *testing.T) {
 }
 
 func TestCheckStatusOrRunRebootWorkflow_Case(t *testing.T) {
-	os.Setenv("KUBERNETES_SERVICE_HOST", "localhost")
-	os.Setenv("KUBERNETES_SERVICE_PORT", "2521")
+	t.Setenv("KUBERNETES_SERVICE_HOST", "localhost")
+	t.Setenv("KUBERNETES_SERVICE_PORT", "2521")
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		fmt.Println("Failed to generate private key:", err)
