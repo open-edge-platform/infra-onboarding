@@ -6,6 +6,7 @@ package artifact
 import (
 	"context"
 	"errors"
+	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
 
@@ -69,7 +70,7 @@ func TestNewArtifactService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewArtifactService(tt.args.invClient, "", false, tt.args.enableAuth, tt.args.rbac)
+			got, err := NewArtifactService(tt.args.invClient, tt.args.enableAuth, tt.args.rbac)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewArtifactService() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -2148,7 +2149,6 @@ func TestNodeArtifactService_startZeroTouch(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
-		invClientAPI                             *invclient.OnboardingInventoryClient
 	}
 	type args struct {
 		ctx       context.Context
@@ -2184,9 +2184,6 @@ func TestNodeArtifactService_startZeroTouch(t *testing.T) {
 				invClient: &invclient.OnboardingInventoryClient{
 					Client: mockInvClient,
 				},
-				invClientAPI: &invclient.OnboardingInventoryClient{
-					Client: &onboarding_mocks.MockInventoryClient{},
-				},
 			},
 			args: args{
 				ctx:       context.Background(),
@@ -2200,7 +2197,6 @@ func TestNodeArtifactService_startZeroTouch(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
-				invClientAPI:                             tt.fields.invClientAPI,
 			}
 			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostResID); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
@@ -2213,7 +2209,6 @@ func TestNodeArtifactService_startZeroTouch_Case(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
-		invClientAPI                             *invclient.OnboardingInventoryClient
 	}
 	type args struct {
 		ctx       context.Context
@@ -2245,9 +2240,6 @@ func TestNodeArtifactService_startZeroTouch_Case(t *testing.T) {
 				invClient: &invclient.OnboardingInventoryClient{
 					Client: mockInvClient,
 				},
-				invClientAPI: &invclient.OnboardingInventoryClient{
-					Client: &onboarding_mocks.MockInventoryClient{},
-				},
 			},
 			args: args{
 				ctx:       context.Background(),
@@ -2261,7 +2253,6 @@ func TestNodeArtifactService_startZeroTouch_Case(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
-				invClientAPI:                             tt.fields.invClientAPI,
 			}
 			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostResID); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
@@ -2272,16 +2263,13 @@ func TestNodeArtifactService_startZeroTouch_Case(t *testing.T) {
 
 func TestNewArtifactService_Case(t *testing.T) {
 	type args struct {
-		invClient     *invclient.OnboardingInventoryClient
-		inventoryAdr  string
-		enableTracing bool
-		enableAuth    bool
-		rbac          string
+		invClient  *invclient.OnboardingInventoryClient
+		enableAuth bool
+		rbac       string
 	}
 	tests := []struct {
 		name    string
 		args    args
-		want    *NodeArtifactService
 		wantErr bool
 	}{
 		{
@@ -2290,25 +2278,22 @@ func TestNewArtifactService_Case(t *testing.T) {
 				invClient: &invclient.OnboardingInventoryClient{
 					Client: &onboarding_mocks.MockInventoryClient{},
 				},
-				inventoryAdr:  "addr",
-				enableTracing: false,
-				enableAuth:    true,
-				rbac:          "../../../../rego/authz.rego",
+				enableAuth: true,
+				rbac:       "../../../../rego/authz.rego",
 			},
-			want:    nil,
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewArtifactService(tt.args.invClient, tt.args.inventoryAdr, tt.args.enableTracing, tt.args.enableAuth, tt.args.rbac)
+			got, err := NewArtifactService(tt.args.invClient, tt.args.enableAuth, tt.args.rbac)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewArtifactService() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewArtifactService() = %v, want %v", got, tt.want)
-			}
+			assert.NotNil(t, got.rbac)
+			assert.NotNil(t, got.invClient)
+			assert.True(t, got.authEnabled)
 		})
 	}
 }
@@ -2511,7 +2496,6 @@ func TestNodeArtifactService_startZeroTouch_Case1(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
-		invClientAPI                             *invclient.OnboardingInventoryClient
 	}
 	type args struct {
 		ctx       context.Context
@@ -2528,7 +2512,7 @@ func TestNodeArtifactService_startZeroTouch_Case1(t *testing.T) {
 	mockResource1 := &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Provider{
 			Provider: &providerv1.ProviderResource{
-				Name: "fm_onboarding",
+				Name: DefaultProviderName,
 			},
 		},
 	}
@@ -2550,9 +2534,6 @@ func TestNodeArtifactService_startZeroTouch_Case1(t *testing.T) {
 				invClient: &invclient.OnboardingInventoryClient{
 					Client: mockInvClient,
 				},
-				invClientAPI: &invclient.OnboardingInventoryClient{
-					Client: &onboarding_mocks.MockInventoryClient{},
-				},
 			},
 			args: args{
 				ctx:       context.Background(),
@@ -2566,7 +2547,6 @@ func TestNodeArtifactService_startZeroTouch_Case1(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
-				invClientAPI:                             tt.fields.invClientAPI,
 			}
 			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostResID); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
@@ -2579,7 +2559,6 @@ func TestNodeArtifactService_startZeroTouch_Case2(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
-		invClientAPI                             *invclient.OnboardingInventoryClient
 	}
 	type args struct {
 		ctx       context.Context
@@ -2597,7 +2576,7 @@ func TestNodeArtifactService_startZeroTouch_Case2(t *testing.T) {
 		Resource: &inv_v1.Resource_Provider{
 			Provider: &providerv1.ProviderResource{
 				Config: "config",
-				Name:   "fm_onboarding",
+				Name:   DefaultProviderName,
 			},
 		},
 	}
@@ -2619,9 +2598,6 @@ func TestNodeArtifactService_startZeroTouch_Case2(t *testing.T) {
 				invClient: &invclient.OnboardingInventoryClient{
 					Client: mockInvClient,
 				},
-				invClientAPI: &invclient.OnboardingInventoryClient{
-					Client: &onboarding_mocks.MockInventoryClient{},
-				},
 			},
 			args: args{
 				ctx:       context.Background(),
@@ -2635,7 +2611,6 @@ func TestNodeArtifactService_startZeroTouch_Case2(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
-				invClientAPI:                             tt.fields.invClientAPI,
 			}
 			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostResID); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
@@ -2648,7 +2623,6 @@ func TestNodeArtifactService_startZeroTouch_Case3(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
-		invClientAPI                             *invclient.OnboardingInventoryClient
 	}
 	type args struct {
 		ctx       context.Context
@@ -2666,7 +2640,7 @@ func TestNodeArtifactService_startZeroTouch_Case3(t *testing.T) {
 		Resource: &inv_v1.Resource_Provider{
 			Provider: &providerv1.ProviderResource{
 				Config: "{\"defaultOs\":\"linux\",\"autoProvision\":true}",
-				Name:   "fm_onboarding",
+				Name:   DefaultProviderName,
 			},
 		},
 	}
@@ -2676,8 +2650,7 @@ func TestNodeArtifactService_startZeroTouch_Case3(t *testing.T) {
 	}
 	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{Resource: mockResource}, nil).Once()
 	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources1, nil).Once()
-	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
-	mockInvClient1.On("Create", mock.Anything, mock.Anything).Return(&inv_v1.CreateResourceResponse{}, nil).Once()
+	mockInvClient.On("Create", mock.Anything, mock.Anything).Return(&inv_v1.CreateResourceResponse{}, nil).Once()
 	tests := []struct {
 		name    string
 		fields  fields
@@ -2689,9 +2662,6 @@ func TestNodeArtifactService_startZeroTouch_Case3(t *testing.T) {
 			fields: fields{
 				invClient: &invclient.OnboardingInventoryClient{
 					Client: mockInvClient,
-				},
-				invClientAPI: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient1,
 				},
 			},
 			args: args{
@@ -2706,7 +2676,6 @@ func TestNodeArtifactService_startZeroTouch_Case3(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
-				invClientAPI:                             tt.fields.invClientAPI,
 			}
 			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostResID); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
@@ -2719,7 +2688,6 @@ func TestNodeArtifactService_startZeroTouch_Case4(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
 		invClient                                *invclient.OnboardingInventoryClient
-		invClientAPI                             *invclient.OnboardingInventoryClient
 	}
 	type args struct {
 		ctx       context.Context
@@ -2737,7 +2705,7 @@ func TestNodeArtifactService_startZeroTouch_Case4(t *testing.T) {
 		Resource: &inv_v1.Resource_Provider{
 			Provider: &providerv1.ProviderResource{
 				Config: "{\"defaultOs\":\"linux\",\"autoProvision\":true}",
-				Name:   "fm_onboarding",
+				Name:   DefaultProviderName,
 			},
 		},
 	}
@@ -2747,8 +2715,7 @@ func TestNodeArtifactService_startZeroTouch_Case4(t *testing.T) {
 	}
 	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{Resource: mockResource}, nil).Once()
 	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources1, nil).Once()
-	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
-	mockInvClient1.On("Create", mock.Anything, mock.Anything).Return(&inv_v1.CreateResourceResponse{}, errors.New("err")).Once()
+	mockInvClient.On("Create", mock.Anything, mock.Anything).Return(&inv_v1.CreateResourceResponse{}, errors.New("err")).Once()
 	tests := []struct {
 		name    string
 		fields  fields
@@ -2760,9 +2727,6 @@ func TestNodeArtifactService_startZeroTouch_Case4(t *testing.T) {
 			fields: fields{
 				invClient: &invclient.OnboardingInventoryClient{
 					Client: mockInvClient,
-				},
-				invClientAPI: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient1,
 				},
 			},
 			args: args{
@@ -2777,7 +2741,6 @@ func TestNodeArtifactService_startZeroTouch_Case4(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
 				invClient:                                tt.fields.invClient,
-				invClientAPI:                             tt.fields.invClientAPI,
 			}
 			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostResID); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)

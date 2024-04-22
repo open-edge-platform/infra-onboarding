@@ -72,7 +72,7 @@ func TestSouthbound_CreateNodes(t *testing.T) {
 		require.Error(t, err)
 	})
 
-	t.Run("Success", func(t *testing.T) {
+	t.Run("Success non-ZTP", func(t *testing.T) {
 		ctx := createOutgoingContextWithENJWT(t)
 		bmcIP := "10.10.1.1"
 		inCreate := &pb.NodeRequest{
@@ -101,6 +101,49 @@ func TestSouthbound_CreateNodes(t *testing.T) {
 		assert.Equal(t, bmcIP, hostInv.GetBmcIp())
 		assert.Equal(t, "90:49:fa:07:6c:fd", hostInv.GetPxeMac())
 		assert.Equal(t, computev1.BaremetalControllerKind_BAREMETAL_CONTROLLER_KIND_PDU, hostInv.GetBmcKind())
+		inv_testing.HardDeleteHost(t, hostInv.GetResourceId())
+	})
+
+	t.Run("Success ZTP", func(t *testing.T) {
+		ctx := createOutgoingContextWithENJWT(t)
+		os := inv_testing.CreateOsNoCleanup(t)
+
+		CreateProviderResourceForZTP(t, os.GetResourceId())
+
+		bmcIP := "10.10.1.1"
+		inCreate := &pb.NodeRequest{
+			Payload: []*pb.NodeData{
+				{
+					Hwdata: []*pb.HwData{
+						{
+							MacId:          "90:49:fa:07:6c:fd",
+							SutIp:          bmcIP,
+							Serialnum:      hostSN,
+							Uuid:           hostGUID,
+							BmcIp:          "10.10.10.10",
+							BmcInterface:   true,
+							HostNicDevName: "bmc0",
+						},
+					},
+				},
+			},
+		}
+		_, err := OMTestClient.CreateNodes(ctx, inCreate)
+		require.NoError(t, err)
+
+		hostInv := GetHostbyUUID(t, hostGUID)
+		assert.Equal(t, hostSN, hostInv.GetSerialNumber())
+		assert.Equal(t, hostGUID, hostInv.GetUuid())
+		assert.Equal(t, bmcIP, hostInv.GetBmcIp())
+		assert.Equal(t, "90:49:fa:07:6c:fd", hostInv.GetPxeMac())
+		assert.Equal(t, computev1.BaremetalControllerKind_BAREMETAL_CONTROLLER_KIND_PDU, hostInv.GetBmcKind())
+
+		require.NotNil(t, hostInv.GetInstance())
+		t.Cleanup(func() {
+			inv_testing.HardDeleteInstance(t, hostInv.GetInstance().GetResourceId())
+			inv_testing.DeleteResource(t, os.GetResourceId())
+			inv_testing.HardDeleteHost(t, hostInv.GetResourceId())
+		})
 	})
 }
 

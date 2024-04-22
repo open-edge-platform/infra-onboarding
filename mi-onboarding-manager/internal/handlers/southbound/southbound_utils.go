@@ -59,7 +59,7 @@ func NewSBHandlerWithListener(listener net.Listener,
 
 func (sbh *SBHandler) Start() error {
 	nodeArtifactService, err := artifact.NewArtifactService(sbh.invClient,
-		sbh.cfg.InventoryAddress, sbh.cfg.EnableTracing, sbh.cfg.EnableAuth, sbh.cfg.RBAC)
+		sbh.cfg.EnableAuth, sbh.cfg.RBAC)
 	if err != nil {
 		return err
 	}
