@@ -163,7 +163,7 @@ pipeline {
 						    if (!image.contains('/')) {
 						        sh """
         						docker pull amr-registry.caas.intel.com/one-intel-edge/edge-node/tinker-actions/${image}:${tag}
-                                                        docker image tag amr-registry.caas.intel.com/one-intel-edge/edge-node/tinker-actions/${image}:${tag} ${image}:${tag}
+                                docker image tag amr-registry.caas.intel.com/one-intel-edge/edge-node/tinker-actions/${image}:${tag} ${image}:${tag}
         						"""
 						    } 
 						  
@@ -247,6 +247,74 @@ pipeline {
 							# Tag the version
 							/opt/ci/version-tag.sh
 							'''
+						}
+					}
+				}
+				stage('Update EN manifest with new version') {
+					when {
+						expression { env.BRANCH_NAME == 'main' || env.BRANCH_NAME.startsWith('release') && params.buildHookOs == false }
+					}
+					steps {
+						withCredentials([usernamePassword(credentialsId: 'sys_oie_devops_github_api', passwordVariable: 'github_password', usernameVariable: 'github_username')]) {
+							script {
+								def versionContent = readFile 'VERSION'
+
+								if (versionContent.contains('-dev')) {
+									sh 'echo "Version contains -dev. Nothing to do"'
+								} else {
+									sh 'git clone https://github.com/intel-innersource/frameworks.edge.one-intel-edge.edge-node-deployment.git edge-node-deployment'
+
+									def shortCommitHash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+									def owner = 'intel-innersource'
+									def repo = 'frameworks.edge.one-intel-edge.edge-node-deployment'
+									def pullRequestTitle = 'Update Hook OS'
+									def pullRequestBody = 'Update Hook OS version\n | Jira ticket | LPDF-000 |'.replaceAll('\n', '\\n')
+									def baseBranch = 'main'
+									def gitBranch = "feature/hook_os_${shortCommitHash}"
+									def manifestDirectory = 'edge-node-deployment/manifest'
+									def manifests = findFiles(glob: "${manifestDirectory}/*.yaml")
+									def manifestFilePath = manifests[0].path
+									def manifestContent = readFile manifestFilePath
+									def newVersion = versionContent.trim()
+									def updatedManifestContent = manifestContent.replaceAll(/(provisioning-hook-os\n\s+version: )(\S+)/, "\$1$newVersion")
+
+									writeFile file: manifestFilePath, text: updatedManifestContent
+
+									// Change directory to 'edge-node-deployment' before running git commands
+									dir('edge-node-deployment') {
+										sh """
+											git config user.email 'sys_oie_devops@intel.com'
+											git config user.name 'sys_oie_devops'
+											git checkout -b "${gitBranch}"
+											git add manifest/${manifestFilePath.split('/').last()}
+											git commit -m "Update hook-os version to ${newVersion}"
+											git push origin "${gitBranch}"
+										"""
+									}
+									def createPrCommand = """
+									curl -L -X POST \
+										-H 'Accept: application/vnd.github+json' \
+										-H 'Authorization: Bearer ${github_password}' \
+										-H 'X-GitHub-Api-Version: 2022-11-28' \
+										https://api.github.com/repos/${owner}/${repo}/pulls \
+										-d '{"title":"${pullRequestTitle}","body":"${pullRequestBody}","head":"${gitBranch}","base":"${baseBranch}"}' | jq '.number'
+									"""
+									def prNumber = sh(script: createPrCommand, returnStdout: true).trim()
+
+									// Set reviewers only if the pr exists and reviewers have been defined
+									if (prNumber != "null") {
+										def addReviewersCommand = """
+										curl -L -X POST \
+											-H 'Accept: application/vnd.github+json' \
+											-H 'Authorization: Bearer ${github_password}' \
+											-H 'X-GitHub-Api-Version: 2022-11-28' \
+											https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/requested_reviewers \
+											-d '{"reviewers":["'"manju956"'", "'"Ram-srini"'"]}'
+										"""
+										sh(addReviewersCommand)
+									}
+								}
+							}
 						}
 					}
 				}
