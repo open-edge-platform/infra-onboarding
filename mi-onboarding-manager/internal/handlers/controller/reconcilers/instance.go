@@ -6,7 +6,6 @@ package reconcilers
 
 import (
 	"context"
-	"os"
 	"strings"
 
 	rec_v2 "github.com/onosproject/onos-lib-go/pkg/controller/v2"
@@ -15,6 +14,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/env"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onbworkflowclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
@@ -178,110 +178,77 @@ func (ir *InstanceReconciler) reconcileInstance(
 	return request.Ack()
 }
 
-func getImageType() string {
-	imgType := os.Getenv(util.EnvImageType)
-	if imgType == "" {
-		zlogInst.Warn().Msgf("%s env var is not set, using default image type: %s",
-			util.EnvImageType, utils.ImgTypeJammy)
-		return utils.ImgTypeJammy
-	}
-
-	switch imgType {
-	case utils.ProdBkc:
-		return utils.ImgTypeBkc
-	case utils.ProdFocal:
-		return utils.ImgTypeFocal
-	case utils.ProdFocalMs:
-		return utils.ImgTypeFocalMs
-	default:
-		zlogInst.Warn().Msgf("Unknown image type set %s, using default image type %s",
-			imgType, utils.ImgTypeJammy)
-		return utils.ImgTypeJammy
-	}
-}
-
-func convertInstanceToDeviceInfo(instance *computev1.InstanceResource, artifactInfo utils.ArtifactData) utils.DeviceInfo {
+func convertInstanceToDeviceInfo(instance *computev1.InstanceResource) (utils.DeviceInfo, error) {
 	host := instance.GetHost() // eager-loaded
 
-	imageType := getImageType()
-
-	deviceInfo := utils.DeviceInfo{
-		GUID:            host.GetUuid(),
-		HwSerialID:      host.GetSerialNumber(),
-		HwMacID:         host.GetPxeMac(),
-		HwIP:            host.GetBmcIp(),
-		Hostname:        host.GetResourceId(), // we use resource ID as hostname to uniquely identify a host
-		SecurityFeature: uint32(instance.GetSecurityFeature()),
-		Gateway:         utils.GenerateGatewayFromBaseIP(host.GetBmcIp()),
-		ImgType:         imageType,
-		ProvisionerIP:   util.ProvisionerIP,
-		ImgURL:          util.ImgURL,
-		DiskType:        util.DiskType,
-		Rootfspart:      utils.CalculateRootFS(imageType, util.DiskType),
-		OverlayURL:      util.OverlayURL,
-		TinkerVersion:   artifactInfo.TinkerVersion,
-		ClientImgName:   ClientImgName,
-	}
-
-	if imageType == utils.ImgTypeBkc {
-		deviceInfo.ImgURL = artifactInfo.BkcURL
-		deviceInfo.OverlayURL = artifactInfo.BkcBasePkgURL
-	}
-
-	return deviceInfo
-}
-
-func convertInstanceToArtifactInfo(instance *computev1.InstanceResource) (utils.ArtifactData, error) {
 	if instance.GetOs() == nil {
 		// this should not happen but just in case
-		return utils.ArtifactData{}, inv_errors.Errorfc(codes.InvalidArgument,
+		return utils.DeviceInfo{}, inv_errors.Errorfc(codes.InvalidArgument,
 			"Instance %s doesn't have any OS associated", instance.GetResourceId())
 	}
-	repoURL := instance.GetOs().GetRepoUrl()
-	invURL := strings.Split(repoURL, ";")
 
-	if len(invURL) == 0 {
-		return utils.ArtifactData{}, inv_errors.Errorfc(codes.InvalidArgument,
+	repoURL := instance.GetOs().GetRepoUrl()
+	repoURLInfo := strings.Split(repoURL, ";")
+
+	if len(repoURLInfo) == 0 {
+		return utils.DeviceInfo{}, inv_errors.Errorfc(codes.InvalidArgument,
 			"Invalid format of OS repo url: %s", repoURL)
 	}
 
-	osURL := invURL[0]
-	if !utils.IsValidOSURLFormat(osURL) {
-		return utils.ArtifactData{}, inv_errors.Errorfc(codes.InvalidArgument,
-			"Invalid format of OS url: %s", osURL)
+	osLocationURL := repoURLInfo[0]
+	if !utils.IsValidOSURLFormat(osLocationURL) {
+		return utils.DeviceInfo{}, inv_errors.Errorfc(codes.InvalidArgument,
+			"Invalid format of OS url: %s", osLocationURL)
 	}
 
 	var (
-		overlayURL    string
-		tinkerVersion string
+		installerScriptURL string
+		tinkerVersion      string
 	)
 
-	if len(invURL) > 1 {
-		overlayURL = invURL[1]
+	if len(repoURLInfo) > 1 {
+		installerScriptURL = repoURLInfo[1]
 	}
 
-	if len(invURL) > checkInvURLLength {
-		tinkerVersion = invURL[2]
+	if len(repoURLInfo) > checkInvURLLength {
+		tinkerVersion = repoURLInfo[2]
 	}
 
 	sutIP := instance.GetHost().GetBmcIp()
-	osURL = utils.ReplaceHostIP(osURL, sutIP)
-	overlayURL = utils.ReplaceHostIP(overlayURL, sutIP)
+	osLocationURL = utils.ReplaceHostIP(osLocationURL, sutIP)
+	installerScriptURL = utils.ReplaceHostIP(installerScriptURL, sutIP)
 
-	return utils.ArtifactData{
-		BkcURL:        osURL,
-		BkcBasePkgURL: overlayURL,
-		TinkerVersion: tinkerVersion,
-	}, nil
+	deviceInfo := utils.DeviceInfo{
+		GUID:               host.GetUuid(),
+		HwSerialID:         host.GetSerialNumber(),
+		HwMacID:            host.GetPxeMac(),
+		HwIP:               host.GetBmcIp(),
+		Hostname:           host.GetResourceId(), // we use resource ID as hostname to uniquely identify a host
+		SecurityFeature:    uint32(instance.GetSecurityFeature()),
+		Gateway:            utils.GenerateGatewayFromBaseIP(host.GetBmcIp()),
+		ImgType:            env.ImgType,
+		OSImageURL:         env.ImgURL,
+		DiskType:           env.DiskType,
+		Rootfspart:         utils.CalculateRootFS(env.ImgType, env.DiskType),
+		InstallerScriptURL: env.InstallerScriptURL,
+		TinkerVersion:      tinkerVersion,
+		ClientImgName:      ClientImgName,
+	}
+
+	if env.ImgType == utils.ImgTypeBkc {
+		deviceInfo.OSImageURL = osLocationURL
+		deviceInfo.InstallerScriptURL = installerScriptURL
+	}
+
+	return deviceInfo, nil
 }
 
 func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance *computev1.InstanceResource) error {
-	artifactInfo, err := convertInstanceToArtifactInfo(instance)
+	deviceInfo, err := convertInstanceToDeviceInfo(instance)
 	if err != nil {
 		return err
 	}
 
-	deviceInfo := convertInstanceToDeviceInfo(instance, artifactInfo)
 	//nolint:errcheck // this function currently not returning any error to handle
 	oldInstance := proto.Clone(instance).(*computev1.InstanceResource)
 
@@ -333,10 +300,8 @@ func (ir *InstanceReconciler) cleanupProvisioningResources(
 ) error {
 	zlogInst.Info().Msgf("Cleaning up all provisioning resources for host %s", instance.GetHost().GetUuid())
 
-	imageType := getImageType()
-
 	if err := onbworkflowclient.DeleteProdWorkflowResourcesIfExist(
-		ctx, instance.GetHost().GetUuid(), imageType); err != nil {
+		ctx, instance.GetHost().GetUuid(), env.ImgType); err != nil {
 		return err
 	}
 

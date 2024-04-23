@@ -12,8 +12,8 @@ import (
 	"net/http"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/env"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 )
@@ -47,32 +47,10 @@ type Client struct {
 }
 
 func NewFDOClient() *Client {
-	fdoCli := &Client{}
-
-	ownerURL := util.FdoOwnerDNS()
-	if ownerURL == "" {
-		zlog.MiSec().Warn().Msgf("%s env variable is not set", util.EnvFdoOwnerDNS)
+	return &Client{
+		OwnerSvc: fmt.Sprintf("http://%s:%s/api/v1", env.FdoOwnerDNS, env.FdoOwnerPort),
+		MfgSvc:   fmt.Sprintf("http://%s:%s/api/v1", env.FdoMfgDNS, env.FdoMfgPort),
 	}
-
-	ownerPort := util.FdoOwnerPort()
-	if ownerPort == "" {
-		zlog.MiSec().Warn().Msgf("%s env variable is not set", util.EnvFdoOwnerPort)
-	}
-
-	mfgURL := util.FdoMfgDNS()
-	if mfgURL == "" {
-		zlog.MiSec().Warn().Msgf("%s env variable is not set", util.EnvFdoMfgDNS)
-	}
-
-	mfgPort := util.FdoMfgPort()
-	if mfgPort == "" {
-		zlog.MiSec().Warn().Msgf("%s env variable is not set", util.EnvFdoMfgPort)
-	}
-
-	fdoCli.OwnerSvc = fmt.Sprintf("http://%s:%s/api/v1", ownerURL, ownerPort)
-	fdoCli.MfgSvc = fmt.Sprintf("http://%s:%s/api/v1", mfgURL, mfgPort)
-
-	return fdoCli
 }
 
 func doAPICall(ctx context.Context, apiURL, httpMethod, apiUser, contentType string, body []byte) (*http.Response, error) {

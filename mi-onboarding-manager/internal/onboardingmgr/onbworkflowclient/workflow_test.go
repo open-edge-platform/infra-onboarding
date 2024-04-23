@@ -33,8 +33,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/env"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 )
@@ -125,8 +125,8 @@ func Test_checkTO2StatusCompleted_Case(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv(util.EnvFdoOwnerDNS, "127.0.0.1")
-			t.Setenv(util.EnvFdoOwnerPort, strings.Split(server.URL, ":")[2])
+			env.FdoOwnerDNS = "127.0.0.1"
+			env.FdoOwnerPort = strings.Split(server.URL, ":")[2]
 			got, err := checkTO2StatusCompleted(tt.args.in0, tt.args.deviceInfo)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("checkTO2StatusCompleted() error = %v, wantErr %v", err, tt.wantErr)
@@ -178,8 +178,8 @@ func Test_checkTO2StatusCompleted_Case1(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv(util.EnvFdoOwnerDNS, "127.0.0.1")
-			t.Setenv(util.EnvFdoOwnerPort, strings.Split(server.URL, ":")[2])
+			env.FdoOwnerDNS = "127.0.0.1"
+			env.FdoOwnerPort = strings.Split(server.URL, ":")[2]
 			got, err := checkTO2StatusCompleted(tt.args.in0, tt.args.deviceInfo)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("checkTO2StatusCompleted() error = %v, wantErr %v", err, tt.wantErr)
@@ -234,8 +234,8 @@ func Test_checkTO2StatusCompleted_Case2(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv(util.EnvFdoOwnerDNS, "localhost")
-			t.Setenv(util.EnvFdoOwnerPort, "58042")
+			env.FdoOwnerDNS = "localhost"
+			env.FdoOwnerPort = "58042"
 			got, err := checkTO2StatusCompleted(tt.args.in0, tt.args.deviceInfo)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("checkTO2StatusCompleted() error = %v, wantErr %v", err, tt.wantErr)
@@ -293,8 +293,8 @@ func Test_checkTO2StatusCompleted_Case3(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv(util.EnvFdoOwnerDNS, "localhost")
-			t.Setenv(util.EnvFdoOwnerPort, "58042")
+			env.FdoOwnerDNS = "localhost"
+			env.FdoOwnerPort = "58042"
 			got, err := checkTO2StatusCompleted(tt.args.in0, tt.args.deviceInfo)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("checkTO2StatusCompleted() error = %v, wantErr %v", err, tt.wantErr)
@@ -920,8 +920,8 @@ func Test_runProdWorkflow(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv(util.EnvFdoOwnerDNS, "127.0.0.1")
-			t.Setenv(util.EnvFdoOwnerPort, strings.Split(srv.URL, ":")[2])
+			env.FdoOwnerDNS = "127.0.0.1"
+			env.FdoOwnerPort = strings.Split(srv.URL, ":")[2]
 			if err := runProdWorkflow(tt.args.ctx, tt.args.k8sCli, tt.args.deviceInfo, &computev1.InstanceResource{
 				Host: &computev1.HostResource{},
 			}); (err != nil) != tt.wantErr {
@@ -970,7 +970,7 @@ func Test_runDIWorkflow(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv(util.EnvFdoOwnerDNS, srv.URL)
+			env.FdoOwnerDNS = srv.URL
 			if err := runDIWorkflow(tt.args.ctx, tt.args.k8sCli, tt.args.deviceInfo); (err != nil) != tt.wantErr {
 				t.Errorf("runDIWorkflow() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -999,8 +999,8 @@ func TestRunFDOActions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv(util.EnvFdoOwnerDNS, "localhost")
-			t.Setenv(util.EnvFdoOwnerPort, "58042")
+			env.FdoOwnerDNS = "localhost"
+			env.FdoOwnerPort = "58042"
 			if err := RunFDOActions(tt.args.ctx, tt.args.deviceInfo); (err != nil) != tt.wantErr {
 				t.Errorf("RunFDOActions() error = %v, wantErr %v", err, tt.wantErr)
 			}

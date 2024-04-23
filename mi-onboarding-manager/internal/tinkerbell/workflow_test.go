@@ -198,8 +198,8 @@ func TestCreateWorkflowIfNotExists(t *testing.T) {
 		{
 			name: "Test Case2",
 			args: args{
-				ctx:    context.Background(),
-				k8sCli: mockClient2,
+				ctx:      context.Background(),
+				k8sCli:   mockClient2,
 				workflow: &tink.Workflow{},
 			},
 			wantErr: false,
@@ -207,8 +207,8 @@ func TestCreateWorkflowIfNotExists(t *testing.T) {
 		{
 			name: "Test Case3",
 			args: args{
-				ctx:    context.Background(),
-				k8sCli: mockClient3,
+				ctx:      context.Background(),
+				k8sCli:   mockClient3,
 				workflow: &tink.Workflow{},
 			},
 			wantErr: true,
@@ -277,7 +277,7 @@ func TestDeleteProdWorkflowResourcesIfExist_Case(t *testing.T) {
 	}
 	path := "/var"
 	dummypath := "/run/secrets/kubernetes.io/serviceaccount/"
-	cerr := os.MkdirAll(path+dummypath, 0755)
+	cerr := os.MkdirAll(path+dummypath, 0o755)
 	if cerr != nil {
 		t.Fatalf("Error creating directory: %v", cerr)
 	}
@@ -394,7 +394,7 @@ func TestDeleteRebootWorkflowResourcesIfExist_Case(t *testing.T) {
 	}
 	path := "/var"
 	dummypath := "/run/secrets/kubernetes.io/serviceaccount/"
-	cerr := os.MkdirAll(path+dummypath, 0755)
+	cerr := os.MkdirAll(path+dummypath, 0o755)
 	if cerr != nil {
 		t.Fatalf("Error creating directory: %v", cerr)
 	}

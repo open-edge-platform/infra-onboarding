@@ -5,10 +5,7 @@ package southbound_test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/southbound/artifact"
-	provider_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/provider/v1"
 	"net"
 	"os"
 	"path/filepath"
@@ -175,47 +172,6 @@ func GetHostbyUUID(tb testing.TB, hostUUID string) *computev1.HostResource {
 
 	host := resources[0]
 	return host
-}
-
-func CreateProviderResourceForZTP(tb testing.TB, defaultOS string) *provider_v1.ProviderResource {
-	tb.Helper()
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	// create Provider resource for ZTP
-	providerConfig := artifact.ProviderConfig{
-		DefaultOs:     defaultOS,
-		AutoProvision: true,
-	}
-
-	configBytes, err := json.Marshal(&providerConfig)
-	require.NoError(tb, err)
-
-	providerRes := &provider_v1.ProviderResource{
-		ProviderKind: provider_v1.ProviderKind_PROVIDER_KIND_BAREMETAL,
-		Name:         artifact.DefaultProviderName,
-		Config:       string(configBytes),
-		// dummy API fields, enforced by API
-		ApiEndpoint:    "xyz123",
-		ApiCredentials: []string{},
-	}
-
-	resp, err := inv_testing.GetClient(tb, inv_testing.APIClient).Create(ctx,
-		&inv_v1.Resource{
-			Resource: &inv_v1.Resource_Provider{
-				Provider: providerRes,
-			},
-		},
-	)
-	require.NoError(tb, err)
-
-	providerRes.ResourceId = resp.ResourceId
-	tb.Cleanup(func() {
-		inv_testing.DeleteResource(tb, resp.GetResourceId())
-	})
-
-	return providerRes
 }
 
 func TestNewSBHandler(t *testing.T) {

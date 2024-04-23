@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/env"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 )
 
@@ -43,13 +45,6 @@ const (
 	ActionWriteHostname              = "write-hostname"
 	ActionWriteEtcHosts              = "Write-Hosts-etc"
 )
-
-type ProxySetup struct {
-	httpProxy  string
-	httpsProxy string
-	noProxy    string
-	dns        string
-}
 
 const (
 	hardWareDesk   = "{{ index .Hardware.Disks 0 }}"
@@ -142,19 +137,8 @@ func tinkActionCredcopyImage(tinkerImageVersion string) string {
 	return fmt.Sprintf("%s:%s", defaultTinkActionCredcopyImage, iv)
 }
 
-func GetProxyEnv() ProxySetup {
-	var proxySettings ProxySetup
-
-	proxySettings.httpProxy = os.Getenv("EN_HTTP_PROXY")
-	proxySettings.httpsProxy = os.Getenv("EN_HTTPS_PROXY")
-	proxySettings.noProxy = os.Getenv("EN_NO_PROXY")
-	proxySettings.dns = os.Getenv("EN_NAMESERVERS")
-
-	return proxySettings
-}
-
 //nolint:funlen // May effect the functionality, need to simplify this in future
-func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIP, tinkerVersion string) ([]byte, error) {
+func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, tinkerVersion string) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -181,7 +165,7 @@ func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, provIP, tinkerVersi
 
 				{
 					Name:    ActionCopySecrets,
-					Image:   provIP + ":5015/cred_copy:latest",
+					Image:   env.ProvisionerIP + ":5015/cred_copy:latest",
 					Timeout: timeOutMin90,
 					Environment: map[string]string{
 						"BLOCK_DEVICE": hardWareDesk + rootPart,
@@ -333,10 +317,7 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 }
 
 //nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
-func NewTemplateDataProdBKC(name, _, rootPartNo, hostIP, clientIP, _, _, _ string,
-	securityFeature uint32, clientID, clientSecret string, enableDI bool, tinkerVersion string, hostname string,
-) ([]byte, error) {
-	proxySetting := GetProxyEnv()
+func NewTemplateDataProdBKC(name string, deviceInfo utils.DeviceInfo, enableDI bool) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -352,16 +333,16 @@ func NewTemplateDataProdBKC(name, _, rootPartNo, hostIP, clientIP, _, _, _ strin
 			Actions: []Action{
 				{
 					Name:    ActionStreamUbuntuImage,
-					Image:   tinkActionDiskImage(tinkerVersion),
+					Image:   tinkActionDiskImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutMax9800,
 					Environment: map[string]string{
-						"IMG_URL":    hostIP,
+						"IMG_URL":    deviceInfo.OSImageURL,
 						"COMPRESSED": "true",
 					},
 				},
 				{
 					Name:    ActionAddEnvProxy,
-					Image:   tinkActionWriteFileImage(tinkerVersion),
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutMin90,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
@@ -369,7 +350,7 @@ func NewTemplateDataProdBKC(name, _, rootPartNo, hostIP, clientIP, _, _, _ strin
 						"CONTENTS": fmt.Sprintf(`
 						http_proxy=%s
 						https_proxy=%s
-						no_proxy=%s`, proxySetting.httpProxy, proxySetting.httpsProxy, proxySetting.noProxy),
+						no_proxy=%s`, env.ENProxyHTTP, env.ENProxyHTTPS, env.ENProxyNo),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -379,14 +360,14 @@ func NewTemplateDataProdBKC(name, _, rootPartNo, hostIP, clientIP, _, _, _ strin
 
 				{
 					Name:    ActionAddAptProxy,
-					Image:   tinkActionWriteFileImage(tinkerVersion),
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutMin90,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/apt/apt.conf",
 						"CONTENTS": fmt.Sprintf(`
 						Acquire::http::Proxy "%s";
-						Acquire::https::Proxy "%s";`, proxySetting.httpProxy, proxySetting.httpsProxy),
+						Acquire::https::Proxy "%s";`, env.ENProxyHTTP, env.ENProxyHTTPS),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -395,13 +376,13 @@ func NewTemplateDataProdBKC(name, _, rootPartNo, hostIP, clientIP, _, _, _ strin
 				},
 				{
 					Name:    ActionWriteHostname,
-					Image:   tinkActionWriteFileImage(tinkerVersion),
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutMin90,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/hostname",
 						"CONTENTS": fmt.Sprintf(`
-%s`, hostname),
+%s`, deviceInfo.Hostname),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -410,14 +391,14 @@ func NewTemplateDataProdBKC(name, _, rootPartNo, hostIP, clientIP, _, _, _ strin
 				},
 				{
 					Name:    ActionWriteEtcHosts,
-					Image:   tinkActionWriteFileImage(tinkerVersion),
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutMin90,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/hosts",
 						"CONTENTS": fmt.Sprintf(`
 127.0.0.1 %s
-            `, hostname),
+            `, deviceInfo.Hostname),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -426,14 +407,14 @@ func NewTemplateDataProdBKC(name, _, rootPartNo, hostIP, clientIP, _, _, _ strin
 				},
 				{
 					Name:    ActionAddDNSNamespace,
-					Image:   tinkActionWriteFileImage(tinkerVersion),
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutMin90,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/systemd/resolved.conf",
 						"CONTENTS": fmt.Sprintf(`
 						[Resolve]
-						DNS "%s"`, proxySetting.dns),
+						DNS "%s"`, env.ENNameservers),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -443,7 +424,7 @@ func NewTemplateDataProdBKC(name, _, rootPartNo, hostIP, clientIP, _, _, _ strin
 
 				{
 					Name:    ActionGrowPartitionInstallScript,
-					Image:   tinkActionWriteFileImage(tinkerVersion),
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutMin90,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
@@ -460,7 +441,7 @@ touch /usr/local/bin/.grow_part_done`,
 				},
 				{
 					Name:    ActionCreateUser,
-					Image:   tinkActionCexecImage(tinkerVersion),
+					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutMin90,
 					Environment: map[string]string{
 						"FS_TYPE":             "ext4",
@@ -471,20 +452,21 @@ touch /usr/local/bin/.grow_part_done`,
 				},
 				{
 					Name:    ActionInstallScriptDownload,
-					Image:   tinkActionCexecImage(tinkerVersion),
+					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg200,
 					Environment: map[string]string{
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
-						"SCRIPT_URL":          rootPartNo,
+						"SCRIPT_URL":          deviceInfo.InstallerScriptURL,
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
 						"CMD_LINE": fmt.Sprintf("mkdir -p /home/user/Setup;chown user:user /home/user/Setup;"+
-							"wget -P /home/user/Setup %s; chmod 755 /home/user/Setup/installer.sh", rootPartNo),
+							"wget -P /home/user/Setup %s; chmod 755 /home/user/Setup/installer.sh",
+							deviceInfo.InstallerScriptURL),
 					},
 				},
 				{
 					Name:    ActionInstallScript,
-					Image:   tinkActionWriteFileImage(tinkerVersion),
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutMin90,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
@@ -511,7 +493,7 @@ touch /usr/local/bin/.grow_part_done`,
 				},
 				{
 					Name:    ActionInstallScriptEnable,
-					Image:   tinkActionCexecImage(tinkerVersion),
+					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg200,
 					Environment: map[string]string{
 						"FS_TYPE":             "ext4",
@@ -522,7 +504,7 @@ touch /usr/local/bin/.grow_part_done`,
 				},
 				{
 					Name:    ActionNetplan,
-					Image:   tinkActionWriteFileImage(tinkerVersion),
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutMin90,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
@@ -544,7 +526,7 @@ touch /usr/local/bin/.grow_part_done`,
 
 				{
 					Name:    ActionNetplanConfigure,
-					Image:   tinkActionWriteFileImage(tinkerVersion),
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg200,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
@@ -572,7 +554,7 @@ network:
 echo "$config_yaml" | tee /etc/netplan/config.yaml
 ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 touch .netplan_update_done
-netplan apply`, clientIP, strings.ReplaceAll(proxySetting.dns, " ", ", ")),
+netplan apply`, deviceInfo.Gateway, strings.ReplaceAll(env.ENNameservers, " ", ", ")),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -582,7 +564,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxySetting.dns, " ", ", ")),
 
 				{
 					Name:    ActionGrowPartitionService,
-					Image:   tinkActionWriteFileImage(tinkerVersion),
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg200,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
@@ -608,7 +590,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxySetting.dns, " ", ", ")),
 				},
 				{
 					Name:    ActionGrowPartitionServiceEnable,
-					Image:   tinkActionCexecImage(tinkerVersion),
+					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg200,
 					Environment: map[string]string{
 						"FS_TYPE":             "ext4",
@@ -620,7 +602,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxySetting.dns, " ", ", ")),
 
 				{
 					Name:    ActionNetplanService,
-					Image:   tinkActionWriteFileImage(tinkerVersion),
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg200,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
@@ -647,7 +629,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxySetting.dns, " ", ", ")),
 
 				{
 					Name:    ActionNetplanServiceEnable,
-					Image:   tinkActionCexecImage(tinkerVersion),
+					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg200,
 					Environment: map[string]string{
 						"FS_TYPE":             "ext4",
@@ -659,13 +641,13 @@ netplan apply`, clientIP, strings.ReplaceAll(proxySetting.dns, " ", ", ")),
 
 				{
 					Name:    ActionFdeEncryption,
-					Image:   tinkActionFdeImage(tinkerVersion),
+					Image:   tinkActionFdeImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg560,
 				},
 
 				{
 					Name:    ActionEfibootset,
-					Image:   tinkActionEfibootImage(tinkerVersion),
+					Image:   tinkActionEfibootImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg560,
 				},
 
@@ -686,7 +668,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxySetting.dns, " ", ", ")),
 		directoryActions := []Action{
 			{
 				Name:    ActionCreateSecretsDirectory,
-				Image:   tinkActionCexecImage(tinkerVersion),
+				Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
 				Timeout: timeOutMin90,
 				Environment: map[string]string{
 					"FS_TYPE":             "ext4",
@@ -697,12 +679,12 @@ netplan apply`, clientIP, strings.ReplaceAll(proxySetting.dns, " ", ", ")),
 			},
 			{
 				Name:    ActionWriteClientID,
-				Image:   tinkActionWriteFileImage(tinkerVersion),
+				Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
 				Timeout: timeOutMin90,
 				Environment: map[string]string{
 					"FS_TYPE":   "ext4",
 					"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_id",
-					"CONTENTS":  clientID,
+					"CONTENTS":  deviceInfo.AuthClientID,
 					"UID":       "0",
 					"GID":       "0",
 					"MODE":      "0755",
@@ -711,12 +693,12 @@ netplan apply`, clientIP, strings.ReplaceAll(proxySetting.dns, " ", ", ")),
 			},
 			{
 				Name:    ActionWriteClientSecret,
-				Image:   tinkActionWriteFileImage(tinkerVersion),
+				Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
 				Timeout: timeOutMin90,
 				Environment: map[string]string{
 					"FS_TYPE":   "ext4",
 					"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_secret",
-					"CONTENTS":  clientSecret,
+					"CONTENTS":  deviceInfo.AuthClientSecret,
 					"UID":       "0",
 					"GID":       "0",
 					"MODE":      "0755",
@@ -742,7 +724,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxySetting.dns, " ", ", ")),
 		directoryActions := []Action{
 			{
 				Name:    ActionCopyENSecrets,
-				Image:   tinkActionCredcopyImage(tinkerVersion),
+				Image:   tinkActionCredcopyImage(deviceInfo.TinkerVersion),
 				Timeout: timeOutMin90,
 				Environment: map[string]string{
 					"OS_DST_DIR": "/etc/intel_edge_node/client-credentials/",
@@ -766,7 +748,8 @@ netplan apply`, clientIP, strings.ReplaceAll(proxySetting.dns, " ", ", ")),
 	}
 
 	// FDE removal if security feature flag is not set for FDE
-	if osv1.SecurityFeature(securityFeature) != osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION {
+	if osv1.SecurityFeature(deviceInfo.SecurityFeature) !=
+		osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION {
 		for i, task := range wf.Tasks {
 			for j, action := range task.Actions {
 				if action.Name == ActionFdeEncryption {
@@ -792,7 +775,7 @@ netplan apply`, clientIP, strings.ReplaceAll(proxySetting.dns, " ", ", ")),
 }
 
 //nolint:funlen // May effect the functionality, need to simplify this in future
-func NewTemplateDataProdMS(name, rootPart, _, hostIP, clientIP, gateway, mac, provIP, tinkerVersion string) ([]byte, error) {
+func NewTemplateDataProdMS(name, rootPart, _, hostIP, clientIP, gateway, mac, tinkerVersion string) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -818,7 +801,7 @@ func NewTemplateDataProdMS(name, rootPart, _, hostIP, clientIP, gateway, mac, pr
 				},
 				{
 					Name:    "copy-secrets",
-					Image:   provIP + ":5015/cred_copy:latest",
+					Image:   env.ProvisionerIP + ":5015/cred_copy:latest",
 					Timeout: timeOutMin90,
 					Environment: map[string]string{
 						"BLOCK_DEVICE": hardWareDesk + rootPart,

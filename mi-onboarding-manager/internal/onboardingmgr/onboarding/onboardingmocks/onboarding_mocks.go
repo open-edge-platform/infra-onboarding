@@ -6,14 +6,12 @@ package onboarding
 
 import (
 	"context"
-	"sync"
 
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client/cache"
@@ -92,28 +90,6 @@ func (m *MockInventoryClient) TestingOnlySetClient(client inv_v1.InventoryServic
 func (m *MockInventoryClient) TestGetClientCache() *cache.InventoryCache {
 	m.Called()
 	return nil
-}
-
-type MockOnboardingClient struct {
-	mock.Mock
-}
-
-func (m *MockOnboardingClient) ImageDownload(artifactinfo utils.ArtifactData,
-	deviceInfo utils.DeviceInfo, imgDownldLock, focalImgDdLock, jammyImgDdLock,
-	focalMsImgDdLock *sync.Mutex,
-) error {
-	args := m.Called(artifactinfo, deviceInfo, imgDownldLock, focalImgDdLock, jammyImgDdLock, focalMsImgDdLock)
-	return args.Error(0)
-}
-
-func (m *MockOnboardingClient) DiWorkflowCreation(deviceInfo utils.DeviceInfo) (string, error) {
-	args := m.Called(deviceInfo)
-	return args.String(0), args.Error(1)
-}
-
-func (m *MockOnboardingClient) ProdWorkflowCreation(deviceInfo utils.DeviceInfo, imType string) error {
-	args := m.Called(deviceInfo, imType)
-	return args.Error(0)
 }
 
 type MockInvClient struct {

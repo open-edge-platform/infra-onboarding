@@ -15,6 +15,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
+	inventoryv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	provider_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/provider/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
@@ -54,14 +55,17 @@ type (
 
 	NodeArtifactService struct {
 		pb.UnimplementedNodeArtifactServiceNBServer
-		invClient   *invclient.OnboardingInventoryClient
-		rbac        *rbac.Policy
-		authEnabled bool
+		invClient *invclient.OnboardingInventoryClient
+		// TODO: remove this later https://jira.devtools.intel.com/browse/LPIO-1829
+		invClientAPI *invclient.OnboardingInventoryClient
+		rbac         *rbac.Policy
+		authEnabled  bool
 	}
 )
 
 // NewArtifactService is a constructor function.
-func NewArtifactService(invClient *invclient.OnboardingInventoryClient, enableAuth bool, rbacRules string,
+func NewArtifactService(invClient *invclient.OnboardingInventoryClient, inventoryAdr string, enableTracing bool,
+	enableAuth bool, rbacRules string,
 ) (*NodeArtifactService, error) {
 	if invClient == nil {
 		return nil, inv_errors.Errorf("invClient is nil in NewArtifactService")
@@ -78,10 +82,26 @@ func NewArtifactService(invClient *invclient.OnboardingInventoryClient, enableAu
 		}
 	}
 
+	var invClientAPI *invclient.OnboardingInventoryClient
+	if inventoryAdr == "" {
+		zlog.Warn().Msg("Unable to start onboarding inventory API server client, empty inventory address")
+	} else {
+		// TODO: remove this later https://jira.devtools.intel.com/browse/LPIO-1829
+		invClientAPI, err = invclient.NewOnboardingInventoryClientWithOptions(
+			invclient.WithInventoryAddress(inventoryAdr),
+			invclient.WithEnableTracing(enableTracing),
+			invclient.WithClientKind(inventoryv1.ClientKind_CLIENT_KIND_API),
+		)
+		if err != nil {
+			return nil, inv_errors.Errorf("Unable to start onboarding inventory API server client %v", err)
+		}
+	}
+
 	return &NodeArtifactService{
-		invClient:   invClient,
-		rbac:        rbacPolicy,
-		authEnabled: enableAuth,
+		invClient:    invClient,
+		invClientAPI: invClientAPI,
+		rbac:         rbacPolicy,
+		authEnabled:  enableAuth,
 	}, nil
 }
 
@@ -368,7 +388,7 @@ func (s *NodeArtifactService) checkNCreateInstance(ctx context.Context, pconf Pr
 			},
 			SecurityFeature: osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION,
 		}
-		if _, err := s.invClient.CreateInstanceResource(ctx, instance); err != nil {
+		if _, err := s.invClientAPI.CreateInstanceResource(ctx, instance); err != nil {
 			zlog.Err(err).Msgf("Failed to CreateInstanceResource for host resource (uuid=%s)", hostResID)
 			return err
 		}

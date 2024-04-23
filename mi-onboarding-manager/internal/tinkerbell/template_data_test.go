@@ -6,6 +6,8 @@ package tinkerbell
 import (
 	"reflect"
 	"testing"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 )
 
 func TestNewTemplateDataProd(t *testing.T) {
@@ -35,7 +37,7 @@ func TestNewTemplateDataProd(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewTemplateDataProd(tt.args.name, tt.args.rootPart, tt.args.rootPartNo, tt.args.hostIP, tt.args.provIP, "")
+			got, err := NewTemplateDataProd(tt.args.name, tt.args.rootPart, tt.args.rootPartNo, tt.args.hostIP, "")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewTemplateDataProd() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -49,20 +51,9 @@ func TestNewTemplateDataProd(t *testing.T) {
 
 func TestNewTemplateDataProdBKC(t *testing.T) {
 	type args struct {
-		name            string
-		rootPart        string
-		rootPartNo      string
-		hostIP          string
-		clientIP        string
-		clientID        string
-		clientSecret    string
-		gateway         string
-		in8             string
-		in9             string
-		securityFeature uint32
-		enableDI        bool
-		tinkerVersion   string
-		hostname        string
+		name       string
+		deviceInfo utils.DeviceInfo
+		enableDI   bool
 	}
 	wf := Workflow{}
 	want, _ := marshalWorkflow(&wf)
@@ -73,9 +64,21 @@ func TestNewTemplateDataProdBKC(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case 1",
+			name: "Success - DI disabled",
 			args: args{
-				name: "TestWorkflow",
+				name:       "TestWorkflow",
+				deviceInfo: utils.DeviceInfo{},
+				enableDI:   false,
+			},
+			want:    want,
+			wantErr: false,
+		},
+		{
+			name: "Success - DI enabled",
+			args: args{
+				name:       "TestWorkflow",
+				deviceInfo: utils.DeviceInfo{},
+				enableDI:   true,
 			},
 			want:    want,
 			wantErr: false,
@@ -83,7 +86,7 @@ func TestNewTemplateDataProdBKC(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewTemplateDataProdBKC(tt.args.name, tt.args.rootPart, tt.args.rootPartNo, tt.args.hostIP, tt.args.clientIP, tt.args.gateway, tt.args.in8, tt.args.in9, tt.args.securityFeature, tt.args.clientID, tt.args.clientSecret, tt.args.enableDI, tt.args.tinkerVersion, tt.args.hostname)
+			got, err := NewTemplateDataProdBKC(tt.args.name, tt.args.deviceInfo, tt.args.enableDI)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewTemplateDataProdBKC() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -126,7 +129,7 @@ func TestNewTemplateDataProdMS(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := NewTemplateDataProdMS(tt.args.name, tt.args.rootPart, tt.args.rootPartNo,
-				tt.args.hostIP, tt.args.clientIP, tt.args.gateway, tt.args.mac, tt.args.provIP, "")
+				tt.args.hostIP, tt.args.clientIP, tt.args.gateway, tt.args.mac, "")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewTemplateDataProdMS() error = %v, wantErr %v", err, tt.wantErr)
 				return

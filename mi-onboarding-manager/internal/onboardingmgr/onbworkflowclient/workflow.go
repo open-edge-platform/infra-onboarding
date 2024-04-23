@@ -20,6 +20,7 @@ import (
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/auth"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/env"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/fdoclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/tinkerbell"
@@ -50,7 +51,7 @@ type ResponseData struct {
 func checkTO2StatusCompleted(_ context.Context, deviceInfo utils.DeviceInfo) (bool, error) {
 	// Make an HTTP GET request
 	to2URL := fmt.Sprintf("http://%s:%s/api/v1/owner/state/%s",
-		util.FdoOwnerDNS(), util.FdoOwnerPort(), deviceInfo.FdoGUID)
+		env.FdoOwnerDNS, env.FdoOwnerPort, deviceInfo.FdoGUID)
 	request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, to2URL, http.NoBody)
 	if err != nil {
 		respErr := inv_errors.Errorf("Error making HTTP GET request %v", err)
@@ -93,7 +94,7 @@ func checkTO2StatusCompleted(_ context.Context, deviceInfo utils.DeviceInfo) (bo
 	if jsonErr := json.Unmarshal(body, &responseData); jsonErr != nil {
 		zlog.MiSec().Err(jsonErr).Msgf("")
 		return false, inv_errors.Errorf("Failed to perform GET request to %s for host %s",
-			deviceInfo.ProvisionerIP, deviceInfo.GUID)
+			env.FdoOwnerDNS, deviceInfo.GUID)
 	}
 
 	if responseData.To2CompletedOn == "" {
@@ -192,17 +193,17 @@ func runProdWorkflow(
 			return err
 		}
 		// TODO: to be removed once DI is always enabled.
-		deviceInfo.ClientID = clientID
-		deviceInfo.ClientSecret = clientSecret
+		deviceInfo.AuthClientID = clientID
+		deviceInfo.AuthClientSecret = clientSecret
 	}
 
 	// NOTE: IMO (Tomasz) this is a one-time operation that should be done when a host is discovered and created.
 	// So it shouldn't be here (move to host reconciler?)
-	if createHwErr := tinkerbell.CreateHardwareIfNotExists(ctx, k8sCli, util.K8sNamespace(), deviceInfo); createHwErr != nil {
+	if createHwErr := tinkerbell.CreateHardwareIfNotExists(ctx, k8sCli, env.K8sNamespace, deviceInfo); createHwErr != nil {
 		return createHwErr
 	}
 
-	prodTemplate, err := tinkerbell.GenerateTemplateForProd(util.K8sNamespace(), deviceInfo)
+	prodTemplate, err := tinkerbell.GenerateTemplateForProd(env.K8sNamespace, deviceInfo)
 	if err != nil {
 		zlog.MiErr(err).Msg("")
 		return inv_errors.Errorf("Failed to generate Tinkerbell prod template for host %s", deviceInfo.GUID)
@@ -214,7 +215,7 @@ func runProdWorkflow(
 
 	prodWorkflow := tinkerbell.NewWorkflow(
 		tinkerbell.GetProdWorkflowName(deviceInfo.GUID),
-		util.K8sNamespace(),
+		env.K8sNamespace,
 		deviceInfo.HwMacID,
 		tinkerbell.GetTinkHardwareName(deviceInfo.GUID),
 		tinkerbell.GetProdTemplateName(deviceInfo.ImgType, deviceInfo.GUID))
@@ -367,7 +368,7 @@ func CheckStatusOrRunRebootWorkflow(
 
 func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName string) (*tink.Workflow, error) {
 	got := &tink.Workflow{}
-	clientErr := k8sCli.Get(ctx, types.NamespacedName{Namespace: util.K8sNamespace(), Name: workflowName}, got)
+	clientErr := k8sCli.Get(ctx, types.NamespacedName{Namespace: env.K8sNamespace, Name: workflowName}, got)
 	if clientErr != nil && errors.IsNotFound(clientErr) {
 		zlog.MiSec().MiErr(clientErr).Msg("")
 		return nil, inv_errors.Errorfc(codes.NotFound, "Workflow %s doesn't exist", workflowName)
@@ -387,11 +388,11 @@ func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName string)
 func runDIWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils.DeviceInfo) error {
 	zlog.Info().Msgf("Creating DI workflow for host %s", deviceInfo.GUID)
 
-	if err := tinkerbell.CreateHardwareIfNotExists(ctx, k8sCli, util.K8sNamespace(), deviceInfo); err != nil {
+	if err := tinkerbell.CreateHardwareIfNotExists(ctx, k8sCli, env.K8sNamespace, deviceInfo); err != nil {
 		return err
 	}
 
-	diTemplate, err := tinkerbell.GenerateTemplateForDI(util.K8sNamespace(), deviceInfo)
+	diTemplate, err := tinkerbell.GenerateTemplateForDI(env.K8sNamespace, deviceInfo)
 	if err != nil {
 		return err
 	}
@@ -402,7 +403,7 @@ func runDIWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils.D
 
 	diWorkflow := tinkerbell.NewWorkflow(
 		tinkerbell.GetDIWorkflowName(deviceInfo.GUID),
-		util.K8sNamespace(), deviceInfo.HwMacID,
+		env.K8sNamespace, deviceInfo.HwMacID,
 		tinkerbell.GetTinkHardwareName(deviceInfo.GUID),
 		tinkerbell.GetDITemplateName(deviceInfo.GUID))
 
@@ -418,7 +419,7 @@ func runDIWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils.D
 func runRebootWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils.DeviceInfo) error {
 	zlog.Info().Msgf("Creating Reboot workflow for host %s", deviceInfo.GUID)
 
-	rebootTemplate, err := tinkerbell.GenerateTemplateForNodeReboot(util.K8sNamespace(), deviceInfo)
+	rebootTemplate, err := tinkerbell.GenerateTemplateForNodeReboot(env.K8sNamespace, deviceInfo)
 	if err != nil {
 		return err
 	}
@@ -429,7 +430,7 @@ func runRebootWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo uti
 
 	rebootWorkflow := tinkerbell.NewWorkflow(
 		tinkerbell.GetRebootWorkflowName(deviceInfo.GUID),
-		util.K8sNamespace(), deviceInfo.HwMacID,
+		env.K8sNamespace, deviceInfo.HwMacID,
 		tinkerbell.GetTinkHardwareName(deviceInfo.GUID),
 		tinkerbell.GetRebootTemplateName(deviceInfo.GUID))
 
@@ -482,19 +483,19 @@ func createENCredentialsIfNotExists(ctx context.Context, deviceInfo utils.Device
 }
 
 func DeleteTinkHardwareForHostIfExist(ctx context.Context, hostUUID string) error {
-	return tinkerbell.DeleteHardwareForHostIfExist(ctx, util.K8sNamespace(), hostUUID)
+	return tinkerbell.DeleteHardwareForHostIfExist(ctx, env.K8sNamespace, hostUUID)
 }
 
 func DeleteDIWorkflowResourcesIfExist(ctx context.Context, hostUUID string) error {
-	return tinkerbell.DeleteDIWorkflowResourcesIfExist(ctx, util.K8sNamespace(), hostUUID)
+	return tinkerbell.DeleteDIWorkflowResourcesIfExist(ctx, env.K8sNamespace, hostUUID)
 }
 
 func DeleteRebootWorkflowResourcesIfExist(ctx context.Context, hostUUID string) error {
-	return tinkerbell.DeleteRebootWorkflowResourcesIfExist(ctx, util.K8sNamespace(), hostUUID)
+	return tinkerbell.DeleteRebootWorkflowResourcesIfExist(ctx, env.K8sNamespace, hostUUID)
 }
 
 func DeleteProdWorkflowResourcesIfExist(ctx context.Context, hostUUID, imgType string) error {
-	return tinkerbell.DeleteProdWorkflowResourcesIfExist(ctx, util.K8sNamespace(), hostUUID, imgType)
+	return tinkerbell.DeleteProdWorkflowResourcesIfExist(ctx, env.K8sNamespace, hostUUID, imgType)
 }
 
 func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.Workflow,

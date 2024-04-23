@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 )
 
 func TestWorkflowActionToStatusDetail(t *testing.T) {
@@ -17,17 +19,13 @@ func TestWorkflowActionToStatusDetail(t *testing.T) {
 		"/dev/sda", "12345678", "")
 	require.NoError(t, err)
 
-	prodBkcWorkflowWithDIData, err := NewTemplateDataProdBKC("test-prod-bkc-di", "", "",
-		"", "", "", "", "",
-		1, "", "", true, "", "")
+	prodBkcWorkflowWithDIData, err := NewTemplateDataProdBKC("test-prod-bkc-di", utils.DeviceInfo{}, true)
 	require.NoError(t, err)
 
-	prodBkcWorkflowWithoutDIData, err := NewTemplateDataProdBKC("test-prod-bkc", "", "",
-		"", "", "", "", "",
-		1, "", "", false, "", "")
+	prodBkcWorkflowWithoutDIData, err := NewTemplateDataProdBKC("test-prod-bkc", utils.DeviceInfo{}, false)
 	require.NoError(t, err)
 
-	prodWorkflowData, err := NewTemplateDataProd("test-prod", "", "", "", "", "")
+	prodWorkflowData, err := NewTemplateDataProd("test-prod", "", "", "", "")
 
 	diWorkflow, err := unmarshalWorkflow(diWorkflowData)
 	require.NoError(t, err)

@@ -3,7 +3,10 @@
 
 package tinkerbell
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 func GetDIWorkflowName(uuid string) string {
 	return fmt.Sprintf("di-workflow-%s", uuid)
@@ -26,7 +29,8 @@ func GetRebootTemplateName(uuid string) string {
 }
 
 func GetProdTemplateName(imageType, uuid string) string {
-	return fmt.Sprintf("%s-%s-prod", imageType, uuid)
+	imgTypeStr := strings.ReplaceAll(imageType, "_", "-")
+	return fmt.Sprintf("%s-%s-prod", imgTypeStr, uuid)
 }
 
 func GetTinkHardwareName(uuid string) string {

@@ -12,8 +12,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/env"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 )
 
@@ -48,29 +48,25 @@ func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (
 	)
 	switch deviceInfo.ImgType {
 	case utils.ImgTypeBkc:
-		tmplData, err = NewTemplateDataProdBKC(tmplName, deviceInfo.Rootfspart, util.OverlayURL,
-			util.ImgURL, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.ClientImgName, util.ProvisionerIP,
-			deviceInfo.SecurityFeature, deviceInfo.ClientID, deviceInfo.ClientSecret, *common.FlagEnableDeviceInitialization,
-			tinkerVersion, deviceInfo.Hostname)
+		tmplData, err = NewTemplateDataProdBKC(tmplName, deviceInfo, *common.FlagEnableDeviceInitialization)
 		if err != nil {
 			return nil, err
 		}
 	case utils.ImgTypeFocal:
 		tmplData, err = NewTemplateDataProd(tmplName, deviceInfo.Rootfspart,
-			util.OverlayURL, util.ImgURL, util.ProvisionerIP, tinkerVersion)
+			deviceInfo.InstallerScriptURL, env.ImgURL, tinkerVersion)
 		if err != nil {
 			return nil, err
 		}
 	case utils.ImgTypeFocalMs:
-		tmplData, err = NewTemplateDataProdMS(tmplName, deviceInfo.Rootfspart, util.OverlayURL,
-			util.ImgURL, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.HwMacID,
-			util.ProvisionerIP, tinkerVersion)
+		tmplData, err = NewTemplateDataProdMS(tmplName, deviceInfo.Rootfspart, deviceInfo.InstallerScriptURL,
+			deviceInfo.OSImageURL, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.HwMacID, tinkerVersion)
 		if err != nil {
 			return nil, err
 		}
 	default:
 		tmplData, err = NewTemplateDataProd(tmplName, deviceInfo.Rootfspart,
-			util.OverlayURL, util.ImgURL, util.ProvisionerIP, tinkerVersion)
+			deviceInfo.InstallerScriptURL, deviceInfo.OSImageURL, tinkerVersion)
 		if err != nil {
 			return nil, err
 		}
@@ -84,7 +80,7 @@ func GenerateTemplateForDI(k8sNamespace string, deviceInfo utils.DeviceInfo) (*t
 	tmplName := GetDITemplateName(deviceInfo.GUID)
 	tinkerVersion := getTinkerImageVersion(deviceInfo.TinkerVersion)
 	tmplData, err := NewDITemplateData(tmplName, deviceInfo.HwIP, "CLIENT-SDK-TPM",
-		util.DiskType, deviceInfo.HwSerialID, tinkerVersion)
+		env.DiskType, deviceInfo.HwSerialID, tinkerVersion)
 	if err != nil {
 		// failed to marshal template data
 		zlog.MiSec().MiErr(err).Msg("")

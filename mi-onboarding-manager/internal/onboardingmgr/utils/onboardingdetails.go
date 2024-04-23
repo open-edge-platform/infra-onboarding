@@ -5,55 +5,49 @@
 
 package utils
 
-type (
-	DeviceInfo struct {
-		HwSerialID        string
-		HwMacID           string
-		HwIP              string
-		DiskType          string
-		ImgURL            string
-		Gateway           string
-		OverlayURL        string
-		Rootfspart        string
-		ClientImgName     string
-		ProvisionerIP     string
-		ImgType           string
-		DpsScopeID        string
-		DpsRegistrationID string
-		DpsSymmKey        string
-		GUID              string
-		SecurityFeature   uint32
-		FdoGUID           string
-		ClientID          string
-		ClientSecret      string
-		TinkerVersion     string
-		Hostname          string
-	}
-
-	ArtifactData struct {
-		BkcURL        string
-		BkcBasePkgURL string
-		TinkerVersion string
-	}
-	Groupinfo struct {
-		Group   string
-		Version string
-	}
-	CustomerInfo struct {
-		DpsScopeID        string
-		DpsRegistrationID string
-		DpsSymmKey        string
-	}
+const (
+	ImgTypeBkc     = "prod_bkc"
+	ImgTypeJammy   = "prod_jammy"
+	ImgTypeFocal   = "prod_focal"
+	ImgTypeFocalMs = "prod_focal-ms"
 )
 
-const (
-	ProdBkc     = "prod_bkc"
-	ProdJammy   = "prod_jammy"
-	ProdFocal   = "prod_focal"
-	ProdFocalMs = "prod_focal-ms"
-
-	ImgTypeBkc     = "bkc"
-	ImgTypeJammy   = "jammy"
-	ImgTypeFocal   = "focal"
-	ImgTypeFocalMs = "focal-ms"
+type (
+	// DeviceInfo is an internal representation of host info and its metadata that is used during the onboarding process.
+	DeviceInfo struct {
+		// HwSerialID serial number of a host.
+		HwSerialID string
+		// HwMacID MAC address of the management NIC of a host.
+		HwMacID string
+		// HwIP IP address of the management NIC of a host.
+		HwIP string
+		// DiskType disk type of a host.
+		DiskType string
+		// OSImageURL a URL pointing to the OS location on the EN's reverse proxy.
+		OSImageURL string
+		// Gateway IP gateway of a local subnet where a host is located.
+		Gateway string
+		// InstallerScriptURL a URL pointing to the location of OS Installer script on the EN's reverse proxy.
+		InstallerScriptURL string
+		// Rootfspart a number of rootfs partition
+		Rootfspart string
+		// ClientImgName a name of the OS image used for a host
+		ClientImgName string
+		// ImgType an OS image type used for a host
+		ImgType string
+		// GUID UUID identifier of a host
+		GUID string
+		// SecurityFeature security flags for a host
+		SecurityFeature uint32
+		// FdoGUID UUID identifier of a host used by FDO (different from GUID)
+		FdoGUID string
+		// AuthClientID a client ID of a host used by authorization service (e.g., Keycloak)
+		AuthClientID string
+		// AuthClientSecret a client secret of a host used to by authorization service (e.g., Keycloak)
+		AuthClientSecret string
+		// TinkerVersion a version of tink-worker image to used by EN for uOS onboarding
+		TinkerVersion string
+		// Hostname a host name set in the OS
+		Hostname string
+	}
 )

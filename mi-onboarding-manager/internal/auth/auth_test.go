@@ -49,4 +49,3 @@ func Test_auth_init(t *testing.T) {
 	// ensure the default value for the other tests
 	common.FlagDisableCredentialsManagement = flag.Bool("", false, "")
 }
-
