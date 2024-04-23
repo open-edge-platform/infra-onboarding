@@ -658,14 +658,14 @@ netplan apply`, clientIP, strings.ReplaceAll(proxySetting.dns, " ", ", ")),
 				},
 
 				{
-					Name:    ActionEfibootset,
-					Image:   tinkActionEfibootImage(tinkerVersion),
+					Name:    ActionFdeEncryption,
+					Image:   tinkActionFdeImage(tinkerVersion),
 					Timeout: timeOutAvg560,
 				},
 
 				{
-					Name:    ActionFdeEncryption,
-					Image:   tinkActionFdeImage(tinkerVersion),
+					Name:    ActionEfibootset,
+					Image:   tinkActionEfibootImage(tinkerVersion),
 					Timeout: timeOutAvg560,
 				},
 
