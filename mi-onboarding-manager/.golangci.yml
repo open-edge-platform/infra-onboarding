@@ -100,7 +100,7 @@ linters-settings:
       # Default section: contains all imports that could not be matched to another section type.
       - default
       # Custom section: groups all imports with the specified Prefix.
-      - prefix(github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra)
+      - prefix(github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra,github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app)
   gocritic:
     enabled-tags:
       - diagnostic
