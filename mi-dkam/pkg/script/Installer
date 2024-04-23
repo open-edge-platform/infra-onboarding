@@ -646,6 +646,17 @@ apt-get install -y -o Dpkg::Options::="--force-confnew" license-agent="$VERSION"
 systemctl status -l --no-pager license-agent
 }
 
+enable_inactive_boot_numbers(){
+echo "Activating inactive boot numbers..."
+while IFS= read -r boot_part_number; do
+    last_char="${boot_part_number: -1}"
+    # Check if the last character is not an asterisk ,make it activate
+    if [ "$last_char" != "*" ]; then
+        efibootmgr -b "$boot_part_number" -a
+    fi
+done < <(efibootmgr | awk '{print $1}' | cut -c 5-9)
+}
+
 #LVM partition 
 create_lvm_partition(){
 disk=$1
@@ -764,6 +775,7 @@ ufw reload
 
 #create the lvm for the seconary disk
 lvm_part_setup_for_secondary_disk 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+enable_inactive_boot_numbers  2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 enable_netipplan 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_dependencies 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_fws 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
