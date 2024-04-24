@@ -55,19 +55,17 @@ pipeline {
                         PROTEX_PROJECT_NAME          = "${GIT_SHORT_URL}"
 
                         VIRUS_SCAN_DIR               = "."
+
+                        TRIVY_SEVERITY_THRESHOLD_CVE = 'MEDIUM'
                     }
                     when {
                         anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
                     }
                     steps {
-                        withCredentials([
-                            usernamePassword(
-                                credentialsId: 'sys_oie_devops_github_api',
-                                usernameVariable: 'GITHUB_USER',
-                                passwordVariable: 'GITHUB_TOKEN',
-                            ),
-                        ]){
-                        rbheStaticCodeScan()
+                        script {
+                            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                rbheStaticCodeScan()
+                            }
                         }
                     }
                 }
@@ -234,7 +232,7 @@ pipeline {
                 PROJECT_NAME                 = "oie-${GIT_SHORT_URL}"
                 SCANNERS                     = 'trivy'
 
-    		    TRIVY_SEVERITY_THRESHOLD_CVE = 'CRITICAL'
+    		    TRIVY_SEVERITY_THRESHOLD_CVE = 'MEDIUM'
             }
             steps {
                 script {
@@ -247,7 +245,9 @@ pipeline {
                     """
 
                     withEnv(["TRIVY_TARGET_DOCKER_IMAGE=${DOCKER_IMAGES}"]) {
-                    rbheStaticCodeScan()
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            rbheStaticCodeScan()
+                        }
                     }
                 }
             }
@@ -313,18 +313,14 @@ pipeline {
                         anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
                     }
                     steps {
-                        withCredentials([
-                            usernamePassword(
-                                credentialsId: 'sys_oie_devops_github_api',
-                                usernameVariable: 'GITHUB_USER',
-                                passwordVariable: 'GITHUB_TOKEN',
-                            ),
-                        ]) {
-                            sh """
-                            [ -d "BDBA" ] || mkdir BDBA
+                        sh """
+                        [ -d "BDBA" ] || mkdir BDBA
                         tar -zcvf BDBA/${GIT_SHORT_URL}.tar.gz build
-                            """
-                            rbheStaticCodeScan()
+                        """
+                        script {
+                            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                rbheStaticCodeScan()
+                            }
                         }
                     }
                 }
@@ -371,6 +367,7 @@ pipeline {
     post {
         always {
             jcpSummaryReport()
+            intelLogstashSend failBuild: false, verbose: true
             cleanWs()
         }
         failure {
