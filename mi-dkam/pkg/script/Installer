@@ -654,7 +654,7 @@ while IFS= read -r boot_part_number; do
     if [ "$last_char" != "*" ]; then
         efibootmgr -b "$boot_part_number" -a
     fi
-done < <(efibootmgr | awk '{print $1}' | cut -c 5-9)
+done < <(efibootmgr | grep "Boot" | grep -i -v -E "BootCurrent|BootOrder" | awk '{print $1}' | cut -c 5-9)
 }
 
 #LVM partition 
@@ -675,6 +675,9 @@ if [[ "$disk" == *"nvme"* ]]; then
 else
     part_number=""
 fi
+#wipse the crypt luck offset if its created during FDE enabled case
+wipefs -o 0 "/dev/${disk}${part_number}1"
+
 #remove previously created lvm if exist
 vgs=$(vgs --noheadings -o vg_name)
 #remove trailing and leading spaces
@@ -692,13 +695,13 @@ if [ -n "$pvs" ]; then
 fi
 
 #pv create
-if pvcreate "/dev/${disk}${part_number}1"; then
+if echo "y" | pvcreate "/dev/${disk}${part_number}1"; then
     echo "Successfuly done pvcreate" 
 else
     echo "Failure in pvcreate"  
 fi
 #vgcreate
-if vgcreate lvmvg /dev/"${disk}""${part_number}"1; then
+if echo "y" | vgcreate lvmvg /dev/"${disk}""${part_number}"1; then
     echo "Successfuly done vgcreate" 
 else
     echo "Failure in vgcreate" 
