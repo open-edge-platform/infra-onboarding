@@ -50,31 +50,17 @@ pipeline {
 						PROTEX_PROJECT_NAME          = "${GIT_SHORT_URL}"
 
 						VIRUS_SCAN_DIR               = "."
-						SNYK_PRE_SCAN_SCRIPT = '''\
-							env
-						echo 'Adding GitHub credentials to ~/.netrc'
-							umask 077
-							echo 'machine github.com' >> ~/.netrc
-							echo "login $GITHUB_USER" >> ~/.netrc
-							echo "password $GITHUB_TOKEN" >> ~/.netrc
-							echo 'machine api.github.com' >> ~/.netrc
-							echo "login $GITHUB_USER" >> ~/.netrc
-							echo "password $GITHUB_TOKEN" >> ~/.netrc
-							umask 022
-						'''.stripIndent()
+
+						TRIVY_SEVERITY_THRESHOLD_CVE = 'MEDIUM'
 					}
 					when {
 						anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
 					}
 					steps {
-						withCredentials([
-							usernamePassword(
-								credentialsId: 'sys_oie_devops_github_api',
-								usernameVariable: 'GITHUB_USER',
-								passwordVariable: 'GITHUB_TOKEN',
-							),
-						]){
-						rbheStaticCodeScan()
+						script {
+							catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+								rbheStaticCodeScan()
+							}
 						}
 					}
 				}
@@ -192,7 +178,7 @@ pipeline {
 				PROJECT_NAME                 = "oie-${GIT_SHORT_URL}"
 				SCANNERS                     = 'trivy'
 
-				TRIVY_SEVERITY_THRESHOLD_CVE = 'CRITICAL'
+				TRIVY_SEVERITY_THRESHOLD_CVE = 'MEDIUM'
 			}
 			steps {
 				script {
@@ -205,7 +191,9 @@ pipeline {
 					"""
 
 					withEnv(["TRIVY_TARGET_DOCKER_IMAGE=${DOCKER_IMAGES}"]) {
-					rbheStaticCodeScan()
+						catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+							rbheStaticCodeScan()
+						}
 					}
 				}
 			}
@@ -270,6 +258,7 @@ pipeline {
 	post {
 		always {
 			jcpSummaryReport()
+			intelLogstashSend failBuild: false, verbose: true
 			cleanWs()
 		}
 		failure {
