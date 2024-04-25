@@ -12,7 +12,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"google.golang.org/grpc"
 
-	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/api/grpc/dkammgr"
+	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/api/dkammgr/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/internal/dkammgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
@@ -26,12 +26,12 @@ var (
 func main() {
 
 	// Create a certificate watcher
-	watcher, watcherErr := SetWatcher()
-	if watcherErr != nil {
-		zlog.MiSec().Fatal().Err(watcherErr).Msgf("Failed to set watcher.")
-		return
-	}
-	defer watcher.Close()
+	// watcher, watcherErr := SetWatcher()
+	// if watcherErr != nil {
+	// 	zlog.MiSec().Fatal().Err(watcherErr).Msgf("Failed to set watcher.")
+	// 	return
+	// }
+	// defer watcher.Close()
 
 	//Download OS image
 	downloadErr := dkammgr.DownloadOS()

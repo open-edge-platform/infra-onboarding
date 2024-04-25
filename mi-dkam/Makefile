@@ -44,8 +44,13 @@ export PGSSLMODE=disable
 # Tools versions
 GOLINTVERSION_HAVE        := $(shell golangci-lint version | sed 's/.*version //' | sed 's/ .*//')
 POSTGRES_VERSION          := 14.9
+BUFVERSION_HAVE           := $(shell buf --version)
+BUFVERSION_REQ            := 1.27.1
 # Create the virtualenv with python tools installed
 VENV_NAME = venv_midkammgr
+
+BASE_BRANCH ?= buf_update
+APIPKG_DIR := pkg/api
 
 $(VENV_NAME): requirements.txt
 	echo "Creating virtualenv $@"
@@ -58,7 +63,7 @@ $(VENV_NAME): requirements.txt
 
 all:
 	@# Help: Runs build, lint, test stage
-	build lint test
+	build lint test generate-ci
 
 docker-build: go-vendor
 	@export DOCKER_REGISTRY=${DOCKER_REGISTRY} DOCKER_REPOSITORY=${DOCKER_REPOSITORY} IMG_NAME=${IMG_NAME} VERSION=${IMG_VERSION} &&  earthly -V +all
@@ -66,9 +71,11 @@ docker-build: go-vendor
 docker-push:
 	docker push ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}:${IMG_VERSION}
 
+generate-ci: buf-gen
+
 #lint-ci: license go-lint
 
-lint-ci: go-lint license shellcheck
+lint-ci: go-lint license shellcheck buf-lint
 
 # Maintenance and lint targets
 license: $(VENV_NAME) ## Check licensing with the reuse tool.
@@ -82,6 +89,21 @@ go-lint: ## run go lint
 shellcheck: ## Check all shell scripts
 	shellcheck --version
 	shellcheck $(SCRIPTS_DIR)
+
+buf-update: ## update buf modules
+	buf --version ;\
+	pushd ${APIPKG_DIR}; buf mod update; popd ;\
+	buf build
+
+buf-gen: ## compile protoc files into code
+	buf --version ;\
+	buf generate
+
+buf-lint: ## Lint and format protobuf files
+	buf --version
+	buf format -d --exit-code
+	buf lint
+	buf breaking --against 'https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service.git#branch=${BASE_BRANCH}'
 
 go-vendor:
 	go mod vendor

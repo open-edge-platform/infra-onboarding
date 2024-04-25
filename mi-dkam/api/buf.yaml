@@ -1,0 +1,16 @@
+---
+# SPDX-FileCopyrightText: (C) 2022 Intel Corporation
+# SPDX-License-Identifier: LicenseRef-Intel
+
+version: v1
+deps:
+  - buf.build/envoyproxy/protoc-gen-validate
+  - buf.build/googleapis/googleapis
+breaking:
+  use:
+    - FILE
+lint:
+  use:
+    - DEFAULT
+    - ENUM_FIRST_VALUE_ZERO
+  allow_comment_ignores: true

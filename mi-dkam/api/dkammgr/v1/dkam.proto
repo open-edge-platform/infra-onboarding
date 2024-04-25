@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package dkammgr.v1;
+
+option go_package = "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/api/dkammgr/v1";
+
+service DkamService {
+  rpc GetArtifacts(GetArtifactsRequest) returns (GetArtifactsResponse) {}
+}
+
+message GetArtifactsRequest {
+  string profile_name = 1;
+  string platform = 2;
+}
+
+message GetArtifactsResponse {
+  string os_url = 1;
+  string overlayscript_url = 2;
+  string tink_action_version = 3;
+  bool status_code = 4;
+}
