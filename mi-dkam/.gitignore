@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: LicenseRef-Intel
 
-venv_midkammgr
+venv*
 vendor
 build/*
 .idea

@@ -15,9 +15,12 @@ CURRENT_GID := $(shell id -g)
 
 # Project variables
 PROJECT_NAME := dkammgr
-BINARY_NAME  := midkammgr
+BINARY_NAME  := dkammgr
 
-BUILD_DIR  := build
+OUT_DIR  := $(PWD)/build
+
+# Include shared makefile
+include common.mk
 
 # Code versions, tags, and so on
 VERSION       := $(shell cat VERSION)
@@ -25,31 +28,13 @@ VERSION_MAJOR := $(shell cut -c 1 VERSION)
 IMG_NAME      := ${PROJECT_NAME}
 IMG_VERSION   ?= main
 GIT_COMMIT    ?= $(shell git rev-parse HEAD)
-DOCKER_ENV              := DOCKER_BUILDKIT=1
-DOCKER_REGISTRY         ?= amr-registry.caas.intel.com
-DOCKER_REPOSITORY       ?= one-intel-edge/maestro-i
-DOCKER_TAG              := ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}
 
 SCRIPTS_DIR     := ./pkg/script/Installer
-# Postgres DB configuration and credentials for testing. This mimics the Aurora
-# production environment.
-export PGUSER=admin
-export PGHOST=localhost
-export PGDATABASE=postgres
-export PGPORT=5432
-export PGPASSWORD=pass
-export PGSSLMODE=disable
 
-
-# Tools versions
-GOLINTVERSION_HAVE        := $(shell golangci-lint version | sed 's/.*version //' | sed 's/ .*//')
-POSTGRES_VERSION          := 14.9
-BUFVERSION_HAVE           := $(shell buf --version)
-BUFVERSION_REQ            := 1.27.1
 # Create the virtualenv with python tools installed
 VENV_NAME = venv_midkammgr
 
-BASE_BRANCH ?= buf_update
+BASE_BRANCH ?= main
 APIPKG_DIR := pkg/api
 
 $(VENV_NAME): requirements.txt
@@ -59,85 +44,31 @@ $(VENV_NAME): requirements.txt
 	python3 -m pip install --upgrade pip;\
 	python3 -m pip install -r requirements.txt
 
-##### CI Targets #####
+#### Development Targets ####
+generate: buf-generate ## generate all files
 
-all:
-	@# Help: Runs build, lint, test stage
-	build lint test generate-ci
+build: go-build ## Build local binaries
 
-docker-build: go-vendor
-	@export DOCKER_REGISTRY=${DOCKER_REGISTRY} DOCKER_REPOSITORY=${DOCKER_REPOSITORY} IMG_NAME=${IMG_NAME} VERSION=${IMG_VERSION} &&  earthly -V +all
+lint: go-lint license shellcheck buf-lint
 
-docker-push:
-	docker push ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}:${IMG_VERSION}
+test: go-test
 
-generate-ci: buf-gen
+#### Sub-targets ####
 
-#lint-ci: license go-lint
+$(OUT_DIR):
+	mkdir -p $(OUT_DIR)
 
-lint-ci: go-lint license shellcheck buf-lint
+go-build: $(OUT_DIR) ## build resource manager binary
+	$(GOCMD) build $(GOEXTRAFLAGS) -o $(OUT_DIR)/$(BINARY_NAME) cmd/$(BINARY_NAME)/main.go
 
-# Maintenance and lint targets
-license: $(VENV_NAME) ## Check licensing with the reuse tool.
-	. ./$</bin/activate; set -u;\
-	reuse --version;\
-	reuse --root . lint
+go-test: ${OUT_DIR}
+	go test --race -coverprofile ${OUT_DIR}/cover.out -coverpkg=$$(go list ./... | grep -v "api/grpc" | tr '\n' ,)  -covermode atomic ./...
+	gocover-cobertura < ${OUT_DIR}/cover.out > ${OUT_DIR}/coverage.xml
+	go tool cover -html=${OUT_DIR}/cover.out -o ${OUT_DIR}/coverage.html
+	go tool cover -func ${OUT_DIR}/cover.out -o ${OUT_DIR}/function_coverage.log
 
-go-lint: ## run go lint
-	golangci-lint linters
+clean: ## delete all build artifacts
+	rm -rf $(OUT_DIR) pkg/api/* || true
 
-shellcheck: ## Check all shell scripts
-	shellcheck --version
-	shellcheck $(SCRIPTS_DIR)
-
-buf-update: ## update buf modules
-	buf --version ;\
-	pushd ${APIPKG_DIR}; buf mod update; popd ;\
-	buf build
-
-buf-gen: ## compile protoc files into code
-	buf --version ;\
-	buf generate
-
-buf-lint: ## Lint and format protobuf files
-	buf --version
-	buf format -d --exit-code
-	buf lint
-	buf breaking --against 'https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service.git#branch=${BASE_BRANCH}'
-
-go-vendor:
-	go mod vendor
-
-lint:
-	@# Help: Runs lint stage
-	@echo "---MAKEFILE LINT---"
-	echo $@
-	@echo "---END MAKEFILE LINT---"
-
-test: ${BUILD_DIR}
-	go test --race -coverprofile ${BUILD_DIR}/cover.out -coverpkg=$$(go list ./... | grep -v "api/grpc" | tr '\n' ,)  -covermode atomic ./...
-	gocover-cobertura < ${BUILD_DIR}/cover.out > ${BUILD_DIR}/coverage.xml
-	go tool cover -html=${BUILD_DIR}/cover.out -o ${BUILD_DIR}/coverage.html
-	go tool cover -func ${BUILD_DIR}/cover.out -o ${BUILD_DIR}/function_coverage.log
-
-coverage:
-	@# Help: Runs coverage stage
-	@echo "---MAKEFILE COVERAGE---"
-	echo $@
-	@echo "---END MAKEFILE COVERAGE---"
-
-list: 
-	@# Help: displays make targets
-	help
-
-help:	
-	@printf "%-20s %s\n" "Target" "Description"
-	@printf "%-20s %s\n" "------" "-----------"
-	@make -pqR : 2>/dev/null \
-        | awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' \
-        | sort \
-        | egrep -v -e '^[^[:alnum:]]' -e '^$@$$' \
-        | xargs -I _ sh -c 'printf "%-20s " _; make _ -nB | (grep -i "^# Help:" || echo "") | tail -1 | sed "s/^# Help: //g"'
-	
-${BUILD_DIR}:
-	mkdir -p ${BUILD_DIR}
+clean-all: clean ## delete all built artifacts and downloaded tools
+	rm -rf $(VENV_NAME) vendor || true

@@ -128,16 +128,25 @@ pipeline {
             steps {
                 sh '''
                 echo "Generating the code"
-                make generate-ci
+                make clean
+                make generate
+                bash -c "diff -u <(echo -n) <(git diff)"
                 '''
             }
+        }
+
+        stage('Build') {
+          steps {
+            sh '''
+              make build
+            '''
+          }
         }
 
 		stage('Lint Code') {
             steps {
                 sh '''
-                echo "Linting the code"
-                make lint-ci
+                make lint
                 '''
             }
         }
@@ -207,9 +216,6 @@ pipeline {
             }
             steps {
                 script {
-                    scmCheckout {
-					    clean = true
-				    }
                     miDocker.build()
                 }
             }
@@ -230,7 +236,7 @@ pipeline {
             steps {
                 script {
                     DOCKER_IMAGES=sh(script: '''
-                    docker images --format '{{.Repository}}:{{.Tag}}' | grep -v -e "rrp-devops" -e "rbhe-public" -e "earthly/buildkitd" | awk 'BEGIN {ORS=","} {print $0} END {if (NR) print "\\n"}' | sed 's/,$//'
+                    docker images --format '{{.Repository}}:{{.Tag}}' | grep -v -e "rrp-devops" -e "rbhe-public" | awk 'BEGIN {ORS=","} {print $0} END {if (NR) print "\\n"}' | sed 's/,$//'
                     ''', returnStdout: true).trim()
 
                     sh """

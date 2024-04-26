@@ -3,11 +3,11 @@
 // SPDX-License-Identifier: LicenseRef-Intel
 module github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service
 
-go 1.21
+go 1.21.9
 
 require (
 	github.com/fsnotify/fsnotify v1.7.0
-	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory v1.0.0
+	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory v1.1.1-0.20240426125741-48af78840d16
 	github.com/magefile/mage v1.15.0
 	github.com/stretchr/testify v1.9.0
 	google.golang.org/grpc v1.59.0
@@ -31,10 +31,10 @@ require (
 	github.com/rs/zerolog v1.31.0 // indirect
 	go.opentelemetry.io/otel v1.22.0 // indirect
 	go.opentelemetry.io/otel/trace v1.22.0 // indirect
-	golang.org/x/net v0.19.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/oauth2 v0.11.0 // indirect
-	golang.org/x/sys v0.17.0 // indirect
-	golang.org/x/term v0.17.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/term v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
