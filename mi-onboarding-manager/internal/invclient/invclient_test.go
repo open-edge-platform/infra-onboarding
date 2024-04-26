@@ -808,7 +808,7 @@ func TestOnboardingInventoryClient_SetHostStatus(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			timeBeforeUpdate := time.Now().UTC()
+			timeBeforeUpdate := time.Now().Unix()
 			err := invClient.SetHostStatus(ctx, tt.args.hostID, tt.args.hostStatus, tt.args.details, tt.args.onboardingStatus)
 			if err != nil {
 				if tt.valid {
@@ -831,10 +831,7 @@ func TestOnboardingInventoryClient_SetHostStatus(t *testing.T) {
 				assert.Equal(t, tt.args.hostStatus, hostInv.GetLegacyHostStatus())
 				assert.Equal(t, tt.args.onboardingStatus.Status, hostInv.GetOnboardingStatus())
 				assert.Equal(t, tt.args.onboardingStatus.StatusIndicator, hostInv.GetOnboardingStatusIndicator())
-				timeNow, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST",
-					hostInv.GetOnboardingStatusTimestamp())
-				require.NoError(t, err)
-				assert.False(t, timeNow.UTC().Before(timeBeforeUpdate))
+				assert.LessOrEqual(t, uint64(timeBeforeUpdate), hostInv.GetOnboardingStatusTimestamp())
 			}
 		})
 	}
@@ -1494,7 +1491,7 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 		hostID               string
 		hostCurrentState     computev1.HostState
 		runtimeHostStatus    inv_status.ResourceStatus
-		updateTimestamp      time.Time
+		updateTimestamp      int64
 		legacyHostStatus     computev1.HostStatus
 		providerStatus       string
 		providerStatusDetail string
@@ -1514,7 +1511,7 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 				legacyHostStatus:     computev1.HostStatus_HOST_STATUS_INVALIDATED,
 				providerStatus:       "some status",
 				providerStatusDetail: "some detail",
-				updateTimestamp:      time.Now().UTC(),
+				updateTimestamp:      time.Now().Unix(),
 			},
 			valid: true,
 		},
@@ -1527,7 +1524,7 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 				legacyHostStatus:     computev1.HostStatus_HOST_STATUS_INVALIDATED,
 				providerStatus:       "some status",
 				providerStatusDetail: "some detail",
-				updateTimestamp:      time.Now().UTC(),
+				updateTimestamp:      time.Now().Unix(),
 			},
 			valid:      false,
 			statusCode: codes.NotFound,
@@ -1554,7 +1551,7 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 				ProviderStatusDetail: tt.args.providerStatusDetail,
 				HostStatus:           tt.args.runtimeHostStatus.Status,
 				HostStatusIndicator:  tt.args.runtimeHostStatus.StatusIndicator,
-				HostStatusTimestamp:  tt.args.updateTimestamp.String(),
+				HostStatusTimestamp:  uint64(tt.args.updateTimestamp),
 			}
 
 			err := OnboardingTestClient.UpdateHostStateAndRuntimeStatus(ctx, hostUp)
@@ -1582,10 +1579,7 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 				assert.Equal(t, tt.args.providerStatusDetail, hostInv.GetProviderStatusDetail())
 				assert.Equal(t, tt.args.runtimeHostStatus.Status, hostInv.GetHostStatus())
 				assert.Equal(t, tt.args.runtimeHostStatus.StatusIndicator, hostInv.GetHostStatusIndicator())
-				timeNow, err2 := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST",
-					hostInv.GetHostStatusTimestamp())
-				require.NoError(t, err2)
-				assert.False(t, timeNow.UTC().Before(tt.args.updateTimestamp))
+				assert.LessOrEqual(t, uint64(tt.args.updateTimestamp), hostInv.GetHostStatusTimestamp())
 			}
 
 			if !tt.valid {
@@ -1638,7 +1632,7 @@ func TestOnboardingInventoryClient_SetInstanceStatus(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			timeBeforeUpdate := time.Now().UTC()
+			timeBeforeUpdate := time.Now().Unix()
 			err := invClient.SetInstanceStatus(ctx, tt.args.instanceID, tt.args.instanceStatus, tt.args.provisioningStatus)
 			if err != nil {
 				if tt.valid {
@@ -1662,10 +1656,7 @@ func TestOnboardingInventoryClient_SetInstanceStatus(t *testing.T) {
 				assert.Equal(t, tt.args.instanceStatus, instInv.GetStatus())
 				assert.Equal(t, tt.args.provisioningStatus.Status, instInv.GetProvisioningStatus())
 				assert.Equal(t, tt.args.provisioningStatus.StatusIndicator, instInv.GetProvisioningStatusIndicator())
-				timeNow, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST",
-					instInv.GetProvisioningStatusTimestamp())
-				require.NoError(t, err)
-				assert.False(t, timeNow.UTC().Before(timeBeforeUpdate))
+				assert.LessOrEqual(t, uint64(timeBeforeUpdate), instInv.GetProvisioningStatusTimestamp())
 			}
 		})
 	}

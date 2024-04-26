@@ -351,7 +351,7 @@ func (c *OnboardingInventoryClient) UpdateHostResource(ctx context.Context, host
 }
 
 func (c *OnboardingInventoryClient) UpdateHostStateAndRuntimeStatus(ctx context.Context, host *computev1.HostResource) error {
-	if host.HostStatus == "" || host.HostStatusTimestamp == "" ||
+	if host.HostStatus == "" || host.HostStatusTimestamp == 0 ||
 		host.HostStatusIndicator == statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED {
 		errMsg := "Missing mandatory host status fields during host status update"
 		err := inv_errors.Errorfc(codes.InvalidArgument, errMsg)
@@ -385,7 +385,7 @@ func (c *OnboardingInventoryClient) SetHostStatus(ctx context.Context, hostID st
 		ProviderStatusDetail:      statusDetails, // report legacy status details as provider status
 		OnboardingStatus:          onboardingStatus.Status,
 		OnboardingStatusIndicator: onboardingStatus.StatusIndicator,
-		OnboardingStatusTimestamp: time.Now().UTC().String(),
+		OnboardingStatusTimestamp: uint64(time.Now().Unix()),
 	}
 
 	return c.UpdateInvResourceFields(ctx, updateHost, []string{
@@ -484,7 +484,7 @@ func (c *OnboardingInventoryClient) SetInstanceStatus(ctx context.Context, insta
 		Status:                      instanceStatus,
 		ProvisioningStatus:          provisioningStatus.Status,
 		ProvisioningStatusIndicator: provisioningStatus.StatusIndicator,
-		ProvisioningStatusTimestamp: time.Now().UTC().String(),
+		ProvisioningStatusTimestamp: uint64(time.Now().Unix()),
 	}
 
 	return c.UpdateInvResourceFields(ctx, updateInstance, []string{
@@ -506,7 +506,7 @@ func (c *OnboardingInventoryClient) SetInstanceStatusAndCurrentState(ctx context
 		Status:                      instanceStatus,
 		ProvisioningStatus:          provisioningStatus.Status,
 		ProvisioningStatusIndicator: provisioningStatus.StatusIndicator,
-		ProvisioningStatusTimestamp: time.Now().UTC().String(),
+		ProvisioningStatusTimestamp: uint64(time.Now().Unix()),
 	}
 
 	return c.UpdateInvResourceFields(ctx, updateInstance, []string{

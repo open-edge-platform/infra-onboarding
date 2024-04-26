@@ -249,7 +249,7 @@ func (hr *HostReconciler) invalidateHost(ctx context.Context, host *computev1.Ho
 		ProviderStatus:      computev1.HostStatus_name[int32(computev1.HostStatus_HOST_STATUS_INVALIDATED)],
 		HostStatus:          om_status.AuthorizationStatusInvalidated.Status,
 		HostStatusIndicator: om_status.AuthorizationStatusInvalidated.StatusIndicator,
-		HostStatusTimestamp: time.Now().UTC().String(),
+		HostStatusTimestamp: uint64(time.Now().Unix()),
 	}
 
 	// Although Onboarding Manager should not update host_status that is updated by HRM,
