@@ -5,3 +5,10 @@
 CVE-2023-6879 
 CVE-2022-36648
 CVE-2023-45853 
+
+# CVE-2020-8559 has been fixed on the kube-api side: https://github.com/kubernetes/kubernetes/issues/92914.
+# k8s.io/apimachinery still follows redirects, hence the CVE is not yet fixed there, see:
+# - https://github.com/kubernetes/kubernetes/issues/93129
+# - https://github.com/kubernetes/enhancements/issues/1906
+# We should be safe to ignore CVE-2020-8559 as long as we use kube-api server that doesn't respond with redirects.
+CVE-2020-8559
