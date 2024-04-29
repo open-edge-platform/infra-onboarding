@@ -808,7 +808,7 @@ install_tpm_provision 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_inbc_program 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_platform_update_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_platform_telemetry_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-#install_license_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_license_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_sriov 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_HWE_kernel 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_syslogrotate_ufw 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
