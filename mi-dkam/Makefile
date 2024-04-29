@@ -19,9 +19,6 @@ BINARY_NAME  := dkammgr
 
 OUT_DIR  := $(PWD)/build
 
-# Include shared makefile
-include common.mk
-
 # Code versions, tags, and so on
 VERSION       := $(shell cat VERSION)
 VERSION_MAJOR := $(shell cut -c 1 VERSION)
@@ -36,6 +33,9 @@ VENV_NAME = venv_midkammgr
 
 BASE_BRANCH ?= main
 APIPKG_DIR := pkg/api
+
+# Include shared makefile
+include common.mk
 
 $(VENV_NAME): requirements.txt
 	echo "Creating virtualenv $@"
