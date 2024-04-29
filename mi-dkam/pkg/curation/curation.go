@@ -233,7 +233,8 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	orchRelease := os.Getenv("ORCH_RELEASE")
 	orchAptSrcPort := os.Getenv("ORCH_APT_PORT")
 	orchImgRegProxyPort := os.Getenv("ORCH_IMG_PORT")
-
+	orchLicenseHost := os.Getenv("ORCH_LICENSE_HOST")
+	orchLicensePort := os.Getenv("ORCH_LICENSE_PORT")
 	//Proxies
 	httpProxy := os.Getenv("HTTP_PROXY")
 	httpsProxy := os.Getenv("HTTPS_PROXY")
@@ -318,6 +319,8 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PLATFORM_OBS_METRICS_PORT__", orchPlatformObsMetricsPort)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_TELEMETRY_HOST__", orchTelemetryHost)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_TELEMETRY_PORT__", orchTelemetryPort)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_LICENSE_HOST__", orchLicenseHost)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_LICENSE_PORT__", orchLicensePort)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__KEYCLOAK__", strings.Split(orchKeycloak, ":")[0])
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__RELEASE_FQDN__", strings.Split(orchRelease, ":")[0])
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__KEYCLOAK_URL__", orchKeycloak)

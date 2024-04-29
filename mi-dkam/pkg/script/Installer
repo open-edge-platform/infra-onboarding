@@ -41,7 +41,7 @@ OBSERVABILITY_METRICS_PORT=__ORCH_PLATFORM_OBS_METRICS_PORT__
 MAINTENANCE_MANAGER_URL=__ORCH_UPDATE__
 TELEMETRY_MANAGER_URL=__ORCH_TELEMETRY_HOST__:__ORCH_TELEMETRY_PORT__
 RELEASE_SERVER=__FILE_SERVER__
-
+LICENSE_MANAGER_URL=__ORCH_LICENSE_HOST__:__ORCH_LICENSE_PORT__
 CA_CERT="__CA_CERT__"
 
 # 1. Install dependencies
@@ -642,6 +642,7 @@ VERSION="license-agent-VERSION"
 echo $VERSION
 apt-get update
 echo " license-agent license-agent/customer.id string 12139414" | debconf-set-selections
+echo "license-agent license-agent/serviceURL string ${LICENSE_MANAGER_URL}" | debconf-set-selections
 apt-get install -y -o Dpkg::Options::="--force-confnew" license-agent="$VERSION"
 systemctl status -l --no-pager license-agent
 }
