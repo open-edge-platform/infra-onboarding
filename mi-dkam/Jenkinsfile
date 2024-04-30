@@ -166,9 +166,11 @@ pipeline {
                         failNoReports: true,
                         failUnhealthy: true,
                         failUnstable: true,
-                        lineCoverageTargets: "10, 10, 10", // temporary change
+                        lineCoverageTargets: "42, 40, 41",
+                        //lineCoverageTargets: "${env.cobertura_healthy}, ${env.cobertura_unhealthy}, ${env.cobertura_unstable}",
                         maxNumberOfBuilds: 0,
-                        methodCoverageTargets: "10, 10, 10", // temporary change
+                        //methodCoverageTargets: "${env.cobertura_healthy}, ${env.cobertura_unhealthy}, ${env.cobertura_unstable}",
+                        methodCoverageTargets: "42, 40, 41",
                         onlyStable: false,
                         sourceEncoding: 'ASCII',
                         autoUpdateHealth: false,
