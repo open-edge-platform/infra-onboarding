@@ -75,6 +75,7 @@ const (
 
 	envTinkActionCredcopyImage     = "TINKER_CREDCOPY_IMAGE"                                            // #nosec G101
 	defaultTinkActionCredcopyImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/cred_copy" // #nosec G101
+	envDkamDevMode                 = "dev"
 )
 
 // if `tinkerImageVersion` is non-empty, its value is returned,
@@ -447,7 +448,8 @@ touch /usr/local/bin/.grow_part_done`,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "useradd -p $(openssl passwd -1 user) -s /bin/bash -d /home/user/ -m -G sudo user",
+						"CMD_LINE": fmt.Sprintf("useradd -p $(openssl passwd -1 %s) -s /bin/bash -d /home/%s/ -m -G sudo %s",
+							env.ENPassWord, env.ENUserName, env.ENUserName),
 					},
 				},
 				{
@@ -459,8 +461,8 @@ touch /usr/local/bin/.grow_part_done`,
 						"CHROOT":              "y",
 						"SCRIPT_URL":          deviceInfo.InstallerScriptURL,
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE": fmt.Sprintf("mkdir -p /home/user/Setup;chown user:user /home/user/Setup;"+
-							"wget -P /home/user/Setup %s; chmod 755 /home/user/Setup/installer.sh",
+						"CMD_LINE": fmt.Sprintf("mkdir -p /home/postinstall/Setup;chown user:user /home/postinstall/Setup;"+
+							"wget -P /home/postinstall/Setup %s; chmod 755 /home/postinstall/Setup/installer.sh",
 							deviceInfo.InstallerScriptURL),
 					},
 				},
@@ -475,12 +477,12 @@ touch /usr/local/bin/.grow_part_done`,
 						[Unit]
 						Description=Profile and node agents Package Installation
 						After=update-netplan.service
-						ConditionPathExists = !/home/user/Setup/.base_pkg_install_done
+						ConditionPathExists = !/home/postinstall/Setup/.base_pkg_install_done
 		
 						[Service]
 						ExecStartPre=/bin/sleep 20 
-						WorkingDirectory=/home/user/Setup
-						ExecStart=/home/user/Setup/installer.sh
+						WorkingDirectory=/home/postinstall/Setup
+						ExecStart=/home/postinstall/Setup/installer.sh
 						Restart=always
 		
 						[Install]
@@ -530,7 +532,7 @@ touch /usr/local/bin/.grow_part_done`,
 					Timeout: timeOutAvg200,
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/home/user/Setup/update_netplan_config.sh",
+						"DEST_PATH": "/home/postinstall/Setup/update_netplan_config.sh",
 						"CONTENTS": fmt.Sprintf(`#!/bin/bash
 interface=$(ip route show default | awk '/default/ {print $5}')
 gateway=$(ip route show default | awk '/default/ {print $3}')
@@ -554,7 +556,7 @@ network:
 echo "$config_yaml" | tee /etc/netplan/config.yaml
 ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 touch .netplan_update_done
-netplan apply`, deviceInfo.Gateway, strings.ReplaceAll(env.ENNameservers, " ", ", ")),
+netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", ")),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -611,12 +613,12 @@ netplan apply`, deviceInfo.Gateway, strings.ReplaceAll(env.ENNameservers, " ", "
                                                 [Unit]
                                                 Description=update the netplan with to make static ip
                                                 After=network.target
-                                                ConditionPathExists = !/home/user/Setup/.netplan_update_done
+                                                ConditionPathExists = !/home/postinstall/Setup/.netplan_update_done
 
                                                 [Service]
                                                 ExecStartPre=/bin/sleep 60 
-                                                WorkingDirectory=/home/user/Setup
-                                                ExecStart=/home/user/Setup/update_netplan_config.sh
+                                                WorkingDirectory=/home/postinstall/Setup
+                                                ExecStart=/home/postinstall/Setup/update_netplan_config.sh
 
                                                 [Install]
                                                 WantedBy=multi-user.target`,
@@ -766,6 +768,19 @@ netplan apply`, deviceInfo.Gateway, strings.ReplaceAll(env.ENNameservers, " ", "
 					if action.Environment["CMD_LINE"] == "systemctl disable install-grow-part.service" {
 						action.Environment["CMD_LINE"] = "systemctl enable install-grow-part.service"
 					}
+					break
+				}
+			}
+		}
+	}
+
+	//  Creat the User credentials only for dev mode and remove the action for production mode
+	if env.ENDkamMode != envDkamDevMode {
+		for i, task := range wf.Tasks {
+			for j, action := range task.Actions {
+				if action.Name == ActionCreateUser {
+					// Remove the create user  from the slice
+					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
 					break
 				}
 			}

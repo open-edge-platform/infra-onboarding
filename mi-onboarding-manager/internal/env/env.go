@@ -25,6 +25,9 @@ const (
 	envFdoOwnerDNS   = "FDO_OWNER_URL"
 	envFdoOwnerPort  = "FDO_OWNER_PORT"
 	envK8sNamespace  = "MI_K8S_NAMESPACE"
+	envDkamMode      = "EN_DKAMMODE"
+	envUserName      = "EN_USERNAME"
+	envPassWord      = "EN_PASSWORD"
 
 	defaultOwnerURL     = "mi-fdo-owner"
 	defaultOwnerPort    = "58042"
@@ -42,6 +45,9 @@ var (
 	ENProxyHTTPS       = os.Getenv(envHTTPSProxy)
 	ENProxyNo          = os.Getenv(envNoProxy)
 	ENNameservers      = os.Getenv(envNameservers)
+	ENDkamMode         = os.Getenv(envDkamMode)
+	ENUserName         = os.Getenv(envUserName)
+	ENPassWord         = os.Getenv(envPassWord)
 
 	ImgType      = GetEnvWithDefault(envImageType, utils.ImgTypeJammy)
 	FdoMfgDNS    = GetEnvWithDefault(envFdoMfgDNS, defaultMfgURL)
