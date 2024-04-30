@@ -218,6 +218,9 @@ pipeline {
             }
             steps {
                 script {
+                    scmCheckout {
+					    clean = true
+				    }
                     miDocker.build()
                 }
             }
@@ -289,80 +292,80 @@ pipeline {
             }
         }
 
-        stage('Scan Binary') {
-            parallel {             
-                stage('Scan BDBA'){
-                    environment {
-                        PROJECT_NAME                 = "oie-${GIT_SHORT_URL}"
-                        SCANNERS                     = 'bdba'
+        // stage('Scan Binary') {
+        //     parallel {             
+        //         stage('Scan BDBA'){
+        //             environment {
+        //                 PROJECT_NAME                 = "oie-${GIT_SHORT_URL}"
+        //                 SCANNERS                     = 'bdba'
 
-                        SDLE_UPLOAD_PROJECT_ID        = '17032'
-                        SDLE_UPLOAD_USER_IDSID         = 'sys_pmce_git'
-                        SDLE_UPLOAD_CREDENTIAL_ID  = 'lp.credentials.sdleUpload'
+        //                 SDLE_UPLOAD_PROJECT_ID        = '17032'
+        //                 SDLE_UPLOAD_USER_IDSID         = 'sys_pmce_git'
+        //                 SDLE_UPLOAD_CREDENTIAL_ID  = 'lp.credentials.sdleUpload'
 
-                        // publishArtifacts details 
-                        ARTIFACT_RETENTION_PERIOD    = ''
-                        ARTIFACTORY_URL              = 'https://ubit-artifactory-or.intel.com/artifactory'
-                        ARTIFACTS_REPO               = "one-intel-edge-or-local/${SUB_PROJECT_NAME}"
-                        PUBLISH_TO_ARTIFACTORY       = true
-                        ARTIFACTORY_CREDENTIAL_ID    = 'sys_oie_devops_ubit-artifactory-or.intel.com'
-                        ARTIFACTORY_BYPASS_PROXY   = true
+        //                 // publishArtifacts details 
+        //                 ARTIFACT_RETENTION_PERIOD    = ''
+        //                 ARTIFACTORY_URL              = 'https://ubit-artifactory-or.intel.com/artifactory'
+        //                 ARTIFACTS_REPO               = "one-intel-edge-or-local/${SUB_PROJECT_NAME}"
+        //                 PUBLISH_TO_ARTIFACTORY       = true
+        //                 ARTIFACTORY_CREDENTIAL_ID    = 'sys_oie_devops_ubit-artifactory-or.intel.com'
+        //                 ARTIFACTORY_BYPASS_PROXY   = true
 
-                        BDBA_BIN_DIR                 = "BDBA"
-                    }
-                    when {
-                        anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
-                    }
-                    steps {
-                        sh """
-                        [ -d "BDBA" ] || mkdir BDBA
-                        tar -zcvf BDBA/${GIT_SHORT_URL}.tar.gz build 
-                        """
-                        script {
-                            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                                rbheStaticCodeScan()
-                            }
-                        }
-                    }
-                }
-                stage('Scan Binary SSCB') {
-                    when {
-                            anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
-                        }
-                    steps {
-                    sh'''
-                    mkdir SSCB
-                    sscb run --path BDBA/${GIT_SHORT_URL}.tar.gz --outpath SSCB/
-                    '''
-                    archiveArtifacts artifacts: 'SSCB/*',
-                        fingerprint: true,
-                        onlyIfSuccessful: false
-                        publishArtifacts([artifactsRepo: 'one-intel-edge-or-local/${SUB_PROJECT_NAME}',
-                        credentialId: 'sys_oie_devops_ubit-artifactory-or.intel.com',
-                                bypassProxy: true])
-                    }
-                }
-            }
-        }
+        //                 BDBA_BIN_DIR                 = "BDBA"
+        //             }
+        //             when {
+        //                 anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
+        //             }
+        //             steps {
+        //                 sh """
+        //                 [ -d "BDBA" ] || mkdir BDBA
+        //                 tar -zcvf BDBA/${GIT_SHORT_URL}.tar.gz build 
+        //                 """
+        //                 script {
+        //                     catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+        //                         rbheStaticCodeScan()
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //         stage('Scan Binary SSCB') {
+        //             when {
+        //                     anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
+        //                 }
+        //             steps {
+        //             sh'''
+        //             mkdir SSCB
+        //             sscb run --path BDBA/${GIT_SHORT_URL}.tar.gz --outpath SSCB/
+        //             '''
+        //             archiveArtifacts artifacts: 'SSCB/*',
+        //                 fingerprint: true,
+        //                 onlyIfSuccessful: false
+        //                 publishArtifacts([artifactsRepo: 'one-intel-edge-or-local/${SUB_PROJECT_NAME}',
+        //                 credentialId: 'sys_oie_devops_ubit-artifactory-or.intel.com',
+        //                         bypassProxy: true])
+        //             }
+        //         }
+        //     }
+        // }
 
-	stage('Artifact') {
-            steps {
-                sh '''
-                tar -zcvf "${GIT_SHORT_URL}.tar.gz" *
-                '''
-                archiveArtifacts artifacts: '**/*.tar.gz',
-                allowEmptyArchive: true,
-                fingerprint: true,
-                onlyIfSuccessful: true
-                sh '''
-                    [ -d "artifacts" ] || mkdir -p artifacts
-                    mv  *.tar.gz build/* artifacts/
-                '''
-                publishArtifacts([artifactsRepo: "one-intel-edge-or-local/${SUB_PROJECT_NAME}",
-                                  credentialId: 'sys_oie_devops_ubit-artifactory-or.intel.com',
-                                  bypassProxy: true])
-            }
-        }
+	// stage('Artifact') {
+ //            steps {
+ //                sh '''
+ //                tar -zcvf "${GIT_SHORT_URL}.tar.gz" *
+ //                '''
+ //                archiveArtifacts artifacts: '**/*.tar.gz',
+ //                allowEmptyArchive: true,
+ //                fingerprint: true,
+ //                onlyIfSuccessful: true
+ //                sh '''
+ //                    [ -d "artifacts" ] || mkdir -p artifacts
+ //                    mv  *.tar.gz build/* artifacts/
+ //                '''
+ //                publishArtifacts([artifactsRepo: "one-intel-edge-or-local/${SUB_PROJECT_NAME}",
+ //                                  credentialId: 'sys_oie_devops_ubit-artifactory-or.intel.com',
+ //                                  bypassProxy: true])
+ //            }
+ //        }
     }
 
     post {

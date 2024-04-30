@@ -69,13 +69,6 @@ func SignHookOS(scriptPath string) (bool, error) {
 	extra_hosts := os.Getenv("EXTRA_HOSTS")
 
 	config := buildScriptPath + "/config"
-	// Copy the file
-	cpErr := copyFile("config", "org_config")
-	if cpErr != nil {
-		zlog.MiSec().Fatal().Err(cpErr).Msgf("Error: %v", cpErr)
-	}
-
-	zlog.MiSec().Info().Msg("config File copied successfully.")
 	content, err := os.ReadFile(config)
 	if err != nil {
 		zlog.MiSec().Fatal().Err(err).Msgf("Error %v", err)
@@ -148,12 +141,6 @@ func SignHookOS(scriptPath string) (bool, error) {
 		return false, buildErr
 	}
 	zlog.Info().Msgf("Script output: %s", string(output))
-
-	renameerr := os.Rename("org_config", "config")
-	if renameerr != nil {
-		zlog.Err(renameerr).Msg("Error during renaming")
-	}
-	zlog.Info().Msg("Successfully renamed of config")
 
 	errch := os.Chdir(scriptPath)
 	if errch != nil {
@@ -237,12 +224,6 @@ func BuildSignIpxe(scriptPath string, dnsName string) (bool, error) {
 		return false, err
 	}
 	zlog.Info().Msgf("Script output: %s", string(output))
-
-	renameerr := os.Rename("org_chain.ipxe", "chain.ipxe")
-	if renameerr != nil {
-		zlog.Err(renameerr).Msg("Error during renaming")
-	}
-	zlog.Info().Msg("Successfully renamed of chain.ipxe")
 	return true, nil
 }
 
