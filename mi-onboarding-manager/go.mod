@@ -7,7 +7,7 @@ module github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra
 go 1.21.9
 
 require (
-	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.2.5
+	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.4.7
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.0
@@ -91,6 +91,7 @@ require (
 	github.com/labstack/echo/v4 v4.11.2 // indirect
 	github.com/labstack/gommon v0.4.0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
+	github.com/magefile/mage v1.15.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
