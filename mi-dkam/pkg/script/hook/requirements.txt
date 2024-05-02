@@ -1,7 +1,0 @@
-# SPDX-FileCopyrightText: (C) 2023 Intel Corporation
-# SPDX-License-Identifier: LicenseRef-Intel
-
-
-# license checking
-python-debian==0.1.44
-reuse~=1.0.0

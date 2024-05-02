@@ -216,7 +216,7 @@ func BuildSignIpxe(scriptPath string, dnsName string) (bool, error) {
 		return false, modeErr
 	}
 	zlog.Info().Msgf("Script output: %s", string(result))
-	cmd := exec.Command("sh", "./build_sign_ipxe.sh", scriptPath, host)
+	cmd := exec.Command("bash", "./build_sign_ipxe.sh", scriptPath, host)
 	zlog.Info().Msgf("signCmd: %s", cmd)
 	output, err := cmd.CombinedOutput()
 	if err != nil {

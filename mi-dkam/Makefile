@@ -26,7 +26,7 @@ IMG_NAME      := ${PROJECT_NAME}
 IMG_VERSION   ?= main
 GIT_COMMIT    ?= $(shell git rev-parse HEAD)
 
-SCRIPTS_DIR     := ./pkg/script/Installer
+SH_FILES 	:= $(shell find . -type f \( -name '*.sh' \) -print )
 
 # Create the virtualenv with python tools installed
 VENV_NAME = venv_midkammgr
@@ -50,6 +50,10 @@ generate: buf-generate ## generate all files
 build: go-build ## Build local binaries
 
 lint: go-lint license shellcheck buf-lint
+
+shellcheck: ## lint shell scripts with shellcheck
+	shellcheck --version
+	shellcheck -x -S style $(SH_FILES)
 
 test: go-test
 
