@@ -26,12 +26,12 @@ var (
 func main() {
 
 	// Create a certificate watcher
-	// watcher, watcherErr := SetWatcher()
-	// if watcherErr != nil {
-	// 	zlog.MiSec().Fatal().Err(watcherErr).Msgf("Failed to set watcher.")
-	// 	return
-	// }
-	// defer watcher.Close()
+	watcher, watcherErr := SetWatcher()
+	if watcherErr != nil {
+		zlog.MiSec().Fatal().Err(watcherErr).Msgf("Failed to set watcher.")
+		return
+	}
+	defer watcher.Close()
 
 	//Download OS image
 	downloadErr := dkammgr.DownloadOS()
