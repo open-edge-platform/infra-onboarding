@@ -53,6 +53,7 @@ build:
 	@echo "---END MAKEFILE Build---"
 
 docker-push:
+	docker tag securebootflag:latest ${DOCKER_TAG}/securebootflag:${BRANCH_NAME}
 	docker tag efibootset:latest ${DOCKER_TAG}/efibootset:${BRANCH_NAME}
 	docker tag fdoclient_action:latest ${DOCKER_TAG}/fdoclient_action:${BRANCH_NAME}
 	docker tag store_alpine:latest ${DOCKER_TAG}/store_alpine:${BRANCH_NAME}
@@ -66,6 +67,7 @@ docker-push:
 	docker tag cexec:latest ${DOCKER_TAG}/cexec:${BRANCH_NAME}
 	docker tag writefile:latest ${DOCKER_TAG}/writefile:${BRANCH_NAME}
 
+	docker push ${DOCKER_TAG}/securebootflag:${BRANCH_NAME}
 	docker push ${DOCKER_TAG}/efibootset:${BRANCH_NAME}
 	docker push ${DOCKER_TAG}/fdoclient_action:${BRANCH_NAME}
 	docker push ${DOCKER_TAG}/store_alpine:${BRANCH_NAME}
@@ -79,6 +81,7 @@ docker-push:
 	docker push ${DOCKER_TAG}/cexec:${BRANCH_NAME}
 	docker push ${DOCKER_TAG}/writefile:${BRANCH_NAME}
 
+	docker tag securebootflag:latest ${DOCKER_TAG}/securebootflag:${VERSION}
 	docker tag efibootset:latest ${DOCKER_TAG}/efibootset:${VERSION}
 	docker tag fdoclient_action:latest ${DOCKER_TAG}/fdoclient_action:${VERSION}
 	docker tag store_alpine:latest ${DOCKER_TAG}/store_alpine:${VERSION}
@@ -92,6 +95,7 @@ docker-push:
 	docker tag cexec:latest ${DOCKER_TAG}/cexec:${VERSION}
 	docker tag writefile:latest ${DOCKER_TAG}/writefile:${VERSION}
 
+	docker push ${DOCKER_TAG}/securebootflag:${VERSION}
 	docker push ${DOCKER_TAG}/efibootset:${VERSION}
 	docker push ${DOCKER_TAG}/fdoclient_action:${VERSION}
 	docker push ${DOCKER_TAG}/store_alpine:${VERSION}

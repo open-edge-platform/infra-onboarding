@@ -1,26 +1,16 @@
-FROM ubuntu:22.04
+FROM golang:1.15-alpine as readsbstat
 
-RUN apt-get update && \
-    apt-get install -y ca-certificates curl getty-run jq mokutil && \
-    curl -O https://dl.google.com/go/go1.20.linux-amd64.tar.gz && \
-    tar -xvf go1.20.linux-amd64.tar.gz && \
-    mv go /usr/local
-ENV GOROOT=/usr/local/go
-ENV GOPATH=$HOME/go
-ENV PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+COPY . /go/src/github.com/tinkerbell/hub/actions/read_sb_status
+WORKDIR /go/src/github.com/tinkerbell/hub/actions/read_sb_status
 
-RUN apt-get install -y ca-certificates curl getty-run jq
-RUN apt-get install -y parted cryptsetup-bin tpm2-tools xxd dnsutils
+ENV GO111MODULE=on
 
-
-# Set the working directory inside the container
-WORKDIR /app
- 
-# Copy the local package files to the container's workspace
-COPY . .
- 
-# Build the Go app
 RUN go build -o main .
+
+# Build the final image
+FROM debian:12
+COPY --from=readsbstat /go/src/github.com/tinkerbell/hub/actions/read_sb_status/run_sb.sh .
+COPY --from=readsbstat /go/src/github.com/tinkerbell/hub/actions/read_sb_status/main .
  
 # Command to run the executable
 CMD ["/bin/bash", "./run_sb.sh"]

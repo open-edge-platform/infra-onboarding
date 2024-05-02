@@ -14,6 +14,7 @@
 #set -x
 
 #relative paths of folders
+read_sb_status=./tinker_actions/read_sb_status/
 store_alpine=./tinker_actions/store_alpine/
 fdo_action_build=./tinker_actions/fdo_action_build/
 create_partition=./tinker_actions/create_partition
@@ -26,6 +27,14 @@ caddy_proxy=./tinker_actions/caddy
 image2disk=./tinker_actions/image2disk/v1
 cexec=./tinker_actions/cexec/v1
 writefile=./tinker_actions/writefile/v1
+
+read_sb_status_setup() {
+    pushd $read_sb_status
+
+    bash -e build.sh
+
+    popd
+}
 
 fdo_docker_setup() {
     pushd $fdo_action_build
@@ -137,6 +146,7 @@ main() {
 
     apt install -y build-essential
 
+    read_sb_status_setup
     fdo_docker_setup
     efibootset_setup
 

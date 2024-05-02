@@ -55,8 +55,9 @@ func main() {
 	ENsecBootstr := strings.TrimSpace(string(output))
 	if (ENsecBootstr == SecureBootDisabled && securityFeatureFlagSetBySI == "SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION") || (ENsecBootstr == SecureBootEnabled && securityFeatureFlagSetBySI == "SECURITY_FEATURE_UNSPECIFIED") ||
 		(ENsecBootstr == SecureBootEnabled && securityFeatureFlagSetBySI == "SECURITY_FEATURE_NONE") {
-		fmt.Printf("SecureBoot Status Mismatch\n")
+		/* Note : Do not change the case in 'Mismatch', as this message is grep'ed in run_sb.sh */
+		fmt.Printf("Verifying Secure Boot Settings Mismatch\n")
 		return
 	}
-	fmt.Printf("SecureBoot Status Match\n")
+	fmt.Printf("Verifying Secure Boot Settings Match\n")
 }
