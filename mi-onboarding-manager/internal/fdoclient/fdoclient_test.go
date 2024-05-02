@@ -7,10 +7,11 @@ package fdoclient
 import (
 	"context"
 	"fmt"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/env"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/env"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

@@ -14,6 +14,7 @@ import (
 )
 
 const (
+	ActionSecureBootStatusFlagRead   = "secure-boot-status-flag-read"
 	ActionStreamUbuntuImage          = "stream-ubuntu-image"
 	ActionCopySecrets                = "copy-secrets"
 	ActionGrowPartitionInstallScript = "grow-partition-install-script"
@@ -59,10 +60,14 @@ const (
 	envTinkerImageVersion     = "TINKER_IMAGE_VERSION"
 	defaultTinkerImageVersion = "v1.0.0"
 
+	envTinkActionSecurebootFlagReadImage     = "TINKER_SECUREBOOTFLAGREAD_IMAGE"
+	defaultTinkActionSecurebootFlagReadImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/securebootflag"
+
 	envTinkActionWriteFileImage     = "TINKER_WRITEFILE_IMAGE"
 	defaultTinkActionWriteFileImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile"
-	envTinkActionCexecImage         = "TINKER_CEXEC_IMAGE"
-	defaultTinkActionCexecImage     = "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec"
+
+	envTinkActionCexecImage     = "TINKER_CEXEC_IMAGE"
+	defaultTinkActionCexecImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec"
 
 	envTinkActionDiskImage     = "TINKER_DISK_IMAGE"
 	defaultTinkActionDiskImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/image2disk"
@@ -88,6 +93,14 @@ func getTinkerImageVersion(tinkerImageVersion string) string {
 		return v
 	}
 	return defaultTinkerImageVersion
+}
+
+func tinkActionSecurebootFlagReadImage(tinkerImageVersion string) string {
+	iv := getTinkerImageVersion(tinkerImageVersion)
+	if v := os.Getenv(envTinkActionSecurebootFlagReadImage); v != "" {
+		return fmt.Sprintf("%s:%s", v, iv)
+	}
+	return fmt.Sprintf("%s:%s", defaultTinkActionSecurebootFlagReadImage, iv)
 }
 
 func tinkActionWriteFileImage(tinkerImageVersion string) string {
@@ -319,6 +332,9 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 
 //nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
 func NewTemplateDataProdBKC(name string, deviceInfo utils.DeviceInfo, enableDI bool) ([]byte, error) {
+	securityFeatureTypeVar := osv1.SecurityFeature(deviceInfo.SecurityFeature)
+	securityFeatureStr := securityFeatureTypeVar.String()
+
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -333,6 +349,14 @@ func NewTemplateDataProdBKC(name string, deviceInfo utils.DeviceInfo, enableDI b
 			},
 			Actions: []Action{
 				{
+					Name:    ActionSecureBootStatusFlagRead,
+					Image:   tinkActionSecurebootFlagReadImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutAvg560,
+					Environment: map[string]string{
+						"SECURITY_FEATURE_FLAG": securityFeatureStr,
+					},
+				},
+				{
 					Name:    ActionStreamUbuntuImage,
 					Image:   tinkActionDiskImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutMax9800,
@@ -341,6 +365,7 @@ func NewTemplateDataProdBKC(name string, deviceInfo utils.DeviceInfo, enableDI b
 						"COMPRESSED": "true",
 					},
 				},
+
 				{
 					Name:    ActionAddEnvProxy,
 					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
