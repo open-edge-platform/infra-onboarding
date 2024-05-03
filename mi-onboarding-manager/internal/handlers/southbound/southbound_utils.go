@@ -10,7 +10,6 @@ import (
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/southbound/artifact"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 )
@@ -66,7 +65,6 @@ func (sbh *SBHandler) Start() error {
 
 	sbh.server = grpc.NewServer()
 	pb.RegisterNodeArtifactServiceNBServer(sbh.server, nodeArtifactService)
-	pb.RegisterOnBoardingSBServer(sbh.server, &onboarding.Manager{})
 
 	// Run go routine to start the gRPC server
 	go func() {

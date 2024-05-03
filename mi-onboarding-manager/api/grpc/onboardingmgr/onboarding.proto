@@ -23,11 +23,6 @@ service NodeArtifactServiceNB {
   rpc DeleteNodes(NodeRequest) returns (NodeResponse) {}
 }
 
-service OnBoardingSB {
-  // updates secureboot BIOS status in Edge Node
-  rpc SecureBootStatus(SecureBootStatRequest) returns (SecureBootResponse);
-}
-
 message ArtifactRequest {
   repeated ArtifactData payload = 1; // Payload data represented as an array or list
 }
@@ -137,22 +132,4 @@ message CustomerParams {
   string dps_scope_id = 5; // DPS Scope ID
   string dps_registration_id = 6; // DPS registration ID
   string dps_enrollment_sym_key = 7; // DPS Enrollment Symetric Key
-}
-
-message SecureBootStatRequest {
-  enum Status {
-    SUCCESS = 0; // Success
-    FAILURE = 1; // Failure
-  }
-  Status result = 1;
-  string guid = 2; // GUID
-}
-
-message SecureBootResponse {
-  enum Status {
-    SUCCESS = 0; // Success
-    FAILURE = 1; // Failure
-  }
-  Status result = 1;
-  string guid = 2;
 }
