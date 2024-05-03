@@ -254,6 +254,12 @@ partition_other_devices() {
 	then
 	   continue
 	fi
+	#if its removable disk don't do LVM
+	removable=$(lsblk -n -d -o RM "/dev/${block_dev}")
+        if [ "$removable" -eq 1 ];
+	then
+	   continue
+	fi
 
 	#Delete all partitions on that disk to make it ready for luks with 1 partition only
 	line_num=$(parted -s "/dev/${block_dev}" print | awk '$1 == "Number" { print NR }')
