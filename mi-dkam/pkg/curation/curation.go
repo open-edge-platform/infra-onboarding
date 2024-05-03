@@ -235,6 +235,7 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	orchImgRegProxyPort := os.Getenv("ORCH_IMG_PORT")
 	orchLicenseHost := os.Getenv("ORCH_LICENSE_HOST")
 	orchLicensePort := os.Getenv("ORCH_LICENSE_PORT")
+	ypsUrl := os.Getenv("YPS_URL")
 	//Proxies
 	httpProxy := os.Getenv("HTTP_PROXY")
 	httpsProxy := os.Getenv("HTTPS_PROXY")
@@ -337,6 +338,7 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__DOCKER_KEY__", string(dockerContent))
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__CADDY_KEY__", string(caddyContent))
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__APT_SRC__", string(distribution))
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__LICENSE_URL__", string(ypsUrl))
 	// Loop through the agentsList
 	for _, agent := range agentsList {
 		// Access the fields of each struct
