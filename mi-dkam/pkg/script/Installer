@@ -7,8 +7,10 @@ if [ -f /etc/apt/apt.conf ]; then
 fi
 true >/etc/environment
 SETUP_STATUS_FILENAME="install_pkgs_status"
+STATUS_FILENAME=".success_install_status"
 SCRIPT_DIR=$(pwd)
 touch "$SCRIPT_DIR/$SETUP_STATUS_FILENAME"
+touch "$SCRIPT_DIR/$STATUS_FILENAME"
 
 if [ -s "/etc/intel_edge_node/client-credentials/client_id" ]; then
     CLIENT_ID=$(cat /etc/intel_edge_node/client-credentials/client_id)
@@ -46,52 +48,62 @@ CA_CERT="__CA_CERT__"
 
 # 1. Install dependencies
 install_dependencies() {
-    echo "Install all dependencies."
-    rm -f /etc/apt/sources.list.d/edge-node.list
-    apt-get update
-    echo -e "\e[32m[install git python3-pip]\e[0m"
-    sudo apt-get install -y curl wget openssh-server unzip apparmor iptables lvm2 cryptsetup lxc mosquitto tpm2-abrmd tpm2-tools software-properties-common ntp python3-venv git jq libpq5 python3-pip ca-certificates gnupg dmidecode
+    if grep -q "install_dependencies done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_dependencies"
+    else
+        echo "Install all dependencies."
+        rm -f /etc/apt/sources.list.d/edge-node.list
+        apt-get update
+        echo -e "\e[32m[install git python3-pip]\e[0m"
+        sudo apt-get install -y curl wget openssh-server unzip apparmor iptables lvm2 cryptsetup lxc mosquitto tpm2-abrmd tpm2-tools software-properties-common ntp python3-venv git jq libpq5 python3-pip ca-certificates gnupg dmidecode
 
-    if ! command -v yq_linux_amd64 &> /dev/null; then
-        echo "Download yq and install on provisioning host."
-        version="v4.42.1"
-        expected_checksum="99fc7fd4874daaceb8a718264afccc8f777413fa655c7e16063cfa87d39efe3a"
-        echo "yq download version: $version"
-        url=https://github.com/mikefarah/yq/releases/download/${version}/yq_linux_amd64.tar.gz
-        download_github_url "$url"
-        if [ -f "yq_linux_amd64.tar.gz" ]; then
-            actual_checksum=$(sha256sum "yq_linux_amd64.tar.gz" | awk '{print $1}')
-            if [ "$actual_checksum" != "$expected_checksum" ]; then
-                echo "Checksum mismatch. File may be corrupted."
+        if ! command -v yq_linux_amd64 &> /dev/null; then
+            echo "Download yq and install on provisioning host."
+            version="v4.42.1"
+            expected_checksum="99fc7fd4874daaceb8a718264afccc8f777413fa655c7e16063cfa87d39efe3a"
+            echo "yq download version: $version"
+            url=https://github.com/mikefarah/yq/releases/download/${version}/yq_linux_amd64.tar.gz
+            download_github_url "$url"
+            if [ -f "yq_linux_amd64.tar.gz" ]; then
+                actual_checksum=$(sha256sum "yq_linux_amd64.tar.gz" | awk '{print $1}')
+                if [ "$actual_checksum" != "$expected_checksum" ]; then
+                    echo "Checksum mismatch. File may be corrupted."
+                    exit 1
+                fi
+                echo "Checksum verification successful."
+            else
+                echo "Downloaded file does not exist. Aborting installation."
                 exit 1
             fi
-            echo "Checksum verification successful."
-        else
-            echo "Downloaded file does not exist. Aborting installation."
-            exit 1
+            tmpyq=/tmp/yq_linux_amd64
+            if [ -d "$tmpyq" ];then
+                sudo rm -rf "$tmpyq"
+            fi
+            mkdir -p $tmpyq
+            mv yq_linux_amd64.tar.gz $tmpyq
+            tar -xzvf $tmpyq/yq_linux_amd64.tar.gz -C "$tmpyq"
+            sudo mv "$tmpyq"/yq_linux_amd64 /usr/local/bin/yq_linux_amd64
         fi
-        tmpyq=/tmp/yq_linux_amd64
-        if [ -d "$tmpyq" ];then
-            sudo rm -rf "$tmpyq"
+        if [ ! -L /usr/local/bin/yq ]; then
+            sudo ln -s yq_linux_amd64 /usr/local/bin/yq
         fi
-        mkdir -p $tmpyq
-        mv yq_linux_amd64.tar.gz $tmpyq
-        tar -xzvf $tmpyq/yq_linux_amd64.tar.gz -C "$tmpyq"
-        sudo mv "$tmpyq"/yq_linux_amd64 /usr/local/bin/yq_linux_amd64
+        echo "install_dependencies done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
-    if [ ! -L /usr/local/bin/yq ]; then
-        sudo ln -s yq_linux_amd64 /usr/local/bin/yq
-    fi   
 }
 
 # 2. Firewall update
 install_fws(){
- # Enable UFW
-    echo "Enable firwell"
-    systemctl enable ufw
-    echo "y" | ufw enable
-    ufw default allow outgoing
-    ufw reload
+    if grep -q "install_fws done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_fws"
+    else
+        # Enable UFW
+        echo "Enable firwell"
+        systemctl enable ufw
+        echo "y" | ufw enable
+        ufw default allow outgoing
+        ufw reload
+        echo "install_fws done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 
@@ -109,360 +121,454 @@ download_github_url() {
 
 # 3. Install Intel CA certificates
 install_intel_CAcertificates() {
-    echo "Install intel CA certificates."
-    export no_proxy=$no_proxy,__FILE_SERVER__
-    export NO_PROXY=$no_proxy,__FILE_SERVER__
-    # wget  http://owrdropbox.intel.com/dropbox/public/Ansible/certificates/IntelCA5A-base64.crt
-    # wget  http://owrdropbox.intel.com/dropbox/public/Ansible/certificates/IntelCA5B-base64.crt
-    # wget  http://owrdropbox.intel.com/dropbox/public/Ansible/certificates/IntelSHA256RootCA-base64.crt
-    # sudo cp Intel* /usr/local/share/ca-certificates/
-    # sudo update-ca-certificates
-    sudo apt-get install -y unzip 
-    ca_bundle_list="Intel%20Root%20Certificate%20Chain%20Base64.zip \
-                Public%20Root%20Certificate%20Chain%20Base64.zip \
-                IntelSHA2RootChain-Base64.zip \
-                PublicSHA2RootChain-Base64.zip"
+    if grep -q "install_intel_CAcertificates done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_intel_CAcertificates"
+    else
+        echo "Install intel CA certificates."
+        export no_proxy=$no_proxy,__FILE_SERVER__
+        export NO_PROXY=$no_proxy,__FILE_SERVER__
+        # wget  http://owrdropbox.intel.com/dropbox/public/Ansible/certificates/IntelCA5A-base64.crt
+        # wget  http://owrdropbox.intel.com/dropbox/public/Ansible/certificates/IntelCA5B-base64.crt
+        # wget  http://owrdropbox.intel.com/dropbox/public/Ansible/certificates/IntelSHA256RootCA-base64.crt
+        # sudo cp Intel* /usr/local/share/ca-certificates/
+        # sudo update-ca-certificates
+        sudo apt-get install -y unzip 
+        ca_bundle_list="Intel%20Root%20Certificate%20Chain%20Base64.zip \
+                    Public%20Root%20Certificate%20Chain%20Base64.zip \
+                    IntelSHA2RootChain-Base64.zip \
+                    PublicSHA2RootChain-Base64.zip"
 
-    for bundle in $ca_bundle_list; do
-        wget -O- -O /usr/local/share/ca-certificates/tmp.zip "http://certificates.intel.com/repository/certificates/$bundle"
-        unzip /usr/local/share/ca-certificates/tmp.zip -d /usr/local/share/ca-certificates
-        rm /usr/local/share/ca-certificates/tmp.zip        
-    done
-    update-ca-certificates
+        for bundle in $ca_bundle_list; do
+            wget -O- -O /usr/local/share/ca-certificates/tmp.zip "http://certificates.intel.com/repository/certificates/$bundle"
+            unzip /usr/local/share/ca-certificates/tmp.zip -d /usr/local/share/ca-certificates
+            rm /usr/local/share/ca-certificates/tmp.zip        
+        done
+        update-ca-certificates
+        echo "install_intel_CAcertificates done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 # 6. Get Token
 install_cleanup() {
-    echo "Agents cleanup."
-    apt-get -y purge node-agent caddy || true
-    apt-get -y purge cluster-agent || true
-    apt-get -y purge hardware-discovery-agent || true
-    apt-get -y purge ensp-ke-installer || true
+    if grep -q "install_cleanup done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_cleanup"
+    else
+        echo "Agents cleanup."
+        apt-get -y purge node-agent caddy || true
+        apt-get -y purge cluster-agent || true
+        apt-get -y purge hardware-discovery-agent || true
+        apt-get -y purge ensp-ke-installer || true
 
-    apt-get -y purge ensp-orch-installer || true
-    apt-get purge -y platform-observability-agent || true
-    apt-get -y purge platform-update-agent || true
-    apt-get autoremove -y
-    rm -rf /etc/intel_edge_node/tokens /etc/intel_edge_node/certs /etc/intel_edge_node/.keys
+        apt-get -y purge ensp-orch-installer || true
+        apt-get purge -y platform-observability-agent || true
+        apt-get -y purge platform-update-agent || true
+        apt-get autoremove -y
+        rm -rf /etc/intel_edge_node/tokens /etc/intel_edge_node/certs /etc/intel_edge_node/.keys
+        echo "install_cleanup done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 # 7. Install Node Agent
 install_node_agent(){
-
-    # Temp file to store response
-    tempfile=$(mktemp)
-
-    echo "get access token from orchestrator"
-    # Save the response to the temporary file
-    curl -X POST -u "$CLIENT_ID:$CLIENT_SECRET" -d "grant_type=client_credentials" https://__KEYCLOAK__/realms/master/protocol/openid-connect/token -o "$tempfile"
-
-    # Check the exit status of curl
-    if [ ! -s "$tempfile" ]; then
-        echo "error in getting Keycloak token"
-        rm "$tempfile"
-        exit 1
-    fi
-
-    # Parse the response with jq
-    AT=$(jq -r '.access_token' "$tempfile")
-    rm "$tempfile"
-
-    # Get RS token now
-    tempfile=$(mktemp)
-    curl -XGET https://__RELEASE_FQDN__/token -H "Authorization: Bearer $AT" -o "$tempfile"
-
-    if [ ! -s "$tempfile" ]; then
-        echo "error in getting Release Service token"
-        rm "$tempfile"
-        exit 1
-    fi
-
-    RS_AT=$(cat "$tempfile")
-    rm "$tempfile"
-
-    echo "setup oras"
-    ORAS_VERSION="1.1.0"
-    expected_checksum="e09e85323b24ccc8209a1506f142e3d481e6e809018537c6b3db979c891e6ad7"
-    curl -LO "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz"
-    if [ -f "oras_1.1.0_linux_amd64.tar.gz" ]; then
-        actual_checksum=$(sha256sum "oras_1.1.0_linux_amd64.tar.gz" | awk '{print $1}')
-        if [ "$actual_checksum" != "$expected_checksum" ]; then
-                echo "Checksum mismatch. File may be corrupted."
-                exit 1
-            fi
-            echo "Checksum verification successful."
+    if grep -q "install_node_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_node_agent"
     else
-        echo "Downloaded file does not exist. Aborting installation."
-        exit 1
-    fi
-    mkdir -p oras-install/
-    tar -zxf oras_${ORAS_VERSION}_*.tar.gz -C oras-install/
-    sudo mv oras-install/oras /usr/local/bin/
-    rm -rf oras_${ORAS_VERSION}_*.tar.gz oras-install/
+        rm -f /etc/apt/sources.list.d/edge-node.list
+        # Temp file to store response
+        tempfile=$(mktemp)
 
-    #Below code is intended to resolve dependencies for MTLS based apt and bypass need for ESP based provisioning
-    #IMPORTANT: If additional new users or groups need to be created by DKAM, they MUST be added after the users and group created below
-    #to avoid those users or groups being assigned to IDs that are reserved. A list of the reserved UID and GID values are below:
-    #
-    #|----------|------------|--------------|
-    #|   Name   | User/Group | Reserverd ID |
-    #|----------|------------|--------------|
-    #|bm-agents |    Group   |      998     |
-    #|node-agent|    User    |      997     |
-    #|promtheus |    User    |      994     |
-    #|----------|------------|--------------|
+        echo "get access token from orchestrator"
+        # Save the response to the temporary file
+        curl -X POST -u "$CLIENT_ID:$CLIENT_SECRET" -d "grant_type=client_credentials" https://__KEYCLOAK__/realms/master/protocol/openid-connect/token -o "$tempfile"
 
-    groupadd -f bm-agents -g 998 --system
-    id -u node-agent &>/dev/null || useradd node-agent -u 997 --system -g bm-agents
-    id -u prometheus &>/dev/null || useradd prometheus -u 994 --system -g bm-agents
-    id -u platform-update-agent &>/dev/null || useradd platform-update-agent --system -g bm-agents
-    id -u fluent-bit &>/dev/null || useradd fluent-bit --system -g bm-agents -G adm
-    USERNAME="etcd"
-
-    # Check if the etcd already exists
-    if id "$USERNAME" &>/dev/null; then
-        echo "User '$USERNAME' already exists."
-    else
-        # Add the etcd if it doesn't exist
-        useradd -r -c "etcd user" -s /sbin/nologin -M "$USERNAME" -U
-        echo "User '$USERNAME' added successfully."
-    fi
-
-    chmod -R 700 /etc/intel_edge_node/client-credentials
-    chown -R node-agent:bm-agents /etc/intel_edge_node
-
-    echo "node-agent node-agent/onboarding.serviceURL string ${ORCH_I_URL}" | debconf-set-selections
-    echo "node-agent node-agent/auth.accessTokenURL string ${ACCESS_TOKEN_URL}" | debconf-set-selections
-    echo "node-agent node-agent/auth.rsTokenURL string ${RELEASE_TOKEN_URL}" | debconf-set-selections
-    echo "node-agent node-agent/proxy.aptSourceURL string ${APT_SOURCE_URL}" | debconf-set-selections
-    echo "node-agent node-agent/proxy.aptSourceProxyPort string ${APT_SOURCE_PROXY_PORT}" | debconf-set-selections
-    echo "node-agent node-agent/proxy.imgRegistryURL string ${IMG_REGISTRY_URL}" | debconf-set-selections
-    echo "node-agent node-agent/proxy.imgRegistryProxyPort string ${IMG_REGISTRY_PROXY_PORT}" | debconf-set-selections
-
-    echo "Install caddy for node agent..."
-
-    echo "download caddy deb package..."
-    CADDY_VERSION="caddy-VERSION"
-    CADDY_PKGFILE="./caddy_${CADDY_VERSION}_linux_amd64.deb"
-    echo "${RS_AT}" | oras pull "${IMG_REGISTRY_URL}/one-intel-edge/edge-node/deb/caddy:$CADDY_VERSION" --password-stdin
-
-    if [ ! -f "${CADDY_PKGFILE}" ]; then
-        echo "caddy debian package could not be downloaded. Aborting installation"
-        exit 1
-    fi
-
-    echo "install caddy"
-    apt-get install -y "${CADDY_PKGFILE}"
-
-    echo "remove caddy debian"
-    rm -f "${CADDY_PKGFILE}"
-
-    echo "Install node agent..."
-    echo "download node agent..."
-    VERSION="node-agent-VERSION"
-    echo $VERSION
-    PKGFILE="./node-agent_${VERSION}_amd64.deb"
-
-    echo "download node agent"
-    echo "${RS_AT}" | oras pull "${IMG_REGISTRY_URL}/one-intel-edge/edge-node/deb/node-agent:$VERSION" --password-stdin
-
-    if [ ! -f "${PKGFILE}" ]; then
-        echo "node agent debian could not be downloaded. Aborting installation"
-        exit 1
-    fi
-
-    echo "install node agent"
-    apt-get install -y -o Dpkg::Options::="--force-confnew" "${PKGFILE}"
-
-    echo "remove node agent debian"
-    rm -f "${PKGFILE}"
-
-    echo "wait for node agent and client proxy to start"
-    while true; do
-        http_status=$(curl -s -o /dev/null -w "%{http_code}" "https://localhost:$APT_SOURCE_PROXY_PORT")
-        if [ "$http_status" -eq 200 ]; then
-            echo "Client proxy is active"
-            break
-        else
-            echo "HTTP status code is $http_status. Retrying in 5 seconds..."
-            sleep 5
+        # Check the exit status of curl
+        if [ ! -s "$tempfile" ]; then
+            echo "error in getting Keycloak token"
+            rm "$tempfile"
+            exit 1
         fi
-    done
 
-    echo "setup apt source"
-    curl -kfsSL "https://$APT_SOURCE_URL/edge-node.asc" -H "Authorization: Bearer $RS_AT" -o /etc/apt/trusted.gpg.d/edge-node.asc
-    echo "deb https://localhost:$APT_SOURCE_PROXY_PORT/repository __APT_SRC__ main" | tee /etc/apt/sources.list.d/edge-node.list
+        # Parse the response with jq
+        AT=$(jq -r '.access_token' "$tempfile")
+        rm "$tempfile"
 
-    apt-get update
+        # Get RS token now
+        tempfile=$(mktemp)
+        curl -XGET https://__RELEASE_FQDN__/token -H "Authorization: Bearer $AT" -o "$tempfile"
+
+        if [ ! -s "$tempfile" ]; then
+            echo "error in getting Release Service token"
+            rm "$tempfile"
+            exit 1
+        fi
+
+        RS_AT=$(cat "$tempfile")
+        rm "$tempfile"
+
+        echo "setup oras"
+        ORAS_VERSION="1.1.0"
+        expected_checksum="e09e85323b24ccc8209a1506f142e3d481e6e809018537c6b3db979c891e6ad7"
+        curl -LO "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz"
+        if [ -f "oras_1.1.0_linux_amd64.tar.gz" ]; then
+            actual_checksum=$(sha256sum "oras_1.1.0_linux_amd64.tar.gz" | awk '{print $1}')
+            if [ "$actual_checksum" != "$expected_checksum" ]; then
+                    echo "Checksum mismatch. File may be corrupted."
+                    exit 1
+                fi
+                echo "Checksum verification successful."
+        else
+            echo "Downloaded file does not exist. Aborting installation."
+            exit 1
+        fi
+        mkdir -p oras-install/
+        tar -zxf oras_${ORAS_VERSION}_*.tar.gz -C oras-install/
+        sudo mv oras-install/oras /usr/local/bin/
+        rm -rf oras_${ORAS_VERSION}_*.tar.gz oras-install/
+
+        #Below code is intended to resolve dependencies for MTLS based apt and bypass need for ESP based provisioning
+        #IMPORTANT: If additional new users or groups need to be created by DKAM, they MUST be added after the users and group created below
+        #to avoid those users or groups being assigned to IDs that are reserved. A list of the reserved UID and GID values are below:
+        #
+        #|----------|------------|--------------|
+        #|   Name   | User/Group | Reserverd ID |
+        #|----------|------------|--------------|
+        #|bm-agents |    Group   |      998     |
+        #|node-agent|    User    |      997     |
+        #|promtheus |    User    |      994     |
+        #|----------|------------|--------------|
+
+        groupadd -f bm-agents -g 998 --system
+        id -u node-agent &>/dev/null || useradd node-agent -u 997 --system -g bm-agents
+        id -u prometheus &>/dev/null || useradd prometheus -u 994 --system -g bm-agents
+        id -u platform-update-agent &>/dev/null || useradd platform-update-agent --system -g bm-agents
+        id -u fluent-bit &>/dev/null || useradd fluent-bit --system -g bm-agents -G adm
+        USERNAME="etcd"
+
+        # Check if the etcd already exists
+        if id "$USERNAME" &>/dev/null; then
+            echo "User '$USERNAME' already exists."
+        else
+            # Add the etcd if it doesn't exist
+            useradd -r -c "etcd user" -s /sbin/nologin -M "$USERNAME" -U
+            echo "User '$USERNAME' added successfully."
+        fi
+
+        chmod -R 700 /etc/intel_edge_node/client-credentials
+        chown -R node-agent:bm-agents /etc/intel_edge_node
+
+        echo "node-agent node-agent/onboarding.serviceURL string ${ORCH_I_URL}" | debconf-set-selections
+        echo "node-agent node-agent/auth.accessTokenURL string ${ACCESS_TOKEN_URL}" | debconf-set-selections
+        echo "node-agent node-agent/auth.rsTokenURL string ${RELEASE_TOKEN_URL}" | debconf-set-selections
+        echo "node-agent node-agent/proxy.aptSourceURL string ${APT_SOURCE_URL}" | debconf-set-selections
+        echo "node-agent node-agent/proxy.aptSourceProxyPort string ${APT_SOURCE_PROXY_PORT}" | debconf-set-selections
+        echo "node-agent node-agent/proxy.imgRegistryURL string ${IMG_REGISTRY_URL}" | debconf-set-selections
+        echo "node-agent node-agent/proxy.imgRegistryProxyPort string ${IMG_REGISTRY_PROXY_PORT}" | debconf-set-selections
+
+        echo "Install caddy for node agent..."
+
+        echo "download caddy deb package..."
+        CADDY_VERSION="caddy-VERSION"
+        CADDY_PKGFILE="./caddy_${CADDY_VERSION}_linux_amd64.deb"
+        echo "${RS_AT}" | oras pull "${IMG_REGISTRY_URL}/one-intel-edge/edge-node/deb/caddy:$CADDY_VERSION" --password-stdin
+
+        if [ ! -f "${CADDY_PKGFILE}" ]; then
+            echo "caddy debian package could not be downloaded. Aborting installation"
+            exit 1
+        fi
+
+        echo "install caddy"
+        apt-get install -y "${CADDY_PKGFILE}"
+
+        echo "remove caddy debian"
+        rm -f "${CADDY_PKGFILE}"
+
+        echo "Install node agent..."
+        echo "download node agent..."
+        VERSION="node-agent-VERSION"
+        echo $VERSION
+        PKGFILE="./node-agent_${VERSION}_amd64.deb"
+
+        echo "download node agent"
+        echo "${RS_AT}" | oras pull "${IMG_REGISTRY_URL}/one-intel-edge/edge-node/deb/node-agent:$VERSION" --password-stdin
+
+        if [ ! -f "${PKGFILE}" ]; then
+            echo "node agent debian could not be downloaded. Aborting installation"
+            exit 1
+        fi
+
+        echo "install node agent"
+        apt-get install -y -o Dpkg::Options::="--force-confnew" "${PKGFILE}"
+
+        echo "remove node agent debian"
+        rm -f "${PKGFILE}"
+
+        echo "wait for node agent and client proxy to start"
+        while true; do
+            http_status=$(curl -s -o /dev/null -w "%{http_code}" "https://localhost:$APT_SOURCE_PROXY_PORT")
+            if [ "$http_status" -eq 200 ]; then
+                echo "Client proxy is active"
+                break
+            else
+                echo "HTTP status code is $http_status. Retrying in 5 seconds..."
+                sleep 5
+            fi
+        done
+
+        echo "setup apt source"
+        curl -kfsSL "https://$APT_SOURCE_URL/edge-node.asc" -H "Authorization: Bearer $RS_AT" -o /etc/apt/trusted.gpg.d/edge-node.asc
+        echo "deb https://localhost:$APT_SOURCE_PROXY_PORT/repository __APT_SRC__ main" | tee /etc/apt/sources.list.d/edge-node.list
+
+        apt-get update
+        echo "install_node_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 
 # 8. Install Cluster Agent
 install_cluster_agent(){
-echo "Install Cluster agent..."
-VERSION="cluster-agent-VERSION"
-echo $VERSION
-apt-get update
-echo "cluster-agent cluster-agent/cluster-orchestrator-url string ${ORCH_C_URL}" | debconf-set-selections
-apt-get install -y -o Dpkg::Options::="--force-confnew" cluster-agent="$VERSION"
-systemctl status -l --no-pager cluster-agent
+    if grep -q "install_cluster_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_cluster_agent"
+    else
+        echo "Install Cluster agent..."
+        VERSION="cluster-agent-VERSION"
+        echo $VERSION
+        apt-get update
+        echo "cluster-agent cluster-agent/cluster-orchestrator-url string ${ORCH_C_URL}" | debconf-set-selections
+        apt-get install -y -o Dpkg::Options::="--force-confnew" cluster-agent="$VERSION"
+        systemctl status -l --no-pager cluster-agent
+        echo "install_cluster_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 # 9. Install Hardware Discovery Agent
 install_hardware_discovery_agent(){
-echo "Install Hardware discovery agent..."
-VERSION="hardware-discovery-agent-VERSION"
-echo $VERSION 
-apt-get update
-echo "hardware-discovery-agent hardware-discovery-agent/onboarding.serviceURL string ${ORCH_I_URL}" | debconf-set-selections
-apt-get install -y -o Dpkg::Options::="--force-confnew" hardware-discovery-agent="$VERSION"
-systemctl status -l --no-pager hardware-discovery-agent
+    if grep -q "install_hardware_discovery_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_hardware_discovery_agent"
+    else
+        echo "Install Hardware discovery agent..."
+        VERSION="hardware-discovery-agent-VERSION"
+        echo $VERSION 
+        apt-get update
+        echo "hardware-discovery-agent hardware-discovery-agent/onboarding.serviceURL string ${ORCH_I_URL}" | debconf-set-selections
+        apt-get install -y -o Dpkg::Options::="--force-confnew" hardware-discovery-agent="$VERSION"
+        systemctl status -l --no-pager hardware-discovery-agent
+        echo "install_hardware_discovery_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 # 10. Install Platform Observability Agent
 install_platform_observability_agent(){
-echo "install platform-observability-agent"
-VERSION="platform-observability-agent-VERSION"
-echo $VERSION
-apt-get update
-echo "platform-observability-agent platform-observability-agent/host string $ORCH_PLATFORM_OBSERVABILITY_HOST" | debconf-set-selections
-echo "platform-observability-agent platform-observability-agent/port string $ORCH_PLATFORM_OBSERVABILITY_PORT" | debconf-set-selections
-echo "platform-observability-agent platform-observability-agent/metrics-host string $OBSERVABILITY_METRICS_HOST" | debconf-set-selections
-echo "platform-observability-agent platform-observability-agent/metrics-port string $OBSERVABILITY_METRICS_PORT" | debconf-set-selections
-apt-get install -y -o Dpkg::Options::="--force-confnew" platform-observability-agent="$VERSION"
-systemctl status -l --no-pager platform-observability-logging platform-observability-metrics platform-observability-collector
+    if grep -q "install_platform_observability_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_platform_observability_agent"
+    else
+        echo "install platform-observability-agent"
+        VERSION="platform-observability-agent-VERSION"
+        echo $VERSION
+        apt-get update
+        echo "platform-observability-agent platform-observability-agent/host string $ORCH_PLATFORM_OBSERVABILITY_HOST" | debconf-set-selections
+        echo "platform-observability-agent platform-observability-agent/port string $ORCH_PLATFORM_OBSERVABILITY_PORT" | debconf-set-selections
+        echo "platform-observability-agent platform-observability-agent/metrics-host string $OBSERVABILITY_METRICS_HOST" | debconf-set-selections
+        echo "platform-observability-agent platform-observability-agent/metrics-port string $OBSERVABILITY_METRICS_PORT" | debconf-set-selections
+        apt-get install -y -o Dpkg::Options::="--force-confnew" platform-observability-agent="$VERSION"
+        systemctl status -l --no-pager platform-observability-logging platform-observability-metrics platform-observability-collector
+        echo "install_platform_observability_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 # 11. Install TRTL
 install_trtl(){
-echo "Install TRTL..."
-apt-get update
-VERSION="trtl-VERSION"
-echo $VERSION
-apt-get -y install trtl="$VERSION"
+    if grep -q "install_trtl done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_trtl"
+    else
+        echo "Install TRTL..."
+        apt-get update
+        VERSION="trtl-VERSION"
+        echo $VERSION
+        apt-get -y install trtl="$VERSION"
+        echo "install_trtl done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 # 12. Install INBM Cloudadapter Agent
 install_inbm_cloudadapter_agent(){
-echo "Install inbm-cloudadapter-agent..."
-apt-get update
-VERSION="inbm-cloudadapter-agent-VERSION"
-echo $VERSION
-apt-get -y install inbm-cloudadapter-agent="$VERSION"
+    if grep -q "install_inbm_cloudadapter_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_inbm_cloudadapter_agent"
+    else
+        echo "Install inbm-cloudadapter-agent..."
+        apt-get update
+        VERSION="inbm-cloudadapter-agent-VERSION"
+        echo $VERSION
+        apt-get -y install inbm-cloudadapter-agent="$VERSION"
+        echo "install_inbm_cloudadapter_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 
 }
 
 # 13. Install INBM Dispatcher Agent
 install_inbm_dispatcher_agent(){
-echo "Install inbm-dispatcher-agent..."
-apt-get update
-VERSION="inbm-dispatcher-agent-VERSION"
-echo $VERSION
-apt-get -y install inbm-dispatcher-agent="$VERSION"
+    if grep -q "install_inbm_dispatcher_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_inbm_dispatcher_agent"
+    else
+        echo "Install inbm-dispatcher-agent..."
+        apt-get update
+        VERSION="inbm-dispatcher-agent-VERSION"
+        echo $VERSION
+        apt-get -y install inbm-dispatcher-agent="$VERSION"
+        echo "install_inbm_dispatcher_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 
 }
 
 # 14. Install INBM Configuration Agent
 install_inbm_configuration_agent(){
-echo "Install inbm-configuration-agent..."
-apt-get update
-VERSION="inbm-configuration-agent-VERSION"
-echo $VERSION
-apt-get -y install inbm-configuration-agent="$VERSION"
+    if grep -q "install_inbm_configuration_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_inbm_configuration_agent"
+    else
+        echo "Install inbm-configuration-agent..."
+        apt-get update
+        VERSION="inbm-configuration-agent-VERSION"
+        echo $VERSION
+        apt-get -y install inbm-configuration-agent="$VERSION"
+        echo "install_inbm_configuration_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 
 }
 
 # 15. Install INBM Telemetry Agent
 install_inbm_telemetry_agent(){
-echo "Install inbm-telemetry-agent..."
-apt-get update
-VERSION="inbm-telemetry-agent-VERSION"
-echo $VERSION
-apt-get -y install inbm-telemetry-agent="$VERSION"
-
+    if grep -q "install_inbm_telemetry_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_inbm_telemetry_agent"
+    else
+        echo "Install inbm-telemetry-agent..."
+        apt-get update
+        VERSION="inbm-telemetry-agent-VERSION"
+        echo $VERSION
+        apt-get -y install inbm-telemetry-agent="$VERSION"
+        echo "install_inbm_telemetry_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 # 16. Install INBM Diagnostic Agent
 install_inbm_diagnostic_agent(){
-echo "Install inbm-diagnostic-agent..."
-apt-get update
-VERSION="inbm-diagnostic-agent-VERSION"
-echo $VERSION
-apt-get -y install inbm-diagnostic-agent="$VERSION"
-
+    if grep -q "install_inbm_diagnostic_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_inbm_diagnostic_agent"
+    else
+        echo "Install inbm-diagnostic-agent..."
+        apt-get update
+        VERSION="inbm-diagnostic-agent-VERSION"
+        echo $VERSION
+        apt-get -y install inbm-diagnostic-agent="$VERSION"
+        echo "install_inbm_diagnostic_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 # 17. Install MQTT Agent
 install_mqtt(){
-echo "Install mqtt..."
-apt-get update
-VERSION="mqtt-VERSION"
-echo $VERSION
-apt-get -y install mqtt="$VERSION"
-
+    if grep -q "install_mqtt done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_mqtt"
+    else
+        echo "Install mqtt..."
+        apt-get update
+        VERSION="mqtt-VERSION"
+        echo $VERSION
+        apt-get -y install mqtt="$VERSION"
+        echo "install_mqtt done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 # 18. Install TPM Provision
 install_tpm_provision(){
-echo "Install tpm-provision..."
-apt-get update
-VERSION="tpm-provision-VERSION"
-echo $VERSION
-apt-get -y install tpm-provision="$VERSION"
-
+    if grep -q "install_tpm_provision done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_tpm_provision"
+    else
+        echo "Install tpm-provision..."
+        apt-get update
+        VERSION="tpm-provision-VERSION"
+        echo $VERSION
+        apt-get -y install tpm-provision="$VERSION"
+        echo "install_tpm_provision done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 # 19. Install INBC Program
 install_inbc_program(){
-echo "Install inbc-program..."
-apt-get update
-VERSION="inbc-program-VERSION"
-echo $VERSION
-apt-get -y install inbc-program="$VERSION"
-
+    if grep -q "install_inbc_program done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_inbc_program"
+    else
+        echo "Install inbc-program..."
+        apt-get update
+        VERSION="inbc-program-VERSION"
+        echo $VERSION
+        apt-get -y install inbc-program="$VERSION"
+        echo "install_inbc_program done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 # 20. Install Platform Update Agent
 install_platform_update_agent(){
-echo "Install Platform Update agent..."
-apt-get update
-VERSION="platform-update-agent-VERSION"
-echo $VERSION
+    if grep -q "install_platform_update_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_platform_update_agent"
+    else
+        echo "Install Platform Update agent..."
+        apt-get update
+        VERSION="platform-update-agent-VERSION"
+        echo $VERSION
 
-echo "platform-update-agent platform-update-agent/bmaDebURL string ${RELEASE_SERVER}" | debconf-set-selections
-echo "platform-update-agent platform-update-agent/updateServiceURL string ${MAINTENANCE_MANAGER_URL}" | debconf-set-selections
-apt-get -y install platform-update-agent="$VERSION"
-systemctl status -l --no-pager platform-update-agent
+        echo "platform-update-agent platform-update-agent/bmaDebURL string ${RELEASE_SERVER}" | debconf-set-selections
+        echo "platform-update-agent platform-update-agent/updateServiceURL string ${MAINTENANCE_MANAGER_URL}" | debconf-set-selections
+        apt-get -y install platform-update-agent="$VERSION"
+        systemctl status -l --no-pager platform-update-agent
+        echo "install_platform_update_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 # 21. SRIOV configurations
 install_sriov(){
-sudo sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX="intel_iommu=on iommu=pt pci=realloc console=tty1 console=ttyS0,115200"/' /etc/default/grub
-#Update GRUB
-sudo update-grub
+    if grep -q "install_sriov done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_sriov"
+    else
+        sudo sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX="intel_iommu=on iommu=pt pci=realloc console=tty1 console=ttyS0,115200"/' /etc/default/grub
+        #Update GRUB
+        sudo update-grub
+        echo "install_sriov done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 # 22. Update HWE kernel
 install_HWE_kernel(){
-export DEBIAN_FRONTEND=noninteractive
-sudo apt-get update
-sudo apt-get install -y linux-image-generic linux-headers-generic
+    if grep -q "install_HWE_kernel done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_HWE_kernel"
+    else
+        export DEBIAN_FRONTEND=noninteractive
+        sudo apt-get update
+        sudo apt-get install -y linux-image-generic linux-headers-generic
+        echo "install_HWE_kernel done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 # 23. Install Platform Telemetry Agent
 install_platform_telemetry_agent(){
-echo "install platform-telemetry-agent"
-VERSION="platform-telemetry-agent-VERSION"
-echo $VERSION
-apt-get update
-echo "telemetry-agent telemetry-agent/telemetrymanager.serviceURL string ${TELEMETRY_MANAGER_URL}" | debconf-set-selections
-apt install -y -o Dpkg::Options::="--force-confnew" platform-telemetry-agent="$VERSION"
-systemctl status -l --no-pager platform-telemetry-agent
+    if grep -q "install_platform_telemetry_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_platform_telemetry_agent"
+    else
+        echo "install platform-telemetry-agent"
+        VERSION="platform-telemetry-agent-VERSION"
+        echo $VERSION
+        apt-get update
+        echo "telemetry-agent telemetry-agent/telemetrymanager.serviceURL string ${TELEMETRY_MANAGER_URL}" | debconf-set-selections
+        apt install -y -o Dpkg::Options::="--force-confnew" platform-telemetry-agent="$VERSION"
+        systemctl status -l --no-pager platform-telemetry-agent
+        echo "install_platform_telemetry_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 # 24. Install log rotate
 install_syslogrotate_job(){
+if grep -q "install_syslogrotate_job done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+    echo "Skipping install_syslogrotate_job"
+else
 ##### Managing log rotation
+echo "Install sys log"
 if ! sudo grep -q "cron.ensp" "/etc/crontab"; then
   sudo sed -i '$ d' /etc/crontab
   echo "*/5 *   * * *   root    cd / && run-parts --report /etc/cron.ensp" | sudo tee -a /etc/crontab
@@ -517,10 +623,15 @@ sudo systemctl restart rsyslog.service
 sudo systemctl restart cron.service
 sudo /usr/sbin/logrotate /etc/logrotate.conf
 ##### Managing log rotation
+echo "install_syslogrotate_job done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+fi
 }
 
 # 25. Install log end
 install_syslogrotate_ufw(){
+if grep -q "install_syslogrotate_ufw done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+	echo "Skipping install_syslogrotate_ufw"
+else
 sudo tee /etc/logrotate.d/ufw << 'END'
 /var/log/ufw.log
 {
@@ -540,241 +651,302 @@ END
 
 sudo systemctl restart ufw.service
 sudo ufw logging low
+echo "install_syslogrotate_ufw done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+fi
 }
 
 # 26. Install CA certificate
 install_CA_cert(){
-    echo "$CA_CERT" > /usr/local/share/ca-certificates/orch-ca.crt && update-ca-certificates -f
+    if grep -q "install_CA_cert done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_CA_cert"
+    else
+        echo "$CA_CERT" > /usr/local/share/ca-certificates/orch-ca.crt && update-ca-certificates -f
+        echo "install_CA_cert done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 # 27. Enable netIp
 enable_netipplan() {
-    # New values to update in the config.yaml file
-    new_values="network:
-                  version: 2
-                  renderer: networkd
-                  ethernets:
-                    id0:
-                      match:
-                        name: en*
-                      dhcp4: true"
+    if grep -q "enable_netipplan done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping enable_netipplan"
+    else
+        echo "Enable NetIP"
+        # New values to update in the config.yaml file
+        new_values="network:
+                    version: 2
+                    renderer: networkd
+                    ethernets:
+                        id0:
+                        match:
+                            name: en*
+                        dhcp4: true"
 
 
-    # Update the content of the config.yaml file with new values
-    echo "$new_values" > /etc/netplan/config.yaml
+        # Update the content of the config.yaml file with new values
+        echo "$new_values" > /etc/netplan/config.yaml
 
-    # Apply the changes using the netplan apply command
-    netplan apply
+        # Apply the changes using the netplan apply command
+        netplan apply
 
-    echo "Config.yaml file updated successfully."
-    sed -i '/[Resolve]/d'  /etc/systemd/resolved.conf
-    sed -i '/DNS/d'  /etc/systemd/resolved.conf
-
+        echo "Config.yaml file updated successfully."
+        sed -i '/[Resolve]/d'  /etc/systemd/resolved.conf
+        sed -i '/DNS/d'  /etc/systemd/resolved.conf
+        echo "enable_netipplan done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 # 28. delete the invalid ubuntu boot menu options
 delete_invalid_ubuntu_boot_menuoptions () {
-    echo "Inside boot order change function"
-    present_boot=$(efibootmgr | grep -i "Bootcurrent" | awk '{print $2}')
-    while IFS= read -r boot_part_number; do
-    if [[ "$boot_part_number" = "$present_boot" ]]; then
-            continue;
+    if grep -q "delete_invalid_ubuntu_boot_menuoptions done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping delete_invalid_ubuntu_boot_menuoptions"
     else
-         efibootmgr -b "$boot_part_number" -B
+        echo "Inside boot order change function"
+        present_boot=$(efibootmgr | grep -i "Bootcurrent" | awk '{print $2}')
+        while IFS= read -r boot_part_number; do
+        if [[ "$boot_part_number" = "$present_boot" ]]; then
+                continue;
+        else
+            efibootmgr -b "$boot_part_number" -B
+        fi
+        done < <(efibootmgr | grep -i ubuntu | awk '{print $1}'| cut -c 5-8 )
+        echo "delete_invalid_ubuntu_boot_menuoptions done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
-    done < <(efibootmgr | grep -i ubuntu | awk '{print $1}'| cut -c 5-8 )
 }
 
 # 29. Set kernel configurations
 enable_kernel_config(){
-    sysctl -w vm.overcommit_memory=__OVER_COMMIT_MEMORY__ 
-    sysctl -w kernel.panic=__KERNEL_PANIC__ 
-    sysctl -w kernel.panic_on_oops=__PANIC_ON_OOPS__ 
-    sysctl -w fs.inotify.max_user_instances=__MAX_USER_INSTANCE__
-    echo vm.overcommit_memory=__OVER_COMMIT_MEMORY__ | tee -a /etc/sysctl.conf
-    echo kernel.panic=__KERNEL_PANIC__ | tee -a /etc/sysctl.conf
-    echo kernel.panic_on_oops=__PANIC_ON_OOPS__ | tee -a /etc/sysctl.conf
-    echo fs.inotify.max_user_instances=__MAX_USER_INSTANCE__ | tee -a /etc/sysctl.conf
-    sysctl -p
+    if grep -q "enable_kernel_config done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping enable_kernel_config"
+    else
+        echo "Enable kernel config"
+        sysctl -w vm.overcommit_memory=__OVER_COMMIT_MEMORY__ 
+        sysctl -w kernel.panic=__KERNEL_PANIC__ 
+        sysctl -w kernel.panic_on_oops=__PANIC_ON_OOPS__ 
+        sysctl -w fs.inotify.max_user_instances=__MAX_USER_INSTANCE__
+        echo vm.overcommit_memory=__OVER_COMMIT_MEMORY__ | tee -a /etc/sysctl.conf
+        echo kernel.panic=__KERNEL_PANIC__ | tee -a /etc/sysctl.conf
+        echo kernel.panic_on_oops=__PANIC_ON_OOPS__ | tee -a /etc/sysctl.conf
+        echo fs.inotify.max_user_instances=__MAX_USER_INSTANCE__ | tee -a /etc/sysctl.conf
+        sysctl -p
+        echo "enable_kernel_config done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 # 30. Enable NTP configuration
 install_NTP(){
-    apt-get update
-    apt-get install -y systemd-timesyncd
-    cp /etc/ntp.conf /etc/ntp.conf.bak
-    cp /etc/systemd/timesyncd.conf /etc/systemd/timesyncd.conf.bak
-    ntpServers=__NTP_SERVERS__
-    timeServers="NTP="
-    IFS=',' read -ra servers <<< "$ntpServers"
-    for server in "${servers[@]}"; do
-        if ! grep -q "^server $server" /etc/ntp.conf; then
-            echo "server $server" | sudo tee -a /etc/ntp.conf > /dev/null
-        fi
-        timeServers="$timeServers $server"
-    done
-    sed  's/.*#NTP=*./'"$timeServers"'/g' /etc/systemd/timesyncd.conf | sudo tee /etc/systemd/timesyncd.conf >/dev/null
-    ufw allow 123/udp 
-    service ntp reload
-    systemctl restart systemd-timesyncd.service
-    timedatectl set-ntp true
-    systemctl status systemd-timesyncd.service
+    if grep -q "install_NTP done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_NTP"
+    else
+        echo "Install NTP"
+        apt-get update
+        apt-get install -y systemd-timesyncd
+        cp /etc/ntp.conf /etc/ntp.conf.bak
+        cp /etc/systemd/timesyncd.conf /etc/systemd/timesyncd.conf.bak
+        ntpServers=__NTP_SERVERS__
+        timeServers="NTP="
+        IFS=',' read -ra servers <<< "$ntpServers"
+        for server in "${servers[@]}"; do
+            if ! grep -q "^server $server" /etc/ntp.conf; then
+                echo "server $server" | sudo tee -a /etc/ntp.conf > /dev/null
+            fi
+            timeServers="$timeServers $server"
+        done
+        sed  's/.*#NTP=*./'"$timeServers"'/g' /etc/systemd/timesyncd.conf | sudo tee /etc/systemd/timesyncd.conf >/dev/null
+        ufw allow 123/udp 
+        service ntp reload
+        systemctl restart systemd-timesyncd.service
+        timedatectl set-ntp true
+        systemctl status systemd-timesyncd.service
+        echo "install_NTP done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 # 31. Disable unattended upgrades
 disable_unattended_upgrade(){
-config_file="/etc/apt/apt.conf.d/20auto-upgrades"
-if [ -f "$config_file" ]; then
-    sed -i 's/APT::Periodic::Update-Package-Lists "1";/APT::Periodic::Update-Package-Lists "0";/' "$config_file"
-    sed -i 's/APT::Periodic::Unattended-Upgrade "1";/APT::Periodic::Unattended-Upgrade "0";/' "$config_file"
-    echo "APT::Periodic::Update-Package-Lists set to \"0\" in $config_file"
-else
-    echo "Error: $config_file does not exist."
-    exit 1
-fi
-apt remove -y unattended-upgrades
+    if grep -q "disable_unattended_upgrade done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping disable_unattended_upgrade"
+    else
+    echo "Disable unattended upgrade"
+        config_file="/etc/apt/apt.conf.d/20auto-upgrades"
+        if [ -f "$config_file" ]; then
+            sed -i 's/APT::Periodic::Update-Package-Lists "1";/APT::Periodic::Update-Package-Lists "0";/' "$config_file"
+            sed -i 's/APT::Periodic::Unattended-Upgrade "1";/APT::Periodic::Unattended-Upgrade "0";/' "$config_file"
+            echo "APT::Periodic::Update-Package-Lists set to \"0\" in $config_file"
+        else
+            echo "Error: $config_file does not exist."
+            exit 1
+        fi
+        apt remove -y unattended-upgrades
+        echo "disable_unattended_upgrade done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 # 32. Install License Agent
 install_license_agent(){
-echo "Install License agent..."
-VERSION="license-agent-VERSION"
-echo $VERSION
-apt-get update
-echo " license-agent license-agent/customer.id string 12139414" | debconf-set-selections
-echo "license-agent license-agent/serviceURL string ${LICENSE_MANAGER_URL}" | debconf-set-selections
-apt-get install -y -o Dpkg::Options::="--force-confnew" license-agent="$VERSION"
-systemctl status -l --no-pager license-agent
+    if grep -q "install_license_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_license_agent"
+    else
+        echo "Install License agent..."
+        VERSION="license-agent-VERSION"
+        echo $VERSION
+        apt-get update
+        echo " license-agent license-agent/customer.id string 12139414" | debconf-set-selections
+        echo "license-agent license-agent/serviceURL string ${LICENSE_MANAGER_URL}" | debconf-set-selections
+        apt-get install -y -o Dpkg::Options::="--force-confnew" license-agent="$VERSION"
+        systemctl status -l --no-pager license-agent
+        echo "install_license_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 enable_inactive_boot_numbers(){
-echo "Activating inactive boot numbers..."
-while IFS= read -r boot_part_number; do
-    last_char="${boot_part_number: -1}"
-    # Check if the last character is not an asterisk ,make it activate
-    if [ "$last_char" != "*" ]; then
-        efibootmgr -b "$boot_part_number" -a
+    if grep -q "enable_inactive_boot_numbers done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping enable_inactive_boot_numbers"
+    else
+        echo "Activating inactive boot numbers..."
+        while IFS= read -r boot_part_number; do
+            last_char="${boot_part_number: -1}"
+            # Check if the last character is not an asterisk ,make it activate
+            if [ "$last_char" != "*" ]; then
+                efibootmgr -b "$boot_part_number" -a
+            fi
+        done < <(efibootmgr | grep "Boot" | grep -i -v -E "BootCurrent|BootOrder" | awk '{print $1}' | cut -c 5-9)
+        echo "enable_inactive_boot_numbers done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
-done < <(efibootmgr | grep "Boot" | grep -i -v -E "BootCurrent|BootOrder" | awk '{print $1}' | cut -c 5-9)
 }
 
 #LVM partition 
 create_lvm_partition(){
-disk=$1
-echo "starting the LVM creation for the disk volume $disk"
-#erase the disk data if already presnet
-dd if=/dev/zero of=/dev/"$disk" bs=512 count=100
-echo "successfully deleted the data from the disk" 
+    if grep -q "create_lvm_partition done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping create_lvm_partition"
+    else
+        disk=$1
+        echo "starting the LVM creation for the disk volume $disk"
+        #erase the disk data if already presnet
+        dd if=/dev/zero of=/dev/"$disk" bs=512 count=100
+        echo "successfully deleted the data from the disk" 
 
-#create the partition
-parted -s "/dev/$disk" mklabel gpt mkpart primary 0% 100%
-partprobe
-fdisk -l "/dev/$disk"
+        #create the partition
+        parted -s "/dev/$disk" mklabel gpt mkpart primary 0% 100%
+        partprobe
+        fdisk -l "/dev/$disk"
 
-if [[ "$disk" == *"nvme"* ]]; then
-    part_number=p
-else
-    part_number=""
-fi
-#wipse the crypt luck offset if its created during FDE enabled case
-wipefs -o 0 "/dev/${disk}${part_number}1"
+        if [[ "$disk" == *"nvme"* ]]; then
+            part_number=p
+        else
+            part_number=""
+        fi
+        #wipse the crypt luck offset if its created during FDE enabled case
+        wipefs -o 0 "/dev/${disk}${part_number}1"
 
-#remove previously created lvm if exist
-vgs=$(vgs --noheadings -o vg_name)
-#remove trailing and leading spaces
-vgs=$(echo "$vgs" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-if [ -n "$vgs" ]; then
-    vgremove -f "$vgs"
-    echo "successfully deleted the previous lvm"
-fi
-#remove previously created pv if exist
-pvs=$(pvs --noheadings -o pv_name)
-pvs=$(echo "$pvs" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-if [ -n "$pvs" ]; then
-    pvremove -f "$pvs"
-    echo "successfully deleted the previous pvs"
-fi
+        #remove previously created lvm if exist
+        vgs=$(vgs --noheadings -o vg_name)
+        #remove trailing and leading spaces
+        vgs=$(echo "$vgs" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+        if [ -n "$vgs" ]; then
+            vgremove -f "$vgs"
+            echo "successfully deleted the previous lvm"
+        fi
+        #remove previously created pv if exist
+        pvs=$(pvs --noheadings -o pv_name)
+        pvs=$(echo "$pvs" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+        if [ -n "$pvs" ]; then
+            pvremove -f "$pvs"
+            echo "successfully deleted the previous pvs"
+        fi
 
-#pv create
-if echo "y" | pvcreate "/dev/${disk}${part_number}1"; then
-    echo "Successfuly done pvcreate" 
-else
-    echo "Failure in pvcreate"  
-fi
-#vgcreate
-if echo "y" | vgcreate lvmvg /dev/"${disk}""${part_number}"1; then
-    echo "Successfuly done vgcreate" 
-else
-    echo "Failure in vgcreate" 
-fi
-vgscan
-vgchange -ay
+        #pv create
+        if echo "y" | pvcreate "/dev/${disk}${part_number}1"; then
+            echo "Successfuly done pvcreate" 
+        else
+            echo "Failure in pvcreate"  
+        fi
+        #vgcreate
+        if echo "y" | vgcreate lvmvg /dev/"${disk}""${part_number}"1; then
+            echo "Successfuly done vgcreate" 
+        else
+            echo "Failure in vgcreate" 
+        fi
+        vgscan
+        vgchange -ay
 
-if vgchange -ay; then
-    echo "Successfuly created the logical volume group" 
-else
-    echo "Failure in creating the logical volume group" 
-fi
+        if vgchange -ay; then
+            echo "Successfuly created the logical volume group" 
+        else
+            echo "Failure in creating the logical volume group" 
+        fi
+        echo "create_lvm_partition done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 #LVM partition for secondary disk
 lvm_part_setup_for_secondary_disk(){
+    if grep -q "lvm_part_setup_for_secondary_disk done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping lvm_part_setup_for_secondary_disk"
+    else
+        echo "lvm setup for secondary disk"
+        #check if FDE enabled , if not enabled  do the LVM for the secondary disk
+        if [ ! -L /dev/mapper/rootfs_crypt ]; then
+            
+            echo "FDE not enabled and starting the LVM creation"    
+            #check for NVME && SATA disk types
+            disk_list=$(lsblk -o NAME -n -d | grep -v "loop[0-9]*" | awk '{print $1}')
 
-#check if FDE enabled , if not enabled  do the LVM for the secondary disk
-if [ ! -L /dev/mapper/rootfs_crypt ]; then
-    
-    echo "FDE not enabled and starting the LVM creation"    
-    #check for NVME && SATA disk types
-    disk_list=$(lsblk -o NAME -n -d | grep -v "loop[0-9]*" | awk '{print $1}')
+            for disk_name in $disk_list
+            do
+                #add to disk_list only if its nvme or sata 
+                if [[ "$disk_name" == *"nvme"* ]] || [[ "$disk_name" = *"sd"* ]]; then
 
-    for disk_name in $disk_list
-    do
-        #add to disk_list only if its nvme or sata 
-        if [[ "$disk_name" == *"nvme"* ]] || [[ "$disk_name" = *"sd"* ]]; then
-
-            #exclude the pendrive from device list if its attahced
-            removable=$(lsblk -n -d -o RM "/dev/$disk_name")
-            if [ "$removable" -ne 1 ]; then
-                final_disk_list+=("$disk_name")
-            fi
-        else
-            continue;
-        fi
-    done
-    #do not do lvm creation if only one disk presnet
-    num_disks=${#final_disk_list[@]}
-
-    if [ "$num_disks" -gt 1 ]; then
-        echo "found secondary disk for LVM creation"
-        #find the disk where os not installed for lvm creation
-        rootfs=$(df /boot/efi | awk 'NR==2 {print $1}')
-        if [[ "$rootfs" == *"nvme"* ]]; then
-            os_disk=$(echo "$rootfs" | grep -oE 'nvme[0-9]+n[0-9]+' | head -n 1)
-        fi
-        if [[ "$rootfs" == *"sd"* ]]; then
-            os_disk=$(echo "$rootfs" | grep -oE 'sd[a-z]+' | head -n 1)
-        fi
-        #create lvm for the secondary disk
-        for lvm_disk in "${final_disk_list[@]}"
-        do
-	    #skip for rootfs disk
-            if [[ "$lvm_disk" == "$os_disk" ]]; then
+                    #exclude the pendrive from device list if its attahced
+                    removable=$(lsblk -n -d -o RM "/dev/$disk_name")
+                    if [ "$removable" -ne 1 ]; then
+                        final_disk_list+=("$disk_name")
+                    fi
+                else
                     continue;
-            else
-                 #disk with no rootfs and can be used for the LVM creation
-                 create_lvm_partition "$lvm_disk"
-                 break
+                fi
+            done
+            #do not do lvm creation if only one disk presnet
+            num_disks=${#final_disk_list[@]}
+
+            if [ "$num_disks" -gt 1 ]; then
+                echo "found secondary disk for LVM creation"
+                #find the disk where os not installed for lvm creation
+                rootfs=$(df /boot/efi | awk 'NR==2 {print $1}')
+                if [[ "$rootfs" == *"nvme"* ]]; then
+                    os_disk=$(echo "$rootfs" | grep -oE 'nvme[0-9]+n[0-9]+' | head -n 1)
+                fi
+                if [[ "$rootfs" == *"sd"* ]]; then
+                    os_disk=$(echo "$rootfs" | grep -oE 'sd[a-z]+' | head -n 1)
+                fi
+                #create lvm for the secondary disk
+                for lvm_disk in "${final_disk_list[@]}"
+                do
+                #skip for rootfs disk
+                    if [[ "$lvm_disk" == "$os_disk" ]]; then
+                            continue;
+                    else
+                        #disk with no rootfs and can be used for the LVM creation
+                        create_lvm_partition "$lvm_disk"
+                        break
+                    fi
+                done
             fi
-        done
+        fi
+        echo "lvm_part_setup_for_secondary_disk done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
-fi
 }
 ssh_config(){
-sudo systemctl stop ssh
-sudo systemctl disable ssh
-#remove enabling ssh from ufw
-ufw delete allow ssh &>/dev/null
-ufw reload
+    if grep -q "ssh_config done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping ssh_config"
+    else
+        echo "ENable ssh config"
+        sudo systemctl stop ssh
+        sudo systemctl disable ssh
+        #remove enabling ssh from ufw
+        ufw delete allow ssh &>/dev/null
+        ufw reload
+        echo "ssh_config done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
 #create the lvm for the seconary disk
