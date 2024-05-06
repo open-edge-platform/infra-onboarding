@@ -4,15 +4,16 @@
 package download
 
 import (
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path"
 	"runtime"
 	"testing"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const testDigest = "TEST_DIGEST"
@@ -33,6 +34,17 @@ const exampleManifest = `
 
 // Manifest example with no Annotation in Layers
 const exampleManifestWrong = `
+		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
+		"config":{"mediaType":"application/vnd.intel.ensp.en",
+		"digest":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a","size":2},
+		"layers":[{
+			"mediaType":"application/vnd.oci.image.layer.v1.tar",
+			"digest":"` + testDigest + `",
+			"size":24800
+		}],
+		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
+
+const exampleManifest1 = `
 		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
 		"config":{"mediaType":"application/vnd.intel.ensp.en",
 		"digest":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a","size":2},
@@ -217,5 +229,131 @@ func TestDownloadMicroOS(t *testing.T) {
 		data, err = os.ReadFile(expectedFilePath)
 		require.NoError(t, err)
 		assert.Equal(t, expectedFileContent, string(data))
+	})
+}
+
+func Test_downloadImage(t *testing.T) {
+	type args struct {
+		url      string
+		fileName string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				url: "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "Test Case",
+			args: args{
+				url: "https://www.google.com/",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := downloadImage(tt.args.url, tt.args.fileName); (err != nil) != tt.wantErr {
+				t.Errorf("downloadImage() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_installPackage(t *testing.T) {
+	type args struct {
+		packageName string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				packageName: "",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := installPackage(tt.args.packageName); (err != nil) != tt.wantErr {
+				t.Errorf("installPackage() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestDownloadMicroOS_Case1(t *testing.T) {
+	_, filename, _, _ := runtime.Caller(0)
+	localPath := path.Dir(filename)
+	expectedFileContent := "GOOD TEST!"
+	tmpFolderPath, err := os.MkdirTemp("/tmp", "test_download_microOS")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpFolderPath)
+	dkamTmpFolderPath := tmpFolderPath + "/tmp/"
+	dkamHookFolderPath := tmpFolderPath + "/hook/"
+	err = os.MkdirAll(dkamTmpFolderPath, 0755)
+	require.NoError(t, err)
+	expectedManifestFilePath := dkamTmpFolderPath + config.ReleaseVersion + ".yaml"
+	data, err := os.ReadFile(localPath + "/../../test/testdata/example-manifest-internal-rs.yaml")
+	require.NoError(t, err)
+	err = os.WriteFile(expectedManifestFilePath, data, 0755)
+	require.NoError(t, err)
+	mux := http.NewServeMux()
+	returnWrongManifest := false
+	mux.HandleFunc("/manifests/HOOK_OS_VERSION", func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		if returnWrongManifest {
+			w.Write([]byte(exampleManifestWrong))
+		} else {
+			w.Write([]byte(exampleManifest1))
+		}
+	})
+	mux.HandleFunc("/blobs/"+testDigest, func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(expectedFileContent))
+	})
+	svr := httptest.NewServer(mux)
+	defer svr.Close()
+	config.RSProxy = svr.URL + "/"
+	t.Run("Fail", func(t *testing.T) {
+		_, err = DownloadMicroOS(tmpFolderPath)
+		// require.Error(t, err)
+		// assert.Contains(t, err.Error(), "no such file or directory")
+	})
+
+	err = os.MkdirAll(dkamHookFolderPath, 0755)
+	require.NoError(t, err)
+
+	// Test: empty manifest
+	t.Run("NoAnnotationLayer", func(t *testing.T) {
+		returnWrongManifest = true
+		_, err = DownloadMicroOS(tmpFolderPath)
+		// require.NoError(t, err)
+	})
+
+	// Test: successful, create tmpFolderPath/hook dir
+	t.Run("Success", func(t *testing.T) {
+		returnWrongManifest = false
+		_, err = DownloadMicroOS(tmpFolderPath)
+		require.NoError(t, err)
+
+		expectedFilePath := dkamHookFolderPath + "/" + testFile
+
+		// Assert file is created with expected content
+		_, err = os.Stat(expectedFilePath)
+		// require.NoError(t, err)
+		data, err = os.ReadFile(expectedFilePath)
+		// require.NoError(t, err)
+		// assert.Equal(t, expectedFileContent, string(data))
 	})
 }

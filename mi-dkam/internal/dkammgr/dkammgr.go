@@ -187,3 +187,28 @@ func fileNameFromURL(url string) string {
 	parts := strings.Split(url, "/")
 	return parts[len(parts)-1]
 }
+
+func AccessConfigs() string {
+	ServerAddress := config.ServerAddress
+	ServerAddressDescription := config.ServerAddressDescription
+	Port := config.Port
+	Ubuntuversion := config.Ubuntuversion
+	Arch := config.Arch
+	Release := config.Release
+	ProdHarbor := config.ProdHarbor
+	DevHarbor := config.DevHarbor
+	AuthServer := config.AuthServer
+	ReleaseVersion := config.ReleaseVersion
+	PVC := config.PVC
+	Tag := config.Tag
+	PreintTag := config.PreintTag
+	Artifact := config.Artifact
+	ImageUrl := config.ImageUrl
+	ImageFileName := config.ImageFileName
+	RSProxy := config.RSProxy
+	RSProxyManifest := config.RSProxyManifest
+	OrchCACertificateFile := config.OrchCACertificateFile
+	BootsCaCertificateFile := config.BootsCaCertificateFile
+
+	return ServerAddress + "\n" + ServerAddressDescription + "\n" + Port + "\n" + Ubuntuversion + "\n" + Arch + "\n" + Release + "\n" + ProdHarbor + "\n" + DevHarbor + "\n" + AuthServer + "\n" + ReleaseVersion + "\n" + PVC + "\n" + Tag + "\n" + PreintTag + "\n" + Artifact + "\n" + ImageUrl + "\n" + ImageFileName + "\n" + RSProxy + "\n" + RSProxyManifest + "\n" + OrchCACertificateFile + "\n" + BootsCaCertificateFile
+}

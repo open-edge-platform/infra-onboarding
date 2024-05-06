@@ -4,9 +4,14 @@
 package curation
 
 import (
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func Test_ParseJSONUfwRules(t *testing.T) {
@@ -157,6 +162,42 @@ func Test_GenerateUFWCommand(t *testing.T) {
 			},
 			expectedUfwCommand: "ufw allow in to any port 123 proto udp",
 		},
+		"rule5": {
+			ufwRule: Rule{
+				SourceIp: "kind.internal",
+				Ports:    "",
+				IpVer:    "ipv4",
+				Protocol: "tcp",
+			},
+			expectedUfwCommand: "ufw allow from $(dig +short kind.internal | tail -n1) proto tcp",
+		},
+		"rule6": {
+			ufwRule: Rule{
+				SourceIp: "kind.internal",
+				Ports:    "",
+				IpVer:    "ipv4",
+				Protocol: "",
+			},
+			expectedUfwCommand: "ufw allow from $(dig +short kind.internal | tail -n1)",
+		},
+		"rule7": {
+			ufwRule: Rule{
+				SourceIp: "kind.internal",
+				Ports:    "1234",
+				IpVer:    "ipv4",
+				Protocol: "",
+			},
+			expectedUfwCommand: "ufw allow from $(dig +short kind.internal | tail -n1) to any port 1234",
+		},
+		"rule8": {
+			ufwRule: Rule{
+				SourceIp: "",
+				IpVer:    "",
+				Protocol: "abc",
+				Ports:    "",
+			},
+			expectedUfwCommand: "echo Firewall rule not set 0",
+		},
 	}
 	for tcname, tc := range tests {
 		t.Run(tcname, func(t *testing.T) {
@@ -165,3 +206,449 @@ func Test_GenerateUFWCommand(t *testing.T) {
 		})
 	}
 }
+
+func Test_GetCuratedScript(t *testing.T) {
+	os.Setenv("NETIP", "static")
+	filename, version := GetCuratedScript("profile", "platform")
+
+	// Check if the returned filename matches the expected format
+	expectedFilename := "installer.sh"
+	if filename != expectedFilename {
+		t.Errorf("Expected filename '%s', but got '%s'", expectedFilename, filename)
+	}
+	if len(version) == 0 {
+		t.Errorf("Version not found")
+	}
+	defer func() {
+		os.Unsetenv("NETIP")
+	}()
+}
+
+func Test_GetCuratedScript_Case(t *testing.T) {
+	os.Setenv("MODE", "prod")
+	filename, version := GetCuratedScript("profile", "platform")
+
+	// Check if the returned filename matches the expected format
+	expectedFilename := "installer.sh"
+	if filename != expectedFilename {
+		t.Errorf("Expected filename '%s', but got '%s'", expectedFilename, filename)
+	}
+	if len(version) == 0 {
+		t.Errorf("Version not found")
+	}
+	defer func() {
+		os.Unsetenv("MODE")
+	}()
+}
+
+func Test_GetCuratedScript_Case1(t *testing.T) {
+	os.Setenv("ORCH_CLUSTER", "kind.internal")
+	filename, version := GetCuratedScript("profile", "platform")
+
+	// Check if the returned filename matches the expected format
+	expectedFilename := "installer.sh"
+	if filename != expectedFilename {
+		t.Errorf("Expected filename '%s', but got '%s'", expectedFilename, filename)
+	}
+	if len(version) == 0 {
+		t.Errorf("Version not found")
+	}
+	defer func() {
+		os.Unsetenv("ORCH_CLUSTER")
+	}()
+}
+
+func Test_GetCuratedScript_Case2(t *testing.T) {
+	os.Setenv("SOCKS_PROXY", "proxy")
+	filename, version := GetCuratedScript("profile", "platform")
+
+	// Check if the returned filename matches the expected format
+	expectedFilename := "installer.sh"
+	if filename != expectedFilename {
+		t.Errorf("Expected filename '%s', but got '%s'", expectedFilename, filename)
+	}
+	if len(version) == 0 {
+		t.Errorf("Version not found")
+	}
+	defer func() {
+		os.Unsetenv("SOCKS_PROXY")
+	}()
+}
+
+func Test_GetCuratedScript_Case3(t *testing.T) {
+	originalDir, _ := os.Getwd()
+	result := strings.Replace(originalDir, "curation", "script/tmp", -1)
+	res := filepath.Join(result, "latest-dev.yaml")
+	if err := os.MkdirAll(filepath.Dir(res), 0755); err != nil {
+		t.Fatalf("Failed to create directory: %v", err)
+	}
+	src := strings.Replace(originalDir, "curation", "script/latest-dev.yaml", -1)
+	CopyFile(src, res)
+	os.Setenv("NETIP", "static")
+	filename, version := GetCuratedScript("profile", "platform")
+	expectedFilename := "installer.sh"
+	if filename != expectedFilename {
+		t.Errorf("Expected filename '%s', but got '%s'", expectedFilename, filename)
+	}
+	if len(version) == 0 {
+		t.Errorf("Version not found")
+	}
+	defer func() {
+		os.Unsetenv("NETIP")
+		CopyFile(res, src)
+		os.Remove(res)
+	}()
+}
+
+func CopyFile(src, dst string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+	if err := os.MkdirAll(filepath.Dir(src), 0755); err != nil {
+		return err
+	}
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func Test_copyFile(t *testing.T) {
+	type args struct {
+		src string
+		dst string
+	}
+	wd, _ := os.Getwd()
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				src: "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "Test Case1",
+			args: args{
+				src: wd,
+				dst: "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "Test Case 2",
+			args: args{
+				src: wd,
+				dst: wd + "dummy",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := copyFile(tt.args.src, tt.args.dst); (err != nil) != tt.wantErr {
+				t.Errorf("copyFile() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+	defer func() {
+		os.Remove(wd + "dummy")
+	}()
+}
+
+func TestGetReleaseArtifactList(t *testing.T) {
+	type args struct {
+		filePath string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    Config
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				filePath: "",
+			},
+			want:    Config{},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := GetReleaseArtifactList(tt.args.filePath)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetReleaseArtifactList() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+	}
+}
+
+func TestCreateOverlayScript(t *testing.T) {
+	originalDir, _ := os.Getwd()
+	src := strings.Replace(originalDir, "curation", "script", -1)
+	dir := src + "/Installer"
+	os.MkdirAll(dir, 0755)
+	type args struct {
+		pwd     string
+		profile string
+		MODE    string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				pwd: originalDir,
+			},
+			want: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE); got == tt.want {
+				t.Errorf("CreateOverlayScript() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCreateOverlayScript_Case(t *testing.T) {
+	os.Setenv("FIREWALL_REQ_ALLOW", `{
+		"sourceIp": "000.000.0.000",
+		"ports": "00,000",
+		"ipVer": "0000",
+		"protocol": "000"
+	  }`,
+	)
+	os.Setenv("FIREWALL_CFG_ALLOW", `{
+		"sourceIp": "000.000.0.000",
+		"ports": "00,000",
+		"ipVer": "0000",
+		"protocol": "000"
+	  }`,
+	)
+	originalDir, _ := os.Getwd()
+	src := strings.Replace(originalDir, "curation", "script", -1)
+	dir := src + "/Installer"
+	os.MkdirAll(dir, 0755)
+	type args struct {
+		pwd     string
+		profile string
+		MODE    string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				pwd: originalDir,
+			},
+			want: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE); got == tt.want {
+				t.Errorf("CreateOverlayScript() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+	defer func() {
+		os.Unsetenv("FIREWALL_REQ_ALLOW")
+		os.Unsetenv("FIREWALL_CFG_ALLOW")
+	}()
+}
+
+func TestCreateOverlayScript_Case1(t *testing.T) {
+	os.Setenv("FIREWALL_REQ_ALLOW", `[
+		{
+		  "sourceIp": "000.000.0.000",
+		  "ports": "00,000",
+		  "ipVer": "0000",
+		  "protocol": "0000"
+		}
+	  ]`)
+	os.Setenv("FIREWALL_CFG_ALLOW", `[
+		{
+		  "sourceIp": "000.000.0.000",
+		  "ports": "00,000",
+		  "ipVer": "0000",
+		  "protocol": "0000"
+		}
+	  ]`)
+
+	originalDir, _ := os.Getwd()
+	src := strings.Replace(originalDir, "curation", "script", -1)
+	dir := src + "/Installer"
+	os.MkdirAll(dir, 0755)
+	type args struct {
+		pwd     string
+		profile string
+		MODE    string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				pwd: originalDir,
+			},
+			want: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE); got == tt.want {
+				t.Errorf("CreateOverlayScript() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+	defer func() {
+		os.Unsetenv("FIREWALL_REQ_ALLOW")
+		os.Unsetenv("FIREWALL_CFG_ALLOW")
+	}()
+}
+
+func TestCreateOverlayScript_Case2(t *testing.T) {
+	originalDir, _ := os.Getwd()
+	src := strings.Replace(originalDir, "curation", "script", -1)
+	dir := src + "/Installer"
+	os.MkdirAll(dir, 0755)
+	type args struct {
+		pwd     string
+		profile string
+		MODE    string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				pwd: originalDir,
+			},
+			want: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE); got == tt.want {
+				t.Errorf("CreateOverlayScript() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCreateOverlayScript_Case4(t *testing.T) {
+	os.Setenv("FIREWALL_REQ_ALLOW", `[
+		{
+		  "sourceIp": "000.000.0.000",
+		  "ports": "00,000",
+		  "ipVer": "0000",
+		  "protocol": "0000"
+		}
+	  ]`)
+	os.Setenv("FIREWALL_CFG_ALLOW", `[
+		{
+		  "sourceIp": "000.000.0.000",
+		  "ports": "00,000",
+		  "ipVer": "0000",
+		  "protocol": "0000"
+		}
+	  ]`)
+
+	originalDir, _ := os.Getwd()
+	src := strings.Replace(originalDir, "curation", "script", -1)
+	dir := src + "/Installer"
+	os.MkdirAll(dir, 0755)
+	type args struct {
+		pwd     string
+		profile string
+		MODE    string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				pwd: originalDir,
+			},
+			want: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE); got == tt.want {
+				t.Errorf("CreateOverlayScript() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+	defer func() {
+		os.Unsetenv("FIREWALL_REQ_ALLOW")
+		os.Unsetenv("FIREWALL_CFG_ALLOW")
+	}()
+}
+
+func TestCreateOverlayScript_Case3(t *testing.T) {
+	originalDir, _ := os.Getwd()
+	src := strings.Replace(originalDir, "curation", "script", -1)
+	dir := src + "/Installer"
+	os.MkdirAll(dir, 0755)
+	type args struct {
+		pwd     string
+		profile string
+		MODE    string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				pwd: originalDir,
+			},
+			want: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE); got == tt.want {
+				t.Errorf("CreateOverlayScript() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
