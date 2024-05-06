@@ -397,6 +397,27 @@ func (c *OnboardingInventoryClient) SetHostStatus(ctx context.Context, hostID st
 	})
 }
 
+func (c *OnboardingInventoryClient) SetHostStatusDetail(ctx context.Context,
+	hostID, statusDetail string, onboardingStatus inv_status.ResourceStatus,
+) error {
+	updateHost := &computev1.HostResource{
+		ResourceId:                hostID,
+		ProviderStatusDetail:      statusDetail, // report legacy status details as provider status
+		OnboardingStatus:          onboardingStatus.Status,
+		OnboardingStatusIndicator: onboardingStatus.StatusIndicator,
+		OnboardingStatusTimestamp: uint64(time.Now().Unix()),
+	}
+
+	zlog.Info().Msgf("Updateing host status %v", updateHost)
+
+	return c.UpdateInvResourceFields(ctx, updateHost, []string{
+		computev1.HostResourceFieldProviderStatusDetail,
+		computev1.HostResourceFieldOnboardingStatus,
+		computev1.HostResourceFieldOnboardingStatusIndicator,
+		computev1.HostResourceFieldOnboardingStatusTimestamp,
+	})
+}
+
 func (c *OnboardingInventoryClient) DeleteHostResource(ctx context.Context, resourceID string) error {
 	h := &computev1.HostResource{
 		ResourceId:   resourceID,

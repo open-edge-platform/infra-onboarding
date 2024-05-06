@@ -11,6 +11,8 @@ import (
 )
 
 var (
+	LegacyHostStatusDeleting = "Deleting"
+
 	// resource statuses for Instance.
 	ProvisioningStatusUnknown    = inv_status.New("Unknown", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED)
 	ProvisioningStatusInProgress = inv_status.New("Provisioning In Progress",
@@ -29,8 +31,18 @@ var (
 	OnboardingStatusDone           = inv_status.New("Onboarded", statusv1.StatusIndication_STATUS_INDICATION_IDLE)
 	OnboardingStatusFailed         = inv_status.New("Error", statusv1.StatusIndication_STATUS_INDICATION_ERROR)
 	AuthorizationStatusInvalidated = inv_status.New("Invalidated", statusv1.StatusIndication_STATUS_INDICATION_IDLE)
+
+	DeletingStatus = inv_status.New("Deleting", statusv1.StatusIndication_STATUS_INDICATION_IN_PROGRESS)
 )
 
 func WithDetails(status inv_status.ResourceStatus, details string) inv_status.ResourceStatus {
 	return inv_status.New(fmt.Sprintf("%s: %s", status.Status, details), status.StatusIndicator)
+}
+
+func LegacyHostStatusDeletingWithDetails(detail string) string {
+	return fmt.Sprintf("%s: %s", LegacyHostStatusDeleting, detail)
+}
+
+func ModernHostStatusDeletingWithDetails(detail string) inv_status.ResourceStatus {
+	return inv_status.New(LegacyHostStatusDeletingWithDetails(detail), statusv1.StatusIndication_STATUS_INDICATION_IN_PROGRESS)
 }

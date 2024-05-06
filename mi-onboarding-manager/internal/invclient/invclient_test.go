@@ -837,6 +837,73 @@ func TestOnboardingInventoryClient_SetHostStatus(t *testing.T) {
 	}
 }
 
+func TestOnboardingInventoryClient_SetHostStatusDetail(t *testing.T) {
+	CreateOnboardingClientForTesting(t)
+	invClient := OnboardingTestClient
+
+	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+
+	type args struct {
+		hostID       string
+		statusDetail string
+		status       inv_status.ResourceStatus
+	}
+	tests := []struct {
+		name  string
+		args  args
+		valid bool
+	}{
+		{
+			name: "Success",
+			args: args{
+				hostID:       host.GetResourceId(),
+				statusDetail: "some detail",
+				status:       om_status.DeletingStatus,
+			},
+			valid: true,
+		},
+		{
+			name: "Failed_NotFound",
+			args: args{
+				hostID: "host-12345678",
+			},
+			valid: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			timeBeforeUpdate := time.Now().Unix()
+			err := invClient.SetHostStatusDetail(ctx, tt.args.hostID, tt.args.statusDetail, tt.args.status)
+			if err != nil {
+				if tt.valid {
+					t.Errorf("Failed: %s", err)
+					t.FailNow()
+				}
+			} else {
+				if !tt.valid {
+					t.Errorf("Succeeded but should have failed")
+					t.FailNow()
+				}
+			}
+
+			// only get/delete if valid test and hasn't failed otherwise may segfault
+			if !t.Failed() && tt.valid {
+				hostInv, err := invClient.GetHostResourceByUUID(ctx, host.Uuid)
+				require.NoError(t, err)
+				require.NotNil(t, hostInv)
+
+				assert.Equal(t, tt.args.statusDetail, hostInv.GetProviderStatusDetail())
+				assert.Equal(t, tt.args.status.Status, hostInv.GetOnboardingStatus())
+				assert.Equal(t, tt.args.status.StatusIndicator, hostInv.GetOnboardingStatusIndicator())
+				assert.LessOrEqual(t, uint64(timeBeforeUpdate), hostInv.GetOnboardingStatusTimestamp())
+			}
+		})
+	}
+}
+
 func TestOnboardingInventoryClient_CreateInstanceResource(t *testing.T) {
 	type fields struct {
 		Client  client.InventoryClient

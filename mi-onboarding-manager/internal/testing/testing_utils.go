@@ -58,6 +58,7 @@ func AssertHost(
 	expectedDesiredState computev1.HostState,
 	expectedCurrentState computev1.HostState,
 	expectedLegacyStatus computev1.HostStatus,
+	expectedProviderStatusDetail string,
 	expectedHostStatus inv_status.ResourceStatus,
 ) {
 	tb.Helper()
@@ -72,8 +73,23 @@ func AssertHost(
 	assert.Equal(tb, expectedCurrentState, host.GetCurrentState())
 	//nolint:staticcheck // legacy host status will be deprecated post-24.03.
 	assert.Equal(tb, expectedLegacyStatus, host.GetLegacyHostStatus())
+	//nolint:staticcheck // this field will be deprecated soon
+	assert.Equal(tb, expectedProviderStatusDetail, host.GetProviderStatusDetail())
 	assert.Equal(tb, expectedHostStatus.Status, host.GetHostStatus())
 	assert.Equal(tb, expectedHostStatus.StatusIndicator, host.GetHostStatusIndicator())
+}
+
+func AssertHostOnboardingStatus(tb testing.TB, resID string, expectedOnboardingStatus inv_status.ResourceStatus) {
+	tb.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	gresp, err := inv_testing.TestClients[inv_testing.APIClient].Get(ctx, resID)
+	require.NoError(tb, err)
+	host := gresp.GetResource().GetHost()
+	assert.Equal(tb, expectedOnboardingStatus.Status, host.GetOnboardingStatus())
+	assert.Equal(tb, expectedOnboardingStatus.StatusIndicator, host.GetOnboardingStatusIndicator())
 }
 
 func AssertInstance(

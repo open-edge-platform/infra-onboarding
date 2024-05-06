@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -50,7 +52,92 @@ func TestMain(m *testing.M) {
 	os.Exit(run)
 }
 
-func TestReconcileHost(t *testing.T) {
+func TestHostReconcileDeauthorization(t *testing.T) {
+	currAuthServiceFactory := auth.AuthServiceFactory
+	currFlagDisableCredentialsManagement := *common.FlagDisableCredentialsManagement
+	defer func() {
+		auth.AuthServiceFactory = currAuthServiceFactory
+		*common.FlagDisableCredentialsManagement = currFlagDisableCredentialsManagement
+	}()
+
+	*common.FlagDisableCredentialsManagement = false
+	auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(false, false, true)
+
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+
+	hostReconciler := NewHostReconciler(om_testing.InvClient, true)
+	require.NotNil(t, hostReconciler)
+
+	hostController := rec_v2.NewController[ResourceID](hostReconciler.Reconcile, rec_v2.WithParallelism(1))
+	// do not Stop() to avoid races, should be safe in tests
+
+	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+
+	hostID := host.GetResourceId()
+
+	runReconcilationFunc := func() {
+		select {
+		case ev, ok := <-inv_testing.TestClientsEvents[inv_testing.RMClient]:
+			require.True(t, ok, "No events received")
+			err := hostController.Reconcile(ResourceID(ev.Event.ResourceId))
+			assert.NoError(t, err, "Reconciliation failed")
+		case <-time.After(1 * time.Second):
+			t.Fatalf("No events received within timeout")
+		}
+		time.Sleep(1 * time.Second)
+	}
+
+	runReconcilationFunc()
+	om_testing.AssertHost(t, hostID,
+		computev1.HostState_HOST_STATE_ONBOARDED,
+		computev1.HostState_HOST_STATE_UNSPECIFIED,
+		computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
+		"",
+		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	res := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: &computev1.HostResource{
+				ResourceId:   hostID,
+				DesiredState: computev1.HostState_HOST_STATE_UNTRUSTED,
+			},
+		},
+	}
+	fmk := fieldmaskpb.FieldMask{Paths: []string{computev1.HostResourceFieldDesiredState}}
+	_, err := inv_testing.TestClients[inv_testing.APIClient].Update(ctx, hostID, &fmk, res)
+	require.NoError(t, err)
+
+	runReconcilationFunc()
+
+	// auth service mock should return error, so no success
+	om_testing.AssertHost(t, hostID,
+		computev1.HostState_HOST_STATE_UNTRUSTED,
+		computev1.HostState_HOST_STATE_UNSPECIFIED,
+		computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
+		"",
+		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+
+	auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(false, false, false)
+
+	_, err = inv_testing.TestClients[inv_testing.APIClient].Update(ctx, hostID, &fmk, res)
+	require.NoError(t, err)
+	runReconcilationFunc()
+
+	om_testing.AssertHost(t, hostID,
+		computev1.HostState_HOST_STATE_UNTRUSTED,
+		computev1.HostState_HOST_STATE_UNTRUSTED,
+		computev1.HostStatus_HOST_STATUS_INVALIDATED,
+		"",
+		om_status.AuthorizationStatusInvalidated)
+}
+
+func TestReconcileHostDeletion(t *testing.T) {
 	currAuthServiceFactory := auth.AuthServiceFactory
 	currFlagDisableCredentialsManagement := *common.FlagDisableCredentialsManagement
 	defer func() {
@@ -78,38 +165,42 @@ func TestReconcileHost(t *testing.T) {
 	hostUsb := inv_testing.CreateHostusbNoCleanup(t, host)
 	hostGpu := inv_testing.CreatHostGPUNoCleanup(t, host)
 	nicIP := inv_testing.CreateIPAddress(t, hostNic, false)
+	osRes := inv_testing.CreateOs(t)
+	instance := inv_testing.CreateInstanceNoCleanup(t, host, osRes)
 
 	hostID := host.GetResourceId()
 
 	runReconcilationFunc := func() {
-		select {
-		case ev, ok := <-inv_testing.TestClientsEvents[inv_testing.RMClient]:
-			require.True(t, ok, "No events received")
-			err := hostController.Reconcile(ResourceID(ev.Event.ResourceId))
-			assert.NoError(t, err, "Reconciliation failed")
-		case <-time.After(1 * time.Second):
-			t.Fatalf("No events received within timeout")
+		defer func() {
+			time.Sleep(1 * time.Second)
+		}()
+		for {
+			select {
+			case ev, ok := <-inv_testing.TestClientsEvents[inv_testing.RMClient]:
+				require.True(t, ok, "No events received")
+				resKind, err := util.GetResourceKindFromResourceID(ev.Event.ResourceId)
+				require.NoError(t, err)
+				if resKind != inv_v1.ResourceKind_RESOURCE_KIND_HOST {
+					continue
+				}
+				err = hostController.Reconcile(ResourceID(ev.Event.ResourceId))
+				assert.NoError(t, err, "Reconciliation failed")
+				return
+			case <-time.After(1 * time.Second):
+				t.Fatalf("No events received within timeout")
+			}
 		}
-		time.Sleep(1 * time.Second)
 	}
 
-	runReconcilationFunc()
+	runReconcilationFunc() // CREATED event
 	om_testing.AssertHost(t, hostID,
 		computev1.HostState_HOST_STATE_ONBOARDED,
 		computev1.HostState_HOST_STATE_UNSPECIFIED,
 		computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
+		"",
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
-	// hostnic event
-	<-inv_testing.TestClientsEvents[inv_testing.RMClient]
-	// hoststorage event
-	<-inv_testing.TestClientsEvents[inv_testing.RMClient]
-	// hostusb event
-	<-inv_testing.TestClientsEvents[inv_testing.RMClient]
-	// hostgpu event
-	<-inv_testing.TestClientsEvents[inv_testing.RMClient]
-
-	// try to delete first, should fail to revoke, so state will be unchanged
+	// try to delete first, Instance exists so deletion should fail
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -125,51 +216,21 @@ func TestReconcileHost(t *testing.T) {
 	_, err := inv_testing.TestClients[inv_testing.APIClient].Update(ctx, hostID, &fmk, res)
 	require.NoError(t, err)
 
-	runReconcilationFunc()
+	runReconcilationFunc() // UPDATED event (desired state to DELETED)
+	runReconcilationFunc() // UPDATED event (status update)
 
+	expectedDetails := fmt.Sprintf("waiting on %s deletion", instance.GetResourceId())
 	om_testing.AssertHost(t, hostID,
 		computev1.HostState_HOST_STATE_DELETED,
 		computev1.HostState_HOST_STATE_UNSPECIFIED,
 		computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
+		om_status.LegacyHostStatusDeletingWithDetails(expectedDetails),
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+	om_testing.AssertHostOnboardingStatus(t, hostID, om_status.ModernHostStatusDeletingWithDetails(expectedDetails))
 
-	// untrusted
-	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	inv_testing.HardDeleteInstance(t, instance.GetResourceId())
 
-	res = &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: &computev1.HostResource{
-				ResourceId:   hostID,
-				DesiredState: computev1.HostState_HOST_STATE_UNTRUSTED,
-			},
-		},
-	}
-	_, err = inv_testing.TestClients[inv_testing.APIClient].Update(ctx, hostID, &fmk, res)
-	require.NoError(t, err)
-
-	runReconcilationFunc()
-
-	// auth service mock should return error, so no success
-	om_testing.AssertHost(t, hostID,
-		computev1.HostState_HOST_STATE_UNTRUSTED,
-		computev1.HostState_HOST_STATE_UNSPECIFIED,
-		computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
-		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
-
-	auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(false, false, false)
-
-	_, err = inv_testing.TestClients[inv_testing.APIClient].Update(ctx, hostID, &fmk, res)
-	require.NoError(t, err)
-	runReconcilationFunc()
-
-	om_testing.AssertHost(t, hostID,
-		computev1.HostState_HOST_STATE_UNTRUSTED,
-		computev1.HostState_HOST_STATE_UNTRUSTED,
-		computev1.HostStatus_HOST_STATUS_INVALIDATED,
-		om_status.AuthorizationStatusInvalidated)
-
-	// delete
+	// delete, attempt will fail but check if providerStatusDetail has changed
 	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -181,6 +242,21 @@ func TestReconcileHost(t *testing.T) {
 			},
 		},
 	}
+	_, err = inv_testing.TestClients[inv_testing.APIClient].Update(ctx, hostID, &fmk, res)
+	require.NoError(t, err)
+
+	runReconcilationFunc()
+
+	om_testing.AssertHost(t, hostID,
+		computev1.HostState_HOST_STATE_DELETED,
+		computev1.HostState_HOST_STATE_UNSPECIFIED,
+		computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
+		om_status.LegacyHostStatusDeleting,
+		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+	om_testing.AssertHostOnboardingStatus(t, hostID, om_status.DeletingStatus)
+
+	auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(false, false, false)
+
 	_, err = inv_testing.TestClients[inv_testing.APIClient].Update(ctx, hostID, &fmk, res)
 	require.NoError(t, err)
 

@@ -5,6 +5,7 @@ package reconcilers
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	rec_v2 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go/pkg/controller/v2"
@@ -86,11 +87,56 @@ func (hr *HostReconciler) reconcileHost(
 	return request.Ack()
 }
 
+func (hr *HostReconciler) checkIfInstanceIsAssociated(ctx context.Context, host *computev1.HostResource) error {
+	if host.GetInstance() != nil {
+		reconcErr := inv_errors.Errorf("Instance %s is still assigned to host %s, waiting for Instance to be deleted first",
+			host.GetInstance().GetResourceId(), host.GetResourceId())
+		zlogHost.Warn().Err(reconcErr).Msg("")
+
+		details := fmt.Sprintf("waiting on %s deletion", host.GetInstance().GetResourceId())
+		err := hr.invClient.SetHostStatusDetail(ctx, host.GetResourceId(),
+			om_status.LegacyHostStatusDeletingWithDetails(details),
+			om_status.ModernHostStatusDeletingWithDetails(details))
+		if err != nil {
+			// log debug message only in the case of failure
+			zlogHost.Debug().Err(err).Msgf("Failed update status detail for host %s", host.GetResourceId())
+		}
+
+		return reconcErr
+	}
+
+	return nil
+}
+
+//nolint:cyclop // complexity is 11
 func (hr *HostReconciler) deleteHost(
 	ctx context.Context,
 	host *computev1.HostResource,
 ) error {
 	zlogHost.Info().Msgf("Deleting host ID %s (set current status Deleted)\n", host.GetResourceId())
+
+	// if a host has still relationship with Instance, do not proceed with deletion.
+	if err := hr.checkIfInstanceIsAssociated(ctx, host); err != nil {
+		return err
+	}
+
+	// We need to set provider status detail to Deleting.
+	// Since we don't have Deleting status, a possible state would be:
+	// - legacy_host_status = RUNNING
+	// - provider_status_detail = "Deleting: ..."
+	// In such a case, UI will show message stored in provider_status_detail,
+	// but if we clear the provider_status_detail field, a RUNNING status will be shown causing a poor UX.
+	// Note that this behavior is valid only for legacy host status,
+	// but we should keep the same behavior with modern statuses - otherwise, UI won't have any modern status to show.
+	//nolint:staticcheck // provider status detail will be deprecated post-24.03.
+	if host.GetProviderStatusDetail() != om_status.LegacyHostStatusDeleting {
+		err := hr.invClient.SetHostStatusDetail(ctx, host.GetResourceId(),
+			om_status.LegacyHostStatusDeleting, om_status.DeletingStatus)
+		if err != nil {
+			// log debug message only in the case of failure
+			zlogHost.Debug().Err(err).Msgf("Failed update status detail for host %s", host.GetResourceId())
+		}
+	}
 
 	// if the current state is Untrusted, host certificates are already revoked
 	if host.GetCurrentState() != computev1.HostState_HOST_STATE_UNTRUSTED {
