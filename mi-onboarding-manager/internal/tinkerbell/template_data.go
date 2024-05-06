@@ -456,9 +456,21 @@ func NewTemplateDataProdBKC(name string, deviceInfo utils.DeviceInfo, enableDI b
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/usr/local/bin/grow_part.sh",
 						"CONTENTS": `#!/bin/bash
-growpart $DEST_DISK 1 
-resize2fs $DEST_DISK$ID 
-touch /usr/local/bin/.grow_part_done`,
+rootfs=$(df /boot/efi | awk 'NR==2 {print $1}')
+if [[ "$rootfs" == *"nvme"* ]]; then
+    os_disk=$(echo "$rootfs" | grep -oE 'nvme[0-9]+n[0-9]+' | head -n 1)
+    part_number=$(df "/" | grep -v "loop[0-9]*"  | awk 'NR==2 {print $1}' | awk -F'p' '{print $2}')
+    part_type="p${part_number}"
+elif [[ "$rootfs" == *"sd"* ]]; then
+   os_disk=$(echo "$rootfs" | grep -oE 'sd[a-z]+' | head -n 1)
+   part_number=$(df "/" | grep -v "loop[0-9]*" | awk 'NR==2 {print $1}' | sed 's/[^0-9]*//g')
+   part_type="${part_number}"
+fi
+growpart "/dev/${os_disk}" "${part_number}"
+resize2fs "/dev/${os_disk}${part_type}"
+if [ $? -eq 0 ]; then
+    touch /usr/local/bin/.grow_part_done
+fi`,
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -606,6 +618,7 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
                 				ExecStartPre=/bin/sleep 30
                 				WorkingDirectory=/usr/local/bin
                 				ExecStart=/usr/local/bin/grow_part.sh
+						Restart=always
 		
 						[Install]
 						WantedBy=multi-user.target`,
