@@ -25,10 +25,24 @@ function match_msg_to_tty_device() {
     setsid bash -c "echo -e '\nSecure Boot Status MATCH\n' <> /dev/ttyS1 >&0 2>&1"
 }
 
+function error_msg_to_tty_device() {
+    setsid -w /usr/sbin/getty -a root -L 115200 $tty vt100 &
+    setsid bash -c "echo -e '\nUnable to read secure boot status\n' <> /dev/tty0 >&0 2>&1"
+    setsid bash -c "echo -e '\nUnable to read secure boot status\n' <> /dev/ttyS0 >&0 2>&1"
+    setsid bash -c "echo -e '\nUnable to read secure boot status\n' <> /dev/ttyS1 >&0 2>&1"
+}
 
 main() {
+	cat /proc/kmsg > /host/sblog.txt &
 	result=$(./main)	
 	echo " output is $result "
+
+	if [ -z "$result" ]; then
+		error_msg_to_tty_device &
+		sleep 1
+		exit 1
+	fi
+
 	if echo $result | grep -q "Mismatch"; then
 		mismatch_msg_to_tty_device &
 		sleep 1
