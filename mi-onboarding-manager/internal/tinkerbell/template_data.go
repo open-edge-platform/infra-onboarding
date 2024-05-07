@@ -355,6 +355,9 @@ func NewTemplateDataProdBKC(name string, deviceInfo utils.DeviceInfo, enableDI b
 					Environment: map[string]string{
 						"SECURITY_FEATURE_FLAG": securityFeatureStr,
 					},
+					Volumes: []string{
+						"/:/host:rw",
+					},
 				},
 				{
 					Name:    ActionStreamUbuntuImage,
