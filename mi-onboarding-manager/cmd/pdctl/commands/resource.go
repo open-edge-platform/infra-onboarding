@@ -291,7 +291,14 @@ func updateInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 			return err
 		}
 
+		// Sanitizing the input by removing the Instance immutable fields
 		fieldSlice := strings.Split(fields, ",")
+		for i, v := range fieldSlice {
+			if v == computev1.InstanceResourceFieldSecurityFeature {
+				fieldSlice = append(fieldSlice[:i], fieldSlice[i+1:]...)
+				break
+			}
+		}
 
 		err = client.UpdateInvResourceFields(ctx, inst, fieldSlice)
 		if err != nil {

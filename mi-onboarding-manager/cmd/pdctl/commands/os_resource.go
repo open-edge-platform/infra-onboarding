@@ -225,8 +225,6 @@ func updateOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 		err = client.UpdateInvResourceFields(cmd.Context(), osRes, []string{
 			osv1.OperatingSystemResourceFieldUpdateSources,
 			osv1.OperatingSystemResourceFieldRepoUrl,
-			osv1.OperatingSystemResourceFieldSha256,
-			osv1.OperatingSystemResourceFieldProfileName,
 		})
 		if err != nil {
 			return err

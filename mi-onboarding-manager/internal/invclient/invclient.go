@@ -343,7 +343,6 @@ func (c *OnboardingInventoryClient) UpdateHostResource(ctx context.Context, host
 		computev1.HostResourceFieldBmcIp,
 		computev1.HostResourceFieldBmcUsername,
 		computev1.HostResourceFieldBmcPassword,
-		computev1.HostResourceFieldUuid,
 		computev1.HostResourceFieldPxeMac,
 		computev1.HostResourceFieldHostname,
 		// other host fields are updated by Host Resource Manager
@@ -471,21 +470,6 @@ func (c *OnboardingInventoryClient) GetInstanceResources(ctx context.Context) ([
 		return nil, err
 	}
 	return util.GetSpecificResourceList[*computev1.InstanceResource](resources)
-}
-
-func (c *OnboardingInventoryClient) UpdateInstanceResource(ctx context.Context,
-	inst *computev1.InstanceResource,
-) error {
-	return c.UpdateInvResourceFields(ctx, inst, []string{
-		computev1.InstanceResourceFieldCurrentState,
-		computev1.InstanceResourceFieldKind,
-		computev1.InstanceResourceFieldStatus,
-		computev1.InstanceResourceFieldStatusDetail,
-		computev1.InstanceResourceFieldVmCpuCores,
-		computev1.InstanceResourceFieldVmStorageBytes,
-		computev1.InstanceResourceFieldVmMemoryBytes,
-		computev1.InstanceResourceFieldName,
-	})
 }
 
 func (c *OnboardingInventoryClient) UpdateInstanceCurrentState(ctx context.Context,

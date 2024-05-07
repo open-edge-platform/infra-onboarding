@@ -34,7 +34,15 @@ var (
 
 	hostResID string
 
-	HostFieldmask = &fieldmaskpb.FieldMask{
+	UpdateHostFieldmask = &fieldmaskpb.FieldMask{
+		Paths: []string{
+			computev1.HostResourceFieldBmcKind,
+			computev1.HostResourceFieldBmcIp,
+			computev1.HostResourceFieldSerialNumber,
+			computev1.HostResourceFieldPxeMac,
+		},
+	}
+	CompareHostFieldmask = &fieldmaskpb.FieldMask{
 		Paths: []string{
 			computev1.HostResourceFieldBmcKind,
 			computev1.HostResourceFieldBmcIp,
@@ -306,7 +314,7 @@ func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeReque
 	}
 
 	doHostUpdate := false
-	isSameHost, err := util.IsSameHost(hostInv, host[0], HostFieldmask)
+	isSameHost, err := util.IsSameHost(hostInv, host[0], CompareHostFieldmask)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("Failed to compare Host resources, continuing to do update anyway")
 		doHostUpdate = true
@@ -314,7 +322,7 @@ func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeReque
 
 	if !isSameHost || doHostUpdate {
 		host[0].ResourceId = hostInv.GetResourceId()
-		err = s.invClient.UpdateInvResourceFields(ctx, host[0], HostFieldmask.Paths)
+		err = s.invClient.UpdateInvResourceFields(ctx, host[0], UpdateHostFieldmask.Paths)
 		if err != nil {
 			zlog.MiSec().MiErr(err).Msgf("UpdateNodes() : UpdateHostResource() Error : %v", err)
 			return nil, err

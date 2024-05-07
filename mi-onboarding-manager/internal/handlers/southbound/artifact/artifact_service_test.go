@@ -1581,7 +1581,10 @@ func TestNodeArtifactService_UpdateNodes_Case1(t *testing.T) {
 	}, nil)
 	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+	hwdata := &pb.HwData{
+		Uuid:           "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+		HostNicDevName: "ethx",
+	}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
@@ -1684,7 +1687,10 @@ func TestNodeArtifactService_UpdateNodes_Case2(t *testing.T) {
 	}, status.Error(codes.NotFound, "Node not found"))
 	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+	hwdata := &pb.HwData{
+		Uuid:           "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+		HostNicDevName: "ethx",
+	}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
@@ -1786,7 +1792,10 @@ func TestNodeArtifactService_UpdateNodes_Case3(t *testing.T) {
 	}, status.Error(codes.NotFound, "Node not found"))
 	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+	hwdata := &pb.HwData{
+		Uuid:           "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+		HostNicDevName: "ethx",
+	}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
@@ -1887,7 +1896,10 @@ func TestNodeArtifactService_UpdateNodes_Case4(t *testing.T) {
 	}, nil)
 	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
-	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+	hwdata := &pb.HwData{
+		Uuid:           "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+		HostNicDevName: "ethx",
+	}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
@@ -1986,7 +1998,10 @@ func TestNodeArtifactService_UpdateNodes_Case5(t *testing.T) {
 	}, status.Error(codes.NotFound, "Node not found"))
 	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+	hwdata := &pb.HwData{
+		Uuid:           "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+		HostNicDevName: "ethx",
+	}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
@@ -2087,7 +2102,10 @@ func TestNodeArtifactService_UpdateNodes_Case6(t *testing.T) {
 	}, nil)
 	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+	hwdata := &pb.HwData{
+		Uuid:           "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+		HostNicDevName: "ethx",
+	}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
@@ -2454,7 +2472,10 @@ func TestNodeArtifactService_UpdateNodes_Case7(t *testing.T) {
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil).Once()
 	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err")).Once()
-	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+	hwdata := &pb.HwData{
+		Uuid:           "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+		HostNicDevName: "ethx",
+	}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}

@@ -1067,48 +1067,6 @@ func TestOnboardingInventoryClient_GetInstanceResources(t *testing.T) {
 	}
 }
 
-func TestOnboardingInventoryClient_UpdateInstanceResource(t *testing.T) {
-	type fields struct {
-		Client  client.InventoryClient
-		Watcher chan *client.WatchEvents
-	}
-	type args struct {
-		ctx  context.Context
-		inst *computev1.InstanceResource
-	}
-	mockClient := &MockInventoryClient{}
-	mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test Case 1",
-			fields: fields{
-				Client: mockClient,
-			},
-			args: args{
-				ctx: context.Background(),
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := &OnboardingInventoryClient{
-				Client:  tt.fields.Client,
-				Watcher: tt.fields.Watcher,
-			}
-			if err := c.UpdateInstanceResource(tt.args.ctx, tt.args.inst); (err != nil) != tt.wantErr {
-				t.Errorf("OnboardingInventoryClient.UpdateInstanceResource() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestOnboardingInventoryClient_DeleteInstanceResource(t *testing.T) {
 	type fields struct {
 		Client  client.InventoryClient

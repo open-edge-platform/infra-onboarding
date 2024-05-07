@@ -8,7 +8,7 @@ go 1.21.9
 
 require (
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.4.7
-	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory v1.2.0
+	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory v1.2.1-0.20240506181240-c3585a96eb98
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
