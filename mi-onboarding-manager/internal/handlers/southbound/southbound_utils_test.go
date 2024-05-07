@@ -36,7 +36,7 @@ var (
 	zlog           = logging.GetLogger("Onboarding-Manager-Southbound-Testing")
 
 	SBHandler        *southbound.SBHandler
-	OMTestClient     pb.NodeArtifactServiceNBClient
+	OMTestClient     pb.NodeArtifactNBServiceClient
 	OMTestClientConn *grpc.ClientConn
 	BufconnLis       *bufconn.Listener
 	InvClient        *invclient.OnboardingInventoryClient
@@ -55,7 +55,7 @@ func createOutgoingContextWithENJWT(t *testing.T) context.Context {
 
 func CreateSouthboundOMClient(target string,
 	bufconnLis *bufconn.Listener,
-) (pb.NodeArtifactServiceNBClient, *grpc.ClientConn, error) {
+) (pb.NodeArtifactNBServiceClient, *grpc.ClientConn, error) {
 	opts := []grpc.DialOption{
 		grpc.WithBlock(),
 	}
@@ -75,7 +75,7 @@ func CreateSouthboundOMClient(target string,
 	if err != nil {
 		return nil, nil, err
 	}
-	southboundClient := pb.NewNodeArtifactServiceNBClient(conn)
+	southboundClient := pb.NewNodeArtifactNBServiceClient(conn)
 
 	return southboundClient, conn, nil
 }

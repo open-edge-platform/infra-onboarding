@@ -367,8 +367,8 @@ type nodeData struct {
 func addNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*nodeData, error) {
 	zlog.Debug().Msgf("PDCTL entry point - Add Host...")
 
-	resp, err := pbinv.NewNodeArtifactServiceNBClient(cc).CreateNodes(ctx,
-		&pbinv.NodeRequest{Payload: []*pbinv.NodeData{node}})
+	resp, err := pbinv.NewNodeArtifactNBServiceClient(cc).CreateNodes(ctx,
+		&pbinv.CreateNodesRequest{Payload: []*pbinv.NodeData{node}})
 	if err != nil {
 		return nil, err
 	}
@@ -381,8 +381,8 @@ func addNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*
 func getNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*nodeData, error) {
 	zlog.Debug().Msgf("PDCTL entry point - Get Host...")
 
-	resp, err := pbinv.NewNodeArtifactServiceNBClient(cc).GetNodes(ctx,
-		&pbinv.NodeRequest{Payload: []*pbinv.NodeData{node}})
+	resp, err := pbinv.NewNodeArtifactNBServiceClient(cc).GetNodes(ctx,
+		&pbinv.GetNodesRequest{Payload: []*pbinv.NodeData{node}})
 	if err != nil {
 		return nil, err
 	}
@@ -395,8 +395,8 @@ func getNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*
 func updateNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*nodeData, error) {
 	zlog.Debug().Msgf("PDCTL entry point - Update Host by ID - INV ...")
 
-	resp, err := pbinv.NewNodeArtifactServiceNBClient(cc).UpdateNodes(ctx,
-		&pbinv.NodeRequest{Payload: []*pbinv.NodeData{node}})
+	resp, err := pbinv.NewNodeArtifactNBServiceClient(cc).UpdateNodes(ctx,
+		&pbinv.UpdateNodesRequest{Payload: []*pbinv.NodeData{node}})
 	if err != nil {
 		return nil, err
 	}
@@ -409,8 +409,8 @@ func updateNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData)
 func deleteNodes(ctx context.Context, cc *grpc.ClientConn, node *pbinv.NodeData) (*nodeData, error) {
 	zlog.Debug().Msgf("PDCTL entry point - Delete host...")
 
-	resp, err := pbinv.NewNodeArtifactServiceNBClient(cc).DeleteNodes(ctx,
-		&pbinv.NodeRequest{Payload: []*pbinv.NodeData{node}})
+	resp, err := pbinv.NewNodeArtifactNBServiceClient(cc).DeleteNodes(ctx,
+		&pbinv.DeleteNodesRequest{Payload: []*pbinv.NodeData{node}})
 	if err != nil {
 		return nil, err
 	}
