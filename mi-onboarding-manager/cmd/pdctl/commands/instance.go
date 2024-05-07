@@ -356,9 +356,9 @@ type artifactData struct {
 func getArtifacts(ctx context.Context, cc *grpc.ClientConn, artifact *pb.ArtifactData) (*artifactData, error) {
 	zlog.Debug().Msgf("Getting the Instance...")
 
-	client := pb.NewNodeArtifactNBServiceClient(cc)
+	client := pb.NewNodeArtifactServiceNBClient(cc)
 
-	resp, err := client.GetArtifacts(ctx, &pb.GetArtifactsRequest{
+	resp, err := client.GetArtifacts(ctx, &pb.ArtifactRequest{
 		Payload: []*pb.ArtifactData{artifact},
 	})
 	if err != nil {
@@ -375,9 +375,9 @@ func getArtifacts(ctx context.Context, cc *grpc.ClientConn, artifact *pb.Artifac
 func createArtifacts(ctx context.Context, cc *grpc.ClientConn, artifact *pb.ArtifactData) (*artifactData, error) {
 	zlog.Debug().Msgf("Creating the Instance...")
 
-	client := pb.NewNodeArtifactNBServiceClient(cc)
+	client := pb.NewNodeArtifactServiceNBClient(cc)
 
-	resp, err := client.CreateArtifacts(ctx, &pb.CreateArtifactsRequest{
+	resp, err := client.CreateArtifacts(ctx, &pb.ArtifactRequest{
 		Payload: []*pb.ArtifactData{artifact},
 	})
 	if err != nil {
@@ -399,11 +399,11 @@ func updateArtifactsByID(
 ) (*artifactData, error) {
 	zlog.Debug().Msgf("Updating the Artifact By ID...")
 
-	client := pb.NewNodeArtifactNBServiceClient(cc)
+	client := pb.NewNodeArtifactServiceNBClient(cc)
 
 	artifact.ArtifactId = artifactID
 
-	resp, err := client.UpdateArtifactsById(ctx, &pb.UpdateArtifactsByIdRequest{
+	resp, err := client.UpdateArtifactsById(ctx, &pb.ArtifactRequest{
 		Payload: []*pb.ArtifactData{artifact},
 	})
 	if err != nil {
@@ -423,9 +423,9 @@ func deleteArtifacts(ctx context.Context,
 ) (*artifactData, error) {
 	zlog.Debug().Msgf("Deleting the Instance...")
 
-	client := pb.NewNodeArtifactNBServiceClient(cc)
+	client := pb.NewNodeArtifactServiceNBClient(cc)
 
-	resp, err := client.DeleteArtifacts(ctx, &pb.DeleteArtifactsRequest{
+	resp, err := client.DeleteArtifacts(ctx, &pb.ArtifactRequest{
 		Payload: []*pb.ArtifactData{artifact},
 	})
 	if err != nil {

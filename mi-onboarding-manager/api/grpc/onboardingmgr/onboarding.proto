@@ -1,59 +1,34 @@
 syntax = "proto3";
 
-package onboardingmgr.v1;
+package onboardingmgr;
 
 option go_package = "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/tree/main/api/grpc/onboardingmgr;onboardingmgr";
 
 //Artifact & Node Endpoints towards Inventory Manager
-service NodeArtifactNBService {
-  rpc CreateArtifacts(CreateArtifactsRequest) returns (CreateArtifactsResponse) {}
+service NodeArtifactServiceNB {
+  rpc CreateArtifacts(ArtifactRequest) returns (ArtifactResponse) {}
 
-  rpc GetArtifacts(GetArtifactsRequest) returns (GetArtifactsResponse) {}
+  rpc GetArtifacts(ArtifactRequest) returns (ArtifactResponse) {}
 
-  rpc UpdateArtifactsById(UpdateArtifactsByIdRequest) returns (UpdateArtifactsByIdResponse) {}
+  rpc UpdateArtifactsById(ArtifactRequest) returns (ArtifactResponse) {}
 
-  rpc DeleteArtifacts(DeleteArtifactsRequest) returns (DeleteArtifactsResponse) {}
+  rpc DeleteArtifacts(ArtifactRequest) returns (ArtifactResponse) {}
 
-  rpc CreateNodes(CreateNodesRequest) returns (CreateNodesResponse) {}
+  rpc CreateNodes(NodeRequest) returns (NodeResponse) {}
 
-  rpc GetNodes(GetNodesRequest) returns (GetNodesResponse) {}
+  rpc GetNodes(NodeRequest) returns (NodeResponse) {}
 
-  rpc UpdateNodes(UpdateNodesRequest) returns (UpdateNodesResponse) {}
+  rpc UpdateNodes(NodeRequest) returns (NodeResponse) {}
 
-  rpc DeleteNodes(DeleteNodesRequest) returns (DeleteNodesResponse) {}
+  rpc DeleteNodes(NodeRequest) returns (NodeResponse) {}
 }
 
-message CreateArtifactsRequest {
-  repeated ArtifactData payload = 1;
+message ArtifactRequest {
+  repeated ArtifactData payload = 1; // Payload data represented as an array or list
 }
 
-message CreateArtifactsResponse {
-  repeated ArtifactData payload = 1;
-}
-
-
-message GetArtifactsRequest {
-  repeated ArtifactData payload = 1;
-}
-
-message GetArtifactsResponse {
-  repeated ArtifactData payload = 1;
-}
-
-message UpdateArtifactsByIdRequest {
-  repeated ArtifactData payload = 1;
-}
-
-message UpdateArtifactsByIdResponse {
-  repeated ArtifactData payload = 1;
-}
-
-message DeleteArtifactsRequest {
-  repeated ArtifactData payload = 1;
-}
-
-message DeleteArtifactsResponse {
-  repeated ArtifactData payload = 1;
+message ArtifactResponse {
+  repeated ArtifactData payload = 1; // Payload data {will be same as request for CREATE/DELETE}.
 }
 
 message ArtifactData {
@@ -61,12 +36,12 @@ message ArtifactData {
   string version = 2; // Version of the artifact
   string platform = 3; // Platform of the artifact
   enum ArtifactCategory {
-    ARTIFACT_CATEGORY_DEFAULT_UNSPECIFIED = 0; // Setting default artifact type getting all artifact
-    ARTIFACT_CATEGORY_BIOS = 1; // BIOS Artifact
-    ARTIFACT_CATEGORY_OS = 2; // OS Artifact
-    ARTIFACT_CATEGORY_APPLICATION = 3; // Application Artifact
-    ARTIFACT_CATEGORY_IMAGE = 4; // Container image Artifact
-    ARTIFACT_CATEGORY_PLATFORM = 5; // Type of platform of the artifact
+    DEFAULT = 0; // Setting default artifact type getting all artifact
+    BIOS = 1; // BIOS Artifact
+    OS = 2; // OS Artifact
+    APPLICATION = 3; // Application Artifact
+    IMAGE = 4; // Container image Artifact
+    PLATFORM = 5; // Type of platform of the artifact
   }
   ArtifactCategory category = 4; // Category of the artifact ex:BIOS,OS etc.,
   string description = 5; // Description of the artifact
@@ -80,8 +55,8 @@ message ArtifactData {
   string release_data = 13; // Release data
   string artifact_id = 14; // Artifact ID generated while creating an artifact. This can be zero if not available during CreateArtifact Call or Batch actions like DeleteAll.
   enum Response {
-    RESPONSE_SUCCESS_UNSPECIFIED = 0; // Success
-    RESPONSE_FAILURE = 1; // Failure
+    SUCCESS = 0; // Success
+    FAILURE = 1; // Failure
   }
   Response result = 15;
 }
@@ -92,39 +67,12 @@ message Supplier {
   string contact = 3; // Contact details of supplier
 }
 
-message CreateNodesRequest {
-  repeated NodeData payload = 1;
+message NodeRequest {
+  repeated NodeData payload = 1; // Payload data
 }
 
-message CreateNodesResponse {
-  repeated NodeData payload = 1;
-}
-
-
-message GetNodesRequest {
-  repeated NodeData payload = 1;
-}
-
-message GetNodesResponse {
-  repeated NodeData payload = 1;
-}
-
-
-message UpdateNodesRequest {
-  repeated NodeData payload = 1;
-}
-
-message UpdateNodesResponse {
-  repeated NodeData payload = 1;
-}
-
-
-message DeleteNodesRequest {
-  repeated NodeData payload = 1;
-}
-
-message DeleteNodesResponse {
-  repeated NodeData payload = 1;
+message NodeResponse {
+  repeated NodeData payload = 1; // Payload data
 }
 
 message NodeData {
@@ -143,8 +91,8 @@ message NodeData {
   string onboarding_status = 12; // Onboarding Status
   string node_id = 13; // Generated Node ID. This field can be left empty for Create or DeleteAll
   enum Response {
-    RESPONSE_SUCCESS_UNSPECIFIED = 0; // Success
-    RESPONSE_FAILURE = 1; // Failure
+    SUCCESS = 0; // Success
+    FAILURE = 1; // Failure
   }
   Response result = 14; //Result
   repeated HwData hwdata = 15;
@@ -162,7 +110,7 @@ message HwData {
   string bmc_ip = 9;
   bool bmc_interface = 10;
   string host_nic_dev_name = 11;
-  uint32 security_feature = 12;
+  uint32 SecurityFeature = 12;
 }
 
 message Proxy {

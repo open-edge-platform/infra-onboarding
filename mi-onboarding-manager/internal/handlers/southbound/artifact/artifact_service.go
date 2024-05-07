@@ -54,7 +54,7 @@ type (
 	}
 
 	NodeArtifactService struct {
-		pb.UnimplementedNodeArtifactNBServiceServer
+		pb.UnimplementedNodeArtifactServiceNBServer
 		invClient *invclient.OnboardingInventoryClient
 		// TODO: remove this later https://jira.devtools.intel.com/browse/LPIO-1829
 		invClientAPI *invclient.OnboardingInventoryClient
@@ -129,7 +129,7 @@ func CopyNodeReqToNodeData(payload []*pb.NodeData) ([]*computev1.HostResource, e
 	return hosts, nil
 }
 
-func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.CreateNodesRequest) (*pb.CreateNodesResponse, error) {
+func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
 	zlog.Info().Msgf("CreateNodes")
 	if s.authEnabled {
 		// checking if JWT contains write permission
@@ -166,7 +166,7 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.CreateNod
 			zlog.MiSec().MiErr(ztErr).Msgf("startZeroTouch error: %v", ztErr)
 			return nil, ztErr
 		}
-		return &pb.CreateNodesResponse{Payload: req.Payload}, nil
+		return &pb.NodeResponse{Payload: req.Payload}, nil
 
 	case err != nil:
 		zlog.MiSec().MiErr(err).Msgf("Create op :Failed CreateNodes() for GUID %s\n", host.Uuid)
@@ -185,10 +185,10 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.CreateNod
 		return nil, err
 	}
 
-	return &pb.CreateNodesResponse{Payload: req.Payload}, nil
+	return &pb.NodeResponse{Payload: req.Payload}, nil
 }
 
-func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.DeleteNodesRequest) (*pb.DeleteNodesResponse, error) {
+func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
 	zlog.Info().Msgf("DeleteNodes")
 	if s.authEnabled {
 		// checking if JWT contains valid claim
@@ -212,7 +212,7 @@ func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.DeleteNod
 	switch {
 	case inv_errors.IsNotFound(err):
 		zlog.MiSec().MiErr(err).Msgf("Delete op : Node Doesn't Exist for GUID %s\n", hostresdata[0].Uuid)
-		return &pb.DeleteNodesResponse{Payload: req.Payload}, nil
+		return &pb.NodeResponse{Payload: req.Payload}, nil
 
 	case err == nil:
 		zlog.Debug().Msgf("Delete op : Node and its Host Resource Already Exist for GUID %s \n", hostresdata[0].Uuid)
@@ -234,10 +234,10 @@ func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.DeleteNod
 		return nil, err
 	}
 
-	return &pb.DeleteNodesResponse{Payload: req.Payload}, nil
+	return &pb.NodeResponse{Payload: req.Payload}, nil
 }
 
-func (s *NodeArtifactService) GetNodes(ctx context.Context, req *pb.GetNodesRequest) (*pb.GetNodesResponse, error) {
+func (s *NodeArtifactService) GetNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
 	zlog.Info().Msgf("GetNodes")
 	if s.authEnabled {
 		if !s.rbac.IsRequestAuthorized(ctx, rbac.GetKey) {
@@ -267,11 +267,11 @@ func (s *NodeArtifactService) GetNodes(ctx context.Context, req *pb.GetNodesRequ
 
 	zlog.Debug().Msgf("HostResource by GetNodes() = %v", hostresget)
 
-	return &pb.GetNodesResponse{Payload: req.Payload}, nil
+	return &pb.NodeResponse{Payload: req.Payload}, nil
 }
 
 //nolint:cyclop // cyclomatic complexity is high due to switch statement and multiple error handling
-func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.UpdateNodesRequest) (*pb.UpdateNodesResponse, error) {
+func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
 	zlog.Info().Msgf("UpdateNodes")
 	if s.authEnabled {
 		// checking if JWT contains write permissions
@@ -324,7 +324,7 @@ func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.UpdateNod
 			"Original Host: %v, Updated Host: %v", hostInv, host[0])
 	}
 
-	return &pb.UpdateNodesResponse{Payload: req.Payload}, nil
+	return &pb.NodeResponse{Payload: req.Payload}, nil
 }
 
 func (s *NodeArtifactService) startZeroTouch(ctx context.Context, hostResID string) error {
