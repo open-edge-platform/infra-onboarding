@@ -29,6 +29,7 @@ import (
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
+	providerv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/provider/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
@@ -61,6 +62,30 @@ func createOsWithArgs(tb testing.TB, doCleanup bool,
 	return osr
 }
 
+func createProviderWithArgs(tb testing.TB, doCleanup bool,
+	resourceId string) (provider *providerv1.ProviderResource) {
+	tb.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	str := "{\"defaultOs\":\"osID\",\"autoProvision\":true,\"customerID\":\"170312\"}"
+	str = strings.Replace(str, "osID", resourceId, 1)
+	provider = &providerv1.ProviderResource{
+		ProviderKind:   providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL,
+		Name:           "fm_onboarding",
+		ApiEndpoint:    "xyz123",
+		ApiCredentials: []string{"abc123"},
+		Config:         str,
+	}
+	resp, err := inv_testing.GetClient(tb, inv_testing.APIClient).Create(ctx,
+		&inv_v1.Resource{Resource: &inv_v1.Resource_Provider{Provider: provider}})
+	require.NoError(tb, err)
+	provider.ResourceId = resp.ResourceId
+	if doCleanup {
+		tb.Cleanup(func() { inv_testing.DeleteResource(tb, provider.ResourceId) })
+	}
+	return provider
+}
+
 func TestReconcileInstance(t *testing.T) {
 	currK8sClientFactory := tinkerbell.K8sClientFactory
 	currFlagEnableDeviceInitialization := *common.FlagDisableCredentialsManagement
@@ -86,7 +111,8 @@ func TestReconcileInstance(t *testing.T) {
 
 	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
 	osRes := createOsWithArgs(t, true)
-	instance := inv_testing.CreateInstanceNoCleanup(t, host, osRes)
+	providerResource := createProviderWithArgs(t, true, osRes.ResourceId)
+	instance := inv_testing.CreateInstanceWithProviderNoCleanup(t, host, osRes, providerResource)
 	instanceID := instance.GetResourceId()
 
 	runReconcilationFunc := func() {
@@ -650,6 +676,7 @@ func TestInstanceReconciler_reconcileInstance(t *testing.T) {
 func Test_convertInstanceToDeviceInfo(t *testing.T) {
 	type args struct {
 		instance *computev1.InstanceResource
+		provider invclient.ProviderConfig
 	}
 	tests := []struct {
 		name    string
@@ -715,7 +742,7 @@ func Test_convertInstanceToDeviceInfo(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			env.ImgType = utils.ImgTypeBkc
-			got, err := convertInstanceToDeviceInfo(tt.args.instance)
+			got, err := convertInstanceToDeviceInfo(tt.args.instance, tt.args.provider)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
 				return

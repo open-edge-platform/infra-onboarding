@@ -25,7 +25,7 @@ func TestWorkflowActionToStatusDetail(t *testing.T) {
 	prodBkcWorkflowWithoutDIData, err := NewTemplateDataProdBKC("test-prod-bkc", utils.DeviceInfo{}, false)
 	require.NoError(t, err)
 
-	prodWorkflowData, err := NewTemplateDataProd("test-prod", "", "", "", "")
+	prodWorkflowData, err := NewTemplateDataProd("test-prod", "", "", "", "", "")
 
 	diWorkflow, err := unmarshalWorkflow(diWorkflowData)
 	require.NoError(t, err)

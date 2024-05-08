@@ -45,6 +45,7 @@ const (
 	ActionWriteClientSecret          = "write-client-secret"
 	ActionWriteHostname              = "write-hostname"
 	ActionWriteEtcHosts              = "Write-Hosts-etc"
+	ActionCustomerID                 = "write-customer-id"
 )
 
 const (
@@ -152,7 +153,7 @@ func tinkActionCredcopyImage(tinkerImageVersion string) string {
 }
 
 //nolint:funlen // May effect the functionality, need to simplify this in future
-func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, tinkerVersion string) ([]byte, error) {
+func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, tinkerVersion, customerID string) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -313,6 +314,19 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
 						"CMD_LINE":            "systemctl enable install-grow-part.service",
+					},
+				},
+				{
+					Name:    ActionCustomerID,
+					Image:   tinkActionCexecImage(tinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":             "ext4",
+						"CHROOT":              "y",
+						"DEFAULT_INTERPRETER": "/bin/sh -c",
+						"CMD_LINE": fmt.Sprintf(
+							"echo 'export EN_CUSTOMER_ID=%s' >> /root/.bashrc",
+							customerID),
 					},
 				},
 				{
@@ -683,6 +697,20 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 				},
 
 				{
+					Name:    ActionCustomerID,
+					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":             "ext4",
+						"CHROOT":              "y",
+						"DEFAULT_INTERPRETER": "/bin/sh -c",
+						"CMD_LINE": fmt.Sprintf(
+							"echo 'export EN_CUSTOMER_ID=%s' >> /root/.bashrc",
+							deviceInfo.CustomerID),
+					},
+				},
+
+				{
 					Name:    ActionFdeEncryption,
 					Image:   tinkActionFdeImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg560,
@@ -831,7 +859,7 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 }
 
 //nolint:funlen // May effect the functionality, need to simplify this in future
-func NewTemplateDataProdMS(name, rootPart, _, hostIP, clientIP, gateway, mac, tinkerVersion string) ([]byte, error) {
+func NewTemplateDataProdMS(name, rootPart, _, hostIP, clientIP, gateway, mac, tinkerVersion, customerID string) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -1169,6 +1197,19 @@ done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )`,
 						"GID":     "0",
 						"MODE":    "0644",
 						"DIRMODE": "0755",
+					},
+				},
+				{
+					Name:    ActionCustomerID,
+					Image:   tinkActionCexecImage(tinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":             "ext4",
+						"CHROOT":              "y",
+						"DEFAULT_INTERPRETER": "/bin/sh -c",
+						"CMD_LINE": fmt.Sprintf(
+							"echo 'export EN_CUSTOMER_ID=%s' >> /root/.bashrc",
+							customerID),
 					},
 				},
 				{

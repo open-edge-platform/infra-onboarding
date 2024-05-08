@@ -5,27 +5,25 @@ package artifact
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inventoryv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
-	provider_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/provider/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/policy/rbac"
 )
 
 const (
-	DefaultTimeout      = 3 * time.Second
-	DefaultProviderName = "fm_onboarding"
+	DefaultTimeout = 3 * time.Second
 )
 
 var (
@@ -54,13 +52,6 @@ var (
 )
 
 type (
-	//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
-	ProviderConfig struct {
-		// the Resource ID of the OS profile
-		DefaultOs     string `json:"defaultOs"`
-		AutoProvision bool   `json:"autoProvision"`
-	}
-
 	NodeArtifactService struct {
 		pb.UnimplementedNodeArtifactServiceNBServer
 		invClient *invclient.OnboardingInventoryClient
@@ -344,44 +335,26 @@ func (s *NodeArtifactService) startZeroTouch(ctx context.Context, hostResID stri
 		return nil
 	}
 
-	// an Instance has been created for the Host, skip
+	// Check if an instance has already been created for the host
 	if host.Instance != nil {
 		zlog.Debug().Msgf("An Instance (%s) is already created for a host %s",
 			host.GetInstance().GetResourceId(), host.GetResourceId())
 		return nil
 	}
 
-	providers, err := s.invClient.GetProviderResources(ctx)
+	// TODO : Passing default provider name while trying to provision, need to change according to provider name and compare.
+	pconf, err := s.invClient.GetProviderConfig(ctx, utils.DefaultProviderName)
 	if err != nil {
-		zlog.Err(err).Msgf("Skipping, no provider resource found")
+		zlog.Err(err).Msgf("Failed to get provider configuration")
 		return nil
-	}
-
-	var provider *provider_v1.ProviderResource
-	for _, p := range providers {
-		if DefaultProviderName == p.Name {
-			provider = p
-			break
-		}
-	}
-
-	// check automatic provisioning setting
-	if provider == nil || provider.Config == "" {
-		zlog.Info().Msg("Skipping, no default provider resource found")
-		return nil
-	}
-
-	var pconf ProviderConfig
-	if err := json.Unmarshal([]byte(provider.Config), &pconf); err != nil {
-		zlog.Err(err).Msgf("Failed to unmarshal ProviderConfig for host resource (uuid=%s)", hostResID)
-		return err
 	}
 
 	// if AutoProvision is set, create an Instance for the Host with the OS set to the value of the default OS
-	return s.checkNCreateInstance(ctx, pconf, host)
+	return s.checkNCreateInstance(ctx, *pconf, host)
 }
 
-func (s *NodeArtifactService) checkNCreateInstance(ctx context.Context, pconf ProviderConfig, host *computev1.HostResource,
+func (s *NodeArtifactService) checkNCreateInstance(ctx context.Context,
+	pconf invclient.ProviderConfig, host *computev1.HostResource,
 ) error {
 	if pconf.AutoProvision {
 		instance := &computev1.InstanceResource{

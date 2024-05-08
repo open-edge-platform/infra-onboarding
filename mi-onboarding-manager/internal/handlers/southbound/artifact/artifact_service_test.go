@@ -2660,7 +2660,7 @@ func TestNodeArtifactService_startZeroTouch_Case2(t *testing.T) {
 				ctx:       context.Background(),
 				hostResID: "host-084d9b08",
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -2707,10 +2707,10 @@ func TestNodeArtifactService_startZeroTouch_Case3(t *testing.T) {
 	mockResources1 := &inv_v1.ListResourcesResponse{
 		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource1}},
 	}
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{Resource: mockResource}, nil).Once()
-	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources1, nil).Once()
+	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{Resource: mockResource}, nil)
+	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources1, nil)
 	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
-	mockInvClient1.On("Create", mock.Anything, mock.Anything).Return(&inv_v1.CreateResourceResponse{}, nil).Once()
+	mockInvClient1.On("Create", mock.Anything, mock.Anything).Return(&inv_v1.CreateResourceResponse{}, nil)
 	tests := []struct {
 		name    string
 		fields  fields

@@ -6,6 +6,7 @@ package invclient
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -673,4 +674,73 @@ func (c *OnboardingInventoryClient) DeleteIPAddress(ctx context.Context, resourc
 	}
 
 	return err
+}
+
+func (c *OnboardingInventoryClient) listAndReturnProvider(
+	ctx context.Context,
+	filter *inv_v1.ResourceFilter,
+) (*provider_v1.ProviderResource, error) {
+	resources, err := c.listAllResources(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	err = util.CheckListOutputIsSingular(resources)
+	if err != nil {
+		zlog.Info().Msgf("Obtained non-singular provider resource")
+		return nil, err
+	}
+	provider := resources[0].GetProvider()
+	if provider == nil {
+		err = inv_errors.Errorfc(codes.Internal, "Empty provider resource")
+		zlog.MiSec().MiErr(err).Msg("Inventory returned an empty provider resource")
+		return nil, err
+	}
+
+	return provider, nil
+}
+
+func GetProviderResourceByName(
+	ctx context.Context,
+	c *OnboardingInventoryClient,
+	name string,
+) (*provider_v1.ProviderResource, error) {
+	zlog.Info().Msgf("Obtaining Provider resource by its name (%s)", name)
+	if name == "" {
+		err := inv_errors.Errorfc(codes.InvalidArgument, "Empty provider name")
+		zlog.MiSec().MiErr(err).Msg("Empty provider name obtained at the input of the function")
+		return nil, err
+	}
+
+	filter := &inv_v1.ResourceFilter{
+		Resource: &inv_v1.Resource{Resource: &inv_v1.Resource_Provider{}},
+		Filter:   fmt.Sprintf("%s = %q", provider_v1.ProviderResourceFieldName, name),
+	}
+	return c.listAndReturnProvider(ctx, filter)
+}
+
+//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
+type ProviderConfig struct {
+	DefaultOs     string `json:"defaultOs"`
+	AutoProvision bool   `json:"autoProvision"`
+	CustomerID    string `json:"customerID"`
+}
+
+func (c *OnboardingInventoryClient) GetProviderConfig(
+	ctx context.Context,
+	name string,
+) (*ProviderConfig, error) {
+	// Get the provider resource by name
+	provider, err := GetProviderResourceByName(ctx, c, name)
+	if err != nil {
+		return nil, err
+	}
+
+	var pconf ProviderConfig
+	// Unmarshal provider config JSON into pconf
+	if err := json.Unmarshal([]byte(provider.Config), &pconf); err != nil {
+		zlog.MiErr(err).Msgf("failed to unmarshal ProviderConfig")
+		return nil, inv_errors.Wrap(err)
+	}
+
+	return &pconf, nil
 }

@@ -30,6 +30,7 @@ var workflowStepToStatusDetail = map[string]string{
 	ActionEfibootset:                 "Setting boot option",
 	ActionFdeEncryption:              "Setting FDE encryption",
 	ActionReboot:                     "Rebooting",
+	ActionCustomerID:                 "Setting customer ID",
 	ActionCopyENSecrets:              "Copying secrets",
 	ActionStoringAlpine:              "Storing Alpine",
 	ActionRunFDO:                     "Running FDO",

@@ -178,7 +178,9 @@ func (ir *InstanceReconciler) reconcileInstance(
 	return request.Ack()
 }
 
-func convertInstanceToDeviceInfo(instance *computev1.InstanceResource) (utils.DeviceInfo, error) {
+func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
+	provider invclient.ProviderConfig,
+) (utils.DeviceInfo, error) {
 	host := instance.GetHost() // eager-loaded
 
 	if instance.GetOs() == nil {
@@ -233,6 +235,7 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource) (utils.De
 		InstallerScriptURL: env.InstallerScriptURL,
 		TinkerVersion:      tinkerVersion,
 		ClientImgName:      ClientImgName,
+		CustomerID:         provider.CustomerID,
 	}
 
 	if env.ImgType == utils.ImgTypeBkc {
@@ -244,7 +247,14 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource) (utils.De
 }
 
 func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance *computev1.InstanceResource) error {
-	deviceInfo, err := convertInstanceToDeviceInfo(instance)
+	// TODO : Passing default provider name while trying to provision, need to change according to provider name and compare.
+	providerConfig, err := ir.invClient.GetProviderConfig(ctx, utils.DefaultProviderName)
+	if err != nil {
+		zlogInst.Err(err).Msgf("Failed to get provider configuration")
+		return err
+	}
+
+	deviceInfo, err := convertInstanceToDeviceInfo(instance, *providerConfig)
 	if err != nil {
 		return err
 	}

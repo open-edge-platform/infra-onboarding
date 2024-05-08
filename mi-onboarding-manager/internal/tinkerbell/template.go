@@ -54,19 +54,19 @@ func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (
 		}
 	case utils.ImgTypeFocal:
 		tmplData, err = NewTemplateDataProd(tmplName, deviceInfo.Rootfspart,
-			deviceInfo.InstallerScriptURL, env.ImgURL, tinkerVersion)
+			deviceInfo.InstallerScriptURL, env.ImgURL, tinkerVersion, deviceInfo.CustomerID)
 		if err != nil {
 			return nil, err
 		}
 	case utils.ImgTypeFocalMs:
 		tmplData, err = NewTemplateDataProdMS(tmplName, deviceInfo.Rootfspart, deviceInfo.InstallerScriptURL,
-			deviceInfo.OSImageURL, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.HwMacID, tinkerVersion)
+			deviceInfo.OSImageURL, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.HwMacID, tinkerVersion, deviceInfo.CustomerID)
 		if err != nil {
 			return nil, err
 		}
 	default:
 		tmplData, err = NewTemplateDataProd(tmplName, deviceInfo.Rootfspart,
-			deviceInfo.InstallerScriptURL, deviceInfo.OSImageURL, tinkerVersion)
+			deviceInfo.InstallerScriptURL, deviceInfo.OSImageURL, tinkerVersion, deviceInfo.CustomerID)
 		if err != nil {
 			return nil, err
 		}

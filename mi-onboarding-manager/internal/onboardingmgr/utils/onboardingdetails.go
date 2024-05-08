@@ -6,10 +6,11 @@
 package utils
 
 const (
-	ImgTypeBkc     = "prod_bkc"
-	ImgTypeJammy   = "prod_jammy"
-	ImgTypeFocal   = "prod_focal"
-	ImgTypeFocalMs = "prod_focal-ms"
+	ImgTypeBkc          = "prod_bkc"
+	ImgTypeJammy        = "prod_jammy"
+	ImgTypeFocal        = "prod_focal"
+	ImgTypeFocalMs      = "prod_focal-ms"
+	DefaultProviderName = "fm_onboarding"
 )
 
 type (
@@ -49,5 +50,7 @@ type (
 		TinkerVersion string
 		// Hostname a host name set in the OS
 		Hostname string
+		// CustomerID stores a unique identifier of a customer. Used for license check.
+		CustomerID string
 	}
 )
