@@ -674,13 +674,13 @@ enable_netipplan() {
         echo "Enable NetIP"
         # New values to update in the config.yaml file
         new_values="network:
-                    version: 2
-                    renderer: networkd
-                    ethernets:
+                      version: 2
+                      renderer: networkd
+                      ethernets:
                         id0:
-                        match:
+                          match:
                             name: en*
-                        dhcp4: true"
+                          dhcp4: true"
 
 
         # Update the content of the config.yaml file with new values
