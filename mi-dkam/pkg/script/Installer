@@ -734,12 +734,14 @@ enable_kernel_config(){
 }
 
 # 30. Enable NTP configuration
-install_NTP(){
-    if grep -q "install_NTP done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_NTP"
+enable_NTP(){
+    if grep -q "enable_NTP done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping enable_NTP"
     else
-        echo "Install NTP"
+        echo "Enable NTP"
+	apt remove -y ntp
         apt-get update
+	apt install -y ntp
         apt-get install -y systemd-timesyncd
         cp /etc/ntp.conf /etc/ntp.conf.bak
         cp /etc/systemd/timesyncd.conf /etc/systemd/timesyncd.conf.bak
@@ -758,7 +760,7 @@ install_NTP(){
         systemctl restart systemd-timesyncd.service
         timedatectl set-ntp true
         systemctl status systemd-timesyncd.service
-        echo "install_NTP done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "enable_NTP done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -963,7 +965,7 @@ if [ ! -f /usr/local/share/ca-certificates/IntelCA7B-Base64.crt ]; then
 fi
 
 enable_kernel_config 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_NTP 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+enable_NTP 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_syslogrotate_job 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 echo "Install agents..........................."
 install_CA_cert 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
