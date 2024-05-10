@@ -494,29 +494,7 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 
 	}
 
-	//Disable ssh for production environment
-	var sshLines []string
-	var userDisableLines []string
-	zlog.MiSec().Info().Msgf("Mode is:%s", MODE)
-	if MODE == "prod" {
-		zlog.MiSec().Info().Msgf("Mode is:%s", MODE)
-		sshLines = append(sshLines, "ssh_config_file=\"/etc/ssh/sshd_config.d/60-cloudimg-settings.conf\"")
-		sshLines = append(sshLines, "if [ -f \"$ssh_config_file\" ]; then")
-		sshLines = append(sshLines, "  if grep -q \"^PasswordAuthentication yes\" \"$ssh_config_file\"; then")
-		sshLines = append(sshLines, "    sed -i 's/^PasswordAuthentication yes/PasswordAuthentication no/' \"$ssh_config_file\"")
-		sshLines = append(sshLines, "  else")
-		sshLines = append(sshLines, "    echo \"Password-based authentication is already disabled or configured differently.\"")
-		sshLines = append(sshLines, "  fi")
-		sshLines = append(sshLines, "else")
-		sshLines = append(sshLines, "  echo \"SSH configuration file not found: $ssh_config_file\"")
-		sshLines = append(sshLines, "fi")
-		userDisableLines = append(userDisableLines, "")
-		userDisableLines = append(userDisableLines, "usermod -L -e 1 user")
-	}
-
-	AddProxies(scriptFileName, sshLines, "ssh_config(){")
 	AddProxies(scriptFileName, newLines, beginString)
-	AddProxies(scriptFileName, userDisableLines, "set -euo pipefail")
 
 	zlog.MiSec().Debug().Msgf("Starting modifying ufw Rules")
 

@@ -945,7 +945,7 @@ ssh_config(){
     if grep -q "ssh_config done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping ssh_config"
     else
-        echo "ENable ssh config"
+        echo "Disable ssh config"
         sudo systemctl stop ssh
         sudo systemctl disable ssh
         #remove enabling ssh from ufw
