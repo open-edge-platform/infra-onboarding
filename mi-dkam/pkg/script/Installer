@@ -1,5 +1,6 @@
 #!/bin/bash
 
+exec &> >(tee >(systemd-cat -t /home/postinstall/Setup/installer.sh) >"/dev/tty1")
 set -euo pipefail
 
 if [ -f /etc/apt/apt.conf ]; then
