@@ -46,6 +46,7 @@ RELEASE_SERVER=__FILE_SERVER__
 LICENSE_MANAGER_URL=__ORCH_LICENSE_HOST__:__ORCH_LICENSE_PORT__
 YPS_URL=__LICENSE_URL__
 CA_CERT="__CA_CERT__"
+ENFORCEMENT=__ENFORCEMENT__
 
 # 1. Install dependencies
 install_dependencies() {
@@ -796,6 +797,7 @@ install_license_agent(){
         echo " license-agent license-agent/customer.id string 12139414" | debconf-set-selections
         echo "license-agent license-agent/serviceURL string ${LICENSE_MANAGER_URL}" | debconf-set-selections
         echo "license-agent license-agent/YpsURL string ${YPS_URL}" | debconf-set-selections
+        echo "license-agent license-agent/enforcement boolean ${ENFORCEMENT}" | debconf-set-selections
         apt-get install -y -o Dpkg::Options::="--force-confnew" license-agent="$VERSION"
         systemctl status -l --no-pager license-agent
         echo "install_license_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME

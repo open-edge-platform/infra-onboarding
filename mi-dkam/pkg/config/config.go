@@ -23,6 +23,7 @@ const (
 	ImageFileName          = "jammy-server-cloudimg-amd64.raw.gz"
 	OrchCACertificateFile  = "/etc/ssl/orch-ca-cert/ca.crt"
 	BootsCaCertificateFile = "/etc/ssl/boots-ca-cert/ca.crt"
+	LA_YPSURL              = "https://intelcorp.prod.sentinelcloud.com/YPServer/"
 )
 
 // As variable to allow changes in tests

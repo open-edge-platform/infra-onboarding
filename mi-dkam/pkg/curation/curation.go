@@ -74,6 +74,8 @@ type Image struct {
 	Version     string `yaml:"version"`
 }
 
+var ypsUrl = config.LA_YPSURL
+
 func GetCuratedScript(profile string, platform string) (string, string) {
 	MODE := os.Getenv("MODE")
 	//MODE := "dev"
@@ -235,7 +237,14 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	orchImgRegProxyPort := os.Getenv("ORCH_IMG_PORT")
 	orchLicenseHost := os.Getenv("ORCH_LICENSE_HOST")
 	orchLicensePort := os.Getenv("ORCH_LICENSE_PORT")
-	ypsUrl := os.Getenv("YPS_URL")
+
+	if MODE == "dev" {
+		ypsUrl = os.Getenv("YPS_URL")
+	}
+	enforcement := os.Getenv("ENFORCEMENT")
+	zlog.MiSec().Info().Msgf("License Agent YPS URL %s", ypsUrl)
+	zlog.MiSec().Info().Msgf("enforcement %s", enforcement)
+
 	//Proxies
 	httpProxy := os.Getenv("HTTP_PROXY")
 	httpsProxy := os.Getenv("HTTPS_PROXY")
@@ -339,6 +348,7 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__CADDY_KEY__", string(caddyContent))
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__APT_SRC__", string(distribution))
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__LICENSE_URL__", string(ypsUrl))
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ENFORCEMENT__", string(enforcement))
 	// Loop through the agentsList
 	for _, agent := range agentsList {
 		// Access the fields of each struct
