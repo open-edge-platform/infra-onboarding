@@ -22,6 +22,7 @@ HASH_SIZE=512
 generate_bios_certs() {
 	echo "====== Generating BIOS Certificate ======="
 	#verify that pk kek db is already present.
+	cd "$working_dir" || exit
 	if [ -d "$SB_KEYS_DIR" ] || [ -f "$SB_KEYS_DIR"/db.crt ]; then
 		echo "======== Seems like Secure boot $SB_KEYS_DIR are already present. Reusing the same ========"
 	else
@@ -156,22 +157,15 @@ sign_ipxe_efi() {
 	
 	sbsign --key "$SB_KEYS_DIR"/db.key --cert "$SB_KEYS_DIR"/db.crt --output ./out/signed_ipxe.efi "$IPXE_DIR"/src/bin-x86_64-efi/ipxe.efi
 	cp "$SB_KEYS_DIR"/db.der "$working_dir"/out
-	if [ -d "/data" ]; then
-        echo "Path /data exists."
-		mkdir -p /data/keys
-        cp "$SB_KEYS_DIR"/db.der /data/keys
-		cp "$SERVER_CERT_DIR"/Full_server.crt /data/keys
-		cp "$working_dir"/out/signed_ipxe.efi /data
-		#rm -rf "$working_dir"/out
-    else
-        echo "Path /data does not exist."
-		
-    fi     
+	
+	mkdir -p "$working_dir"/keys
+	cp "$SB_KEYS_DIR"/db.der "$working_dir"/keys
+	cp "$SERVER_CERT_DIR"/Full_server.crt "$working_dir"/keys
+	cp "$working_dir"/out/signed_ipxe.efi "$working_dir"
+      
 	echo "======== Save db.der file to enroll inside UEFI BIOS Secure Boot Settings ========="
 	echo "==========================================================================================="
-	if [ -f "$working_dir"/org_chain.ipxe ]; then
-		mv "$working_dir"/org_chain.ipxe  "$working_dir"/chain.ipxe
-	fi
+	
 }
 
 final_artifacts() {
@@ -188,7 +182,7 @@ final_artifacts() {
 
 echo "======= Main function to build & sign iPXE image ========"
 echo "Discription of this script"
-apt install -y autoconf automake make gcc m4 git gettext autopoint pkg-config autoconf-archive python3 bison flex gawk efitools sbsigntool
+#apt install -y autoconf automake make gcc m4 git gettext autopoint pkg-config autoconf-archive python3 bison flex gawk efitools sbsigntool
 generate_bios_certs
 generate_https_certs
 verify_https_certs
@@ -197,4 +191,4 @@ sign_ipxe_efi
 final_artifacts
 rm -rf "$IPXE_DIR"
 rm -rf "$working_dir"/out
-rm -rf "$working_dir"/jammy-server-cloudimg-amd64.raw.gz
+rm -rf "$working_dir"/chain.ipxe

@@ -15,7 +15,7 @@ const (
 	DevHarbor              = "amr-registry.caas.intel.com"
 	AuthServer             = "integration-dev.maestro.intel.com"
 	ReleaseVersion         = "latest-dev"
-	PVC                    = "/data/"
+	PVC                    = "/data"
 	Tag                    = "manifest"
 	PreintTag              = "pre-int/manifest"
 	Artifact               = "one-intel-edge/edgenode/en/manifest"

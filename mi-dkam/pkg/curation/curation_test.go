@@ -4,12 +4,14 @@
 package curation
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -209,10 +211,21 @@ func Test_GenerateUFWCommand(t *testing.T) {
 
 func Test_GetCuratedScript(t *testing.T) {
 	os.Setenv("NETIP", "static")
+	dir := config.PVC
+	os.MkdirAll(dir, 0755)
+	dummyData := `#!/bin/bash
+	enable_netipplan
+# Add your installation commands here
+`
+	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		os.Exit(1)
+	}
 	filename, version := GetCuratedScript("profile", "platform")
 
 	// Check if the returned filename matches the expected format
-	expectedFilename := "installer.sh"
+	expectedFilename := config.PVC + "/" + "installer.sh"
 	if filename != expectedFilename {
 		t.Errorf("Expected filename '%s', but got '%s'", expectedFilename, filename)
 	}
@@ -221,15 +234,27 @@ func Test_GetCuratedScript(t *testing.T) {
 	}
 	defer func() {
 		os.Unsetenv("NETIP")
+		os.RemoveAll(dir)
 	}()
 }
 
 func Test_GetCuratedScript_Case(t *testing.T) {
 	os.Setenv("MODE", "prod")
+	dir := config.PVC
+	os.MkdirAll(dir, 0755)
+	dummyData := `#!/bin/bash
+	enable_netipplan
+# Add your installation commands here
+`
+	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		os.Exit(1)
+	}
 	filename, version := GetCuratedScript("profile", "platform")
 
 	// Check if the returned filename matches the expected format
-	expectedFilename := "installer.sh"
+	expectedFilename := config.PVC + "/" + "installer.sh"
 	if filename != expectedFilename {
 		t.Errorf("Expected filename '%s', but got '%s'", expectedFilename, filename)
 	}
@@ -238,15 +263,27 @@ func Test_GetCuratedScript_Case(t *testing.T) {
 	}
 	defer func() {
 		os.Unsetenv("MODE")
+		os.RemoveAll(dir)
 	}()
 }
 
 func Test_GetCuratedScript_Case1(t *testing.T) {
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
+	dir := config.PVC
+	os.MkdirAll(dir, 0755)
+	dummyData := `#!/bin/bash
+	enable_netipplan
+# Add your installation commands here
+`
+	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		os.Exit(1)
+	}
 	filename, version := GetCuratedScript("profile", "platform")
 
 	// Check if the returned filename matches the expected format
-	expectedFilename := "installer.sh"
+	expectedFilename := config.PVC + "/" + "installer.sh"
 	if filename != expectedFilename {
 		t.Errorf("Expected filename '%s', but got '%s'", expectedFilename, filename)
 	}
@@ -255,15 +292,27 @@ func Test_GetCuratedScript_Case1(t *testing.T) {
 	}
 	defer func() {
 		os.Unsetenv("ORCH_CLUSTER")
+		os.RemoveAll(dir)
 	}()
 }
 
 func Test_GetCuratedScript_Case2(t *testing.T) {
 	os.Setenv("SOCKS_PROXY", "proxy")
+	dir := config.PVC
+	os.MkdirAll(dir, 0755)
+	dummyData := `#!/bin/bash
+	enable_netipplan
+# Add your installation commands here
+`
+	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		os.Exit(1)
+	}
 	filename, version := GetCuratedScript("profile", "platform")
 
 	// Check if the returned filename matches the expected format
-	expectedFilename := "installer.sh"
+	expectedFilename := config.PVC + "/" + "installer.sh"
 	if filename != expectedFilename {
 		t.Errorf("Expected filename '%s', but got '%s'", expectedFilename, filename)
 	}
@@ -272,10 +321,22 @@ func Test_GetCuratedScript_Case2(t *testing.T) {
 	}
 	defer func() {
 		os.Unsetenv("SOCKS_PROXY")
+		os.RemoveAll(dir)
 	}()
 }
 
 func Test_GetCuratedScript_Case3(t *testing.T) {
+	dir := config.PVC
+	os.MkdirAll(dir, 0755)
+	dummyData := `#!/bin/bash
+	enable_netipplan
+# Add your installation commands here
+`
+	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		os.Exit(1)
+	}
 	originalDir, _ := os.Getwd()
 	result := strings.Replace(originalDir, "curation", "script/tmp", -1)
 	res := filepath.Join(result, "latest-dev.yaml")
@@ -286,7 +347,7 @@ func Test_GetCuratedScript_Case3(t *testing.T) {
 	CopyFile(src, res)
 	os.Setenv("NETIP", "static")
 	filename, version := GetCuratedScript("profile", "platform")
-	expectedFilename := "installer.sh"
+	expectedFilename := config.PVC + "/" + "installer.sh"
 	if filename != expectedFilename {
 		t.Errorf("Expected filename '%s', but got '%s'", expectedFilename, filename)
 	}
@@ -297,6 +358,7 @@ func Test_GetCuratedScript_Case3(t *testing.T) {
 		os.Unsetenv("NETIP")
 		CopyFile(res, src)
 		os.Remove(res)
+		os.RemoveAll(dir)
 	}()
 }
 
@@ -405,6 +467,24 @@ func TestCreateOverlayScript(t *testing.T) {
 	src := strings.Replace(originalDir, "curation", "script", -1)
 	dir := src + "/Installer"
 	os.MkdirAll(dir, 0755)
+	dataDir := config.PVC
+	os.MkdirAll(dataDir, 0755)
+	dummyData := `#!/bin/bash
+	enable_netipplan
+# Add your installation commands here
+`
+	err := os.WriteFile(dataDir+"/installer.sh", []byte(dummyData), 0755)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		os.Exit(1)
+	}
+	result := strings.Replace(originalDir, "curation", "script/tmp", -1)
+	dst := filepath.Join(result, "Installer")
+	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+		t.Fatalf("Failed to create directory: %v", err)
+	}
+	srcs := strings.Replace(originalDir, "curation", "script/Installer", -1)
+	CopyFile(srcs, dst)
 	type args struct {
 		pwd     string
 		profile string
@@ -430,6 +510,11 @@ func TestCreateOverlayScript(t *testing.T) {
 			}
 		})
 	}
+	defer func() {
+		os.Remove(dst)
+		os.RemoveAll(dataDir)
+		CopyFile(dst, srcs)
+	}()
 }
 
 func TestCreateOverlayScript_Case(t *testing.T) {
@@ -451,6 +536,24 @@ func TestCreateOverlayScript_Case(t *testing.T) {
 	src := strings.Replace(originalDir, "curation", "script", -1)
 	dir := src + "/Installer"
 	os.MkdirAll(dir, 0755)
+	dataDir := config.PVC
+	os.MkdirAll(dataDir, 0755)
+	dummyData := `#!/bin/bash
+	enable_netipplan
+# Add your installation commands here
+`
+	err := os.WriteFile(dataDir+"/installer.sh", []byte(dummyData), 0755)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		os.Exit(1)
+	}
+	result := strings.Replace(originalDir, "curation", "script/tmp", -1)
+	dst := filepath.Join(result, "Installer")
+	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+		t.Fatalf("Failed to create directory: %v", err)
+	}
+	srcs := strings.Replace(originalDir, "curation", "script/Installer", -1)
+	CopyFile(srcs, dst)
 	type args struct {
 		pwd     string
 		profile string
@@ -479,6 +582,9 @@ func TestCreateOverlayScript_Case(t *testing.T) {
 	defer func() {
 		os.Unsetenv("FIREWALL_REQ_ALLOW")
 		os.Unsetenv("FIREWALL_CFG_ALLOW")
+		os.Remove(dst)
+		os.RemoveAll(dataDir)
+		CopyFile(dst, srcs)
 	}()
 }
 
@@ -504,6 +610,24 @@ func TestCreateOverlayScript_Case1(t *testing.T) {
 	src := strings.Replace(originalDir, "curation", "script", -1)
 	dir := src + "/Installer"
 	os.MkdirAll(dir, 0755)
+	dataDir := config.PVC
+	os.MkdirAll(dataDir, 0755)
+	dummyData := `#!/bin/bash
+	enable_netipplan
+# Add your installation commands here
+`
+	err := os.WriteFile(dataDir+"/installer.sh", []byte(dummyData), 0755)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		os.Exit(1)
+	}
+	result := strings.Replace(originalDir, "curation", "script/tmp", -1)
+	dst := filepath.Join(result, "Installer")
+	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+		t.Fatalf("Failed to create directory: %v", err)
+	}
+	srcs := strings.Replace(originalDir, "curation", "script/Installer", -1)
+	CopyFile(srcs, dst)
 	type args struct {
 		pwd     string
 		profile string
@@ -532,6 +656,9 @@ func TestCreateOverlayScript_Case1(t *testing.T) {
 	defer func() {
 		os.Unsetenv("FIREWALL_REQ_ALLOW")
 		os.Unsetenv("FIREWALL_CFG_ALLOW")
+		os.RemoveAll(dst)
+		os.RemoveAll(dataDir)
+		CopyFile(dst, srcs)
 	}()
 }
 
@@ -540,6 +667,24 @@ func TestCreateOverlayScript_Case2(t *testing.T) {
 	src := strings.Replace(originalDir, "curation", "script", -1)
 	dir := src + "/Installer"
 	os.MkdirAll(dir, 0755)
+	dataDir := config.PVC
+	os.MkdirAll(dataDir, 0755)
+	dummyData := `#!/bin/bash
+	enable_netipplan
+# Add your installation commands here
+`
+	err := os.WriteFile(dataDir+"/installer.sh", []byte(dummyData), 0755)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		os.Exit(1)
+	}
+	result := strings.Replace(originalDir, "curation", "script/tmp", -1)
+	dst := filepath.Join(result, "Installer")
+	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+		t.Fatalf("Failed to create directory: %v", err)
+	}
+	srcs := strings.Replace(originalDir, "curation", "script/Installer", -1)
+	CopyFile(srcs, dst)
 	type args struct {
 		pwd     string
 		profile string
@@ -565,6 +710,11 @@ func TestCreateOverlayScript_Case2(t *testing.T) {
 			}
 		})
 	}
+	defer func() {
+		os.RemoveAll(dst)
+		os.RemoveAll(dataDir)
+		CopyFile(dst, srcs)
+	}()
 }
 
 func TestCreateOverlayScript_Case4(t *testing.T) {
@@ -589,6 +739,24 @@ func TestCreateOverlayScript_Case4(t *testing.T) {
 	src := strings.Replace(originalDir, "curation", "script", -1)
 	dir := src + "/Installer"
 	os.MkdirAll(dir, 0755)
+	dataDir := config.PVC
+	os.MkdirAll(dataDir, 0755)
+	dummyData := `#!/bin/bash
+	enable_netipplan
+# Add your installation commands here
+`
+	err := os.WriteFile(dataDir+"/installer.sh", []byte(dummyData), 0755)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		os.Exit(1)
+	}
+	result := strings.Replace(originalDir, "curation", "script/tmp", -1)
+	dst := filepath.Join(result, "Installer")
+	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+		t.Fatalf("Failed to create directory: %v", err)
+	}
+	srcs := strings.Replace(originalDir, "curation", "script/Installer", -1)
+	CopyFile(srcs, dst)
 	type args struct {
 		pwd     string
 		profile string
@@ -617,6 +785,9 @@ func TestCreateOverlayScript_Case4(t *testing.T) {
 	defer func() {
 		os.Unsetenv("FIREWALL_REQ_ALLOW")
 		os.Unsetenv("FIREWALL_CFG_ALLOW")
+		os.RemoveAll(dst)
+		os.RemoveAll(dataDir)
+		CopyFile(dst, srcs)
 	}()
 }
 
@@ -625,6 +796,24 @@ func TestCreateOverlayScript_Case3(t *testing.T) {
 	src := strings.Replace(originalDir, "curation", "script", -1)
 	dir := src + "/Installer"
 	os.MkdirAll(dir, 0755)
+	dataDir := config.PVC
+	os.MkdirAll(dataDir, 0755)
+	dummyData := `#!/bin/bash
+	enable_netipplan
+# Add your installation commands here
+`
+	err := os.WriteFile(dataDir+"/installer.sh", []byte(dummyData), 0755)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		os.Exit(1)
+	}
+	result := strings.Replace(originalDir, "curation", "script/tmp", -1)
+	dst := filepath.Join(result, "Installer")
+	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+		t.Fatalf("Failed to create directory: %v", err)
+	}
+	srcs := strings.Replace(originalDir, "curation", "script/Installer", -1)
+	CopyFile(srcs, dst)
 	type args struct {
 		pwd     string
 		profile string
@@ -650,5 +839,9 @@ func TestCreateOverlayScript_Case3(t *testing.T) {
 			}
 		})
 	}
+	defer func() {
+		os.RemoveAll(dst)
+		os.RemoveAll(dataDir)
+		CopyFile(dst, srcs)
+	}()
 }
-

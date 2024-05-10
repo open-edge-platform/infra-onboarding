@@ -9,18 +9,30 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 )
 
 var zlog = logging.GetLogger("MIDKAMAuth")
 
-func SignHookOS(scriptPath string) (bool, error) {
+func SignHookOS(scriptPath string, targetDir string) (bool, error) {
 
 	zlog.MiSec().Info().Msgf("Script dir %s", scriptPath)
-	buildScriptPath := scriptPath + "/hook"
+	hookDir := scriptPath + "/hook"
+	buildScriptPath := targetDir + "/hook"
 	zlog.MiSec().Info().Msgf("Hook OS dir %s", buildScriptPath)
+	mkErr := os.MkdirAll(buildScriptPath, 0755) // 0755 sets read, write, and execute permissions for owner, and read and execute permissions for others
+	if mkErr != nil {
+		zlog.MiSec().Error().Err(mkErr).Msgf("Error creating directory: %v", mkErr)
+		return false, mkErr
+	}
+	if err := copyDir(hookDir, buildScriptPath); err != nil {
+		zlog.MiSec().Info().Msgf("Error copying directory:%v", err)
+		return false, err
+	}
 
 	errp := os.Chdir(buildScriptPath)
 	if errp != nil {
@@ -68,8 +80,7 @@ func SignHookOS(scriptPath string) (bool, error) {
 	logging_svc := os.Getenv("ORCH_PLATFORM_OBS_HOST")
 	extra_hosts := os.Getenv("EXTRA_HOSTS")
 
-	config := buildScriptPath + "/config"
-	content, err := os.ReadFile(config)
+	content, err := os.ReadFile("config")
 	if err != nil {
 		zlog.MiSec().Fatal().Err(err).Msgf("Error %v", err)
 	}
@@ -92,7 +103,7 @@ func SignHookOS(scriptPath string) (bool, error) {
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__oci_release_svc__", oci_release_svc)
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__logging_svc__", logging_svc)
 	// Write the modified config back to the file
-	errconf := os.WriteFile(config, []byte(modifiedConfig), 0644)
+	errconf := os.WriteFile("config", []byte(modifiedConfig), 0644)
 	if errconf != nil {
 		zlog.MiSec().Fatal().Err(errconf).Msgf("Error writing modified config file: %v", errconf)
 	}
@@ -111,7 +122,19 @@ func SignHookOS(scriptPath string) (bool, error) {
 	errcpio := os.Chdir(cpioPath)
 	if errcpio != nil {
 		zlog.MiSec().Fatal().Err(errcpio).Msgf("Error changing working directory: %v\n", errp)
-		return false, errp
+		return false, errcpio
+	}
+
+	mode := os.Getenv("MODE")
+	if mode == "" {
+		mode = "prod"
+	}
+
+	allowedValues := []string{"dev", "prod"}
+	if !contains(allowedValues, mode) {
+		zlog.MiSec().Fatal().Err(errcpio).Msg("Invalid MODE")
+		err := errors.New("invalid mode input")
+		return false, err
 	}
 
 	mdCmd := exec.Command("chmod", "+x", "build_image_at_DKAM.sh")
@@ -122,19 +145,7 @@ func SignHookOS(scriptPath string) (bool, error) {
 	}
 	zlog.Info().Msgf("Script output: %s", string(mdresult))
 
-	mode := os.Getenv("MODE")
-	if mode == "" {
-		mode = "prod"
-	}
-
-	allowedValues := []string{"dev", "prod"}
-	if !contains(allowedValues, mode) {
-		zlog.MiSec().Fatal().Err(mdErr).Msg("Invalid MODE")
-		err := errors.New("invalid mode input")
-		return false, err
-	}
-
-	buildCmd := exec.Command("bash", "./build_image_at_DKAM.sh", mode)
+	buildCmd := exec.Command("bash", "./build_image_at_DKAM.sh", mode, config.PVC)
 	output, buildErr := buildCmd.CombinedOutput()
 	if buildErr != nil {
 		zlog.MiSec().Fatal().Err(buildErr).Msgf("Failed to sign microOS script %v", buildErr)
@@ -146,6 +157,10 @@ func SignHookOS(scriptPath string) (bool, error) {
 	if errch != nil {
 		zlog.MiSec().Fatal().Err(errch).Msgf("Error changing working directory: %v\n", errch)
 		return false, errch
+	}
+
+	if err := os.RemoveAll(buildScriptPath); err != nil {
+		zlog.MiSec().Error().Err(err).Msgf("Error removing temporary hook folder: %v", err)
 	}
 
 	return true, nil
@@ -160,7 +175,43 @@ func contains(slice []string, s string) bool {
 	return false
 }
 
-func BuildSignIpxe(scriptPath string, dnsName string) (bool, error) {
+func copyDir(src, dst string) error {
+	// Create the destination directory
+	if err := os.MkdirAll(dst, 0755); err != nil {
+		return err
+	}
+
+	// Walk through the source directory
+	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Get the relative path to the file or directory
+		relPath, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+
+		// Create the destination path
+		dstPath := filepath.Join(dst, relPath)
+
+		// If it's a directory, create it in the destination
+		if info.IsDir() {
+			if err := os.MkdirAll(dstPath, 0755); err != nil {
+				return err
+			}
+		} else {
+			// If it's a file, copy it to the destination
+			if err := copyFile(path, dstPath); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+func BuildSignIpxe(targetDir string, scriptPath string, dnsName string) (bool, error) {
 
 	zlog.MiSec().Info().Msgf("CDN boot DNS name %s", dnsName)
 	parsedURL, parseerr := url.Parse(dnsName)
@@ -175,21 +226,17 @@ func BuildSignIpxe(scriptPath string, dnsName string) (bool, error) {
 	zlog.MiSec().Info().Msgf("Domain: %s", host)
 
 	tinkUrlString := "<TINK_STACK_URL>"
-	errp := os.Chdir(scriptPath)
-	if errp != nil {
-		zlog.MiSec().Fatal().Err(errp).Msgf("Error changing working directory: %v\n", errp)
-		return false, errp
-	}
-
+	chainPath := scriptPath + "/" + "chain.ipxe"
+	targetChainPath := targetDir + "/" + "chain.ipxe"
 	// Copy the file
-	cpErr := copyFile("chain.ipxe", "org_chain.ipxe")
+	cpErr := copyFile(chainPath, targetChainPath)
 	if cpErr != nil {
 		zlog.MiSec().Fatal().Err(cpErr).Msgf("Error: %v", cpErr)
 	}
 
 	zlog.MiSec().Info().Msg("chain.ipxe File copied successfully.")
 
-	content, err := os.ReadFile("chain.ipxe")
+	content, err := os.ReadFile(targetChainPath)
 	if err != nil {
 		zlog.MiSec().Fatal().Err(err).Msgf("Error %v", err)
 	}
@@ -200,7 +247,7 @@ func BuildSignIpxe(scriptPath string, dnsName string) (bool, error) {
 		modifiedScript := strings.ReplaceAll(string(content), tinkUrlString, dnsName)
 
 		// Save the modified script to the specified output path
-		err = os.WriteFile("chain.ipxe", []byte(modifiedScript), 0644)
+		err = os.WriteFile(targetChainPath, []byte(modifiedScript), 0644)
 		if err != nil {
 			zlog.MiSec().Fatal().Err(err).Msgf("Error: %v", err)
 		}
@@ -209,18 +256,16 @@ func BuildSignIpxe(scriptPath string, dnsName string) (bool, error) {
 		zlog.Info().Msg("Search string not found in the file.")
 	}
 
-	modeCmd := exec.Command("chmod", "+x", "build_sign_ipxe.sh")
-	result, modeErr := modeCmd.CombinedOutput()
-	if modeErr != nil {
-		zlog.MiSec().Fatal().Err(modeErr).Msgf("Failed to chnage mode of build_sign_ipxe.sh %v", modeErr)
-		return false, modeErr
+	errcpio := os.Chdir(scriptPath)
+	if errcpio != nil {
+		zlog.MiSec().Fatal().Err(errcpio).Msgf("Error changing working directory: %v\n", errcpio)
+		return false, errcpio
 	}
-	zlog.Info().Msgf("Script output: %s", string(result))
-	cmd := exec.Command("bash", "./build_sign_ipxe.sh", scriptPath, host)
+	cmd := exec.Command("bash", "./build_sign_ipxe.sh", targetDir)
 	zlog.Info().Msgf("signCmd: %s", cmd)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Failed to run build iPXE")
+		zlog.MiSec().Fatal().Err(err).Msg("Failed to run build iPXE")
 		return false, err
 	}
 	zlog.Info().Msgf("Script output: %s", string(output))

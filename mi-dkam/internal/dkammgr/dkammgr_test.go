@@ -89,55 +89,22 @@ func TestDownloadArtifacts(t *testing.T) {
 	}
 }
 
-// func TestDataType(t *testing.T) {
-// 	// Call the function or create an instance of the struct
-// 	data := GetData()
-
-// 	// Check if the variable 'data' is of type 'Data'
-// 	if reflect.TypeOf(data) != reflect.TypeOf(Data{}) {
-// 		t.Errorf("Expected type 'Data', but got %T", data)
-// 	}
-// }
-
-// func TestResponseContainsYAML(t *testing.T) {
-// 	type Data struct {
-// 		OsUrl            string
-// 		OverlayScriptUrl string
-// 	}
-
-// 	data := GetData()
-
-// 	// Marshal the data to YAML
-// 	yamlContent, err := yaml.Marshal(data)
-// 	if err != nil {
-// 		t.Fatalf("Error marshaling data to YAML: %v", err)
-// 	}
-
-// 	var responseData Data
-// 	err = yaml.Unmarshal(yamlContent, &responseData)
-// 	if err != nil {
-// 		t.Fatalf("Error unmarshaling YAML data: %v", err)
-// 	}
-
-// 	// Check if the YAML data contains the expected message
-// 	expectedMessage := "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
-// 	if responseData.OsUrl != expectedMessage {
-// 		t.Errorf("Expected message '%s', but got '%s'", expectedMessage, responseData.OsUrl)
-// 	}
-//}
-
 func TestGetCuratedScript(t *testing.T) {
+	dir := config.PVC
+	os.MkdirAll(dir, 0755)
 	filename, version := GetCuratedScript("profile", "platform")
 
 	// Check if the returned filename matches the expected format
-	expectedFilename := "installer.sh"
+	expectedFilename := config.PVC + "/" + "installer.sh"
 	if filename != expectedFilename {
 		t.Errorf("Expected filename '%s', but got '%s'", expectedFilename, filename)
 	}
 	if len(version) == 0 {
 		t.Errorf("Version not found")
 	}
-
+	defer func() {
+		os.Remove(dir)
+	}()
 }
 
 func TestServerUrl(t *testing.T) {
@@ -460,13 +427,13 @@ func TestDownloadUbuntuImage(t *testing.T) {
 	tmpFolderPath, err := os.MkdirTemp("/tmp", "test_download_ubuntu")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpFolderPath)
-	expectedFileName := tmpFolderPath + "/final.raw"
+	expectedFileName := "final.raw.gz"
 	imgName := "image.img"
-	dir := "/data"
+	dir := config.PVC
 	os.MkdirAll(dir, 0755)
-	err = download.DownloadUbuntuImage(svr.URL, imgName, "", expectedFileName)
+	err = download.DownloadUbuntuImage(svr.URL, imgName, expectedFileName, dir)
 	require.NoError(t, err)
-	_, err = os.Stat(expectedFileName)
+	_, err = os.Stat(config.PVC + "/" + expectedFileName)
 	assert.NoError(t, err)
 	defer func() {
 		os.Remove(dir)

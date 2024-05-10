@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"k8s.io/client-go/rest"
-
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/api/dkammgr/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/curation"
@@ -28,6 +26,7 @@ var tag = config.Tag
 
 func DownloadArtifacts() error {
 	MODE := GetMODE()
+	targetDir := config.PVC
 	manifestTag := os.Getenv("MANIFEST_TAG")
 	//MODE := "dev"
 	zlog.MiSec().Info().Msgf("Mode of deployment: %s", MODE)
@@ -38,31 +37,20 @@ func DownloadArtifacts() error {
 	}
 	zlog.MiSec().Info().Msg("Download artifacts")
 
-	_, k8err := rest.InClusterConfig()
-	if k8err == nil {
-		//Running inside Kubernetes cluster
-		zlog.MiSec().Info().Msgf("Running inside k8 cluster")
+	err := download.DownloadArtifacts(targetDir, tag, manifestTag)
+	if err != nil {
+		zlog.MiSec().Info().Msgf("Failed to download manifest file: %v", err)
+		return err
+	}
 
-		err := download.DownloadArtifacts(GetScriptDir(), tag, manifestTag)
-		if err != nil {
-			zlog.MiSec().Info().Msgf("Failed to download manifest file: %v", err)
-			return err
-		}
+	downloaded, downloadErr := download.DownloadMicroOS(targetDir, GetScriptDir())
 
-		downloaded, downloadErr := download.DownloadMicroOS(GetScriptDir())
-
-		if downloadErr != nil {
-			zlog.MiSec().Info().Msgf("Failed to download MicroOS %v", downloadErr)
-			return downloadErr
-		}
-		if downloaded {
-			zlog.MiSec().Info().Msg("Downloaded successfully")
-		}
-
-	} else {
-		// Running outside Kubernetes cluster
-		zlog.MiSec().Info().Msgf("Running outside k8 cluster")
-		zlog.MiSec().Info().Msgf("read local file")
+	if downloadErr != nil {
+		zlog.MiSec().Info().Msgf("Failed to download MicroOS %v", downloadErr)
+		return downloadErr
+	}
+	if downloaded {
+		zlog.MiSec().Info().Msg("Downloaded successfully")
 	}
 
 	return nil
@@ -101,7 +89,8 @@ func GetServerUrl() string {
 func SignMicroOS() (bool, error) {
 	//MODE := GetMODE()
 	scriptPath := GetScriptDir()
-	signed, err := signing.SignHookOS(scriptPath)
+	targetDir := config.PVC
+	signed, err := signing.SignHookOS(scriptPath, targetDir)
 	if err != nil {
 		zlog.MiSec().Info().Msgf("Failed to sign MicroOS %v", err)
 		return false, err
@@ -115,8 +104,9 @@ func SignMicroOS() (bool, error) {
 
 func BuildSignIpxe() (bool, error) {
 	scriptPath := GetScriptDir()
+	targetDir := config.PVC
 	dnsName := GetServerUrl()
-	signed, err := signing.BuildSignIpxe(scriptPath, dnsName)
+	signed, err := signing.BuildSignIpxe(targetDir, scriptPath, dnsName)
 	if err != nil {
 		zlog.MiSec().Info().Msgf("Failed to build and sign iPXE %v", err)
 		return false, err
@@ -157,18 +147,15 @@ func GetScriptDir() string {
 
 func DownloadOS() error {
 	zlog.Info().Msgf("Inside DownloadOS...")
-
-	// Command-line arguments
 	imageURL := config.ImageUrl
-	targetDir := GetScriptDir()
+	targetDir := config.PVC
 	fileName := fileNameFromURL(imageURL)
 	rawFileName := strings.TrimSuffix(fileName, ".img") + ".raw.gz"
 	file := targetDir + "/" + rawFileName
-
 	// Check if the compressed raw image file already exists
 	if _, err := os.Stat(file); os.IsNotExist(err) {
 		// Download the image
-		if err := download.DownloadUbuntuImage(imageURL, "image.img", file, rawFileName); err != nil {
+		if err := download.DownloadUbuntuImage(imageURL, "image.img", rawFileName, targetDir); err != nil {
 			zlog.MiSec().Fatal().Err(err).Msgf("Error downloading image:%v", err)
 			return err
 		}

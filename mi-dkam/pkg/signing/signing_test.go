@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
 )
 
 func TestBuildSignIpxe(t *testing.T) {
@@ -19,6 +21,8 @@ func TestBuildSignIpxe(t *testing.T) {
 	wd, _ := os.Getwd()
 	result := strings.Replace(wd, "signing", "script", -1)
 	res := filepath.Join(result, "latest")
+	dir := config.PVC
+	os.MkdirAll(dir, 0755)
 	if err := os.MkdirAll(filepath.Dir(res), 0755); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
@@ -41,7 +45,7 @@ func TestBuildSignIpxe(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := BuildSignIpxe(tt.args.scriptPath, tt.args.dnsName)
+			got, err := BuildSignIpxe(config.PVC, tt.args.scriptPath, tt.args.dnsName)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("BuildSignIpxe() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -54,6 +58,7 @@ func TestBuildSignIpxe(t *testing.T) {
 	defer func() {
 		CopyFile(res, result+"/chain.ipxe")
 		os.Remove(res)
+		os.Remove(dir)
 	}()
 }
 

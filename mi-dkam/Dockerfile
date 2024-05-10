@@ -58,7 +58,9 @@ COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/intel-innersour
 COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg /home/$USERNAME/pkg
 
 RUN chown -R $USERNAME:$USERNAME /home/$USERNAME
-
+RUN chmod +x pkg/script/build_sign_ipxe.sh
+RUN chmod +x pkg/script/hook/secure_hookos.sh
+RUN chmod +x pkg/script/hook/cpio_build/build_image_at_DKAM.sh
 USER appuser
 
 ENTRYPOINT ["dkammgr"]
