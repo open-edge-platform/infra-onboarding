@@ -26,6 +26,13 @@ else
      exit 1
 fi
 
+if [ -s "/etc/intel_edge_node/customer_id/customer_id" ]; then
+    CUSTOMER_ID=$(cat /etc/intel_edge_node/customer_id/customer_id)
+else
+    echo "CUSTOMER ID does not exists"
+    exit 1
+fi
+
 PROVISIONING_URL=${PROVISIONING_URL:-"localhost"}
 ACCESS_TOKEN_URL=__KEYCLOAK_URL__
 RELEASE_TOKEN_URL=__RELEASE_TOKEN_URL__
@@ -794,7 +801,7 @@ install_license_agent(){
         VERSION="license-agent-VERSION"
         echo $VERSION
         apt-get update
-        echo " license-agent license-agent/customer.id string 12139414" | debconf-set-selections
+        echo " license-agent license-agent/customer.id string ${CUSTOMER_ID}" | debconf-set-selections
         echo "license-agent license-agent/serviceURL string ${LICENSE_MANAGER_URL}" | debconf-set-selections
         echo "license-agent license-agent/YpsURL string ${YPS_URL}" | debconf-set-selections
         echo "license-agent license-agent/enforcement boolean ${ENFORCEMENT}" | debconf-set-selections
