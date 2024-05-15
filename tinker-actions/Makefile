@@ -73,7 +73,7 @@ docker-push:
 		   docker tag ${action}:latest ${DOCKER_TAG}/${action}:${BRANCH_NAME}; \
 		   docker push ${DOCKER_TAG}/${action}:${BRANCH_NAME}; \
 		   echo "Tagging and pushing ${action}:${VERSION}"; \
-		   docker tag ${action}:latest ${DOCKER_TAG}/${action}:${VERSION} \
+		   docker tag ${action}:latest ${DOCKER_TAG}/${action}:${VERSION}; \
 		   docker push ${DOCKER_TAG}/${action}:${VERSION}; \
 		   echo ""; \
        )
