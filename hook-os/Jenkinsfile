@@ -154,7 +154,7 @@ pipeline {
 							tag = sh(script: 'cat TINKER_ACTIONS_VERSION', returnStdout: true).trim()
 						}
 						images_list = []
-						images = sh(script: "cat patch.p | grep -i '+.*image:.*:.*\$' | awk -F: '{print \$2}'", returnStdout: true).trim()
+						images = sh(script: "cat hook/hook.yaml | grep -i '.*image:.*:.*\$' | awk -F: '{print \$2}'", returnStdout: true).trim()
 						images_list = images.split("\n")
 						for (image in images_list) {
 						    image = image.trim()

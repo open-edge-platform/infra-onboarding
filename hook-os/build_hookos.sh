@@ -39,11 +39,9 @@ SED_CMD=sed
 
 VERSION_FILE=$PWD/tinker-actions/VERSION
 
-if [ ! -f $VERSION_FILE ];
-then
+if [ ! -f $VERSION_FILE ]; then
 
-    if [ ! -f $PWD/TINKER_ACTIONS_VERSION ] ;
-    then
+    if [ ! -f $PWD/TINKER_ACTIONS_VERSION ]; then
         cp $PWD/VERSION $PWD/TINKER_ACTIONS_VERSION
     fi
 
@@ -56,8 +54,7 @@ copy_fluent_bit_files() {
 
     cp $FLUENTBIT_FILES/* $HOOKOS_FLUENTBIT_FILES
 
-    if [ $? -ne 0 ];
-    then
+    if [ $? -ne 0 ]; then
         echo "Copy of the fluent-bit config file to the hook/files folder failed"
         exit 1
     fi
@@ -66,15 +63,14 @@ copy_fluent_bit_files() {
 get_client_auth() {
 
     pushd $CLIENT_AUTH_SCRIPTS
-        bash get_certs.sh
+    bash get_certs.sh
     popd
 
     mkdir -p $HOOKOS_IDP_FILES
 
     # if predefined files are needed place them in client_auth/files as ca.pem and server_cert.pem
     cp $CLIENT_AUTH_FILES/* $HOOKOS_IDP_FILES
-    if [ $? -ne 0 ];
-    then
+    if [ $? -ne 0 ]; then
         echo "Copy of the certificates to the hook/files folder failed"
         exit 1
     fi
@@ -83,10 +79,9 @@ get_client_auth() {
 get_caddy_conf() {
     mkdir -p $HOOKOS_CADDY_FILES
     cp $CADDY_FILES/* $HOOKOS_CADDY_FILES
-    if [ $? -ne 0 ];
-    then
-            echo "Copy of the Caddyfile to the hook/files folder failed"
-            exit 1
+    if [ $? -ne 0 ]; then
+        echo "Copy of the Caddyfile to the hook/files folder failed"
+        exit 1
     fi
 
     # Update NGINX runtime configs in hook.yaml
@@ -101,84 +96,81 @@ get_caddy_conf() {
 
 build_hook() {
 
-    local out=$(rm -rf hook)
-    patch_file=$PWD/patch.p
-    new_patch_file=$PWD/hook/new_patch.p
-
-    git clone https://github.com/tinkerbell/hook hook
+    git reset HEAD -- hook
 
     pushd hook
 
-      git checkout v0.8.1
+    ver=$(cat $VERSION_FILE)
+    # Iterate over the array and print each element
+    arrayof_images=($(cat hook.yaml | grep -i ".*image:.*:.*$" | awk -F: '{print $2}'))
+    for image in "${arrayof_images[@]}"; do
+        temp=$(grep -i "/" <<< $image)
+        if [ $? -eq 0 ];
+        then
+            # Non harbor Image
+            continue
+        fi
+        $SED_CMD -i "s/$image:latest/$image:$ver/g" hook.yaml
+    done
+    # copy fluent-bit related files
+    copy_fluent_bit_files
 
-      cp $patch_file $new_patch_file
-      ver=$(cat $VERSION_FILE)
-      $SED_CMD -i "s/latest/$ver/g" $new_patch_file
+    # if kernel already built or pulled into docker images list then dont recompile
+    if docker image inspect quay.io/tinkerbell/hook-kernel:5.10.85-e546ea099917c006d1d08fe6b8398101de65cbc7 >/dev/null 2>&1; then
+        echo "Rebuild of kernel not required, since its already present in docker images"
+    else
+        # i255 igc driver issue fix
+        pushd kernel/
+        mkdir patches-5.10.x
+        pushd patches-5.10.x/
+        # download the igc i255 driver patch file
+        wget https://github.com/intel/linux-intel-lts/commit/170110adbecc1c603baa57246c15d38ef1faa0fa.patch
+        popd
 
-      patch -p1 < $new_patch_file
+        make devbuild_5.10.x
+        popd
+    fi
 
-      # copy fluent-bit related files
-      copy_fluent_bit_files
+    #update the hook.yaml file to point to new kernel
+    $SED_CMD -i "s|quay.io/tinkerbell/hook-kernel:5.10.85-d1225df88208e5a732e820a182b75fb35c737bdd|quay.io/tinkerbell/hook-kernel:5.10.85-e546ea099917c006d1d08fe6b8398101de65cbc7|g" hook.yaml
 
-      # if kernel already built or pulled into docker images list then dont recompile
-      if docker image inspect quay.io/tinkerbell/hook-kernel:5.10.85-e546ea099917c006d1d08fe6b8398101de65cbc7 > /dev/null  2>&1;
-      then
-          echo "Rebuild of kernel not required, since its already present in docker images"
-      else
-      # i255 igc driver issue fix
-      pushd kernel/
-          mkdir patches-5.10.x
-          pushd patches-5.10.x/
-              # download the igc i255 driver patch file
-              wget https://github.com/intel/linux-intel-lts/commit/170110adbecc1c603baa57246c15d38ef1faa0fa.patch
-          popd
+    $SED_CMD -i "s|dl-cdn.alpinelinux.org/alpine/edge/testing|dl-cdn.alpinelinux.org/alpine/edge/community|g" hook-docker/Dockerfile
 
-          make devbuild_5.10.x
-      popd
-      fi
+    #update keycloak url
+    $SED_CMD -i "s|update_idp_url|$keycloak_url|g" hook.yaml
 
-      #update the hook.yaml file to point to new kernel
-      $SED_CMD -i "s|quay.io/tinkerbell/hook-kernel:5.10.85-d1225df88208e5a732e820a182b75fb35c737bdd|quay.io/tinkerbell/hook-kernel:5.10.85-e546ea099917c006d1d08fe6b8398101de65cbc7|g" hook.yaml
+    #update extra hosts needed?
+    if [ -n "$extra_hosts" ]; then
+        # needed for keycloak.kind.internal type of deployment
+        $SED_CMD -i "s|update_extra_hosts|$extra_hosts|g" hook.yaml
+    else
+        #Remove the entire line for extra hosts if config doesnt have any value
+        $SED_CMD -i "s|- EXTRA_HOSTS=update_extra_hosts||g" hook.yaml
+    fi
 
-      $SED_CMD -i "s|dl-cdn.alpinelinux.org/alpine/edge/testing|dl-cdn.alpinelinux.org/alpine/edge/community|g" hook-docker/Dockerfile
+    # get the client_auth files and container before running the hook os build.
+    get_client_auth
+    get_caddy_conf
 
-      #update keycloak url
-      $SED_CMD -i "s|update_idp_url|$keycloak_url|g" hook.yaml
+    docker run --rm -e HTTP_PROXY=$http_proxy \
+        -e HTTPS_PROXY=$https_proxy \
+        -e NO_PROXY=$no_proxy \
+        -e http_proxy=$http_proxy \
+        -e https_proxy=${https_proxy} \
+        -v "$PWD:$PWD" \
+        -w "$PWD" \
+        -v /var/run/docker.sock:/var/run/docker.sock nixos/nix nix-shell \
+        --run "make dist"
+    #    make dist
 
-
-      #update extra hosts needed?
-      if [ -n "$extra_hosts" ]; then
-      # needed for keycloak.kind.internal type of deployment
-          $SED_CMD -i "s|update_extra_hosts|$extra_hosts|g" hook.yaml
-      else
-      #Remove the entire line for extra hosts if config doesnt have any value
-          $SED_CMD -i "s|- EXTRA_HOSTS=update_extra_hosts||g" hook.yaml
-      fi
-
-      # get the client_auth files and container before running the hook os build.
-      get_client_auth
-      get_caddy_conf
-
-      docker run --rm -e HTTP_PROXY=$http_proxy \
-         -e HTTPS_PROXY=$https_proxy \
-         -e NO_PROXY=$no_proxy \
-         -e http_proxy=$http_proxy \
-         -e https_proxy=${https_proxy} \
-         -v "$PWD:$PWD" \
-         -w "$PWD" \
-         -v /var/run/docker.sock:/var/run/docker.sock nixos/nix nix-shell \
-         --run "make dist"
-      #    make dist
-
-    popd  # out of hook dir
+    popd # out of hook dir
 
     mkdir -p $STORE_ALPINE
     mkdir -p $STORE_ALPINE_SECUREBOOT
 
     cp $PWD/hook/out/sha-*/rel/hook_x86_64.tar.gz $STORE_ALPINE
 
-    if [ $? -ne 0 ];
-    then
+    if [ $? -ne 0 ]; then
         echo "Build of HookOS failed!"
         exit 1
     fi
@@ -190,14 +182,13 @@ build_hook() {
         sudo cp $PWD/hook/out/sha-/rel/hook_x86_64.tar.gz /opt/hook/
 
         pushd /opt/hook/
-            sudo tar -xzvf hook_x86_64.tar.gz >/dev/null 2&>1
-            sudo rm hook_x86_64.tar.gz
+        sudo tar -xzvf hook_x86_64.tar.gz 2 >/dev/null &>1
+        sudo rm hook_x86_64.tar.gz
         popd
     fi
 
     echo "Build of HookOS succeeded!"
 }
-
 
 main() {
 

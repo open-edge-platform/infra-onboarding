@@ -33,7 +33,7 @@ fi
 
 tag=$(cat $VERSION_FILE)
 
-arrayof_images=($(cat patch.p | grep -i "+.*image:.*:.*$" | awk -F: '{print $2}'))
+arrayof_images=($(cat hook/hook.yaml | grep -i ".*image:.*:.*$" | awk -F: '{print $2}'))
 for image in ${arrayof_images[@]};
 do
     temp=$(grep -i "/" <<< $image)
