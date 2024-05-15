@@ -39,7 +39,7 @@ SECRETS_DIR := /var/run/secrets
 # Tools versions
 GOLINTVERSION_HAVE        := $(shell golangci-lint version | sed 's/.*version //' | sed 's/ .*//')
 POSTGRES_VERSION          := 14.9
-BUFVERSION_REQ			  := 1.27.1
+BUFVERSION_REQ            := 1.27.1
 
 GOCMD := GOPRIVATE="github.com/intel-innersource/*" go
 
@@ -108,7 +108,7 @@ buf-gen: ## compile protoc files into code
 go-dependency: ## install go dependency tooling
 	$(GOCMD) install github.com/bufbuild/buf/cmd/buf@v${BUFVERSION_REQ}
 
-lint: ## lint code
+go-lint: ## lint code
 	golangci-lint --version
 	golangci-lint run --config .golangci.yml
 

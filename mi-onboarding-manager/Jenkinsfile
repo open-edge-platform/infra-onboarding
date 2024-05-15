@@ -122,11 +122,13 @@ pipeline {
                 '''
             }
         }
-        stage('License Check') {
+        stage('Generate Code') {
             steps {
                 sh '''
-                echo "License checking the code"
-                make license
+                echo "Generating the code"
+                make clean
+                make generate-ci
+                bash -c "diff -u <(echo -n) <(git diff)"
                 '''
             }
         }
@@ -142,17 +144,7 @@ pipeline {
             steps {
                 sh '''
                 echo "Linting the code"
-                make lint
-                '''
-            }
-        }
-        stage('Generate Code') {
-            steps {
-                sh '''
-                echo "Generating the code"
-                make clean
-                make generate-ci
-                bash -c "diff -u <(echo -n) <(git diff)"
+                make lint-ci
                 '''
             }
         }
