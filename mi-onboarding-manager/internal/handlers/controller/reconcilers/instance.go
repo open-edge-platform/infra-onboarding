@@ -227,7 +227,6 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		HwIP:               host.GetBmcIp(),
 		Hostname:           host.GetResourceId(), // we use resource ID as hostname to uniquely identify a host
 		SecurityFeature:    uint32(instance.GetSecurityFeature()),
-		Gateway:            utils.GenerateGatewayFromBaseIP(host.GetBmcIp()),
 		ImgType:            env.ImgType,
 		OSImageURL:         env.ImgURL,
 		DiskType:           env.DiskType,

@@ -702,7 +702,7 @@ func Test_convertInstanceToDeviceInfo(t *testing.T) {
 				InstallerScriptURL: "http://some-url-2",
 				TinkerVersion:      "v0.7.4",
 				HwIP:               "0.0.0.0",
-				Gateway:            "0.0.0.1", // note that this is not valid and temporary
+				Gateway:            "", // note that this is not valid and temporary
 				Rootfspart:         "1",
 				ClientImgName:      ClientImgName,
 				ImgType:            "prod_bkc",

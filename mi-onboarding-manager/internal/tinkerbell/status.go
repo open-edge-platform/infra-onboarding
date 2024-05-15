@@ -42,6 +42,7 @@ var workflowStepToStatusDetail = map[string]string{
 	ActionWriteClientSecret:          "Saving client secret",
 	ActionWriteHostname:              "Setting host name",
 	ActionWriteEtcHosts:              "Setting into /etc/hosts",
+	ActionCreateCustomerIDDirectory:  "Create directory in EN for Customer ID",
 }
 
 func GenerateStatusDetailFromWorkflowState(workflow *tink.Workflow) string {

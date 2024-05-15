@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
@@ -17,31 +18,30 @@ func TestWorkflowActionToStatusDetail(t *testing.T) {
 		"/dev/sda", "12345678", "")
 	require.NoError(t, err)
 
-	// TODO: This test cases will be handle in future release.
-	// prodBkcWorkflowWithDIData, err := NewTemplateDataProdBKC("test-prod-bkc-di", utils.DeviceInfo{}, true)
-	// require.NoError(t, err)
+	prodBkcWorkflowWithDIData, err := NewTemplateDataProdBKC("test-prod-bkc-di", utils.DeviceInfo{}, true)
+	require.NoError(t, err)
 
-	// prodBkcWorkflowWithoutDIData, err := NewTemplateDataProdBKC("test-prod-bkc", utils.DeviceInfo{}, false)
-	// require.NoError(t, err)
+	prodBkcWorkflowWithoutDIData, err := NewTemplateDataProdBKC("test-prod-bkc", utils.DeviceInfo{}, false)
+	require.NoError(t, err)
 
 	prodWorkflowData, err := NewTemplateDataProd("test-prod", "", "", "", "", "")
 
 	diWorkflow, err := unmarshalWorkflow(diWorkflowData)
 	require.NoError(t, err)
 
-	// prodBkcWorkflowWithDI, err := unmarshalWorkflow(prodBkcWorkflowWithDIData)
-	// require.NoError(t, err)
+	prodBkcWorkflowWithDI, err := unmarshalWorkflow(prodBkcWorkflowWithDIData)
+	require.NoError(t, err)
 
-	// prodBkcWorkflowWithoutDI, err := unmarshalWorkflow(prodBkcWorkflowWithoutDIData)
-	// require.NoError(t, err)
+	prodBkcWorkflowWithoutDI, err := unmarshalWorkflow(prodBkcWorkflowWithoutDIData)
+	require.NoError(t, err)
 
 	prodWorkflow, err := unmarshalWorkflow(prodWorkflowData)
 	require.NoError(t, err)
 
 	workflows := []*Workflow{
 		diWorkflow,
-		// prodBkcWorkflowWithDI,
-		// prodBkcWorkflowWithoutDI,
+		prodBkcWorkflowWithDI,
+		prodBkcWorkflowWithoutDI,
 		prodWorkflow,
 	}
 

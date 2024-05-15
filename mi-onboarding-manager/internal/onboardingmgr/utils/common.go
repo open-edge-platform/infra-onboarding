@@ -11,12 +11,6 @@ import (
 	"strings"
 )
 
-func GenerateGatewayFromBaseIP(baseIP string) string {
-	// Extract the last part of the base IP and replace it with "1" to get the gateway
-	lastPart := strings.Split(baseIP, ".")[3]
-	return baseIP[:len(baseIP)-len(lastPart)] + "1"
-}
-
 func CalculateRootFS(imageType, diskDev string) string {
 	rootFSPartNo := "1"
 
