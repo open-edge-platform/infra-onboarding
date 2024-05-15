@@ -200,16 +200,28 @@ pipeline {
 		}
 		stage('Docker Publish') {
 			when {
-				anyOf { branch 'main'; branch 'release-*'; expression{ common.isMatchingCommit(/.*\[push-docker-image\]*/) } }
+				anyOf {
+					branch 'main'
+					branch 'release-*'
+					expression { common.isMatchingCommit(/.*\[push-docker-image\]*/) }
+					changeRequest()
+				}
 			}
 			steps {
-				withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'intel-harbor-credentials', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
-				{
-					sh '''
-					docker login -u $USERNAME -p $PASSWORD https://amr-registry.caas.intel.com
-					make docker-push
-					docker logout
-					'''
+				withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'intel-harbor-credentials', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+					script {
+						def isPR = env.CHANGE_ID != null
+
+						sh 'docker login -u $USERNAME -p $PASSWORD https://amr-registry.caas.intel.com'
+
+						if (isPR) {
+							sh 'make docker-dev-push'
+						} else {
+							sh 'make docker-push'
+						}
+
+						sh 'docker logout'
+					}
 				}
 			}
 		}

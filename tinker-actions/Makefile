@@ -29,6 +29,21 @@ DOCKER_REGISTRY         ?= amr-registry.caas.intel.com
 DOCKER_REPOSITORY       ?= one-intel-edge/edge-node
 DOCKER_TAG              := ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}
 
+ACTION_ARRAY := \
+	securebootflag \
+	efibootset \
+	fdoclient_action \
+	store_alpine \
+	create_partition \
+	fde \
+	cred_copy \
+	client_auth \
+	nginx_proxy_action \
+	caddy_proxy \
+	fluentbit \
+	image2disk \
+	cexec \
+	writefile
 
 # Create the virtualenv with python tools installed
 VENV_NAME = venv_midkammgr
@@ -53,66 +68,23 @@ build:
 	@echo "---END MAKEFILE Build---"
 
 docker-push:
-	docker tag securebootflag:latest ${DOCKER_TAG}/securebootflag:${BRANCH_NAME}
-	docker tag efibootset:latest ${DOCKER_TAG}/efibootset:${BRANCH_NAME}
-	docker tag fdoclient_action:latest ${DOCKER_TAG}/fdoclient_action:${BRANCH_NAME}
-	docker tag store_alpine:latest ${DOCKER_TAG}/store_alpine:${BRANCH_NAME}
-	docker tag create_partition:latest ${DOCKER_TAG}/create_partition:${BRANCH_NAME}
-	docker tag fde:latest ${DOCKER_TAG}/fde:${BRANCH_NAME}
-	docker tag cred_copy:latest ${DOCKER_TAG}/cred_copy:${BRANCH_NAME}
-	docker tag client_auth:latest ${DOCKER_TAG}/client_auth:${BRANCH_NAME}
-	docker tag nginx_proxy_action:latest ${DOCKER_TAG}/nginx_proxy_action:${BRANCH_NAME}
-	docker tag caddy_proxy:latest ${DOCKER_TAG}/caddy_proxy:${BRANCH_NAME}
-	docker tag fluentbit:latest ${DOCKER_TAG}/fluentbit:${BRANCH_NAME}
-	docker tag image2disk:latest ${DOCKER_TAG}/image2disk:${BRANCH_NAME}
-	docker tag cexec:latest ${DOCKER_TAG}/cexec:${BRANCH_NAME}
-	docker tag writefile:latest ${DOCKER_TAG}/writefile:${BRANCH_NAME}
+	@$(foreach action,$(ACTION_ARRAY), \
+	       echo "Tagging and pushing ${action}:${BRANCH_NAME}"; \
+		   docker tag ${action}:latest ${DOCKER_TAG}/${action}:${BRANCH_NAME}; \
+		   docker push ${DOCKER_TAG}/${action}:${BRANCH_NAME}; \
+		   echo "Tagging and pushing ${action}:${VERSION}"; \
+		   docker tag ${action}:latest ${DOCKER_TAG}/${action}:${VERSION} \
+		   docker push ${DOCKER_TAG}/${action}:${VERSION}; \
+		   echo ""; \
+       )
 
-	docker push ${DOCKER_TAG}/securebootflag:${BRANCH_NAME}
-	docker push ${DOCKER_TAG}/efibootset:${BRANCH_NAME}
-	docker push ${DOCKER_TAG}/fdoclient_action:${BRANCH_NAME}
-	docker push ${DOCKER_TAG}/store_alpine:${BRANCH_NAME}
-	docker push ${DOCKER_TAG}/create_partition:${BRANCH_NAME}
-	docker push ${DOCKER_TAG}/fde:${BRANCH_NAME}
-	docker push ${DOCKER_TAG}/cred_copy:${BRANCH_NAME}
-	docker push ${DOCKER_TAG}/client_auth:${BRANCH_NAME}
-	docker push ${DOCKER_TAG}/nginx_proxy_action:${BRANCH_NAME}
-	docker push ${DOCKER_TAG}/caddy_proxy:${BRANCH_NAME}
-	docker push ${DOCKER_TAG}/fluentbit:${BRANCH_NAME}
-	docker push ${DOCKER_TAG}/image2disk:${BRANCH_NAME}
-	docker push ${DOCKER_TAG}/cexec:${BRANCH_NAME}
-	docker push ${DOCKER_TAG}/writefile:${BRANCH_NAME}
-
-	docker tag securebootflag:latest ${DOCKER_TAG}/securebootflag:${VERSION}
-	docker tag efibootset:latest ${DOCKER_TAG}/efibootset:${VERSION}
-	docker tag fdoclient_action:latest ${DOCKER_TAG}/fdoclient_action:${VERSION}
-	docker tag store_alpine:latest ${DOCKER_TAG}/store_alpine:${VERSION}
-	docker tag create_partition:latest ${DOCKER_TAG}/create_partition:${VERSION}
-	docker tag fde:latest ${DOCKER_TAG}/fde:${VERSION}
-	docker tag cred_copy:latest ${DOCKER_TAG}/cred_copy:${VERSION}
-	docker tag client_auth:latest ${DOCKER_TAG}/client_auth:${VERSION}
-	docker tag nginx_proxy_action:latest ${DOCKER_TAG}/nginx_proxy_action:${VERSION}
-	docker tag caddy_proxy:latest ${DOCKER_TAG}/caddy_proxy:${VERSION}
-	docker tag fluentbit:latest ${DOCKER_TAG}/fluentbit:${VERSION}
-	docker tag image2disk:latest ${DOCKER_TAG}/image2disk:${VERSION}
-	docker tag cexec:latest ${DOCKER_TAG}/cexec:${VERSION}
-	docker tag writefile:latest ${DOCKER_TAG}/writefile:${VERSION}
-
-	docker push ${DOCKER_TAG}/securebootflag:${VERSION}
-	docker push ${DOCKER_TAG}/efibootset:${VERSION}
-	docker push ${DOCKER_TAG}/fdoclient_action:${VERSION}
-	docker push ${DOCKER_TAG}/store_alpine:${VERSION}
-	docker push ${DOCKER_TAG}/create_partition:${VERSION}
-	docker push ${DOCKER_TAG}/fde:${VERSION}
-	docker push ${DOCKER_TAG}/cred_copy:${VERSION}
-	docker push ${DOCKER_TAG}/client_auth:${VERSION}
-	docker push ${DOCKER_TAG}/nginx_proxy_action:${VERSION}
-	docker push ${DOCKER_TAG}/caddy_proxy:${VERSION}
-	docker push ${DOCKER_TAG}/fluentbit:${VERSION}
-	docker push ${DOCKER_TAG}/image2disk:${VERSION}
-	docker push ${DOCKER_TAG}/cexec:${VERSION}
-	docker push ${DOCKER_TAG}/writefile:${VERSION}
-
+docker-dev-push:
+	@$(foreach action,$(ACTION_ARRAY), \
+	       echo "Tagging and pushing ${action}:${BRANCH_NAME}"; \
+		   docker tag ${action}:latest ${DOCKER_TAG}/${action}:${BRANCH_NAME}; \
+		   docker push ${DOCKER_TAG}/${action}:${BRANCH_NAME}; \
+		   echo ""; \
+       )
 
 lint-ci: license
 
