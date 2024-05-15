@@ -34,6 +34,8 @@ BLOCK_DEVICE=$disk
 TINKERBELL_OWNER=${TINKERBELL_OWNER:-localhost}
 #BLOCK_DEVICE="/dev/nvme0n1"
 
+STORE_ALPINE_FILE=${STORE_ALPINE_FILE:-hook_x86_64.tar.gz}
+
 ####################
 #tinkerbell owner information will be replaced during docker image build
 mac_address_current_device=$(cat /proc/cmdline | grep -o "instance_id=..:..:..:..:..:.. " | awk ' {split($0,a,"="); print a[2]} ')
@@ -72,12 +74,13 @@ do_image_download_bg() {
         hostip=$(ip route | grep default | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b")
     fi
     pushd /
-    wget http://$hostip:8090/tink-stack/hook_x86_64.tar.gz -nv
+    wget http://$hostip:8090/tink-stack/$STORE_ALPINE_FILE -nv
     ret=$?
     popd
     if [ $ret -ne 0 ]; then
         return 1
     else
+        mv $STORE_ALPINE_FILE hook_x86_64.tar.gz
         return 0
     fi
 }
