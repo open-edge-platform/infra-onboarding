@@ -14,6 +14,7 @@ import (
 )
 
 const (
+	ActionEraseNonRemovableDisk      = "erase-non-removable-disk" //nolint:gosec // hardcoded secrets need to handle in future.
 	ActionSecureBootStatusFlagRead   = "secure-boot-status-flag-read"
 	ActionStreamUbuntuImage          = "stream-ubuntu-image"
 	ActionCopySecrets                = "copy-secrets"
@@ -62,6 +63,9 @@ const (
 	envTinkerImageVersion     = "TINKER_IMAGE_VERSION"
 	defaultTinkerImageVersion = "v1.0.0"
 
+	envTinkActionEraseNonRemovableDiskImage = "TINKER_ERASE_NON_REMOVABLE_DISK_IMAGE"
+	defaultEraseNonRemovableDiskImage       = "localhost:7443/one-intel-edge/edge-node/tinker-actions/erase_non_removable_disks"
+
 	envTinkActionSecurebootFlagReadImage     = "TINKER_SECUREBOOTFLAGREAD_IMAGE"
 	defaultTinkActionSecurebootFlagReadImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/securebootflag"
 
@@ -95,6 +99,14 @@ func getTinkerImageVersion(tinkerImageVersion string) string {
 		return v
 	}
 	return defaultTinkerImageVersion
+}
+
+func tinkActionEraseNonRemovableDisk(tinkerImageVersion string) string {
+	iv := getTinkerImageVersion(tinkerImageVersion)
+	if v := os.Getenv(envTinkActionEraseNonRemovableDiskImage); v != "" {
+		return fmt.Sprintf("%s:%s", v, iv)
+	}
+	return fmt.Sprintf("%s:%s", defaultEraseNonRemovableDiskImage, iv)
 }
 
 func tinkActionSecurebootFlagReadImage(tinkerImageVersion string) string {
@@ -374,6 +386,13 @@ func NewTemplateDataProdBKC(name string, deviceInfo utils.DeviceInfo, enableDI b
 						"/:/host:rw",
 					},
 				},
+
+				{
+					Name:    ActionEraseNonRemovableDisk,
+					Image:   tinkActionEraseNonRemovableDisk(deviceInfo.TinkerVersion),
+					Timeout: timeOutAvg560,
+				},
+
 				{
 					Name:    ActionStreamUbuntuImage,
 					Image:   tinkActionDiskImage(deviceInfo.TinkerVersion),

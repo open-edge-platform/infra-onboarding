@@ -10,6 +10,7 @@ import (
 )
 
 var workflowStepToStatusDetail = map[string]string{
+	ActionEraseNonRemovableDisk:      "Erase Non Removable Disk",
 	ActionSecureBootStatusFlagRead:   "Verifying Secure Boot settings match",
 	ActionStreamUbuntuImage:          "Streaming OS image",
 	ActionCopySecrets:                "Copying secrets",
