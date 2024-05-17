@@ -36,5 +36,4 @@ docker build -f Dockerfile \
 
 # Save the Docker image
 
-docker tag client_auth:$ver client_auth:$ver
 printf "\rSaved the Docker image for client_auth as client_auth:$ver\n"

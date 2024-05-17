@@ -9,13 +9,12 @@
 # This software and the related documents are provided as is, with no express       #
 # or implied warranties, other than those that are expressly stated in the License. #
 #####################################################################################
-FROM debian:12
+FROM alpine:3.18
 
-RUN apt-get update
-RUN apt-get install -y ca-certificates curl getty-run jq
+RUN apk add --no-cache util-linux ca-certificates curl jq
 
 COPY client_auth.sh /
 
 RUN chmod +x client_auth.sh
 
-CMD ["/bin/bash", "/client_auth.sh"]
+CMD ["/bin/sh", "/client_auth.sh"]

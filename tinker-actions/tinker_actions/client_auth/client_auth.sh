@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #####################################################################################
 # INTEL CONFIDENTIAL                                                                #
 # Copyright (C) 2023 Intel Corporation                                              # 
@@ -24,14 +24,15 @@ enable_tty0() {
     echo 'False' > /tty0_status_user
     echo 'False' > /tty0_status_pass
     echo "Provide Username and password for the IDP"
-    setsid bash -c "echo 'Provide Username and password for the IDP' <> /dev/tty0 >&0 2>&1" 
-    setsid bash -c 'read -p "Username: " username <> /dev/tty0 >&0 2>&1  && echo "$username" > /idp_username && echo "True" > /tty0_status_user'
-    setsid bash -c 'read -s -p "Password: " password <> /dev/tty0 >&0 2>&1  && echo "$password" > /idp_password && echo "True" > /tty0_status_pass'
-    setsid bash -c "echo -e '\nUsername, Password received: Processing' <> /dev/tty0 >&0 2>&1"
+
+    setsid /bin/sh -c "echo 'Provide Username and password for the IDP' <> /dev/tty0 >&0 2>&1"
+    setsid /bin/sh -c 'read -p "Username: " username <> /dev/tty0 >&0 2>&1 && [ ! -z "$username" ] && echo $username > /idp_username && echo "True" > /tty0_status_user'
+    setsid /bin/sh -c 'read -s -p "Password: " password <> /dev/tty0 >&0 2>&1 && [ ! -z "$password" ] && echo $password > /idp_password  && echo "True" > /tty0_status_pass'
+    setsid /bin/sh -c "echo -e '\nUsername, Password received: Processing' <> /dev/tty0 >&0 2>&1"
 
     userread=$(cat /tty0_status_user)
     passread=$(cat /tty0_status_pass)
-    if [ ${userread} == 'True' ] && [ ${passread} == 'True' ];
+    if [ "${userread}" = 'True' ] && [ "${passread}" = 'True' ];
     then
 	finished_read='True'
 	echo "$finished_read" > "$pipe"
@@ -45,16 +46,16 @@ enable_ttyS0() {
     echo 'False' > /ttys0_status_pass
     setsid -w /usr/sbin/getty -a root -L 115200 $tty vt100 &
     echo "Provide Username and password for the IDP"
-    setsid bash -c "echo 'Provide Username and password for the IDP' <> /dev/ttyS0 >&0 2>&1" 
-    setsid bash -c 'read -p "Username: " username <> /dev/ttyS0 >&0 2>&1 && echo "$username" > /idp_username && echo "True" > /ttys0_status_user'
-    setsid bash -c 'read -s -p "Password: " password <> /dev/ttyS0 >&0 2>&1 && echo "$password" > /idp_password && echo "True" > /ttys0_status_pass'
 
-    setsid bash -c "echo -e '\nUsername, Password received: Processing' <> /dev/ttyS0 >&0 2>&1"
+    setsid /bin/sh -c "echo 'Provide Username and password for the IDP' <> /dev/ttyS0 >&0 2>&1"
+    setsid /bin/sh -c 'read -p "Username: " username <> /dev/ttyS0 >&0 2>&1 && [ ! -z "$username" ] && echo $username > /idp_username && echo "True" > /ttys0_status_user'
+    setsid /bin/sh -c 'read -s -p "Password: " password <> /dev/ttyS0 >&0 2>&1 && [ ! -z "$password" ] && echo $password > /idp_password  && echo "True" > /ttys0_status_pass'
+    setsid /bin/sh -c "echo -e '\nUsername, Password received: Processing' <> /dev/ttyS0 >&0 2>&1"
 
     userread=$(cat /ttys0_status_user)
     passread=$(cat /ttys0_status_pass)
 
-    if [ ${userread} == 'True' ] && [ ${passread} == 'True' ];
+    if [ "${userread}" = 'True' ] && [ "${passread}" = 'True' ];
     then
 	finished_read='True'
 
@@ -62,22 +63,21 @@ enable_ttyS0() {
 	echo 'False' > /ttys0_status_user
 	echo 'False' > /ttys0_status_pass
     fi
-    setsid bash -c "echo 'here-3' <> /dev/ttyS0 >&0 2>&1"
+    setsid /bin/sh -c "echo 'here-3' <> /dev/ttyS0 >&0 2>&1"
 }
 
 enable_ttyS1() {
     echo 'False' > /ttys1_status_user
     echo 'False' > /ttys1_status_pass
     echo "Provide Username and password for the IDP"
-    setsid bash -c "echo 'Provide Username and password for the IDP' <> /dev/ttyS1 >&0 2>&1"
-    setsid bash -c 'read -p "Username: " username <> /dev/ttyS1 >&0 2>&1  && echo "$username" > /idp_username && echo "True" > /ttys1_status_user'
-    setsid bash -c 'read -s -p "Password: " password <> /dev/ttyS1 >&0 2>&1  && echo "$password" > /idp_password && echo "True" > /ttys1_status_pass'
-
-    setsid bash -c "echo -e '\nUsername, Password received: Processing' <> /dev/ttyS1 >&0 2>&1"
+    setsid /bin/sh -c "echo 'Provide Username and password for the IDP' <> /dev/ttyS1 >&0 2>&1"
+    setsid /bin/sh -c 'read -p "Username: " username <> /dev/ttyS1 >&0 2>&1 && [ ! -z "$username" ] && echo $username > /idp_username && echo "True" > /ttys1_status_user'
+    setsid /bin/sh -c 'read -s -p "Password: " password <> /dev/ttyS1 >&0 2>&1 && [ ! -z "$password" ] && echo $password > /idp_password  && echo "True" > /ttys1_status_pass'
+    setsid /bin/sh -c "echo -e '\nUsername, Password received: Processing' <> /dev/ttyS1 >&0 2>&1"
 
     userread=$(cat /ttys1_status_user)
     passread=$(cat /ttys1_status_pass)
-    if [ ${userread} == 'True' ] && [ ${passread} == 'True' ];
+    if [ "${userread}" = 'True' ] && [ "${passread}" = 'True' ];
     then
 	finished_read='True'
 	echo "$finished_read" > "$pipe"
@@ -116,14 +116,13 @@ main() {
 	username=$(cat /idp_username)
 	password=$(cat /idp_password)
 
-	username=$(tr -d " " <<< $username | tr -d "\n" | tr -d ";")
-	password=$(tr -d " " <<< $password | tr -d "\n" | tr -d ";")
+	username=$(echo $username | tr -d " "  | tr -d "\n" | tr -d ";")
+	password=$(echo $password | tr -d " "  | tr -d "\n" | tr -d ";")
 
 	#username and password checks are done at keycloak this is just to ensure that there was some valid input received
-	if [ $(wc -c <<<$username) -lt 3 ] || [ $(wc -c <<<$password) -lt 3 ];
-	then
-	    echo "Incorrect username password"
-	    continue
+	if [ "$(echo -n $username | wc -c)" -lt 3 ] || [ "$(echo -n $password | wc -c)" -lt 3 ]; then
+		echo "Incorrect username password"
+		continue
 	fi
 
 	#read the single line IDP_certificate from the /proc/cmdline  awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' test2
@@ -146,7 +145,7 @@ main() {
 	update-ca-certificates
 
 	#update hosts if they were provided
-	extra_hosts_needed=$(sed "s|,|\n|g" <<< "$EXTRA_HOSTS")
+	extra_hosts_needed=$(echo $EXTRA_HOSTS | sed "s|,|\n|g")
 	echo -e "$extra_hosts_needed" >> /etc/hosts
 	echo "adding extras completed"
 
@@ -160,8 +159,7 @@ main() {
 			    -d "client_id=system-client" \
 			    -d "scope=openid" | jq -r '.access_token')
 
-	if [[ $access_token == 'null' ]];
-	then
+	if [ "$access_token" = 'null' ]; then
 	    echo "Error login - retry"
 	    continue
 	else
@@ -178,7 +176,7 @@ main() {
 	# mkdir -p $idp_folder
 	printf "%s" "$access_token" > "$idp_folder/idp_access_token"
 
-	release_server_url=$(sed "s/keycloak/release/g" <<< $KEYCLOAK_URL)
+	release_server_url=$(echo $KEYCLOAK_URL | sed "s/keycloak/release/g" )
 	release_token=$(curl --cacert /usr/local/share/ca-certificates/IDP_keyclock.crt -X GET https://$release_server_url/token -H "Authorization: Bearer $access_token")
 	printf "%s" "$release_token" > "$idp_folder/release_token"
 
