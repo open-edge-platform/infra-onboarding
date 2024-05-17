@@ -28,6 +28,7 @@ fluentbit=./tinker_actions/fluentbit
 image2disk=./tinker_actions/image2disk/v1
 cexec=./tinker_actions/cexec/v1
 writefile=./tinker_actions/writefile/v1
+erase_non_removable_disks=./tinker_actions/erase_non_removable_disks
 
 read_sb_status_setup() {
     pushd $read_sb_status
@@ -152,6 +153,14 @@ writefile_setup() {
     popd
 }
 
+erase_non_removable_disks_setup() {
+
+    pushd $erase_non_removable_disks
+
+    bash build.sh
+
+    popd
+}
 main() {
 
     apt install -y build-essential
@@ -172,6 +181,7 @@ main() {
     image2disk_setup
     cexec_setup
     writefile_setup
+    erase_non_removable_disks_setup
 }
 
 main

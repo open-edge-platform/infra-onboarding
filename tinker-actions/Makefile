@@ -43,7 +43,8 @@ ACTION_ARRAY := \
 	fluentbit \
 	image2disk \
 	cexec \
-	writefile
+	writefile \
+	erase_non_removable_disks
 
 # Create the virtualenv with python tools installed
 VENV_NAME = venv_midkammgr
