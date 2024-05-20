@@ -134,7 +134,8 @@ build_ipxe_efi() {
 	cp chain.ipxe "$IPXE_DIR"/src
 	cd "$IPXE_DIR"/src || exit
         date
-	make bin-x86_64-efi/ipxe.efi
+	#shellcheck disable=SC2046
+	make -j$(nproc) bin-x86_64-efi/ipxe.efi
 	date
  	echo "Completed make bin-x86_64-efi/ipxe.efi"
 
@@ -151,7 +152,8 @@ build_ipxe_efi() {
 
 	echo "======== Embedding chain script while compiling iPXE ========"
  	date
-	make bin-x86_64-efi/ipxe.efi CERT="$SERVER_CERT_DIR"/Full_server.crt TRUST="$SERVER_CERT_DIR"/ca.crt EMBED=chain.ipxe
+        #shellcheck disable=SC2046
+	make -j$(nproc) bin-x86_64-efi/ipxe.efi CERT="$SERVER_CERT_DIR"/Full_server.crt TRUST="$SERVER_CERT_DIR"/ca.crt EMBED=chain.ipxe
 	date
  	echo "Completed make bin-x86_64-efi/ipxe.efi Embedding chain script"
 
