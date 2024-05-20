@@ -127,11 +127,16 @@ build_ipxe_efi() {
 	if [ -d "$IPXE_DIR" ]; then
 		rm -rf "$IPXE_DIR"
 	fi
+ 	date
 	git clone https://github.com/ipxe/ipxe.git
-
+	date
+ 	echo "Completed Cloning repo"
 	cp chain.ipxe "$IPXE_DIR"/src
 	cd "$IPXE_DIR"/src || exit
+        date
 	make bin-x86_64-efi/ipxe.efi
+	date
+ 	echo "Completed make bin-x86_64-efi/ipxe.efi"
 
 	sed -i 's|//#define\tCONSOLE_FRAMEBUFFER|#define\tCONSOLE_FRAMEBUFFER|g' "$IPXE_DIR"/src/config/console.h && \
 	sed -Ei "s/^#undef([ \t]*DOWNLOAD_PROTO_(HTTPS|FTP|SLAM|NFS)[ \t]*)/#define\1/" "$IPXE_DIR"/src/config/general.h && \
@@ -145,7 +150,10 @@ build_ipxe_efi() {
 	fi
 
 	echo "======== Embedding chain script while compiling iPXE ========"
+ 	date
 	make bin-x86_64-efi/ipxe.efi CERT="$SERVER_CERT_DIR"/Full_server.crt TRUST="$SERVER_CERT_DIR"/ca.crt EMBED=chain.ipxe
+	date
+ 	echo "Completed make bin-x86_64-efi/ipxe.efi Embedding chain script"
 
 	cd "$working_dir" || exit
 	echo "==========================================================================================="
