@@ -39,7 +39,6 @@ func main() {
 		zlog.MiSec().Fatal().Err(downloadErr).Msgf("Error downloading and converting OS image")
 		return
 	}
-	zlog.MiSec().Info().Msg("Completed dkammgr.DownloadOS")
 
 	//Download release manifest.yaml file.
 	artifactsErr := dkammgr.DownloadArtifacts()
@@ -47,7 +46,6 @@ func main() {
 		zlog.MiSec().Error().Err(artifactsErr).Msgf("Error downloading file")
 
 	}
-	zlog.MiSec().Info().Msg("Completed dkammgr.DownloadArtifacts")
 
 	//Donwload and sign iPXE
 	signedIPXE, pxeErr := dkammgr.BuildSignIpxe()
@@ -55,8 +53,6 @@ func main() {
 		zlog.MiSec().Error().Err(pxeErr).Msgf("Failed to sign MicroOS %v", pxeErr)
 		return
 	}
-	zlog.MiSec().Info().Msg("Completed dkammgr.BuildSignIpxe")
-
 	if signedIPXE {
 		zlog.MiSec().Info().Msgf("Signed MicroOS and moved to PVC")
 	}
@@ -66,8 +62,6 @@ func main() {
 	if signerr != nil {
 		zlog.MiSec().Error().Err(signerr).Msgf("Failed to sign MicroOS")
 	}
-	zlog.MiSec().Info().Msg("Completed dkammgr.SignMicroOS")
-
 	if signed {
 		zlog.MiSec().Info().Msg("Signed MicroOS and moved to PVC")
 	}
