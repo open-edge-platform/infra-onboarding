@@ -84,7 +84,7 @@ services:
       - /var/run:/var/run
 
   - name: fluent-bit
-    image: fluent/fluent-bit:2.1.9
+    image: fluentbit:latest
     binds.add:
       - /etc/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
       - /var/log:/var/log
