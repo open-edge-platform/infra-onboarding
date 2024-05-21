@@ -38,7 +38,6 @@ ACTION_ARRAY := \
 	fde \
 	cred_copy \
 	client_auth \
-	nginx_proxy_action \
 	caddy_proxy \
 	fluentbit \
 	image2disk \

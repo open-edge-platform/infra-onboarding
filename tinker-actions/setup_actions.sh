@@ -22,7 +22,6 @@ efibootset=./tinker_actions/efibootset
 fde_setup=./tinker_actions/fde
 creds_copy=./tinker_actions/creds_copy
 client_auth=./tinker_actions/client_auth
-nginx_proxy=./tinker_actions/nginx_proxy
 caddy_proxy=./tinker_actions/caddy
 fluentbit=./tinker_actions/fluentbit
 image2disk=./tinker_actions/image2disk/v1
@@ -99,15 +98,6 @@ client_auth_setup() {
     popd
 }
 
-nginxproxy_setup() {
-
-    pushd $nginx_proxy
-
-    bash -e build.sh
-
-    popd
-}
-
 caddyproxy_setup() {
 
     pushd $caddy_proxy
@@ -175,7 +165,6 @@ main() {
     build_credscopy
 
     client_auth_setup
-    nginxproxy_setup
     caddyproxy_setup
     fluentbit_setup
     image2disk_setup
