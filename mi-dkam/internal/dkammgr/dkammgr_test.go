@@ -92,6 +92,15 @@ func TestDownloadArtifacts(t *testing.T) {
 func TestGetCuratedScript(t *testing.T) {
 	dir := config.PVC
 	os.MkdirAll(dir, 0755)
+	dummyData := `#!/bin/bash
+	enable_netipplan
+# Add your installation commands here
+`
+	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		os.Exit(1)
+	}
 	filename, version := GetCuratedScript("profile", "platform")
 
 	// Check if the returned filename matches the expected format
@@ -103,7 +112,7 @@ func TestGetCuratedScript(t *testing.T) {
 		t.Errorf("Version not found")
 	}
 	defer func() {
-		os.Remove(dir)
+		os.Remove(dir+"/installer.sh")
 	}()
 }
 
