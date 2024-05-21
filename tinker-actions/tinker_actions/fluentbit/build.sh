@@ -34,6 +34,4 @@ docker build -f Dockerfile \
 	-t fluentbit:$ver .
 
 # Save the Docker image
-
-docker tag fluentbit:$ver fluentbit:$ver
 printf "\rSaved the Docker image for fluentbit fluentbit:$ver\n"

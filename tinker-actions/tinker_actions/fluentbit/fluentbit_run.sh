@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 #####################################################################################
 # INTEL CONFIDENTIAL                                                                #
 # Copyright (C) 2024 Intel Corporation                                              #
@@ -13,7 +13,7 @@
 
 echo "Read Edge Node UUID from system"
 UUID="$(cat /sys/class/dmi/id/product_uuid)"
-if [[ -z "$UUID" ]]; then
+if [ -z "$UUID" ]; then
     echo "Edge Node UUID is empty. exiting.."
     exit 1
 fi
@@ -22,4 +22,4 @@ echo "UUID: $UUID"
 export EDGENODE_UUID=$UUID
 
 echo "starting fluentbit container.."
-/opt/fluent-bit/bin/fluent-bit -c /fluent-bit/etc/fluent-bit.conf
+/fluent-bit/bin/fluent-bit -c /fluent-bit/etc/fluent-bit.conf
