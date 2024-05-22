@@ -94,7 +94,7 @@ func GetCuratedScript(profile string, platform string) (string, string) {
 	parentDir := filepath.Dir(filepath.Dir(currentDir))
 
 	scriptDir := filepath.Join(parentDir, "pkg", "script")
-	yamlFile := filepath.Join(config.DownloadPath, "tmp", config.ReleaseVersion+".yaml")
+	yamlFile := filepath.Join(config.PVC, "tmp", config.ReleaseVersion+".yaml")
 	exists, err := PathExists(yamlFile)
 	if err != nil {
 		zlog.MiSec().Info().Msgf("Error checking path %v", err)

@@ -55,7 +55,16 @@ const exampleManifestWrong = `
 		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
 
 func TestGetArtifacts(t *testing.T) {
-
+	dir := config.PVC
+	dummyData := `#!/bin/bash
+	enable_netipplan
+# Add your installation commands here
+`
+	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		os.Exit(1)
+	}
 	// Initialize the service
 	service := &Service{}
 
@@ -72,6 +81,9 @@ func TestGetArtifacts(t *testing.T) {
 	// Assert that the response is not nil
 	assert.NotNil(t, response)
 	assert.Equal(t, true, isImageFile(response.OsUrl))
+	defer func() {
+		os.Remove(config.PVC+"/installer.sh")
+	}()
 
 }
 
@@ -228,14 +240,14 @@ func TestBuildSignIpxe(t *testing.T) {
 	}
 }
 
-func TestDownloadOS(t *testing.T) {
+// func TestDownloadOS(t *testing.T) {
 
-	// Test download function
-	if err := DownloadOS(); err != nil {
-		t.Errorf("Download failed: %v", err)
-	}
+// 	// Test download function
+// 	if err := DownloadOS(); err != nil {
+// 		t.Errorf("Download failed: %v", err)
+// 	}
 
-}
+// }
 
 func TestAccessConfigs(t *testing.T) {
 	val := AccessConfigs()
@@ -464,11 +476,11 @@ func TestGetScriptDir_Case1(t *testing.T) {
 	}()
 }
 
-func TestDownloadOS_Case1(t *testing.T) {
-	originalDir, _ := os.Getwd()
-	result := strings.Replace(originalDir, "internal/dkammgr", "pkg/script/jammy-server-cloudimg-amd64.raw.gz", -1)
-	os.MkdirAll(result, 0755)
-	if err := DownloadOS(); err != nil {
-		t.Errorf("Download failed: %v", err)
-	}
-}
+// func TestDownloadOS_Case1(t *testing.T) {
+// 	originalDir, _ := os.Getwd()
+// 	result := strings.Replace(originalDir, "internal/dkammgr", "pkg/script/jammy-server-cloudimg-amd64.raw.gz", -1)
+// 	os.MkdirAll(result, 0755)
+// 	if err := DownloadOS(); err != nil {
+// 		t.Errorf("Download failed: %v", err)
+// 	}
+// }

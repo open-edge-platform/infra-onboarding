@@ -16,7 +16,6 @@ const (
 	AuthServer             = "integration-dev.maestro.intel.com"
 	ReleaseVersion         = "latest-dev"
 	PVC                    = "/data"
-	DownloadPath           = "/tmp"
 	Tag                    = "manifest"
 	PreintTag              = "pre-int/manifest"
 	Artifact               = "one-intel-edge/edgenode/en/manifest"

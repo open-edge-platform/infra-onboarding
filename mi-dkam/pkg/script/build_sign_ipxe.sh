@@ -131,7 +131,7 @@ build_ipxe_efi() {
 
 	cp chain.ipxe "$IPXE_DIR"/src
 	cd "$IPXE_DIR"/src || exit
-	make bin-x86_64-efi/ipxe.efi >> /dev/null
+	make bin-x86_64-efi/ipxe.efi
 
 	sed -i 's|//#define\tCONSOLE_FRAMEBUFFER|#define\tCONSOLE_FRAMEBUFFER|g' "$IPXE_DIR"/src/config/console.h && \
 	sed -Ei "s/^#undef([ \t]*DOWNLOAD_PROTO_(HTTPS|FTP|SLAM|NFS)[ \t]*)/#define\1/" "$IPXE_DIR"/src/config/general.h && \
@@ -158,15 +158,11 @@ sign_ipxe_efi() {
 	sbsign --key "$SB_KEYS_DIR"/db.key --cert "$SB_KEYS_DIR"/db.crt --output ./out/signed_ipxe.efi "$IPXE_DIR"/src/bin-x86_64-efi/ipxe.efi
 	cp "$SB_KEYS_DIR"/db.der "$working_dir"/out
 	
-	if [ -d "/data" ]; then
-		echo "Path /data exists."
-		mkdir -p /data/keys
-		cp "$SB_KEYS_DIR"/db.der /data/keys
-		cp "$SERVER_CERT_DIR"/Full_server.crt /data/keys
-		cp "$working_dir"/out/signed_ipxe.efi /data
-    else
-        echo "Path /data does not exist."
-    fi
+	mkdir -p "$working_dir"/keys
+	cp "$SB_KEYS_DIR"/db.der "$working_dir"/keys
+	cp "$SERVER_CERT_DIR"/Full_server.crt "$working_dir"/keys
+	cp "$working_dir"/out/signed_ipxe.efi "$working_dir"
+      
 	echo "======== Save db.der file to enroll inside UEFI BIOS Secure Boot Settings ========="
 	echo "==========================================================================================="
 	

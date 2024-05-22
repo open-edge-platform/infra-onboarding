@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 )
 
@@ -144,7 +145,7 @@ func SignHookOS(scriptPath string, targetDir string) (bool, error) {
 	}
 	zlog.Info().Msgf("Script output: %s", string(mdresult))
 
-	buildCmd := exec.Command("bash", "./build_image_at_DKAM.sh", mode, targetDir)
+	buildCmd := exec.Command("bash", "./build_image_at_DKAM.sh", mode, config.PVC)
 	output, buildErr := buildCmd.CombinedOutput()
 	if buildErr != nil {
 		zlog.MiSec().Fatal().Err(buildErr).Msgf("Failed to sign microOS script %v", buildErr)

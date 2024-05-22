@@ -26,7 +26,7 @@ var tag = config.Tag
 
 func DownloadArtifacts() error {
 	MODE := GetMODE()
-	targetDir := config.DownloadPath
+	targetDir := config.PVC
 	manifestTag := os.Getenv("MANIFEST_TAG")
 	//MODE := "dev"
 	zlog.MiSec().Info().Msgf("Mode of deployment: %s", MODE)
@@ -72,9 +72,6 @@ func (server *Service) GetArtifacts(ctx context.Context, req *pb.GetArtifactsReq
 	zlog.MiSec().Info().Msgf("url %s", url)
 	osUrl := proxyIP + "/" + config.ImageFileName
 	zlog.MiSec().Info().Msgf("osUrl %s", osUrl)
-	if err := os.RemoveAll(config.DownloadPath + "/tmp"); err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error removing temporary hook folder: %v", err)
-	}
 
 	zlog.MiSec().Info().Msg("Return Manifest file.")
 	return &pb.GetArtifactsResponse{StatusCode: true, OsUrl: osUrl, OverlayscriptUrl: url, TinkActionVersion: tinkeraction_version}, nil
@@ -92,7 +89,7 @@ func GetServerUrl() string {
 func SignMicroOS() (bool, error) {
 	//MODE := GetMODE()
 	scriptPath := GetScriptDir()
-	targetDir := config.DownloadPath
+	targetDir := config.PVC
 	signed, err := signing.SignHookOS(scriptPath, targetDir)
 	if err != nil {
 		zlog.MiSec().Info().Msgf("Failed to sign MicroOS %v", err)
@@ -107,7 +104,7 @@ func SignMicroOS() (bool, error) {
 
 func BuildSignIpxe() (bool, error) {
 	scriptPath := GetScriptDir()
-	targetDir := config.DownloadPath
+	targetDir := config.PVC
 	dnsName := GetServerUrl()
 	signed, err := signing.BuildSignIpxe(targetDir, scriptPath, dnsName)
 	if err != nil {
@@ -151,10 +148,10 @@ func GetScriptDir() string {
 func DownloadOS() error {
 	zlog.Info().Msgf("Inside DownloadOS...")
 	imageURL := config.ImageUrl
-	targetDir := config.DownloadPath
+	targetDir := config.PVC
 	fileName := fileNameFromURL(imageURL)
 	rawFileName := strings.TrimSuffix(fileName, ".img") + ".raw.gz"
-	file := config.PVC + "/" + rawFileName
+	file := targetDir + "/" + rawFileName
 	// Check if the compressed raw image file already exists
 	if _, err := os.Stat(file); os.IsNotExist(err) {
 		// Download the image
