@@ -24,7 +24,12 @@ var (
 	loggerName = "OnboardingController"
 	zlog       = logging.GetLogger(loggerName)
 
-	defaultTickerPeriod = 60 * time.Second
+	// a default interval for periodic reconciliation.
+	// Periodic reconciliation guarantees events are handled even
+	// if our notification won't deliver an event.
+	// Since we are not confident about the reliability of the current reconciliation,
+	// we set quite frequent periodic reconciliation (10m), but it should be increased in the future.
+	defaultTickerPeriod = 10 * time.Minute
 )
 
 const (
