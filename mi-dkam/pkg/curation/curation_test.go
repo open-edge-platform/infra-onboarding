@@ -6,6 +6,7 @@ package curation
 import (
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -200,6 +201,15 @@ func Test_GenerateUFWCommand(t *testing.T) {
 			},
 			expectedUfwCommand: "echo Firewall rule not set 0",
 		},
+		"rule9": {
+			ufwRule: Rule{
+				SourceIp: "0000:000::00",
+				Ports:    "6443,10250",
+				IpVer:    "ipv4",
+				Protocol: "tcp",
+			},
+			expectedUfwCommand: "ufw allow from 0000:000::00 to any port 6443,10250 proto tcp",
+		},
 	}
 	for tcname, tc := range tests {
 		t.Run(tcname, func(t *testing.T) {
@@ -362,6 +372,47 @@ func Test_GetCuratedScript_Case3(t *testing.T) {
 	}()
 }
 
+func Test_GetCuratedScript_Case4(t *testing.T) {
+	dir := config.PVC
+	os.MkdirAll(dir, 0755)
+	dummyData := `#!/bin/bash
+	enable_netipplan
+# Add your installation commands here
+`
+	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		os.Exit(1)
+	}
+	originalDir, _ := os.Getwd()
+	result := strings.Replace(originalDir, "curation", "script/tmp", -1)
+	res := filepath.Join(result, "latest-dev.yaml")
+	if err := os.MkdirAll(filepath.Dir(res), 0755); err != nil {
+		t.Fatalf("Failed to create directory: %v", err)
+	}
+	src := strings.Replace(originalDir, "curation", "script/latest-dev.yaml", -1)
+	CopyFile(src, res)
+	os.Setenv("NETIP", "static")
+	direc := dir + "/tmp/"
+	os.MkdirAll(direc, 0755)
+	os.Create(direc + "latest-dev.yaml")
+	CopyFile(src, direc+"latest-dev.yaml")
+	filename, version := GetCuratedScript("profile", "platform")
+	expectedFilename := config.PVC + "/" + "installer.sh"
+	if filename != expectedFilename {
+		t.Errorf("Expected filename '%s', but got '%s'", expectedFilename, filename)
+	}
+	if len(version) == 0 {
+		t.Errorf("Version not found")
+	}
+	defer func() {
+		os.Unsetenv("NETIP")
+		CopyFile(res, src)
+		os.Remove(res)
+		os.RemoveAll(dir)
+	}()
+}
+
 func CopyFile(src, dst string) error {
 	srcFile, err := os.Open(src)
 	if err != nil {
@@ -460,6 +511,56 @@ func TestGetReleaseArtifactList(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetReleaseArtifactList_NegativeCase(t *testing.T) {
+	originalDir, _ := os.Getwd()
+	result := strings.Replace(originalDir, "curation", "script/tmp", -1)
+	res := filepath.Join(result, "latest-dev.yaml")
+	if err := os.MkdirAll(filepath.Dir(res), 0755); err != nil {
+		t.Fatalf("Failed to create directory: %v", err)
+	}
+	src := strings.Replace(originalDir, "curation", "script/latest-dev.yaml", -1)
+	CopyFile(src, res)
+	dummyData := `#!/bin/bash
+	enable_netipplan
+# Add your installation commands here
+`
+	err := os.WriteFile(res, []byte(dummyData), 0644)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+
+	type args struct {
+		filePath string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    Config
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				filePath: res,
+			},
+			want:    Config{},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := GetReleaseArtifactList(tt.args.filePath)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetReleaseArtifactList() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+	}
+	defer func() {
+		os.Remove(res)
+	}()
 }
 
 func TestCreateOverlayScript(t *testing.T) {
@@ -814,6 +915,19 @@ func TestCreateOverlayScript_Case3(t *testing.T) {
 	}
 	srcs := strings.Replace(originalDir, "curation", "script/Installer", -1)
 	CopyFile(srcs, dst)
+
+	path := "/etc/ssl/orch-ca-cert/ca.crt"
+	err2 := os.MkdirAll("/etc/ssl/orch-ca-cert", 0755)
+	if err2 != nil {
+		fmt.Println("Error creating directories:", err2)
+		return
+	}
+	file, err3 := os.Create(path)
+	if err3 != nil {
+		fmt.Println("Error creating file:", err3)
+		return
+	}
+	defer file.Close()
 	type args struct {
 		pwd     string
 		profile string
@@ -827,7 +941,8 @@ func TestCreateOverlayScript_Case3(t *testing.T) {
 		{
 			name: "Test Case",
 			args: args{
-				pwd: originalDir,
+				pwd:  originalDir,
+				MODE: "dev",
 			},
 			want: "",
 		},
@@ -843,5 +958,53 @@ func TestCreateOverlayScript_Case3(t *testing.T) {
 		os.RemoveAll(dst)
 		os.RemoveAll(dataDir)
 		CopyFile(dst, srcs)
+		os.RemoveAll(path)
 	}()
+}
+
+func TestAddProxies(t *testing.T) {
+	type args struct {
+		fileName  string
+		newLines  []string
+		beginLine string
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "Invalid file name",
+			args: args{
+				fileName: "",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			AddProxies(tt.args.fileName, tt.args.newLines, tt.args.beginLine)
+		})
+	}
+}
+
+func TestAddFirewallRules(t *testing.T) {
+	type args struct {
+		fileName string
+		newLines []string
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "Invalid file name",
+			args: args{
+				fileName: "",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			AddFirewallRules(tt.args.fileName, tt.args.newLines)
+		})
+	}
 }

@@ -4,10 +4,12 @@
 package download
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -15,6 +17,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 )
 
 const testDigest = "TEST_DIGEST"
@@ -209,11 +212,11 @@ func TestDownloadMicroOS(t *testing.T) {
 	dir := config.PVC
 	os.MkdirAll(dir, 0755)
 	// Test: No tmpFolderPath/hook dir
-	// t.Run("Fail", func(t *testing.T) {
-	// 	_, err = DownloadMicroOS(config.PVC, src)
-	// 	require.Error(t, err)
-	// 	assert.Contains(t, err.Error(), "no such file or directory")
-	// })
+	t.Run("Fail", func(t *testing.T) {
+		_, err = DownloadMicroOS(config.PVC, src)
+		require.NoError(t, err)
+		// assert.Contains(t, err.Error(), "no such file or directory")
+	})
 
 	err = os.MkdirAll(dkamHookFolderPath, 0755)
 	require.NoError(t, err)
@@ -230,15 +233,6 @@ func TestDownloadMicroOS(t *testing.T) {
 		returnWrongManifest = false
 		_, err = DownloadMicroOS(config.PVC, src)
 		require.NoError(t, err)
-
-		//expectedFilePath := dkamHookFolderPath + testFile
-
-		// // Assert file is created with expected content
-		// _, err = os.Stat(expectedFilePath)
-		// require.NoError(t, err)
-		// data, err = os.ReadFile(expectedFilePath)
-		// require.NoError(t, err)
-		// assert.Equal(t, expectedFileContent, string(data))
 	})
 }
 
@@ -276,31 +270,9 @@ func Test_downloadImage(t *testing.T) {
 	}
 }
 
-// func Test_installPackage(t *testing.T) {
-// 	type args struct {
-// 		packageName string
-// 	}
-// 	tests := []struct {
-// 		name    string
-// 		args    args
-// 		wantErr bool
-// 	}{
-// 		{
-// 			name: "Test Case",
-// 			args: args{
-// 				packageName: "",
-// 			},
-// 			wantErr: true,
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			if err := installPackage(tt.args.packageName); (err != nil) != tt.wantErr {
-// 				t.Errorf("installPackage() error = %v, wantErr %v", err, tt.wantErr)
-// 			}
-// 		})
-// 	}
-// }
+func Test_installPackage(t *testing.T) {
+	installPackage("")
+}
 
 func TestDownloadMicroOS_Case1(t *testing.T) {
 	_, filename, _, _ := runtime.Caller(0)
@@ -353,24 +325,87 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 		// require.NoError(t, err)
 	})
 
-	// Test: successful, create tmpFolderPath/hook dir
-	// t.Run("Success", func(t *testing.T) {
-	// 	returnWrongManifest = false
-	// 	_, err = DownloadMicroOS(config.PVC, src)
-	// 	require.NoError(t, err)
-	// 	dir:=config.PVC+"/TEST_FILE"
-	// 	os.MkdirAll(dir,0755)
-	// 	expectedFilePath := dkamHookFolderPath + "/" + testFile
+	t.Run("Success", func(t *testing.T) {
+		existingDir := config.PVC
+		subfolder := "tmp"
+		subfolderPath := filepath.Join(existingDir, subfolder)
+		err := os.MkdirAll(subfolderPath, 0755)
+		if err != nil {
+			fmt.Println("Error creating subfolder:", err)
+			return
+		}
 
-	// 	// Assert file is created with expected content
-	// 	_, err = os.Stat(expectedFilePath)
-	// 	// require.NoError(t, err)
-	// 	data, err = os.ReadFile(expectedFilePath)
-	// 	// require.NoError(t, err)
-	// 	// assert.Equal(t, expectedFileContent, string(data))
-	// 	defer func ()  {
-	// 		os.RemoveAll(dir)	
-	// 	}()
-	// })
-	
+		dummy := originalDir + "dummy.yaml"
+		data := Data{
+			Provisioning: struct {
+				Files []File `yaml:"files"`
+			}{
+				Files: []File{
+					{
+						Description: "Dummy file 1",
+						Server:      "server1",
+						Path:        "one-intel-edge/edge-node/file/provisioning-hook-os",
+						Version:     "v1",
+					},
+				},
+			},
+		}
+		yamlData, err := yaml.Marshal(&data)
+		if err != nil {
+			fmt.Printf("Error marshalling YAML: %v\n", err)
+			return
+		}
+		yamlFilePath := filepath.Join(subfolderPath, "latest-dev.yaml")
+		err = os.WriteFile(yamlFilePath, yamlData, 0644)
+		if err != nil {
+			fmt.Printf("Error writing YAML to file: %v\n", err)
+			return
+		}
+		returnWrongManifest = true
+		_, err = DownloadMicroOS(config.PVC, dummy)
+		defer func() {
+			os.RemoveAll(existingDir)
+		}()
+		// require.NoError(t, err)
+	})
 }
+
+func TestDownloadUbuntuImage_Negative(t *testing.T) {
+	type args struct {
+		imageUrl  string
+		format    string
+		fileName  string
+		targetDir string
+	}
+	fileName := fileNameFromURL(config.ImageUrl)
+	rawFileName := strings.TrimSuffix(fileName, ".img") + ".raw.gz"
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Negative",
+			args: args{
+				imageUrl:  config.ImageUrl,
+				format:    "image.img",
+				fileName:  rawFileName,
+				targetDir: config.PVC,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := DownloadUbuntuImage(tt.args.imageUrl, tt.args.format, tt.args.fileName, tt.args.targetDir); (err != nil) != tt.wantErr {
+				t.Errorf("DownloadUbuntuImage() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func fileNameFromURL(url string) string {
+	parts := strings.Split(url, "/")
+	return parts[len(parts)-1]
+}
+

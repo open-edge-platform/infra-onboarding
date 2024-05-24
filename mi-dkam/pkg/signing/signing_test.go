@@ -128,3 +128,41 @@ func Test_copyFile(t *testing.T) {
 		os.Remove(wd + "dummy")
 	}()
 }
+
+func Test_copyDir(t *testing.T) {
+	type args struct {
+		src string
+		dst string
+	}
+	wd,_:=os.Getwd()
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				dst: "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "Test Case",
+			args: args{
+				dst: wd+"dummy",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := copyDir(tt.args.src, tt.args.dst); (err != nil) != tt.wantErr {
+				t.Errorf("copyDir() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+	defer func ()  {
+		os.RemoveAll(wd+"dummy")	
+	}()
+}
