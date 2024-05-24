@@ -131,7 +131,7 @@ build_ipxe_efi() {
 
 	cp chain.ipxe "$IPXE_DIR"/src
 	cd "$IPXE_DIR"/src || exit
-	make bin-x86_64-efi/ipxe.efi
+	make bin-x86_64-efi/ipxe.efi >> /dev/null
 
 	sed -i 's|//#define\tCONSOLE_FRAMEBUFFER|#define\tCONSOLE_FRAMEBUFFER|g' "$IPXE_DIR"/src/config/console.h && \
 	sed -Ei "s/^#undef([ \t]*DOWNLOAD_PROTO_(HTTPS|FTP|SLAM|NFS)[ \t]*)/#define\1/" "$IPXE_DIR"/src/config/general.h && \
