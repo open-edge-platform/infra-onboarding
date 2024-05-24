@@ -28,6 +28,7 @@ image2disk=./tinker_actions/image2disk/v1
 cexec=./tinker_actions/cexec/v1
 writefile=./tinker_actions/writefile/v1
 erase_non_removable_disks=./tinker_actions/erase_non_removable_disks
+hook_dind=./tinker_actions/hook_dind
 
 read_sb_status_setup() {
     pushd $read_sb_status
@@ -151,6 +152,16 @@ erase_non_removable_disks_setup() {
 
     popd
 }
+
+hook_dind_setup() {
+
+    pushd $hook_dind
+
+    bash build.sh
+
+    popd
+}
+
 main() {
 
     apt install -y build-essential
@@ -171,6 +182,7 @@ main() {
     cexec_setup
     writefile_setup
     erase_non_removable_disks_setup
+    hook_dind_setup
 }
 
 main

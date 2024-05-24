@@ -43,7 +43,8 @@ ACTION_ARRAY := \
 	image2disk \
 	cexec \
 	writefile \
-	erase_non_removable_disks
+	erase_non_removable_disks \
+	hook_dind
 
 # Create the virtualenv with python tools installed
 VENV_NAME = venv_midkammgr
