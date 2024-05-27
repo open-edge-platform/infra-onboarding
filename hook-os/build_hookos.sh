@@ -112,6 +112,7 @@ build_hook() {
         fi
         $SED_CMD -i "s/$image:latest/$image:$ver/g" hook.yaml
     done
+
     # copy fluent-bit related files
     copy_fluent_bit_files
 
@@ -135,6 +136,7 @@ build_hook() {
     $SED_CMD -i "s|quay.io/tinkerbell/hook-kernel:5.10.85-d1225df88208e5a732e820a182b75fb35c737bdd|quay.io/tinkerbell/hook-kernel:5.10.85-e546ea099917c006d1d08fe6b8398101de65cbc7|g" hook.yaml
 
     $SED_CMD -i "s|dl-cdn.alpinelinux.org/alpine/edge/testing|dl-cdn.alpinelinux.org/alpine/edge/community|g" hook-docker/Dockerfile
+    $SED_CMD -i "s/hook_dind:latest/hook_dind:$ver/g" hook-docker/Dockerfile
 
     #update keycloak url
     $SED_CMD -i "s|update_idp_url|$keycloak_url|g" hook.yaml

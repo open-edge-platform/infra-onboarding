@@ -54,6 +54,9 @@ do
     docker image tag $harbor_url_tinker_actions/$image:$tag $image:$tag
 done
 
+docker pull $harbor_url_tinker_actions/hook_dind:$tag
+docker image tag $harbor_url_tinker_actions/hook_dind:$tag hook_dind:$tag
+
 #download kernel image and tag it as expected
 kernel_url=$(echo $harbor_url_tinker_actions |  sed 's|/tinker-actions||')
 docker pull $kernel_url/hook-kernel:$kernel_version
