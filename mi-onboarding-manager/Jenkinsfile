@@ -38,25 +38,14 @@ pipeline {
             parallel {
                 stage('Scan Virus, Checkmarx, Protex, Trivy'){
                     environment {
-                        PROJECT_NAME                 = "oie-${GIT_SHORT_URL}"
+                        PROJECT_NAME                 = "${GIT_SHORT_URL}"
                         SCANNERS                     = getEnvFromBranch(env.BRANCH_NAME)
 
-                        // publishArtifacts details
-                        ARTIFACT_RETENTION_PERIOD    = ''
-                        ARTIFACTORY_URL              = 'https://ubit-artifactory-or.intel.com/artifactory'
-                        ARTIFACTS_REPO               = "one-intel-edge-or-local/${SUB_PROJECT_NAME}"
-                        PUBLISH_TO_ARTIFACTORY       = true
-                        ARTIFACTORY_CREDENTIAL_ID    = 'sys_oie_devops_ubit-artifactory-or.intel.com'
-                        ARTIFACTORY_BYPASS_PROXY     = true
-
-                        CHECKMARX_FORCE_SCAN         = true
-                        CHECKMARX_USER_AUTH_DOMAIN   = 'GER'
+                        SDLE_UPLOAD_PROJECT_ID     = '20246'
 
                         PROTEX_PROJECT_NAME          = "${GIT_SHORT_URL}"
 
                         VIRUS_SCAN_DIR               = "."
-
-                        TRIVY_SEVERITY_THRESHOLD_CVE = 'MEDIUM'
                     }
                     when {
                         anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
@@ -221,10 +210,10 @@ pipeline {
                 }
             }
             environment {
-                PROJECT_NAME                 = "oie-${GIT_SHORT_URL}"
+                PROJECT_NAME                 = "${GIT_SHORT_URL}"
                 SCANNERS                     = 'trivy'
 
-    		    TRIVY_SEVERITY_THRESHOLD_CVE = 'MEDIUM'
+                SDLE_UPLOAD_PROJECT_ID     = '20246'
             }
             steps {
                 script {
@@ -287,22 +276,10 @@ pipeline {
                         PROJECT_NAME                 = "oie-${GIT_SHORT_URL}"
                         SCANNERS                     = 'bdba'
 
-                        SDLE_UPLOAD_PROJECT_ID        = '17032'
-                        SDLE_UPLOAD_USER_IDSID         = 'sys_pmce_git'
-                        SDLE_UPLOAD_CREDENTIAL_ID  = 'lp.credentials.sdleUpload'
-
-                        // publishArtifacts details
-                        ARTIFACT_RETENTION_PERIOD    = ''
-                        ARTIFACTORY_URL              = 'https://ubit-artifactory-or.intel.com/artifactory'
-                        ARTIFACTS_REPO               = "one-intel-edge-or-local/${SUB_PROJECT_NAME}"
-                        PUBLISH_TO_ARTIFACTORY       = true
-                        ARTIFACTORY_CREDENTIAL_ID    = 'sys_oie_devops_ubit-artifactory-or.intel.com'
-                        ARTIFACTORY_BYPASS_PROXY   = true
-
-                        BDBA_BIN_DIR                 = "BDBA"
+                        SDLE_UPLOAD_PROJECT_ID        = '20246'
                     }
                     when {
-                        anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
+                        anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; }
                     }
                     steps {
                         sh """
@@ -363,7 +340,7 @@ pipeline {
             cleanWs()
         }
         failure {
-		    script {
+            script {
                 def currentBranch = env.BRANCH_NAME
                 if ((currentBranch ==~ env.branchPattern) && authorEmail?.contains('.intel')) {
                     emailext(
