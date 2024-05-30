@@ -41,7 +41,7 @@ function update_en_details($mac, $uuid, $serial_id, $ip) {
     'ip' => $ip
   );
   $post_data = json_encode($data);
-  $api_url = "http://$BOOTS_SERVICE_URL/UpdateEN";
+  $api_url = "http://$BOOTS_SERVICE_URL/updateEN";
 
   $ch = curl_init($api_url);
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);

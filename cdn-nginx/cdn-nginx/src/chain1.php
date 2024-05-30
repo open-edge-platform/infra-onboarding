@@ -23,18 +23,13 @@ EOT;
 }
 
 function get_auto_ipxe($mac) {
-  $data = array(
-    'mac' => $mac,
-  );
-  $post_data = json_encode($data);
-  $api_url = "http://$BOOTS_SERVICE_URL/auto.ipxe";
+  $api_url = "http://$BOOTS_SERVICE_URL/$mac/auto.ipxe";
 
   $ch = curl_init($api_url);
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
   curl_setopt($ch, CURLOPT_HEADER, false);
   curl_setopt($ch, CURLINFO_HEADER_OUT, true);
   curl_setopt($ch, CURLOPT_POST, true);
-  curl_setopt($ch, CURLOPT_POSTFIELDS, $post_data);
   curl_setopt($ch, CURLOPT_TIMEOUT, 1800);
   curl_setopt($ch, CURLOPT_HTTPHEADER, array(
     'Content-Type: application/json')

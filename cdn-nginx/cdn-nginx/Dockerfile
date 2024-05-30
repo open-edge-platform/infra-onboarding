@@ -49,6 +49,8 @@ RUN chown $USER -R /var/log/php81
 RUN chmod 777 -R /var/log/php81
 RUN chmod 777 -R /usr/share/nginx/html
 RUN chown -R $USER /usr/share/nginx/html
+RUN chown -R $USER /etc/nginx/
+RUN chmod 777 -R /etc/nginx/
 
 EXPOSE 80
 EXPOSE 443
