@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"flag"
 	"fmt"
 	"math/big"
 	"net"
@@ -33,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/env"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
@@ -1188,6 +1190,202 @@ func TestDeleteRebootWorkflowResourcesIfExist(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := DeleteRebootWorkflowResourcesIfExist(tt.args.ctx, tt.args.hostUUID); (err != nil) != tt.wantErr {
 				t.Errorf("DeleteRebootWorkflowResourcesIfExist() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_checkTO2StatusCompleted_Case4(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/owner/state/id" {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{
+				"to2CompletedOn": "completed",
+				"to0Expiry": 123
+				}`))
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("Not found"))
+		}
+	}))
+	defer server.Close()
+
+	type args struct {
+		in0        context.Context
+		deviceInfo utils.DeviceInfo
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    bool
+		wantErr bool
+	}{
+		{
+			name: "Success",
+			args: args{
+				in0: context.Background(),
+				deviceInfo: utils.DeviceInfo{
+					FdoGUID: "id",
+				},
+			},
+			want:    true,
+			wantErr: true,
+		},
+		{
+			name: "Failed",
+			args: args{
+				in0:        context.Background(),
+				deviceInfo: utils.DeviceInfo{
+					// empty fdoGUID to return error
+				},
+			},
+			want:    false,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			env.FdoOwnerDNS = "127.0.0.1"
+			env.FdoOwnerPort = strings.Split(server.URL, ":")[2]
+			_, err := checkTO2StatusCompleted(tt.args.in0, tt.args.deviceInfo)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("checkTO2StatusCompleted() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+	}
+}
+
+func Test_runProdWorkflow_Case(t *testing.T) {
+	common.FlagEnableDeviceInitialization = flag.Bool("enable", false,
+		"Enables ")
+	resp := &ResponseData{
+		To2CompletedOn: "completed",
+		To0Expiry:      "",
+	}
+	jsonData, err := json.Marshal(resp)
+	require.NoError(t, err)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		w.Write(jsonData)
+	}))
+	defer srv.Close()
+
+	type args struct {
+		ctx        context.Context
+		k8sCli     client.Client
+		deviceInfo utils.DeviceInfo
+	}
+	mockClient := &MockClient{}
+	mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	mockClient1 := &MockClient{}
+	mockClient1.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				ctx:    context.Background(),
+				k8sCli: mockClient,
+				deviceInfo: utils.DeviceInfo{
+					GUID:    uuid.NewString(),
+					FdoGUID: uuid.NewString(),
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			env.FdoOwnerDNS = "127.0.0.1"
+			env.FdoOwnerPort = strings.Split(srv.URL, ":")[2]
+			if err := runProdWorkflow(tt.args.ctx, tt.args.k8sCli, tt.args.deviceInfo, &computev1.InstanceResource{
+				Host: &computev1.HostResource{},
+			}); (err != nil) != tt.wantErr {
+				t.Errorf("runProdWorkflow() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+	defer func() {
+		common.FlagEnableDeviceInitialization = flag.Bool("enab", true,
+			"Enables")
+	}()
+}
+
+func TestRunFDOActions_Case1(t *testing.T) {
+	common.FlagEnableDeviceInitialization = flag.Bool("enle", false,
+		"Enabl")
+	type args struct {
+		ctx        context.Context
+		deviceInfo *utils.DeviceInfo
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				ctx:        context.Background(),
+				deviceInfo: &utils.DeviceInfo{},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			env.FdoOwnerDNS = "localhost"
+			env.FdoOwnerPort = "58042"
+			if err := RunFDOActions(tt.args.ctx, tt.args.deviceInfo); (err != nil) != tt.wantErr {
+				t.Errorf("RunFDOActions() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+	defer func() {
+		common.FlagEnableDeviceInitialization = flag.Bool("en", true,
+			"Ena")
+	}()
+}
+
+func Test_handleWorkflowStatus_Case3(t *testing.T) {
+	type args struct {
+		instance                  *computev1.InstanceResource
+		workflow                  *tink.Workflow
+		onSuccessStatus           computev1.HostStatus
+		onFailureStatus           computev1.HostStatus
+		onSuccessOnboardingStatus inv_status.ResourceStatus
+		onFailureOnboardingStatus inv_status.ResourceStatus
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				instance: &computev1.InstanceResource{
+					Host: &computev1.HostResource{
+						ResourceId: "host-084d9b08",
+					},
+				},
+				workflow: &tink.Workflow{
+					Status: tink.WorkflowStatus{
+						State: "default",
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := handleWorkflowStatus(tt.args.instance, tt.args.workflow, tt.args.onSuccessStatus, tt.args.onFailureStatus, tt.args.onSuccessOnboardingStatus, tt.args.onFailureOnboardingStatus); (err != nil) != tt.wantErr {
+				t.Errorf("handleWorkflowStatus() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

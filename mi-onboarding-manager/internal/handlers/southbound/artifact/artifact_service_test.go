@@ -2818,3 +2818,485 @@ func TestNodeArtifactService_startZeroTouch_Case4(t *testing.T) {
 		})
 	}
 }
+func TestNodeArtifactService_GetNodes_Case4(t *testing.T) {
+	type fields struct {
+		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
+		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
+	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
+	type args struct {
+		ctx context.Context
+		req *pb.NodeRequest
+	}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
+	host := &computev1.HostResource{
+		ResourceId: "host-084d9b08",
+		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12",
+	}
+	mockResource2 := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: host,
+		},
+	}
+	mockResources := &inv_v1.ListResourcesResponse{
+		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
+	}
+	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
+		Resource: mockResource2,
+	}, nil)
+	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
+
+	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12"}
+	hwdatas := []*pb.HwData{hwdata}
+	payload := pb.NodeData{Hwdata: hwdatas}
+	payloads := []*pb.NodeData{&payload}
+	mockRequest := &pb.NodeRequest{
+		Payload: payloads,
+	}
+	ctx := createIncomingContextWithENJWT(t)
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *pb.NodeResponse
+		wantErr bool
+	}{
+		{
+			name: "Positive",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: ctx,
+				req: mockRequest,
+			},
+			want: &pb.NodeResponse{
+				Payload: payloads,
+			},
+			wantErr: true,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: nil,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &NodeArtifactService{
+				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
+			}
+			_, err := s.GetNodes(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NodeArtifactService.GetNodes() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+	}
+}
+
+func TestNodeArtifactService_UpdateNodes_Case8(t *testing.T) {
+	type fields struct {
+		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
+		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
+	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
+	type args struct {
+		ctx context.Context
+		req *pb.NodeRequest
+	}
+	hostNic := &computev1.HostnicResource{ResourceId: "hostnic-084d9b08"}
+	hostNics := []*computev1.HostnicResource{hostNic}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
+	host := &computev1.HostResource{
+		ResourceId: "host-084d9b08",
+		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b",
+		HostNics:   hostNics,
+	}
+	mockResource := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: host,
+		},
+	}
+	mockResources := &inv_v1.ListResourcesResponse{
+		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource}},
+	}
+	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
+	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
+		Resource: mockResource,
+	}, nil)
+	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b"}
+	hwdatas := []*pb.HwData{hwdata}
+	payload := pb.NodeData{Hwdata: hwdatas}
+	payloads := []*pb.NodeData{&payload}
+	mockRequest := &pb.NodeRequest{
+		Payload: payloads,
+	}
+	ctx := createIncomingContextWithENJWT(t)
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *pb.NodeResponse
+		wantErr bool
+	}{
+		{
+			name: "Test case 1",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: ctx,
+				req: mockRequest,
+			},
+			want: &pb.NodeResponse{
+				Payload: payloads,
+			},
+			wantErr: true,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: nil,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &NodeArtifactService{
+				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
+			}
+			_, err := s.UpdateNodes(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NodeArtifactService.UpdateNodes() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+	}
+}
+
+func TestNodeArtifactService_UpdateNodes_Case9(t *testing.T) {
+	type fields struct {
+		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
+		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
+	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
+	type args struct {
+		ctx context.Context
+		req *pb.NodeRequest
+	}
+	hostNic := &computev1.HostnicResource{ResourceId: "hostnic-084d9b08"}
+	hostNics := []*computev1.HostnicResource{hostNic}
+	mockInvClient := &onboarding_mocks.MockInventoryClient{}
+	host := &computev1.HostResource{
+		ResourceId: "host-084d9b08",
+		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+		HostNics:   hostNics,
+	}
+	mockResource := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: host,
+		},
+	}
+	mockResources := &inv_v1.ListResourcesResponse{
+		// Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource}},
+	}
+	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, status.Error(codes.NotFound, "Node not found"))
+	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
+		Resource: mockResource,
+	}, status.Error(codes.NotFound, "Node not found"))
+	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+	hwdatas := []*pb.HwData{hwdata}
+	payload := pb.NodeData{Hwdata: hwdatas}
+	payloads := []*pb.NodeData{&payload}
+	mockRequest := &pb.NodeRequest{
+		Payload: payloads,
+	}
+	ctx := createIncomingContextWithENJWT(t)
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *pb.NodeResponse
+		wantErr bool
+	}{
+		{
+			name: "Test case 1",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: ctx,
+				req: mockRequest,
+			},
+			want: &pb.NodeResponse{
+				Payload: payloads,
+			},
+			wantErr: true,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: nil,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &NodeArtifactService{
+				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
+			}
+			_, err := s.UpdateNodes(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NodeArtifactService.UpdateNodes() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+	}
+}
+
+func TestNodeArtifactService_CreateNodes_Case6(t *testing.T) {
+	type fields struct {
+		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
+		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
+	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
+	type args struct {
+		ctx context.Context
+		req *pb.NodeRequest
+	}
+	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0a"}
+	hwdatas := []*pb.HwData{hwdata}
+	payload := pb.NodeData{Hwdata: hwdatas}
+	payloads := []*pb.NodeData{&payload}
+	mockRequest := &pb.NodeRequest{
+		Payload: payloads,
+	}
+	host := &computev1.HostResource{
+		ResourceId: "host-084d9b08",
+		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0a",
+	}
+	mockResource2 := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: host,
+		},
+	}
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
+	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
+		Resource: mockResource2,
+	}, nil)
+	mockResources := &inv_v1.ListResourcesResponse{
+		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
+	}
+	mockInvClient1.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
+	ctx := createIncomingContextWithENJWT(t)
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *pb.NodeResponse
+		wantErr bool
+	}{
+		{
+			name: "Negative1",
+			fields: fields{
+				invClient: &invclient.OnboardingInventoryClient{
+					Client: mockInvClient1,
+				},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: ctx,
+				req: mockRequest,
+			},
+			want:    &pb.NodeResponse{Payload: payloads},
+			wantErr: true,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient: &invclient.OnboardingInventoryClient{
+					Client: mockInvClient1,
+				},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: mockRequest,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &NodeArtifactService{
+				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
+			}
+			_, err := s.CreateNodes(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NodeArtifactService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+	}
+}
+
+func TestNodeArtifactService_CreateNodes_Case7(t *testing.T) {
+	type fields struct {
+		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
+		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
+	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
+	type args struct {
+		ctx context.Context
+		req *pb.NodeRequest
+	}
+	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+	hwdatas := []*pb.HwData{hwdata}
+	payload := pb.NodeData{Hwdata: hwdatas}
+	payloads := []*pb.NodeData{&payload}
+	mockRequest := &pb.NodeRequest{
+		Payload: payloads,
+	}
+	mockResource2 := &inv_v1.Resource{}
+	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
+	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
+		Resource: mockResource2,
+	}, nil)
+	mockInvClient1.On("Create", mock.Anything, mock.Anything).Return(&inv_v1.CreateResourceResponse{
+		ResourceId: "host-b8be78c0",
+	}, errors.New("err")).Once()
+	mockInvClient1.On("Create", mock.Anything, mock.Anything).Return(&inv_v1.CreateResourceResponse{
+		ResourceId: "host-b8be78c0",
+	}, errors.New("err")).Once()
+	mockResources := &inv_v1.ListResourcesResponse{
+		// Resources: nil,
+	}
+	mockInvClient1.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources,
+		nil)
+	ctx := createIncomingContextWithENJWT(t)
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *pb.NodeResponse
+		wantErr bool
+	}{
+		{
+			name: "Positive",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: ctx,
+				req: mockRequest,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "NoJWT",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: mockRequest,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &NodeArtifactService{
+				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+				invClient:                                tt.fields.invClient,
+				authEnabled:                              tt.fields.enableAuth,
+				rbac:                                     tt.fields.rbac,
+			}
+			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NodeArtifactService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if reflect.DeepEqual(got, tt.want) && !tt.wantErr {
+				t.Errorf("NodeArtifactService.CreateNodes() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

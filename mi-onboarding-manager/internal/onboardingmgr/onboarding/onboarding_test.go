@@ -7,6 +7,7 @@ package onboarding
 
 import (
 	"context"
+	"os"
 	"reflect"
 	"testing"
 
@@ -56,6 +57,51 @@ func TestInitOnboarding(t *testing.T) {
 }
 
 func TestGetOSResourceFromDkamService(t *testing.T) {
+	type args struct {
+		ctx         context.Context
+		profilename string
+		platform    string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *dkam.GetArtifactsResponse
+		wantErr bool
+	}{
+		{
+			name: "TestCase1",
+			args: args{
+				ctx: context.TODO(),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "TestCase2",
+			args: args{
+				ctx: context.TODO(),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetOSResourceFromDkamService(tt.args.ctx, tt.args.profilename, tt.args.platform)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetOSResourceFromDkamService() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetOSResourceFromDkamService() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetOSResourceFromDkamService_Case1(t *testing.T) {
+	os.Setenv("DKAMHOST","00.00.00.000")
+	os.Setenv("DKAMPORT","00.00.00.000")
 	type args struct {
 		ctx         context.Context
 		profilename string
