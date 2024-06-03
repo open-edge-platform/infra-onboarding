@@ -27,6 +27,10 @@ DOCKER_ENV              := DOCKER_BUILDKIT=1
 DOCKER_REGISTRY         ?= amr-registry.caas.intel.com
 DOCKER_REPOSITORY       ?= one-intel-edge/maestro-i
 DOCKER_TAG              := ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}
+DOCKER_LABEL_REPO_URL   ?= $(shell git remote get-url $(shell git remote | head -n 1))
+DOCKER_LABEL_VERSION    ?= ${IMG_VERSION}
+DOCKER_LABEL_REVISION   ?= ${GIT_COMMIT}
+DOCKER_LABEL_BUILD_DATE ?= $(shell date -u "+%Y-%m-%dT%H:%M:%SZ")
 
 # Base branch to check against for breaking API changes
 BASE_BRANCH ?= main
@@ -39,7 +43,8 @@ SECRETS_DIR := /var/run/secrets
 # Tools versions
 GOLINTVERSION_HAVE        := $(shell golangci-lint version | sed 's/.*version //' | sed 's/ .*//')
 POSTGRES_VERSION          := 14.9
-BUFVERSION_REQ            := 1.27.1
+BUFVERSION_REQ		    	  := 1.27.1
+OPAVERSION_REQ            := 0.49.0
 
 GOCMD := GOPRIVATE="github.com/intel-innersource/*" go
 
@@ -68,9 +73,23 @@ $(VENV_NAME): requirements.txt
 all: 
 	@# Help: Runs build, lint, test stage
 	build lint test
+go-build:
+	--mount=type=cache,target=/root/.cache/go-build GOARCH=amd64 GOOS=linux \
+    $(GOCMD) build -trimpath -o build/onboardingmgr \
+        -ldflags "-s -w -extldflags '-static' -X main.Version=$version" \
+        ./cmd/onboardingmgr
+hadolint: ## Check Dockerfile with Hadolint
+	hadolint Dockerfile
 	
-docker-build: go-vendor
-	DOCKER_REGISTRY=${DOCKER_REGISTRY} DOCKER_REPOSITORY=${DOCKER_REPOSITORY} IMG_NAME=${IMG_NAME} VERSION=${IMG_VERSION} earthly -V +build
+docker-build:  ## build Docker image
+	$(GOCMD) mod vendor
+	docker build . -f Dockerfile --no-cache \
+	    -t maestro-i/${IMG_NAME}:${IMG_VERSION} \
+	    --build-arg http_proxy="$(http_proxy)" --build-arg https_proxy="$(https_proxy)" --build-arg no_proxy="$(no_proxy)" \
+	    --build-arg HTTP_PROXY="$(HTTP_PROXY)" --build-arg HTTPS_PROXY="$(HTTPS_PROXY)" --build-arg NO_PROXY="$(NO_PROXY)" \
+	    --build-arg REPO_URL="$(DOCKER_LABEL_REPO_URL)" --build-arg VERSION="$(DOCKER_LABEL_VERSION)"  \
+	    --build-arg REVISION="$(DOCKER_LABEL_REVISION)" --build-arg BUILD_DATE="$(DOCKER_LABEL_BUILD_DATE)" \
+	    --build-arg OPA_VERSION=${OPAVERSION_REQ}
 
 docker-push:
 	docker push ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}:${IMG_VERSION}
@@ -79,7 +98,7 @@ generate-ci: buf-gen
 
 #lint-ci: license go-lint
 
-lint-ci: license go-lint buf-lint
+lint-ci: license go-lint buf-lint hadolint
 
 ${BUILD_DIR}:
 	mkdir -p ${BUILD_DIR}
