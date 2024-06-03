@@ -67,15 +67,6 @@ RUN cmake . && make && make install
 ENV OPENSSL3_ROOT /usr
 ENV CURL_ROOT /usr
 
-# Setup client-sdk-cse.
-WORKDIR /build_dir/
-RUN mkdir /cse-fdoout
-WORKDIR /build_dir/cse-fdoout/
-RUN git clone -b v1.1.7 https://github.com/fido-device-onboard/client-sdk-fidoiot.git client-sdk
-WORKDIR /build_dir/cse-fdoout/client-sdk/
-RUN cmake -DDA=cse_ecdsa384 -DCSE_SHUTDOWN=false -DCSE_CLEAR=true .
-RUN make -j$(nproc)
-
 # Setup client-sdk and TPM libraries.
 WORKDIR /build_dir/
 RUN mkdir /tpm-fdoout
@@ -131,14 +122,6 @@ RUN ln -s /usr/lib/libcurl.so.4.8.0 /usr/lib/libcurl.so.4
 RUN ln -s /usr/lib/libcurl.so.4 /usr/lib/libcurl.so
 
 WORKDIR /
-
-# Client-SDK CSE
-RUN mkdir /cse-fdoout
-RUN mkdir /cse-fdoout/build
-RUN mkdir /cse-fdoout/data
-COPY --from=fdo-client-sdk-builder /build_dir/cse-fdoout/client-sdk/build/linux-client /cse-fdoout/
-COPY --from=fdo-client-sdk-builder /build_dir/cse-fdoout/client-sdk/build/cse-clear .
-COPY --from=fdo-client-sdk-builder /build_dir/cse-fdoout/client-sdk/data/ /cse-fdoout/data/
 
 # Client-SDK TPM
 RUN mkdir /tpm-fdoout
