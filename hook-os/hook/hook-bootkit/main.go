@@ -108,6 +108,10 @@ func main() {
 				Target: "/var/run/docker.sock",
 			},
 		},
+		/* add restart if caddy endpoint if yet not available */
+		RestartPolicy: container.RestartPolicy{
+				Name: "unless-stopped",
+		},
 		NetworkMode: "host",
 		Privileged:  true,
 	}
