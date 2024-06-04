@@ -25,7 +25,6 @@ pipeline {
             label 'oie_spot_executor'
             image 'amr-registry.caas.intel.com/one-intel-edge/rrp-devops/oie_ci_testing:2.10.10'
             alwaysPull true
-            args '--net=host'
         }
     }
     environment {

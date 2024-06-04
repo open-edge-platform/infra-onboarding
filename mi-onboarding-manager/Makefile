@@ -31,6 +31,17 @@ DOCKER_LABEL_REPO_URL   ?= $(shell git remote get-url $(shell git remote | head 
 DOCKER_LABEL_VERSION    ?= ${IMG_VERSION}
 DOCKER_LABEL_REVISION   ?= ${GIT_COMMIT}
 DOCKER_LABEL_BUILD_DATE ?= $(shell date -u "+%Y-%m-%dT%H:%M:%SZ")
+# Docker networking flags for the database container.
+# The problem is as follows: On a local MacOS machine we want to expose the port
+# of the DB to the native host to enable smooth tooling and unit tests. During
+# CI we're already inside a container, hence have to attach the DB container to
+# the same network stack as the job. Because the port (-p) syntax cannot be used
+# at the same time as the --network container:x flag, we need this variable.
+ifeq ($(shell echo $$CI), true)
+  DOCKER_NETWORKING_FLAGS = --network container:$$HOSTNAME
+else
+  DOCKER_NETWORKING_FLAGS = -p 5432:5432
+endif
 
 # Base branch to check against for breaking API changes
 BASE_BRANCH ?= main
@@ -134,7 +145,7 @@ go-lint: ## lint code
 db-start: ## Start the local postgres database. See: db-stop
 	if [ -z "`docker ps -aq -f name=^inv-db`" ]; then \
 		echo POSTGRES_PASSWORD=$$PGPASSWORD -e POSTGRES_DB=$$PGDATABASE -e POSTGRES_USER=$$PGUSER -d postgres:$(POSTGRES_VERSION); \
-		docker run --name inv-db --rm --network=host -e POSTGRES_PASSWORD=$$PGPASSWORD -e POSTGRES_DB=$$PGDATABASE -e POSTGRES_USER=$$PGUSER -d postgres:$(POSTGRES_VERSION); \
+		docker run --name inv-db --rm $(DOCKER_NETWORKING_FLAGS) -e POSTGRES_PASSWORD=$$PGPASSWORD -e POSTGRES_DB=$$PGDATABASE -e POSTGRES_USER=$$PGUSER -d postgres:$(POSTGRES_VERSION); \
 	fi
 
 db-stop: ## Stop the local postgres database. See: db-start
