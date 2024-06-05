@@ -43,7 +43,7 @@ onboot:
       - /dev/console:/dev/console
       - /dev/ttyS0:/dev/ttyS0
       - /etc/resolv.conf:/etc/resolv.conf
-      - /etc/idp/server_cert.pem:/usr/local/share/ca-certificates/IDP_keyclock.crt
+      - /etc/idp/server_ca.pem:/usr/local/share/ca-certificates/IDP_keyclock.crt
       - /var:/var:rshared,rbind
       - /dev/shm:/dev/shm
       - /etc/hook/env_config:/etc/hook/env_config
@@ -52,7 +52,6 @@ onboot:
       - CLIENT_AUTH_PRE_BIND=TRUE
       - KEYCLOAK_URL=update_idp_url
       - EXTRA_HOSTS=update_extra_hosts
-
 
 services:
   - name: getty
@@ -134,7 +133,7 @@ services:
       - all
     binds.add:
       - /etc/resolv.conf:/etc/resolv.conf
-      - /etc/idp/ca.pem:/usr/local/share/ca-certificates/ensp-orchestrator-ca.crt
+      - /etc/idp/server_ca.pem:/usr/local/share/ca-certificates/ensp-orchestrator-ca.crt
       - /etc/caddy/Caddyfile:/etc/caddy/Caddyfile
       - /dev/shm/idp_access_token:/dev/shm/idp_access_token
       - /dev/shm/release_token:/dev/shm/release_token
@@ -173,12 +172,8 @@ files:
       alias docker-shell='ctr -n services.linuxkit tasks exec --tty --exec-id shell hook-docker sh'
     mode: "0644"
 
-  - path: etc/idp/ca.pem
+  - path: etc/idp/server_ca.pem
     source: files/idp/ca.pem
-    mode: "0644"
-
-  - path: etc/idp/server_cert.pem
-    source: files/idp/server_cert.pem
     mode: "0644"
 
   - path: etc/motd
