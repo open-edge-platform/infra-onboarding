@@ -154,6 +154,7 @@ build_hook() {
     get_client_auth
     get_caddy_conf
 
+    docker buildx build --load -t hook-nix-dev -f hack/Dockerfile .
     docker run --rm -e HTTP_PROXY=$http_proxy \
         -e HTTPS_PROXY=$https_proxy \
         -e NO_PROXY=$no_proxy \
@@ -161,7 +162,7 @@ build_hook() {
         -e https_proxy=${https_proxy} \
         -v "$PWD:$PWD" \
         -w "$PWD" \
-        -v /var/run/docker.sock:/var/run/docker.sock nixos/nix nix-shell \
+        -v /var/run/docker.sock:/var/run/docker.sock hook-nix-dev nix-shell \
         --run "make dist"
     #    make dist
 
