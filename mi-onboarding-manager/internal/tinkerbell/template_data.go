@@ -48,6 +48,9 @@ const (
 	ActionWriteEtcHosts              = "Write-Hosts-etc"
 	ActionCreateCustomerIDDirectory  = "Customer-ID-Directory"
 	ActionCustomerID                 = "write-customer-id"
+	ActionEnableFastboot             = "enable-fastboot-in-kernel-optimize"
+	ActionSystemdNetworkOptimize     = "systemd-network-online-optimize"
+	ActionDisableSnapdOptimize       = "systemd-snapd-disable-optimize"
 )
 
 const (
@@ -554,7 +557,7 @@ fi`,
 						ConditionPathExists = !/home/postinstall/Setup/.base_pkg_install_done
 		
 						[Service]
-						ExecStartPre=/bin/sleep 20 
+						ExecStartPre=/bin/sleep 10 
 						WorkingDirectory=/home/postinstall/Setup
 						ExecStart=/home/postinstall/Setup/installer.sh
 						Restart=always
@@ -608,9 +611,18 @@ fi`,
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/home/postinstall/Setup/update_netplan_config.sh",
 						"CONTENTS": fmt.Sprintf(`#!/bin/bash
+while [ 1 ]
+do
 interface=$(ip route show default | awk '/default/ {print $5}')
 gateway=$(ip route show default | awk '/default/ {print $3}')
 sub_net=$(ip addr show | grep $interface | grep -E 'inet ./*' | awk '{print $2}' | awk -F'/' '{print $2}')
+if [ -z $interface ] || [ -z $gateway ] || [ -z $sub_net ]; then
+   sleep 2
+   continue
+else
+   break
+fi
+done
 # Define the network configuration in YAML format with variables
 config_yaml="
 network:
@@ -652,7 +664,6 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
                 				ConditionPathExists = !/usr/local/bin/.grow_part_done
 
                 				[Service]
-                				ExecStartPre=/bin/sleep 30
                 				WorkingDirectory=/usr/local/bin
                 				ExecStart=/usr/local/bin/grow_part.sh
 						Restart=always
@@ -691,7 +702,6 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
                                                 ConditionPathExists = !/home/postinstall/Setup/.netplan_update_done
 
                                                 [Service]
-                                                ExecStartPre=/bin/sleep 60 
                                                 WorkingDirectory=/home/postinstall/Setup
                                                 ExecStart=/home/postinstall/Setup/update_netplan_config.sh
 
@@ -740,6 +750,44 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 						"GID":       "0",
 						"MODE":      "0755",
 						"DIRMODE":   "0755",
+					},
+				},
+
+				{
+					Name:    ActionEnableFastboot,
+					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":             "ext4",
+						"CHROOT":              "y",
+						"DEFAULT_INTERPRETER": "/bin/sh -c",
+						"CMD_LINE": "sed -i 's/GRUB_CMDLINE_LINUX=\"\"/GRUB_CMDLINE_LINUX=\"quiet splash " +
+							"plymouth.enable=0 fastboot\"/g' /etc/default/grub;update-grub",
+					},
+				},
+
+				{
+					Name:    ActionSystemdNetworkOptimize,
+					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":             "ext4",
+						"CHROOT":              "y",
+						"DEFAULT_INTERPRETER": "/bin/sh -c",
+						"CMD_LINE": "sed -i 's|ExecStart=/lib/systemd/systemd-networkd-wait-online|ExecStart=" +
+							"/lib/systemd/systemd-networkd-wait-online --timeout=5|' " +
+							"/usr/lib/systemd/system/systemd-networkd-wait-online.service",
+					},
+				},
+				{
+					Name:    ActionDisableSnapdOptimize,
+					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":             "ext4",
+						"CHROOT":              "y",
+						"DEFAULT_INTERPRETER": "/bin/sh -c",
+						"CMD_LINE":            "systemctl disable snapd.seeded.service",
 					},
 				},
 
