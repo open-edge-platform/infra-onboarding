@@ -225,6 +225,7 @@ func Test_GetCuratedScript(t *testing.T) {
 	os.MkdirAll(dir, 0755)
 	dummyData := `#!/bin/bash
 	enable_netipplan
+        install_intel_CAcertificates
 # Add your installation commands here
 `
 	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
@@ -254,6 +255,7 @@ func Test_GetCuratedScript_Case(t *testing.T) {
 	os.MkdirAll(dir, 0755)
 	dummyData := `#!/bin/bash
 	enable_netipplan
+        install_intel_CAcertificates
 # Add your installation commands here
 `
 	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
@@ -283,6 +285,7 @@ func Test_GetCuratedScript_Case1(t *testing.T) {
 	os.MkdirAll(dir, 0755)
 	dummyData := `#!/bin/bash
 	enable_netipplan
+        install_intel_CAcertificates
 # Add your installation commands here
 `
 	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
@@ -312,6 +315,7 @@ func Test_GetCuratedScript_Case2(t *testing.T) {
 	os.MkdirAll(dir, 0755)
 	dummyData := `#!/bin/bash
 	enable_netipplan
+        install_intel_CAcertificates
 # Add your installation commands here
 `
 	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
@@ -340,6 +344,7 @@ func Test_GetCuratedScript_Case3(t *testing.T) {
 	os.MkdirAll(dir, 0755)
 	dummyData := `#!/bin/bash
 	enable_netipplan
+        install_intel_CAcertificates
 # Add your installation commands here
 `
 	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
@@ -377,6 +382,7 @@ func Test_GetCuratedScript_Case4(t *testing.T) {
 	os.MkdirAll(dir, 0755)
 	dummyData := `#!/bin/bash
 	enable_netipplan
+        install_intel_CAcertificates
 # Add your installation commands here
 `
 	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
@@ -524,6 +530,7 @@ func TestGetReleaseArtifactList_NegativeCase(t *testing.T) {
 	CopyFile(src, res)
 	dummyData := `#!/bin/bash
 	enable_netipplan
+        install_intel_CAcertificates
 # Add your installation commands here
 `
 	err := os.WriteFile(res, []byte(dummyData), 0644)
@@ -572,6 +579,7 @@ func TestCreateOverlayScript(t *testing.T) {
 	os.MkdirAll(dataDir, 0755)
 	dummyData := `#!/bin/bash
 	enable_netipplan
+        install_intel_CAcertificates
 # Add your installation commands here
 `
 	err := os.WriteFile(dataDir+"/installer.sh", []byte(dummyData), 0755)
@@ -641,6 +649,7 @@ func TestCreateOverlayScript_Case(t *testing.T) {
 	os.MkdirAll(dataDir, 0755)
 	dummyData := `#!/bin/bash
 	enable_netipplan
+        install_intel_CAcertificates
 # Add your installation commands here
 `
 	err := os.WriteFile(dataDir+"/installer.sh", []byte(dummyData), 0755)
@@ -715,6 +724,7 @@ func TestCreateOverlayScript_Case1(t *testing.T) {
 	os.MkdirAll(dataDir, 0755)
 	dummyData := `#!/bin/bash
 	enable_netipplan
+        install_intel_CAcertificates
 # Add your installation commands here
 `
 	err := os.WriteFile(dataDir+"/installer.sh", []byte(dummyData), 0755)
@@ -772,6 +782,7 @@ func TestCreateOverlayScript_Case2(t *testing.T) {
 	os.MkdirAll(dataDir, 0755)
 	dummyData := `#!/bin/bash
 	enable_netipplan
+        install_intel_CAcertificates
 # Add your installation commands here
 `
 	err := os.WriteFile(dataDir+"/installer.sh", []byte(dummyData), 0755)
@@ -844,6 +855,7 @@ func TestCreateOverlayScript_Case4(t *testing.T) {
 	os.MkdirAll(dataDir, 0755)
 	dummyData := `#!/bin/bash
 	enable_netipplan
+        install_intel_CAcertificates
 # Add your installation commands here
 `
 	err := os.WriteFile(dataDir+"/installer.sh", []byte(dummyData), 0755)
@@ -901,6 +913,7 @@ func TestCreateOverlayScript_Case3(t *testing.T) {
 	os.MkdirAll(dataDir, 0755)
 	dummyData := `#!/bin/bash
 	enable_netipplan
+        install_intel_CAcertificates
 # Add your installation commands here
 `
 	err := os.WriteFile(dataDir+"/installer.sh", []byte(dummyData), 0755)

@@ -537,7 +537,7 @@ install_sriov(){
     if grep -q "install_sriov done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping install_sriov"
     else
-        sudo sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX="intel_iommu=on iommu=pt pci=realloc console=tty1 console=ttyS0,115200"/' /etc/default/grub
+	sudo sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX="quiet splash plymouth.enable=0 fastboot intel_iommu=on iommu=pt pci=realloc console=tty1 console=ttyS0,115200"/' /etc/default/grub
         #Update GRUB
         sudo update-grub
         echo "install_sriov done" >> "$SCRIPT_DIR"/$STATUS_FILENAME

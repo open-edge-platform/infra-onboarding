@@ -106,6 +106,7 @@ func TestGetCuratedScript(t *testing.T) {
 	os.MkdirAll(dir, 0755)
 	dummyData := `#!/bin/bash
 	enable_netipplan
+        install_intel_CAcertificates
 # Add your installation commands here
 `
 	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
