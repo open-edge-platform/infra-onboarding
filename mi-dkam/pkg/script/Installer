@@ -1,6 +1,6 @@
 #!/bin/bash
 
-exec &> >(tee >(systemd-cat -t /home/postinstall/Setup/installer.sh) >"/dev/tty1")
+exec &> >(tee >(systemd-cat -t /home/postinstall/Setup/installer.sh))
 set -euo pipefail
 
 if [ -f /etc/apt/apt.conf ]; then
@@ -97,7 +97,7 @@ install_dependencies() {
         if [ ! -L /usr/local/bin/yq ]; then
             sudo ln -s yq_linux_amd64 /usr/local/bin/yq
         fi
-        echo "install_dependencies done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_dependencies done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -112,7 +112,7 @@ install_fws(){
         echo "y" | ufw enable
         ufw default allow outgoing
         ufw reload
-        echo "install_fws done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_fws done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -154,7 +154,7 @@ install_intel_CAcertificates() {
             rm /usr/local/share/ca-certificates/tmp.zip        
         done
         update-ca-certificates
-        echo "install_intel_CAcertificates done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_intel_CAcertificates done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -174,7 +174,7 @@ install_cleanup() {
         apt-get -y purge platform-update-agent || true
         apt-get autoremove -y
         rm -rf /etc/intel_edge_node/tokens /etc/intel_edge_node/certs /etc/intel_edge_node/.keys
-        echo "install_cleanup done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_cleanup done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -329,7 +329,7 @@ install_node_agent(){
         echo "deb https://localhost:$APT_SOURCE_PROXY_PORT/repository __APT_SRC__ main" | tee /etc/apt/sources.list.d/edge-node.list
 
         apt-get update
-        echo "install_node_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_node_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -346,7 +346,7 @@ install_cluster_agent(){
         echo "cluster-agent cluster-agent/cluster-orchestrator-url string ${ORCH_C_URL}" | debconf-set-selections
         apt-get install -y -o Dpkg::Options::="--force-confnew" cluster-agent="$VERSION"
         systemctl status -l --no-pager cluster-agent
-        echo "install_cluster_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_cluster_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -362,7 +362,7 @@ install_hardware_discovery_agent(){
         echo "hardware-discovery-agent hardware-discovery-agent/onboarding.serviceURL string ${ORCH_I_URL}" | debconf-set-selections
         apt-get install -y -o Dpkg::Options::="--force-confnew" hardware-discovery-agent="$VERSION"
         systemctl status -l --no-pager hardware-discovery-agent
-        echo "install_hardware_discovery_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_hardware_discovery_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -381,7 +381,7 @@ install_platform_observability_agent(){
         echo "platform-observability-agent platform-observability-agent/metrics-port string $OBSERVABILITY_METRICS_PORT" | debconf-set-selections
         apt-get install -y -o Dpkg::Options::="--force-confnew" platform-observability-agent="$VERSION"
         systemctl status -l --no-pager platform-observability-logging platform-observability-health-check platform-observability-metrics platform-observability-collector
-        echo "install_platform_observability_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_platform_observability_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -395,7 +395,7 @@ install_trtl(){
         VERSION="trtl-VERSION"
         echo $VERSION
         apt-get -y install trtl="$VERSION"
-        echo "install_trtl done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_trtl done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -409,7 +409,7 @@ install_inbm_cloudadapter_agent(){
         VERSION="inbm-cloudadapter-agent-VERSION"
         echo $VERSION
         apt-get -y install inbm-cloudadapter-agent="$VERSION"
-        echo "install_inbm_cloudadapter_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_inbm_cloudadapter_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 
 }
@@ -424,7 +424,7 @@ install_inbm_dispatcher_agent(){
         VERSION="inbm-dispatcher-agent-VERSION"
         echo $VERSION
         apt-get -y install inbm-dispatcher-agent="$VERSION"
-        echo "install_inbm_dispatcher_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_inbm_dispatcher_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 
 }
@@ -439,7 +439,7 @@ install_inbm_configuration_agent(){
         VERSION="inbm-configuration-agent-VERSION"
         echo $VERSION
         apt-get -y install inbm-configuration-agent="$VERSION"
-        echo "install_inbm_configuration_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_inbm_configuration_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 
 }
@@ -454,7 +454,7 @@ install_inbm_telemetry_agent(){
         VERSION="inbm-telemetry-agent-VERSION"
         echo $VERSION
         apt-get -y install inbm-telemetry-agent="$VERSION"
-        echo "install_inbm_telemetry_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_inbm_telemetry_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -468,7 +468,7 @@ install_inbm_diagnostic_agent(){
         VERSION="inbm-diagnostic-agent-VERSION"
         echo $VERSION
         apt-get -y install inbm-diagnostic-agent="$VERSION"
-        echo "install_inbm_diagnostic_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_inbm_diagnostic_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -482,7 +482,7 @@ install_mqtt(){
         VERSION="mqtt-VERSION"
         echo $VERSION
         apt-get -y install mqtt="$VERSION"
-        echo "install_mqtt done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_mqtt done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -496,7 +496,7 @@ install_tpm_provision(){
         VERSION="tpm-provision-VERSION"
         echo $VERSION
         apt-get -y install tpm-provision="$VERSION"
-        echo "install_tpm_provision done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_tpm_provision done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -510,7 +510,7 @@ install_inbc_program(){
         VERSION="inbc-program-VERSION"
         echo $VERSION
         apt-get -y install inbc-program="$VERSION"
-        echo "install_inbc_program done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_inbc_program done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -528,7 +528,7 @@ install_platform_update_agent(){
         echo "platform-update-agent platform-update-agent/updateServiceURL string ${MAINTENANCE_MANAGER_URL}" | debconf-set-selections
         apt-get -y install platform-update-agent="$VERSION"
         systemctl status -l --no-pager platform-update-agent
-        echo "install_platform_update_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_platform_update_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -540,7 +540,7 @@ install_sriov(){
 	sudo sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX="quiet splash plymouth.enable=0 fastboot intel_iommu=on iommu=pt pci=realloc console=tty1 console=ttyS0,115200"/' /etc/default/grub
         #Update GRUB
         sudo update-grub
-        echo "install_sriov done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_sriov done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -552,7 +552,7 @@ install_HWE_kernel(){
         export DEBIAN_FRONTEND=noninteractive
         sudo apt-get update
         sudo apt-get install -y linux-image-generic linux-headers-generic
-        echo "install_HWE_kernel done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_HWE_kernel done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -568,7 +568,7 @@ install_platform_telemetry_agent(){
         echo "telemetry-agent telemetry-agent/telemetrymanager.serviceURL string ${TELEMETRY_MANAGER_URL}" | debconf-set-selections
         apt install -y -o Dpkg::Options::="--force-confnew" platform-telemetry-agent="$VERSION"
         systemctl status -l --no-pager platform-telemetry-agent
-        echo "install_platform_telemetry_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_platform_telemetry_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -633,7 +633,7 @@ sudo systemctl restart rsyslog.service
 sudo systemctl restart cron.service
 sudo /usr/sbin/logrotate /etc/logrotate.conf
 ##### Managing log rotation
-echo "install_syslogrotate_job done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+echo "install_syslogrotate_job done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
 fi
 }
 
@@ -661,7 +661,7 @@ END
 
 sudo systemctl restart ufw.service
 sudo ufw logging low
-echo "install_syslogrotate_ufw done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+echo "install_syslogrotate_ufw done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
 fi
 }
 
@@ -671,7 +671,7 @@ install_CA_cert(){
 		echo "Skipping install_CA_cert"
     else
         echo "$CA_CERT" > /usr/local/share/ca-certificates/orch-ca.crt && update-ca-certificates -f
-        echo "install_CA_cert done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_CA_cert done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -701,7 +701,7 @@ enable_netipplan() {
         echo "Config.yaml file updated successfully."
         sed -i '/[Resolve]/d'  /etc/systemd/resolved.conf
         sed -i '/DNS/d'  /etc/systemd/resolved.conf
-        echo "enable_netipplan done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "enable_netipplan done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -719,7 +719,7 @@ delete_invalid_ubuntu_boot_menuoptions () {
             efibootmgr -b "$boot_part_number" -B
         fi
         done < <(efibootmgr | grep -i ubuntu | awk '{print $1}'| cut -c 5-8 )
-        echo "delete_invalid_ubuntu_boot_menuoptions done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "delete_invalid_ubuntu_boot_menuoptions done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -738,7 +738,7 @@ enable_kernel_config(){
         echo kernel.panic_on_oops=__PANIC_ON_OOPS__ | tee -a /etc/sysctl.conf
         echo fs.inotify.max_user_instances=__MAX_USER_INSTANCE__ | tee -a /etc/sysctl.conf
         sysctl -p
-        echo "enable_kernel_config done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "enable_kernel_config done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -769,7 +769,7 @@ enable_NTP(){
         systemctl restart systemd-timesyncd.service
         timedatectl set-ntp true
         systemctl status systemd-timesyncd.service
-        echo "enable_NTP done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "enable_NTP done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -789,7 +789,7 @@ disable_unattended_upgrade(){
             exit 1
         fi
         apt remove -y unattended-upgrades
-        echo "disable_unattended_upgrade done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "disable_unattended_upgrade done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -808,7 +808,7 @@ install_license_agent(){
         echo "license-agent license-agent/enforcement boolean ${ENFORCEMENT}" | debconf-set-selections
         apt-get install -y -o Dpkg::Options::="--force-confnew" license-agent="$VERSION"
         systemctl status -l --no-pager license-agent
-        echo "install_license_agent done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_license_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -824,7 +824,7 @@ enable_inactive_boot_numbers(){
                 efibootmgr -b "$boot_part_number" -a
             fi
         done < <(efibootmgr | grep "Boot" | grep -i -v -E "BootCurrent|BootOrder" | awk '{print $1}' | cut -c 5-9)
-        echo "enable_inactive_boot_numbers done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "enable_inactive_boot_numbers done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -888,7 +888,7 @@ create_lvm_partition(){
         else
             echo "Failure in creating the logical volume group" 
         fi
-        echo "create_lvm_partition done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "create_lvm_partition done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
@@ -946,7 +946,7 @@ lvm_part_setup_for_secondary_disk(){
                 done
             fi
         fi
-        echo "lvm_part_setup_for_secondary_disk done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "lvm_part_setup_for_secondary_disk done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 ssh_config(){
@@ -959,7 +959,7 @@ ssh_config(){
         #remove enabling ssh from ufw
         ufw delete allow ssh &>/dev/null
         ufw reload
-        echo "ssh_config done" >> "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "ssh_config done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
