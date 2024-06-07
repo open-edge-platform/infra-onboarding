@@ -103,7 +103,7 @@ docker-build:  ## build Docker image
 	    --build-arg OPA_VERSION=${OPAVERSION_REQ}
 
 docker-push:
-	docker push ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}:${IMG_VERSION}
+	docker push maestro-i/${IMG_NAME}:${IMG_VERSION}
 
 generate-ci: buf-gen
 
