@@ -553,13 +553,16 @@ fi`,
 						"CONTENTS": `
 						[Unit]
 						Description=Profile and node agents Package Installation
-						After=update-netplan.service
+						After=update-netplan.service getty@tty1.service
 						ConditionPathExists = !/home/postinstall/Setup/.base_pkg_install_done
 		
 						[Service]
 						ExecStartPre=/bin/sleep 10 
 						WorkingDirectory=/home/postinstall/Setup
 						ExecStart=/home/postinstall/Setup/installer.sh
+						StandardOutput=tty
+						StandardError=tty
+						TTYPath=/dev/tty1
 						Restart=always
 		
 						[Install]
