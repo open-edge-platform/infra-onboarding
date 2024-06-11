@@ -12,11 +12,27 @@
 # or implied warranties, other than those that are expressly stated in the License. #
 #####################################################################################
 
-if [ ! -s "/dev/shm/idp_access_token" ];
-then
-    echo "Orchestrator access token file is empty, exiting.."
-    exit 1
-fi
+
+TIMEOUT=600  # 10 minutes in seconds
+INTERVAL=3  # Check every 3 seconds
+
+start_time=$(date +%s)
+
+while true; do
+    # Check if the file exists and is non-empty
+    if [ -s "/dev/shm/idp_access_token" ]; then
+        echo "File is present and non-empty."
+        break
+    fi
+
+    current_time=$(date +%s)
+    elapsed_time=$(( current_time - start_time ))
+    if [ $elapsed_time -ge $TIMEOUT ]; then
+        echo "Timed out waiting for the file to be non-empty."
+        exit 1
+    fi
+    sleep $INTERVAL
+done
 
 if [ ! -s "/dev/shm/release_token" ];
 then

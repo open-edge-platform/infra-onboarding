@@ -18,7 +18,6 @@ ver=latest
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout caddy-key.pem -out caddy-cert.pem -subj "/CN=localhost/CN=localhost.internal1/CN=localhost.internal2"
 
 ## # Build the container
-docker pull caddy:latest
 docker build -f Dockerfile -t caddy_proxy:$ver .
 
 # Save the Docker image
