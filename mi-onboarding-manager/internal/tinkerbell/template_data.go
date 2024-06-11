@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	ActionEraseNonRemovableDisk      = "erase-non-removable-disk" //nolint:gosec // hardcoded secrets need to handle in future.
+	ActionEraseNonRemovableDisk      = "erase-non-removable-disk" //#nosec G101 -- ignore false positive.
 	ActionSecureBootStatusFlagRead   = "secure-boot-status-flag-read"
 	ActionStreamUbuntuImage          = "stream-ubuntu-image"
 	ActionCopySecrets                = "copy-secrets"
@@ -35,13 +35,13 @@ const (
 	ActionEfibootset                 = "efibootset-for-diskboot"
 	ActionFdeEncryption              = "fde-encryption"
 	ActionReboot                     = "reboot"
-	ActionCopyENSecrets              = "copy-ensp-node-secrets" //nolint:gosec // hardcoded secrets need to handle in future.
+	ActionCopyENSecrets              = "copy-ensp-node-secrets" //#nosec G101 -- ignore false positive.
 	ActionStoringAlpine              = "store-Alpine"
 	ActionRunFDO                     = "run-fdo"
 	ActionAddEnvProxy                = "add-env-proxy"
 	ActionAddAptProxy                = "add-apt-proxy"
 	ActionAddDNSNamespace            = "add-dns-namespace"
-	ActionCreateSecretsDirectory     = "create-ensp-node-directory" //nolint:gosec // hardcoded secrets need to handle in future.
+	ActionCreateSecretsDirectory     = "create-ensp-node-directory" //#nosec G101 -- ignore false positive.
 	ActionWriteClientID              = "write-client-id"
 	ActionWriteClientSecret          = "write-client-secret"
 	ActionWriteHostname              = "write-hostname"

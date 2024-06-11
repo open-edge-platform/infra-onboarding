@@ -134,7 +134,7 @@ func HostResourceCmd() *cobra.Command {
 			var nodes []*pbinv.NodeData
 
 			if inputFile != "" {
-				data, err := os.ReadFile(inputFile)
+				data, err := os.ReadFile(inputFile) //#nosec G304 //nolint:gosec -- ignore file path
 				if err != nil {
 					return err
 				}

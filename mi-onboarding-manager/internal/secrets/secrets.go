@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	//nolint:gosec // hardcoded secrets need to handle in future.
+	//#nosec G101 //nolint:gosec // hardcoded secrets need to handle in future.
 	onboardingCredentialsSecretName = "host-manager-m2m-client-secret"
 )
 

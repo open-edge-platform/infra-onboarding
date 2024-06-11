@@ -62,7 +62,7 @@ func InstanceResCmds() *cobra.Command {
 	}
 
 	getIDCmd.Flags().StringVarP(&resourceID, "resource-id", "r", "", "Resource ID (required)")
-	getIDCmd.MarkFlagRequired("resource-id")
+	_ = getIDCmd.MarkFlagRequired("resource-id")
 
 	createCmd := &cobra.Command{
 		Use:   "create",
@@ -90,9 +90,9 @@ func InstanceResCmds() *cobra.Command {
 		RunE:  updateInstance(context.Background(), &dialer),
 	}
 	updateCmd.Flags().StringVarP(&resourceID, "resource-id", "r", "", "Resource ID (required)")
-	updateCmd.MarkFlagRequired("resource-id")
+	_ = updateCmd.MarkFlagRequired("resource-id")
 	updateCmd.Flags().StringVarP(&fields, "fields", "f", "", "fields to update")
-	updateCmd.MarkFlagRequired("fields")
+	_ = updateCmd.MarkFlagRequired("fields")
 
 	deleteCmd := &cobra.Command{
 		Use:   "delete",
@@ -100,7 +100,7 @@ func InstanceResCmds() *cobra.Command {
 		RunE:  deleteInstance(context.Background(), &dialer),
 	}
 	deleteCmd.Flags().StringVarP(&resourceID, "resource-id", "r", "", "Resource ID (required)")
-	deleteCmd.MarkFlagRequired("resource-id")
+	_ = deleteCmd.MarkFlagRequired("resource-id")
 
 	instanceCmd.AddCommand(getCmd, getIDCmd, createCmd, deleteCmd, updateCmd)
 
@@ -347,7 +347,7 @@ func HostResCmds() *cobra.Command {
 	}
 
 	getIDCmd.Flags().StringVarP(&resourceID, "resource-id", "r", "", "Resource ID (required)")
-	getIDCmd.MarkFlagRequired("resource-id")
+	_ = getIDCmd.MarkFlagRequired("resource-id")
 
 	getUUIDCmd := &cobra.Command{
 		Use:   "getByUUID",
@@ -356,7 +356,7 @@ func HostResCmds() *cobra.Command {
 	}
 
 	getUUIDCmd.Flags().StringVarP(&uuID, "uuid", "u", "", " UUID (required)")
-	getUUIDCmd.MarkFlagRequired("uuid")
+	_ = getUUIDCmd.MarkFlagRequired("uuid")
 
 	createCmd := &cobra.Command{
 		Use:   "create",
@@ -376,9 +376,9 @@ func HostResCmds() *cobra.Command {
 	createCmd.Flags().StringP("sut-ip", "t", "", "Sut-ip")
 	createCmd.Flags().StringP("desired-state", "e", "", "Desired state of the host")
 	createCmd.Flags().StringP("current-state", "c", "", "Current state of the host")
-	createCmd.MarkFlagRequired("uuid")
-	createCmd.MarkFlagRequired("hostname")
-	createCmd.MarkFlagRequired("sut-ip")
+	_ = createCmd.MarkFlagRequired("uuid")
+	_ = createCmd.MarkFlagRequired("hostname")
+	_ = createCmd.MarkFlagRequired("sut-ip")
 
 	updateCmd := &cobra.Command{
 		Use:   "update",
@@ -386,7 +386,7 @@ func HostResCmds() *cobra.Command {
 		RunE:  updateHost(context.Background(), &dialer),
 	}
 	updateCmd.Flags().StringVarP(&resourceID, "resource-id", "r", "", "Resource ID (required)")
-	updateCmd.MarkFlagRequired("resource-id")
+	_ = updateCmd.MarkFlagRequired("resource-id")
 	updateCmd.Flags().StringP("bmc-kind", "b", "", "BMC Kind")
 	updateCmd.Flags().StringP("bmc-ip", "i", "", "BMC IP")
 	updateCmd.Flags().StringP("bmc-username", "u", "", "BMC Username")
@@ -405,7 +405,7 @@ func HostResCmds() *cobra.Command {
 		RunE:  deleteHost(context.Background(), &dialer),
 	}
 	deleteCmd.Flags().StringVarP(&resourceID, "resource-id", "r", "", "Resource ID (required)")
-	deleteCmd.MarkFlagRequired("resource-id")
+	_ = deleteCmd.MarkFlagRequired("resource-id")
 
 	hostresCmd.AddCommand(createCmd, getCmd, getIDCmd, getUUIDCmd, deleteCmd, updateCmd)
 

@@ -44,7 +44,7 @@ func OsCmds() *cobra.Command {
 		RunE:  createOsResource(&dialer),
 	}
 	createCmd.Flags().StringP("profileName", "p", "", "profileName")
-	createCmd.MarkFlagRequired("profileName")
+	_ = createCmd.MarkFlagRequired("profileName")
 	createCmd.Flags().StringArrayVarP(&updateSources, "update_sources", "u", []string{}, "UpdateSources")
 	createCmd.Flags().StringP("repo_url", "l", "", "RepoUrl")
 	createCmd.Flags().StringP("sha256", "s", "", "Sha256")
@@ -54,7 +54,7 @@ func OsCmds() *cobra.Command {
 		RunE:  getByID(&dialer),
 	}
 	getIDCmd.Flags().StringVarP(&resourceID, "resource-id", "r", "", "Resource ID (required)")
-	getIDCmd.MarkFlagRequired("resource-id")
+	_ = getIDCmd.MarkFlagRequired("resource-id")
 	getCmd := &cobra.Command{
 		Use:   "get",
 		Short: "Get Os resources",
@@ -66,7 +66,7 @@ func OsCmds() *cobra.Command {
 		RunE:  deleteOsResource(&dialer),
 	}
 	deleteCmd.Flags().StringVarP(&resourceID, "resource-id", "r", "", "Resource ID (required)")
-	deleteCmd.MarkFlagRequired("resource-id")
+	_ = deleteCmd.MarkFlagRequired("resource-id")
 
 	updateCmd := &cobra.Command{
 		Use:   "update",
@@ -74,7 +74,7 @@ func OsCmds() *cobra.Command {
 		RunE:  updateOsResource(&dialer),
 	}
 	updateCmd.Flags().StringVarP(&resourceID, "resource-id", "r", "", "Resource ID (required)")
-	updateCmd.MarkFlagRequired("resource-id")
+	_ = updateCmd.MarkFlagRequired("resource-id")
 	updateCmd.Flags().StringArrayVarP(&updateSources, "update_sources", "u", []string{}, "UpdateSources")
 	updateCmd.Flags().StringP("repo_url", "l", "", "RepoUrl")
 	updateCmd.Flags().StringP("sha256", "s", "", "Sha256")

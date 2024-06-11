@@ -82,7 +82,7 @@ func CopyFolder(src string, dest string) error {
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(dest, 0o755)
+	err = os.MkdirAll(dest, 0o755) //#nosec G301 //nolint:gosec
 	if err != nil {
 		return err
 	}
@@ -105,12 +105,12 @@ func CopyFolder(src string, dest string) error {
 }
 
 func Copy(src string, dest string) error {
-	sourceFile, err := os.Open(src)
+	sourceFile, err := os.Open(src) //#nosec G304 //nolint:gosec -- ignore file path
 	if err != nil {
 		return err
 	}
 	defer sourceFile.Close()
-	destFile, err := os.Create(dest)
+	destFile, err := os.Create(dest) //#nosec G304 //nolint:gosec -- ignore file path
 	if err != nil {
 		return err
 	}
