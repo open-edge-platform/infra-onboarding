@@ -90,6 +90,12 @@ extract_alpine_tar() {
 	    exit 1
 	fi
 
+	######## repack initramfs to zstd format ###########################
+	mv $iter_folder/hook_x86_64_files/initramfs-x86_64_new $iter_folder/hook_x86_64_files/initramfs-x86_64_new.gz
+	gunzip -c $iter_folder/hook_x86_64_files/initramfs-x86_64_new.gz | xz --check=crc32 -k -T 6 > $iter_folder/hook_x86_64_files/initramfs-x86_64_new
+	rm $iter_folder/hook_x86_64_files/initramfs-x86_64_new.gz
+	#####################################################################
+
 	mv $iter_folder/hook_x86_64_files/initramfs-x86_64_new $iter_folder/hook_x86_64_files/initramfs-x86_64
 	if [ $? -ne 0 ];
 	then

@@ -123,6 +123,12 @@ sign_all_components() {
 
     tar -xvf $STORE_ALPINE_SECUREBOOT/hook_x86_64.tar.gz -C $STORE_ALPINE_SECUREBOOT/hook_sign_temp
 
+    ######## repack initramfs to zstd format ##################
+    mv $STORE_ALPINE_SECUREBOOT/hook_sign_temp/initramfs-x86_64 $STORE_ALPINE_SECUREBOOT/hook_sign_temp/initramfs-x86_64.gz
+    gunzip -c $STORE_ALPINE_SECUREBOOT/hook_sign_temp/initramfs-x86_64.gz | xz --check=crc32 -k -T 6 > $STORE_ALPINE_SECUREBOOT/hook_sign_temp/initramfs-x86_64
+    rm $STORE_ALPINE_SECUREBOOT/hook_sign_temp/initramfs-x86_64.gz
+    ###########################################################
+
     mkdir -p $GPG_KEY_DIR
 
     pushd $STORE_ALPINE_SECUREBOOT/hook_sign_temp

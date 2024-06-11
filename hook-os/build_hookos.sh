@@ -117,7 +117,7 @@ build_hook() {
     copy_fluent_bit_files
 
     # if kernel already built or pulled into docker images list then dont recompile
-    if docker image inspect quay.io/tinkerbell/hook-kernel:5.10.85-e546ea099917c006d1d08fe6b8398101de65cbc7 >/dev/null 2>&1; then
+    if docker image inspect quay.io/tinkerbell/hook-kernel:5.10.85-ea30730ea52b3f903fad7ff11a82dd12dfbdbe6c-xz >/dev/null 2>&1; then
         echo "Rebuild of kernel not required, since its already present in docker images"
     else
         # i255 igc driver issue fix
@@ -128,12 +128,12 @@ build_hook() {
         wget https://github.com/intel/linux-intel-lts/commit/170110adbecc1c603baa57246c15d38ef1faa0fa.patch
         popd
 
-        make devbuild_5.10.x
+        make -j8 devbuild_5.10.x
         popd
     fi
 
     #update the hook.yaml file to point to new kernel
-    $SED_CMD -i "s|quay.io/tinkerbell/hook-kernel:5.10.85-d1225df88208e5a732e820a182b75fb35c737bdd|quay.io/tinkerbell/hook-kernel:5.10.85-e546ea099917c006d1d08fe6b8398101de65cbc7|g" hook.yaml
+    $SED_CMD -i "s|quay.io/tinkerbell/hook-kernel:5.10.85-d1225df88208e5a732e820a182b75fb35c737bdd|quay.io/tinkerbell/hook-kernel:5.10.85-ea30730ea52b3f903fad7ff11a82dd12dfbdbe6c-xz|g" hook.yaml
 
     $SED_CMD -i "s|dl-cdn.alpinelinux.org/alpine/edge/testing|dl-cdn.alpinelinux.org/alpine/edge/community|g" hook-docker/Dockerfile
     $SED_CMD -i "s/hook_dind:latest/hook_dind:$ver/g" hook-docker/Dockerfile
