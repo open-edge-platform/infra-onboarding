@@ -13,10 +13,12 @@
 package image
 
 import (
-	"encoding/json"
-	"os/exec"
+//	"encoding/json"
+	"os"
 	"sort"
 	"strings"
+	"fmt"
+    "path/filepath"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -47,10 +49,10 @@ func DriveDetection(drives []DriveInfo) (string, error) {
 	// Filter out devices with size zero or type not equal to "disk"
 	filteredDrives := filterDrives(drives)
 	// Display the filtered list of drives
-	log.Infof("Filtered Drives:")
-	for _, drive := range filteredDrives {
-		log.Infof("%+v\n", drive)
-	}
+//	log.Infof("Filtered Drives:")
+//	for _, drive := range filteredDrives {
+//		log.Infof("%+v\n", drive)
+//	}
 	// Sort drives based on the defined criteria
 	sort.Sort(byPriorityAndSize(filteredDrives))
 
@@ -87,22 +89,9 @@ func (e *CustomError) Error() string {
 func GetDrives() ([]DriveInfo, error) {
 	var drives []DriveInfo
 
-	// Command to list all connected storage devices with sizes using lsblk
-	cmd := exec.Command("lsblk", "--output", "NAME,TYPE,SIZE,TRAN", "-bldn", "--json")
+//	output := getDisksjson()
+	lsblkOutput := getDisksjson()
 
-	// Run the command and capture the output
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Infof("Error running command:%s", err)
-		return nil, err
-	}
-
-	var lsblkOutput LsblkOutput
-	err = json.Unmarshal([]byte(output), &lsblkOutput)
-	if err != nil {
-		log.Infof("Error running command:%s", err)
-		return nil, err
-	}
 
 	drives = lsblkOutput.BlockDevices
 	return drives, nil
@@ -147,4 +136,128 @@ func (a byPriorityAndSize) Less(i, j int) bool {
 	// Choose the drive with higher priority
 	return driveTypeRanking[a[i].getDiskType()] < driveTypeRanking[a[j].getDiskType()]
 
+}
+
+//-------------- lsblk immitation below
+func getDisksjson() LsblkOutput {
+    var disks []DriveInfo
+
+    disks = getDriveInfos()
+    lsblkOutput := LsblkOutput{BlockDevices: disks}
+
+    return lsblkOutput
+}
+
+func getDriveInfos() []DriveInfo {
+    var disks []DriveInfo
+
+    blockDir := "/sys/block/"
+    entries, err := os.ReadDir(blockDir)
+    if err != nil {
+        fmt.Println("Error:", err)
+        return disks
+    }
+
+    for _, entry := range entries {
+        entryPath := filepath.Join(blockDir, entry.Name())
+        fileInfo, err := os.Lstat(entryPath)
+        if err != nil {
+            fmt.Println("Error:", err)
+            continue
+        }
+        // Check if entry is a symbolic link
+        if fileInfo.Mode()&os.ModeSymlink != 0 {
+            // If it's a symbolic link, resolve it to get the actual name
+            deviceName := resolveSymLink(entryPath)
+            disk := getDiskInfo(deviceName)
+            disks = append(disks, disk)
+        }
+    }
+
+    return disks
+}
+
+func resolveSymLink(symLinkPath string) string {
+    target, err := os.Readlink(symLinkPath)
+    if err != nil {
+        fmt.Println("Error resolving symbolic link:", err)
+        return ""
+    }
+    return filepath.Base(target)
+}
+
+func getDiskInfo(name string) DriveInfo {
+    var disk DriveInfo
+
+    disk.Name = name
+    disk.Type = "disk"
+
+    sizePath := filepath.Join("/sys/block", name, "size")
+    size, err := readUint64FromFile(sizePath)
+    if err != nil {
+        fmt.Println("Error:", err)
+        return disk
+    }
+    // The size is in 512-byte sectors, so we convert it to bytes
+    disk.Size = size * 512
+
+    transportPath := filepath.Join("/sys/block", name, "device", "uevent")
+    transport, err := getDeviceType(transportPath)
+    if err != nil {
+        fmt.Println("Error:", err)
+        return disk
+    }
+    disk.Tran = transport
+
+    return disk
+}
+
+func readUint64FromFile(filePath string) (uint64, error) {
+    file, err := os.Open(filePath)
+    if err != nil {
+        return 0, err
+    }
+    defer file.Close()
+
+    var value uint64
+    _, err = fmt.Fscanf(file, "%d", &value)
+    if err != nil {
+        return 0, err
+    }
+
+    return value, nil
+}
+
+// getDeviceType reads the uevent file at the given path
+// and returns the device type based on the MODALIAS entry.
+func getDeviceType(ueventPath string) (string, error) {
+
+	if _, err := os.Stat(ueventPath); os.IsNotExist(err) {
+		// File does not exist, return empty string
+		return "", nil
+	}
+	// Read the entire uevent file
+	data, err := os.ReadFile(ueventPath)
+	if err != nil {
+		return "", fmt.Errorf("error reading uevent file: %v", err)
+	}
+
+	// Convert the data to a string and split into lines
+	lines := strings.Split(string(data), "\n")
+	var modalias string
+	for _, line := range lines {
+		if strings.HasPrefix(line, "MODALIAS=") {
+			modalias = strings.TrimPrefix(line, "MODALIAS=")
+			break
+		}
+	}
+
+	if modalias == "" {
+		return "", fmt.Errorf("MODALIAS not found in uevent file")
+	}
+
+	// Extract the prefix from the MODALIAS
+	prefix := strings.Split(modalias, ":")[0]
+
+	return prefix, nil
 }

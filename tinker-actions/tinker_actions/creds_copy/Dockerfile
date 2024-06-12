@@ -19,7 +19,6 @@ RUN --mount=type=cache,sharing=locked,id=gomod,target=/go/pkg/mod/cache \
     CGO_ENABLED=1 GOOS=linux go build -a -ldflags "-linkmode external -extldflags '-static' -s -w" -o dcopy
 
 # Final stage
-FROM alpine:3.14
-RUN apk add --no-cache lsblk
+FROM scratch
 COPY --from=dcopy /app /
 CMD ["/dcopy"]
