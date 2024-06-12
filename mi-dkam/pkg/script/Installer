@@ -551,7 +551,13 @@ install_HWE_kernel(){
     else
         export DEBIAN_FRONTEND=noninteractive
         sudo apt-get update
-        sudo apt-get install -y linux-image-generic linux-headers-generic
+	#Include extra packages for Dell XR12 platform for suppporting E810 ethernet drivers
+	product_name=$(sudo lshw -class system | grep "product:" | head -1 | awk '{print $2}')
+	if [[ "$product_name" == "PowerEdge" ]]; then
+	    sudo apt-get install -y --install-recommends linux-image-generic linux-headers-generic
+	else
+            sudo apt-get install -y linux-image-generic linux-headers-generic
+	fi
         echo "install_HWE_kernel done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
