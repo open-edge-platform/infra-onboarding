@@ -134,6 +134,7 @@ pipeline {
                         echo 'socks_proxy=socks://proxy-dmz.intel.com:1080' >> config
                         echo 'no_proxy=localhost,*.intel.com,*intel.com,192.168.0.0/16,172.16.0.0/12,127.0.0.0/8,10.0.0.0/8,/var/run/docker.sock,.internal' >> config
                         echo 'keycloak_url=keycloak.validation.maestro.intel.com' >> config
+                        echo 'harbor_url_tinker_actions=amr-registry.caas.intel.com/one-intel-edge/edge-node/tinker-actions' >> config
                         """
                         def tag = ''
                         if (params.buildHookOs) {
@@ -141,25 +142,8 @@ pipeline {
                         } else {
                             tag = sh(script: 'cat TINKER_ACTIONS_VERSION', returnStdout: true).trim()
                         }
-                        images_list = []
-                        images = sh(script: "cat hook/hook.yaml | grep -i '.*image:.*:.*\$' | awk -F: '{print \$2}'", returnStdout: true).trim()
-                        images_list = images.split("\n")
-                        for (image in images_list) {
-                            image = image.trim()
-                            if (!image.contains('/')) {
-                                sh """
-                                docker pull amr-registry.caas.intel.com/one-intel-edge/edge-node/tinker-actions/${image}:${tag}
-                                docker image tag amr-registry.caas.intel.com/one-intel-edge/edge-node/tinker-actions/${image}:${tag} ${image}:${tag}
-                                """
-                            }
-                        }
                         // pull other required images
                         sh """
-                        docker pull amr-registry.caas.intel.com/one-intel-edge/edge-node/tinker-actions/hook_dind:${tag}
-                        docker image tag amr-registry.caas.intel.com/one-intel-edge/edge-node/tinker-actions/hook_dind:${tag} hook_dind:${tag}
-
-                        docker pull amr-registry.caas.intel.com/one-intel-edge/edge-node/hook-kernel:5.10.85-i225-igc-xz
-                        docker image tag amr-registry.caas.intel.com/one-intel-edge/edge-node/hook-kernel:5.10.85-i225-igc-xz quay.io/tinkerbell/hook-kernel:5.10.85-ea30730ea52b3f903fad7ff11a82dd12dfbdbe6c-xz
                         eval \$(ssh-agent) > /dev/null
                         make build
                          tar -zcvf grub_source.tar.gz grub_source

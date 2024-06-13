@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: (C) 2024 Intel Corporation
+# SPDX-License-Identifier: LicenseRef-Intel
 kernel:
   image: quay.io/tinkerbell/hook-kernel:5.10.85-d1225df88208e5a732e820a182b75fb35c737bdd
   cmdline: "console=tty0 console=ttyS0 console=ttyAMA0 console=ttysclp0"

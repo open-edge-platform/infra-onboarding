@@ -18,9 +18,9 @@ PROJECT_NAME := hook-os
 BINARY_NAME  := hook-os
 
 # Code versions, tags, and so on
-VERSION       := $(shell cat VERSION)
-VERSION_MAJOR := $(shell cut -c 1 VERSION)
-IMG_NAME      := ${PROJECT_NAME}
+VERSION       ?= $(shell cat VERSION)
+VERSION_MAJOR ?= $(shell cut -c 1 VERSION)
+IMG_NAME      ?= ${PROJECT_NAME}
 IMG_VERSION   ?= $(VERSION)
 GIT_COMMIT    ?= $(shell git rev-parse HEAD)
 DOCKER_ENV              := DOCKER_BUILDKIT=1
@@ -47,9 +47,18 @@ build:
 	@echo "---MAKEFILE BUILD---"
 	@echo "---BUILD started---"
 	@echo "--Updated step below--"
+	chmod +x prereq.sh && bash prereq.sh
+	chmod +x build_hookos.sh && bash build_hookos.sh
+	@echo "---END MAKEFILE Build---"
+
+dev-build:
+	@# Help: Runs build stage
+	@echo "---MAKEFILE BUILD---"
+	@echo "---DEV BUILD started---"
+	@echo "--Updated step below--"
 	chmod +x build_hookos.sh && bash -x build_hookos.sh
 	@echo "---END MAKEFILE Build---"
-	
+
 lint-ci: license
 
 # Maintenance and lint targets

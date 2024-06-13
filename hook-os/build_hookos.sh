@@ -98,15 +98,15 @@ build_hook() {
 
     git reset HEAD -- hook
 
+    cp -rf hook.yaml hook/hook.yaml
     pushd hook
 
     ver=$(cat $VERSION_FILE)
     # Iterate over the array and print each element
     arrayof_images=($(cat hook.yaml | grep -i ".*image:.*:.*$" | awk -F: '{print $2}'))
     for image in "${arrayof_images[@]}"; do
-        temp=$(grep -i "/" <<< $image)
-        if [ $? -eq 0 ];
-        then
+        temp=$(grep -i "/" <<<$image)
+        if [ $? -eq 0 ]; then
             # Non harbor Image
             continue
         fi
@@ -154,7 +154,13 @@ build_hook() {
     get_client_auth
     get_caddy_conf
 
-    docker buildx build --load -t hook-nix-dev -f hack/Dockerfile .
+    docker buildx build --load \
+        --build-arg HTTP_PROXY=${http_proxy} \
+        --build-arg HTTPS_PROXY=${https_proxy} \
+        --build-arg http_proxy=${http_proxy} \
+        --build-arg https_proxy=${https_proxy} \
+        -t hook-nix-dev -f hack/Dockerfile .
+
     docker run --rm -e HTTP_PROXY=$http_proxy \
         -e HTTPS_PROXY=$https_proxy \
         -e NO_PROXY=$no_proxy \
