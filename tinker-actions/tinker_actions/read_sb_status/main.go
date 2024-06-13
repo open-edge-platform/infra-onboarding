@@ -16,7 +16,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -29,24 +28,11 @@ const (
 	SecureBootEnabled  = "0"               // Success case
 )
 
-// Function to get guid ID
-func GetGUID() (string, error) {
-	const boardSerialFilePath = "/sys/class/dmi/id/product_uuid"
-
-	content, err := ioutil.ReadFile(boardSerialFilePath)
-	if err != nil {
-		log.Fatalf("error in reading guid: %v\n", err)
-		return "", err
-	}
-
-	guid := strings.TrimSpace(string(content))
-	return guid, nil
-}
 
 func main() {
 	securityFeatureFlagSetBySI := os.Getenv("SECURITY_FEATURE_FLAG")
 	// Extract the secure boot status from dmesg command
-	cmd := exec.Command("bash", "-c", `cat /host/sblog.txt | grep -i "secure boot enabled" > /dev/null ;  echo $?`)
+	cmd := exec.Command("/bin/sh", "-c", `cat /host/sblog.txt | grep -i "secure boot enabled" > /dev/null ;  echo $?`)
 	output, err := cmd.Output()
 	if err != nil {
 		log.Fatal(err)

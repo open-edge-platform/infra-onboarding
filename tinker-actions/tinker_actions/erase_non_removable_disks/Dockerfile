@@ -9,18 +9,12 @@
 # This software and the related documents are provided as is, with no express       #
 # or implied warranties, other than those that are expressly stated in the License. #
 #####################################################################################
-FROM debian:12
+FROM alpine:3.19
 
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    parted grub-common efibootmgr udev grub-pc-bin grub-efi-amd64-bin dosfstools wget iproute2 \
-    && rm -rf /var/lib/apt/lists/*
-
-
-#RUN wget https://github.com/tinkerbell/hook/releases/download/v0.8.0/hook_x86_64.tar.gz
+RUN apk --no-cache add lsblk
 
 COPY erase_non_removable_disks.sh /
 
 RUN chmod +x erase_non_removable_disks.sh
 
-CMD ["/bin/bash", "/erase_non_removable_disks.sh"]
+CMD ["sh", "/erase_non_removable_disks.sh"]

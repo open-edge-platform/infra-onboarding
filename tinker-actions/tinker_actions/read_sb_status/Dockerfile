@@ -8,9 +8,10 @@ ENV GO111MODULE=on
 RUN go build -o main .
 
 # Build the final image
-FROM debian:12
+FROM alpine:3.19
+
 COPY --from=readsbstat /go/src/github.com/tinkerbell/hub/actions/read_sb_status/run_sb.sh .
 COPY --from=readsbstat /go/src/github.com/tinkerbell/hub/actions/read_sb_status/main .
- 
+
 # Command to run the executable
-CMD ["/bin/bash", "./run_sb.sh"]
+CMD ["/bin/sh", "./run_sb.sh"]

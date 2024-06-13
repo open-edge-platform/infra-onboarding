@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh -e
 #####################################################################################
 # INTEL CONFIDENTIAL                                                                #
 # Copyright (C) 2024 Intel Corporation                                              #
@@ -17,5 +17,9 @@ set -eu
 # 1. Size should not be 0
 # 2. Type should be disk and not partition or rom
 # 3. Should be Non-removable
-for item in $(lsblk --output NAME,SIZE,TYPE,RM -bldn | awk '{if ($2 != 0 && $3 == "disk" && $4 != 1) print $1}'); do dd if=/dev/zero of=/dev/$item bs=4k count=100; done
+
+lsblk_output=$(lsblk --output NAME,SIZE,TYPE,RM -bldn)
+echo "$lsblk_output" | awk '{if ($2 != 0 && $3 == "disk" && $4 != 1) print $1}' | while read -r disk; do
+    dd if=/dev/zero of="/dev/$disk" bs=4k count=100
+done
 partprobe
