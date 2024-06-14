@@ -704,8 +704,9 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 				t.Errorf("OnboardingInventoryClient.GetHostResourceByUUID() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("OnboardingInventoryClient.GetHostResourceByUUID() = %v, want %v", got, tt.want)
+
+			if eq, diff := inv_testing.ProtoEqualOrDiff(got, tt.want); !eq {
+				t.Errorf("OnboardingInventoryClient.GetHostResourceByUUID() = %v, want %v; diff:%v", got, tt.want, diff)
 			}
 		})
 	}

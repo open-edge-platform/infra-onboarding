@@ -27,6 +27,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/validator"
 )
 
 const (
@@ -150,7 +151,7 @@ func (c *OnboardingInventoryClient) listAllResources(
 	resources := make([]*inv_v1.Resource, 0, len(objs.Resources))
 	for _, v := range objs.Resources {
 		if v.GetResource() != nil {
-			if err = v.GetResource().ValidateAll(); err != nil {
+			if err = validator.ValidateMessage(v.GetResource()); err != nil {
 				zlog.MiSec().MiErr(err).Msgf("Invalid input, validation has failed: %v", v)
 				return nil, inv_errors.Wrap(err)
 			}
@@ -270,7 +271,7 @@ func (c *OnboardingInventoryClient) GetHostResourceByResourceID(ctx context.Cont
 
 	host := resp.GetResource().GetHost()
 
-	if validateErr := host.ValidateAll(); validateErr != nil {
+	if validateErr := validator.ValidateMessage(host); validateErr != nil {
 		return nil, inv_errors.Wrap(validateErr)
 	}
 
@@ -452,7 +453,7 @@ func (c *OnboardingInventoryClient) GetInstanceResourceByResourceID(ctx context.
 
 	inst := resp.GetResource().GetInstance()
 
-	if validateErr := inst.ValidateAll(); validateErr != nil {
+	if validateErr := validator.ValidateMessage(inst); validateErr != nil {
 		return nil, inv_errors.Wrap(validateErr)
 	}
 
@@ -575,7 +576,7 @@ func (c *OnboardingInventoryClient) GetOSResourceByResourceID(ctx context.Contex
 
 	inst := resp.GetResource().GetOs()
 
-	if validateErr := inst.ValidateAll(); validateErr != nil {
+	if validateErr := validator.ValidateMessage(inst); validateErr != nil {
 		return nil, inv_errors.Wrap(validateErr)
 	}
 

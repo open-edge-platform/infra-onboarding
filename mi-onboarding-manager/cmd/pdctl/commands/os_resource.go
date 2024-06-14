@@ -6,6 +6,7 @@ package commands
 
 import (
 	"context"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/validator"
 
 	"github.com/spf13/cobra"
 
@@ -110,7 +111,7 @@ func createOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 			Sha256:        sha256,
 			ProfileName:   profileName,
 		}
-		if validationErr := osResource.ValidateAll(); validationErr != nil {
+		if validationErr := validator.ValidateMessage(osResource); validationErr != nil {
 			return validationErr
 		}
 

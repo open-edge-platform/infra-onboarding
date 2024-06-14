@@ -18,6 +18,7 @@ import (
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/validator"
 )
 
 var (
@@ -133,7 +134,7 @@ func (obc *OnboardingController) controlLoop(ctx context.Context) {
 
 func (obc *OnboardingController) filterEvent(event *inv_v1.SubscribeEventsResponse) bool {
 	zlog.Debug().Msgf("New inventory event received. ResourceID=%v, Kind=%s", event.ResourceId, event.EventKind)
-	if err := event.ValidateAll(); err != nil {
+	if err := validator.ValidateMessage(event); err != nil {
 		zlog.MiSec().MiErr(err).Msgf("Invalid event received: %s", event.ResourceId)
 		return false
 	}

@@ -6,6 +6,7 @@ package commands
 
 import (
 	"context"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/validator"
 	"strings"
 	"time"
 
@@ -216,7 +217,7 @@ func createInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 		}
 
 		// Validate the instance resource
-		if validationErr := instance.ValidateAll(); validationErr != nil {
+		if validationErr := validator.ValidateMessage(instance); validationErr != nil {
 			return validationErr
 		}
 
@@ -459,7 +460,7 @@ func createResource(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 		}
 
 		// Validate the host resource
-		if validationErr := hostResource.ValidateAll(); validationErr != nil {
+		if validationErr := validator.ValidateMessage(hostResource); validationErr != nil {
 			return validationErr
 		}
 
