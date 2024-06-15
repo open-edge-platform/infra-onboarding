@@ -82,7 +82,7 @@ func TestGetArtifacts(t *testing.T) {
 	assert.NotNil(t, response)
 	assert.Equal(t, true, isImageFile(response.OsUrl))
 	defer func() {
-		os.Remove(config.PVC+"/installer.sh")
+		os.Remove(config.PVC + "/installer.sh")
 	}()
 
 }
@@ -125,7 +125,7 @@ func TestGetCuratedScript(t *testing.T) {
 		t.Errorf("Version not found")
 	}
 	defer func() {
-		os.Remove(dir+"/installer.sh")
+		os.Remove(dir + "/installer.sh")
 	}()
 }
 

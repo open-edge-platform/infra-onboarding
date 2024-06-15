@@ -26,7 +26,7 @@ var tag = config.Tag
 
 func DownloadArtifacts() error {
 	MODE := GetMODE()
-	targetDir := config.PVC
+	targetDir := config.DownloadPath
 	manifestTag := os.Getenv("MANIFEST_TAG")
 	//MODE := "dev"
 	zlog.MiSec().Info().Msgf("Mode of deployment: %s", MODE)
@@ -73,8 +73,36 @@ func (server *Service) GetArtifacts(ctx context.Context, req *pb.GetArtifactsReq
 	osUrl := proxyIP + "/" + config.ImageFileName
 	zlog.MiSec().Info().Msgf("osUrl %s", osUrl)
 
+	//cleanup tmp dir
+
+	folders := []string{config.DownloadPath + "/hook", config.DownloadPath + "/tmp"}
+
+	for _, folder := range folders {
+		if err := RemoveDir(folder); err != nil {
+			zlog.MiSec().Fatal().Err(err).Msgf("Failed to delete folder: %v", err)
+		}
+	}
+
 	zlog.MiSec().Info().Msg("Return Manifest file.")
 	return &pb.GetArtifactsResponse{StatusCode: true, OsUrl: osUrl, OverlayscriptUrl: url, TinkActionVersion: tinkeraction_version}, nil
+}
+
+func RemoveDir(path string) error {
+	if _, err := os.Stat(path); err == nil {
+		// Directory exists, remove it
+		err := os.RemoveAll(path)
+		if err != nil {
+			zlog.MiSec().Info().Msg("Error removing directory")
+		}
+		zlog.MiSec().Info().Msg("Directory removed successfully")
+	} else if os.IsNotExist(err) {
+		// Directory does not exist, nothing to do
+		zlog.MiSec().Info().Msg("Directory does not exist")
+	} else {
+		// Some other error occurred
+		zlog.MiSec().Info().Msg("Error checking directory")
+	}
+	return nil
 }
 
 func GetCuratedScript(profile string, platform string) (string, string) {
@@ -89,7 +117,7 @@ func GetServerUrl() string {
 func SignMicroOS() (bool, error) {
 	//MODE := GetMODE()
 	scriptPath := GetScriptDir()
-	targetDir := config.PVC
+	targetDir := config.DownloadPath
 	signed, err := signing.SignHookOS(scriptPath, targetDir)
 	if err != nil {
 		zlog.MiSec().Info().Msgf("Failed to sign MicroOS %v", err)
@@ -104,7 +132,7 @@ func SignMicroOS() (bool, error) {
 
 func BuildSignIpxe() (bool, error) {
 	scriptPath := GetScriptDir()
-	targetDir := config.PVC
+	targetDir := config.DownloadPath
 	dnsName := GetServerUrl()
 	signed, err := signing.BuildSignIpxe(targetDir, scriptPath, dnsName)
 	if err != nil {
@@ -148,10 +176,10 @@ func GetScriptDir() string {
 func DownloadOS() error {
 	zlog.Info().Msgf("Inside DownloadOS...")
 	imageURL := config.ImageUrl
-	targetDir := config.PVC
+	targetDir := config.DownloadPath
 	fileName := fileNameFromURL(imageURL)
 	rawFileName := strings.TrimSuffix(fileName, ".img") + ".raw.gz"
-	file := targetDir + "/" + rawFileName
+	file := config.PVC + "/" + rawFileName
 	// Check if the compressed raw image file already exists
 	if _, err := os.Stat(file); os.IsNotExist(err) {
 		// Download the image

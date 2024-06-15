@@ -158,10 +158,15 @@ sign_ipxe_efi() {
 	sbsign --key "$SB_KEYS_DIR"/db.key --cert "$SB_KEYS_DIR"/db.crt --output ./out/signed_ipxe.efi "$IPXE_DIR"/src/bin-x86_64-efi/ipxe.efi
 	cp "$SB_KEYS_DIR"/db.der "$working_dir"/out
 	
-	mkdir -p "$working_dir"/keys
-	cp "$SB_KEYS_DIR"/db.der "$working_dir"/keys
-	cp "$SERVER_CERT_DIR"/Full_server.crt "$working_dir"/keys
-	cp "$working_dir"/out/signed_ipxe.efi "$working_dir"
+	if [ -d "/data" ]; then
+		echo "Path /data exists."
+		mkdir -p /data/keys
+		cp "$SB_KEYS_DIR"/db.der /data/keys
+		cp "$SERVER_CERT_DIR"/Full_server.crt /data/keys
+		cp "$working_dir"/out/signed_ipxe.efi /data
+    else
+        echo "Path /data does not exist."
+    fi
       
 	echo "======== Save db.der file to enroll inside UEFI BIOS Secure Boot Settings ========="
 	echo "==========================================================================================="

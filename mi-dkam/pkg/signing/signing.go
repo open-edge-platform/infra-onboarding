@@ -145,7 +145,7 @@ func SignHookOS(scriptPath string, targetDir string) (bool, error) {
 	}
 	zlog.Info().Msgf("Script output: %s", string(mdresult))
 
-	buildCmd := exec.Command("bash", "./build_image_at_DKAM.sh", mode, config.PVC)
+	buildCmd := exec.Command("bash", "./build_image_at_DKAM.sh", mode, config.DownloadPath)
 	output, buildErr := buildCmd.CombinedOutput()
 	if buildErr != nil {
 		zlog.MiSec().Fatal().Err(buildErr).Msgf("Failed to sign microOS script %v", buildErr)
@@ -157,10 +157,6 @@ func SignHookOS(scriptPath string, targetDir string) (bool, error) {
 	if errch != nil {
 		zlog.MiSec().Fatal().Err(errch).Msgf("Error changing working directory: %v\n", errch)
 		return false, errch
-	}
-
-	if err := os.RemoveAll(buildScriptPath); err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error removing temporary hook folder: %v", err)
 	}
 
 	return true, nil
