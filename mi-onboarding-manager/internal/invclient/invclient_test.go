@@ -99,11 +99,21 @@ func (m *MockInventoryClient) ListInheritedTelemetryProfiles(ctx context.Context
 	return args.Get(0).(*inv_v1.ListInheritedTelemetryProfilesResponse), args.Error(1)
 }
 
+func (m *MockInventoryClient) GetHostByUUID(ctx context.Context, uuid string) (*computev1.HostResource, error) {
+	args := m.Called(ctx, uuid)
+	return args.Get(0).(*computev1.HostResource), args.Error(1)
+}
+
 func (m *MockInventoryClient) TestingOnlySetClient(invClient inv_v1.InventoryServiceClient) {
 	m.Called(invClient)
 }
 
 func (m *MockInventoryClient) TestGetClientCache() *cache.InventoryCache {
+	m.Called()
+	return nil
+}
+
+func (m *MockInventoryClient) TestGetClientCacheUUID() *cache.InventoryCache {
 	m.Called()
 	return nil
 }
