@@ -40,6 +40,7 @@ ACTION_ARRAY := \
 	client_auth \
 	caddy_proxy \
 	fluentbit \
+	token_client \
 	image2disk \
 	cexec \
 	writefile \

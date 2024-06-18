@@ -34,20 +34,14 @@ fi
 #add  host to the system
 echo "$PROXYADDR localhost.internal1 localhost.internal2" | tee -a /etc/hosts
 
-# Check if NGINX proxy service is up
-until [ $(curl -w "%{http_code}" --output /dev/null -s -k https://localhost.internal1:8081/health) = 200 ]; do
-  ((retry_count++))
-  if [ $retry_count -lt $MAX_RETRIES_CADDY ]; then
-    echo "Internal Proxy server still not up, wait for 10 sec"
-    sleep 10
-  else
-    echo "Maximum retries reached. Proxy Not up. Exiting..."
-    exit 1
-  fi
+#update hosts if they were provided
+extra_hosts_needed=$(echo $EXTRA_HOSTS | sed "s|,|\n|g")
+echo -e "$extra_hosts_needed" >> /etc/hosts
+echo "adding extras completed"
 
-done
-
-echo "Internal Proxy server is up, resuming FDO operations.."
+# Set no_proxy
+echo "Setting no_proxy"
+export no_proxy=$no_proxy,kind.internal,intel.com,localhost
 
 # mount the /CRED partition as /target folder
 ## sudo mount  -L ${DATA_PARTITION_LBL} /target

@@ -24,6 +24,7 @@ creds_copy=./tinker_actions/creds_copy
 client_auth=./tinker_actions/client_auth
 caddy_proxy=./tinker_actions/caddy
 fluentbit=./tinker_actions/fluentbit
+token_client=./tinker_actions/token_client
 image2disk=./tinker_actions/image2disk/v1
 cexec=./tinker_actions/cexec/v1
 writefile=./tinker_actions/writefile/v1
@@ -117,6 +118,15 @@ fluentbit_setup() {
     popd
 }
 
+tokenclient_setup() {
+
+    pushd $token_client
+
+    bash -e build.sh
+
+    popd
+}
+
 image2disk_setup() {
 
     pushd $image2disk
@@ -178,6 +188,7 @@ main() {
     client_auth_setup
     caddyproxy_setup
     fluentbit_setup
+    tokenclient_setup
     image2disk_setup
     cexec_setup
     writefile_setup
