@@ -7,8 +7,25 @@ package utils
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
+	"sync"
+	"time"
+
+	logging "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
+)
+
+const (
+	loggerName           = "utils"
+	FileModeReadWriteAll = 0o777
+)
+
+var zlog = logging.GetLogger(loggerName)
+var (
+	once            sync.Once
+	file            *os.File
+	errLogTimeStamp error
 )
 
 func CalculateRootFS(imageType, diskDev string) string {
@@ -41,4 +58,33 @@ func ReplaceHostIP(url, ip string) string {
 func IsValidOSURLFormat(osURL string) bool {
 	expectedSuffix := ".raw.gz" // Checks if the OS URL is in the expected format
 	return strings.HasSuffix(osURL, expectedSuffix)
+}
+
+// Init initializes the timestamp logger and opens the file for writing timestamps.
+func Init(filename string) {
+	once.Do(func() {
+		file, errLogTimeStamp = os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, FileModeReadWriteAll)
+		if errLogTimeStamp != nil {
+			zlog.MiSec().MiErr(errLogTimeStamp).Msgf("failed to open timestamp log file")
+		}
+	})
+}
+
+// TimeStamp writes a timestamped message to the log file.
+func TimeStamp(message string) {
+	timestamp := time.Now().Format(time.RFC3339)
+	_, err := fmt.Fprintf(file, "%s: %s\n", timestamp, message)
+	if err != nil {
+		zlog.MiSec().MiErr(err).Msgf("failed to write to timestamp log file")
+	}
+}
+
+// Close closes the log file.
+func Close() {
+	if file != nil {
+		err := file.Close()
+		if err != nil {
+			zlog.MiSec().MiErr(err).Msgf("failed to close timestamp log file")
+		}
+	}
 }
