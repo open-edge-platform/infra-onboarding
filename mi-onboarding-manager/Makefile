@@ -102,8 +102,9 @@ docker-build:  ## build Docker image
 	    --build-arg REVISION="$(DOCKER_LABEL_REVISION)" --build-arg BUILD_DATE="$(DOCKER_LABEL_BUILD_DATE)" \
 	    --build-arg OPA_VERSION=${OPAVERSION_REQ}
 
-docker-push:
-	docker push maestro-i/${IMG_NAME}:${IMG_VERSION}
+docker-push: docker-build ## tag and push Docker image
+	docker tag maestro-i/${IMG_NAME}:${IMG_VERSION} ${DOCKER_TAG}:${IMG_VERSION}
+	docker push ${DOCKER_TAG}:${IMG_VERSION}
 
 generate-ci: buf-gen
 
