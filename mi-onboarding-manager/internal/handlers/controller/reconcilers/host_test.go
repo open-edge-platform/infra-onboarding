@@ -8,19 +8,18 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
 
-	rec_v2 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go/pkg/controller/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
+	rec_v2 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go/pkg/controller/v2"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/auth"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
@@ -29,10 +28,12 @@ import (
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
+	providerv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/provider/v1"
 	statusv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/status/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
 )
 
 func TestMain(m *testing.M) {
@@ -279,6 +280,62 @@ func TestReconcileHostDeletion(t *testing.T) {
 
 	_, err = inv_testing.TestClients[inv_testing.APIClient].Get(ctx, nicIP.GetResourceId())
 	require.True(t, inv_errors.IsNotFound(err))
+}
+
+// This TC verifies the case, when an event with Host with pre-defined custom Provider (e.g., Lenovo) is obtained.
+// In this case, no reconciliation should be performed for such Host (the reconciliation should happen in the Provider-specific RM,
+// e.g., LOC-A RM).
+func TestReconcileHostWithProvider(t *testing.T) {
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+
+	hostReconciler := NewHostReconciler(om_testing.InvClient, true)
+	require.NotNil(t, hostReconciler)
+
+	hostController := rec_v2.NewController[ResourceID](hostReconciler.Reconcile, rec_v2.WithParallelism(1))
+	// do not Stop() to avoid races, should be safe in tests
+
+	// creating Provider
+	providerResource := inv_testing.CreateProviderWithArgs(t, "lenovo", "8.8.8.8", nil,
+		providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL, providerv1.ProviderVendor_PROVIDER_VENDOR_LENOVO_LOCA)
+	host := inv_testing.CreateHost(t, nil, nil, providerResource, nil)
+
+	hostID := host.GetResourceId()
+
+	// performing reconciliation
+	err := hostController.Reconcile(ResourceID(hostID))
+	assert.NoError(t, err, "Reconciliation failed")
+
+	om_testing.AssertHost(t, hostID,
+		computev1.HostState_HOST_STATE_ONBOARDED,
+		computev1.HostState_HOST_STATE_UNSPECIFIED,
+		computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
+		"",
+		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+
+	// Trying to delete the Host. It contains Provider, so nothing should happen during the reconciliation.
+	// Setting the Desired state of the Host to be DELETED.
+	inv_testing.DeleteResource(t, hostID)
+
+	om_testing.AssertHost(t, hostID,
+		computev1.HostState_HOST_STATE_DELETED,
+		computev1.HostState_HOST_STATE_UNSPECIFIED,
+		computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
+		"",
+		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+
+	// performing reconciliation
+	err = hostController.Reconcile(ResourceID(hostID))
+	assert.NoError(t, err, "Reconciliation failed")
+
+	om_testing.AssertHost(t, hostID,
+		computev1.HostState_HOST_STATE_DELETED,
+		computev1.HostState_HOST_STATE_UNSPECIFIED,
+		computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
+		"",
+		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 }
 
 func TestNewHostReconciler(t *testing.T) {

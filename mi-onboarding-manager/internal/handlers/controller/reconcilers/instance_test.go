@@ -86,6 +86,58 @@ func createProviderWithArgs(tb testing.TB, doCleanup bool,
 	return provider
 }
 
+// This TC verifies the case, when an event with Instance with pre-defined custom Provider (e.g., Lenovo) is obtained.
+// In this case, no reconciliation should be performed for such Instance (the reconciliation should happen in the Provider-specific RM,
+// e.g., LOC-A RM).
+func TestReconcileInstanceWithProvider(t *testing.T) {
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+
+	instanceReconciler := NewInstanceReconciler(om_testing.InvClient, true)
+	require.NotNil(t, instanceReconciler)
+
+	instanceController := rec_v2.NewController[ResourceID](instanceReconciler.Reconcile, rec_v2.WithParallelism(1))
+	// do not Stop() to avoid races, should be safe in tests
+
+	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	osRes := createOsWithArgs(t, true)
+	providerResource := inv_testing.CreateProviderWithArgs(t, "lenovo", "8.8.8.8", nil,
+		providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL, providerv1.ProviderVendor_PROVIDER_VENDOR_LENOVO_LOCA)
+	instance := inv_testing.CreateInstanceWithProvider(t, host, osRes, providerResource)
+	instanceID := instance.GetResourceId()
+
+	// performing reconciliation
+	err := instanceController.Reconcile(ResourceID(instanceID))
+	assert.NoError(t, err, "Reconciliation failed")
+
+	// making sure no changes to the Instance has happened
+	om_testing.AssertInstance(t, instanceID,
+		computev1.InstanceState_INSTANCE_STATE_RUNNING,
+		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
+		computev1.InstanceStatus_INSTANCE_STATUS_UNSPECIFIED)
+
+	// Trying to delete the Instance. It contains Provider, so nothing should happen during the reconciliation.
+	// Setting the Desired state of the Instance to be DELETED.
+	inv_testing.DeleteResource(t, instanceID)
+	// No change at the Instance Current State and Status should have happened
+	om_testing.AssertInstance(t, instanceID,
+		computev1.InstanceState_INSTANCE_STATE_DELETED, // Desired state has just been updated
+		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
+		computev1.InstanceStatus_INSTANCE_STATUS_UNSPECIFIED)
+
+	// performing Instance reconciliation
+	err = instanceController.Reconcile(ResourceID(instanceID))
+	assert.NoError(t, err, "Reconciliation failed")
+
+	// No change at the Instance Current State and Status should have happened
+	om_testing.AssertInstance(t, instanceID,
+		computev1.InstanceState_INSTANCE_STATE_DELETED, // Desired state has just been updated
+		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
+		computev1.InstanceStatus_INSTANCE_STATUS_UNSPECIFIED)
+}
+
 func TestReconcileInstance(t *testing.T) {
 	currK8sClientFactory := tinkerbell.K8sClientFactory
 	currFlagEnableDeviceInitialization := *common.FlagDisableCredentialsManagement
@@ -111,8 +163,8 @@ func TestReconcileInstance(t *testing.T) {
 
 	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
 	osRes := createOsWithArgs(t, true)
-	providerResource := createProviderWithArgs(t, true, osRes.ResourceId)
-	instance := inv_testing.CreateInstanceWithProviderNoCleanup(t, host, osRes, providerResource)
+	_ = createProviderWithArgs(t, true, osRes.ResourceId)           // Creating Provider profile which would be fetched by the reconciler.
+	instance := inv_testing.CreateInstanceNoCleanup(t, host, osRes) // Instance should not be assigned to the Provider.
 	instanceID := instance.GetResourceId()
 
 	runReconcilationFunc := func() {

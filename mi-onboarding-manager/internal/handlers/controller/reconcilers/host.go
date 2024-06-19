@@ -50,6 +50,13 @@ func (hr *HostReconciler) Reconcile(ctx context.Context,
 		return directive
 	}
 
+	// Forbid Host provisioning with defined Provider. Such Host should be reconciled within Provider-specific RM.
+	if host.GetProvider() != nil {
+		zlogHost.Info().Msgf("Host %s should be reconciled within other vendor-specific RM (%s)",
+			host.GetResourceId(), host.GetProvider().GetName())
+		return request.Ack()
+	}
+
 	if host.DesiredState == host.CurrentState {
 		zlogHost.Debug().Msgf("Host %s reconciliation skipped", resourceID)
 		return request.Ack()

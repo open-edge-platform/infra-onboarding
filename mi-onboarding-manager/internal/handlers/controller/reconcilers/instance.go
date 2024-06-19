@@ -79,6 +79,13 @@ func (ir *InstanceReconciler) Reconcile(ctx context.Context,
 		return request.Ack()
 	}
 
+	// Forbid Instance provisioning with defined Provider. Such Instance should be reconciled within Provider-specific RM.
+	if instance.GetProvider() != nil {
+		zlogInst.Info().Msgf("Instance %s should be reconciled within other vendor-specific RM (%s)",
+			instance.GetResourceId(), instance.GetProvider().GetName())
+		return request.Ack()
+	}
+
 	if instance.DesiredState == instance.CurrentState {
 		zlogInst.Debug().Msgf("Instance (%s) reconciliation skipped", resourceID)
 		return request.Ack()
