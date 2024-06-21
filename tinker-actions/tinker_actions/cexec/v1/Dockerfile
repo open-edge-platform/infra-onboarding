@@ -11,7 +11,7 @@
 #####################################################################################
 
 # Build cexec
-FROM golang:1.22-alpine as cexec
+FROM golang:1.15-alpine as cexec
 RUN apk add --no-cache git ca-certificates gcc linux-headers musl-dev
 COPY . /go/src/github.com/thebsdbox/cexec/
 WORKDIR /go/src/github.com/thebsdbox/cexec
@@ -21,6 +21,7 @@ RUN --mount=type=cache,sharing=locked,id=gomod,target=/go/pkg/mod/cache \
     CGO_ENABLED=1 GOOS=linux go build -a -ldflags "-linkmode external -extldflags '-static' -s -w" -o cexec
 
 # Build final image
-FROM scratch
+FROM alpine:3.14
+RUN apk add --no-cache lsblk
 COPY --from=cexec /go/src/github.com/thebsdbox/cexec/cexec .
 ENTRYPOINT ["/cexec"]

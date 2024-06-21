@@ -12,7 +12,7 @@
 
 
 # Build stream
-FROM golang:1.22-alpine as writefile
+FROM golang:1.15-alpine as writefile
 RUN apk add --no-cache git ca-certificates gcc musl-dev 
 COPY . /go/src/github.com/tinkerbell/hub/actions/writefile/v1
 WORKDIR /go/src/github.com/tinkerbell/hub/actions/writefile/v1
@@ -22,7 +22,8 @@ RUN --mount=type=cache,sharing=locked,id=gomod,target=/go/pkg/mod/cache \
     CGO_ENABLED=1 GOOS=linux go build -a -ldflags "-linkmode external -extldflags '-static' -s -w" -o writefile
 
 # Build final image
-FROM scratch
+FROM alpine:3.14
+RUN apk add --no-cache lsblk
 # Add Certificates into the image, for anything that does HTTPS calls
 COPY --from=writefile /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=writefile /go/src/github.com/tinkerbell/hub/actions/writefile/v1/writefile .
