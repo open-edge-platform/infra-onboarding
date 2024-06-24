@@ -27,7 +27,7 @@ func TestSouthbound_CreateNodes(t *testing.T) {
 		ctx := createOutgoingContextWithENJWT(t)
 
 		h1 := inv_testing.CreateHost(t, nil, nil, nil, nil)
-		inCreate := &pb.NodeRequest{
+		inCreate := &pb.CreateNodesRequest{
 			Payload: []*pb.NodeData{
 				{
 					Hwdata: []*pb.HwData{
@@ -51,7 +51,7 @@ func TestSouthbound_CreateNodes(t *testing.T) {
 	t.Run("Error_CannotGetHostByUUID", func(t *testing.T) {
 		ctx, cancel := inv_testing.CreateContextWithJWT(t)
 		defer cancel()
-		inCreate := &pb.NodeRequest{
+		inCreate := &pb.CreateNodesRequest{
 			Payload: []*pb.NodeData{
 				{
 					Hwdata: []*pb.HwData{
@@ -75,7 +75,7 @@ func TestSouthbound_CreateNodes(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		ctx := createOutgoingContextWithENJWT(t)
 		bmcIP := "10.10.1.1"
-		inCreate := &pb.NodeRequest{
+		inCreate := &pb.CreateNodesRequest{
 			Payload: []*pb.NodeData{
 				{
 					Hwdata: []*pb.HwData{
@@ -108,7 +108,7 @@ func TestSouthbound_DeleteNodes(t *testing.T) {
 	t.Run("Error_CannotGetHostByUUID", func(t *testing.T) {
 		ctx, cancel := inv_testing.CreateContextWithJWT(t)
 		defer cancel()
-		nodeReq := &pb.NodeRequest{
+		nodeReq := &pb.DeleteNodesRequest{
 			Payload: []*pb.NodeData{
 				{
 					Hwdata: []*pb.HwData{
@@ -131,7 +131,7 @@ func TestSouthbound_DeleteNodes(t *testing.T) {
 
 	t.Run("NotFound", func(t *testing.T) {
 		ctx := createOutgoingContextWithENJWT(t)
-		nodeReq := &pb.NodeRequest{
+		nodeReq := &pb.DeleteNodesRequest{
 			Payload: []*pb.NodeData{
 				{
 					Hwdata: []*pb.HwData{
@@ -156,27 +156,31 @@ func TestSouthbound_DeleteNodes(t *testing.T) {
 		ctx := createOutgoingContextWithENJWT(t)
 
 		hostUUID := uuid.NewString()
-		nodeReq := &pb.NodeRequest{
-			Payload: []*pb.NodeData{
-				{
-					Hwdata: []*pb.HwData{
-						{
-							MacId:          "90:49:fa:07:6c:fd",
-							SutIp:          "10.10.1.1",
-							Serialnum:      hostSN,
-							Uuid:           hostUUID,
-							BmcIp:          "10.10.10.10",
-							BmcInterface:   true,
-							HostNicDevName: "bmc0",
-						},
+		pl := []*pb.NodeData{
+			{
+				Hwdata: []*pb.HwData{
+					{
+						MacId:          "90:49:fa:07:6c:fd",
+						SutIp:          "10.10.1.1",
+						Serialnum:      hostSN,
+						Uuid:           hostUUID,
+						BmcIp:          "10.10.10.10",
+						BmcInterface:   true,
+						HostNicDevName: "bmc0",
 					},
 				},
 			},
 		}
+		nodeReq := &pb.CreateNodesRequest{
+			Payload: pl,
+		}
+		nodeReq2 := &pb.DeleteNodesRequest{
+			Payload: pl,
+		}
 		_, err := OMTestClient.CreateNodes(ctx, nodeReq)
 		require.NoError(t, err)
 
-		_, err = OMTestClient.DeleteNodes(ctx, nodeReq)
+		_, err = OMTestClient.DeleteNodes(ctx, nodeReq2)
 		require.NoError(t, err)
 
 		// get Host by UUID
@@ -191,7 +195,7 @@ func TestSouthbound_UpdateNodes(t *testing.T) {
 	t.Run("NotFound", func(t *testing.T) {
 		ctx := createOutgoingContextWithENJWT(t)
 
-		inUpdate := &pb.NodeRequest{
+		inUpdate := &pb.UpdateNodesRequest{
 			Payload: []*pb.NodeData{
 				{
 					Hwdata: []*pb.HwData{
@@ -216,7 +220,7 @@ func TestSouthbound_UpdateNodes(t *testing.T) {
 	t.Run("Error_CannotGetHostByUUID", func(t *testing.T) {
 		ctx, cancel := inv_testing.CreateContextWithJWT(t)
 		defer cancel()
-		inUpdate := &pb.NodeRequest{
+		inUpdate := &pb.UpdateNodesRequest{
 			Payload: []*pb.NodeData{
 				{
 					Hwdata: []*pb.HwData{
@@ -239,36 +243,39 @@ func TestSouthbound_UpdateNodes(t *testing.T) {
 
 	t.Run("Success_Update", func(t *testing.T) {
 		ctx := createOutgoingContextWithENJWT(t)
-
-		nodeReq := &pb.NodeRequest{
-			Payload: []*pb.NodeData{
-				{
-					Hwdata: []*pb.HwData{
-						{
-							MacId:          "90:49:fa:07:6c:fd",
-							SutIp:          "10.10.1.1",
-							Serialnum:      hostSN,
-							Uuid:           uuid.NewString(),
-							BmcIp:          "10.10.10.10",
-							BmcInterface:   true,
-							HostNicDevName: "bmc0",
-						},
+		pl := []*pb.NodeData{
+			{
+				Hwdata: []*pb.HwData{
+					{
+						MacId:          "90:49:fa:07:6c:fd",
+						SutIp:          "10.10.1.1",
+						Serialnum:      hostSN,
+						Uuid:           uuid.NewString(),
+						BmcIp:          "10.10.10.10",
+						BmcInterface:   true,
+						HostNicDevName: "bmc0",
 					},
 				},
 			},
 		}
+		nodeReq := &pb.CreateNodesRequest{
+			Payload: pl,
+		}
 		_, err := OMTestClient.CreateNodes(ctx, nodeReq)
 		require.NoError(t, err)
 
+		nodeReq2 := &pb.UpdateNodesRequest{
+			Payload: pl,
+		}
 		// do update with new BMC IP and MAC address
-		nodeReq.Payload[0].Hwdata[0].BmcIp = "10.10.10.150"
-		nodeReq.Payload[0].Hwdata[0].MacId = "aa:bb:cc:dd:ee:ff"
+		nodeReq2.Payload[0].Hwdata[0].BmcIp = "10.10.10.150"
+		nodeReq2.Payload[0].Hwdata[0].MacId = "aa:bb:cc:dd:ee:ff"
 
-		_, err = OMTestClient.UpdateNodes(ctx, nodeReq)
-		require.NoError(t, err)
+		_, err1 := OMTestClient.UpdateNodes(ctx, nodeReq2)
+		require.NoError(t, err1)
 
 		// do update again, there should be no request to Inventory now (check logs)
-		_, err = OMTestClient.UpdateNodes(ctx, nodeReq)
-		require.NoError(t, err)
+		_, err2 := OMTestClient.UpdateNodes(ctx, nodeReq2)
+		require.NoError(t, err2)
 	})
 }
