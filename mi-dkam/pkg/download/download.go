@@ -40,6 +40,7 @@ type Response struct {
 
 var client = &http.Client{
 	Transport: &http.Transport{
+		Proxy:             http.ProxyFromEnvironment,
 		ForceAttemptHTTP2: false,
 		MaxIdleConns:      10,
 		IdleConnTimeout:   30,
