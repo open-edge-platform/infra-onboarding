@@ -45,7 +45,8 @@ ACTION_ARRAY := \
 	cexec \
 	writefile \
 	erase_non_removable_disks \
-	hook_dind
+	hook_dind \
+	device-discovery
 
 # Create the virtualenv with python tools installed
 VENV_NAME = venv_midkammgr

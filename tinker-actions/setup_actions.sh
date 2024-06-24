@@ -30,6 +30,7 @@ cexec=./tinker_actions/cexec/v1
 writefile=./tinker_actions/writefile/v1
 erase_non_removable_disks=./tinker_actions/erase_non_removable_disks
 hook_dind=./tinker_actions/hook_dind
+device_discovery=./tinker_actions/device_discovery
 
 read_sb_status_setup() {
     pushd $read_sb_status
@@ -172,6 +173,15 @@ hook_dind_setup() {
     popd
 }
 
+device_discovery_setup() {
+
+    pushd $device_discovery
+
+    bash -e build.sh
+
+    popd
+}
+
 main() {
 
     apt install -y build-essential
@@ -194,6 +204,7 @@ main() {
     writefile_setup
     erase_non_removable_disks_setup
     hook_dind_setup
+    device_discovery_setup
 }
 
 main
