@@ -29,22 +29,17 @@ pipeline {
     }
     environment {
         GIT_SHORT_URL=env.GIT_URL.split('/')[4].toString().replaceAll('.git','')
-        SUB_PROJECT_NAME='maestro-i'          //update the sub project name based on your repo, eg:maestro-a/i, springboard
-	//authorEmail = sh (script: 'git --no-pager show -s --format=\'%ae\'',returnStdout: true).trim()
+        PROJECT_NAME = "${GIT_SHORT_URL}"
+        SDLE_UPLOAD_PROJECT_ID = '20246'
+        authorEmail = sh (script: 'git --no-pager show -s --format=\'%ae\'',returnStdout: true).trim()
     }
     stages {
-	stage('Scan Source') {
+    stage('Scan Source') {
             parallel {
                 stage('Scan Virus, Checkmarx, Protex, Trivy'){
                     environment {
-                        PROJECT_NAME                 = "${GIT_SHORT_URL}"
                         SCANNERS                     = getEnvFromBranch(env.BRANCH_NAME)
-
-                        SDLE_UPLOAD_PROJECT_ID       = '20246'
-
                         PROTEX_PROJECT_NAME          = "${GIT_SHORT_URL}"
-
-                        VIRUS_SCAN_DIR               = "."
                     }
                     when {
                         anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
@@ -59,51 +54,28 @@ pipeline {
                 }
                 stage('Trivy config scan') {
                     when {
-                        anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
+                        changeRequest()
                     }
                     steps {
                         script {
-                            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                                sh '''
-                                trivy conf --exit-code 1 --severity CRITICAL . 2>&1 > trivy_conf.log
-                                '''
-                            }
-                            sh '''
-                            [ -d "artifacts" ] && mkdir artifacts/Trivy_conf || mkdir -p artifacts/Trivy_conf
-                            mv trivy_conf.log artifacts/Trivy_conf
-                            '''
-                            archiveArtifacts artifacts: 'artifacts/Trivy_conf/*.log',
-                            fingerprint: true,
-                            onlyIfSuccessful: false
-                            publishArtifacts([artifactsRepo: 'one-intel-edge-or-local/${SUB_PROJECT_NAME}',
-                                        credentialId: 'sys_oie_devops_ubit-artifactory-or.intel.com',
-                                        bypassProxy: true])
+                            trivyConfigScan()
                         }
                     }
                 }
             }
         }
 
-		stage('Setup') {
+        stage('Setup') {
             steps {
                 withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
                 {
-                    sh '''
-                    echo "Setup Build environment"
-                    apt update && apt install python3-venv -y
-                    echo "machine github.com" >> $HOME/.netrc
-                    echo "    login not-used" >> $HOME/.netrc
-                    echo "    password $PASSWORD" >> $HOME/.netrc
-                    echo "machine api.github.com" >> $HOME/.netrc
-                    echo "    login not-used" >> $HOME/.netrc
-                    echo "    password $PASSWORD" >> $HOME/.netrc
-                    '''
+                    netrcPatch()
                 }
             }
         }
         // This stage is required for service/agent repos only
         // Please remove it for chart repos
-	
+    
         stage('Version Check') {
             steps {
                 echo "Check if its a valid code version"
@@ -132,15 +104,21 @@ pipeline {
           }
         }
 
-		stage('Lint Code') {
+        stage('Lint Code') {
+            when {
+                changeRequest()
+            }
             steps {
                 sh '''
                 make lint
                 '''
             }
         }
-	    
+        
       stage('Test Code') {
+            when {
+                changeRequest()
+            }
             steps {
                 echo "Test the code"
                 sh '''
@@ -148,24 +126,12 @@ pipeline {
                 make test
                 '''
             }
-            post{
-                success{
-                    cobertura coberturaReportFile: 'build/coverage.xml',
-                        conditionalCoverageTargets: "${env.cobertura_healthy}, ${env.cobertura_unhealthy}, ${env.cobertura_unstable}", 
-                        failNoReports: true,
-                        failUnhealthy: true,
-                        failUnstable: true,
-                        lineCoverageTargets: "42, 40, 41",
-                        //lineCoverageTargets: "${env.cobertura_healthy}, ${env.cobertura_unhealthy}, ${env.cobertura_unstable}",
-                        maxNumberOfBuilds: 0,
-                        //methodCoverageTargets: "${env.cobertura_healthy}, ${env.cobertura_unhealthy}, ${env.cobertura_unstable}",
-                        methodCoverageTargets: "42, 40, 41",
-                        onlyStable: false,
-                        sourceEncoding: 'ASCII',
-                        autoUpdateHealth: false,
-                        autoUpdateStability: false
-                }
-            } 
+            // post{
+            //     success{
+            //         improve coverage then uncomment
+            //         coverageReport('build/coverage.xml')
+            //     }
+            // } 
         }
 
         stage('Validate clean repo') {
@@ -175,7 +141,7 @@ pipeline {
                 '''
             }
         }
-	
+    
         // This stage is required for service/agent repos only
         // Please remove it for chart repos
         stage('Version Tag') {
@@ -201,20 +167,20 @@ pipeline {
             }
         }
 
-		stage('Build Docker image') {
+        stage('Build Docker image') {
             when {
                 anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest(); }
             }
             steps {
                 script {
                     // scmCheckout {
-					//     clean = true
-				    // }
+                    //     clean = true
+                    // }
                     miDocker.build()
                 }
             }
         }
-	    
+        
         stage ('Scan Containers') {
             when {
                 anyOf {
@@ -222,26 +188,11 @@ pipeline {
                 }
             }
             environment {
-                PROJECT_NAME                 = "oie-${GIT_SHORT_URL}"
-                SCANNERS                     = 'trivy'
-
-    		    SDLE_UPLOAD_PROJECT_ID       = '20246'
+                SCANNERS = 'trivy'
             }
             steps {
                 script {
-                    DOCKER_IMAGES=sh(script: '''
-                    docker images --format '{{.Repository}}:{{.Tag}}' | grep -v -e "rrp-devops" -e "rbhe-public" | awk 'BEGIN {ORS=","} {print $0} END {if (NR) print "\\n"}' | sed 's/,$//'
-                    ''', returnStdout: true).trim()
-
-                    sh """
-                    echo $DOCKER_IMAGES
-                    """
-
-                    withEnv(["TRIVY_TARGET_DOCKER_IMAGE=${DOCKER_IMAGES}"]) {
-                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            rbheStaticCodeScan()
-                        }
-                    }
+                    scanContainers()
                 }
             }
         }
@@ -257,7 +208,7 @@ pipeline {
             }
         }
 
-	stage('Version dev') {
+    stage('Version dev') {
             when {
                 anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; }
             }
@@ -285,11 +236,7 @@ pipeline {
              parallel {             
                  stage('Scan BDBA'){
                      environment {
-                         PROJECT_NAME                 = "${GIT_SHORT_URL}"
-                         SCANNERS                     = 'bdba'
-
-                         SDLE_UPLOAD_PROJECT_ID        = '20246'
-
+                        SCANNERS                     = 'bdba'
                      }
                      when {
                          anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; }
@@ -307,41 +254,19 @@ pipeline {
                      }
                  }
                  stage('Scan Binary SSCB') {
-                     when {
-                             anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
-                         }
-                     steps {
-                     sh'''
-                     mkdir SSCB
-                     sscb run --path BDBA/${GIT_SHORT_URL}.tar.gz --outpath SSCB/
-                     '''
-                     archiveArtifacts artifacts: 'SSCB/*',
-                         fingerprint: true,
-                         onlyIfSuccessful: false
-                         publishArtifacts([artifactsRepo: 'one-intel-edge-or-local/${SUB_PROJECT_NAME}',
-                         credentialId: 'sys_oie_devops_ubit-artifactory-or.intel.com',
-                                 bypassProxy: true])
+                    when {
+                        changeRequest()
+                    }
+                    steps {
+                        scanBinarySSCB()
                      }
                  }
              }
          }
 
-	 stage('Artifact') {
+     stage('Artifact') {
              steps {
-                 sh '''
-                 tar -zcvf "${GIT_SHORT_URL}.tar.gz" *
-                 '''
-                 archiveArtifacts artifacts: '**/*.tar.gz',
-                 allowEmptyArchive: true,
-                 fingerprint: true,
-                 onlyIfSuccessful: true
-                 sh '''
-                     [ -d "artifacts" ] || mkdir -p artifacts
-                     mv  *.tar.gz build/* artifacts/
-                 '''
-                 publishArtifacts([artifactsRepo: "one-intel-edge-or-local/${SUB_PROJECT_NAME}",
-                                   credentialId: 'sys_oie_devops_ubit-artifactory-or.intel.com',
-                                   bypassProxy: true])
+                 artifactUpload()
              }
          }
     }
@@ -353,17 +278,9 @@ pipeline {
             cleanWs()
         }
         failure {
-		    script {
-                	def currentBranch = env.BRANCH_NAME
-					if ((currentBranch ==~ env.branchPattern) && authorEmail?.contains('.intel')) {
-                    emailext(
-                    subject: "Build failed on main branch for ${GIT_SHORT_URL}",
-                    body: "The build on the main branch failed. Please check the logs for more details. Your PR was the last change, this is why you're receiving this email",
-                    to: authorEmail,
-                    attachLog: true
-                    )
-                }
+            script {
+                emailFailure()
             }
-	    }
+        }
     }
 }
