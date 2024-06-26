@@ -14,7 +14,7 @@ on:
 
 jobs:
   stale-auto-close:
-    runs-on: gasp
+    runs-on: generic
     steps:
       - uses: actions/stale@v5.1.1
         with:
