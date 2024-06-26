@@ -25,10 +25,11 @@ type LsblkOutput struct {
 	BlockDevices []DriveInfo `json:"blockdevices`
 }
 type DriveInfo struct {
-	Name string `json:"name"`
-	Size uint64 `json:"size"`
-	Type string `json:"type"`
-	Tran string `json:"tran"`
+	Name        string `json:"name"`
+	Size        uint64 `json:"size"`
+	Type        string `json:"type"`
+	Tran        string `json:"tran"`
+	IsRemovable bool   `json:"rm"`
 }
 
 // Get disk type of Drive based on drive name
@@ -88,7 +89,7 @@ func GetDrives() ([]DriveInfo, error) {
 	var drives []DriveInfo
 
 	// Command to list all connected storage devices with sizes using lsblk
-	cmd := exec.Command("lsblk", "--output", "NAME,TYPE,SIZE,TRAN", "-bldn", "--json")
+	cmd := exec.Command("lsblk", "--output", "NAME,TYPE,SIZE,TRAN,RM", "-bldn", "--json")
 
 	// Run the command and capture the output
 	output, err := cmd.CombinedOutput()
@@ -112,8 +113,8 @@ func filterDrives(drives []DriveInfo) []DriveInfo {
 	var filteredDrives []DriveInfo
 
 	for _, drive := range drives {
-		// Check conditions: size not zero and type is "disk" and transport type is not "usb"
-		if drive.Size != 0 && drive.Type == "disk" && drive.Tran != "usb" {
+		// Check conditions: size not zero and type is "disk" and is non-removable
+		if drive.Size != 0 && drive.Type == "disk" && !drive.IsRemovable {
 			filteredDrives = append(filteredDrives, drive)
 		}
 	}
