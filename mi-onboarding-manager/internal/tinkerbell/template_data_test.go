@@ -12,12 +12,13 @@ import (
 
 func TestNewTemplateDataProd(t *testing.T) {
 	type args struct {
-		name       string
-		rootPart   string
-		rootPartNo string
-		hostIP     string
-		provIP     string
-		customerID string
+		name         string
+		rootPart     string
+		rootPartNo   string
+		hostIP       string
+		provIP       string
+		customerID   string
+		enProductKey string
 	}
 	wf := Workflow{}
 	want, _ := marshalWorkflow(&wf)
@@ -38,7 +39,8 @@ func TestNewTemplateDataProd(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewTemplateDataProd(tt.args.name, tt.args.rootPart, tt.args.rootPartNo, tt.args.hostIP, tt.args.customerID, "")
+			got, err := NewTemplateDataProd(tt.args.name, tt.args.rootPart, tt.args.rootPartNo, tt.args.hostIP,
+				tt.args.customerID, "")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewTemplateDataProd() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -101,15 +103,16 @@ func TestNewTemplateDataProdBKC(t *testing.T) {
 
 func TestNewTemplateDataProdMS(t *testing.T) {
 	type args struct {
-		name       string
-		rootPart   string
-		rootPartNo string
-		hostIP     string
-		clientIP   string
-		gateway    string
-		mac        string
-		provIP     string
-		customerID string
+		name         string
+		rootPart     string
+		rootPartNo   string
+		hostIP       string
+		clientIP     string
+		gateway      string
+		mac          string
+		provIP       string
+		customerID   string
+		enProductKey string
 	}
 	wf := Workflow{}
 	want, _ := marshalWorkflow(&wf)

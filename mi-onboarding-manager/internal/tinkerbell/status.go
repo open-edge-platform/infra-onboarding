@@ -43,10 +43,11 @@ var workflowStepToStatusDetail = map[string]string{
 	ActionWriteClientSecret:          "Saving client secret",
 	ActionWriteHostname:              "Setting host name",
 	ActionWriteEtcHosts:              "Setting into /etc/hosts",
-	ActionCreateCustomerIDDirectory:  "Create directory in EN for Customer ID",
+	ActionCreateCustomerIDDirectory:  "Create directory in EN for Customer ID and product keys",
 	ActionEnableFastboot:             "Enable Fastboot In Kernel Optimize",
 	ActionSystemdNetworkOptimize:     "Systemd Network Oonline Optimize",
 	ActionDisableSnapdOptimize:       "systemd Snapd Disable Optimize",
+	ActionENProductKey:               "Setting Node Product keys",
 }
 
 func GenerateStatusDetailFromWorkflowState(workflow *tink.Workflow) string {

@@ -721,9 +721,10 @@ func GetProviderResourceByName(
 
 //nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
 type ProviderConfig struct {
-	DefaultOs     string `json:"defaultOs"`
-	AutoProvision bool   `json:"autoProvision"`
-	CustomerID    string `json:"customerID"`
+	DefaultOs       string `json:"defaultOs"`
+	AutoProvision   bool   `json:"autoProvision"`
+	CustomerID      string `json:"customerID"`
+	ENProductKeyIDs string `json:"enProductKeyIDs"`
 }
 
 func (c *OnboardingInventoryClient) GetProviderConfig(

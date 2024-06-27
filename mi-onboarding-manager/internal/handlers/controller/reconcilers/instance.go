@@ -242,6 +242,7 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		TinkerVersion:      tinkerVersion,
 		ClientImgName:      ClientImgName,
 		CustomerID:         provider.CustomerID,
+		ENProductKeyIDs:    provider.ENProductKeyIDs,
 	}
 
 	if env.ImgType == utils.ImgTypeBkc {

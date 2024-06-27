@@ -52,5 +52,9 @@ type (
 		Hostname string
 		// CustomerID stores a unique identifier of a customer. Used for license check.
 		CustomerID string
+		// ENProductKeyIDs contains a comma-separated list of product key identifiers.
+		// These keys are used to uniquely reference specific products or line items.
+		// within a customer's entitlement.
+		ENProductKeyIDs string
 	}
 )

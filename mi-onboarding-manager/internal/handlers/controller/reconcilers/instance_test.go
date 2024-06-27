@@ -67,7 +67,7 @@ func createProviderWithArgs(tb testing.TB, doCleanup bool,
 	tb.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	str := "{\"defaultOs\":\"osID\",\"autoProvision\":true,\"customerID\":\"170312\"}"
+	str := "{\"defaultOs\":\"osID\",\"autoProvision\":true,\"customerID\":\"170312\",\"enProductKeyIDs\":\"a6d7cf35-049a-4959-88b0-3bcb91beb857\"}"
 	str = strings.Replace(str, "osID", resourceId, 1)
 	provider = &providerv1.ProviderResource{
 		ProviderKind:   providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL,

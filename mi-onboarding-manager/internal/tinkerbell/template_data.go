@@ -51,6 +51,7 @@ const (
 	ActionEnableFastboot             = "enable-fastboot-in-kernel-optimize"
 	ActionSystemdNetworkOptimize     = "systemd-network-online-optimize"
 	ActionDisableSnapdOptimize       = "systemd-snapd-disable-optimize"
+	ActionENProductKey               = "write-en-product-key"
 )
 
 const (
@@ -755,7 +756,20 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 						"DIRMODE":   "0755",
 					},
 				},
-
+				{
+					Name:    ActionENProductKey,
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":   "ext4",
+						"DEST_PATH": "/etc/intel_edge_node/customer_id/en_product_key_ids",
+						"CONTENTS":  deviceInfo.ENProductKeyIDs,
+						"UID":       "0",
+						"GID":       "0",
+						"MODE":      "0755",
+						"DIRMODE":   "0755",
+					},
+				},
 				{
 					Name:    ActionEnableFastboot,
 					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
