@@ -21,8 +21,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type LsblkOutput struct {
+type DriveDetectionLsblkOutput struct {
 	BlockDevices []DriveInfo `json:"blockdevices`
+}
+type RootPartitionDetectionLsblkOutput struct {
+	BlockDevices []PartitionInfo `json:"blockdevices`
 }
 type DriveInfo struct {
 	Name        string `json:"name"`
@@ -30,6 +33,13 @@ type DriveInfo struct {
 	Type        string `json:"type"`
 	Tran        string `json:"tran"`
 	IsRemovable bool   `json:"rm"`
+}
+type PartitionInfo struct {
+	Name           string `json:"name"`
+	Type           string `json:"type"`
+	FileSystemType string `json:"fstype"`
+	Label          string `json:"label"`
+	PartitionLabel string `json:"partlabel"`
 }
 
 // Get disk type of Drive based on drive name
@@ -98,7 +108,7 @@ func GetDrives() ([]DriveInfo, error) {
 		return nil, err
 	}
 
-	var lsblkOutput LsblkOutput
+	var lsblkOutput DriveDetectionLsblkOutput
 	err = json.Unmarshal([]byte(output), &lsblkOutput)
 	if err != nil {
 		log.Infof("Error running command:%s", err)
@@ -148,4 +158,54 @@ func (a byPriorityAndSize) Less(i, j int) bool {
 	// Choose the drive with higher priority
 	return driveTypeRanking[a[i].getDiskType()] < driveTypeRanking[a[j].getDiskType()]
 
+}
+
+// findRootPartitionForDisk finds the root partition for a given disk by
+// detecting rootfs tag or finding the first partition with ext4 filesystem type
+func findRootPartitionForDisk(disk string) (string, error) {
+	// If filesystem type is not provided, default to ext4
+	const rootPartitionTag = "rootfs"
+	const defaultFsType = "ext4"
+
+	var partitions []PartitionInfo
+
+	// Command to list all partitions for the input disk with filesystem type and label using lsblk
+	cmd := exec.Command("lsblk", "--output", "NAME,TYPE,FSTYPE,LABEL,PARTLABEL", "-ln", "--json", disk)
+
+	// Run the command and capture the output
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Infof("Error running command:%s", err)
+		return "", err
+	}
+
+	var lsblkOutput RootPartitionDetectionLsblkOutput
+	err = json.Unmarshal([]byte(output), &lsblkOutput)
+	if err != nil {
+		log.Infof("Error running command:%s", err)
+		return "", err
+	}
+
+	partitions = lsblkOutput.BlockDevices
+	// Find the root partition with rootfs tag
+	for _, partition := range partitions {
+		if partition.Type == "part" &&
+			(strings.Contains(partition.PartitionLabel, rootPartitionTag) || strings.Contains(partition.Label, rootPartitionTag)) {
+			log.Infof("Match found with label %s: %+v", rootPartitionTag, partition)
+			rootPartition := "/dev/" + partition.Name
+			return rootPartition, nil
+		}
+	}
+
+	log.Infof("could not find match with label %s for disk %s", rootPartitionTag, disk)
+
+	// If root partition is not found with rootfs tag, find the first partition with ext4 filesystem type
+	for _, partition := range partitions {
+		if partition.Type == "part" && partition.FileSystemType == defaultFsType {
+			log.Infof("Match found with fstype %s: %+v", defaultFsType, partition)
+			rootPartition := "/dev/" + partition.Name
+			return rootPartition, nil
+		}
+	}
+	return "", &CustomError{Message: "root partition not found for disk" + disk}
 }

@@ -17,7 +17,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"syscall"
 
 	log "github.com/sirupsen/logrus"
@@ -32,7 +31,6 @@ func main() {
 	blockDevice := os.Getenv("BLOCK_DEVICE")
 	filesystemType := os.Getenv("FS_TYPE")
 	//	isDestMount := os.Getenv("NO_MOUNT")
-	rootPart := ""
 	if len(blockDevice) == 0 {
 		// Get a list of drives
 		drives, err := GetDrives()
@@ -45,14 +43,13 @@ func main() {
 			log.Error(err)
 			return
 		}
-		// Choose the block device for the detected disk
-		if strings.HasPrefix(detectedDisk, "/dev/nvme") {
-			rootPart = "p1"
-		} else {
-			rootPart = "1"
-		}
-		blockDevice = detectedDisk + rootPart
 		log.Infof("Detected drive: [%s] ", detectedDisk)
+		blockDevice, err = findRootPartitionForDisk(detectedDisk)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		log.Infof("Drive detected by automation: [%s] ", blockDevice)
 	} else {
 		log.Infof("Drive provided by the user: [%s] ", blockDevice)
 	}

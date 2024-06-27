@@ -30,7 +30,7 @@ func main() {
 
 	// Parse the environment variables that are passed into the action
 	blockDevice := os.Getenv("BLOCK_DEVICE")
-	driveName := ""
+	filesystemType := os.Getenv("FS_TYPE")
 	// Check if a string is empty
 	if len(blockDevice) == 0 {
 		// Get a list of drives
@@ -45,18 +45,16 @@ func main() {
 			return
 		}
 		log.Infof("Detected drive: [%s] ", detectedDisk)
-		driveName = detectedDisk
+		blockDevice, err = findRootPartitionForDisk(detectedDisk)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		log.Infof("Drive detected by automation: [%s] ", blockDevice)
 	} else {
 		log.Infof("Drive provided by the user: [%s] ", blockDevice)
 	}
 
-	// Check if the drive name starts with "/dev/nvme"
-	if strings.HasPrefix(driveName, "/dev/nvme") {
-		blockDevice = driveName + "p1"
-	} else {
-		blockDevice = driveName + "1"
-	}
-	filesystemType := os.Getenv("FS_TYPE")
 	chroot := os.Getenv("CHROOT")
 	defaultInterpreter := os.Getenv("DEFAULT_INTERPRETER")
 	cmdLine := os.Getenv("CMD_LINE")
