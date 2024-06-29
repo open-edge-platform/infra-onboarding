@@ -10,6 +10,21 @@ run() {
 	echo "$(cat /template/discover1.php)" | sed "s/\$BOOTS_SERVICE_URL/$BOOTS_SERVICE_URL/g" >/usr/share/nginx/html/discover.php
 
 	echo "$(cat /template/chain1.php)" | sed "s/\$BOOTS_SERVICE_URL/$BOOTS_SERVICE_URL/g" >/usr/share/nginx/html/chain.php
+	
+    # Variables to substitute
+    vars="DOWNLOAD_URL GRPC_AUTHORITY TINK_WORKER_IMAGE DEVICE_DISCOVERY_ENABLED DEVICE_DISCOVERY_IMAGE ONBOARDING_MANAGER_ADDRESS"
+
+    # Process boot.ipxe with variable substitution
+    for var in $vars; do
+        eval value=\$$var
+        sed -i "s|$var|$value|g"  "/template/boot.ipxe"
+    done
+
+    # substitute ADDITIONAL_KERNEL_ARGS
+    var=ADDITIONAL_KERNEL_ARGS
+    eval value=\$$var
+    sed -i "s|$var|$value|g"  "/template/boot.ipxe"
+    cp "/template/boot.ipxe" /usr/share/nginx/html/boot.ipxe
 
     php-fpm81 && nginx -g 'daemon off;'
 }
