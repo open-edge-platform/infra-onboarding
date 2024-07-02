@@ -47,6 +47,7 @@ create_env_config() {
 	oci_release_svc="${oci_release_svc:-}"
 	tink_stack_svc="${tink_stack_svc:-}"
 	tink_server_svc="${tink_server_svc:-}"
+	onboarding_manager_svc="${onboarding_manager_svc:-}"
 	http_proxy="${http_proxy:-}"
 	no_proxy="${no_proxy:-}"
     if [ -n "$fdo_manufacturer_svc" ];
@@ -57,7 +58,8 @@ create_env_config() {
 	echo -e "release_svc=$release_svc" 
 	echo -e "oci_release_svc=$oci_release_svc" 
 	echo -e "tink_stack_svc=$tink_stack_svc" 
-	echo -e "tink_server_svc=$tink_server_svc" 
+	echo -e "tink_server_svc=$tink_server_svc"
+	echo -e "onboarding_manager_svc=$onboarding_manager_svc"
 	} >> "$LOCATION_OF_ENV_CONFIG"
     fi
 
@@ -81,7 +83,7 @@ create_env_config() {
 	echo -e "https_proxy=$https_proxy" 
 	echo -e "no_proxy=$no_proxy" 
 	} >> "$LOCATION_OF_ENV_CONFIG"
-    fi
+    fi	
 }
 
 get_cert(){	

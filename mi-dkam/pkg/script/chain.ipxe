@@ -31,7 +31,7 @@ echo => Chainloading to CDN-NGINX
 echo 
 echo sleeping for 5s
 sleep 5
-chain ${tink_url}/discover.php?mac=${mac}&&uuid=${uuid}&&serial_id=${serial}&&en_ip=${ip}&&boot_url=${tink_url} || goto chainloaderror
+chain ${tink_url}/boot.ipxe || goto chainloaderror
 
 :ifconferror
 echo 
