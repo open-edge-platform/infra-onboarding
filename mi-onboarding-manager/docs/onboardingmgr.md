@@ -4,35 +4,23 @@
 ## Table of Contents
 
 - [onboarding.proto](#onboarding-proto)
-    - [ArtifactData](#onboardingmgr-v1-ArtifactData)
-    - [CreateArtifactsRequest](#onboardingmgr-v1-CreateArtifactsRequest)
-    - [CreateArtifactsResponse](#onboardingmgr-v1-CreateArtifactsResponse)
-    - [CreateNodesRequest](#onboardingmgr-v1-CreateNodesRequest)
-    - [CreateNodesResponse](#onboardingmgr-v1-CreateNodesResponse)
-    - [CustomerParams](#onboardingmgr-v1-CustomerParams)
-    - [DeleteArtifactsRequest](#onboardingmgr-v1-DeleteArtifactsRequest)
-    - [DeleteArtifactsResponse](#onboardingmgr-v1-DeleteArtifactsResponse)
-    - [DeleteNodesRequest](#onboardingmgr-v1-DeleteNodesRequest)
-    - [DeleteNodesResponse](#onboardingmgr-v1-DeleteNodesResponse)
-    - [GetArtifactsRequest](#onboardingmgr-v1-GetArtifactsRequest)
-    - [GetArtifactsResponse](#onboardingmgr-v1-GetArtifactsResponse)
-    - [GetNodesRequest](#onboardingmgr-v1-GetNodesRequest)
-    - [GetNodesResponse](#onboardingmgr-v1-GetNodesResponse)
-    - [HwData](#onboardingmgr-v1-HwData)
-    - [NodeData](#onboardingmgr-v1-NodeData)
-    - [Ports](#onboardingmgr-v1-Ports)
-    - [Proxy](#onboardingmgr-v1-Proxy)
-    - [Supplier](#onboardingmgr-v1-Supplier)
-    - [UpdateArtifactsByIdRequest](#onboardingmgr-v1-UpdateArtifactsByIdRequest)
-    - [UpdateArtifactsByIdResponse](#onboardingmgr-v1-UpdateArtifactsByIdResponse)
-    - [UpdateNodesRequest](#onboardingmgr-v1-UpdateNodesRequest)
-    - [UpdateNodesResponse](#onboardingmgr-v1-UpdateNodesResponse)
+    - [ArtifactData](#onboardingmgr-ArtifactData)
+    - [ArtifactRequest](#onboardingmgr-ArtifactRequest)
+    - [ArtifactResponse](#onboardingmgr-ArtifactResponse)
+    - [CustomerParams](#onboardingmgr-CustomerParams)
+    - [HwData](#onboardingmgr-HwData)
+    - [NodeData](#onboardingmgr-NodeData)
+    - [NodeRequest](#onboardingmgr-NodeRequest)
+    - [NodeResponse](#onboardingmgr-NodeResponse)
+    - [Ports](#onboardingmgr-Ports)
+    - [Proxy](#onboardingmgr-Proxy)
+    - [Supplier](#onboardingmgr-Supplier)
   
-    - [ArtifactData.ArtifactCategory](#onboardingmgr-v1-ArtifactData-ArtifactCategory)
-    - [ArtifactData.Response](#onboardingmgr-v1-ArtifactData-Response)
-    - [NodeData.Response](#onboardingmgr-v1-NodeData-Response)
+    - [ArtifactData.ArtifactCategory](#onboardingmgr-ArtifactData-ArtifactCategory)
+    - [ArtifactData.Response](#onboardingmgr-ArtifactData-Response)
+    - [NodeData.Response](#onboardingmgr-NodeData-Response)
   
-    - [NodeArtifactNBService](#onboardingmgr-v1-NodeArtifactNBService)
+    - [NodeArtifactServiceNB](#onboardingmgr-NodeArtifactServiceNB)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -45,7 +33,7 @@
 
 
 
-<a name="onboardingmgr-v1-ArtifactData"></a>
+<a name="onboardingmgr-ArtifactData"></a>
 
 ### ArtifactData
 
@@ -56,9 +44,9 @@
 | name | [string](#string) |  | Name of the artifact |
 | version | [string](#string) |  | Version of the artifact |
 | platform | [string](#string) |  | Platform of the artifact |
-| category | [ArtifactData.ArtifactCategory](#onboardingmgr-v1-ArtifactData-ArtifactCategory) |  | Category of the artifact ex:BIOS,OS etc., |
+| category | [ArtifactData.ArtifactCategory](#onboardingmgr-ArtifactData-ArtifactCategory) |  | Category of the artifact ex:BIOS,OS etc., |
 | description | [string](#string) |  | Description of the artifact |
-| details | [Supplier](#onboardingmgr-v1-Supplier) |  | Supplier details |
+| details | [Supplier](#onboardingmgr-Supplier) |  | Supplier details |
 | package_url | [string](#string) |  | URL of the package |
 | author | [string](#string) |  | Author of package |
 | state | [bool](#bool) |  | state |
@@ -67,74 +55,44 @@
 | manufacturer | [string](#string) |  | manufacter details |
 | release_data | [string](#string) |  | Release data |
 | artifact_id | [string](#string) |  | Artifact ID generated while creating an artifact. This can be zero if not available during CreateArtifact Call or Batch actions like DeleteAll. |
-| result | [ArtifactData.Response](#onboardingmgr-v1-ArtifactData-Response) |  |  |
+| result | [ArtifactData.Response](#onboardingmgr-ArtifactData-Response) |  |  |
 
 
 
 
 
 
-<a name="onboardingmgr-v1-CreateArtifactsRequest"></a>
+<a name="onboardingmgr-ArtifactRequest"></a>
 
-### CreateArtifactsRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| payload | [ArtifactData](#onboardingmgr-v1-ArtifactData) | repeated |  |
-
-
-
-
-
-
-<a name="onboardingmgr-v1-CreateArtifactsResponse"></a>
-
-### CreateArtifactsResponse
+### ArtifactRequest
 
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| payload | [ArtifactData](#onboardingmgr-v1-ArtifactData) | repeated |  |
+| payload | [ArtifactData](#onboardingmgr-ArtifactData) | repeated | Payload data represented as an array or list |
 
 
 
 
 
 
-<a name="onboardingmgr-v1-CreateNodesRequest"></a>
+<a name="onboardingmgr-ArtifactResponse"></a>
 
-### CreateNodesRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| payload | [NodeData](#onboardingmgr-v1-NodeData) | repeated |  |
-
-
-
-
-
-
-<a name="onboardingmgr-v1-CreateNodesResponse"></a>
-
-### CreateNodesResponse
+### ArtifactResponse
 
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| payload | [NodeData](#onboardingmgr-v1-NodeData) | repeated |  |
+| payload | [ArtifactData](#onboardingmgr-ArtifactData) | repeated | Payload data {will be same as request for CREATE/DELETE}. |
 
 
 
 
 
 
-<a name="onboardingmgr-v1-CustomerParams"></a>
+<a name="onboardingmgr-CustomerParams"></a>
 
 ### CustomerParams
 
@@ -151,127 +109,7 @@
 
 
 
-<a name="onboardingmgr-v1-DeleteArtifactsRequest"></a>
-
-### DeleteArtifactsRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| payload | [ArtifactData](#onboardingmgr-v1-ArtifactData) | repeated |  |
-
-
-
-
-
-
-<a name="onboardingmgr-v1-DeleteArtifactsResponse"></a>
-
-### DeleteArtifactsResponse
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| payload | [ArtifactData](#onboardingmgr-v1-ArtifactData) | repeated |  |
-
-
-
-
-
-
-<a name="onboardingmgr-v1-DeleteNodesRequest"></a>
-
-### DeleteNodesRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| payload | [NodeData](#onboardingmgr-v1-NodeData) | repeated |  |
-
-
-
-
-
-
-<a name="onboardingmgr-v1-DeleteNodesResponse"></a>
-
-### DeleteNodesResponse
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| payload | [NodeData](#onboardingmgr-v1-NodeData) | repeated |  |
-
-
-
-
-
-
-<a name="onboardingmgr-v1-GetArtifactsRequest"></a>
-
-### GetArtifactsRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| payload | [ArtifactData](#onboardingmgr-v1-ArtifactData) | repeated |  |
-
-
-
-
-
-
-<a name="onboardingmgr-v1-GetArtifactsResponse"></a>
-
-### GetArtifactsResponse
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| payload | [ArtifactData](#onboardingmgr-v1-ArtifactData) | repeated |  |
-
-
-
-
-
-
-<a name="onboardingmgr-v1-GetNodesRequest"></a>
-
-### GetNodesRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| payload | [NodeData](#onboardingmgr-v1-NodeData) | repeated |  |
-
-
-
-
-
-
-<a name="onboardingmgr-v1-GetNodesResponse"></a>
-
-### GetNodesResponse
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| payload | [NodeData](#onboardingmgr-v1-NodeData) | repeated |  |
-
-
-
-
-
-
-<a name="onboardingmgr-v1-HwData"></a>
+<a name="onboardingmgr-HwData"></a>
 
 ### HwData
 
@@ -282,7 +120,7 @@
 | hw_id | [string](#string) |  | HW ID of Node |
 | mac_id | [string](#string) |  | Mac ID of Node |
 | sut_ip | [string](#string) |  | sutip |
-| cus_params | [CustomerParams](#onboardingmgr-v1-CustomerParams) |  | Azure Specific Parameters |
+| cus_params | [CustomerParams](#onboardingmgr-CustomerParams) |  | Azure Specific Parameters |
 | disk_partition | [string](#string) |  | Disk Partition Details |
 | platform_type | [string](#string) |  | Device platform type |
 | serialnum | [string](#string) |  |  |
@@ -290,14 +128,14 @@
 | bmc_ip | [string](#string) |  |  |
 | bmc_interface | [bool](#bool) |  |  |
 | host_nic_dev_name | [string](#string) |  |  |
-| security_feature | [uint32](#uint32) |  |  |
+| SecurityFeature | [uint32](#uint32) |  |  |
 
 
 
 
 
 
-<a name="onboardingmgr-v1-NodeData"></a>
+<a name="onboardingmgr-NodeData"></a>
 
 ### NodeData
 
@@ -320,15 +158,45 @@ Node App Artifact ID to be stored here.This ID is retured to GetArtifacts{id} |
 | update_available | [string](#string) |  | Update manager updates if update is available. |
 | onboarding_status | [string](#string) |  | Onboarding Status |
 | node_id | [string](#string) |  | Generated Node ID. This field can be left empty for Create or DeleteAll |
-| result | [NodeData.Response](#onboardingmgr-v1-NodeData-Response) |  | Result |
-| hwdata | [HwData](#onboardingmgr-v1-HwData) | repeated |  |
+| result | [NodeData.Response](#onboardingmgr-NodeData-Response) |  | Result |
+| hwdata | [HwData](#onboardingmgr-HwData) | repeated |  |
 
 
 
 
 
 
-<a name="onboardingmgr-v1-Ports"></a>
+<a name="onboardingmgr-NodeRequest"></a>
+
+### NodeRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| payload | [NodeData](#onboardingmgr-NodeData) | repeated | Payload data |
+
+
+
+
+
+
+<a name="onboardingmgr-NodeResponse"></a>
+
+### NodeResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| payload | [NodeData](#onboardingmgr-NodeData) | repeated | Payload data |
+
+
+
+
+
+
+<a name="onboardingmgr-Ports"></a>
 
 ### Ports
 
@@ -346,7 +214,7 @@ Node App Artifact ID to be stored here.This ID is retured to GetArtifacts{id} |
 
 
 
-<a name="onboardingmgr-v1-Proxy"></a>
+<a name="onboardingmgr-Proxy"></a>
 
 ### Proxy
 
@@ -365,7 +233,7 @@ Node App Artifact ID to be stored here.This ID is retured to GetArtifacts{id} |
 
 
 
-<a name="onboardingmgr-v1-Supplier"></a>
+<a name="onboardingmgr-Supplier"></a>
 
 ### Supplier
 
@@ -381,106 +249,46 @@ Node App Artifact ID to be stored here.This ID is retured to GetArtifacts{id} |
 
 
 
-
-<a name="onboardingmgr-v1-UpdateArtifactsByIdRequest"></a>
-
-### UpdateArtifactsByIdRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| payload | [ArtifactData](#onboardingmgr-v1-ArtifactData) | repeated |  |
-
-
-
-
-
-
-<a name="onboardingmgr-v1-UpdateArtifactsByIdResponse"></a>
-
-### UpdateArtifactsByIdResponse
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| payload | [ArtifactData](#onboardingmgr-v1-ArtifactData) | repeated |  |
-
-
-
-
-
-
-<a name="onboardingmgr-v1-UpdateNodesRequest"></a>
-
-### UpdateNodesRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| payload | [NodeData](#onboardingmgr-v1-NodeData) | repeated |  |
-
-
-
-
-
-
-<a name="onboardingmgr-v1-UpdateNodesResponse"></a>
-
-### UpdateNodesResponse
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| payload | [NodeData](#onboardingmgr-v1-NodeData) | repeated |  |
-
-
-
-
-
  
 
 
-<a name="onboardingmgr-v1-ArtifactData-ArtifactCategory"></a>
+<a name="onboardingmgr-ArtifactData-ArtifactCategory"></a>
 
 ### ArtifactData.ArtifactCategory
 
 
 | Name | Number | Description |
 | ---- | ------ | ----------- |
-| ARTIFACT_CATEGORY_DEFAULT_UNSPECIFIED | 0 | Setting default artifact type getting all artifact |
-| ARTIFACT_CATEGORY_BIOS | 1 | BIOS Artifact |
-| ARTIFACT_CATEGORY_OS | 2 | OS Artifact |
-| ARTIFACT_CATEGORY_APPLICATION | 3 | Application Artifact |
-| ARTIFACT_CATEGORY_IMAGE | 4 | Container image Artifact |
-| ARTIFACT_CATEGORY_PLATFORM | 5 | Type of platform of the artifact |
+| DEFAULT | 0 | Setting default artifact type getting all artifact |
+| BIOS | 1 | BIOS Artifact |
+| OS | 2 | OS Artifact |
+| APPLICATION | 3 | Application Artifact |
+| IMAGE | 4 | Container image Artifact |
+| PLATFORM | 5 | Type of platform of the artifact |
 
 
 
-<a name="onboardingmgr-v1-ArtifactData-Response"></a>
+<a name="onboardingmgr-ArtifactData-Response"></a>
 
 ### ArtifactData.Response
 
 
 | Name | Number | Description |
 | ---- | ------ | ----------- |
-| RESPONSE_SUCCESS_UNSPECIFIED | 0 | Success |
-| RESPONSE_FAILURE | 1 | Failure |
+| SUCCESS | 0 | Success |
+| FAILURE | 1 | Failure |
 
 
 
-<a name="onboardingmgr-v1-NodeData-Response"></a>
+<a name="onboardingmgr-NodeData-Response"></a>
 
 ### NodeData.Response
 
 
 | Name | Number | Description |
 | ---- | ------ | ----------- |
-| RESPONSE_SUCCESS_UNSPECIFIED | 0 | Success |
-| RESPONSE_FAILURE | 1 | Failure |
+| SUCCESS | 0 | Success |
+| FAILURE | 1 | Failure |
 
 
  
@@ -488,21 +296,21 @@ Node App Artifact ID to be stored here.This ID is retured to GetArtifacts{id} |
  
 
 
-<a name="onboardingmgr-v1-NodeArtifactNBService"></a>
+<a name="onboardingmgr-NodeArtifactServiceNB"></a>
 
-### NodeArtifactNBService
+### NodeArtifactServiceNB
 Artifact &amp; Node Endpoints towards Inventory Manager
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| CreateArtifacts | [CreateArtifactsRequest](#onboardingmgr-v1-CreateArtifactsRequest) | [CreateArtifactsResponse](#onboardingmgr-v1-CreateArtifactsResponse) |  |
-| GetArtifacts | [GetArtifactsRequest](#onboardingmgr-v1-GetArtifactsRequest) | [GetArtifactsResponse](#onboardingmgr-v1-GetArtifactsResponse) |  |
-| UpdateArtifactsById | [UpdateArtifactsByIdRequest](#onboardingmgr-v1-UpdateArtifactsByIdRequest) | [UpdateArtifactsByIdResponse](#onboardingmgr-v1-UpdateArtifactsByIdResponse) |  |
-| DeleteArtifacts | [DeleteArtifactsRequest](#onboardingmgr-v1-DeleteArtifactsRequest) | [DeleteArtifactsResponse](#onboardingmgr-v1-DeleteArtifactsResponse) |  |
-| CreateNodes | [CreateNodesRequest](#onboardingmgr-v1-CreateNodesRequest) | [CreateNodesResponse](#onboardingmgr-v1-CreateNodesResponse) |  |
-| GetNodes | [GetNodesRequest](#onboardingmgr-v1-GetNodesRequest) | [GetNodesResponse](#onboardingmgr-v1-GetNodesResponse) |  |
-| UpdateNodes | [UpdateNodesRequest](#onboardingmgr-v1-UpdateNodesRequest) | [UpdateNodesResponse](#onboardingmgr-v1-UpdateNodesResponse) |  |
-| DeleteNodes | [DeleteNodesRequest](#onboardingmgr-v1-DeleteNodesRequest) | [DeleteNodesResponse](#onboardingmgr-v1-DeleteNodesResponse) |  |
+| CreateArtifacts | [ArtifactRequest](#onboardingmgr-ArtifactRequest) | [ArtifactResponse](#onboardingmgr-ArtifactResponse) |  |
+| GetArtifacts | [ArtifactRequest](#onboardingmgr-ArtifactRequest) | [ArtifactResponse](#onboardingmgr-ArtifactResponse) |  |
+| UpdateArtifactsById | [ArtifactRequest](#onboardingmgr-ArtifactRequest) | [ArtifactResponse](#onboardingmgr-ArtifactResponse) |  |
+| DeleteArtifacts | [ArtifactRequest](#onboardingmgr-ArtifactRequest) | [ArtifactResponse](#onboardingmgr-ArtifactResponse) |  |
+| CreateNodes | [NodeRequest](#onboardingmgr-NodeRequest) | [NodeResponse](#onboardingmgr-NodeResponse) |  |
+| GetNodes | [NodeRequest](#onboardingmgr-NodeRequest) | [NodeResponse](#onboardingmgr-NodeResponse) |  |
+| UpdateNodes | [NodeRequest](#onboardingmgr-NodeRequest) | [NodeResponse](#onboardingmgr-NodeResponse) |  |
+| DeleteNodes | [NodeRequest](#onboardingmgr-NodeRequest) | [NodeResponse](#onboardingmgr-NodeResponse) |  |
 
  
 

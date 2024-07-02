@@ -157,63 +157,63 @@ func TestNewInventoryClient(t *testing.T) {
 }
 
 type mockNodeArtifactServiceNBServer struct {
-	pbinv.NodeArtifactNBServiceServer
+	pbinv.NodeArtifactServiceNBServer
 	mock.Mock
 }
 
-func (m *mockNodeArtifactServiceNBServer) CreateArtifacts(ctx context.Context, req *pbinv.CreateArtifactsRequest,
-) (*pbinv.CreateArtifactsResponse, error) {
+func (m *mockNodeArtifactServiceNBServer) CreateArtifacts(ctx context.Context, req *pbinv.ArtifactRequest,
+) (*pbinv.ArtifactResponse, error) {
 	args := m.Called(ctx, req)
-	return args.Get(0).(*pbinv.CreateArtifactsResponse), args.Error(1)
+	return args.Get(0).(*pbinv.ArtifactResponse), args.Error(1)
 }
 
-func (m *mockNodeArtifactServiceNBServer) GetArtifacts(ctx context.Context, req *pbinv.GetArtifactsRequest,
-) (*pbinv.GetArtifactsResponse, error) {
+func (m *mockNodeArtifactServiceNBServer) GetArtifacts(ctx context.Context, req *pbinv.ArtifactRequest,
+) (*pbinv.ArtifactResponse, error) {
 	args := m.Called(ctx, req)
-	return args.Get(0).(*pbinv.GetArtifactsResponse), args.Error(1)
+	return args.Get(0).(*pbinv.ArtifactResponse), args.Error(1)
 }
 
-func (m *mockNodeArtifactServiceNBServer) UpdateArtifactsById(ctx context.Context, req *pbinv.UpdateArtifactsByIdRequest,
-) (*pbinv.UpdateArtifactsByIdResponse, error) {
+func (m *mockNodeArtifactServiceNBServer) UpdateArtifactsById(ctx context.Context, req *pbinv.ArtifactRequest,
+) (*pbinv.ArtifactResponse, error) {
 	args := m.Called(ctx, req)
-	return args.Get(0).(*pbinv.UpdateArtifactsByIdResponse), args.Error(1)
+	return args.Get(0).(*pbinv.ArtifactResponse), args.Error(1)
 }
 
-func (m *mockNodeArtifactServiceNBServer) DeleteArtifacts(ctx context.Context, req *pbinv.DeleteArtifactsRequest,
-) (*pbinv.DeleteArtifactsResponse, error) {
+func (m *mockNodeArtifactServiceNBServer) DeleteArtifacts(ctx context.Context, req *pbinv.ArtifactRequest,
+) (*pbinv.ArtifactResponse, error) {
 	args := m.Called(ctx, req)
-	return args.Get(0).(*pbinv.DeleteArtifactsResponse), args.Error(1)
+	return args.Get(0).(*pbinv.ArtifactResponse), args.Error(1)
 }
 
-func (m *mockNodeArtifactServiceNBServer) CreateNodes(ctx context.Context, req *pbinv.CreateNodesRequest) (*pbinv.CreateNodesResponse, error) {
+func (m *mockNodeArtifactServiceNBServer) CreateNodes(ctx context.Context, req *pbinv.NodeRequest) (*pbinv.NodeResponse, error) {
 	args := m.Called(ctx, req)
-	return args.Get(0).(*pbinv.CreateNodesResponse), args.Error(1)
+	return args.Get(0).(*pbinv.NodeResponse), args.Error(1)
 }
 
-func (m *mockNodeArtifactServiceNBServer) GetNodes(ctx context.Context, req *pbinv.GetNodesRequest) (*pbinv.GetNodesResponse, error) {
+func (m *mockNodeArtifactServiceNBServer) GetNodes(ctx context.Context, req *pbinv.NodeRequest) (*pbinv.NodeResponse, error) {
 	args := m.Called(ctx, req)
-	return args.Get(0).(*pbinv.GetNodesResponse), args.Error(1)
+	return args.Get(0).(*pbinv.NodeResponse), args.Error(1)
 }
 
-func (m *mockNodeArtifactServiceNBServer) UpdateNodes(ctx context.Context, req *pbinv.UpdateNodesRequest) (*pbinv.UpdateNodesResponse, error) {
+func (m *mockNodeArtifactServiceNBServer) UpdateNodes(ctx context.Context, req *pbinv.NodeRequest) (*pbinv.NodeResponse, error) {
 	args := m.Called(ctx, req)
-	return args.Get(0).(*pbinv.UpdateNodesResponse), args.Error(1)
+	return args.Get(0).(*pbinv.NodeResponse), args.Error(1)
 }
 
-func (m *mockNodeArtifactServiceNBServer) DeleteNodes(ctx context.Context, req *pbinv.DeleteNodesRequest) (*pbinv.DeleteNodesResponse, error) {
+func (m *mockNodeArtifactServiceNBServer) DeleteNodes(ctx context.Context, req *pbinv.NodeRequest) (*pbinv.NodeResponse, error) {
 	args := m.Called(ctx, req)
-	return args.Get(0).(*pbinv.DeleteNodesResponse), args.Error(1)
+	return args.Get(0).(*pbinv.NodeResponse), args.Error(1)
 }
 
 func Test_getNodes(t *testing.T) {
 	mockClient := &mockNodeArtifactServiceNBServer{}
-	mockClient.On("GetNodes", mock.Anything, mock.Anything).Return(&pbinv.GetNodesResponse{}, nil)
+	mockClient.On("GetNodes", mock.Anything, mock.Anything).Return(&pbinv.NodeResponse{}, nil)
 	lis, err := net.Listen("tcp", "localhost:30051")
 	if err != nil {
 		t.Fatalf("Failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
-	pbinv.RegisterNodeArtifactNBServiceServer(grpcServer, mockClient)
+	pbinv.RegisterNodeArtifactServiceNBServer(grpcServer, mockClient)
 	go func() {
 		defer lis.Close()
 		if grpcErr := grpcServer.Serve(lis); grpcErr != nil {
@@ -264,13 +264,13 @@ func Test_getNodes(t *testing.T) {
 
 func Test_updateNodes(t *testing.T) {
 	mockClient := &mockNodeArtifactServiceNBServer{}
-	mockClient.On("UpdateNodes", mock.Anything, mock.Anything).Return(&pbinv.UpdateNodesResponse{}, nil)
+	mockClient.On("UpdateNodes", mock.Anything, mock.Anything).Return(&pbinv.NodeResponse{}, nil)
 	lis, err := net.Listen("tcp", "localhost:20051")
 	if err != nil {
 		t.Fatalf("Failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
-	pbinv.RegisterNodeArtifactNBServiceServer(grpcServer, mockClient)
+	pbinv.RegisterNodeArtifactServiceNBServer(grpcServer, mockClient)
 	go func() {
 		defer lis.Close()
 		if grpcErr := grpcServer.Serve(lis); grpcErr != nil {
@@ -320,13 +320,13 @@ func Test_updateNodes(t *testing.T) {
 
 func Test_deleteNodes(t *testing.T) {
 	mockClient := &mockNodeArtifactServiceNBServer{}
-	mockClient.On("DeleteNodes", mock.Anything, mock.Anything).Return(&pbinv.DeleteNodesResponse{}, nil)
+	mockClient.On("DeleteNodes", mock.Anything, mock.Anything).Return(&pbinv.NodeResponse{}, nil)
 	lis, err := net.Listen("tcp", "localhost:10051")
 	if err != nil {
 		t.Fatalf("Failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
-	pbinv.RegisterNodeArtifactNBServiceServer(grpcServer, mockClient)
+	pbinv.RegisterNodeArtifactServiceNBServer(grpcServer, mockClient)
 	go func() {
 		defer lis.Close()
 		if grpcErr := grpcServer.Serve(lis); grpcErr != nil {
@@ -376,13 +376,13 @@ func Test_deleteNodes(t *testing.T) {
 
 func Test_addNodes(t *testing.T) {
 	mockClient := &mockNodeArtifactServiceNBServer{}
-	mockClient.On("CreateNodes", mock.Anything, mock.Anything).Return(&pbinv.CreateNodesResponse{}, nil)
+	mockClient.On("CreateNodes", mock.Anything, mock.Anything).Return(&pbinv.NodeResponse{}, nil)
 	lis, err := net.Listen("tcp", "localhost:12051")
 	if err != nil {
 		t.Fatalf("Failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
-	pbinv.RegisterNodeArtifactNBServiceServer(grpcServer, mockClient)
+	pbinv.RegisterNodeArtifactServiceNBServer(grpcServer, mockClient)
 	go func() {
 		defer lis.Close()
 		if grpcErr := grpcServer.Serve(lis); grpcErr != nil {

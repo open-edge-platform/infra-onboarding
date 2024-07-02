@@ -143,13 +143,13 @@ func TestInstanceResourceCmd_Delete_Case(t *testing.T) {
 
 func Test_getArtifacts(t *testing.T) {
 	mockClient := &mockNodeArtifactServiceNBServer{}
-	mockClient.On("GetArtifacts", mock.Anything, mock.Anything).Return(&pb.GetArtifactsResponse{}, nil)
+	mockClient.On("GetArtifacts", mock.Anything, mock.Anything).Return(&pb.ArtifactResponse{}, nil)
 	lis, err := net.Listen("tcp", "localhost:13051")
 	if err != nil {
 		t.Fatalf("Failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
-	pb.RegisterNodeArtifactNBServiceServer(grpcServer, mockClient)
+	pb.RegisterNodeArtifactServiceNBServer(grpcServer, mockClient)
 	go func() {
 		defer lis.Close()
 		if grpcErr := grpcServer.Serve(lis); grpcErr != nil {
@@ -199,13 +199,13 @@ func Test_getArtifacts(t *testing.T) {
 
 func Test_createArtifacts(t *testing.T) {
 	mockClient := &mockNodeArtifactServiceNBServer{}
-	mockClient.On("CreateArtifacts", mock.Anything, mock.Anything).Return(&pb.CreateArtifactsResponse{}, nil)
+	mockClient.On("CreateArtifacts", mock.Anything, mock.Anything).Return(&pb.ArtifactResponse{}, nil)
 	lis, err := net.Listen("tcp", "localhost:14051")
 	if err != nil {
 		t.Fatalf("Failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
-	pb.RegisterNodeArtifactNBServiceServer(grpcServer, mockClient)
+	pb.RegisterNodeArtifactServiceNBServer(grpcServer, mockClient)
 	go func() {
 		defer lis.Close()
 		if grpcErr := grpcServer.Serve(lis); grpcErr != nil {
@@ -255,13 +255,13 @@ func Test_createArtifacts(t *testing.T) {
 
 func Test_updateArtifactsById(t *testing.T) {
 	mockClient := &mockNodeArtifactServiceNBServer{}
-	mockClient.On("UpdateArtifactsById", mock.Anything, mock.Anything).Return(&pb.UpdateArtifactsByIdResponse{}, nil)
+	mockClient.On("UpdateArtifactsById", mock.Anything, mock.Anything).Return(&pb.ArtifactResponse{}, nil)
 	lis, err := net.Listen("tcp", "localhost:15051")
 	if err != nil {
 		t.Fatalf("Failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
-	pb.RegisterNodeArtifactNBServiceServer(grpcServer, mockClient)
+	pb.RegisterNodeArtifactServiceNBServer(grpcServer, mockClient)
 	go func() {
 		defer lis.Close()
 		if grpcErr := grpcServer.Serve(lis); grpcErr != nil {
@@ -312,13 +312,13 @@ func Test_updateArtifactsById(t *testing.T) {
 
 func Test_deleteArtifacts(t *testing.T) {
 	mockClient := &mockNodeArtifactServiceNBServer{}
-	mockClient.On("DeleteArtifacts", mock.Anything, mock.Anything).Return(&pb.DeleteArtifactsResponse{}, nil)
+	mockClient.On("DeleteArtifacts", mock.Anything, mock.Anything).Return(&pb.ArtifactResponse{}, nil)
 	lis, err := net.Listen("tcp", "localhost:16051")
 	if err != nil {
 		t.Fatalf("Failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
-	pb.RegisterNodeArtifactNBServiceServer(grpcServer, mockClient)
+	pb.RegisterNodeArtifactServiceNBServer(grpcServer, mockClient)
 	go func() {
 		defer lis.Close()
 		if grpcErr := grpcServer.Serve(lis); grpcErr != nil {

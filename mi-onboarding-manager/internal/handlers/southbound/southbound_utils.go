@@ -64,7 +64,7 @@ func (sbh *SBHandler) Start() error {
 	}
 
 	sbh.server = grpc.NewServer()
-	pb.RegisterNodeArtifactNBServiceServer(sbh.server, nodeArtifactService)
+	pb.RegisterNodeArtifactServiceNBServer(sbh.server, nodeArtifactService)
 
 	// Run go routine to start the gRPC server
 	go func() {
