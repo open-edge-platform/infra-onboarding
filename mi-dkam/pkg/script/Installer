@@ -34,6 +34,13 @@ else
     exit 1
 fi
 
+if [ -s "/etc/intel_edge_node/customer_id/en_product_key_ids" ]; then
+    PRODUCT_KEY_ID=$(cat /etc/intel_edge_node/customer_id/en_product_key_ids)
+else
+    echo "Product key does not exists"
+    exit 1
+fi
+
 PROVISIONING_URL=${PROVISIONING_URL:-"localhost"}
 ACCESS_TOKEN_URL=__KEYCLOAK_URL__
 RELEASE_TOKEN_URL=__RELEASE_TOKEN_URL__
@@ -812,6 +819,7 @@ install_license_agent(){
         echo "license-agent license-agent/serviceURL string ${LICENSE_MANAGER_URL}" | debconf-set-selections
         echo "license-agent license-agent/YpsURL string ${YPS_URL}" | debconf-set-selections
         echo "license-agent license-agent/enforcement boolean ${ENFORCEMENT}" | debconf-set-selections
+         echo " license-agent license-agent/productkey.ids string ${PRODUCT_KEY_ID}" | debconf-set-selections
         apt-get install -y -o Dpkg::Options::="--force-confnew" license-agent="$VERSION"
         systemctl status -l --no-pager license-agent
         echo "install_license_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
