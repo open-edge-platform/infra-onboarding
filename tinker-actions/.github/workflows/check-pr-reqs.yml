@@ -5,22 +5,18 @@
 on:
   pull_request:
     types:
-    - opened
-    - synchronize
-    - reopened
-    - edited
+      - labeled
+      - opened
+      - synchronize
+      - reopened
+      - edited
 jobs:
   Check-PR-Reqs:
     runs-on: generic
     steps:
-      - name: Check if Jira ticket is added to PR body
-        id: check_body
-        env:
-          PR_BODY: ${{ github.event.pull_request.body }}
-        run: |
-          if [[ "$PR_BODY" =~ \|[\ ]?Jira\ ticket[\ ]?\|[\ ]?[LP|NEX][A-Z0-9]*[\ ]? ]]; then
-            echo "body_contains_jira=true" >> $GITHUB_ENV
-          else
-            echo "body_contains_jira=false" >> $GITHUB_ENV
-            exit 1
-          fi
+      - name: Jira Key Validation
+        uses: intel-innersource/frameworks.actions.jira-pr-key-validation@main
+        with:
+          github_faceless_token: ${{ secrets.SYS_OIE_DEVOPS_GITHUBAPI_TOKEN }}
+          jira_token: ${{ secrets.SYS_OIE_DEVOPS_JIRAAPI }}
+        if: ${{ ! contains(github.event.pull_request.labels.*.name, 'skip-jira-validation') }}
