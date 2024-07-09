@@ -7,17 +7,14 @@ package onboarding
 
 import (
 	"context"
-	"errors"
 	"testing"
 
-	"github.com/stretchr/testify/mock"
-
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	onboarding_mocks "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
+	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
-	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
+	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
 )
 
 func TestUpdateInstanceStatusByGuid(t *testing.T) {
@@ -28,86 +25,35 @@ func TestUpdateInstanceStatusByGuid(t *testing.T) {
 		instancestatus     computev1.InstanceStatus
 		provisioningStatus inv_status.ResourceStatus
 	}
-	MockInvClient := &onboarding_mocks.MockInventoryClient{}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Instance: &computev1.InstanceResource{
-			ResourceId: "inst-084d9b08",
-		},
-	}
-	mockResource1 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockResources := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource1}},
-	}
-	host2 := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-	}
-	mockResource2 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host2,
-		},
-	}
-	mockResources1 := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
-	}
-	host3 := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Instance:   nil,
-	}
-	mockResource3 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host3,
-		},
-	}
-	mockResources3 := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource3}},
-	}
-	MockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
-	MockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	MockInvClient1 := &onboarding_mocks.MockInventoryClient{}
-	MockInvClient1.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
-	MockInvClient1.On("Update", mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
-	MockInvClient2 := &onboarding_mocks.MockInventoryClient{}
-	MockInvClient2.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, errors.New("err"))
-	MockInvClient3 := &onboarding_mocks.MockInventoryClient{}
-	MockInvClient3.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources1, nil)
-	MockInvClient3.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	MockInvClient4 := &onboarding_mocks.MockInventoryClient{}
-	MockInvClient4.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources3, nil)
-	MockInvClient4.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	hostRes := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	osRes := inv_testing.CreateOs(t)
+	inv_testing.CreateInstance(t, hostRes, osRes)
 	tests := []struct {
 		name    string
 		args    args
 		wantErr bool
 	}{
 		{
-			name: "Positive",
+			name: "Instance Doesn't Exist",
 			args: args{
-				ctx: context.TODO(),
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: MockInvClient,
-				},
-				hostUUID:           "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+				ctx:                context.TODO(),
+				invClient:          om_testing.InvClient,
+				hostUUID:           host.Uuid,
 				instancestatus:     computev1.InstanceStatus_INSTANCE_STATUS_ERROR,
 				provisioningStatus: om_status.ProvisioningStatusFailed,
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 		{
-			name: "Negative",
+			name: "InvalidUUIDError",
 			args: args{
-				ctx: context.TODO(),
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: MockInvClient1,
-				},
+				ctx:                context.TODO(),
+				invClient:          om_testing.InvClient,
 				hostUUID:           "mockhostUUID",
 				instancestatus:     computev1.InstanceStatus_INSTANCE_STATUS_ERROR,
 				provisioningStatus: om_status.ProvisioningStatusFailed,
@@ -116,12 +62,10 @@ func TestUpdateInstanceStatusByGuid(t *testing.T) {
 		},
 
 		{
-			name: "Negative1",
+			name: "ListResourcesError",
 			args: args{
-				ctx: context.TODO(),
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: MockInvClient2,
-				},
+				ctx:                context.TODO(),
+				invClient:          om_testing.InvClient,
 				hostUUID:           "mockhostUUID",
 				instancestatus:     computev1.InstanceStatus_INSTANCE_STATUS_ERROR,
 				provisioningStatus: om_status.ProvisioningStatusFailed,
@@ -129,12 +73,10 @@ func TestUpdateInstanceStatusByGuid(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Negative2",
+			name: "ListResourcesEmpty",
 			args: args{
-				ctx: context.TODO(),
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: MockInvClient3,
-				},
+				ctx:                context.TODO(),
+				invClient:          om_testing.InvClient,
 				hostUUID:           "mockhostUUID",
 				instancestatus:     computev1.InstanceStatus_INSTANCE_STATUS_ERROR,
 				provisioningStatus: om_status.ProvisioningStatusFailed,
@@ -142,17 +84,26 @@ func TestUpdateInstanceStatusByGuid(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Negative3",
+			name: "UpdateInstanceNoInstance",
 			args: args{
-				ctx: context.TODO(),
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: MockInvClient4,
-				},
+				ctx:                context.TODO(),
+				invClient:          om_testing.InvClient,
 				hostUUID:           "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
 				instancestatus:     computev1.InstanceStatus_INSTANCE_STATUS_ERROR,
 				provisioningStatus: om_status.ProvisioningStatusFailed,
 			},
 			wantErr: true,
+		},
+		{
+			name: "SuccessfulStatusUpdate",
+			args: args{
+				ctx:                context.TODO(),
+				invClient:          om_testing.InvClient,
+				hostUUID:           hostRes.Uuid,
+				instancestatus:     computev1.InstanceStatus_INSTANCE_STATUS_ERROR,
+				provisioningStatus: om_status.ProvisioningStatusFailed,
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

@@ -6,14 +6,16 @@ package fdoclient
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/env"
-
 	"github.com/google/uuid"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/env"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -229,5 +231,43 @@ func TestStartTO0Process(t *testing.T) {
 		fdoClient.OwnerSvc = srv.URL
 		err := fdoClient.startTO0Process(context.Background(), uuid.NewString())
 		require.NoError(t, err)
+	})
+}
+
+func TestDoVoucherExtension(t *testing.T) {
+	fdoClient := NewFDOClient()
+	t.Run("Failed HTTP call", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("some string"))
+		}))
+		defer srv.Close()
+
+		fdoClient.OwnerSvc = srv.URL
+		_, err := fdoClient.doVoucherExtension(context.Background(), utils.DeviceInfo{})
+		require.Error(t, err)
+	})
+	t.Run("Success", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("voucher ext"))
+		}))
+		defer srv.Close()
+		fdoClient.OwnerSvc = srv.URL
+		fdoClient.MfgSvc = srv.URL
+		if common.FlagRVEnabled == nil {
+			common.FlagRVEnabled = flag.Bool("rvenabled", true, "Set to true")
+		} else {
+			*common.FlagRVEnabled = true
+		}
+	
+		defer func() {
+			if common.FlagRVEnabled != nil {
+				*common.FlagRVEnabled = false
+			}
+		}()
+		voucherExt, err := fdoClient.doVoucherExtension(context.Background(), utils.DeviceInfo{HwSerialID: "1234567"})
+		require.NoError(t, err)
+		assert.Equal(t, "voucher ext", voucherExt)
 	})
 }

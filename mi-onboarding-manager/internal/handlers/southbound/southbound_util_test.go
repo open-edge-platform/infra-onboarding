@@ -41,7 +41,7 @@ func TestSBHandler_Stop(t *testing.T) {
 		fields fields
 	}{
 		{
-			name: "Test Case",
+			name: "graceful Shutdown",
 			fields: fields{
 				invClient: &invclient.OnboardingInventoryClient{},
 				server:    grpcServer,

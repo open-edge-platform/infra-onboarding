@@ -5,26 +5,38 @@ package artifact
 
 import (
 	"context"
-	"errors"
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	onboarding_mocks "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
+	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
-	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
-	providerv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/provider/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/policy/rbac"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
+	"github.com/stretchr/testify/require"
 )
 
 const rbacRules = "../../../../rego/authz.rego"
+
+func TestMain(m *testing.M) {
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	projectRoot := filepath.Dir(filepath.Dir(filepath.Dir(filepath.Dir(wd))))
+	policyPath := projectRoot + "/build"
+	migrationsDir := projectRoot + "/build"
+
+	inv_testing.StartTestingEnvironment(policyPath, "", migrationsDir)
+	run := m.Run() // run all tests
+	inv_testing.StopTestingEnvironment()
+
+	os.Exit(run)
+}
 
 func createIncomingContextWithENJWT(t *testing.T) context.Context {
 	t.Helper()
@@ -39,7 +51,6 @@ func TestNewArtifactService(t *testing.T) {
 		enableAuth bool
 		rbac       string
 	}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
 	tests := []struct {
 		name    string
 		args    args
@@ -47,11 +58,9 @@ func TestNewArtifactService(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case 1",
+			name: "Valid Arguments with Authorization Enabled",
 			args: args{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient,
-				},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       "../../../../rego/authz.rego",
 			},
@@ -59,7 +68,7 @@ func TestNewArtifactService(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Test Case 2",
+			name: "Nil Inventory Client Error Handling",
 			args: args{
 				invClient: nil,
 			},
@@ -154,23 +163,10 @@ func TestNodeArtifactService_CreateNodes_Case(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-	}
-	mockResource2 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
-	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource2,
-	}, nil)
-	mockResources := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
-	}
-	mockInvClient1.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
 	ctx := createIncomingContextWithENJWT(t)
 	tests := []struct {
 		name    string
@@ -180,11 +176,9 @@ func TestNodeArtifactService_CreateNodes_Case(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Negative1",
+			name: "Success Test case for CreateNodes",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient1,
-				},
+				invClient:  om_testing.InvClient,
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -198,9 +192,7 @@ func TestNodeArtifactService_CreateNodes_Case(t *testing.T) {
 		{
 			name: "NoJWT",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient1,
-				},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -246,9 +238,6 @@ func TestNodeArtifactService_CreateNodes_Case1(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
-	mockInvClient1.On("List", mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.ListResourcesResponse{}, errors.New("err"))
 	ctx, cancel := inv_testing.CreateContextWithJWT(t)
 	defer cancel()
 	tests := []struct {
@@ -259,9 +248,9 @@ func TestNodeArtifactService_CreateNodes_Case1(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Positive",
+			name: "Positive test case for creating node",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -288,9 +277,9 @@ func TestNodeArtifactService_CreateNodes_Case1(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Negative",
+			name: "Negative test case for creating node",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -357,21 +346,6 @@ func TestNodeArtifactService_CreateNodes_Case2(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-	}
-	mockResource2 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
-	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource2,
-	}, errors.New("err"))
-	mockInvClient1.On("List", mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.ListResourcesResponse{}, errors.New("err"))
 	ctx, cancel := inv_testing.CreateContextWithJWT(t)
 	defer cancel()
 	tests := []struct {
@@ -384,7 +358,7 @@ func TestNodeArtifactService_CreateNodes_Case2(t *testing.T) {
 		{
 			name: "Negative1",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -398,7 +372,7 @@ func TestNodeArtifactService_CreateNodes_Case2(t *testing.T) {
 		{
 			name: "NoJWT",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -451,23 +425,11 @@ func TestNodeArtifactService_CreateNodes_Case3(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	mockResource2 := &inv_v1.Resource{}
-	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
-	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource2,
-	}, status.Error(codes.NotFound, "Node not found"))
-	mockInvClient1.On("Create", mock.Anything, mock.Anything).Return(&inv_v1.CreateResourceResponse{
-		ResourceId: "host-b8be78c0",
-	}, nil).Once()
-	mockInvClient1.On("Create", mock.Anything, mock.Anything).Return(&inv_v1.CreateResourceResponse{
-		ResourceId: "host-b8be78c0",
-	}, nil).Once()
-	mockResources := &inv_v1.ListResourcesResponse{
-		// Resources: nil,
-	}
-	mockInvClient1.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources,
-		status.Error(codes.NotFound, "Node not found"))
 	ctx := createIncomingContextWithENJWT(t)
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
 	tests := []struct {
 		name    string
 		fields  fields
@@ -478,7 +440,7 @@ func TestNodeArtifactService_CreateNodes_Case3(t *testing.T) {
 		{
 			name: "Positive",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				invClient:  om_testing.InvClient,
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -492,7 +454,7 @@ func TestNodeArtifactService_CreateNodes_Case3(t *testing.T) {
 		{
 			name: "NoJWT",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -545,15 +507,6 @@ func TestNodeArtifactService_CreateNodes_Case4(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	mockResource2 := &inv_v1.Resource{}
-	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
-	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource2,
-	}, status.Error(codes.NotFound, "Node not found"))
-	mockInvClient1.On("Create", mock.Anything, mock.Anything).Return(&inv_v1.CreateResourceResponse{}, errors.New("err"))
-	mockResources := &inv_v1.ListResourcesResponse{}
-	mockInvClient1.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources,
-		status.Error(codes.NotFound, "Node not found"))
 	ctx, cancel := inv_testing.CreateContextWithJWT(t)
 	defer cancel()
 	tests := []struct {
@@ -566,7 +519,7 @@ func TestNodeArtifactService_CreateNodes_Case4(t *testing.T) {
 		{
 			name: "Negative",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -580,7 +533,7 @@ func TestNodeArtifactService_CreateNodes_Case4(t *testing.T) {
 		{
 			name: "NoJWT",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -626,25 +579,10 @@ func TestNodeArtifactService_DeleteNodes_Case1(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-	}
-	mockResource2 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockclient := &onboarding_mocks.MockInventoryClient{}
-	mockResources := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
-	}
-	mockclient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
-	mockclient.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	mockclient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource2,
-	}, nil)
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
 	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
@@ -664,7 +602,7 @@ func TestNodeArtifactService_DeleteNodes_Case1(t *testing.T) {
 		{
 			name: "Positive",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				invClient:  om_testing.InvClient,
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -678,7 +616,7 @@ func TestNodeArtifactService_DeleteNodes_Case1(t *testing.T) {
 		{
 			name: "Negative",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -692,7 +630,7 @@ func TestNodeArtifactService_DeleteNodes_Case1(t *testing.T) {
 		{
 			name: "NoJWT",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -738,20 +676,6 @@ func TestNodeArtifactService_DeleteNodes_Case2(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-	}
-	mockResource2 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockResources := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
-	}
-	mockclient := &onboarding_mocks.MockInventoryClient{}
-	mockclient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, errors.New("err"))
 	tests := []struct {
 		name    string
 		fields  fields
@@ -762,7 +686,7 @@ func TestNodeArtifactService_DeleteNodes_Case2(t *testing.T) {
 		{
 			name: "NoJWT",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -808,25 +732,6 @@ func TestNodeArtifactService_DeleteNodes_Case3(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-	}
-	mockResource2 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockResources := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
-	}
-	mockclient := &onboarding_mocks.MockInventoryClient{}
-	mockclient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
-	mockclient.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
-	mockclient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource2,
-	}, nil)
 	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
@@ -843,7 +748,7 @@ func TestNodeArtifactService_DeleteNodes_Case3(t *testing.T) {
 		{
 			name: "Positive",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -857,7 +762,7 @@ func TestNodeArtifactService_DeleteNodes_Case3(t *testing.T) {
 		{
 			name: "NoJWT",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -903,25 +808,10 @@ func TestNodeArtifactService_DeleteNodes_Case4(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-	}
-	mockResource2 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockResources := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
-	}
-	mockclient := &onboarding_mocks.MockInventoryClient{}
-	mockclient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
-	mockclient.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	mockclient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource2,
-	}, errors.New("err"))
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
 	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
@@ -937,7 +827,7 @@ func TestNodeArtifactService_DeleteNodes_Case4(t *testing.T) {
 		{
 			name: "Positive",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				invClient:  om_testing.InvClient,
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -951,7 +841,7 @@ func TestNodeArtifactService_DeleteNodes_Case4(t *testing.T) {
 		{
 			name: "NoJWT",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -997,19 +887,6 @@ func TestNodeArtifactService_DeleteNodes_Case5(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	mockResource2 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{},
-	}
-	mockResources := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
-	}
-	mockclient := &onboarding_mocks.MockInventoryClient{}
-	mockclient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
-	mockclient.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	mockclient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource2,
-	}, errors.New("err"))
 	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
@@ -1026,7 +903,7 @@ func TestNodeArtifactService_DeleteNodes_Case5(t *testing.T) {
 		{
 			name: "Negative",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -1040,7 +917,7 @@ func TestNodeArtifactService_DeleteNodes_Case5(t *testing.T) {
 		{
 			name: "NoJWT",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -1086,18 +963,11 @@ func TestNodeArtifactService_DeleteNodes_Case6(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	mockResource2 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{},
-	}
-	mockResources := &inv_v1.ListResourcesResponse{}
-	mockclient := &onboarding_mocks.MockInventoryClient{}
-	mockclient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
-	mockclient.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	mockclient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource2,
-	}, nil)
-	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	hwdata := &pb.HwData{Uuid: "1f3cb271-9847-43e1-95b4-adb17570eb7a"}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
@@ -1112,7 +982,7 @@ func TestNodeArtifactService_DeleteNodes_Case6(t *testing.T) {
 		{
 			name: "Negative",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				invClient:  om_testing.InvClient,
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -1128,7 +998,7 @@ func TestNodeArtifactService_DeleteNodes_Case6(t *testing.T) {
 		{
 			name: "NoJWT",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -1174,25 +1044,6 @@ func TestNodeArtifactService_DeleteNodes_Case7(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-	}
-	mockResource2 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockResources := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}, {Resource: mockResource2}},
-	}
-	mockclient := &onboarding_mocks.MockInventoryClient{}
-	mockclient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
-	mockclient.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	mockclient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource2,
-	}, errors.New("err"))
 	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
@@ -1209,7 +1060,7 @@ func TestNodeArtifactService_DeleteNodes_Case7(t *testing.T) {
 		{
 			name: "Negative",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -1223,7 +1074,7 @@ func TestNodeArtifactService_DeleteNodes_Case7(t *testing.T) {
 		{
 			name: "NoJWT",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockclient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -1269,23 +1120,10 @@ func TestNodeArtifactService_GetNodes_Case1(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-	}
-	mockResource2 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockResources := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
-	}
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource2,
-	}, nil)
-	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
 
 	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
 	hwdatas := []*pb.HwData{hwdata}
@@ -1305,7 +1143,7 @@ func TestNodeArtifactService_GetNodes_Case1(t *testing.T) {
 		{
 			name: "Positive",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  om_testing.InvClient,
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -1321,7 +1159,7 @@ func TestNodeArtifactService_GetNodes_Case1(t *testing.T) {
 		{
 			name: "NoJWT",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -1367,22 +1205,10 @@ func TestNodeArtifactService_GetNodes_Case2(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-	}
-	mockResource2 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockResources := &inv_v1.ListResourcesResponse{}
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource2,
-	}, status.Error(codes.NotFound, "Node not found"))
-	mockInvClient.On("List", mock.Anything, mock.Anything,
-		mock.Anything).Return(mockResources, status.Error(codes.NotFound, "Node not found"))
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
 
 	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
 	hwdatas := []*pb.HwData{hwdata}
@@ -1402,7 +1228,7 @@ func TestNodeArtifactService_GetNodes_Case2(t *testing.T) {
 		{
 			name: "Positive",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  om_testing.InvClient,
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -1410,13 +1236,15 @@ func TestNodeArtifactService_GetNodes_Case2(t *testing.T) {
 				ctx: ctx,
 				req: mockRequest,
 			},
-			want:    nil,
+			want: &pb.NodeResponse{
+				Payload: payloads,
+			},
 			wantErr: false,
 		},
 		{
 			name: "NoJWT",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -1462,25 +1290,7 @@ func TestNodeArtifactService_GetNodes_Case3(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-	}
-	mockResource2 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockResources := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
-	}
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource2,
-	}, status.Error(codes.NotFound, "Node not found"))
-	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, errors.New("err"))
-
-	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+	hwdata := &pb.HwData{Uuid: "1f3cb271-9847-43e1-95b4-adb17570eb7a"}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
@@ -1499,7 +1309,7 @@ func TestNodeArtifactService_GetNodes_Case3(t *testing.T) {
 		{
 			name: "Negative",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -1513,7 +1323,7 @@ func TestNodeArtifactService_GetNodes_Case3(t *testing.T) {
 		{
 			name: "NoJWT",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -1559,31 +1369,13 @@ func TestNodeArtifactService_UpdateNodes_Case1(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	hostNic := &computev1.HostnicResource{ResourceId: "hostnic-084d9b08"}
-	hostNics := []*computev1.HostnicResource{hostNic}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-		HostNics:   hostNics,
-	}
-	mockResource := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockResources := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource}},
-	}
-	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource,
-	}, nil)
-	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
 	hwdata := &pb.HwData{
-		Uuid:           "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-		HostNicDevName: "ethx",
+		Uuid: host.Uuid,
 	}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
@@ -1600,9 +1392,9 @@ func TestNodeArtifactService_UpdateNodes_Case1(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test case 1",
+			name: "UpdateNodes with ValidPayload -Success",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  om_testing.InvClient,
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -1616,9 +1408,9 @@ func TestNodeArtifactService_UpdateNodes_Case1(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "NoJWT",
+			name: "Update Nodes with Missing JWT - Error",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -1664,32 +1456,13 @@ func TestNodeArtifactService_UpdateNodes_Case2(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	hostNic := &computev1.HostnicResource{ResourceId: "hostnic-084d9b08"}
-	hostNics := []*computev1.HostnicResource{hostNic}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-		HostNics:   hostNics,
-	}
-	mockResource := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockResources := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource}},
-	}
-	mockInvClient.On("List", mock.Anything, mock.Anything,
-		mock.Anything).Return(mockResources, status.Error(codes.NotFound, "Node not found"))
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource,
-	}, status.Error(codes.NotFound, "Node not found"))
-	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
 	hwdata := &pb.HwData{
-		Uuid:           "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-		HostNicDevName: "ethx",
+		Uuid: host.Uuid,
 	}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
@@ -1697,6 +1470,7 @@ func TestNodeArtifactService_UpdateNodes_Case2(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
+
 	ctx := createIncomingContextWithENJWT(t)
 	tests := []struct {
 		name    string
@@ -1706,9 +1480,9 @@ func TestNodeArtifactService_UpdateNodes_Case2(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test case 1",
+			name: "UpdateNodes_Success_ValidData",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  om_testing.InvClient,
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -1722,9 +1496,9 @@ func TestNodeArtifactService_UpdateNodes_Case2(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "NoJWT",
+			name: "UpdateNodes_Error_NoJWT",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -1770,28 +1544,6 @@ func TestNodeArtifactService_UpdateNodes_Case3(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	hostNic := &computev1.HostnicResource{ResourceId: "hostnic-084d9b08"}
-	hostNics := []*computev1.HostnicResource{hostNic}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-		HostNics:   hostNics,
-	}
-	mockResource := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockResources := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource}},
-	}
-	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, errors.New("err"))
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource,
-	}, status.Error(codes.NotFound, "Node not found"))
-	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 	hwdata := &pb.HwData{
 		Uuid:           "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
 		HostNicDevName: "ethx",
@@ -1812,9 +1564,9 @@ func TestNodeArtifactService_UpdateNodes_Case3(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test case 1",
+			name: "UpdateNodes with list resources - Failure ",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -1826,9 +1578,9 @@ func TestNodeArtifactService_UpdateNodes_Case3(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "NoJWT",
+			name: "UpdateNodes with no JWT provided -Error ",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -1874,28 +1626,6 @@ func TestNodeArtifactService_UpdateNodes_Case4(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	hostNic := &computev1.HostnicResource{ResourceId: "hostnic-084d9b08"}
-	hostNics := []*computev1.HostnicResource{hostNic}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-		HostNics:   hostNics,
-	}
-	mockResource := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockResources := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource}},
-	}
-	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource,
-	}, nil)
-	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
 	hwdata := &pb.HwData{
 		Uuid:           "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
 		HostNicDevName: "ethx",
@@ -1916,9 +1646,9 @@ func TestNodeArtifactService_UpdateNodes_Case4(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test case 1",
+			name: "UpdateNodes_Error_UpdateResourceFailure",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -1930,9 +1660,9 @@ func TestNodeArtifactService_UpdateNodes_Case4(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "NoJWT",
+			name: "UpdateNodes with no JWT provided -Error",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -1978,26 +1708,6 @@ func TestNodeArtifactService_UpdateNodes_Case5(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	hostNic := &computev1.HostnicResource{ResourceId: "hostnic-084d9b08"}
-	hostNics := []*computev1.HostnicResource{hostNic}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-		HostNics:   hostNics,
-	}
-	mockResource := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockInvClient.On("List", mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.ListResourcesResponse{}, status.Error(codes.NotFound, "Node not found"))
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource,
-	}, status.Error(codes.NotFound, "Node not found"))
-	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
 	hwdata := &pb.HwData{
 		Uuid:           "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
 		HostNicDevName: "ethx",
@@ -2018,9 +1728,9 @@ func TestNodeArtifactService_UpdateNodes_Case5(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test case 1",
+			name: "Update nodes with list resources not found -Error",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -2032,9 +1742,9 @@ func TestNodeArtifactService_UpdateNodes_Case5(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "NoJWT",
+			name: "UpdateNodes_Error_NoJWTProvided",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -2080,31 +1790,13 @@ func TestNodeArtifactService_UpdateNodes_Case6(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	hostNic := &computev1.HostnicResource{ResourceId: "hostnic-084d9b08", BmcInterface: true}
-	hostNics := []*computev1.HostnicResource{hostNic}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-		HostNics:   hostNics,
-	}
-	mockResource := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockResources := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource}},
-	}
-	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource,
-	}, nil)
-	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
 	hwdata := &pb.HwData{
-		Uuid:           "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-		HostNicDevName: "ethx",
+		Uuid: host.Uuid,
 	}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
@@ -2121,9 +1813,9 @@ func TestNodeArtifactService_UpdateNodes_Case6(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test case 1",
+			name: "UpdateNodes with valid payload and BMC interface -Success",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  om_testing.InvClient,
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -2137,9 +1829,9 @@ func TestNodeArtifactService_UpdateNodes_Case6(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "NoJWT",
+			name: "UpdateNodes with no JWT provided -Error",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -2182,24 +1874,10 @@ func TestNodeArtifactService_startZeroTouch(t *testing.T) {
 		ctx       context.Context
 		hostResID string
 	}
-	mockHost := &computev1.HostResource{
-		ResourceId:   "host-084d9b08",
-		DesiredState: computev1.HostState_HOST_STATE_DELETED,
-		Instance: &computev1.InstanceResource{
-			ResourceId: "inst-084d9b08",
-		},
-	}
-	mockResource := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: mockHost,
-		},
-	}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
-	mockResources1 := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource}},
-	}
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{Resource: mockResource}, nil)
-	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources1, nil)
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
 	tests := []struct {
 		name    string
 		fields  fields
@@ -2207,14 +1885,10 @@ func TestNodeArtifactService_startZeroTouch(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "Start zeroTouch host deleted -Success",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient,
-				},
-				invClientAPI: &invclient.OnboardingInventoryClient{
-					Client: &onboarding_mocks.MockInventoryClient{},
-				},
+				invClient:    om_testing.InvClient,
+				invClientAPI: om_testing.InvClient,
 			},
 			args: args{
 				ctx:       context.Background(),
@@ -2247,20 +1921,10 @@ func TestNodeArtifactService_startZeroTouch_Case(t *testing.T) {
 		ctx       context.Context
 		hostResID string
 	}
-	mockHost := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-	}
-	mockResource := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: mockHost,
-		},
-	}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
-	mockResources1 := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource}},
-	}
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{Resource: mockResource}, nil)
-	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources1, nil)
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
 	tests := []struct {
 		name    string
 		fields  fields
@@ -2270,12 +1934,8 @@ func TestNodeArtifactService_startZeroTouch_Case(t *testing.T) {
 		{
 			name: "Test Case",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient,
-				},
-				invClientAPI: &invclient.OnboardingInventoryClient{
-					Client: &onboarding_mocks.MockInventoryClient{},
-				},
+				invClient:    om_testing.InvClient,
+				invClientAPI: om_testing.InvClient,
 			},
 			args: args{
 				ctx:       context.Background(),
@@ -2313,11 +1973,9 @@ func TestNewArtifactService_Case(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "NewArtifactService_WithInvalidRBACFile",
 			args: args{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: &onboarding_mocks.MockInventoryClient{},
-				},
+				invClient:     &invclient.OnboardingInventoryClient{},
 				inventoryAdr:  "addr",
 				enableTracing: false,
 				enableAuth:    true,
@@ -2361,22 +2019,10 @@ func TestNodeArtifactService_CreateNodes_Case5(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	mockResource2 := &inv_v1.Resource{}
-	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
-	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource2,
-	}, status.Error(codes.NotFound, "Node not found"))
-	mockInvClient1.On("Create", mock.Anything, mock.Anything).Return(&inv_v1.CreateResourceResponse{
-		ResourceId: "host-b8be78c0",
-	}, nil).Once()
-	mockInvClient1.On("Create", mock.Anything, mock.Anything).Return(&inv_v1.CreateResourceResponse{
-		ResourceId: "host-b8be78c0",
-	}, errors.New("err")).Once()
-	mockResources := &inv_v1.ListResourcesResponse{
-		// Resources: nil,
-	}
-	mockInvClient1.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources,
-		status.Error(codes.NotFound, "Node not found"))
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
 	ctx := createIncomingContextWithENJWT(t)
 	tests := []struct {
 		name    string
@@ -2388,7 +2034,7 @@ func TestNodeArtifactService_CreateNodes_Case5(t *testing.T) {
 		{
 			name: "Positive",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				invClient:  om_testing.InvClient,
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -2402,7 +2048,7 @@ func TestNodeArtifactService_CreateNodes_Case5(t *testing.T) {
 		{
 			name: "NoJWT",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -2448,33 +2094,13 @@ func TestNodeArtifactService_UpdateNodes_Case7(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	hostNic := &computev1.HostnicResource{ResourceId: "hostnic-084d9b08", BmcInterface: true}
-	hostNics := []*computev1.HostnicResource{hostNic}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-		HostNics:   hostNics,
-	}
-	mockResource := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockResources := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource}},
-	}
-	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil).Once()
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource,
-	}, nil).Once()
-	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil).Once()
-	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err")).Once()
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
 	hwdata := &pb.HwData{
-		Uuid:           "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-		HostNicDevName: "ethx",
+		Uuid: host.Uuid,
 	}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
@@ -2491,9 +2117,9 @@ func TestNodeArtifactService_UpdateNodes_Case7(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test case 1",
+			name: "Update nodes withcJWT -Successful",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  om_testing.InvClient,
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -2507,7 +2133,7 @@ func TestNodeArtifactService_UpdateNodes_Case7(t *testing.T) {
 		{
 			name: "NoJWT",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -2550,27 +2176,10 @@ func TestNodeArtifactService_startZeroTouch_Case1(t *testing.T) {
 		ctx       context.Context
 		hostResID string
 	}
-	mockHost := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-	}
-	mockResource := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: mockHost,
-		},
-	}
-	mockResource1 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Provider{
-			Provider: &providerv1.ProviderResource{
-				Name: "fm_onboarding",
-			},
-		},
-	}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
-	mockResources1 := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource1}},
-	}
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{Resource: mockResource}, nil).Once()
-	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources1, nil).Once()
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
 	tests := []struct {
 		name    string
 		fields  fields
@@ -2578,14 +2187,10 @@ func TestNodeArtifactService_startZeroTouch_Case1(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "Start ZeroTouch with provider -Successful",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient,
-				},
-				invClientAPI: &invclient.OnboardingInventoryClient{
-					Client: &onboarding_mocks.MockInventoryClient{},
-				},
+				invClient:    om_testing.InvClient,
+				invClientAPI: om_testing.InvClient,
 			},
 			args: args{
 				ctx:       context.Background(),
@@ -2618,28 +2223,11 @@ func TestNodeArtifactService_startZeroTouch_Case2(t *testing.T) {
 		ctx       context.Context
 		hostResID string
 	}
-	mockHost := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-	}
-	mockResource := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: mockHost,
-		},
-	}
-	mockResource1 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Provider{
-			Provider: &providerv1.ProviderResource{
-				Config: "config",
-				Name:   "fm_onboarding",
-			},
-		},
-	}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
-	mockResources1 := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource1}},
-	}
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{Resource: mockResource}, nil).Once()
-	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources1, nil).Once()
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+
 	tests := []struct {
 		name    string
 		fields  fields
@@ -2647,14 +2235,10 @@ func TestNodeArtifactService_startZeroTouch_Case2(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "Start ZeroTouch with no provider creation -Successful",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient,
-				},
-				invClientAPI: &invclient.OnboardingInventoryClient{
-					Client: &onboarding_mocks.MockInventoryClient{},
-				},
+				invClient:    om_testing.InvClient,
+				invClientAPI: om_testing.InvClient,
 			},
 			args: args{
 				ctx:       context.Background(),
@@ -2687,30 +2271,10 @@ func TestNodeArtifactService_startZeroTouch_Case3(t *testing.T) {
 		ctx       context.Context
 		hostResID string
 	}
-	mockHost := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-	}
-	mockResource := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: mockHost,
-		},
-	}
-	mockResource1 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Provider{
-			Provider: &providerv1.ProviderResource{
-				Config: "{\"defaultOs\":\"linux\",\"autoProvision\":true}",
-				Name:   "fm_onboarding",
-			},
-		},
-	}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
-	mockResources1 := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource1}},
-	}
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{Resource: mockResource}, nil)
-	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources1, nil)
-	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
-	mockInvClient1.On("Create", mock.Anything, mock.Anything).Return(&inv_v1.CreateResourceResponse{}, nil)
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
 	tests := []struct {
 		name    string
 		fields  fields
@@ -2718,14 +2282,10 @@ func TestNodeArtifactService_startZeroTouch_Case3(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "Start ZeroTouch with provider creation -Success",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient,
-				},
-				invClientAPI: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient1,
-				},
+				invClient:    om_testing.InvClient,
+				invClientAPI: om_testing.InvClient,
 			},
 			args: args{
 				ctx:       context.Background(),
@@ -2758,30 +2318,14 @@ func TestNodeArtifactService_startZeroTouch_Case4(t *testing.T) {
 		ctx       context.Context
 		hostResID string
 	}
-	mockHost := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-	}
-	mockResource := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: mockHost,
-		},
-	}
-	mockResource1 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Provider{
-			Provider: &providerv1.ProviderResource{
-				Config: "{\"defaultOs\":\"linux\",\"autoProvision\":true}",
-				Name:   "fm_onboarding",
-			},
-		},
-	}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
-	mockResources1 := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource1}},
-	}
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{Resource: mockResource}, nil).Once()
-	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources1, nil).Once()
-	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
-	mockInvClient1.On("Create", mock.Anything, mock.Anything).Return(&inv_v1.CreateResourceResponse{}, errors.New("err")).Once()
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	osRes := inv_testing.CreateOs(t)
+	inv_testing.CreateInstance(t, host, osRes)
+	inv_testing.CreateProvider(t, utils.DefaultProviderName)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -2789,20 +2333,16 @@ func TestNodeArtifactService_startZeroTouch_Case4(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "Start ZeroTouch with provider creation -Error",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient,
-				},
-				invClientAPI: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient1,
-				},
+				invClient:    om_testing.InvClient,
+				invClientAPI: om_testing.InvClient,
 			},
 			args: args{
 				ctx:       context.Background(),
-				hostResID: "host-084d9b08",
+				hostResID: host.ResourceId,
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -2818,6 +2358,7 @@ func TestNodeArtifactService_startZeroTouch_Case4(t *testing.T) {
 		})
 	}
 }
+
 func TestNodeArtifactService_GetNodes_Case4(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
@@ -2831,30 +2372,24 @@ func TestNodeArtifactService_GetNodes_Case4(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12",
-	}
-	mockResource2 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockResources := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
-	}
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource2,
-	}, nil)
-	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
-
-	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12"}
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	hwdata := &pb.HwData{Uuid: "1f3cb271-9847-43e1-95b4-adb17570eb7a"}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
+	}
+
+	hwdata1 := &pb.HwData{Uuid: "9da8a789-f9f8-434a-8720-bbead"}
+	hwdatas1 := []*pb.HwData{hwdata1}
+	payload1 := pb.NodeData{Hwdata: hwdatas1}
+	payloads1 := []*pb.NodeData{&payload1}
+	mockRequest1 := &pb.NodeRequest{
+		Payload: payloads1,
 	}
 	ctx := createIncomingContextWithENJWT(t)
 	tests := []struct {
@@ -2865,9 +2400,9 @@ func TestNodeArtifactService_GetNodes_Case4(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Positive",
+			name: "Host Not found error",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  om_testing.InvClient,
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -2878,12 +2413,12 @@ func TestNodeArtifactService_GetNodes_Case4(t *testing.T) {
 			want: &pb.NodeResponse{
 				Payload: payloads,
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "NoJWT",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -2892,6 +2427,22 @@ func TestNodeArtifactService_GetNodes_Case4(t *testing.T) {
 				req: nil,
 			},
 			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "Failed to create node",
+			fields: fields{
+				invClient:  om_testing.InvClient,
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: ctx,
+				req: mockRequest1,
+			},
+			want: &pb.NodeResponse{
+				Payload: payloads,
+			},
 			wantErr: true,
 		},
 	}
@@ -2926,29 +2477,11 @@ func TestNodeArtifactService_UpdateNodes_Case8(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	hostNic := &computev1.HostnicResource{ResourceId: "hostnic-084d9b08"}
-	hostNics := []*computev1.HostnicResource{hostNic}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b",
-		HostNics:   hostNics,
-	}
-	mockResource := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockResources := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource}},
-	}
-	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource,
-	}, nil)
-	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b"}
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	hwdata := &pb.HwData{}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
@@ -2966,7 +2499,7 @@ func TestNodeArtifactService_UpdateNodes_Case8(t *testing.T) {
 		{
 			name: "Test case 1",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  om_testing.InvClient,
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -2982,7 +2515,7 @@ func TestNodeArtifactService_UpdateNodes_Case8(t *testing.T) {
 		{
 			name: "NoJWT",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  om_testing.InvClient,
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -3025,29 +2558,11 @@ func TestNodeArtifactService_UpdateNodes_Case9(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	hostNic := &computev1.HostnicResource{ResourceId: "hostnic-084d9b08"}
-	hostNics := []*computev1.HostnicResource{hostNic}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-		HostNics:   hostNics,
-	}
-	mockResource := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockResources := &inv_v1.ListResourcesResponse{
-		// Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource}},
-	}
-	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, status.Error(codes.NotFound, "Node not found"))
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource,
-	}, status.Error(codes.NotFound, "Node not found"))
-	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	hwdata := &pb.HwData{Uuid: "1f3cb271-9847-43e1-95b4-adb17570eb7a"}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
@@ -3065,7 +2580,7 @@ func TestNodeArtifactService_UpdateNodes_Case9(t *testing.T) {
 		{
 			name: "Test case 1",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  om_testing.InvClient,
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -3081,7 +2596,7 @@ func TestNodeArtifactService_UpdateNodes_Case9(t *testing.T) {
 		{
 			name: "NoJWT",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -3131,23 +2646,10 @@ func TestNodeArtifactService_CreateNodes_Case6(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0a",
-	}
-	mockResource2 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
-	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource2,
-	}, nil)
-	mockResources := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
-	}
-	mockInvClient1.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
 	ctx := createIncomingContextWithENJWT(t)
 	tests := []struct {
 		name    string
@@ -3159,9 +2661,7 @@ func TestNodeArtifactService_CreateNodes_Case6(t *testing.T) {
 		{
 			name: "Negative1",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient1,
-				},
+				invClient:  om_testing.InvClient,
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -3175,9 +2675,7 @@ func TestNodeArtifactService_CreateNodes_Case6(t *testing.T) {
 		{
 			name: "NoJWT",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient1,
-				},
+				invClient:  om_testing.InvClient,
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -3220,6 +2718,10 @@ func TestNodeArtifactService_CreateNodes_Case7(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
 	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
@@ -3227,22 +2729,7 @@ func TestNodeArtifactService_CreateNodes_Case7(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	mockResource2 := &inv_v1.Resource{}
-	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
-	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource2,
-	}, nil)
-	mockInvClient1.On("Create", mock.Anything, mock.Anything).Return(&inv_v1.CreateResourceResponse{
-		ResourceId: "host-b8be78c0",
-	}, errors.New("err")).Once()
-	mockInvClient1.On("Create", mock.Anything, mock.Anything).Return(&inv_v1.CreateResourceResponse{
-		ResourceId: "host-b8be78c0",
-	}, errors.New("err")).Once()
-	mockResources := &inv_v1.ListResourcesResponse{
-		// Resources: nil,
-	}
-	mockInvClient1.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources,
-		nil)
+
 	ctx := createIncomingContextWithENJWT(t)
 	tests := []struct {
 		name    string
@@ -3254,7 +2741,7 @@ func TestNodeArtifactService_CreateNodes_Case7(t *testing.T) {
 		{
 			name: "Positive",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				invClient:  om_testing.InvClient,
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -3263,12 +2750,12 @@ func TestNodeArtifactService_CreateNodes_Case7(t *testing.T) {
 				req: mockRequest,
 			},
 			want:    nil,
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "NoJWT",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{Client: mockInvClient1},
+				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -3296,6 +2783,83 @@ func TestNodeArtifactService_CreateNodes_Case7(t *testing.T) {
 			}
 			if reflect.DeepEqual(got, tt.want) && !tt.wantErr {
 				t.Errorf("NodeArtifactService.CreateNodes() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNodeArtifactService_checkNCreateInstance(t *testing.T) {
+	type fields struct {
+		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
+		invClient                                *invclient.OnboardingInventoryClient
+		invClientAPI                             *invclient.OnboardingInventoryClient
+		rbac                                     *rbac.Policy
+		authEnabled                              bool
+	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	type args struct {
+		ctx   context.Context
+		pconf invclient.ProviderConfig
+		host  *computev1.HostResource
+	}
+	ctx := createIncomingContextWithENJWT(t)
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Create Instance Failure",
+			fields: fields{
+				invClient:    om_testing.InvClient,
+				invClientAPI: om_testing.InvClient,
+				rbac:         rbacServer,
+				authEnabled:  true,
+			},
+			args: args{
+				ctx: ctx,
+				pconf: invclient.ProviderConfig{
+					AutoProvision: true,
+				},
+				host: &computev1.HostResource{},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Create Instance Failure",
+			fields: fields{
+				invClient:    om_testing.InvClient,
+				invClientAPI: om_testing.InvClient,
+				rbac:         rbacServer,
+				authEnabled:  true,
+			},
+			args: args{
+				ctx: ctx,
+				pconf: invclient.ProviderConfig{
+					AutoProvision: false,
+				},
+				host: &computev1.HostResource{},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &NodeArtifactService{
+				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+				invClient:                                tt.fields.invClient,
+				invClientAPI:                             tt.fields.invClientAPI,
+				rbac:                                     tt.fields.rbac,
+				authEnabled:                              tt.fields.authEnabled,
+			}
+			if err := s.checkNCreateInstance(tt.args.ctx, tt.args.pconf, tt.args.host); (err != nil) != tt.wantErr {
+				t.Errorf("NodeArtifactService.checkNCreateInstance() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

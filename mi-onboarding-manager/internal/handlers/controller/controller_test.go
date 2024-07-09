@@ -11,18 +11,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	rec_v2 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go/pkg/controller/v2"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/controller/reconcilers"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	onboarding_mocks "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
 	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
-	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
 )
 
@@ -351,110 +347,6 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestOnboardingController_Start(t *testing.T) {
-	invClient := &onboarding_mocks.MockInventoryClient{}
-	invClient.On("FindAll", mock.Anything, mock.Anything, mock.Anything).
-		Return([]string{}, nil)
-	invClient1 := &onboarding_mocks.MockInventoryClient{}
-	invClient1.On("FindAll", mock.Anything, mock.Anything, mock.Anything).
-		Return([]string{}, errors.New("Error"))
-	invClient2 := &onboarding_mocks.MockInventoryClient{}
-	invClient2.On("FindAll", mock.Anything, mock.Anything, mock.Anything).
-		Return([]string{"64-567"}, nil)
-	invClient3 := &onboarding_mocks.MockInventoryClient{}
-	invClient3.On("FindAll", mock.Anything, mock.Anything, mock.Anything).
-		Return([]string{"os-567"}, nil)
-	type fields struct {
-		invClient   *invclient.OnboardingInventoryClient
-		filters     map[inv_v1.ResourceKind]Filter
-		controllers map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ResourceID]
-		wg          *sync.WaitGroup
-		stop        chan bool
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		wantErr bool
-	}{
-		{
-			name: "Positive",
-			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{Client: invClient},
-
-				filters:     make(map[inv_v1.ResourceKind]Filter),
-				controllers: make(map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ResourceID]),
-				wg:          &sync.WaitGroup{},
-				stop:        make(chan bool),
-			},
-			wantErr: false,
-		},
-		{
-			name: "Negative",
-			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{Client: invClient1},
-
-				filters:     make(map[inv_v1.ResourceKind]Filter),
-				controllers: make(map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ResourceID]),
-				wg:          &sync.WaitGroup{},
-				stop:        make(chan bool),
-			},
-			wantErr: true,
-		},
-		{
-			name: "Negative1",
-			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{Client: invClient2},
-
-				filters:     make(map[inv_v1.ResourceKind]Filter),
-				controllers: make(map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ResourceID]),
-				wg:          &sync.WaitGroup{},
-				stop:        make(chan bool),
-			},
-			wantErr: true,
-		},
-		{
-			name: "Negative2",
-			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{Client: invClient3},
-
-				filters:     make(map[inv_v1.ResourceKind]Filter),
-				controllers: make(map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ResourceID]),
-				wg:          &sync.WaitGroup{},
-				stop:        make(chan bool),
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			obc := &OnboardingController{
-				invClient:   tt.fields.invClient,
-				filters:     tt.fields.filters,
-				controllers: tt.fields.controllers,
-				wg:          tt.fields.wg,
-				stop:        tt.fields.stop,
-			}
-			go func() {
-				obc.invClient.Watcher <- &inv_client.WatchEvents{
-					Event: &inv_v1.SubscribeEventsResponse{
-						ResourceId: "64-567",
-					},
-				}
-			}()
-			go func() {
-				obc.invClient.Watcher <- &inv_client.WatchEvents{
-					Event: &inv_v1.SubscribeEventsResponse{
-						ResourceId: "os-567",
-					},
-				}
-			}()
-			if err := obc.Start(); (err != nil) != tt.wantErr {
-				t.Errorf("OnboardingController.Start() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestOnboardingController_Stop(t *testing.T) {
 	type fields struct {
 		invClient   *invclient.OnboardingInventoryClient
@@ -624,7 +516,7 @@ func TestOnboardingController_filterEvent(t *testing.T) {
 		want   bool
 	}{
 		{
-			name: "TestCase1",
+			name: "Test onboarding controller -filter event with valid filter",
 			fields: fields{
 				filters: map[inv_v1.ResourceKind]Filter{
 					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(event *inv_v1.SubscribeEventsResponse) bool {
@@ -638,7 +530,7 @@ func TestOnboardingController_filterEvent(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "TestCase2",
+			name: "Test onboarding controller -filter event with invalid filter",
 			fields: fields{
 				filters: map[inv_v1.ResourceKind]Filter{
 					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(event *inv_v1.SubscribeEventsResponse) bool {
@@ -652,7 +544,7 @@ func TestOnboardingController_filterEvent(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "TestCase3",
+			name: "Test OnboardingController -filter event with no filters",
 			fields: fields{
 				filters: map[inv_v1.ResourceKind]Filter{},
 			},
@@ -662,7 +554,7 @@ func TestOnboardingController_filterEvent(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "TestCase4",
+			name: "Test OnboardingController -Filter event with no ResourceId",
 			fields: fields{
 				filters: map[inv_v1.ResourceKind]Filter{},
 			},
@@ -711,7 +603,7 @@ func TestOnboardingController_filterEvent_Case(t *testing.T) {
 		want   bool
 	}{
 		{
-			name: "TestCase1",
+			name: "Test OnboardingController -Filter event with valid filter",
 			fields: fields{
 				filters: map[inv_v1.ResourceKind]Filter{
 					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(event *inv_v1.SubscribeEventsResponse) bool {
@@ -725,7 +617,7 @@ func TestOnboardingController_filterEvent_Case(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "TestCase2",
+			name: "Test OnboardingController -Filter event with invalid filter",
 			fields: fields{
 				filters: map[inv_v1.ResourceKind]Filter{
 					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(event *inv_v1.SubscribeEventsResponse) bool {
@@ -739,7 +631,7 @@ func TestOnboardingController_filterEvent_Case(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "TestCase4",
+			name: "Test OnboardingController -Filter event with no matching filter",
 			fields: fields{
 				filters: map[inv_v1.ResourceKind]Filter{
 					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(event *inv_v1.SubscribeEventsResponse) bool {

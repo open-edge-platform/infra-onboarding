@@ -80,7 +80,7 @@ func TestNewTemplateData(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case 1",
+			name: "TestNewDITemplateData_ValidData",
 			args: args{
 				name:     "TestWorkflow",
 				ip:       "000.0.0.0",
@@ -117,7 +117,7 @@ func TestNewRebootTemplateData(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "TestNewRebootTemplateData_ValidName",
 			args: args{
 				name: "name",
 			},

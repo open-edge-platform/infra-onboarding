@@ -13,7 +13,6 @@ import (
 
 	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/api/dkammgr/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
 )
 
 const rbacRules = "../../../rego/authz.rego"
@@ -25,27 +24,25 @@ func TestInitOnboarding(t *testing.T) {
 		enableAuth bool
 		rbac       string
 	}
-	mockInvClient := &onboarding.MockInventoryClient{}
 	inputargs := args{
-		invClient: &invclient.OnboardingInventoryClient{
-			Client: mockInvClient,
-		},
+		invClient:  &invclient.OnboardingInventoryClient{},
 		enableAuth: true,
 		rbac:       rbacRules,
 	}
 	inputargs1 := args{
 		invClient: nil,
+		enableAuth: true,
 	}
 	tests := []struct {
 		name string
 		args args
 	}{
 		{
-			name: "positive",
+			name: "SuccessfulInitialization",
 			args: inputargs,
 		},
 		{
-			name: "negative",
+			name: "MissingInventoryClient",
 			args: inputargs1,
 		},
 	}
@@ -69,7 +66,7 @@ func TestGetOSResourceFromDkamService(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "TestCase1",
+			name: "DKAM endpoint is not set -Error",
 			args: args{
 				ctx: context.TODO(),
 			},
@@ -77,7 +74,7 @@ func TestGetOSResourceFromDkamService(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "TestCase2",
+			name: "DKAM endpoint is set -Error",
 			args: args{
 				ctx: context.TODO(),
 			},
@@ -142,4 +139,8 @@ func TestGetOSResourceFromDkamService_Case1(t *testing.T) {
 			}
 		})
 	}
+	defer func() {
+		os.Unsetenv("DKAMHOST")
+		os.Unsetenv("DKAMPORT")
+	}()
 }

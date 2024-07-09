@@ -13,14 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/test/bufconn"
-
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/southbound"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	onboarding_mock "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
 	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
@@ -29,6 +23,10 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/policy/rbac"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/test/bufconn"
 )
 
 var (
@@ -186,14 +184,23 @@ func TestNewSBHandler(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "NewSB handler-Success",
 			args: args{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: &onboarding_mock.MockInventoryClient{},
-				},
+				invClient: &invclient.OnboardingInventoryClient{},
 			},
 			want:    &southbound.SBHandler{},
 			wantErr: false,
+		},
+		{
+			name: "NewSB handler-failure",
+			args: args{
+				config: southbound.SBHandlerConfig{
+					ServerAddress: "abc",
+				},
+				invClient: &invclient.OnboardingInventoryClient{},
+			},
+			want:    &southbound.SBHandler{},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

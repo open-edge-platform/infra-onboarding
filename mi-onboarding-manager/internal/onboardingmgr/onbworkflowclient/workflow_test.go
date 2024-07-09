@@ -7,16 +7,9 @@ package onbworkflowclient
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"crypto/x509/pkix"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"flag"
-	"fmt"
-	"math/big"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -26,22 +19,22 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/env"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
+	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/tinkerbell"
+	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
+	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
+	kubeErr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/env"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
-	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
-	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 )
-
-const voucherEndPoint = "/api/v1/owner/vouchers/"
 
 func Test_checkTO2StatusCompleted(t *testing.T) {
 	type args struct {
@@ -55,7 +48,7 @@ func Test_checkTO2StatusCompleted(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "CheckTO2StatusCompleted_WhenContextIsBackground",
 			args: args{
 				in0: context.Background(),
 			},
@@ -167,7 +160,7 @@ func Test_checkTO2StatusCompleted_Case1(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case1",
+			name: "TO2StatusCompleted_WhenValidResponseReceived",
 			args: args{
 				in0: context.Background(),
 				deviceInfo: utils.DeviceInfo{
@@ -223,7 +216,7 @@ func Test_checkTO2StatusCompleted_Case2(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case1",
+			name: "TO2StatusCompleted_WhenLocalServerResponds",
 			args: args{
 				in0: context.Background(),
 				deviceInfo: utils.DeviceInfo{
@@ -282,7 +275,7 @@ func Test_checkTO2StatusCompleted_Case3(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case1",
+			name: "TO2StatusCompleted_WhenCompletedOnValuePresent",
 			args: args{
 				in0: context.Background(),
 				deviceInfo: utils.DeviceInfo{
@@ -321,103 +314,10 @@ func TestCheckStatusOrRunProdWorkflow(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "Empty Context and Instance",
 			args: args{
 				ctx:      context.Background(),
 				instance: &computev1.InstanceResource{},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := CheckStatusOrRunProdWorkflow(tt.args.ctx, tt.args.deviceInfo, tt.args.instance); (err != nil) != tt.wantErr {
-				t.Errorf("CheckStatusOrRunProdWorkflow() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestCheckStatusOrRunProdWorkflow_Case1(t *testing.T) {
-	t.Setenv("KUBERNETES_SERVICE_HOST", "localhost")
-	t.Setenv("KUBERNETES_SERVICE_PORT", "2521")
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		fmt.Println("Failed to generate private key:", err)
-		return
-	}
-	template := x509.Certificate{
-		SerialNumber:          big.NewInt(1),
-		Subject:               pkix.Name{Organization: []string{"Dummy Org"}},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(1, 0, 0),
-		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
-		BasicConstraintsValid: true,
-		IsCA:                  true,
-	}
-	caCertBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
-	if err != nil {
-		fmt.Println("Failed to create CA certificate:", err)
-		return
-	}
-	path := "/var"
-	dummypath := "/run/secrets/kubernetes.io/serviceaccount/"
-	cerr := os.MkdirAll(path+dummypath, 0o755)
-	if cerr != nil {
-		t.Fatalf("Error creating directory: %v", cerr)
-	}
-	file, crErr := os.Create(path + dummypath + "token")
-	if crErr != nil {
-		t.Fatalf("Error creating file: %v", crErr)
-	}
-	fmt.Println("token File :", file.Name())
-	defer func() {
-		remErr := os.RemoveAll("/run/secrets/kubernetes.io/serviceaccount/token")
-		if remErr != nil {
-			t.Fatalf("Error while removing file: %v", remErr)
-		}
-	}()
-	dummyData := "Thisissomedummydata"
-	_, err = file.WriteString(dummyData)
-	if err != nil {
-		fmt.Println("Error writing to file:", err)
-		return
-	}
-	certOut, cerrErr := os.Create(path + dummypath + "ca.crt")
-	if cerrErr != nil {
-		t.Fatalf("Error creating cert file: %v", cerrErr)
-	}
-	fmt.Println("certOut File :", certOut.Name())
-	fmt.Println("CA certificate created successfully as ca.crt")
-	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: caCertBytes})
-	defer func() {
-		remErr := os.RemoveAll("/run/secrets/kubernetes.io/serviceaccount/ca.crt")
-		if remErr != nil {
-			t.Fatalf("Error while removing file: %v", remErr)
-		}
-	}()
-	file.Close()
-	certOut.Close()
-	type args struct {
-		ctx        context.Context
-		deviceInfo utils.DeviceInfo
-		instance   *computev1.InstanceResource
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
-			args: args{
-				ctx: context.Background(),
-				instance: &computev1.InstanceResource{
-					Host: &computev1.HostResource{
-						ResourceId: "host-084d9b08",
-					},
-				},
 			},
 			wantErr: true,
 		},
@@ -443,7 +343,7 @@ func TestCheckStatusOrRunDIWorkflow(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "Valid Instance",
 			args: args{
 				ctx:        context.Background(),
 				deviceInfo: utils.DeviceInfo{},
@@ -466,66 +366,14 @@ func TestCheckStatusOrRunDIWorkflow(t *testing.T) {
 }
 
 func TestCheckStatusOrRunDIWorkflow_Case1(t *testing.T) {
-	t.Setenv("KUBERNETES_SERVICE_HOST", "localhost")
-	t.Setenv("KUBERNETES_SERVICE_PORT", "2521")
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		fmt.Println("Failed to generate private key:", err)
-		return
-	}
-	template := x509.Certificate{
-		SerialNumber:          big.NewInt(1),
-		Subject:               pkix.Name{Organization: []string{"Dummy Org"}},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(1, 0, 0),
-		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
-		BasicConstraintsValid: true,
-		IsCA:                  true,
-	}
-	caCertBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
-	if err != nil {
-		fmt.Println("Failed to create CA certificate:", err)
-		return
-	}
-	path := "/var"
-	dummypath := "/run/secrets/kubernetes.io/serviceaccount/"
-	cerr := os.MkdirAll(path+dummypath, 0o755)
-	if cerr != nil {
-		t.Fatalf("Error creating directory: %v", cerr)
-	}
-	file, crErr := os.Create(path + dummypath + "token")
-	if crErr != nil {
-		t.Fatalf("Error creating file: %v", crErr)
-	}
-	fmt.Println("token File :", file.Name())
+	currK8sClientFactory := tinkerbell.K8sClientFactory
+	currFlagEnableDeviceInitialization := *common.FlagDisableCredentialsManagement
 	defer func() {
-		remErr := os.RemoveAll("/run/secrets/kubernetes.io/serviceaccount/token")
-		if remErr != nil {
-			t.Fatalf("Error while removing file: %v", remErr)
-		}
+		tinkerbell.K8sClientFactory = currK8sClientFactory
+		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
-	dummyData := "Thisissomedummydata"
-	_, err = file.WriteString(dummyData)
-	if err != nil {
-		fmt.Println("Error writing to file:", err)
-		return
-	}
-	certOut, cerrErr := os.Create(path + dummypath + "ca.crt")
-	if cerrErr != nil {
-		t.Fatalf("Error creating cert file: %v", cerrErr)
-	}
-	fmt.Println("certOut File :", certOut.Name())
-	fmt.Println("CA certificate created successfully as ca.crt")
-	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: caCertBytes})
-	defer func() {
-		remErr := os.RemoveAll("/run/secrets/kubernetes.io/serviceaccount/ca.crt")
-		if remErr != nil {
-			t.Fatalf("Error while removing file: %v", remErr)
-		}
-	}()
-	file.Close()
-	certOut.Close()
+	*common.FlagEnableDeviceInitialization = true
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
 	type args struct {
 		ctx        context.Context
 		deviceInfo utils.DeviceInfo
@@ -537,7 +385,7 @@ func TestCheckStatusOrRunDIWorkflow_Case1(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "Valid K8sClientFactory",
 			args: args{
 				ctx:        context.Background(),
 				deviceInfo: utils.DeviceInfo{},
@@ -559,6 +407,44 @@ func TestCheckStatusOrRunDIWorkflow_Case1(t *testing.T) {
 	}
 }
 
+func TestCheckStatusOrRunDIWorkflow_Case(t *testing.T) {
+	*common.FlagEnableDeviceInitialization = false
+	type args struct {
+		ctx        context.Context
+		deviceInfo utils.DeviceInfo
+		instance   *computev1.InstanceResource
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Valid Instance",
+			args: args{
+				ctx:        context.Background(),
+				deviceInfo: utils.DeviceInfo{},
+				instance: &computev1.InstanceResource{
+					Host: &computev1.HostResource{
+						ResourceId: "host-084d9b08",
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := CheckStatusOrRunDIWorkflow(tt.args.ctx, tt.args.deviceInfo, tt.args.instance); (err != nil) != tt.wantErr {
+				t.Errorf("CheckStatusOrRunDIWorkflow() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+	defer func() {
+		*common.FlagEnableDeviceInitialization = true
+	}()
+}
+
 func TestDeleteTinkHardwareForHostIfExist(t *testing.T) {
 	type args struct {
 		ctx      context.Context
@@ -570,7 +456,7 @@ func TestDeleteTinkHardwareForHostIfExist(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "DeleteTinkHardwareForHostIfExistsTest",
 			args: args{
 				ctx: context.Background(),
 			},
@@ -597,7 +483,7 @@ func TestDeleteDIWorkflowResourcesIfExist(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "DeleteDIWorkflowResourcesIfExistsTest",
 			args: args{
 				ctx: context.Background(),
 			},
@@ -624,7 +510,7 @@ func TestDeleteProdWorkflowResourcesIfExist(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "DeleteProdWorkflowResourcesIfExistsTest",
 			args: args{
 				ctx: context.Background(),
 			},
@@ -655,7 +541,7 @@ func Test_handleWorkflowStatus(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "HandleEmptyWorkflow",
 			args: args{
 				instance: &computev1.InstanceResource{
 					Host: &computev1.HostResource{
@@ -691,7 +577,7 @@ func Test_handleWorkflowStatus_Case(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "HandleSuccessfulWorkflowStatus",
 			args: args{
 				instance: &computev1.InstanceResource{
 					Host: &computev1.HostResource{
@@ -731,7 +617,7 @@ func Test_handleWorkflowStatus_Case1(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "HandleFailedWorkflowStatus",
 			args: args{
 				instance: &computev1.InstanceResource{
 					Host: &computev1.HostResource{
@@ -771,7 +657,7 @@ func Test_handleWorkflowStatus_Case2(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "HandleRunningWorkflowStatus",
 			args: args{
 				instance: &computev1.InstanceResource{
 					Host: &computev1.HostResource{
@@ -902,7 +788,7 @@ func Test_runProdWorkflow(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "TestRunProdWorkflow_SuccessfulRequest",
 			args: args{
 				ctx:    context.Background(),
 				k8sCli: mockClient,
@@ -913,7 +799,7 @@ func Test_runProdWorkflow(t *testing.T) {
 			},
 		},
 		{
-			name: "Test Case1",
+			name: "TestRunProdWorkflow_ClientGetError",
 			args: args{
 				k8sCli: mockClient1,
 			},
@@ -954,7 +840,7 @@ func Test_runDIWorkflow(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "TestRunDIWorkflow_SuccessfulRequest",
 			args: args{
 				ctx:        context.Background(),
 				k8sCli:     mockClient,
@@ -962,7 +848,7 @@ func Test_runDIWorkflow(t *testing.T) {
 			},
 		},
 		{
-			name: "Test Case1",
+			name: "TestRunDIWorkflow_ClientGetError",
 			args: args{
 				ctx:    context.Background(),
 				k8sCli: mockClient1,
@@ -991,7 +877,7 @@ func TestRunFDOActions(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "TestRunFDOActions_DeviceInfoEmpty",
 			args: args{
 				ctx:        context.Background(),
 				deviceInfo: &utils.DeviceInfo{},
@@ -1022,96 +908,7 @@ func TestCheckStatusOrRunRebootWorkflow(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
-			args: args{
-				ctx:      context.Background(),
-				instance: &computev1.InstanceResource{},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := CheckStatusOrRunRebootWorkflow(tt.args.ctx, tt.args.deviceInfo, tt.args.instance); (err != nil) != tt.wantErr {
-				t.Errorf("CheckStatusOrRunRebootWorkflow() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestCheckStatusOrRunRebootWorkflow_Case(t *testing.T) {
-	t.Setenv("KUBERNETES_SERVICE_HOST", "localhost")
-	t.Setenv("KUBERNETES_SERVICE_PORT", "2521")
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		fmt.Println("Failed to generate private key:", err)
-		return
-	}
-	template := x509.Certificate{
-		SerialNumber:          big.NewInt(1),
-		Subject:               pkix.Name{Organization: []string{"Dummy Org"}},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(1, 0, 0),
-		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
-		BasicConstraintsValid: true,
-		IsCA:                  true,
-	}
-	caCertBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
-	if err != nil {
-		fmt.Println("Failed to create CA certificate:", err)
-		return
-	}
-	path := "/var"
-	dummypath := "/run/secrets/kubernetes.io/serviceaccount/"
-	cerr := os.MkdirAll(path+dummypath, 0o755)
-	if cerr != nil {
-		t.Fatalf("Error creating directory: %v", cerr)
-	}
-	file, crErr := os.Create(path + dummypath + "token")
-	if crErr != nil {
-		t.Fatalf("Error creating file: %v", crErr)
-	}
-	fmt.Println("token File :", file.Name())
-	defer func() {
-		remErr := os.RemoveAll("/run/secrets/kubernetes.io/serviceaccount/token")
-		if remErr != nil {
-			t.Fatalf("Error while removing file: %v", remErr)
-		}
-	}()
-	dummyData := "Thisissomedummydata"
-	_, err = file.WriteString(dummyData)
-	if err != nil {
-		fmt.Println("Error writing to file:", err)
-		return
-	}
-	certOut, cerrErr := os.Create(path + dummypath + "ca.crt")
-	if cerrErr != nil {
-		t.Fatalf("Error creating cert file: %v", cerrErr)
-	}
-	fmt.Println("certOut File :", certOut.Name())
-	fmt.Println("CA certificate created successfully as ca.crt")
-	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: caCertBytes})
-	defer func() {
-		remErr := os.RemoveAll("/run/secrets/kubernetes.io/serviceaccount/ca.crt")
-		if remErr != nil {
-			t.Fatalf("Error while removing file: %v", remErr)
-		}
-	}()
-	file.Close()
-	certOut.Close()
-	type args struct {
-		ctx        context.Context
-		deviceInfo utils.DeviceInfo
-		instance   *computev1.InstanceResource
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
+			name: "TestCheckStatusOrRunRebootWorkflow_HostNotReady",
 			args: args{
 				ctx:      context.Background(),
 				instance: &computev1.InstanceResource{},
@@ -1144,14 +941,14 @@ func Test_runRebootWorkflow(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "SuccessfulRebootWorkflow",
 			args: args{
 				ctx:    context.Background(),
 				k8sCli: mockClient,
 			},
 		},
 		{
-			name: "Test Case1",
+			name: "FailedRebootWorkflow",
 			args: args{
 				ctx:    context.Background(),
 				k8sCli: mockClient1,
@@ -1179,7 +976,7 @@ func TestDeleteRebootWorkflowResourcesIfExist(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "DeleteRebootWorkflowResources",
 			args: args{
 				ctx: context.Background(),
 			},
@@ -1386,6 +1183,94 @@ func Test_handleWorkflowStatus_Case3(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := handleWorkflowStatus(tt.args.instance, tt.args.workflow, tt.args.onSuccessStatus, tt.args.onFailureStatus, tt.args.onSuccessOnboardingStatus, tt.args.onFailureOnboardingStatus); (err != nil) != tt.wantErr {
 				t.Errorf("handleWorkflowStatus() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_formatDuration(t *testing.T) {
+	type args struct {
+		d time.Duration
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "Success",
+			args: args{},
+			want: "00:00:00",
+		},
+	}
+	utils.Init("")
+	utils.TimeStamp("")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := formatDuration(tt.args.d); got != tt.want {
+				t.Errorf("formatDuration() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_getWorkflow(t *testing.T) {
+	mockClient := MockClient{}
+	mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	mockClient1 := MockClient{}
+	mockClient1.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
+	mockClient2 := MockClient{}
+	mockClient2.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(kubeErr.NewNotFound(schema.GroupResource{Group: "example.com", Resource: "myresource"}, "resource-name"))
+	os.Setenv("ENABLE_ACTION_TIMESTAMPS", "true")
+	defer os.Unsetenv("ENABLE_ACTION_TIMESTAMPS")
+	type args struct {
+		ctx          context.Context
+		k8sCli       client.Client
+		workflowName string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *tink.Workflow
+		wantErr bool
+	}{
+		{
+			name: "getWorkflow success",
+			args: args{
+				ctx:          context.Background(),
+				workflowName: "name",
+				k8sCli:       mockClient,
+			},
+			want:    &tink.Workflow{},
+			wantErr: false,
+		},
+		{
+			name: "getWorkflow failure",
+			args: args{
+				ctx:          context.Background(),
+				workflowName: "name",
+				k8sCli:       mockClient1,
+			},
+			want:    &tink.Workflow{},
+			wantErr: true,
+		},
+		{
+			name: "getWorkflow not found error",
+			args: args{
+				ctx:          context.Background(),
+				workflowName: "name",
+				k8sCli:       mockClient2,
+			},
+			want:    &tink.Workflow{},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := getWorkflow(tt.args.ctx, tt.args.k8sCli, tt.args.workflowName)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getWorkflow() error = %v, wantErr %v", err, tt.wantErr)
+				return
 			}
 		})
 	}

@@ -29,7 +29,7 @@ func TestNewTemplateDataProd(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case 1",
+			name: "TestNewTemplateDataProd_ValidData",
 			args: args{
 				name: "TestWorkflow",
 			},
@@ -123,7 +123,7 @@ func TestNewTemplateDataProdMS(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case 1",
+			name: "TestNewTemplateDataProdMS_ValidData",
 			args: args{
 				name: "TestWorkflow",
 			},

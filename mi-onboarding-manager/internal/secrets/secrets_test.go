@@ -21,7 +21,7 @@ func TestInit(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "Test Case",
+			name:    "InitializeWithContextBackground",
 			args:    args{ctx: context.Background()},
 			wantErr: true,
 		},
@@ -41,7 +41,7 @@ func TestGetClientID(t *testing.T) {
 		want string
 	}{
 		{
-			name: "Test Case",
+			name: "GetEmptyClientID",
 			want: "",
 		},
 	}
@@ -60,7 +60,7 @@ func TestGetClientSecret(t *testing.T) {
 		want string
 	}{
 		{
-			name: "Test Case",
+			name: "GetEmptyClientSecret",
 			want: "",
 		},
 	}
@@ -85,7 +85,7 @@ func Test_secretService_init(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "test case",
+			name: "InitializeWithDefaultContext",
 			ss:   &secretService{},
 			args: args{
 				ctx: context.Background(),

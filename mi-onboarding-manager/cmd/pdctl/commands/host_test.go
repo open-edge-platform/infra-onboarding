@@ -19,7 +19,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	onboarding_mocks "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
 	pbinv "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
 )
@@ -120,7 +119,6 @@ func TestNewInventoryClient(t *testing.T) {
 		wg   *sync.WaitGroup
 		addr string
 	}
-	mockClient := &onboarding_mocks.MockInventoryClient{}
 	tests := []struct {
 		name    string
 		args    args
@@ -129,25 +127,21 @@ func TestNewInventoryClient(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case 1",
+			name: "Failed - gRPC error",
 			args: args{
 				ctx: context.Background(),
 				wg:  &sync.WaitGroup{},
 			},
-			want:    mockClient,
 			want1:   make(chan *inv_client.WatchEvents),
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1, err := NewInventoryClient(tt.args.ctx, tt.args.wg, tt.args.addr)
+			_, got1, err := NewInventoryClient(tt.args.ctx, tt.args.wg, tt.args.addr)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewInventoryClient() error = %v, wantErr %v", err, tt.wantErr)
 				return
-			}
-			if reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewInventoryClient() got = %v, want %v", got, tt.want)
 			}
 			if reflect.DeepEqual(got1, tt.want1) {
 				t.Errorf("NewInventoryClient() got1 = %v, want %v", got1, tt.want1)
@@ -238,7 +232,7 @@ func Test_getNodes(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "test case",
+			name: "Success - Get node data",
 			args: args{
 				ctx:  context.Background(),
 				cc:   conn,
@@ -294,7 +288,7 @@ func Test_updateNodes(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "test case",
+			name: "Success - Update node data",
 			args: args{
 				ctx:  context.Background(),
 				cc:   conn,
@@ -350,7 +344,7 @@ func Test_deleteNodes(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "test case",
+			name: "Test case for deleting node data",
 			args: args{
 				ctx:  context.Background(),
 				cc:   conn,
@@ -406,7 +400,7 @@ func Test_addNodes(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "test case",
+			name: "Test case for adding node data",
 			args: args{
 				ctx:  context.Background(),
 				cc:   conn,

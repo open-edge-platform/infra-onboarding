@@ -22,7 +22,7 @@ func TestPopulateHostStatus(t *testing.T) {
 		args args
 	}{
 		{
-			name: "Test Case",
+			name: "TestPopulateHostStatus_BootFailed",
 			args: args{
 				instance: &computev1.InstanceResource{
 					Host: &computev1.HostResource{
@@ -50,7 +50,7 @@ func TestPopulateHostStatusDetail(t *testing.T) {
 		args args
 	}{
 		{
-			name: "Test Case",
+			name: "TestPopulateHostStatusDetail_WithDetails",
 			args: args{
 				instance: &computev1.InstanceResource{
 					Host: &computev1.HostResource{
@@ -79,7 +79,7 @@ func TestPopulateInstanceStatusAndCurrentState(t *testing.T) {
 		args args
 	}{
 		{
-			name: "Test Case",
+			name: "TestPopulateInstanceStatusAndCurrentState_WithInstance",
 			args: args{
 				instance: &computev1.InstanceResource{},
 			},

@@ -21,7 +21,7 @@ func Test_printUsage(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "Success",
 			args: args{
 				c: &cobra.Command{},
 			},

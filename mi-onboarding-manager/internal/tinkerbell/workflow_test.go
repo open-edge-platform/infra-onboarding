@@ -5,19 +5,12 @@ package tinkerbell
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"crypto/x509/pkix"
-	"encoding/pem"
 	"errors"
-	"fmt"
-	"math/big"
-	"os"
 	"reflect"
 	"testing"
-	"time"
 
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
+	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
 	"github.com/stretchr/testify/mock"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	error "k8s.io/apimachinery/pkg/api/errors"
@@ -40,7 +33,7 @@ func TestNewWorkflow(t *testing.T) {
 		want *tink.Workflow
 	}{
 		{
-			name: "Test Case 1",
+			name: "TestNewWorkflow_Creation_Success",
 			args: args{
 				name: "workflow1",
 				ns:   "namespace1",
@@ -73,66 +66,14 @@ func TestNewWorkflow(t *testing.T) {
 }
 
 func TestDeleteDIWorkflowResourcesIfExist(t *testing.T) {
-	os.Setenv("KUBERNETES_SERVICE_HOST", "localhost")
-	os.Setenv("KUBERNETES_SERVICE_PORT", "2521")
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		fmt.Println("Failed to generate private key:", err)
-		return
-	}
-	template := x509.Certificate{
-		SerialNumber:          big.NewInt(1),
-		Subject:               pkix.Name{Organization: []string{"Dummy Org"}},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(1, 0, 0),
-		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
-		BasicConstraintsValid: true,
-		IsCA:                  true,
-	}
-	caCertBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
-	if err != nil {
-		fmt.Println("Failed to create CA certificate:", err)
-		return
-	}
-	path := "/var"
-	dummypath := "/run/secrets/kubernetes.io/serviceaccount/"
-	cerr := os.MkdirAll(path+dummypath, 0o755)
-	if cerr != nil {
-		t.Fatalf("Error creating directory: %v", cerr)
-	}
-	file, crErr := os.Create(path + dummypath + "token")
-	if crErr != nil {
-		t.Fatalf("Error creating file: %v", crErr)
-	}
-	fmt.Println("token File :", file.Name())
+	currK8sClientFactory := K8sClientFactory
+	currFlagEnableDeviceInitialization := *common.FlagDisableCredentialsManagement
 	defer func() {
-		remErr := os.RemoveAll("/run/secrets/kubernetes.io/serviceaccount/token")
-		if remErr != nil {
-			t.Fatalf("Error while removing file: %v", remErr)
-		}
+		K8sClientFactory = currK8sClientFactory
+		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
-	dummyData := "Thisissomedummydata"
-	_, err = file.WriteString(dummyData)
-	if err != nil {
-		fmt.Println("Error writing to file:", err)
-		return
-	}
-	certOut, cerrErr := os.Create(path + dummypath + "ca.crt")
-	if cerrErr != nil {
-		t.Fatalf("Error creating cert file: %v", cerrErr)
-	}
-	fmt.Println("certOut File :", certOut.Name())
-	fmt.Println("CA certificate created successfully as ca.crt")
-	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: caCertBytes})
-	defer func() {
-		remErr := os.RemoveAll("/run/secrets/kubernetes.io/serviceaccount/ca.crt")
-		if remErr != nil {
-			t.Fatalf("Error while removing file: %v", remErr)
-		}
-	}()
-	file.Close()
-	certOut.Close()
+	*common.FlagEnableDeviceInitialization = true
+	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
 	type args struct {
 		ctx          context.Context
 		k8sNamespace string
@@ -144,8 +85,8 @@ func TestDeleteDIWorkflowResourcesIfExist(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "Test Case",
-			wantErr: true,
+			name:    "Test delete DI workflow resources IfExists -NoError",
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -179,7 +120,7 @@ func TestCreateWorkflowIfNotExists(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "CreateWorkflow_Success",
 			args: args{
 				ctx:      context.Background(),
 				k8sCli:   mockClient,
@@ -187,7 +128,7 @@ func TestCreateWorkflowIfNotExists(t *testing.T) {
 			},
 		},
 		{
-			name: "Test Case",
+			name: "CreateWorkflow_ClientError",
 			args: args{
 				ctx:      context.Background(),
 				k8sCli:   mockClient1,
@@ -196,7 +137,7 @@ func TestCreateWorkflowIfNotExists(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Test Case2",
+			name: "CreateWorkflow_WorkflowNotFound",
 			args: args{
 				ctx:      context.Background(),
 				k8sCli:   mockClient2,
@@ -205,7 +146,7 @@ func TestCreateWorkflowIfNotExists(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Test Case3",
+			name: "CreateWorkflow_CreateError",
 			args: args{
 				ctx:      context.Background(),
 				k8sCli:   mockClient3,
@@ -236,7 +177,7 @@ func TestDeleteProdWorkflowResourcesIfExist(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "TestDeleteProdWorkflowResourcesIfExist_WithExistingResources",
 			args: args{
 				ctx: context.Background(),
 			},
@@ -253,66 +194,14 @@ func TestDeleteProdWorkflowResourcesIfExist(t *testing.T) {
 }
 
 func TestDeleteProdWorkflowResourcesIfExist_Case(t *testing.T) {
-	os.Setenv("KUBERNETES_SERVICE_HOST", "localhost")
-	os.Setenv("KUBERNETES_SERVICE_PORT", "2521")
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		fmt.Println("Failed to generate private key:", err)
-		return
-	}
-	template := x509.Certificate{
-		SerialNumber:          big.NewInt(1),
-		Subject:               pkix.Name{Organization: []string{"Dummy Org"}},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(1, 0, 0),
-		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
-		BasicConstraintsValid: true,
-		IsCA:                  true,
-	}
-	caCertBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
-	if err != nil {
-		fmt.Println("Failed to create CA certificate:", err)
-		return
-	}
-	path := "/var"
-	dummypath := "/run/secrets/kubernetes.io/serviceaccount/"
-	cerr := os.MkdirAll(path+dummypath, 0o755)
-	if cerr != nil {
-		t.Fatalf("Error creating directory: %v", cerr)
-	}
-	file, crErr := os.Create(path + dummypath + "token")
-	if crErr != nil {
-		t.Fatalf("Error creating file: %v", crErr)
-	}
-	fmt.Println("token File :", file.Name())
+	currK8sClientFactory := K8sClientFactory
+	currFlagEnableDeviceInitialization := *common.FlagDisableCredentialsManagement
 	defer func() {
-		remErr := os.RemoveAll("/run/secrets/kubernetes.io/serviceaccount/token")
-		if remErr != nil {
-			t.Fatalf("Error while removing file: %v", remErr)
-		}
+		K8sClientFactory = currK8sClientFactory
+		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
-	dummyData := "Thisissomedummydata"
-	_, err = file.WriteString(dummyData)
-	if err != nil {
-		fmt.Println("Error writing to file:", err)
-		return
-	}
-	certOut, cerrErr := os.Create(path + dummypath + "ca.crt")
-	if cerrErr != nil {
-		t.Fatalf("Error creating cert file: %v", cerrErr)
-	}
-	fmt.Println("certOut File :", certOut.Name())
-	fmt.Println("CA certificate created successfully as ca.crt")
-	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: caCertBytes})
-	defer func() {
-		remErr := os.RemoveAll("/run/secrets/kubernetes.io/serviceaccount/ca.crt")
-		if remErr != nil {
-			t.Fatalf("Error while removing file: %v", remErr)
-		}
-	}()
-	file.Close()
-	certOut.Close()
+	*common.FlagEnableDeviceInitialization = true
+	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
 	type args struct {
 		ctx          context.Context
 		k8sNamespace string
@@ -325,11 +214,11 @@ func TestDeleteProdWorkflowResourcesIfExist_Case(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "TestDeleteProdWorkflowResourcesIfExist_WithExistingResources",
 			args: args{
 				ctx: context.Background(),
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -353,7 +242,7 @@ func TestDeleteRebootWorkflowResourcesIfExist(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "TestDeleteRebootWorkflowResourcesIfExist_WithExistingResources",
 			args: args{
 				ctx: context.Background(),
 			},
@@ -370,66 +259,14 @@ func TestDeleteRebootWorkflowResourcesIfExist(t *testing.T) {
 }
 
 func TestDeleteRebootWorkflowResourcesIfExist_Case(t *testing.T) {
-	os.Setenv("KUBERNETES_SERVICE_HOST", "localhost")
-	os.Setenv("KUBERNETES_SERVICE_PORT", "2521")
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		fmt.Println("Failed to generate private key:", err)
-		return
-	}
-	template := x509.Certificate{
-		SerialNumber:          big.NewInt(1),
-		Subject:               pkix.Name{Organization: []string{"Dummy Org"}},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(1, 0, 0),
-		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
-		BasicConstraintsValid: true,
-		IsCA:                  true,
-	}
-	caCertBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
-	if err != nil {
-		fmt.Println("Failed to create CA certificate:", err)
-		return
-	}
-	path := "/var"
-	dummypath := "/run/secrets/kubernetes.io/serviceaccount/"
-	cerr := os.MkdirAll(path+dummypath, 0o755)
-	if cerr != nil {
-		t.Fatalf("Error creating directory: %v", cerr)
-	}
-	file, crErr := os.Create(path + dummypath + "token")
-	if crErr != nil {
-		t.Fatalf("Error creating file: %v", crErr)
-	}
-	fmt.Println("token File :", file.Name())
+	currK8sClientFactory := K8sClientFactory
+	currFlagEnableDeviceInitialization := *common.FlagDisableCredentialsManagement
 	defer func() {
-		remErr := os.RemoveAll("/run/secrets/kubernetes.io/serviceaccount/token")
-		if remErr != nil {
-			t.Fatalf("Error while removing file: %v", remErr)
-		}
+		K8sClientFactory = currK8sClientFactory
+		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
-	dummyData := "Thisissomedummydata"
-	_, err = file.WriteString(dummyData)
-	if err != nil {
-		fmt.Println("Error writing to file:", err)
-		return
-	}
-	certOut, cerrErr := os.Create(path + dummypath + "ca.crt")
-	if cerrErr != nil {
-		t.Fatalf("Error creating cert file: %v", cerrErr)
-	}
-	fmt.Println("certOut File :", certOut.Name())
-	fmt.Println("CA certificate created successfully as ca.crt")
-	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: caCertBytes})
-	defer func() {
-		remErr := os.RemoveAll("/run/secrets/kubernetes.io/serviceaccount/ca.crt")
-		if remErr != nil {
-			t.Fatalf("Error while removing file: %v", remErr)
-		}
-	}()
-	file.Close()
-	certOut.Close()
+	*common.FlagEnableDeviceInitialization = true
+	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
 	type args struct {
 		ctx          context.Context
 		k8sNamespace string
@@ -441,11 +278,11 @@ func TestDeleteRebootWorkflowResourcesIfExist_Case(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "TestDeleteRebootWorkflowResourcesIfExist_WithExistingResources",
 			args: args{
 				ctx: context.Background(),
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

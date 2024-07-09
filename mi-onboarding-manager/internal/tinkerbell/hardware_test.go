@@ -5,19 +5,13 @@ package tinkerbell
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"crypto/x509/pkix"
-	"encoding/pem"
 	"errors"
-	"fmt"
-	"math/big"
-	"os"
 	"reflect"
 	"testing"
-	"time"
 
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
+	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
 	"github.com/stretchr/testify/mock"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	error_k8 "k8s.io/apimachinery/pkg/api/errors"
@@ -25,8 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 )
 
 func TestNewHardware(t *testing.T) {
@@ -44,7 +36,7 @@ func TestNewHardware(t *testing.T) {
 		want *tink.Hardware
 	}{
 		{
-			name: "Test Case 1",
+			name: "Create new hardware with default values",
 			args: args{},
 			want: &tink.Hardware{},
 		},
@@ -61,75 +53,23 @@ func TestNewHardware(t *testing.T) {
 }
 
 func Test_newK8SClient(t *testing.T) {
-	os.Setenv("KUBERNETES_SERVICE_HOST", "localhost")
-	os.Setenv("KUBERNETES_SERVICE_PORT", "2521")
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		fmt.Println("Failed to generate private key:", err)
-		return
-	}
-	template := x509.Certificate{
-		SerialNumber:          big.NewInt(1),
-		Subject:               pkix.Name{Organization: []string{"Dummy Org"}},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(1, 0, 0),
-		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
-		BasicConstraintsValid: true,
-		IsCA:                  true,
-	}
-	caCertBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
-	if err != nil {
-		fmt.Println("Failed to create CA certificate:", err)
-		return
-	}
-	path := "/var"
-	dummypath := "/run/secrets/kubernetes.io/serviceaccount/"
-	cerr := os.MkdirAll(path+dummypath, 0o755)
-	if cerr != nil {
-		t.Fatalf("Error creating directory: %v", cerr)
-	}
-	file, crErr := os.Create(path + dummypath + "token")
-	if crErr != nil {
-		t.Fatalf("Error creating file: %v", crErr)
-	}
-	fmt.Println("token File :", file.Name())
+	currK8sClientFactory := K8sClientFactory
+	currFlagEnableDeviceInitialization := *common.FlagDisableCredentialsManagement
 	defer func() {
-		remErr := os.RemoveAll("/run/secrets/kubernetes.io/serviceaccount/token")
-		if remErr != nil {
-			t.Fatalf("Error while removing file: %v", remErr)
-		}
+		K8sClientFactory = currK8sClientFactory
+		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
-	dummyData := "Thisissomedummydata"
-	_, err = file.WriteString(dummyData)
-	if err != nil {
-		fmt.Println("Error writing to file:", err)
-		return
-	}
-	certOut, cerrErr := os.Create(path + dummypath + "ca.crt")
-	if cerrErr != nil {
-		t.Fatalf("Error creating cert file: %v", cerrErr)
-	}
-	fmt.Println("certOut File :", certOut.Name())
-	fmt.Println("CA certificate created successfully as ca.crt")
-	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: caCertBytes})
-	defer func() {
-		remErr := os.RemoveAll("/run/secrets/kubernetes.io/serviceaccount/ca.crt")
-		if remErr != nil {
-			t.Fatalf("Error while removing file: %v", remErr)
-		}
-	}()
-	file.Close()
-	certOut.Close()
+	*common.FlagEnableDeviceInitialization = true
+	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
 	tests := []struct {
 		name    string
 		want    client.Client
 		wantErr bool
 	}{
 		{
-			name:    "Test Case",
+			name:    "Valid Kubernetes client initialization",
 			want:    nil,
-			wantErr: false,
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -139,7 +79,7 @@ func Test_newK8SClient(t *testing.T) {
 				t.Errorf("newK8SClient() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if reflect.DeepEqual(got, tt.want) {
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("newK8SClient() = %v, want %v", got, tt.want)
 			}
 		})
@@ -147,66 +87,14 @@ func Test_newK8SClient(t *testing.T) {
 }
 
 func TestDeleteHardwareForHostIfExist(t *testing.T) {
-	os.Setenv("KUBERNETES_SERVICE_HOST", "localhost")
-	os.Setenv("KUBERNETES_SERVICE_PORT", "2521")
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		fmt.Println("Failed to generate private key:", err)
-		return
-	}
-	template := x509.Certificate{
-		SerialNumber:          big.NewInt(1),
-		Subject:               pkix.Name{Organization: []string{"Dummy Org"}},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(1, 0, 0),
-		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
-		BasicConstraintsValid: true,
-		IsCA:                  true,
-	}
-	caCertBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
-	if err != nil {
-		fmt.Println("Failed to create CA certificate:", err)
-		return
-	}
-	path := "/var"
-	dummypath := "/run/secrets/kubernetes.io/serviceaccount/"
-	cerr := os.MkdirAll(path+dummypath, 0o755)
-	if cerr != nil {
-		t.Fatalf("Error creating directory: %v", cerr)
-	}
-	file, crErr := os.Create(path + dummypath + "token")
-	if crErr != nil {
-		t.Fatalf("Error creating file: %v", crErr)
-	}
-	fmt.Println("token File :", file.Name())
+	currK8sClientFactory := K8sClientFactory
+	currFlagEnableDeviceInitialization := *common.FlagDisableCredentialsManagement
 	defer func() {
-		remErr := os.RemoveAll("/run/secrets/kubernetes.io/serviceaccount/token")
-		if remErr != nil {
-			t.Fatalf("Error while removing file: %v", remErr)
-		}
+		K8sClientFactory = currK8sClientFactory
+		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
-	dummyData := "Thisissomedummydata"
-	_, err = file.WriteString(dummyData)
-	if err != nil {
-		fmt.Println("Error writing to file:", err)
-		return
-	}
-	certOut, cerrErr := os.Create(path + dummypath + "ca.crt")
-	if cerrErr != nil {
-		t.Fatalf("Error creating cert file: %v", cerrErr)
-	}
-	fmt.Println("certOut File :", certOut.Name())
-	fmt.Println("CA certificate created successfully as ca.crt")
-	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: caCertBytes})
-	defer func() {
-		remErr := os.RemoveAll("/run/secrets/kubernetes.io/serviceaccount/ca.crt")
-		if remErr != nil {
-			t.Fatalf("Error while removing file: %v", remErr)
-		}
-	}()
-	file.Close()
-	certOut.Close()
+	*common.FlagEnableDeviceInitialization = true
+	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
 	type args struct {
 		ctx          context.Context
 		k8sNamespace string
@@ -218,11 +106,11 @@ func TestDeleteHardwareForHostIfExist(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "TestDeleteHardwareForHostIfExist_KubernetesEnvironment",
 			args: args{
 				ctx: context.Background(),
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -326,14 +214,14 @@ func TestCreateHardwareIfNotExists(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "CreateHardwareSuccess",
 			args: args{
 				ctx:    context.Background(),
 				k8sCli: mockClient,
 			},
 		},
 		{
-			name: "Test Case1",
+			name: "GetHardwareError",
 			args: args{
 				ctx:    context.Background(),
 				k8sCli: mockClient1,
@@ -341,7 +229,7 @@ func TestCreateHardwareIfNotExists(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Test Case2",
+			name: "HardwareNotFoundCreate",
 			args: args{
 				ctx:    context.Background(),
 				k8sCli: mockClient2,
@@ -349,7 +237,7 @@ func TestCreateHardwareIfNotExists(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Test Case3",
+			name: "CreateHardwareError",
 			args: args{
 				ctx:    context.Background(),
 				k8sCli: mockClient3,
@@ -376,7 +264,7 @@ func TestGetDIWorkflowName(t *testing.T) {
 		want string
 	}{
 		{
-			name: "Test Case",
+			name: "TestGetDIWorkflowNameUUID",
 			want: "di-workflow-",
 		},
 	}
@@ -399,7 +287,7 @@ func TestGetRebootWorkflowName(t *testing.T) {
 		want string
 	}{
 		{
-			name: "Test Case",
+			name: "TestGetRebootWorkflowNameUUID",
 			want: "reboot-workflow-",
 		},
 	}
@@ -422,7 +310,7 @@ func TestGetProdWorkflowName(t *testing.T) {
 		want string
 	}{
 		{
-			name: "Test Case",
+			name: "TestGetProdWorkflowNameUUID",
 			want: "workflow--prod",
 		},
 	}
@@ -430,6 +318,32 @@ func TestGetProdWorkflowName(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := GetProdWorkflowName(tt.args.uuid); got != tt.want {
 				t.Errorf("GetProdWorkflowName() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDeleteHardwareForHostIfExist_ErrorScenario(t *testing.T) {
+	type args struct {
+		ctx          context.Context
+		k8sNamespace string
+		hostUUID     string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name:    "Kubeclient error",
+			args:    args{},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := DeleteHardwareForHostIfExist(tt.args.ctx, tt.args.k8sNamespace, tt.args.hostUUID); (err != nil) != tt.wantErr {
+				t.Errorf("DeleteHardwareForHostIfExist() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

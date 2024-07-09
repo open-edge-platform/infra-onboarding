@@ -22,7 +22,7 @@ func Test_newKeycloakSecretService(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "Test case for login to Keyclock",
 			args: args{
 				ctx: context.Background(),
 			},
@@ -54,7 +54,7 @@ func Test_getEdgeNodeClientFromTemplate(t *testing.T) {
 		want gocloak.Client
 	}{
 		{
-			name: "Test Case",
+			name: "Test Case for to get edge node client from templete",
 			args: args{
 				uuid: "",
 			},
@@ -86,7 +86,7 @@ func Test_keycloakService_login(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case",
+			name: "Test Case for keyclock service login",
 			fields: fields{
 				keycloakClient: &gocloak.GoCloak{},
 				jwtToken:       &gocloak.JWT{},

@@ -26,6 +26,8 @@ func Test_getInventoryResourceAndID(t *testing.T) {
 	hostStorageResCopy := proto.Clone(hostStorageResource)
 	hostSubResource := &computev1.HostusbResource{}
 	hostSubResCopy := proto.Clone(hostSubResource)
+	hostNicResource := &computev1.HostnicResource{}
+	hostNicResCopy := proto.Clone(hostNicResource)
 	hostgpuResource := &computev1.HostgpuResource{}
 	hostgpuResourceCopy := proto.Clone(hostgpuResource)
 	networkResource := &network_v1.IPAddressResource{}
@@ -40,14 +42,14 @@ func Test_getInventoryResourceAndID(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "Test Case 1",
+			name:    "Empty Resource",
 			args:    args{},
 			want:    &inv_v1.Resource{},
 			want1:   "",
 			wantErr: true,
 		},
 		{
-			name: "Test Case 2",
+			name: "Host Resource Test",
 			args: args{
 				resource: hostResCopy,
 			},
@@ -56,7 +58,7 @@ func Test_getInventoryResourceAndID(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Test Case 3",
+			name: "Host Storage Resource Test",
 			args: args{
 				resource: hostStorageResCopy,
 			},
@@ -65,7 +67,7 @@ func Test_getInventoryResourceAndID(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Test Case 4",
+			name: "Host USB Resource Test",
 			args: args{
 				resource: hostSubResCopy,
 			},
@@ -74,7 +76,7 @@ func Test_getInventoryResourceAndID(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Test Case 5",
+			name: "Host GPU Resource Test",
 			args: args{
 				resource: hostgpuResourceCopy,
 			},
@@ -83,7 +85,7 @@ func Test_getInventoryResourceAndID(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Test Case 6",
+			name: "Network Resource Test",
 			args: args{
 				resource: networkResourceCopy,
 			},
@@ -92,9 +94,18 @@ func Test_getInventoryResourceAndID(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Test Case 7",
+			name: "Operating System Resource Test",
 			args: args{
 				resource: operatingSystemResourceCopy,
+			},
+			want:    &inv_v1.Resource{},
+			want1:   "",
+			wantErr: false,
+		},
+		{
+			name: "hostNic Resource Test",
+			args: args{
+				resource: hostNicResCopy,
 			},
 			want:    &inv_v1.Resource{},
 			want1:   "",

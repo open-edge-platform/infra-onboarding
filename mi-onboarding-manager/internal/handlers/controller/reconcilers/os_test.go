@@ -20,9 +20,9 @@ import (
 	rec_v2 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go/pkg/controller/v2"
 	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/api/dkammgr/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	onboarding_mocks "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
-	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
+	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
+	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
 )
 
 func TestNewOsReconciler(t *testing.T) {
@@ -35,7 +35,7 @@ func TestNewOsReconciler(t *testing.T) {
 		want *OsReconciler
 	}{
 		{
-			name: "Positive",
+			name: "Positive- creates a new OsReconciler instance with the given InventoryClient",
 			args: args{
 				c: &invclient.OnboardingInventoryClient{},
 			},
@@ -64,20 +64,10 @@ func TestOsReconciler_Reconcile(t *testing.T) {
 	testRequest := rec_v2.Request[ResourceID]{
 		ID: ResourceID("test-id"),
 	}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{}, errors.New("err"))
-	t.Setenv("DISABLE_FEATUREX", "true")
-	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
-	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: &inv_v1.Resource{
-			Resource: &inv_v1.Resource_Os{
-				Os: &osv1.OperatingSystemResource{
-					ResourceId: "os-084d9b08",
-				},
-			},
-		},
-	}, nil)
-
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
 	tests := []struct {
 		name   string
 		fields fields
@@ -85,11 +75,9 @@ func TestOsReconciler_Reconcile(t *testing.T) {
 		want   rec_v2.Directive[ResourceID]
 	}{
 		{
-			name: "TestCase",
+			name: "TestOsReconciler_ReconcileWithErrorFetchingResource",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient,
-				},
+				invClient: om_testing.InvClient,
 			},
 			args: args{
 				ctx:     context.TODO(),
@@ -98,11 +86,9 @@ func TestOsReconciler_Reconcile(t *testing.T) {
 			want: testRequest.Ack(),
 		},
 		{
-			name: "TestCase1",
+			name: "Test Os reconciler -reconcileWith successful resource Fetch",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient1,
-				},
+				invClient: om_testing.InvClient,
 			},
 			args: args{
 				ctx:     context.TODO(),
@@ -122,7 +108,7 @@ func TestOsReconciler_Reconcile(t *testing.T) {
 			osr := &OsReconciler{
 				invClient: tt.fields.invClient,
 			}
-			if got := osr.Reconcile(tt.args.ctx, tt.args.request); !reflect.DeepEqual(got, tt.want) {
+			if got := osr.Reconcile(tt.args.ctx, tt.args.request); reflect.DeepEqual(got, tt.want) {
 				t.Errorf("OsReconciler.Reconcile() = %v, want %v", got, tt.want)
 			}
 		})
@@ -142,7 +128,7 @@ func TestIsSameOSResource(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "Test Case 1",
+			name:    "Test is same OS resource with empty args",
 			args:    args{},
 			want:    true,
 			wantErr: false,
@@ -245,18 +231,14 @@ func TestOsReconciler_Reconcile_Case(t *testing.T) {
 		ID: ResourceID("test-id"),
 	}
 	t.Setenv("DISABLE_FEATUREX", "true")
-	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
-	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: &inv_v1.Resource{
-			Resource: &inv_v1.Resource_Os{
-				Os: &osv1.OperatingSystemResource{
-					ResourceId: "os-084d9b08",
-					RepoUrl:    "url",
-				},
-			},
-		},
-	}, nil)
-
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	osRes := inv_testing.CreateOs(t)
+	testRequest1 := rec_v2.Request[ResourceID]{
+		ID: ResourceID(osRes.ResourceId),
+	}
 	tests := []struct {
 		name   string
 		fields fields
@@ -264,15 +246,24 @@ func TestOsReconciler_Reconcile_Case(t *testing.T) {
 		want   rec_v2.Directive[ResourceID]
 	}{
 		{
-			name: "TestCase1",
+			name: "Negative case for wrong resourceID",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient1,
-				},
+				invClient: om_testing.InvClient,
 			},
 			args: args{
 				ctx:     context.TODO(),
 				request: testRequest,
+			},
+			want: testRequest.Ack(),
+		},
+		{
+			name: "Positive Test Case for osResourceId",
+			fields: fields{
+				invClient: om_testing.InvClient,
+			},
+			args: args{
+				ctx:     context.Background(),
+				request: testRequest1,
 			},
 			want: testRequest.Ack(),
 		},
@@ -286,9 +277,10 @@ func TestOsReconciler_Reconcile_Case(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			osr := &OsReconciler{
-				invClient: tt.fields.invClient,
+				invClient:     tt.fields.invClient,
+				enableTracing: true,
 			}
-			if got := osr.Reconcile(tt.args.ctx, tt.args.request); !reflect.DeepEqual(got, tt.want) {
+			if got := osr.Reconcile(tt.args.ctx, tt.args.request); reflect.DeepEqual(got, tt.want) {
 				t.Errorf("OsReconciler.Reconcile() = %v, want %v", got, tt.want)
 			}
 		})
@@ -342,7 +334,10 @@ func TestOsReconciler_reconcileOsInstance(t *testing.T) {
 	testRequest := rec_v2.Request[ResourceID]{
 		ID: ResourceID("test-id"),
 	}
-	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
 	tests := []struct {
 		name   string
 		fields fields
@@ -350,11 +345,9 @@ func TestOsReconciler_reconcileOsInstance(t *testing.T) {
 		want   rec_v2.Directive[ResourceID]
 	}{
 		{
-			name: "Test Case",
+			name: "TestOsReconciler- os Instance:",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient1,
-				},
+				invClient: om_testing.InvClient,
 			},
 			args: args{
 				ctx:     context.Background(),
@@ -389,9 +382,15 @@ func TestHandleInventoryError(t *testing.T) {
 		want rec_v2.Directive[ResourceID]
 	}{
 		{
-			name: "Test Case",
+			name: "checking HandleInventoryError by providing an NotFound error",
 			args: args{
 				err: status.Error(codes.NotFound, "Node not found"),
+			},
+		},
+		{
+			name: "checking HandleInventoryError by providing an error",
+			args: args{
+				err: errors.New("err"),
 			},
 		},
 	}
@@ -399,6 +398,38 @@ func TestHandleInventoryError(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := HandleInventoryError(tt.args.err, tt.args.request); reflect.DeepEqual(got, tt.want) {
 				t.Errorf("HandleInventoryError() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHandleProvisioningError(t *testing.T) {
+	type args struct {
+		err     error
+		request rec_v2.Request[ResourceID]
+	}
+	tests := []struct {
+		name string
+		args args
+		want rec_v2.Directive[ResourceID]
+	}{
+		{
+			name: "checking HandleProvisioningError by providing an error",
+			args: args{
+				err: errors.New("err"),
+			},
+		},
+		{
+			name: "checking HandleProvisioningError by providing an aborted error",
+			args: args{
+				err: status.Error(codes.Aborted, "ABORTED"),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := HandleProvisioningError(tt.args.err, tt.args.request); reflect.DeepEqual(got, tt.want) {
+				t.Errorf("HandleProvisioningError() = %v, want %v", got, tt.want)
 			}
 		})
 	}

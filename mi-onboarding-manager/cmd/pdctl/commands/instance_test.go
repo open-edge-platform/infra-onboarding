@@ -173,7 +173,7 @@ func Test_getArtifacts(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "test case",
+			name: "test case to get artifact data",
 			args: args{
 				ctx:      context.Background(),
 				cc:       conn,
@@ -229,7 +229,7 @@ func Test_createArtifacts(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "test case",
+			name: "test case to create artifact data",
 			args: args{
 				ctx:      context.Background(),
 				cc:       conn,
@@ -286,7 +286,7 @@ func Test_updateArtifactsById(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "test case",
+			name: "Test case to update artifact data",
 			args: args{
 				ctx:      context.Background(),
 				cc:       conn,
@@ -342,7 +342,7 @@ func Test_deleteArtifacts(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "test case",
+			name: "Test case to delte artifact data",
 			args: args{
 				ctx:      context.Background(),
 				cc:       conn,

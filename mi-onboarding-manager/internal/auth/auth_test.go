@@ -22,7 +22,7 @@ func Test_auth_init(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test Case enabled",
+			name: "Test Case enabled for authentication",
 			args: args{
 				ctx:             context.Background(),
 				disableCredMgmt: false,
@@ -30,7 +30,7 @@ func Test_auth_init(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Test Case disabled",
+			name: "Test Case disabled for authentication",
 			args: args{
 				ctx:             context.Background(),
 				disableCredMgmt: true,

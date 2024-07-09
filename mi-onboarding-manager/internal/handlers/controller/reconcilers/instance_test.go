@@ -6,7 +6,6 @@ package reconcilers
 
 import (
 	"context"
-	"errors"
 	"os"
 	"reflect"
 	"strings"
@@ -14,7 +13,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
@@ -22,7 +20,6 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/env"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	onboarding_mocks "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/tinkerbell"
@@ -265,7 +262,7 @@ func TestNewInstanceReconciler(t *testing.T) {
 		want *InstanceReconciler
 	}{
 		{
-			name: "Positive",
+			name: "Positive -for InstanceReconciler",
 			args: args{
 				c: &invclient.OnboardingInventoryClient{},
 			},
@@ -292,258 +289,10 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 		request rec_v2.Request[ResourceID]
 	}
 	testRequest := rec_v2.Request[ResourceID]{}
-	mockInvClient1 := &onboarding_mocks.MockInventoryClient{}
-	mockInvClient1.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{}, errors.New("err"))
-
-	mockInstance2 := &computev1.InstanceResource{
-		DesiredState: computev1.InstanceState_INSTANCE_STATE_DELETED,
-		CurrentState: computev1.InstanceState_INSTANCE_STATE_DELETED,
-	}
-	mockResource2 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Instance{
-			Instance: mockInstance2,
-		},
-	}
-	mockInvClient2 := &onboarding_mocks.MockInventoryClient{}
-	mockInvClient2.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource2,
-	}, nil)
-
-	mockInstance3 := &computev1.InstanceResource{
-		DesiredState: computev1.InstanceState_INSTANCE_STATE_INSTALLED,
-	}
-	mockResource3 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Instance{
-			Instance: mockInstance3,
-		},
-	}
-	mockInvClient3 := &onboarding_mocks.MockInventoryClient{}
-	mockInvClient3.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource3,
-	}, nil)
-	mockInstance4 := &computev1.InstanceResource{
-		DesiredState: computev1.InstanceState_INSTANCE_STATE_DELETED,
-	}
-	mockResource4 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Instance{
-			Instance: mockInstance4,
-		},
-	}
-	mockInvClient4 := &onboarding_mocks.MockInventoryClient{}
-	mockInvClient4.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource4,
-	}, nil)
-	mockInvClient4.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-
-	mockInvClient5 := &onboarding_mocks.MockInventoryClient{}
-	mockInvClient5.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource4,
-	}, nil)
-	mockInvClient5.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
-	mockInstance7 := &computev1.InstanceResource{
-		ResourceId:   "inst-084d9b08",
-		DesiredState: computev1.InstanceState_INSTANCE_STATE_RUNNING,
-		Host: &computev1.HostResource{
-			ResourceId: "host-084d9b01",
-			Name:       "name",
-			MgmtIp:     "00.00.00.00",
-		},
-		Os: &osv1.OperatingSystemResource{
-			ResourceId:  "os-093dd2d7",
-			ProfileName: "profilename",
-			RepoUrl:     "osUrl;overlayUrl",
-		},
-	}
-	mockResource7 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Instance{
-			Instance: mockInstance7,
-		},
-	}
-	mockHost7 := &computev1.HostResource{
-		ResourceId: "host-084d9b52",
-		BmcIp:      "00.00.00.00",
-		HostNics: []*computev1.HostnicResource{
-			{
-				MacAddr: "00:00:00:00:00:00",
-				Host: &computev1.HostResource{
-					BmcIp: "00.00.00.00",
-				},
-			},
-		},
-	}
-	mockHostResource7 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: mockHost7,
-		},
-	}
-
-	mockOs7 := &osv1.OperatingSystemResource{
-		ResourceId:  "os-093dd2d7",
-		ProfileName: "profilename",
-	}
-	mockOsResource7 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Os{
-			Os: mockOs7,
-		},
-	}
-	mockInvClient7 := &onboarding_mocks.MockInventoryClient{}
-
-	mockInvClient7.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource7,
-	}, nil).Once()
-	mockInvClient7.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockHostResource7,
-	}, nil).Once()
-	mockInvClient7.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockOsResource7,
-	}, nil).Once()
-	mockInvClient7.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	mockInvClient7.On("List", mock.Anything, mock.Anything).Return(&inv_v1.ListResourcesResponse{}, nil)
-	t.Setenv("PD_IP", "000.000.0.000")
-	defer os.Unsetenv("PD_IP")
-	t.Setenv("IMAGE_TYPE", "prod_focal-ms")
-	defer os.Unsetenv("IMAGE_TYPE")
-	dirPath, _ := os.Getwd()
-	dirPath, _ = strings.CutSuffix(dirPath, "internal/handlers/controller/reconcilers")
-	dirPaths := dirPath + "/cmd/onboardingmgr"
-	err := os.Chdir(dirPaths)
-	if err != nil {
-		t.Fatalf("Failed to change working directory: %v", err)
-	}
-
-	mockInstance8 := &computev1.InstanceResource{
-		ResourceId:   "inst-084d9b08",
-		DesiredState: computev1.InstanceState_INSTANCE_STATE_RUNNING,
-		Host: &computev1.HostResource{
-			ResourceId: "host-084d9b02",
-			Name:       "name",
-			BmcIp:      "00.00.00.00",
-			HostNics: []*computev1.HostnicResource{
-				{
-					MacAddr: "00:00:00:00:00:00",
-					Host: &computev1.HostResource{
-						BmcIp: "00.00.00.00",
-					},
-				},
-			},
-		},
-		Os: &osv1.OperatingSystemResource{
-			ResourceId:  "os-093dd2d7",
-			ProfileName: "profilename",
-			RepoUrl:     "osUrl;overlayUrl",
-		},
-	}
-	mockResource8 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Instance{
-			Instance: mockInstance8,
-		},
-	}
-	mockHost8 := &computev1.HostResource{
-		ResourceId: "host-084d9b03",
-		BmcIp:      "00.00.00.00",
-		HostNics: []*computev1.HostnicResource{
-			{
-				MacAddr: "00:00:00:00:00:00",
-			},
-		},
-	}
-	mockHostResource8 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: mockHost8,
-		},
-	}
-
-	mockOs8 := &osv1.OperatingSystemResource{
-		ResourceId:  "os-093dd2d7",
-		ProfileName: "profilename",
-		RepoUrl:     "osUrl;overlayUrl",
-	}
-	mockOsResource8 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Os{
-			Os: mockOs8,
-		},
-	}
-	mockInvClient8 := &onboarding_mocks.MockInventoryClient{}
-
-	mockInvClient8.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource8,
-	}, nil).Once()
-	mockInvClient8.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockHostResource8,
-	}, nil).Once()
-	mockInvClient8.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockOsResource8,
-	}, nil).Once()
-	mockInvClient8.On("List", mock.Anything, mock.Anything).Return(&inv_v1.ListResourcesResponse{}, nil)
-	mockInvClient8.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	mockInstance10 := &computev1.InstanceResource{
-		ResourceId:   "inst-084d9b08",
-		DesiredState: computev1.InstanceState_INSTANCE_STATE_RUNNING,
-		Host: &computev1.HostResource{
-			ResourceId: "host-084d9b06",
-			Name:       "name",
-			MgmtIp:     "00.00.00.00",
-			BmcIp:      "00.00.00.00",
-			HostNics: []*computev1.HostnicResource{
-				{
-					MacAddr: "00:00:00:00:00:00",
-				},
-			},
-		},
-		Os: &osv1.OperatingSystemResource{
-			ResourceId:  "os-093dd2d7",
-			ProfileName: "profilename",
-			RepoUrl:     "osUrl;overlayUrl",
-		},
-	}
-	mockResource10 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Instance{
-			Instance: mockInstance10,
-		},
-	}
-	mockHost10 := &computev1.HostResource{
-		ResourceId: "host-084d9b04",
-		BmcIp:      "00.00.00.00",
-		HostNics: []*computev1.HostnicResource{
-			{
-				MacAddr: "00:00:00:00:00:00",
-			},
-		},
-	}
-	mockHostResource10 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: mockHost10,
-		},
-	}
-
-	mockOs10 := &osv1.OperatingSystemResource{
-		ResourceId:  "os-093dd2d7",
-		ProfileName: "profilename",
-		RepoUrl:     "osUrl;overlayUrl",
-	}
-	mockOsResource10 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Os{
-			Os: mockOs10,
-		},
-	}
-	mockInvClient10 := &onboarding_mocks.MockInventoryClient{}
-
-	mockInvClient10.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource10,
-	}, nil).Once()
-	mockInvClient10.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockHostResource10,
-	}, nil).Once()
-	mockInvClient10.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockOsResource10,
-	}, nil).Once()
-	mockInvClient10.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
-	mockInvClient10.On("List", mock.Anything, mock.Anything).Return(&inv_v1.ListResourcesResponse{}, nil)
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
 	tests := []struct {
 		name   string
 		fields fields
@@ -551,11 +300,9 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 		want   rec_v2.Directive[ResourceID]
 	}{
 		{
-			name: "TestCase4",
+			name: "Test Reconciliation on Instance Deletion Success",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient4,
-				},
+				invClient: om_testing.InvClient,
 			},
 			args: args{
 				ctx:     context.TODO(),
@@ -564,11 +311,9 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			want: testRequest.Ack(),
 		},
 		{
-			name: "TestCase5",
+			name: "Test Reconciliation on Instance Deletion Failure",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient5,
-				},
+				invClient: om_testing.InvClient,
 			},
 			args: args{
 				ctx:     context.TODO(),
@@ -577,11 +322,9 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			want: testRequest.Ack(),
 		},
 		{
-			name: "TestCase7",
+			name: "Test Reconciliation on Running Instance with Valid Host and OS",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient7,
-				},
+				invClient: om_testing.InvClient,
 			},
 			args: args{
 				ctx:     context.TODO(),
@@ -590,11 +333,9 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			want: testRequest.Ack(),
 		},
 		{
-			name: "TestCase8",
+			name: "Test Reconciliation on Running Instance with Invalid Host",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient8,
-				},
+				invClient: om_testing.InvClient,
 			},
 			args: args{
 				ctx:     context.TODO(),
@@ -603,11 +344,9 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			want: testRequest.Ack(),
 		},
 		{
-			name: "TestCase10",
+			name: "Test Reconciliation on Running Instance with Invalid OS",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient10,
-				},
+				invClient: om_testing.InvClient,
 			},
 			args: args{
 				ctx:     context.TODO(),
@@ -617,7 +356,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 		},
 	}
 	originalDir, _ := os.Getwd()
-	err = os.Chdir(originalDir)
+	err := os.Chdir(originalDir)
 	if err != nil {
 		t.Fatalf("Failed to change working directory back to original: %v", err)
 	}
@@ -642,40 +381,10 @@ func TestInstanceReconciler_reconcileInstance(t *testing.T) {
 		request  rec_v2.Request[ResourceID]
 		instance *computev1.InstanceResource
 	}
-	mockInvClient := &onboarding_mocks.MockInventoryClient{}
-	mockResource := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: &computev1.HostResource{
-				ResourceId: "host-084d9b07",
-				Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-				HostNics: []*computev1.HostnicResource{
-					{
-						ResourceId:   "hostnic-084d9b08",
-						BmcInterface: true,
-					},
-				},
-				BmcIp: "00.00.00.00",
-			},
-		},
-	}
-	mockInvClient.On("Get", mock.Anything, mock.Anything).Return(&inv_v1.GetResourceResponse{
-		Resource: mockResource,
-	}, errors.New("err")).Once()
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-	}
-	mockResource2 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	mockResources := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
-	}
-	mockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil).Once()
-	mockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
 	tests := []struct {
 		name   string
 		fields fields
@@ -683,11 +392,9 @@ func TestInstanceReconciler_reconcileInstance(t *testing.T) {
 		want   rec_v2.Directive[ResourceID]
 	}{
 		{
-			name: "Test Case",
+			name: "Test Reconciliation with Running Instance and BMC Interface",
 			fields: fields{
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: mockInvClient,
-				},
+				invClient: om_testing.InvClient,
 			},
 			args: args{
 				ctx:     context.Background(),
@@ -803,3 +510,4 @@ func Test_convertInstanceToDeviceInfo(t *testing.T) {
 		})
 	}
 }
+

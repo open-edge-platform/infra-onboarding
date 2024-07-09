@@ -7,18 +7,33 @@ package onboarding
 
 import (
 	"context"
-	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/mock"
-
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	onboarding_mocks "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding/onboardingmocks"
+	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
-	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
+	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
 )
+
+func TestMain(m *testing.M) {
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	projectRoot := filepath.Dir(filepath.Dir(filepath.Dir(wd)))
+	policyPath := projectRoot + "/build"
+	migrationsDir := projectRoot + "/build"
+
+	inv_testing.StartTestingEnvironment(policyPath, "", migrationsDir)
+	run := m.Run() // run all tests
+	inv_testing.StopTestingEnvironment()
+
+	os.Exit(run)
+}
 
 func TestUpdateHostStatusByHostGuid(t *testing.T) {
 	type args struct {
@@ -29,41 +44,22 @@ func TestUpdateHostStatusByHostGuid(t *testing.T) {
 		statusDetails    string
 		onboardingStatus inv_status.ResourceStatus
 	}
-	host := &computev1.HostResource{
-		ResourceId: "host-084d9b08",
-		Uuid:       "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-	}
-	mockResource2 := &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	}
-	MockInvClient := &onboarding_mocks.MockInventoryClient{}
-	mockResources := &inv_v1.ListResourcesResponse{
-		Resources: []*inv_v1.GetResourceResponse{{Resource: mockResource2}},
-	}
-	MockInvClient.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
-	MockInvClient.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, nil)
-	MockInvClient1 := &onboarding_mocks.MockInventoryClient{}
-	MockInvClient1.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, nil)
-	MockInvClient1.On("Update", mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything).Return(&inv_v1.UpdateResourceResponse{}, errors.New("err"))
-	MockInvClient2 := &onboarding_mocks.MockInventoryClient{}
-	MockInvClient2.On("List", mock.Anything, mock.Anything, mock.Anything).Return(mockResources, errors.New("err"))
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	host:=inv_testing.CreateHost(t,nil,nil,nil,nil)
 	tests := []struct {
 		name    string
 		args    args
 		wantErr bool
 	}{
 		{
-			name: "Positive",
+			name: "Successful Status Update",
 			args: args{
-				ctx: context.TODO(),
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: MockInvClient,
-				},
-				hostUUID:         "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+				ctx:              context.TODO(),
+				invClient:        om_testing.InvClient,
+				hostUUID:         host.Uuid,
 				hoststatus:       computev1.HostStatus_HOST_STATUS_ONBOARDED,
 				statusDetails:    "some detail",
 				onboardingStatus: om_status.OnboardingStatusDone,
@@ -71,24 +67,10 @@ func TestUpdateHostStatusByHostGuid(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Negative",
+			name: "InvalidUUIDError",
 			args: args{
-				ctx: context.TODO(),
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: MockInvClient1,
-				},
-				hostUUID:   "mockhostUUID",
-				hoststatus: computev1.HostStatus_HOST_STATUS_RUNNING,
-			},
-			wantErr: true,
-		},
-		{
-			name: "Negative1",
-			args: args{
-				ctx: context.TODO(),
-				invClient: &invclient.OnboardingInventoryClient{
-					Client: MockInvClient2,
-				},
+				ctx:        context.TODO(),
+				invClient:  om_testing.InvClient,
 				hostUUID:   "mockhostUUID",
 				hoststatus: computev1.HostStatus_HOST_STATUS_RUNNING,
 			},
