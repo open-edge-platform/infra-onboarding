@@ -19,6 +19,7 @@ swap_partition=3
 tep_partition=4
 reserved_partition=5
 efi_partition=15
+singlehdd_lvm_partition=6
 
 # DEST_DISK set from the template.yaml file as an environment variable.
 
@@ -34,7 +35,12 @@ swap_space_start=91
 tep_size=14
 reserved_size=5
 boot_size=5
+bare_min_rootfs_size=25
+rootfs_size=40
 
+#####################################################################################
+#Global var which is updated
+single_hdd=-1
 #####################################################################################
 luks_key=$PWD/luks_key
 
@@ -150,12 +156,14 @@ partition_with_percent() {
 get_dest_disk()
 {
     disk_device=""
-    #if there were any problems when the ubuntu was streamed.
-    printf 'Fix\n' | parted ---pretend-input-tty -l
 
-    list_block_devices=($(lsblk -o NAME,TYPE | grep -i disk  | awk  '$1 ~ /sd*|nvme*/ {print $1}'))
+    list_block_devices=($(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*/ {if ($3 !=0 && $4 ==0)  {print $1}}'))
     for block_dev in ${list_block_devices[@]};
     do
+	#if there were any problems when the ubuntu was streamed.
+	printf 'OK\n'  | parted ---pretend-input-tty -m  "/dev/$block_dev" p
+	printf 'Fix\n' | parted ---pretend-input-tty -m  "/dev/$block_dev" p
+
 	parted "/dev/$block_dev" p | grep -i boot
 	if [ $? -ne 0 ];
 	then
@@ -176,10 +184,132 @@ get_dest_disk()
 }
 
 #####################################################################################
+# set the single_hdd var to 0 if this is a single HDD else it will keep it unchanged at -1
+is_single_hdd() {
+    ret=-1
+    # list_block_devices=($(lsblk -o NAME,TYPE | grep -i disk  | awk  '$1 ~ /sd*|nvme*/ {print $1}'))
+    ## $3 represents the block device size. if 0 omit
+    ## $4 is set to 1 if the device is removable
+    list_block_devices=($(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*/ {if ($3 !=0 && $4 ==0)  {print $1}}'))
+
+    count=${#list_block_devices[@]}
+
+    if [ $count -eq 0 ];
+    then
+	echo "No valid block devices found."
+	exit 1
+    fi
+
+    if [ $count -eq 1 ];
+    then
+	# send a 0 if there is only one HDD
+	single_hdd=0
+    fi
+
+}
+#####################################################################################
+make_partition_single_hdd() {
+
+    #if there were any problems when the ubuntu was streamed.
+    # printf 'Fix\n' | parted ---pretend-input-tty -l
+
+    #ram_size
+    ram_size=$(free -g | grep -i mem | awk '{ print $2 }' )
+    swap_size=$(( $ram_size + 2 ))
+
+    total_size_disk=$(parted -s ${DEST_DISK} p | grep -i ${DEST_DISK} | awk '{ print $3 }' | sed  's/GB//g' )
+
+    # Size of OS with all other partitions are capped to 100GB
+    #
+    if [[ $total_size_disk -gt 100 ]];
+    then
+	total_size_disk=100
+	#Bare minimum needed to encrypt rootfs is 3GB
+	reserved_size=3
+	reserved_end=$total_size_disk
+
+	# minimum_size=$(( $rootfs_size + $tep_size + $swap_size + $boot_size + $reserved_size + $swap_size ))
+
+	# if [[ $minimum_size -lt $total_size_disk ]];
+	# then
+	#     total_size_disk=$minimum_size
+	# fi
+    else
+	minimum_size=$(( $reserved_size + $tep_size + $swap_size + $boot_size + $bare_min_rootfs_size ))
+	if [[ $minimum_size -gt $total_size_disk ]];
+	then
+	    # This entire if block is to start optimization of the each of the blocks.
+	    difference=$(( $minimum_size - $total_size_disk ))
+
+	    # first check for the reserved size a mininum of 2 is needed.
+	    if [ $difference -gt 0 ];
+	    then
+		difference=$(( $difference - 3 ))
+		reserved_size=$(( $reserved_size - 3 ))
+	    fi
+
+	    # trusted compute will be given only 2 GB in such a constrainted environment.
+	    if [ $difference -gt 0 ];
+	    then
+		difference=$(( $difference - 12 ))
+		tep_size=$(( $tep_size - 12 ))
+	    fi
+
+	    # last for the critical one. if the swap space is cut to less than half FDE will not proceed.
+	    if [ $difference -gt 0 ];
+	    then
+		temp_swap_size=$(( $swap_size - $difference ))
+		if [ $temp_swap_size -lt $(( $swap_size / 2 )) ];
+		then
+		    echo "PLATFORM CANNOT SUPPORT SWAP SPACE."
+		    exit 1
+		else
+		    swap_size=$temp_swap_size
+		fi
+	    fi
+	fi
+    fi
+
+    #####
+
+    reserved_start=$(( $total_size_disk - $reserved_size ))
+    tep_start=$(( $reserved_start - $tep_size ))
+    swap_start=$(( $tep_start - $swap_size ))
+    boot_start=$(( $swap_start - $boot_size ))
+    rootfs_end=$boot_start
+
+    #####
+
+    parted -s ${DEST_DISK} \
+	   resizepart $rootfs_partition "${rootfs_end}GB" \
+	   mkpart primary ext4 "${boot_start}GB" "${swap_start}GB" \
+	   mkpart primary linux-swap "${swap_start}GB" "${tep_start}GB" \
+	   mkpart primary ext4 "${tep_start}GB"  "${reserved_start}GB" \
+	   mkpart primary ext4 "${reserved_start}GB" "${reserved_end}GB" \
+	   mkpart primary ext4 "${reserved_end}GB" 100%
+
+    check_return_value $? "Failed to create paritions"
+
+    suffix=$(fix_partition_suffix)
+
+    #/boot is now kept in a different partition
+    mkfs -t ext4 -L boot -F "${DEST_DISK}${suffix}${boot_partition}"
+    check_return_value $? "Failed to mkfs boot"
+
+    #swap space creation
+    # mkswap "${DEST_DISK}${suffix}${swap_partition}"
+    # check_return_value $? "Failed to mkswap"
+
+    #TEP and reserved are not formated currently.
+    #reserved
+    mkfs -t ext4 -L reserved -F "${DEST_DISK}${suffix}${reserved_partition}"
+    check_return_value $? "Failed to mkfs boot"
+}
+#####################################################################################
 make_partition() {
 
     #if there were any problems when the ubuntu was streamed.
-    printf 'Fix\n' | parted ---pretend-input-tty -l
+    # printf 'Fix\n' | parted ---pretend-input-tty -l
 
     #ram_size
     ram_size=$(free -g | grep -i mem | awk '{ print $2 }' )
@@ -245,8 +375,51 @@ save_rootfs_on_ram(){
 }
 
 #####################################################################################
+create_single_hdd_lvmg() {
+    if [ $single_hdd -eq 0 ];
+    then
+	cryptsetup luksFormat  \
+		   --batch-mode \
+		   --pbkdf-memory=2097152 \
+		   --pbkdf-parallel=8  \
+		   --cipher=aes-xts-plain64 \
+		   --reduce-device-size 32M \
+		   "${DEST_DISK}${suffix}${singlehdd_lvm_partition}" \
+		   $luks_key
+
+	check_return_value $? "Failed to luks format for lvmvg ${DEST_DISK}${suffix}${singlehdd_lvm_partition}"
+
+	cryptsetup luksOpen "${DEST_DISK}${suffix}${singlehdd_lvm_partition}" "lvmvg_crypt" --key-file=$luks_key
+	check_return_value $? "Failed to luks open lvmvg_crypt"
+
+	pvcreate "/dev/mapper/lvmvg_crypt"
+	check_return_value $? "Failed to make mkfs ext4 on lvmvg_crypt"
+
+	vgcreate lvmvg "/dev/mapper/lvmvg_crypt"
+	check_return_value $? "Failed to create a lvmvg group"
+	echo "vgcreate is completed"
+
+	block_dev_actual_partition_uuid=$(blkid "${DEST_DISK}${suffix}${singlehdd_lvm_partition}" -s UUID -o value)
+	echo -e "lvmvg_crypt UUID=${block_dev_actual_partition_uuid} none luks,discard,initramfs,keyscript=/etc/initramfs-tools/tpm2-cryptsetup" >> /mnt/etc/crypttab
+
+	mkdir -p /mnt/media/lvmvg
+
+	fstab_block_dev="/dev/mapper/lvmvg_crypt /media/lvmvg ext4 discard,errors=remount-ro       0 1"
+
+
+	mount "/dev/mapper/lvmvg_crypt" /mnt/media/lvmvg
+    fi
+
+}
+
+#####################################################################################
 partition_other_devices() {
-    list_block_devices=($(lsblk -o NAME,TYPE | grep -i disk  | awk  '$1 ~ /sd*|nvme*/ {print $1}'))
+    # list_block_devices=($(lsblk -o NAME,TYPE | grep -i disk  | awk  '$1 ~ /sd*|nvme*/ {print $1}'))
+
+    ## $3 represents the block device size. if 0 omit
+    ## $4 is set to 1 if the device is removable
+    list_block_devices=($(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*/ {if ($3 !=0 && $4 ==0)  {print $1}}'))
+    list_of_lvmg_part=''
     for block_dev in ${list_block_devices[@]};
     do
 	grep -i "${DEST_DISK}" <<< "/dev/${block_dev}"
@@ -297,10 +470,7 @@ partition_other_devices() {
 	pvcreate "/dev/mapper/${block_dev}_crypt"
 	check_return_value $? "Failed to make mkfs ext4 on ${block_dev}_crypt"
 
-	vgcreate lvmvg "/dev/mapper/${block_dev}_crypt"
-	check_return_value $? "Failed to create a lvmvg group"
-
-	echo "vgcreate is completed"
+	list_of_lvmg_part+="/dev/mapper/${block_dev}_crypt"
 
 	# add to fstab and crypttab
 	
@@ -314,6 +484,13 @@ partition_other_devices() {
 
 	mount "/dev/mapper/${block_dev}_crypt" /mnt/media/${block_dev}
     done
+
+    if [[ $list_of_lvmg_part != '' ]];
+    then
+	vgcreate lvmvg $list_of_lvmg_part
+	check_return_value $? "Failed to create a lvmvg group"
+	echo "vgcreate is completed"
+    fi
     
 }
 
@@ -354,6 +531,11 @@ ${fstab_efi_partition}"
     echo -e "RESUME=/dev/mapper/swap_crypt" >/mnt/etc/initramfs-tools/conf.d/resume
 }
 
+#####################################################################################
+cleanup_rfs_backup() {
+    # running this as part of another process to speed up the FDE
+    dd if=/dev/zero of=${DEST_DISK}${suffix}${reserved_partition} bs=100MB count=20
+}
 #####################################################################################
 enable_luks(){
     suffix=$(fix_partition_suffix)
@@ -411,7 +593,7 @@ enable_luks(){
     umount rfs_backup
 
     #cleanup copied backup of rfs
-    dd if=/dev/zero of=${DEST_DISK}${suffix}${reserved_partition} bs=100MB
+    cleanup_rfs_backup &
 
     ### setup swap luks
     cryptsetup luksFormat  \
@@ -433,7 +615,6 @@ enable_luks(){
     check_return_value $? "Failed to mkswap"
 
     ### setup swap luks completed
-
 
     # mounts needed to make the chroot work
     mount /dev/mapper/rootfs_crypt /mnt
@@ -472,6 +653,7 @@ enable_luks(){
 
     mtab_to_fstab
 
+    create_single_hdd_lvmg
     partition_other_devices
 
     rm /mnt/etc/resolv.conf
@@ -521,7 +703,7 @@ enable_luks(){
     fi
 
     #TODO fix this as part of the deployment yaml
-    # sed -i 's/console=tty1 console=ttyS0/console=ttyS0,115200/' /boot/grub/grub.cfg
+    #sed -i 's/console=tty1 console=ttyS0/console=ttyS0,115200/' /boot/grub/grub.cfg
     
 EOT
 
@@ -551,7 +733,16 @@ EOT
 main() {
 
     get_dest_disk
-    make_partition
+
+    is_single_hdd
+
+    if [ $single_hdd -eq 0 ];
+    then
+	make_partition_single_hdd
+    else
+	make_partition
+    fi
+
     save_rootfs_on_ram
 
     enable_luks

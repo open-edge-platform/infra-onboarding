@@ -13,7 +13,7 @@ FROM debian:12
 
 RUN apt-get update
 RUN apt-get install -y parted cryptsetup-bin tpm2-tools xxd
-RUN apt-get install -y lvm2
+RUN apt-get install -y lvm2 procps
 
 COPY enable_fde.sh /
 
