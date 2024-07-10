@@ -373,6 +373,10 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 }
 
 func TestInstanceReconciler_reconcileInstance(t *testing.T) {
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
 	type fields struct {
 		invClient *invclient.OnboardingInventoryClient
 	}
@@ -381,10 +385,6 @@ func TestInstanceReconciler_reconcileInstance(t *testing.T) {
 		request  rec_v2.Request[ResourceID]
 		instance *computev1.InstanceResource
 	}
-	om_testing.CreateInventoryOnboardingClientForTesting()
-	t.Cleanup(func() {
-		om_testing.DeleteInventoryOnboardingClientForTesting()
-	})
 	tests := []struct {
 		name   string
 		fields fields
@@ -404,6 +404,35 @@ func TestInstanceReconciler_reconcileInstance(t *testing.T) {
 					Host: &computev1.HostResource{
 						ResourceId:       "host-084d9b08",
 						LegacyHostStatus: computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
+						HostNics: []*computev1.HostnicResource{
+							{
+								ResourceId:   "hostnic-084d9b08",
+								BmcInterface: true,
+							},
+						},
+						BmcIp: "00.00.00.00",
+					},
+
+					Os: &osv1.OperatingSystemResource{
+						RepoUrl: "osUrl.raw.gz;overlayUrl",
+					},
+				},
+			},
+		},
+		{
+			name: "Test Case for untrusted state",
+			fields: fields{
+				invClient: om_testing.InvClient,
+			},
+			args: args{
+				ctx:     context.Background(),
+				request: rec_v2.Request[ResourceID]{},
+				instance: &computev1.InstanceResource{
+					DesiredState: computev1.InstanceState_INSTANCE_STATE_UNTRUSTED,
+					Host: &computev1.HostResource{
+						ResourceId:       "host-084d9b08",
+						LegacyHostStatus: computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
+						CurrentState: computev1.HostState_HOST_STATE_UNTRUSTED,
 						HostNics: []*computev1.HostnicResource{
 							{
 								ResourceId:   "hostnic-084d9b08",

@@ -181,7 +181,20 @@ func (ir *InstanceReconciler) reconcileInstance(
 		zlogInst.Debug().Msgf("Instance (%s) has been deleted", instance.GetResourceId())
 		return request.Ack()
 	}
-
+	if instance.GetDesiredState() == computev1.InstanceState_INSTANCE_STATE_UNTRUSTED {
+		err := ir.invClient.UpdateInstanceCurrentState(
+			ctx,
+			&computev1.InstanceResource{
+				ResourceId:   instance.GetResourceId(),
+				CurrentState: computev1.InstanceState_INSTANCE_STATE_UNTRUSTED,
+			},
+		)
+		if directive := HandleInventoryError(err, request); directive != nil {
+			return directive
+		}
+		zlogInst.Debug().Msgf("Instance (%s) currentState has been updated to untrusted", instance.GetResourceId())
+		return request.Ack()
+	}
 	return request.Ack()
 }
 
