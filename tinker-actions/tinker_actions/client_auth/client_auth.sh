@@ -182,6 +182,9 @@ main() {
 
     else
 	echo "Incorrect username and password provided."
+	setsid /bin/sh -c "echo -e '\nIncorrect username and password provided.' <> /dev/ttyS1 >&0 2>&1"
+	setsid /bin/sh -c "echo -e '\nIncorrect username and password provided.' <> /dev/ttyS0 >&0 2>&1"
+	setsid /bin/sh -c "echo -e '\nIncorrect username and password provided.' <> /dev/tty0 >&0 2>&1"
 	sleep 5
     fi
 }
