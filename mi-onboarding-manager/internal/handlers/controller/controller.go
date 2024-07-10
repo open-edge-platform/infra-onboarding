@@ -66,12 +66,6 @@ func New(
 	controllers[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instCtrl
 	filters[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instanceEventFilter
 
-	osRcnl := reconcilers.NewOsReconciler(invClient, enableTracing)
-	osCtrl := rec_v2.NewController[reconcilers.ResourceID](
-		osRcnl.Reconcile, rec_v2.WithParallelism(parallelism))
-	controllers[inv_v1.ResourceKind_RESOURCE_KIND_OS] = osCtrl
-	filters[inv_v1.ResourceKind_RESOURCE_KIND_OS] = osEventFilter
-
 	return &OnboardingController{
 		invClient:   invClient,
 		filters:     filters,
@@ -147,7 +141,7 @@ func (obc *OnboardingController) filterEvent(event *inv_v1.SubscribeEventsRespon
 	filter, ok := obc.filters[expectedKind]
 	if !ok {
 		zlog.Debug().Msgf("No filter found for resource kind %s, accepting all events", expectedKind)
-		return true
+		return false
 	}
 
 	return filter(event)
@@ -159,7 +153,6 @@ func (obc *OnboardingController) reconcileAll(ctx context.Context) error {
 	resourceKinds := []inv_v1.ResourceKind{
 		inv_v1.ResourceKind_RESOURCE_KIND_HOST,
 		inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE,
-		inv_v1.ResourceKind_RESOURCE_KIND_OS,
 	}
 	ids, err := obc.invClient.FindAllResources(ctx, resourceKinds)
 	if err != nil && !inv_errors.IsNotFound(err) {
@@ -204,10 +197,4 @@ func instanceEventFilter(event *inv_v1.SubscribeEventsResponse) bool {
 
 func hostEventFilter(event *inv_v1.SubscribeEventsResponse) bool {
 	return event.EventKind != inv_v1.SubscribeEventsResponse_EVENT_KIND_DELETED
-}
-
-func osEventFilter(event *inv_v1.SubscribeEventsResponse) bool {
-	return event.EventKind == inv_v1.SubscribeEventsResponse_EVENT_KIND_UPDATED ||
-		event.EventKind == inv_v1.SubscribeEventsResponse_EVENT_KIND_CREATED ||
-		event.EventKind == inv_v1.SubscribeEventsResponse_EVENT_KIND_DELETED
 }

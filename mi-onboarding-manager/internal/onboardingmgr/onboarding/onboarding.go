@@ -48,7 +48,9 @@ func InitOnboarding(invClient *invclient.OnboardingInventoryClient, _ string, en
 	}
 }
 
-func GetOSResourceFromDkamService(ctx context.Context, profilename, platform string) (*dkam.GetArtifactsResponse, error) {
+func GetOSResourceFromDkamService(ctx context.Context, repoURL, sha256, profilename, installedPackages string,
+	platform, kernelCommand string,
+) (*dkam.GetENProfileResponse, error) {
 	// Get the DKAM manager host and port
 	host := os.Getenv("DKAMHOST")
 	port := os.Getenv("DKAMPORT")
@@ -73,9 +75,13 @@ func GetOSResourceFromDkamService(ctx context.Context, profilename, platform str
 
 	// Create an instance of DkamServiceClient using the connection
 	dkamClient := dkam.NewDkamServiceClient(dkamConn)
-	response, err := dkamClient.GetArtifacts(ctx, &dkam.GetArtifactsRequest{
-		ProfileName: profilename,
-		Platform:    platform,
+	response, err := dkamClient.GetENProfile(ctx, &dkam.GetENProfileRequest{
+		RepoUrl:           repoURL,
+		Sha256:            sha256,
+		InstalledPackages: installedPackages,
+		KernelCommand:     kernelCommand,
+		ProfileName:       profilename,
+		Platform:          platform,
 	})
 	if err != nil {
 		zlog.Err(err).Msg("Failed to get software details from DKAM")

@@ -8,10 +8,8 @@ import (
 	"context"
 
 	"github.com/stretchr/testify/mock"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
-	dkam "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/api/dkammgr/v1"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client/cache"
@@ -163,15 +161,4 @@ type MockController struct {
 
 func (m *MockController) Stop() {
 	m.Called()
-}
-
-type MockDkamServiceClient struct {
-	mock.Mock
-}
-
-func (m *MockDkamServiceClient) GetArtifacts(ctx context.Context, in *dkam.GetArtifactsRequest,
-	opts ...grpc.CallOption,
-) (*dkam.GetArtifactsResponse, error) {
-	args := m.Called(ctx, in, opts)
-	return args.Get(0).(*dkam.GetArtifactsResponse), args.Error(1)
 }

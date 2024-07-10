@@ -58,16 +58,6 @@ func TestReconcileEvent(t *testing.T) {
 		return request.Ack()
 	}, rec_v2.WithParallelism(1))
 	nbHandler.controllers[inv_v1.ResourceKind_RESOURCE_KIND_HOST] = controllerHost
-
-	doneOS := make(chan bool, 1)
-	controllerOS := rec_v2.NewController[reconcilers.ResourceID](func(ctx context.Context,
-		request rec_v2.Request[reconcilers.ResourceID],
-	) rec_v2.Directive[reconcilers.ResourceID] {
-		doneOS <- true
-		return request.Ack()
-	}, rec_v2.WithParallelism(1))
-	nbHandler.controllers[inv_v1.ResourceKind_RESOURCE_KIND_OS] = controllerOS
-
 	doneInstance := make(chan bool, 1)
 	controllerInstance := rec_v2.NewController[reconcilers.ResourceID](func(ctx context.Context,
 		request rec_v2.Request[reconcilers.ResourceID],
@@ -87,8 +77,6 @@ func TestReconcileEvent(t *testing.T) {
 	host := inv_testing.CreateHostNoCleanup(t, nil, nil, nil, nil)
 	osRes := inv_testing.CreateOsNoCleanup(t)
 	inst := inv_testing.CreateInstanceNoCleanup(t, host, osRes)
-
-	assert.True(t, <-doneOS)
 	assert.True(t, <-doneHost)
 	assert.True(t, <-doneInstance)
 
@@ -102,7 +90,6 @@ func TestReconcileEvent(t *testing.T) {
 	assert.True(t, <-doneInstance)
 
 	// DELETED event for OS and Instance
-	assert.True(t, <-doneOS)
 	assert.True(t, <-doneInstance)
 
 	select {
@@ -111,9 +98,6 @@ func TestReconcileEvent(t *testing.T) {
 		t.Fail()
 	case v := <-doneInstance:
 		t.Errorf("Unexpected Instance message received on channel: %v", v)
-		t.Fail()
-	case v := <-doneOS:
-		t.Errorf("Unexpected OS message received on channel: %v", v)
 		t.Fail()
 	case <-time.After(3 * time.Second):
 		break
@@ -148,14 +132,6 @@ func TestReconcileAll(t *testing.T) {
 	}, rec_v2.WithParallelism(1))
 	nbHandler.controllers[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = controllerInstance
 
-	doneOS := make(chan bool, 1)
-	controllerOS := rec_v2.NewController[reconcilers.ResourceID](func(ctx context.Context,
-		request rec_v2.Request[reconcilers.ResourceID],
-	) rec_v2.Directive[reconcilers.ResourceID] {
-		doneOS <- true
-		return request.Ack()
-	}, rec_v2.WithParallelism(1))
-	nbHandler.controllers[inv_v1.ResourceKind_RESOURCE_KIND_OS] = controllerOS
 
 	// Create beforehand the resources
 	host := inv_testing.CreateHostNoCleanup(t, nil, nil, nil, nil)
@@ -176,12 +152,11 @@ func TestReconcileAll(t *testing.T) {
 	time.Sleep(1 * time.Second)
 	assert.True(t, <-doneHost)
 	assert.True(t, <-doneInstance)
-	assert.True(t, <-doneOS)
 
 	// delayed CREATED events
 	assert.True(t, <-doneHost)
 	assert.True(t, <-doneInstance)
-	assert.True(t, <-doneOS)
+
 
 	// Do hard delete directly, the reconciler is fake and won't actually delete the resource
 	inv_testing.HardDeleteInstance(t, inst.ResourceId)
@@ -193,7 +168,7 @@ func TestReconcileAll(t *testing.T) {
 	assert.True(t, <-doneInstance)
 
 	// DELETED event for OS and Instance
-	assert.True(t, <-doneOS)
+
 	assert.True(t, <-doneInstance)
 
 	select {
@@ -203,9 +178,7 @@ func TestReconcileAll(t *testing.T) {
 	case v := <-doneInstance:
 		t.Errorf("Unexpected Instance message received on channel: %v", v)
 		t.Fail()
-	case v := <-doneOS:
-		t.Errorf("Unexpected OS message received on channel: %v", v)
-		t.Fail()
+
 	case <-time.After(3 * time.Second):
 		break
 	}
@@ -239,15 +212,6 @@ func TestReconcileNoControllers(t *testing.T) {
 	}, rec_v2.WithParallelism(1))
 	nbHandler.controllers[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = controllerInstance
 
-	doneOS := make(chan bool, 1)
-	controllerOS := rec_v2.NewController[reconcilers.ResourceID](func(ctx context.Context,
-		request rec_v2.Request[reconcilers.ResourceID],
-	) rec_v2.Directive[reconcilers.ResourceID] {
-		doneOS <- true
-		return request.Ack()
-	}, rec_v2.WithParallelism(1))
-	nbHandler.controllers[inv_v1.ResourceKind_RESOURCE_KIND_OS] = controllerOS
-
 	err = nbHandler.Start()
 	require.NoError(t, err)
 
@@ -268,9 +232,6 @@ func TestReconcileNoControllers(t *testing.T) {
 		t.Fail()
 	case v := <-doneInstance:
 		t.Errorf("Unexpected Instance message received on channel: %v", v)
-		t.Fail()
-	case v := <-doneOS:
-		t.Errorf("Unexpected OS message received on channel: %v", v)
 		t.Fail()
 	case <-time.After(3 * time.Second):
 		break
@@ -304,18 +265,6 @@ func TestFilterEventErrors(t *testing.T) {
 			EventKind:  inv_v1.SubscribeEventsResponse_EVENT_KIND_DELETED,
 		})
 		require.False(t, result)
-	})
-
-	t.Run("FailedNoFilterForExpectedKind", func(t *testing.T) {
-		delete(nbHandler.filters, inv_v1.ResourceKind_RESOURCE_KIND_OS)
-		result := nbHandler.filterEvent(&inv_v1.SubscribeEventsResponse{
-			ClientUuid: "",
-			ResourceId: "os-12345678",
-			Resource:   &inv_v1.Resource{Resource: &inv_v1.Resource_Os{}},
-			EventKind:  inv_v1.SubscribeEventsResponse_EVENT_KIND_DELETED,
-		})
-		// all events are accepted if no filter
-		require.True(t, result)
 	})
 }
 
@@ -445,46 +394,6 @@ func Test_hostEventFilter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := hostEventFilter(tt.args.event); got != tt.want {
 				t.Errorf("hostEventFilter() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_osEventFilter(t *testing.T) {
-	type args struct {
-		event *inv_v1.SubscribeEventsResponse
-	}
-	tests := []struct {
-		name string
-		args args
-		want bool
-	}{
-		{
-			name: "Test Updated Event",
-			args: args{&inv_v1.SubscribeEventsResponse{
-				EventKind: inv_v1.SubscribeEventsResponse_EVENT_KIND_UPDATED,
-			}},
-			want: true,
-		},
-		{
-			name: "Test Create Event",
-			args: args{&inv_v1.SubscribeEventsResponse{
-				EventKind: inv_v1.SubscribeEventsResponse_EVENT_KIND_CREATED,
-			}},
-			want: true,
-		},
-		{
-			name: "Test Delete Event",
-			args: args{&inv_v1.SubscribeEventsResponse{
-				EventKind: inv_v1.SubscribeEventsResponse_EVENT_KIND_DELETED,
-			}},
-			want: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := osEventFilter(tt.args.event); got != tt.want {
-				t.Errorf("osEventFilter() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -628,7 +537,7 @@ func TestOnboardingController_filterEvent_Case(t *testing.T) {
 			args: args{
 				event: mockEventInvalid,
 			},
-			want: true,
+			want: false,
 		},
 		{
 			name: "Test OnboardingController -Filter event with no matching filter",

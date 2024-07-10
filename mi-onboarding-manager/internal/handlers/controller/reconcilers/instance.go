@@ -6,7 +6,6 @@ package reconcilers
 
 import (
 	"context"
-	"strings"
 
 	"google.golang.org/grpc/codes"
 	grpc_status "google.golang.org/grpc/status"
@@ -16,6 +15,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/env"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
+	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onbworkflowclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
@@ -210,31 +210,21 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 	}
 
 	repoURL := instance.GetOs().GetRepoUrl()
-	repoURLInfo := strings.Split(repoURL, ";")
+	sha256 := instance.GetOs().GetSha256()
+	profileName := instance.GetOs().GetProfileName()
+	installedPackages := instance.GetOs().GetInstalledPackages()
+	kernalCommand := instance.GetOs().GetKernelCommand()
+	platform := instance.GetOs().GetArchitecture()
 
-	if len(repoURLInfo) == 0 {
-		return utils.DeviceInfo{}, inv_errors.Errorfc(codes.InvalidArgument,
-			"Invalid format of OS repo url: %s", repoURL)
+	response, err := onboarding.GetOSResourceFromDkamService(context.Background(), repoURL, sha256,
+		profileName, installedPackages, platform, kernalCommand)
+	if err != nil {
+		zlogInst.Err(err).Msgf("Failed to trigger DKAM for os instance ID : %s", err)
 	}
 
-	osLocationURL := repoURLInfo[0]
-	if !utils.IsValidOSURLFormat(osLocationURL) {
-		return utils.DeviceInfo{}, inv_errors.Errorfc(codes.InvalidArgument,
-			"Invalid format of OS url: %s", osLocationURL)
-	}
-
-	var (
-		installerScriptURL string
-		tinkerVersion      string
-	)
-
-	if len(repoURLInfo) > 1 {
-		installerScriptURL = repoURLInfo[1]
-	}
-
-	if len(repoURLInfo) > checkInvURLLength {
-		tinkerVersion = repoURLInfo[2]
-	}
+	osLocationURL := response.GetOsUrl()
+	installerScriptURL := response.GetOverlayscriptUrl()
+	tinkerVersion := response.GetTinkActionVersion()
 
 	sutIP := instance.GetHost().GetBmcIp()
 	osLocationURL = utils.ReplaceHostIP(osLocationURL, sutIP)

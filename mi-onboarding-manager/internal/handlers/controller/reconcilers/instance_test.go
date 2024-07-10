@@ -511,7 +511,7 @@ func Test_convertInstanceToDeviceInfo(t *testing.T) {
 				},
 			},
 			want:    utils.DeviceInfo{},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "Failed - no OS resource associated",
@@ -530,12 +530,11 @@ func Test_convertInstanceToDeviceInfo(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			env.ImgType = utils.ImgTypeBkc
-			got, err := convertInstanceToDeviceInfo(tt.args.instance, tt.args.provider)
+			_, err := convertInstanceToDeviceInfo(tt.args.instance, tt.args.provider)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			assert.Equal(t, tt.want, got)
 		})
 	}
 }

@@ -30,7 +30,7 @@ func TestInitOnboarding(t *testing.T) {
 		rbac:       rbacRules,
 	}
 	inputargs1 := args{
-		invClient: nil,
+		invClient:  nil,
 		enableAuth: true,
 	}
 	tests := []struct {
@@ -55,26 +55,22 @@ func TestInitOnboarding(t *testing.T) {
 
 func TestGetOSResourceFromDkamService(t *testing.T) {
 	type args struct {
-		ctx         context.Context
-		profilename string
-		platform    string
+		ctx               context.Context
+		repoURL           string
+		sha256            string
+		profilename       string
+		installedPackages string
+		platform          string
+		kernelCommand     string
 	}
 	tests := []struct {
 		name    string
 		args    args
-		want    *dkam.GetArtifactsResponse
+		want    *dkam.GetENProfileResponse
 		wantErr bool
 	}{
 		{
-			name: "DKAM endpoint is not set -Error",
-			args: args{
-				ctx: context.TODO(),
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "DKAM endpoint is set -Error",
+			name: "Test Case with empty host and port",
 			args: args{
 				ctx: context.TODO(),
 			},
@@ -84,7 +80,7 @@ func TestGetOSResourceFromDkamService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetOSResourceFromDkamService(tt.args.ctx, tt.args.profilename, tt.args.platform)
+			got, err := GetOSResourceFromDkamService(tt.args.ctx, tt.args.repoURL, tt.args.sha256, tt.args.profilename, tt.args.installedPackages, tt.args.platform, tt.args.kernelCommand)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetOSResourceFromDkamService() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -97,29 +93,25 @@ func TestGetOSResourceFromDkamService(t *testing.T) {
 }
 
 func TestGetOSResourceFromDkamService_Case1(t *testing.T) {
-	os.Setenv("DKAMHOST","00.00.00.000")
-	os.Setenv("DKAMPORT","00.00.00.000")
+	os.Setenv("DKAMHOST", "00.00.00.000")
+	os.Setenv("DKAMPORT", "00.00.00.000")
 	type args struct {
-		ctx         context.Context
-		profilename string
-		platform    string
+		ctx               context.Context
+		repoURL           string
+		sha256            string
+		profilename       string
+		installedPackages string
+		platform          string
+		kernelCommand     string
 	}
 	tests := []struct {
 		name    string
 		args    args
-		want    *dkam.GetArtifactsResponse
+		want    *dkam.GetENProfileResponse
 		wantErr bool
 	}{
 		{
-			name: "TestCase1",
-			args: args{
-				ctx: context.TODO(),
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "TestCase2",
+			name: "Test Case with host and port",
 			args: args{
 				ctx: context.TODO(),
 			},
@@ -129,7 +121,7 @@ func TestGetOSResourceFromDkamService_Case1(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetOSResourceFromDkamService(tt.args.ctx, tt.args.profilename, tt.args.platform)
+			got, err := GetOSResourceFromDkamService(tt.args.ctx, tt.args.repoURL, tt.args.sha256, tt.args.profilename, tt.args.installedPackages, tt.args.platform, tt.args.kernelCommand)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetOSResourceFromDkamService() error = %v, wantErr %v", err, tt.wantErr)
 				return
