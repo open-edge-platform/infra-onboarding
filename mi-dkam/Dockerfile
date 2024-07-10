@@ -17,6 +17,7 @@ COPY Makefile common.mk requirements.txt VERSION go.mod go.sum /go/src/github.co
 COPY cmd/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/cmd/
 COPY internal/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/internal/
 COPY pkg/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/
+COPY rego/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/rego/
 COPY vendor/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/vendor/
 
 WORKDIR /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service
@@ -56,6 +57,7 @@ WORKDIR /home/$USERNAME
 
 COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/build/dkammgr /usr/local/bin/dkammgr
 COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg /home/$USERNAME/pkg
+COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/rego/authz.rego /rego/authz.rego
 
 RUN chown -R $USERNAME:$USERNAME /home/$USERNAME
 RUN chmod +x pkg/script/build_sign_ipxe.sh

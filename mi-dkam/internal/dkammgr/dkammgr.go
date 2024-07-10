@@ -4,25 +4,56 @@ import (
 	//import dependencies
 
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/internal/invclient"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/api/dkammgr/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/curation"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/download"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/signing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/policy/rbac"
 )
 
 type Service struct {
 	pb.UnimplementedDkamServiceServer
+	invClient   *invclient.DKAMInventoryClient
+	rbac        *rbac.Policy
+	authEnabled bool
 }
 
 var zlog = logging.GetLogger("MIDKAMgRPC")
 var url string
 var tag = config.Tag
+
+func NewDKAMService(invClient *invclient.DKAMInventoryClient, _ string, _ bool,
+	enableAuth bool, rbacRules string,
+) (*Service, error) {
+	if invClient == nil {
+		return nil, errors.New("invClient is nil in DKAMService")
+	}
+
+	var rbacPolicy *rbac.Policy
+	var err error
+	if enableAuth {
+		zlog.Info().Msgf("Authentication is enabled, starting RBAC server for DKAMService")
+		// start OPA server with policies
+		rbacPolicy, err = rbac.New(rbacRules)
+		if err != nil {
+			zlog.Fatal().Msg("Failed to start RBAC OPA server")
+		}
+	}
+
+	return &Service{
+		invClient:   invClient,
+		rbac:        rbacPolicy,
+		authEnabled: enableAuth,
+	}, nil
+}
 
 func DownloadArtifacts() error {
 	MODE := GetMODE()
@@ -56,7 +87,7 @@ func DownloadArtifacts() error {
 	return nil
 }
 
-func (server *Service) GetArtifacts(ctx context.Context, req *pb.GetArtifactsRequest) (*pb.GetArtifactsResponse, error) {
+func (server *Service) GetENProfile(ctx context.Context, req *pb.GetENProfileRequest) (*pb.GetENProfileResponse, error) {
 	//Get request
 	profile := req.ProfileName
 	platform := req.Platform
@@ -64,14 +95,14 @@ func (server *Service) GetArtifacts(ctx context.Context, req *pb.GetArtifactsReq
 	zlog.MiSec().Info().Msgf("Profile Name %s", profile)
 	zlog.MiSec().Info().Msgf("Platform %s", platform)
 
-	filename, tinkeraction_version := GetCuratedScript(profile, platform)
-	scriptName := strings.Split(filename, "/")
 	proxyIP := "http://%host_ip%/tink-stack"
 	zlog.MiSec().Info().Msgf("proxyIP %s", proxyIP)
-	url = proxyIP + "/" + scriptName[len(scriptName)-1]
+	url = proxyIP + "/" + "installer.sh"
 	zlog.MiSec().Info().Msgf("url %s", url)
 	osUrl := proxyIP + "/" + config.ImageFileName
 	zlog.MiSec().Info().Msgf("osUrl %s", osUrl)
+	tinkeraction_version := curation.TinkerAction
+	zlog.MiSec().Info().Msgf("tinkeraction_version %s", tinkeraction_version)
 
 	//cleanup tmp dir
 
@@ -83,8 +114,27 @@ func (server *Service) GetArtifacts(ctx context.Context, req *pb.GetArtifactsReq
 		}
 	}
 
-	zlog.MiSec().Info().Msg("Return Manifest file.")
-	return &pb.GetArtifactsResponse{StatusCode: true, OsUrl: osUrl, OverlayscriptUrl: url, TinkActionVersion: tinkeraction_version}, nil
+	if !PathExists(config.PVC+"/installer.sh") && !PathExists(config.PVC+"/"+config.ImageFileName) {
+		zlog.MiSec().Info().Msg("Path exists:")
+		zlog.MiSec().Info().Msg("Return Manifest file.")
+		return &pb.GetENProfileResponse{StatusCode: true, OsUrl: osUrl, OverlayscriptUrl: url, TinkActionVersion: tinkeraction_version}, nil
+	} else {
+		zlog.MiSec().Info().Msg("Path not exists:")
+		zlog.MiSec().Info().Msg("Return Error Message.")
+		return &pb.GetENProfileResponse{StatusCode: true, OsUrl: osUrl, OverlayscriptUrl: url, TinkActionVersion: tinkeraction_version}, nil
+	}
+
+}
+
+func PathExists(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true // path exists
+	}
+	if os.IsNotExist(err) {
+		return false // path does not exist
+	}
+	return false // an error occurred (other than not existing)
 }
 
 func RemoveDir(path string) error {
@@ -105,9 +155,13 @@ func RemoveDir(path string) error {
 	return nil
 }
 
-func GetCuratedScript(profile string, platform string) (string, string) {
-	filename, version := curation.GetCuratedScript(profile, platform)
-	return filename, version
+func GetCuratedScript(profile string) error {
+	err := curation.GetCuratedScript(profile)
+	if err != nil {
+		zlog.MiSec().Info().Msgf("Failed curate %v", err)
+		return err
+	}
+	return nil
 }
 
 func GetServerUrl() string {
@@ -173,9 +227,10 @@ func GetScriptDir() string {
 	return scriptPath
 }
 
-func DownloadOS() error {
+func DownloadOS(osUrl string) error {
 	zlog.Info().Msgf("Inside DownloadOS...")
-	imageURL := config.ImageUrl
+	imageURL := osUrl
+	zlog.Info().Msgf("imageURL %s", imageURL)
 	targetDir := config.DownloadPath
 	fileName := fileNameFromURL(imageURL)
 	rawFileName := strings.TrimSuffix(fileName, ".img") + ".raw.gz"
@@ -226,4 +281,21 @@ func AccessConfigs() string {
 	BootsCaCertificateFile := config.BootsCaCertificateFile
 
 	return ServerAddress + "\n" + ServerAddressDescription + "\n" + Port + "\n" + Ubuntuversion + "\n" + Arch + "\n" + Release + "\n" + ProdHarbor + "\n" + DevHarbor + "\n" + AuthServer + "\n" + ReleaseVersion + "\n" + PVC + "\n" + Tag + "\n" + PreintTag + "\n" + Artifact + "\n" + ImageUrl + "\n" + ImageFileName + "\n" + RSProxy + "\n" + RSProxyManifest + "\n" + OrchCACertificateFile + "\n" + BootsCaCertificateFile
+}
+
+func InitOnboarding(invClient *invclient.DKAMInventoryClient, enableAuth bool, rbacRules string) {
+	if invClient == nil {
+		zlog.Debug().Msgf("Warning: invClient is nil")
+		return
+	}
+
+	var err error
+	if enableAuth {
+		zlog.Info().Msgf("Authentication is enabled, starting RBAC server for DKAM manager")
+		// start OPA server with policies
+		_, err = rbac.New(rbacRules)
+		if err != nil {
+			zlog.Fatal().Msg("Failed to start RBAC OPA server")
+		}
+	}
 }

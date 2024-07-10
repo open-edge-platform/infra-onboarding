@@ -69,10 +69,10 @@ func TestGetArtifacts(t *testing.T) {
 	service := &Service{}
 
 	// Create a UploadBaseImageRequest
-	request := &pb.GetArtifactsRequest{ProfileName: "common", Platform: "ASUS"}
+	request := &pb.GetENProfileRequest{ProfileName: "common", Platform: "ASUS"}
 
 	// Call the GetTelemetryQuery function
-	response, err := service.GetArtifacts(context.Background(), request)
+	response, err := service.GetENProfile(context.Background(), request)
 	if err != nil {
 		t.Fatalf("Error calling GetArtifacts: %v", err)
 	}
@@ -114,16 +114,11 @@ func TestGetCuratedScript(t *testing.T) {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	filename, version := GetCuratedScript("profile", "platform")
+	err = GetCuratedScript("profile")
 
 	// Check if the returned filename matches the expected format
-	expectedFilename := config.PVC + "/" + "installer.sh"
-	if filename != expectedFilename {
-		t.Errorf("Expected filename '%s', but got '%s'", expectedFilename, filename)
-	}
-	if len(version) == 0 {
-		t.Errorf("Version not found")
-	}
+	assert.NoError(t, err)
+
 	defer func() {
 		os.Remove(dir + "/installer.sh")
 	}()
@@ -261,6 +256,23 @@ func TestFileNameFromURL(t *testing.T) {
 	imageURL := "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
 	result := fileNameFromURL(imageURL)
 	assert.Equal(t, "jammy-server-cloudimg-amd64.img", result)
+}
+
+func TestGetENProfile(t *testing.T) {
+	request := &pb.GetENProfileRequest{ProfileName: "common", Platform: "ASUS"}
+	// Initialize the service
+	service := &Service{}
+
+	// Call the GetTelemetryQuery function
+	response, err := service.GetENProfile(context.Background(), request)
+	if err != nil {
+		t.Fatalf("Error calling GetArtifacts: %v", err)
+	}
+	// Check for errors in the response
+	assert.NoError(t, err)
+	// Assert that the response is not nil
+	assert.NotNil(t, response)
+	assert.Equal(t, true, isImageFile(response.OsUrl))
 }
 
 func TestDownloadArtifacts_Case(t *testing.T) {

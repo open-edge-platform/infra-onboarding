@@ -35,22 +35,22 @@ var (
 	_ = sort.Sort
 )
 
-// Validate checks the field values on GetArtifactsRequest with the rules
+// Validate checks the field values on GetENProfileRequest with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
-func (m *GetArtifactsRequest) Validate() error {
+func (m *GetENProfileRequest) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on GetArtifactsRequest with the rules
+// ValidateAll checks the field values on GetENProfileRequest with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// GetArtifactsRequestMultiError, or nil if none found.
-func (m *GetArtifactsRequest) ValidateAll() error {
+// GetENProfileRequestMultiError, or nil if none found.
+func (m *GetENProfileRequest) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *GetArtifactsRequest) validate(all bool) error {
+func (m *GetENProfileRequest) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -61,20 +61,28 @@ func (m *GetArtifactsRequest) validate(all bool) error {
 
 	// no validation rules for Platform
 
+	// no validation rules for RepoUrl
+
+	// no validation rules for Sha256
+
+	// no validation rules for InstalledPackages
+
+	// no validation rules for KernelCommand
+
 	if len(errors) > 0 {
-		return GetArtifactsRequestMultiError(errors)
+		return GetENProfileRequestMultiError(errors)
 	}
 
 	return nil
 }
 
-// GetArtifactsRequestMultiError is an error wrapping multiple validation
-// errors returned by GetArtifactsRequest.ValidateAll() if the designated
+// GetENProfileRequestMultiError is an error wrapping multiple validation
+// errors returned by GetENProfileRequest.ValidateAll() if the designated
 // constraints aren't met.
-type GetArtifactsRequestMultiError []error
+type GetENProfileRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m GetArtifactsRequestMultiError) Error() string {
+func (m GetENProfileRequestMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -83,11 +91,11 @@ func (m GetArtifactsRequestMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m GetArtifactsRequestMultiError) AllErrors() []error { return m }
+func (m GetENProfileRequestMultiError) AllErrors() []error { return m }
 
-// GetArtifactsRequestValidationError is the validation error returned by
-// GetArtifactsRequest.Validate if the designated constraints aren't met.
-type GetArtifactsRequestValidationError struct {
+// GetENProfileRequestValidationError is the validation error returned by
+// GetENProfileRequest.Validate if the designated constraints aren't met.
+type GetENProfileRequestValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -95,24 +103,24 @@ type GetArtifactsRequestValidationError struct {
 }
 
 // Field function returns field value.
-func (e GetArtifactsRequestValidationError) Field() string { return e.field }
+func (e GetENProfileRequestValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e GetArtifactsRequestValidationError) Reason() string { return e.reason }
+func (e GetENProfileRequestValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e GetArtifactsRequestValidationError) Cause() error { return e.cause }
+func (e GetENProfileRequestValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e GetArtifactsRequestValidationError) Key() bool { return e.key }
+func (e GetENProfileRequestValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e GetArtifactsRequestValidationError) ErrorName() string {
-	return "GetArtifactsRequestValidationError"
+func (e GetENProfileRequestValidationError) ErrorName() string {
+	return "GetENProfileRequestValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e GetArtifactsRequestValidationError) Error() string {
+func (e GetENProfileRequestValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -124,14 +132,14 @@ func (e GetArtifactsRequestValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sGetArtifactsRequest.%s: %s%s",
+		"invalid %sGetENProfileRequest.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = GetArtifactsRequestValidationError{}
+var _ error = GetENProfileRequestValidationError{}
 
 var _ interface {
 	Field() string
@@ -139,24 +147,24 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = GetArtifactsRequestValidationError{}
+} = GetENProfileRequestValidationError{}
 
-// Validate checks the field values on GetArtifactsResponse with the rules
+// Validate checks the field values on GetENProfileResponse with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
-func (m *GetArtifactsResponse) Validate() error {
+func (m *GetENProfileResponse) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on GetArtifactsResponse with the rules
+// ValidateAll checks the field values on GetENProfileResponse with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// GetArtifactsResponseMultiError, or nil if none found.
-func (m *GetArtifactsResponse) ValidateAll() error {
+// GetENProfileResponseMultiError, or nil if none found.
+func (m *GetENProfileResponse) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *GetArtifactsResponse) validate(all bool) error {
+func (m *GetENProfileResponse) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -171,20 +179,22 @@ func (m *GetArtifactsResponse) validate(all bool) error {
 
 	// no validation rules for StatusCode
 
+	// no validation rules for StatusMsg
+
 	if len(errors) > 0 {
-		return GetArtifactsResponseMultiError(errors)
+		return GetENProfileResponseMultiError(errors)
 	}
 
 	return nil
 }
 
-// GetArtifactsResponseMultiError is an error wrapping multiple validation
-// errors returned by GetArtifactsResponse.ValidateAll() if the designated
+// GetENProfileResponseMultiError is an error wrapping multiple validation
+// errors returned by GetENProfileResponse.ValidateAll() if the designated
 // constraints aren't met.
-type GetArtifactsResponseMultiError []error
+type GetENProfileResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m GetArtifactsResponseMultiError) Error() string {
+func (m GetENProfileResponseMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -193,11 +203,11 @@ func (m GetArtifactsResponseMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m GetArtifactsResponseMultiError) AllErrors() []error { return m }
+func (m GetENProfileResponseMultiError) AllErrors() []error { return m }
 
-// GetArtifactsResponseValidationError is the validation error returned by
-// GetArtifactsResponse.Validate if the designated constraints aren't met.
-type GetArtifactsResponseValidationError struct {
+// GetENProfileResponseValidationError is the validation error returned by
+// GetENProfileResponse.Validate if the designated constraints aren't met.
+type GetENProfileResponseValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -205,24 +215,24 @@ type GetArtifactsResponseValidationError struct {
 }
 
 // Field function returns field value.
-func (e GetArtifactsResponseValidationError) Field() string { return e.field }
+func (e GetENProfileResponseValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e GetArtifactsResponseValidationError) Reason() string { return e.reason }
+func (e GetENProfileResponseValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e GetArtifactsResponseValidationError) Cause() error { return e.cause }
+func (e GetENProfileResponseValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e GetArtifactsResponseValidationError) Key() bool { return e.key }
+func (e GetENProfileResponseValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e GetArtifactsResponseValidationError) ErrorName() string {
-	return "GetArtifactsResponseValidationError"
+func (e GetENProfileResponseValidationError) ErrorName() string {
+	return "GetENProfileResponseValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e GetArtifactsResponseValidationError) Error() string {
+func (e GetENProfileResponseValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -234,14 +244,14 @@ func (e GetArtifactsResponseValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sGetArtifactsResponse.%s: %s%s",
+		"invalid %sGetENProfileResponse.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = GetArtifactsResponseValidationError{}
+var _ error = GetENProfileResponseValidationError{}
 
 var _ interface {
 	Field() string
@@ -249,4 +259,4 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = GetArtifactsResponseValidationError{}
+} = GetENProfileResponseValidationError{}

@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DkamServiceClient interface {
-	GetArtifacts(ctx context.Context, in *GetArtifactsRequest, opts ...grpc.CallOption) (*GetArtifactsResponse, error)
+	GetENProfile(ctx context.Context, in *GetENProfileRequest, opts ...grpc.CallOption) (*GetENProfileResponse, error)
 }
 
 type dkamServiceClient struct {
@@ -33,9 +33,9 @@ func NewDkamServiceClient(cc grpc.ClientConnInterface) DkamServiceClient {
 	return &dkamServiceClient{cc}
 }
 
-func (c *dkamServiceClient) GetArtifacts(ctx context.Context, in *GetArtifactsRequest, opts ...grpc.CallOption) (*GetArtifactsResponse, error) {
-	out := new(GetArtifactsResponse)
-	err := c.cc.Invoke(ctx, "/dkammgr.v1.DkamService/GetArtifacts", in, out, opts...)
+func (c *dkamServiceClient) GetENProfile(ctx context.Context, in *GetENProfileRequest, opts ...grpc.CallOption) (*GetENProfileResponse, error) {
+	out := new(GetENProfileResponse)
+	err := c.cc.Invoke(ctx, "/dkammgr.v1.DkamService/GetENProfile", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -46,15 +46,15 @@ func (c *dkamServiceClient) GetArtifacts(ctx context.Context, in *GetArtifactsRe
 // All implementations should embed UnimplementedDkamServiceServer
 // for forward compatibility
 type DkamServiceServer interface {
-	GetArtifacts(context.Context, *GetArtifactsRequest) (*GetArtifactsResponse, error)
+	GetENProfile(context.Context, *GetENProfileRequest) (*GetENProfileResponse, error)
 }
 
 // UnimplementedDkamServiceServer should be embedded to have forward compatible implementations.
 type UnimplementedDkamServiceServer struct {
 }
 
-func (UnimplementedDkamServiceServer) GetArtifacts(context.Context, *GetArtifactsRequest) (*GetArtifactsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetArtifacts not implemented")
+func (UnimplementedDkamServiceServer) GetENProfile(context.Context, *GetENProfileRequest) (*GetENProfileResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetENProfile not implemented")
 }
 
 // UnsafeDkamServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -68,20 +68,20 @@ func RegisterDkamServiceServer(s grpc.ServiceRegistrar, srv DkamServiceServer) {
 	s.RegisterService(&DkamService_ServiceDesc, srv)
 }
 
-func _DkamService_GetArtifacts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetArtifactsRequest)
+func _DkamService_GetENProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetENProfileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DkamServiceServer).GetArtifacts(ctx, in)
+		return srv.(DkamServiceServer).GetENProfile(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/dkammgr.v1.DkamService/GetArtifacts",
+		FullMethod: "/dkammgr.v1.DkamService/GetENProfile",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DkamServiceServer).GetArtifacts(ctx, req.(*GetArtifactsRequest))
+		return srv.(DkamServiceServer).GetENProfile(ctx, req.(*GetENProfileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -94,8 +94,8 @@ var DkamService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*DkamServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "GetArtifacts",
-			Handler:    _DkamService_GetArtifacts_Handler,
+			MethodName: "GetENProfile",
+			Handler:    _DkamService_GetENProfile_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

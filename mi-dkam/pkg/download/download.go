@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 
@@ -324,36 +325,47 @@ func compressImage(inputFile, outputFile string) error {
 func DownloadUbuntuImage(imageUrl string, format string, fileName string, targetDir string) error {
 	// TODO(NEXFMPID-3359): avoid hardcoded file names, and use tmp folder for temporary files
 	zlog.Info().Msgf("Inside Download and Raw form conversion...")
-	// Check and install dependencies if necessary
-	if err := ensureDependencies(); err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error installing dependencies: %v", err)
-		return err
-	}
+	if strings.HasSuffix(imageUrl, "raw.gz") {
+		zlog.Info().Msgf("File is in raw format")
+		if err := downloadImage(imageUrl, config.ImageFileName, targetDir); err != nil {
+			zlog.MiSec().Error().Err(err).Msgf("Error downloading image:%v", err)
+			return err
+		}
 
-	// Download the image
-	if err := downloadImage(imageUrl, format, targetDir); err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error downloading image:%v", err)
-		return err
-	}
+	} else {
+		// Check and install dependencies if necessary
+		zlog.Info().Msgf("File is in img format")
+		// Check and install dependencies if necessary
+		if err := ensureDependencies(); err != nil {
+			zlog.MiSec().Error().Err(err).Msgf("Error installing dependencies: %v", err)
+			return err
+		}
 
-	// Convert the image to raw format
-	if err := convertImage(targetDir+"/"+"image.img", targetDir+"/"+"image.raw"); err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error converting image:%v", err)
-		return err
-	}
+		// Download the image
+		if err := downloadImage(imageUrl, format, targetDir); err != nil {
+			zlog.MiSec().Error().Err(err).Msgf("Error downloading image:%v", err)
+			return err
+		}
 
-	// Compress the raw image using pigz
-	if err := compressImage(targetDir+"/"+"image.raw", targetDir+"/"+fileName); err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error compressing image:%v", err)
-		return err
-	}
+		// Convert the image to raw format
+		if err := convertImage(targetDir+"/"+"image.img", targetDir+"/"+"image.raw"); err != nil {
+			zlog.MiSec().Error().Err(err).Msgf("Error converting image:%v", err)
+			return err
+		}
 
-	// Clean up temporary files
-	if err := os.Remove(targetDir + "/" + "image.img"); err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error removing temporary file: image.img: %v", err)
-	}
-	if err := os.Remove(targetDir + "/" + "image.raw"); err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error removing temporary file: image.raw %v", err)
+		// Compress the raw image using pigz
+		if err := compressImage(targetDir+"/"+"image.raw", targetDir+"/"+fileName); err != nil {
+			zlog.MiSec().Error().Err(err).Msgf("Error compressing image:%v", err)
+			return err
+		}
+
+		// Clean up temporary files
+		if err := os.Remove(targetDir + "/" + "image.img"); err != nil {
+			zlog.MiSec().Error().Err(err).Msgf("Error removing temporary file: image.img: %v", err)
+		}
+		if err := os.Remove(targetDir + "/" + "image.raw"); err != nil {
+			zlog.MiSec().Error().Err(err).Msgf("Error removing temporary file: image.raw %v", err)
+		}
 	}
 	exists, patherr := PathExists(targetDir + "/" + fileName)
 	if patherr != nil {

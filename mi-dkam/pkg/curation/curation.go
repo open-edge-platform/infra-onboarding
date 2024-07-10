@@ -26,6 +26,8 @@ var fileServer string
 var registryService string
 var agentsList []AgentsVersion
 var distribution string
+var tinkeractionList []Image
+var TinkerAction string
 
 type AgentsVersion struct {
 	Package string `yaml:"package"`
@@ -76,7 +78,7 @@ type Image struct {
 
 var ypsUrl = config.LA_YPSURL
 
-func GetCuratedScript(profile string, platform string) (string, string) {
+func GetCuratedScript(profile string) error {
 	MODE := os.Getenv("MODE")
 	//MODE := "dev"
 
@@ -112,14 +114,15 @@ func GetCuratedScript(profile string, platform string) (string, string) {
 	configs, err := GetReleaseArtifactList(releaseFilePath)
 	agentsList = []AgentsVersion{}
 	agentsList = append(agentsList, configs.BMA.Debs...)
-	tinkeractionList := configs.Provisioning.Images
+	tinkeractionList = []Image{}
+	tinkeractionList = configs.Provisioning.Images
 	distribution = configs.Metadata.DebianRepositories[0].Distribution
-	var tinkeraction_version string
+
 	if len(tinkeractionList) != 0 {
 		for _, image := range tinkeractionList {
 			if image.Image == "one-intel-edge/edge-node/tinker-actions/client_auth" {
 				zlog.MiSec().Info().Msgf("Tinker action:%s", image.Version)
-				tinkeraction_version = image.Version
+				TinkerAction = image.Version
 			}
 		}
 	}
@@ -127,14 +130,18 @@ func GetCuratedScript(profile string, platform string) (string, string) {
 	zlog.MiSec().Info().Msgf("Agents List' %s", agentsList)
 	if len(agentsList) == 0 {
 		zlog.MiSec().Info().Msg("Failed to get the agent list")
-		return err.Error(), "Tinker action version not found"
+		return err
 	}
-	if len(tinkeraction_version) == 0 {
+	if len(TinkerAction) == 0 {
 		zlog.MiSec().Info().Msg("Failed to get the Tinker action version")
-		return err.Error(), "Tinker action version not found"
+		return err
 	}
-	filename := CreateOverlayScript(currentDir, profile, MODE)
-	return filename, tinkeraction_version
+	createErr := CreateOverlayScript(currentDir, profile, MODE)
+	if createErr != nil {
+		zlog.MiSec().Info().Msgf("Error checking path %v", createErr)
+		return createErr
+	}
+	return nil
 
 }
 
@@ -180,7 +187,7 @@ func GetReleaseArtifactList(filePath string) (Config, error) {
 	return configs, nil
 }
 
-func CreateOverlayScript(pwd string, profile string, MODE string) string {
+func CreateOverlayScript(pwd string, profile string, MODE string) error {
 	parentDir := filepath.Dir(filepath.Dir(pwd))
 	beginString := "true >/etc/environment"
 	scriptDir := filepath.Join(parentDir, "pkg", "script")
@@ -503,7 +510,7 @@ func CreateOverlayScript(pwd string, profile string, MODE string) string {
 	}
 	AddFirewallRules(scriptFileName, ufwCommands)
 
-	return scriptFileName
+	return nil
 }
 
 func copyFile(src, dst string) error {

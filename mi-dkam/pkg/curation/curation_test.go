@@ -233,16 +233,9 @@ func Test_GetCuratedScript(t *testing.T) {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	filename, version := GetCuratedScript("profile", "platform")
+	err = GetCuratedScript("profile")
 
-	// Check if the returned filename matches the expected format
-	expectedFilename := config.PVC + "/" + "installer.sh"
-	if filename != expectedFilename {
-		t.Errorf("Expected filename '%s', but got '%s'", expectedFilename, filename)
-	}
-	if len(version) == 0 {
-		t.Errorf("Version not found")
-	}
+	assert.NoError(t, err)
 	defer func() {
 		os.Unsetenv("NETIP")
 		os.RemoveAll(dir)
@@ -263,16 +256,9 @@ func Test_GetCuratedScript_Case(t *testing.T) {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	filename, version := GetCuratedScript("profile", "platform")
+	err = GetCuratedScript("profile")
 
-	// Check if the returned filename matches the expected format
-	expectedFilename := config.PVC + "/" + "installer.sh"
-	if filename != expectedFilename {
-		t.Errorf("Expected filename '%s', but got '%s'", expectedFilename, filename)
-	}
-	if len(version) == 0 {
-		t.Errorf("Version not found")
-	}
+	assert.NoError(t, err)
 	defer func() {
 		os.Unsetenv("MODE")
 		os.RemoveAll(dir)
@@ -293,16 +279,9 @@ func Test_GetCuratedScript_Case1(t *testing.T) {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	filename, version := GetCuratedScript("profile", "platform")
+	err = GetCuratedScript("profile")
 
-	// Check if the returned filename matches the expected format
-	expectedFilename := config.PVC + "/" + "installer.sh"
-	if filename != expectedFilename {
-		t.Errorf("Expected filename '%s', but got '%s'", expectedFilename, filename)
-	}
-	if len(version) == 0 {
-		t.Errorf("Version not found")
-	}
+	assert.NoError(t, err)
 	defer func() {
 		os.Unsetenv("ORCH_CLUSTER")
 		os.RemoveAll(dir)
@@ -323,16 +302,10 @@ func Test_GetCuratedScript_Case2(t *testing.T) {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	filename, version := GetCuratedScript("profile", "platform")
+	err = GetCuratedScript("profile")
 
-	// Check if the returned filename matches the expected format
-	expectedFilename := config.PVC + "/" + "installer.sh"
-	if filename != expectedFilename {
-		t.Errorf("Expected filename '%s', but got '%s'", expectedFilename, filename)
-	}
-	if len(version) == 0 {
-		t.Errorf("Version not found")
-	}
+	assert.NoError(t, err)
+
 	defer func() {
 		os.Unsetenv("SOCKS_PROXY")
 		os.RemoveAll(dir)
@@ -361,14 +334,9 @@ func Test_GetCuratedScript_Case3(t *testing.T) {
 	src := strings.Replace(originalDir, "curation", "script/latest-dev.yaml", -1)
 	CopyFile(src, res)
 	os.Setenv("NETIP", "static")
-	filename, version := GetCuratedScript("profile", "platform")
-	expectedFilename := config.PVC + "/" + "installer.sh"
-	if filename != expectedFilename {
-		t.Errorf("Expected filename '%s', but got '%s'", expectedFilename, filename)
-	}
-	if len(version) == 0 {
-		t.Errorf("Version not found")
-	}
+	err = GetCuratedScript("profile")
+
+	assert.NoError(t, err)
 	defer func() {
 		os.Unsetenv("NETIP")
 		CopyFile(res, src)
@@ -403,14 +371,9 @@ func Test_GetCuratedScript_Case4(t *testing.T) {
 	os.MkdirAll(direc, 0755)
 	os.Create(direc + "latest-dev.yaml")
 	CopyFile(src, direc+"latest-dev.yaml")
-	filename, version := GetCuratedScript("profile", "platform")
-	expectedFilename := config.PVC + "/" + "installer.sh"
-	if filename != expectedFilename {
-		t.Errorf("Expected filename '%s', but got '%s'", expectedFilename, filename)
-	}
-	if len(version) == 0 {
-		t.Errorf("Version not found")
-	}
+	err = GetCuratedScript("profile")
+
+	assert.NoError(t, err)
 	defer func() {
 		os.Unsetenv("NETIP")
 		CopyFile(res, src)
@@ -600,22 +563,22 @@ func TestCreateOverlayScript(t *testing.T) {
 		MODE    string
 	}
 	tests := []struct {
-		name string
-		args args
-		want string
+		name    string
+		args    args
+		wantErr bool
 	}{
 		{
 			name: "Test Case",
 			args: args{
 				pwd: originalDir,
 			},
-			want: "",
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE); got == tt.want {
-				t.Errorf("CreateOverlayScript() = %v, want %v", got, tt.want)
+			if err := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE); (err != nil) != tt.wantErr {
+				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -670,22 +633,22 @@ func TestCreateOverlayScript_Case(t *testing.T) {
 		MODE    string
 	}
 	tests := []struct {
-		name string
-		args args
-		want string
+		name    string
+		args    args
+		wantErr bool
 	}{
 		{
 			name: "Test Case",
 			args: args{
 				pwd: originalDir,
 			},
-			want: "",
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE); got == tt.want {
-				t.Errorf("CreateOverlayScript() = %v, want %v", got, tt.want)
+			if err := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE); (err != nil) != tt.wantErr {
+				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -745,22 +708,22 @@ func TestCreateOverlayScript_Case1(t *testing.T) {
 		MODE    string
 	}
 	tests := []struct {
-		name string
-		args args
-		want string
+		name    string
+		args    args
+		wantErr bool
 	}{
 		{
 			name: "Test Case",
 			args: args{
 				pwd: originalDir,
 			},
-			want: "",
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE); got == tt.want {
-				t.Errorf("CreateOverlayScript() = %v, want %v", got, tt.want)
+			if err := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE); (err != nil) != tt.wantErr {
+				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -803,22 +766,22 @@ func TestCreateOverlayScript_Case2(t *testing.T) {
 		MODE    string
 	}
 	tests := []struct {
-		name string
-		args args
-		want string
+		name    string
+		args    args
+		wantErr bool
 	}{
 		{
 			name: "Test Case",
 			args: args{
 				pwd: originalDir,
 			},
-			want: "",
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE); got == tt.want {
-				t.Errorf("CreateOverlayScript() = %v, want %v", got, tt.want)
+			if err := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE); (err != nil) != tt.wantErr {
+				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -876,22 +839,22 @@ func TestCreateOverlayScript_Case4(t *testing.T) {
 		MODE    string
 	}
 	tests := []struct {
-		name string
-		args args
-		want string
+		name    string
+		args    args
+		wantErr bool
 	}{
 		{
 			name: "Test Case",
 			args: args{
 				pwd: originalDir,
 			},
-			want: "",
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE); got == tt.want {
-				t.Errorf("CreateOverlayScript() = %v, want %v", got, tt.want)
+			if err := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE); (err != nil) != tt.wantErr {
+				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -947,9 +910,9 @@ func TestCreateOverlayScript_Case3(t *testing.T) {
 		MODE    string
 	}
 	tests := []struct {
-		name string
-		args args
-		want string
+		name    string
+		args    args
+		wantErr bool
 	}{
 		{
 			name: "Test Case",
@@ -957,13 +920,13 @@ func TestCreateOverlayScript_Case3(t *testing.T) {
 				pwd:  originalDir,
 				MODE: "dev",
 			},
-			want: "",
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE); got == tt.want {
-				t.Errorf("CreateOverlayScript() = %v, want %v", got, tt.want)
+			if err := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE); (err != nil) != tt.wantErr {
+				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
