@@ -25,21 +25,17 @@ pipeline {
     }
     environment {
         GIT_SHORT_URL=env.GIT_URL.split('/')[4].toString().replaceAll('.git','')
-        SUB_PROJECT_NAME='edgenode'          //update the sub project name based on your repo, eg:maestro-a/i, springboard
-        authorEmail = sh (script: 'git --no-pager show -s --format=\'%ae\'',returnStdout: true).trim()
+        PROJECT_NAME = "${GIT_SHORT_URL}"
         SDLE_UPLOAD_PROJECT_ID = '20259'
+        authorEmail = sh (script: 'git --no-pager show -s --format=\'%ae\'',returnStdout: true).trim()
     }
     stages {		
         stage('Scan Source') {
             parallel {
                 stage('Scan Virus, Checkmarx, Protex, Trivy'){
                     environment {
-                        PROJECT_NAME                 = "oie-${GIT_SHORT_URL}"
-                        SCANNERS                     = getEnvFromBranch(env.BRANCH_NAME)
-
-                        PROTEX_PROJECT_NAME          = "${GIT_SHORT_URL}"
-
-                        VIRUS_SCAN_DIR               = "."
+                        SCANNERS            = getEnvFromBranch(env.BRANCH_NAME)
+                        PROTEX_PROJECT_NAME = "${GIT_SHORT_URL}"
                     }
                     when {
                         anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
@@ -82,16 +78,7 @@ pipeline {
                 steps {
                     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
                     {
-                        sh '''
-                        echo "Setup Build environment"
-                        apt update && apt install python3-venv -y
-                        echo "machine github.com" >> $HOME/.netrc
-                        echo "    login not-used" >> $HOME/.netrc
-                        echo "    password $PASSWORD" >> $HOME/.netrc
-                        echo "machine api.github.com" >> $HOME/.netrc
-                        echo "    login not-used" >> $HOME/.netrc
-                        echo "    password $PASSWORD" >> $HOME/.netrc
-                        '''
+                        netrcPatch()
                     }
                 }
         }
@@ -104,6 +91,9 @@ pipeline {
             }        
         }
         stage('Lint Code') {
+            when {
+                changeRequest()
+            }
             steps {
                 sh '''
                 echo "Linting the code"
@@ -142,14 +132,8 @@ pipeline {
                 withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
                     {
                         echo "Generate tag if SemVer"
+                        netrcPatch()
                         sh '''
-                        # Use writable user for git
-                        echo "machine github.com" >> $HOME/.netrc
-                        echo "  login not-used" >> $HOME/.netrc
-                        echo "  password $PASSWORD" >> $HOME/.netrc
-                        echo "machine api.github.com" >> $HOME/.netrc
-                        echo "  login not-used" >> $HOME/.netrc
-                        echo "  password $PASSWORD" >> $HOME/.netrc
                         # Tag the version
                         /opt/ci/version-tag.sh
                         '''
@@ -158,29 +142,14 @@ pipeline {
         }
         stage ('Scan Containers') {
             when {
-                anyOf {
-                    anyOf { branch 'main'; branch 'release-*'; changeRequest() }
-                }
+                changeRequest()
             }
             environment {
-                PROJECT_NAME                 = "${GIT_SHORT_URL}"
-                SCANNERS                     = 'trivy'
+                SCANNERS = 'trivy'
             }
             steps {
                 script {
-                    DOCKER_IMAGES=sh(script: '''
-                    docker images --format '{{.Repository}}:{{.Tag}}' | grep -v -e "rrp-devops" -e "rbhe-public" -e "earthly/buildkitd" | awk 'BEGIN {ORS=","} {print $0} END {if (NR) print "\\n"}' | sed 's/,$//'
-                    ''', returnStdout: true).trim()
-
-                    sh """
-                    echo $DOCKER_IMAGES
-                    """
-
-                    withEnv(["TRIVY_TARGET_DOCKER_IMAGE=${DOCKER_IMAGES}"]) {
-                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            rbheStaticCodeScan()
-                        }
-                    }
+                    scanContainers()
                 }
             }
         }
@@ -219,15 +188,8 @@ pipeline {
                 withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
                 {
                 echo "Start new development cycle if needed"
+                netrcPatch()
                 sh '''
-                # Use writable user for git
-                echo "machine github.com" >> $HOME/.netrc
-                echo "  login not-used" >> $HOME/.netrc
-                echo "  password $PASSWORD" >> $HOME/.netrc
-                echo "machine api.github.com" >> $HOME/.netrc
-                echo "  login not-used" >> $HOME/.netrc
-                echo "  password $PASSWORD" >> $HOME/.netrc
-
                 # Append -dev
                 REVIEWER_1="raphaelvrosa" REVIEWER_2="daniele-moro" /opt/ci/version-dev.sh
                 '''
@@ -261,15 +223,7 @@ pipeline {
         }
         failure {
             script {
-                def currentBranch = env.BRANCH_NAME
-                if ((currentBranch ==~ env.branchPattern) && authorEmail?.contains('.intel')) {
-                    emailext(
-                    subject: "Build failed on main branch for ${GIT_SHORT_URL}",
-                    body: "The build on the main branch failed. Please check the logs for more details. Your PR was the last change, this is why you're receiving this email",
-                    to: authorEmail,
-                    attachLog: true
-                    )
-                }
+                emailFailure()
             }
         }
     }
