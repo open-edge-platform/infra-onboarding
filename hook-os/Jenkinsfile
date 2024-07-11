@@ -17,7 +17,7 @@ def getEnvFromBranch(branch) {
 
 pipeline {
     agent none
-     parameters {
+    parameters {
         booleanParam(name: 'buildHookOs', defaultValue: false, description: 'Build just hook-os')
         string(name: 'version', defaultValue: '', description: 'Tinker action version from parent repository')
     }
@@ -28,21 +28,17 @@ pipeline {
             }
             environment {
                 GIT_SHORT_URL=env.GIT_URL.split('/')[4].toString().replaceAll('.git','')
-                SUB_PROJECT_NAME='maestro-i'          //update the sub project name based on your repo, eg:maestro-a/i, springboard
-                authorEmail = sh (script: 'git --no-pager show -s --format=\'%ae\'',returnStdout: true).trim()
+                PROJECT_NAME = "${GIT_SHORT_URL}"
                 SDLE_UPLOAD_PROJECT_ID = '20259'
+                authorEmail = sh (script: 'git --no-pager show -s --format=\'%ae\'',returnStdout: true).trim()
             }
             stages {
                 stage('Scan Source') {
                     parallel {
                         stage('Scan Virus, Checkmarx, Protex, Trivy'){
                             environment {
-                                PROJECT_NAME                 = "${GIT_SHORT_URL}"
-                                SCANNERS                     = getEnvFromBranch(env.BRANCH_NAME)
-
-                                PROTEX_PROJECT_NAME          = "${GIT_SHORT_URL}"
-
-                                VIRUS_SCAN_DIR               = "."
+                                SCANNERS            = getEnvFromBranch(env.BRANCH_NAME)
+                                PROTEX_PROJECT_NAME = "${GIT_SHORT_URL}"
                             }
                             when {
                                 anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
@@ -57,26 +53,10 @@ pipeline {
                         }
                         stage('Trivy config scan') {
                             when {
-                                anyOf { branch 'main'; branch 'release-*'; changeRequest() }
+                                changeRequest()
                             }
                             steps {
-                                script {
-                                    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                                        sh '''
-                                        trivy conf --exit-code 1 --severity CRITICAL . 2>&1 > trivy_conf.log
-                                        '''
-                                    }
-                                    sh '''
-                                    [ -d "artifacts" ] && mkdir artifacts/Trivy_conf || mkdir -p artifacts/Trivy_conf
-                                    mv trivy_conf.log artifacts/Trivy_conf
-                                    '''
-                                    archiveArtifacts artifacts: 'artifacts/Trivy_conf/*.log',
-                                    fingerprint: true,
-                                    onlyIfSuccessful: false
-                                    publishArtifacts([artifactsRepo: 'one-intel-edge-or-local/${SUB_PROJECT_NAME}',
-                                                credentialId: 'sys_oie_devops_ubit-artifactory-or.intel.com',
-                                                bypassProxy: true])
-                                }
+                                trivyConfigScan()
                             }
                         }
                     }
@@ -85,15 +65,7 @@ pipeline {
                     steps {
                         withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
                         {
-                            sh '''
-                            echo "Setup Build environment"
-                            echo "machine github.com" >> $HOME/.netrc
-                            echo "    login not-used" >> $HOME/.netrc
-                            echo "    password $PASSWORD" >> $HOME/.netrc
-                            echo "machine api.github.com" >> $HOME/.netrc
-                            echo "    login not-used" >> $HOME/.netrc
-                            echo "    password $PASSWORD" >> $HOME/.netrc
-                            '''
+                            netrcPatch()
                         }
                     }
                 }
@@ -109,6 +81,9 @@ pipeline {
                      }
                 }
                 stage('Lint Code') {
+                    when {
+                        changeRequest()
+                    }
                     steps {
                         sh '''
                         echo "Linting the code"
@@ -165,7 +140,8 @@ pipeline {
             }
             environment {
                 GIT_SHORT_URL=env.GIT_URL.split('/')[4].toString().replaceAll('.git','')
-                SUB_PROJECT_NAME='edgenode'          //update the sub project name based on your repo, eg:maestro-a/i, springboard
+                PROJECT_NAME = "${GIT_SHORT_URL}"
+                SDLE_UPLOAD_PROJECT_ID = '20259'
                 authorEmail = sh (script: 'git --no-pager show -s --format=\'%ae\'',returnStdout: true).trim()
             }
             stages {
@@ -173,15 +149,7 @@ pipeline {
                     steps {
                         withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
                         {
-                            sh '''
-                            echo "Setup Build environment"
-                            echo "machine github.com" >> $HOME/.netrc
-                            echo "    login not-used" >> $HOME/.netrc
-                            echo "    password $PASSWORD" >> $HOME/.netrc
-                            echo "machine api.github.com" >> $HOME/.netrc
-                            echo "    login not-used" >> $HOME/.netrc
-                            echo "    password $PASSWORD" >> $HOME/.netrc
-                            '''
+                            netrcPatch()
                         }
                     }
                 }
@@ -209,14 +177,8 @@ pipeline {
                         withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
                             {
                             echo "Generate tag if SemVer"
+                            netrcPatch()
                             sh '''
-                            # Use writable user for git
-                            echo "machine github.com" >> $HOME/.netrc
-                            echo "  login not-used" >> $HOME/.netrc
-                            echo "  password $PASSWORD" >> $HOME/.netrc
-                            echo "machine api.github.com" >> $HOME/.netrc
-                            echo "  login not-used" >> $HOME/.netrc
-                            echo "  password $PASSWORD" >> $HOME/.netrc
                             # Tag the version
                             /opt/ci/version-tag.sh
                             '''
@@ -325,15 +287,8 @@ pipeline {
                         withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
                         {
                         echo "Start new development cycle if needed"
+                        netrcPatch()
                         sh '''
-                        # Use writable user for git
-                        echo "machine github.com" >> $HOME/.netrc
-                        echo "  login not-used" >> $HOME/.netrc
-                        echo "  password $PASSWORD" >> $HOME/.netrc
-                        echo "machine api.github.com" >> $HOME/.netrc
-                        echo "  login not-used" >> $HOME/.netrc
-                        echo "  password $PASSWORD" >> $HOME/.netrc
-
                         # Append -dev
                         REVIEWER_1="manju956" REVIEWER_2="Ram-srini" /opt/ci/version-dev.sh
                         '''
@@ -349,15 +304,7 @@ pipeline {
                 }
                 failure {
                     script {
-                        def currentBranch = env.BRANCH_NAME
-                        if ((currentBranch ==~ env.branchPattern) && authorEmail?.contains('.intel')) {
-                            emailext(
-                            subject: "Build failed on main branch for ${GIT_SHORT_URL}",
-                            body: "The build on the main branch failed. Please check the logs for more details. Your PR was the last change, this is why you're receiving this email",
-                            to: authorEmail,
-                            attachLog: true
-                            )
-                        }
+                        emailFailure()
                     }
                 }
             }
