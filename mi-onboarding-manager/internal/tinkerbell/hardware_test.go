@@ -12,6 +12,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/flags"
 	"github.com/stretchr/testify/mock"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	error_k8 "k8s.io/apimachinery/pkg/api/errors"
@@ -54,7 +55,7 @@ func TestNewHardware(t *testing.T) {
 
 func Test_newK8SClient(t *testing.T) {
 	currK8sClientFactory := K8sClientFactory
-	currFlagEnableDeviceInitialization := *common.FlagDisableCredentialsManagement
+	currFlagEnableDeviceInitialization := *flags.FlagDisableCredentialsManagement
 	defer func() {
 		K8sClientFactory = currK8sClientFactory
 		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
@@ -88,7 +89,7 @@ func Test_newK8SClient(t *testing.T) {
 
 func TestDeleteHardwareForHostIfExist(t *testing.T) {
 	currK8sClientFactory := K8sClientFactory
-	currFlagEnableDeviceInitialization := *common.FlagDisableCredentialsManagement
+	currFlagEnableDeviceInitialization := *flags.FlagDisableCredentialsManagement
 	defer func() {
 		K8sClientFactory = currK8sClientFactory
 		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization

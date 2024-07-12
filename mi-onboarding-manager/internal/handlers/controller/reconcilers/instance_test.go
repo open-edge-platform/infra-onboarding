@@ -28,6 +28,7 @@ import (
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	providerv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/provider/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/flags"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
 )
@@ -137,7 +138,7 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 
 func TestReconcileInstance(t *testing.T) {
 	currK8sClientFactory := tinkerbell.K8sClientFactory
-	currFlagEnableDeviceInitialization := *common.FlagDisableCredentialsManagement
+	currFlagEnableDeviceInitialization := *flags.FlagDisableCredentialsManagement
 	defer func() {
 		tinkerbell.K8sClientFactory = currK8sClientFactory
 		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization

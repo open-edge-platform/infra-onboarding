@@ -15,8 +15,6 @@ import (
 
 	"github.com/google/uuid"
 	rec_v2 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go/pkg/controller/v2"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/auth"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
@@ -24,7 +22,9 @@ import (
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	providerv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/provider/v1"
 	statusv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/status/v1"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/auth"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/flags"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
@@ -34,7 +34,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	*common.FlagDisableCredentialsManagement = true
+	*flags.FlagDisableCredentialsManagement = true
 	wd, err := os.Getwd()
 	if err != nil {
 		panic(err)
@@ -52,13 +52,13 @@ func TestMain(m *testing.M) {
 
 func TestHostReconcileDeauthorization(t *testing.T) {
 	currAuthServiceFactory := auth.AuthServiceFactory
-	currFlagDisableCredentialsManagement := *common.FlagDisableCredentialsManagement
+	currFlagDisableCredentialsManagement := *flags.FlagDisableCredentialsManagement
 	defer func() {
 		auth.AuthServiceFactory = currAuthServiceFactory
-		*common.FlagDisableCredentialsManagement = currFlagDisableCredentialsManagement
+		*flags.FlagDisableCredentialsManagement = currFlagDisableCredentialsManagement
 	}()
 
-	*common.FlagDisableCredentialsManagement = false
+	*flags.FlagDisableCredentialsManagement = false
 	auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(false, false, true)
 
 	om_testing.CreateInventoryOnboardingClientForTesting()
@@ -137,13 +137,13 @@ func TestHostReconcileDeauthorization(t *testing.T) {
 
 func TestReconcileHostDeletion(t *testing.T) {
 	currAuthServiceFactory := auth.AuthServiceFactory
-	currFlagDisableCredentialsManagement := *common.FlagDisableCredentialsManagement
+	currFlagDisableCredentialsManagement := *flags.FlagDisableCredentialsManagement
 	defer func() {
 		auth.AuthServiceFactory = currAuthServiceFactory
-		*common.FlagDisableCredentialsManagement = currFlagDisableCredentialsManagement
+		*flags.FlagDisableCredentialsManagement = currFlagDisableCredentialsManagement
 	}()
 
-	*common.FlagDisableCredentialsManagement = false
+	*flags.FlagDisableCredentialsManagement = false
 	auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(false, false, true)
 
 	om_testing.CreateInventoryOnboardingClientForTesting()
@@ -876,7 +876,7 @@ func TestHostReconciler_revokeHostCredentials_Case(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	common.FlagDisableCredentialsManagement = flag.Bool("name", false, "")
+	flags.FlagDisableCredentialsManagement = flag.Bool("name", false, "")
 	type fields struct {
 		invClient *invclient.OnboardingInventoryClient
 	}
@@ -912,7 +912,7 @@ func TestHostReconciler_revokeHostCredentials_Case(t *testing.T) {
 			}
 		})
 	}
-	*common.FlagDisableCredentialsManagement = true
+	*flags.FlagDisableCredentialsManagement = true
 }
 
 func TestHostReconciler_reconcileHost(t *testing.T) {
@@ -961,7 +961,7 @@ func TestHostReconciler_reconcileHost(t *testing.T) {
 }
 
 func TestHostReconciler_deleteHost_Case(t *testing.T) {
-	common.FlagDisableCredentialsManagement = flag.Bool("iname", false, "")
+	flags.FlagDisableCredentialsManagement = flag.Bool("iname", false, "")
 	type fields struct {
 		invClient *invclient.OnboardingInventoryClient
 	}
@@ -999,12 +999,12 @@ func TestHostReconciler_deleteHost_Case(t *testing.T) {
 		})
 	}
 	defer func() {
-		common.FlagDisableCredentialsManagement = flag.Bool("n", false, "")
+		flags.FlagDisableCredentialsManagement = flag.Bool("n", false, "")
 	}()
 }
 
 func TestHostReconciler_deleteHost_Case1(t *testing.T) {
-	common.FlagDisableCredentialsManagement = flag.Bool("jname", false, "")
+	flags.FlagDisableCredentialsManagement = flag.Bool("jname", false, "")
 	type fields struct {
 		invClient *invclient.OnboardingInventoryClient
 	}
@@ -1052,12 +1052,12 @@ func TestHostReconciler_deleteHost_Case1(t *testing.T) {
 		})
 	}
 	defer func() {
-		common.FlagDisableCredentialsManagement = flag.Bool("j", false, "")
+		flags.FlagDisableCredentialsManagement = flag.Bool("j", false, "")
 	}()
 }
 
 func TestHostReconciler_deleteHost_Case2(t *testing.T) {
-	common.FlagDisableCredentialsManagement = flag.Bool("kname", false, "")
+	flags.FlagDisableCredentialsManagement = flag.Bool("kname", false, "")
 	type fields struct {
 		invClient *invclient.OnboardingInventoryClient
 	}
@@ -1110,12 +1110,12 @@ func TestHostReconciler_deleteHost_Case2(t *testing.T) {
 		})
 	}
 	defer func() {
-		common.FlagDisableCredentialsManagement = flag.Bool("k", false, "")
+		flags.FlagDisableCredentialsManagement = flag.Bool("k", false, "")
 	}()
 }
 
 func TestHostReconciler_deleteHost_Case3(t *testing.T) {
-	common.FlagDisableCredentialsManagement = flag.Bool("lname", false, "")
+	flags.FlagDisableCredentialsManagement = flag.Bool("lname", false, "")
 
 	type fields struct {
 		invClient *invclient.OnboardingInventoryClient
@@ -1174,7 +1174,7 @@ func TestHostReconciler_deleteHost_Case3(t *testing.T) {
 		})
 	}
 	defer func() {
-		common.FlagDisableCredentialsManagement = flag.Bool("l", false, "")
+		flags.FlagDisableCredentialsManagement = flag.Bool("l", false, "")
 	}()
 }
 
@@ -1270,4 +1270,3 @@ func TestHostReconciler_checkIfInstanceIsAssociated(t *testing.T) {
 		})
 	}
 }
-

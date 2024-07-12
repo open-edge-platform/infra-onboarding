@@ -12,19 +12,22 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/auth"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/controller"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/southbound"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/secrets"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/auth"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/flags"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/oam"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/policy/rbac"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/secretprovider"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/tracing"
 )
+
+const envNameOnboardingCredentialsSecretName = "ONBOARDING_CREDENTIALS_SECRET_NAME"
 
 var (
 	name = "MiOnboardingRM"
@@ -120,7 +123,13 @@ func main() {
 
 	onboarding.InitOnboarding(invClient, *dkamAddr, *enableAuth, *rbacRules)
 
-	if initErr := secrets.Init(context.Background()); initErr != nil {
+	onboardingCredentialsSecretName := os.Getenv(envNameOnboardingCredentialsSecretName)
+	if onboardingCredentialsSecretName == "" {
+		invErr := inv_errors.Errorf("%s env variable is not set, using default value", envNameOnboardingCredentialsSecretName)
+		zlog.MiSec().Fatal().Err(invErr).Msgf("")
+	}
+
+	if initErr := secretprovider.Init(context.Background(), []string{onboardingCredentialsSecretName}); initErr != nil {
 		zlog.MiSec().Fatal().Err(initErr).Msgf("Unable to initialize required secrets")
 	}
 

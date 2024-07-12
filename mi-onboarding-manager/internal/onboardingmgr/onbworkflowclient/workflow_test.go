@@ -25,6 +25,7 @@ import (
 	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/tinkerbell"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/flags"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -367,7 +368,7 @@ func TestCheckStatusOrRunDIWorkflow(t *testing.T) {
 
 func TestCheckStatusOrRunDIWorkflow_Case1(t *testing.T) {
 	currK8sClientFactory := tinkerbell.K8sClientFactory
-	currFlagEnableDeviceInitialization := *common.FlagDisableCredentialsManagement
+	currFlagEnableDeviceInitialization := *flags.FlagDisableCredentialsManagement
 	defer func() {
 		tinkerbell.K8sClientFactory = currK8sClientFactory
 		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
