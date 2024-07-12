@@ -87,6 +87,7 @@ get_caddy_conf() {
     # Update NGINX runtime configs in hook.yaml
     $SED_CMD -i "s|update_tink_stack_svc|$tink_stack_svc|g" hook.yaml
     $SED_CMD -i "s|update_tink_server_svc|$tink_server_svc|g" hook.yaml
+    $SED_CMD -i "s|update_onboarding_manager_svc|$onboarding_manager_svc|g" hook.yaml
     $SED_CMD -i "s|update_release_svc|$release_svc|g" hook.yaml
     $SED_CMD -i "s|update_oci_release_svc|$oci_release_svc|g" hook.yaml
     $SED_CMD -i "s|update_manufacturer_svc|$fdo_manufacturer_svc|g" hook.yaml
