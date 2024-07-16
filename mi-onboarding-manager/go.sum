@@ -712,8 +712,8 @@ github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go v
 github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go v0.5.1/go.mod h1:fRN1YcRCnh3rRTFFi2OqmWkJfW5PZsYFYjcp5GYtvsI=
 github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.6.3 h1:DfwMwAApJVqk+fS/xG3IhqtsbkgFqVjhGaeihVbrP1c=
 github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.6.3/go.mod h1:tY/HljCcHwaqYt/YlhpVyb4hacD/gpvImO9TQmzQa/8=
-github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory v1.3.1-0.20240712061537-945e0eb48a6f h1:qotW7yAXvDG/v8aY+dE4EEQQF+tA+/yAhMzwNXfcgmo=
-github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory v1.3.1-0.20240712061537-945e0eb48a6f/go.mod h1:9Q6mSX6MrLeuAKxnsj43sWtsROIr/F6UsDY8nqussPE=
+github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory v1.4.0 h1:emfImF+t/7tMMPPZHl1T1D6WEhPCqFF1q9NaxNj1rIs=
+github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory v1.4.0/go.mod h1:9Q6mSX6MrLeuAKxnsj43sWtsROIr/F6UsDY8nqussPE=
 github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=
 github.com/jackc/pgpassfile v1.0.0/go.mod h1:CEx0iS5ambNFdcRtxPj5JhEz+xB6uRky5eyVu/W2HEg=
 github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a h1:bbPeKD0xmW/Y25WS6cokEszi5g+S0QxI/d45PkRi7Nk=

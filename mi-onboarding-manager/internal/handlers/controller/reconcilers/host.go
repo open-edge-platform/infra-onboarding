@@ -12,9 +12,8 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/auth"
+	kk_auth "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/auth"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/flags"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/tracing"
 )
@@ -147,7 +146,7 @@ func (hr *HostReconciler) deleteHost(
 
 	// if the current state is Untrusted, host certificates are already revoked
 	if host.GetCurrentState() != computev1.HostState_HOST_STATE_UNTRUSTED {
-		if err := hr.revokeHostCredentials(ctx, host.GetUuid()); err != nil {
+		if err := kk_auth.RevokeHostCredentials(ctx, host.GetUuid()); err != nil {
 			return err
 		}
 	}
@@ -267,31 +266,10 @@ func (hr *HostReconciler) deleteHostUsbByHost(ctx context.Context, host *compute
 	return nil
 }
 
-func (hr *HostReconciler) revokeHostCredentials(ctx context.Context, uuid string) error {
-	if *flags.FlagDisableCredentialsManagement {
-		zlogHost.Warn().Msgf("disableCredentialsManagement flag is set to false, " +
-			"skip credentials revocation")
-		return nil
-	}
-
-	authService, err := auth.AuthServiceFactory(ctx)
-	if err != nil {
-		return err
-	}
-	defer authService.Logout(ctx)
-
-	if revokeErr := authService.RevokeCredentialsByUUID(ctx, uuid); revokeErr != nil && !inv_errors.IsNotFound(revokeErr) {
-		zlogHost.MiSec().MiError("Failed to revoke credentials of host %s.", uuid).Msg("revokeHostCredentials")
-		return inv_errors.Wrap(revokeErr)
-	}
-
-	return nil
-}
-
 func (hr *HostReconciler) invalidateHost(ctx context.Context, host *computev1.HostResource) error {
 	zlogHost.Debug().Msgf("Invalidating Host %s", host.GetResourceId())
 
-	if err := hr.revokeHostCredentials(ctx, host.GetUuid()); err != nil {
+	if err := kk_auth.RevokeHostCredentials(ctx, host.GetUuid()); err != nil {
 		return err
 	}
 
