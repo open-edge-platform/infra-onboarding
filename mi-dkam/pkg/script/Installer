@@ -72,7 +72,7 @@ install_dependencies() {
         rm -f /etc/apt/sources.list.d/edge-node.list
         apt-get update
         echo -e "\e[32m[install git python3-pip]\e[0m"
-        sudo apt-get install -y curl wget unzip apparmor iptables lvm2 cryptsetup lxc mosquitto tpm2-abrmd tpm2-tools software-properties-common ntp python3-venv git jq libpq5 python3-pip ca-certificates gnupg dmidecode
+        sudo apt-get install -y curl wget unzip apparmor iptables lvm2 cryptsetup lxc mosquitto tpm2-abrmd tpm2-tools software-properties-common python3-venv git jq libpq5 python3-pip ca-certificates gnupg dmidecode
 
         if ! command -v yq_linux_amd64 &> /dev/null; then
             echo "Download yq and install on provisioning host."
@@ -758,30 +758,22 @@ enable_kernel_config(){
 # 30. Enable NTP configuration
 enable_NTP(){
     if grep -q "enable_NTP done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping enable_NTP"
+                echo "Skipping enable_NTP"
     else
-        echo "Enable NTP"
-	apt remove -y ntp
-        apt-get update
-	apt install -y ntp
-        apt-get install -y systemd-timesyncd
-        cp /etc/ntp.conf /etc/ntp.conf.bak
-        cp /etc/systemd/timesyncd.conf /etc/systemd/timesyncd.conf.bak
-        ntpServers=__NTP_SERVERS__
-        timeServers="NTP="
-        IFS=',' read -ra servers <<< "$ntpServers"
-        for server in "${servers[@]}"; do
-            if ! grep -q "^server $server" /etc/ntp.conf; then
-                echo "server $server" | sudo tee -a /etc/ntp.conf > /dev/null
-            fi
-            timeServers="$timeServers $server"
-        done
-        sed  's/.*#NTP=*./'"$timeServers"'/g' /etc/systemd/timesyncd.conf | sudo tee /etc/systemd/timesyncd.conf >/dev/null
-        ufw allow 123/udp 
-        service ntp reload
-        systemctl restart systemd-timesyncd.service
-        timedatectl set-ntp true
-        systemctl status systemd-timesyncd.service
+	echo "Enable NTP"
+	ufw allow 123/udp
+	apt-get install systemd-timesyncd -y -q
+	cp /etc/systemd/timesyncd.conf /etc/systemd/timesyncd.conf.bak
+	ntpServers=__NTP_SERVERS__
+	timeServers="NTP="
+	IFS=',' read -ra servers <<< "$ntpServers"
+	for server in "${servers[@]}"; do
+        	timeServers="$timeServers $server"
+	done
+	sed  's/.*#NTP=*./'"$timeServers"'/g' /etc/systemd/timesyncd.conf | sudo tee /etc/systemd/timesyncd.conf >>/dev/null
+	timedatectl set-ntp true
+	systemctl restart systemd-timesyncd
+	systemctl status systemd-timesyncd.service
         echo "enable_NTP done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }

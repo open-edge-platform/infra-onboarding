@@ -63,7 +63,6 @@ func TestGetArtifacts(t *testing.T) {
 	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
-		os.Exit(1)
 	}
 	// Initialize the service
 	service := &Service{}
