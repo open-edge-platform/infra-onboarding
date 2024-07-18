@@ -154,18 +154,6 @@ services:
       - oci_release_svc=update_oci_release_svc
       - EXTRA_HOSTS=update_extra_hosts
 
-  - name: fdo
-    image: fdoclient_action:latest
-    capabilities:
-      - all
-    binds.add:
-      - /dev:/dev
-      - /dev/console:/dev/console
-    env:
-      - FDO_RUN_TYPE=to
-      - DATA_PARTITION_LBL=CREDS
-      - FDO_TLS=https
-
 #dbg  - name: sshd
 #dbg    image: linuxkit/sshd:666b4a1a323140aa1f332826164afba506abf597
 
