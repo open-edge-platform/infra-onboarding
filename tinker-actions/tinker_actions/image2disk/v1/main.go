@@ -29,13 +29,11 @@ func main() {
 		// Get a list of drives
 		drives, err := image.GetDrives()
 		if err != nil {
-			log.Error(err)
-			return
+			log.Fatal(err)
 		}
 		detectedDisk, err := image.DriveDetection(drives)
 		if err != nil {
-			log.Error(err)
-			return
+			log.Fatal(err)
 		}
 		log.Infof("Detected drive: [%s] ", detectedDisk)
 		disk = detectedDisk

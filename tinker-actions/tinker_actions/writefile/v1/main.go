@@ -38,20 +38,17 @@ func main() {
 		// Get a list of drives
 		drives, err := GetDrives()
 		if err != nil {
-			log.Error(err)
-			return
+			log.Fatal(err)
 		}
 		detectedDisk, err := DriveDetection(drives)
 		if err != nil {
-			log.Error(err)
-			return
+			log.Fatal(err)
 		}
 		log.Infof("Detected drive: [%s] ", detectedDisk)
 		driveName = detectedDisk
 		blockDevice, err = findRootPartitionForDisk(driveName)
 		if err != nil {
-			log.Error(err)
-			return
+			log.Fatal(err)
 		}
 		log.Infof("Drive detected by automation: [%s] ", blockDevice)
 	} else {
