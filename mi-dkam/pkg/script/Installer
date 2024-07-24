@@ -539,37 +539,7 @@ install_platform_update_agent(){
     fi
 }
 
-# 21. SRIOV configurations
-install_sriov(){
-    if grep -q "install_sriov done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_sriov"
-    else
-	sudo sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX="quiet splash plymouth.enable=0 fastboot intel_iommu=on iommu=pt pci=realloc console=tty1 console=ttyS0,115200"/' /etc/default/grub
-        #Update GRUB
-        sudo update-grub
-        echo "install_sriov done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
-# 22. Update HWE kernel
-install_HWE_kernel(){
-    if grep -q "install_HWE_kernel done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_HWE_kernel"
-    else
-        export DEBIAN_FRONTEND=noninteractive
-        sudo apt-get update
-	#Include extra packages for Dell XR12 platform for suppporting E810 ethernet drivers
-	product_name=$(sudo lshw -class system | grep "product:" | head -1 | awk '{print $2}')
-	if [[ "$product_name" == "PowerEdge" ]]; then
-	    sudo apt-get install -y --install-recommends linux-image-generic linux-headers-generic
-	else
-            sudo apt-get install -y linux-image-generic linux-headers-generic
-	fi
-        echo "install_HWE_kernel done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
-# 23. Install Platform Telemetry Agent
+# 21. Install Platform Telemetry Agent
 install_platform_telemetry_agent(){
     if grep -q "install_platform_telemetry_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping install_platform_telemetry_agent"
@@ -585,7 +555,7 @@ install_platform_telemetry_agent(){
     fi
 }
 
-# 24. Install log rotate
+# 22. Install log rotate
 install_syslogrotate_job(){
 if grep -q "install_syslogrotate_job done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
     echo "Skipping install_syslogrotate_job"
@@ -650,7 +620,7 @@ echo "install_syslogrotate_job done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
 fi
 }
 
-# 25. Install log end
+# 23. Install log end
 install_syslogrotate_ufw(){
 if grep -q "install_syslogrotate_ufw done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 	echo "Skipping install_syslogrotate_ufw"
@@ -678,7 +648,7 @@ echo "install_syslogrotate_ufw done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
 fi
 }
 
-# 26. Install CA certificate
+# 24. Install CA certificate
 install_CA_cert(){
     if grep -q "install_CA_cert done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping install_CA_cert"
@@ -688,7 +658,7 @@ install_CA_cert(){
     fi
 }
 
-# 27. Enable netIp
+# 25. Enable netIp
 enable_netipplan() {
     if grep -q "enable_netipplan done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping enable_netipplan"
@@ -718,7 +688,7 @@ enable_netipplan() {
     fi
 }
 
-# 28. delete the invalid ubuntu boot menu options
+# 26. delete the invalid ubuntu boot menu options
 delete_invalid_ubuntu_boot_menuoptions () {
     if grep -q "delete_invalid_ubuntu_boot_menuoptions done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping delete_invalid_ubuntu_boot_menuoptions"
@@ -736,7 +706,7 @@ delete_invalid_ubuntu_boot_menuoptions () {
     fi
 }
 
-# 29. Set kernel configurations
+# 27. Set kernel configurations
 enable_kernel_config(){
     if grep -q "enable_kernel_config done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping enable_kernel_config"
@@ -755,7 +725,7 @@ enable_kernel_config(){
     fi
 }
 
-# 30. Enable NTP configuration
+# 28. Enable NTP configuration
 enable_NTP(){
     if grep -q "enable_NTP done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
                 echo "Skipping enable_NTP"
@@ -778,7 +748,7 @@ enable_NTP(){
     fi
 }
 
-# 31. Disable unattended upgrades
+# 29. Disable unattended upgrades
 disable_unattended_upgrade(){
     if grep -q "disable_unattended_upgrade done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping disable_unattended_upgrade"
@@ -798,7 +768,7 @@ disable_unattended_upgrade(){
     fi
 }
 
-# 32. Install License Agent
+# 30. Install License Agent
 install_license_agent(){
     if grep -q "install_license_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping install_license_agent"
@@ -818,6 +788,7 @@ install_license_agent(){
     fi
 }
 
+# 31. Enable the inactive boot partition numbers
 enable_inactive_boot_numbers(){
     if grep -q "enable_inactive_boot_numbers done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping enable_inactive_boot_numbers"
@@ -834,31 +805,48 @@ enable_inactive_boot_numbers(){
     fi
 }
 
-#LVM partition 
-create_lvm_partition(){
-    if grep -q "create_lvm_partition done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping create_lvm_partition"
+# 32. lvm creation on disk
+creat_lvm_partition(){
+    if grep -q "creat_lvm_partition done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+                echo "Skipping creat_lvm_partition"
     else
-        disk=$1
-        echo "starting the LVM creation for the disk volume $disk"
-        #erase the disk data if already presnet
-        dd if=/dev/zero of=/dev/"$disk" bs=512 count=100
-        echo "successfully deleted the data from the disk" 
+	disk_count=$1
+	shift
+        lvm_disks=("$@")
+        echo "starting the LVM creation for the disk volume ${lvm_disks[@]}"
 
-        #create the partition
-        parted -s "/dev/$disk" mklabel gpt mkpart primary 0% 100%
-        partprobe
-        fdisk -l "/dev/$disk"
-
-        if [[ "$disk" == *"nvme"* ]]; then
+        #if one disk found and it has rootfs
+        if [ "$disk_count" == "1" ];then
+        lvm_part=$(parted "/dev/$lvm_disks" p | grep -i "primary" | awk '{print $1}')
+            if [[ "$lvm_disks" == *"nvme"* ]]; then
             part_number=p
+            disks+=("/dev/${lvm_disks}${part_number}${lvm_part}")
         else
             part_number=""
+            disks+=("/dev/${lvm_disks}${part_number}${lvm_part}")
+        fi
+        #more than one disk found
+        else
+            for disk in "${lvm_disks[@]}"
+            do
+                parted -s "/dev/$disk" mklabel gpt mkpart primary 0% 100%
+                partprobe
+                if [[ "$disk" == *"nvme"* ]]; then
+                    part_number=p
+                    disks+=("/dev/${disk}${part_number}1")
+                else
+                    part_number=""
+                    disks+=("/dev/${disk}${part_number}1")
+                fi
+            done
         fi
         #wipse the crypt luck offset if its created during FDE enabled case
-        wipefs -o 0 "/dev/${disk}${part_number}1"
+        for disk in "${disks[@]}"
+        do
+            wipefs -o 0 "$disk"
+        done
 
-        #remove previously created lvm if exist
+	#remove previously created lvm if exist
         vgs=$(vgs --noheadings -o vg_name)
         #remove trailing and leading spaces
         vgs=$(echo "$vgs" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
@@ -866,98 +854,114 @@ create_lvm_partition(){
             vgremove -f "$vgs"
             echo "successfully deleted the previous lvm"
         fi
+
         #remove previously created pv if exist
         pvs=$(pvs --noheadings -o pv_name)
         pvs=$(echo "$pvs" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
         if [ -n "$pvs" ]; then
-            pvremove -f "$pvs"
-            echo "successfully deleted the previous pvs"
+	    for pv in ${pvs[@]}; do
+                pvremove -f "$pv"
+                echo "successfully deleted the previous pvs"
+           done
         fi
 
-        #pv create
-        if echo "y" | pvcreate "/dev/${disk}${part_number}1"; then
-            echo "Successfuly done pvcreate" 
-        else
-            echo "Failure in pvcreate"  
-        fi
+	#pv create
+	for disk in "${disks[@]}"
+	do
+    	    if echo "y" | pvcreate "$disk"; then
+                echo "Successfuly done pvcreate"
+            else
+                echo "Failure in pvcreate"
+                exit 1
+            fi
+	done
+
         #vgcreate
-        if echo "y" | vgcreate lvmvg /dev/"${disk}""${part_number}"1; then
-            echo "Successfuly done vgcreate" 
+        if echo "y" | vgcreate lvmvg "${disks[@]}"; then
+            echo "Successfuly done vgcreate"
         else
-            echo "Failure in vgcreate" 
+            echo "Failure in vgcreate"
+            exit 1
         fi
         vgscan
         vgchange -ay
-
-        if vgchange -ay; then
-            echo "Successfuly created the logical volume group" 
-        else
-            echo "Failure in creating the logical volume group" 
+	
+	if vgchange -ay; then
+    	    echo "Successfuly created the logical volume group"
+	else
+    	    echo "Failure in creating the logical volume group"
+	    exit 1
         fi
-        echo "create_lvm_partition done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
+	echo "creat_lvm_partition done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
-#LVM partition for secondary disk
-lvm_part_setup_for_secondary_disk(){
-    if grep -q "lvm_part_setup_for_secondary_disk done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping lvm_part_setup_for_secondary_disk"
+# 33. LVM partition for secondary disk
+install_lvm_on_disk(){
+    if grep -q "install_lvm_on_disk done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_lvm_on_disk"
     else
         echo "lvm setup for secondary disk"
         #check if FDE enabled , if not enabled  do the LVM for the secondary disk
         if [ ! -L /dev/mapper/rootfs_crypt ]; then
             
-            echo "FDE not enabled and starting the LVM creation"    
-            #check for NVME && SATA disk types
-            disk_list=$(lsblk -o NAME -n -d | grep -v "loop[0-9]*" | awk '{print $1}')
-
-            for disk_name in $disk_list
+            echo "FDE not enabled and starting the LVM creation"
+            #check for NVME && SATA disk types , ignore USB and virtual media devices
+            disk_list=$(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*/ {if ($3 !="0B" && $4 !=1)  {print $1}}')
+            for disk_name in ${disk_list[@]}
             do
-                #add to disk_list only if its nvme or sata 
+                #add to disk_list only if its nvme or sata
                 if [[ "$disk_name" == *"nvme"* ]] || [[ "$disk_name" = *"sd"* ]]; then
-
-                    #exclude the pendrive from device list if its attahced
-                    removable=$(lsblk -n -d -o RM "/dev/$disk_name")
-                    if [ "$removable" -ne 1 ]; then
-                        final_disk_list+=("$disk_name")
-                    fi
+                    final_disk_list+=("$disk_name")
                 else
                     continue;
                 fi
             done
-            #do not do lvm creation if only one disk presnet
+
+            rootfs=$(df /boot/efi | awk 'NR==2 {print $1}')
+            if [[ "$rootfs" == *"nvme"* ]]; then
+                os_disk=$(echo "$rootfs" | grep -oE 'nvme[0-9]+n[0-9]+' | head -n 1)
+            fi
+            if [[ "$rootfs" == *"sd"* ]]; then
+                 os_disk=$(echo "$rootfs" | grep -oE 'sd[a-z]+' | head -n 1)
+            fi
+
             num_disks=${#final_disk_list[@]}
 
-            if [ "$num_disks" -gt 1 ]; then
-                echo "found secondary disk for LVM creation"
-                #find the disk where os not installed for lvm creation
-                rootfs=$(df /boot/efi | awk 'NR==2 {print $1}')
-                if [[ "$rootfs" == *"nvme"* ]]; then
-                    os_disk=$(echo "$rootfs" | grep -oE 'nvme[0-9]+n[0-9]+' | head -n 1)
-                fi
-                if [[ "$rootfs" == *"sd"* ]]; then
-                    os_disk=$(echo "$rootfs" | grep -oE 'sd[a-z]+' | head -n 1)
-                fi
+	    #single Hard disk with rootfs
+            if [ "$num_disks" -eq 1 ]; then
+                echo "found single hard disk && create LVM on the Primary harddisk"
+		creat_lvm_partition "$num_disks" "${os_disk[@]}"
+
+            #multiple Hard disks 
+            elif [ "$num_disks" -ge 2 ]; then
+	        echo "found more than 1 disk for LVM creation"
                 #create lvm for the secondary disk
                 for lvm_disk in "${final_disk_list[@]}"
                 do
-                #skip for rootfs disk
-                    if [[ "$lvm_disk" == "$os_disk" ]]; then
-                            continue;
+                    #skip for rootfs disk
+                    if [ "$lvm_disk" == "$os_disk" ]; then
+                        continue;
+                    #other than OS disks
                     else
-                        #disk with no rootfs and can be used for the LVM creation
-                        create_lvm_partition "$lvm_disk"
-                        break
+                        lvm_disks+=("$lvm_disk")
                     fi
                 done
+                #disk with no rootfs and can be used for the LVM creation
+                creat_lvm_partition "$num_disks" "${lvm_disks[@]}"
+            else
+                echo "No valid disk found on the system for LVM creation"
+                exit 1
             fi
+            echo "install_lvm_on_disk done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
+	else
+	    echo "FDE enabled and skipping LVM creation"
         fi
-        echo "lvm_part_setup_for_secondary_disk done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
-#create the lvm for the seconary disk
-lvm_part_setup_for_secondary_disk 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+#create the lvm for cluster 
+install_lvm_on_disk 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 enable_inactive_boot_numbers  2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 enable_netipplan 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_dependencies 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
@@ -989,13 +993,11 @@ install_inbc_program 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_platform_update_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_platform_telemetry_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_license_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_sriov 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_HWE_kernel 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_syslogrotate_ufw 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 disable_unattended_upgrade 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 #Delete the invalid ubuntu boot numbers created from previous installation from boot menu
 delete_invalid_ubuntu_boot_menuoptions  2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 
 echo "Installation done" > "$SCRIPT_DIR"/.base_pkg_install_done
-sudo reboot
+#sudo reboot
 
