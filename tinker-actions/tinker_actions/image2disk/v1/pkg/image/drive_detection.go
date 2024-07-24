@@ -63,11 +63,6 @@ func DriveDetection(drives []DriveInfo) (string, error) {
 	//detected drive
 	if len(filteredDrives) >= 1 {
 		disk := "/dev/" + filteredDrives[0].Name
-		if len(filteredDrives) == 1 {
-			log.Warnln("************************")
-			log.Warnf("Only ONE DISK detected (%s). There will be NO support for persistent volume available for apps and some edge node functionalities will NOT work!", disk)
-			log.Warnln("************************")
-		}
 		return disk, nil
 	} else {
 		return "", &CustomError{Message: "No valid drives found."}
