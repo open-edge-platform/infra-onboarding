@@ -76,13 +76,12 @@ func New(
 }
 
 func (obc *OnboardingController) Start() error {
-	ctx := context.Background()
-	if err := obc.reconcileAll(ctx); err != nil {
+	if err := obc.reconcileAll(); err != nil {
 		return err
 	}
 
 	obc.wg.Add(1)
-	go obc.controlLoop(ctx)
+	go obc.controlLoop()
 
 	zlog.MiSec().Info().Msgf("Onboarding controller started")
 	return nil
@@ -97,7 +96,7 @@ func (obc *OnboardingController) Stop() {
 	zlog.MiSec().Info().Msgf("Onboarding controller stopped")
 }
 
-func (obc *OnboardingController) controlLoop(ctx context.Context) {
+func (obc *OnboardingController) controlLoop() {
 	ticker := time.NewTicker(defaultTickerPeriod)
 	defer ticker.Stop()
 
@@ -116,7 +115,7 @@ func (obc *OnboardingController) controlLoop(ctx context.Context) {
 				zlog.MiSec().MiErr(err).Msgf("reconciliation resource failed")
 			}
 		case <-ticker.C:
-			if err := obc.reconcileAll(ctx); err != nil {
+			if err := obc.reconcileAll(); err != nil {
 				zlog.MiSec().MiErr(err).Msgf("full reconciliation failed")
 			}
 		case <-obc.stop:
@@ -147,8 +146,12 @@ func (obc *OnboardingController) filterEvent(event *inv_v1.SubscribeEventsRespon
 	return filter(event)
 }
 
-func (obc *OnboardingController) reconcileAll(ctx context.Context) error {
+func (obc *OnboardingController) reconcileAll() error {
 	zlog.Debug().Msgf("Reconciling all resources")
+
+	// Use context.WithTimeout to set a timeout for the operation
+	ctx, cancel := context.WithTimeout(context.Background(), *invclient.ReconcileTimeout)
+	defer cancel()
 
 	resourceKinds := []inv_v1.ResourceKind{
 		inv_v1.ResourceKind_RESOURCE_KIND_HOST,

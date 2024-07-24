@@ -7,6 +7,7 @@ package invclient
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"sync"
 	"time"
@@ -31,7 +32,14 @@ import (
 )
 
 const (
-	DefaultTimeout = 3 * time.Second
+	DefaultTimeout          = 3 * time.Second
+	ReconcileDefaultTimeout = 5 * time.Minute // Longer timeout for reconciling all resources
+)
+
+var ReconcileTimeout = flag.Duration(
+	"timeoutReconcileAll",
+	ReconcileDefaultTimeout,
+	"Timeout used when reconciling all resources",
 )
 
 var (
