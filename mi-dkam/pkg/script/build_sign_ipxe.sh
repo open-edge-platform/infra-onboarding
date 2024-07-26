@@ -188,6 +188,12 @@ final_artifacts() {
 echo "======= Main function to build & sign iPXE image ========"
 echo "Discription of this script"
 #apt install -y autoconf automake make gcc m4 git gettext autopoint pkg-config autoconf-archive python3 bison flex gawk efitools sbsigntool
+if [ -d "$SB_KEYS_DIR" ]; then
+	rm -rf "$SB_KEYS_DIR"
+fi
+if [ -d "$SERVER_CERT_DIR" ]; then
+	rm -rf "$SERVER_CERT_DIR"
+fi
 generate_bios_certs
 generate_https_certs
 verify_https_certs

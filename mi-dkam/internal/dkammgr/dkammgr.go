@@ -104,16 +104,6 @@ func (server *Service) GetENProfile(ctx context.Context, req *pb.GetENProfileReq
 	tinkeraction_version := curation.TinkerAction
 	zlog.MiSec().Info().Msgf("tinkeraction_version %s", tinkeraction_version)
 
-	//cleanup tmp dir
-
-	folders := []string{config.DownloadPath + "/hook", config.DownloadPath + "/tmp"}
-
-	for _, folder := range folders {
-		if err := RemoveDir(folder); err != nil {
-			zlog.MiSec().Fatal().Err(err).Msgf("Failed to delete folder: %v", err)
-		}
-	}
-
 	if !PathExists(config.PVC+"/installer.sh") && !PathExists(config.PVC+"/"+config.ImageFileName) {
 		zlog.MiSec().Info().Msg("Path exists:")
 		zlog.MiSec().Info().Msg("Return Manifest file.")
