@@ -157,7 +157,7 @@ get_dest_disk()
 {
     disk_device=""
 
-    list_block_devices=($(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*/ {if ($3 !=0 && $4 ==0)  {print $1}}'))
+    list_block_devices=($(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*/ {if ($3 !="0B" && $4 ==0)  {print $1}}'))
     for block_dev in ${list_block_devices[@]};
     do
 	#if there were any problems when the ubuntu was streamed.
@@ -190,7 +190,7 @@ is_single_hdd() {
     # list_block_devices=($(lsblk -o NAME,TYPE | grep -i disk  | awk  '$1 ~ /sd*|nvme*/ {print $1}'))
     ## $3 represents the block device size. if 0 omit
     ## $4 is set to 1 if the device is removable
-    list_block_devices=($(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*/ {if ($3 !=0 && $4 ==0)  {print $1}}'))
+    list_block_devices=($(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*/ {if ($3 !="0B" && $4 ==0)  {print $1}}'))
 
     count=${#list_block_devices[@]}
 
@@ -204,6 +204,7 @@ is_single_hdd() {
     then
 	# send a 0 if there is only one HDD
 	single_hdd=0
+	echo "Single Disk selected"
     fi
 
 }
@@ -280,6 +281,17 @@ make_partition_single_hdd() {
 
     #####
 
+    #####
+    # logging needed to understand the block splits
+    echo "DEST_DISK  ${DEST_DISK}"
+    echo "rootfs_partition  $rootfs_partition       rootfs_end        ${rootfs_end}GB"
+    echo "boot_start         ${boot_start}GB        swap_start        ${swap_start}GB"
+    echo "swap_start         ${swap_start}GB        tep_start         ${tep_start}GB"
+    echo "tep_start          ${tep_start}GB         reserved_start    ${reserved_start}GB"
+    echo "reserved_start     ${reserved_start}GB    reserved_end      ${reserved_end}GB"
+    echo "reserved_start     ${reserved_end}GB    total_size_disk   ${total_size_disk}GB"
+    #####
+
     parted -s ${DEST_DISK} \
 	   resizepart $rootfs_partition "${rootfs_end}GB" \
 	   mkpart primary ext4 "${boot_start}GB" "${swap_start}GB" \
@@ -331,7 +343,17 @@ make_partition() {
     boot_start=$(( $swap_start - $boot_size ))
     rootfs_end=$boot_start
     #####
-    
+
+    #####
+    # logging needed to understand the block splits
+    echo "DEST_DISK ${DEST_DISK}"
+    echo "rootfs_partition  $rootfs_partition       rootfs_end       ${rootfs_end}GB"
+    echo "boot_start         ${boot_start}GB        swap_start       ${swap_start}GB"
+    echo "swap_start         ${swap_start}GB        tep_start        ${tep_start}GB"
+    echo "tep_start          ${tep_start}GB         reserved_start   ${reserved_start}GB"
+    echo "reserved_start     ${reserved_start}GB   total_size_disk   ${total_size_disk}GB"
+    #####
+
     parted -s ${DEST_DISK} \
 	   resizepart $rootfs_partition "${rootfs_end}GB" \
 	   mkpart primary ext4 "${boot_start}GB" "${swap_start}GB" \
@@ -340,7 +362,7 @@ make_partition() {
 	   mkpart primary ext4 "${reserved_start}GB"  100%
 
     check_return_value $? "Failed to create paritions"
-    
+
     suffix=$(fix_partition_suffix)
 
     #/boot is now kept in a different partition
@@ -418,7 +440,7 @@ partition_other_devices() {
 
     ## $3 represents the block device size. if 0 omit
     ## $4 is set to 1 if the device is removable
-    list_block_devices=($(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*/ {if ($3 !=0 && $4 ==0)  {print $1}}'))
+    list_block_devices=($(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*/ {if ($3 !="0B" && $4 ==0)  {print $1}}'))
     list_of_lvmg_part=''
     for block_dev in ${list_block_devices[@]};
     do
