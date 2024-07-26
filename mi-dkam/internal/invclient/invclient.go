@@ -99,8 +99,6 @@ func NewDKAMInventoryClientWithOptions(opts ...Option) (*DKAMInventoryClient, er
 		Events:     eventsWatcher,
 		ClientKind: options.ClientKind,
 		ResourceKinds: []inv_v1.ResourceKind{
-			inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE,
-			inv_v1.ResourceKind_RESOURCE_KIND_HOST,
 			inv_v1.ResourceKind_RESOURCE_KIND_OS,
 		},
 		Wg:            &wg,

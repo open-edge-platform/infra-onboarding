@@ -145,8 +145,6 @@ func (obc *DKAMController) reconcileAll(ctx context.Context) error {
 	zlog.Debug().Msgf("Reconciling all resources")
 
 	resourceKinds := []inv_v1.ResourceKind{
-		inv_v1.ResourceKind_RESOURCE_KIND_HOST,
-		inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE,
 		inv_v1.ResourceKind_RESOURCE_KIND_OS,
 	}
 	ids, err := obc.invClient.FindAllResources(ctx, resourceKinds)
@@ -182,16 +180,6 @@ func (obc *DKAMController) reconcileResource(resourceID string) error {
 		return err
 	}
 	return nil
-}
-
-func instanceEventFilter(event *inv_v1.SubscribeEventsResponse) bool {
-	return event.EventKind == inv_v1.SubscribeEventsResponse_EVENT_KIND_UPDATED ||
-		event.EventKind == inv_v1.SubscribeEventsResponse_EVENT_KIND_CREATED ||
-		event.EventKind == inv_v1.SubscribeEventsResponse_EVENT_KIND_DELETED
-}
-
-func hostEventFilter(event *inv_v1.SubscribeEventsResponse) bool {
-	return event.EventKind != inv_v1.SubscribeEventsResponse_EVENT_KIND_DELETED
 }
 
 func osEventFilter(event *inv_v1.SubscribeEventsResponse) bool {
