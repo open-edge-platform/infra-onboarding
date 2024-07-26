@@ -46,7 +46,8 @@ ACTION_ARRAY := \
 	writefile \
 	erase_non_removable_disks \
 	hook_dind \
-	device-discovery
+	device-discovery \
+	kernelupgrd
 
 # Create the virtualenv with python tools installed
 VENV_NAME = venv_midkammgr
