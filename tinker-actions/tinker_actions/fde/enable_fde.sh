@@ -216,7 +216,13 @@ make_partition_single_hdd() {
 
     #ram_size
     ram_size=$(free -g | grep -i mem | awk '{ print $2 }' )
-    swap_size=$(( $ram_size + 2 ))
+
+    #
+    # limit swap size to sqrt of ramsize link https://help.ubuntu.com/community/SwapFaq
+    #
+    # this is to reconcile the requirement where we have a upper limit of 100GB for
+    # all partitions apart from lvm we cant risk exceeding the swap size.
+    swap_size=$(echo "$ram_size" | awk '{printf ("%.0f\n", sqrt($1))}')
 
     total_size_disk=$(parted -s ${DEST_DISK} p | grep -i ${DEST_DISK} | awk '{ print $3 }' | sed  's/GB//g' )
 
@@ -229,12 +235,6 @@ make_partition_single_hdd() {
 	reserved_size=3
 	reserved_end=$total_size_disk
 
-	# minimum_size=$(( $rootfs_size + $tep_size + $swap_size + $boot_size + $reserved_size + $swap_size ))
-
-	# if [[ $minimum_size -lt $total_size_disk ]];
-	# then
-	#     total_size_disk=$minimum_size
-	# fi
     else
 	minimum_size=$(( $reserved_size + $tep_size + $swap_size + $boot_size + $bare_min_rootfs_size ))
 	if [[ $minimum_size -gt $total_size_disk ]];
@@ -243,29 +243,27 @@ make_partition_single_hdd() {
 	    difference=$(( $minimum_size - $total_size_disk ))
 
 	    # first check for the reserved size a mininum of 2 is needed.
-	    if [ $difference -gt 0 ];
+	    if [[ $difference -gt 0 ]];
 	    then
 		difference=$(( $difference - 3 ))
 		reserved_size=$(( $reserved_size - 3 ))
 	    fi
 
 	    # trusted compute will be given only 2 GB in such a constrainted environment.
-	    if [ $difference -gt 0 ];
+	    if [[ $difference -gt 0 ]];
 	    then
 		difference=$(( $difference - 12 ))
 		tep_size=$(( $tep_size - 12 ))
 	    fi
 
 	    # last for the critical one. if the swap space is cut to less than half FDE will not proceed.
-	    if [ $difference -gt 0 ];
+	    if [[ $difference -gt 0 ]];
 	    then
 		temp_swap_size=$(( $swap_size - $difference ))
-		if [ $temp_swap_size -lt $(( $swap_size / 2 )) ];
+		if [[ $temp_swap_size -lt $swap_size ]];
 		then
 		    echo "PLATFORM CANNOT SUPPORT SWAP SPACE."
 		    exit 1
-		else
-		    swap_size=$temp_swap_size
 		fi
 	    fi
 	fi
@@ -325,7 +323,13 @@ make_partition() {
 
     #ram_size
     ram_size=$(free -g | grep -i mem | awk '{ print $2 }' )
-    swap_size=$(( $ram_size + 2 ))
+    swap_size=$(( $ram_size / 2 ))
+
+    # limit swap size to 128GB
+    if [[ $swap_size -gt 128 ]];
+    then
+	swap_size=128
+    fi
 
     total_size_disk=$(parted -s ${DEST_DISK} p | grep -i ${DEST_DISK} | awk '{ print $3 }' | sed  's/GB//g' )
 
