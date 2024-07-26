@@ -34,6 +34,7 @@ const (
 	ActionNetplanServiceEnable       = "enable-update-netplan.service-script"
 	ActionEfibootset                 = "efibootset-for-diskboot"
 	ActionFdeEncryption              = "fde-encryption"
+	ActionKernelupgrade              = "kernel-upgrade"
 	ActionReboot                     = "reboot"
 	ActionCopyENSecrets              = "copy-ensp-node-secrets" //#nosec G101 -- ignore false positive.
 	ActionStoringAlpine              = "store-Alpine"
@@ -48,7 +49,6 @@ const (
 	ActionWriteEtcHosts              = "Write-Hosts-etc"
 	ActionCreateCustomerIDDirectory  = "Customer-ID-Directory"
 	ActionCustomerID                 = "write-customer-id"
-	ActionEnableFastboot             = "enable-fastboot-in-kernel-optimize"
 	ActionSystemdNetworkOptimize     = "systemd-network-online-optimize"
 	ActionDisableSnapdOptimize       = "systemd-snapd-disable-optimize"
 	ActionENProductKey               = "write-en-product-key"
@@ -87,6 +87,9 @@ const (
 
 	envTinkActionFdeImage     = "TINKER_FDE_IMAGE"
 	defaultTinkActionFdeImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/fde"
+
+	envTinkActionKerenlUpgradeImage     = "TINKER_KERNELUPGRD_IMAGE"
+	defaultTinkActionKernelUpgradeImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/kernelupgrd"
 
 	envTinkActionCredcopyImage     = "TINKER_CREDCOPY_IMAGE"                                            // #nosec G101
 	defaultTinkActionCredcopyImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/cred_copy" // #nosec G101
@@ -159,6 +162,14 @@ func tinkActionFdeImage(tinkerImageVersion string) string {
 		return fmt.Sprintf("%s:%s", v, iv)
 	}
 	return fmt.Sprintf("%s:%s", defaultTinkActionFdeImage, iv)
+}
+
+func tinkActionKernelupgradeImage(tinkerImageVersion string) string {
+	iv := getTinkerImageVersion(tinkerImageVersion)
+	if v := os.Getenv(envTinkActionKerenlUpgradeImage); v != "" {
+		return fmt.Sprintf("%s:%s", v, iv)
+	}
+	return fmt.Sprintf("%s:%s", defaultTinkActionKernelUpgradeImage, iv)
 }
 
 func tinkActionCredcopyImage(tinkerImageVersion string) string {
@@ -488,36 +499,6 @@ func NewTemplateDataProdBKC(name string, deviceInfo utils.DeviceInfo, enableDI b
 						"DIRMODE": "0755",
 					},
 				},
-
-				{
-					Name:    ActionGrowPartitionInstallScript,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/usr/local/bin/grow_part.sh",
-						"CONTENTS": `#!/bin/bash
-rootfs=$(df /boot/efi | awk 'NR==2 {print $1}')
-if [[ "$rootfs" == *"nvme"* ]]; then
-    os_disk=$(echo "$rootfs" | grep -oE 'nvme[0-9]+n[0-9]+' | head -n 1)
-    part_number=$(df "/" | grep -v "loop[0-9]*"  | awk 'NR==2 {print $1}' | awk -F'p' '{print $2}')
-    part_type="p${part_number}"
-elif [[ "$rootfs" == *"sd"* ]]; then
-   os_disk=$(echo "$rootfs" | grep -oE 'sd[a-z]+' | head -n 1)
-   part_number=$(df "/" | grep -v "loop[0-9]*" | awk 'NR==2 {print $1}' | sed 's/[^0-9]*//g')
-   part_type="${part_number}"
-fi
-growpart "/dev/${os_disk}" "${part_number}"
-resize2fs "/dev/${os_disk}${part_type}"
-if [ $? -eq 0 ]; then
-    touch /usr/local/bin/.grow_part_done
-fi`,
-						"UID":     "0",
-						"GID":     "0",
-						"MODE":    "0755",
-						"DIRMODE": "0755",
-					},
-				},
 				{
 					Name:    ActionCreateUser,
 					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
@@ -653,45 +634,6 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 						"DIRMODE": "0755",
 					},
 				},
-
-				{
-					Name:    ActionGrowPartitionService,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutAvg200,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/systemd/system/install-grow-part.service",
-						"CONTENTS": `
-						[Unit]
-						Description=disk size grow installer
-                				After=network.target
-                				ConditionPathExists = !/usr/local/bin/.grow_part_done
-
-                				[Service]
-                				WorkingDirectory=/usr/local/bin
-                				ExecStart=/usr/local/bin/grow_part.sh
-						Restart=always
-		
-						[Install]
-						WantedBy=multi-user.target`,
-						"UID":     "0",
-						"GID":     "0",
-						"MODE":    "0644",
-						"DIRMODE": "0755",
-					},
-				},
-				{
-					Name:    ActionGrowPartitionServiceEnable,
-					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutAvg200,
-					Environment: map[string]string{
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "systemctl disable install-grow-part.service",
-					},
-				},
-
 				{
 					Name:    ActionNetplanService,
 					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
@@ -771,19 +713,6 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 					},
 				},
 				{
-					Name:    ActionEnableFastboot,
-					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE": "sed -i 's/GRUB_CMDLINE_LINUX=\"\"/GRUB_CMDLINE_LINUX=\"quiet splash " +
-							"plymouth.enable=0 fastboot\"/g' /etc/default/grub;update-grub",
-					},
-				},
-
-				{
 					Name:    ActionSystemdNetworkOptimize,
 					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutMin90,
@@ -813,7 +742,11 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 					Image:   tinkActionFdeImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg560,
 				},
-
+				{
+					Name:    ActionKernelupgrade,
+					Image:   tinkActionKernelupgradeImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMax9800,
+				},
 				{
 					Name:    ActionEfibootset,
 					Image:   tinkActionEfibootImage(deviceInfo.TinkerVersion),
@@ -876,18 +809,18 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 			},
 		}
 
-		// Find the index of the "grow-partition-install-script" action
-		var growPartitionIndex int
+		// Find the index of the "add-dns-namespace" action
+		var dnsNamespaceIndex int
 		for i, action := range wf.Tasks[0].Actions {
-			if action.Name == ActionGrowPartitionInstallScript {
-				growPartitionIndex = i
+			if action.Name == ActionAddDNSNamespace {
+				dnsNamespaceIndex = i
 				break
 			}
 		}
 
-		// Insert the new actions after the "grow-partition-install-script" action
-		wf.Tasks[0].Actions = append(wf.Tasks[0].Actions[:growPartitionIndex+1],
-			append(directoryActions, wf.Tasks[0].Actions[growPartitionIndex+1:]...)...)
+		// Insert the new actions after the "add-dns-namespace" action
+		wf.Tasks[0].Actions = append(wf.Tasks[0].Actions[:dnsNamespaceIndex+1],
+			append(directoryActions, wf.Tasks[0].Actions[dnsNamespaceIndex+1:]...)...)
 	} else {
 		// Di is enabled
 		directoryActions := []Action{
@@ -911,7 +844,7 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 			}
 		}
 
-		// Insert the new actions after the "grow-partition-install-script" action
+		// Insert the new actions after the "stream-ubuntu-image" action
 		wf.Tasks[0].Actions = append(wf.Tasks[0].Actions[:streamubuntuimage+1],
 			append(directoryActions, wf.Tasks[0].Actions[streamubuntuimage+1:]...)...)
 	}
@@ -928,19 +861,7 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 				}
 			}
 		}
-		// Enable the grow partition
-		for _, task := range wf.Tasks {
-			for _, action := range task.Actions {
-				if action.Name == ActionGrowPartitionServiceEnable {
-					if action.Environment["CMD_LINE"] == "systemctl disable install-grow-part.service" {
-						action.Environment["CMD_LINE"] = "systemctl enable install-grow-part.service"
-					}
-					break
-				}
-			}
-		}
 	}
-
 	//  Creat the User credentials only for dev mode and remove the action for production mode
 	if env.ENDkamMode != envDkamDevMode {
 		for i, task := range wf.Tasks {
