@@ -1878,6 +1878,9 @@ func TestNodeArtifactService_startZeroTouch(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
+	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	os := inv_testing.CreateOs(t)
+	inv_testing.CreateInstance(t, host, os)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1892,7 +1895,7 @@ func TestNodeArtifactService_startZeroTouch(t *testing.T) {
 			},
 			args: args{
 				ctx:       context.Background(),
-				hostResID: "host-084d9b08",
+				hostResID: host.ResourceId,
 			},
 			wantErr: false,
 		},
@@ -1941,7 +1944,7 @@ func TestNodeArtifactService_startZeroTouch_Case(t *testing.T) {
 				ctx:       context.Background(),
 				hostResID: "host-084d9b08",
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -2180,6 +2183,7 @@ func TestNodeArtifactService_startZeroTouch_Case1(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
+	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -2194,7 +2198,7 @@ func TestNodeArtifactService_startZeroTouch_Case1(t *testing.T) {
 			},
 			args: args{
 				ctx:       context.Background(),
-				hostResID: "host-084d9b08",
+				hostResID: host.ResourceId,
 			},
 			wantErr: false,
 		},
@@ -2227,7 +2231,7 @@ func TestNodeArtifactService_startZeroTouch_Case2(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-
+	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -2242,7 +2246,7 @@ func TestNodeArtifactService_startZeroTouch_Case2(t *testing.T) {
 			},
 			args: args{
 				ctx:       context.Background(),
-				hostResID: "host-084d9b08",
+				hostResID: host.ResourceId,
 			},
 			wantErr: false,
 		},
@@ -2275,6 +2279,7 @@ func TestNodeArtifactService_startZeroTouch_Case3(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
+	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -2289,7 +2294,7 @@ func TestNodeArtifactService_startZeroTouch_Case3(t *testing.T) {
 			},
 			args: args{
 				ctx:       context.Background(),
-				hostResID: "host-084d9b08",
+				hostResID: host.ResourceId,
 			},
 			wantErr: false,
 		},

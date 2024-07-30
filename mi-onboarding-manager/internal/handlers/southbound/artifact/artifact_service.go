@@ -331,8 +331,8 @@ func (s *NodeArtifactService) startZeroTouch(ctx context.Context, hostResID stri
 
 	host, err := s.invClient.GetHostResourceByResourceID(ctx, hostResID)
 	if err != nil {
-		zlog.Err(err).Msgf("Skipping, no host found with resource ID %s", hostResID)
-		return nil
+		zlog.Err(err).Msgf("No host found with resource ID %s", hostResID)
+		return err // Return the error to the caller
 	}
 
 	// Check if an instance has already been created for the host
