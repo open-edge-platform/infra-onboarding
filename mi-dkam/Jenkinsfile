@@ -126,12 +126,12 @@ pipeline {
                 make test
                 '''
             }
-            // post{
-            //     success{
-            //         improve coverage then uncomment
-            //         coverageReport('build/coverage.xml')
-            //     }
-            // } 
+            post{
+                success{
+                    // improve coverage then uncomment
+                    coverageReport('build/coverage.xml')
+                }
+            } 
         }
 
         stage('Validate clean repo') {

@@ -27,7 +27,7 @@ var registryService string
 var agentsList []AgentsVersion
 var distribution string
 var tinkeractionList []Image
-var TinkerAction string
+var tinkerAction string
 
 type AgentsVersion struct {
 	Package string `yaml:"package"`
@@ -78,14 +78,7 @@ type Image struct {
 
 var ypsUrl = config.LA_YPSURL
 
-func GetCuratedScript(profile string) error {
-	MODE := os.Getenv("MODE")
-	//MODE := "dev"
-
-	fileServer = os.Getenv("FILE_SERVER")
-	registryService = os.Getenv("REGISTRY_SERVICE")
-	zlog.MiSec().Info().Msgf("MODE: %s", MODE)
-
+func GetArtifactsVersion() ([]AgentsVersion, string, error) {
 	//Current dir
 	currentDir, err := os.Getwd()
 	if err != nil {
@@ -112,6 +105,10 @@ func GetCuratedScript(profile string) error {
 
 	zlog.MiSec().Info().Msg(releaseFilePath)
 	configs, err := GetReleaseArtifactList(releaseFilePath)
+	if err != nil {
+		zlog.MiSec().Info().Msgf("Error checking path %v", err)
+		return []AgentsVersion{}, "", err
+	}
 	agentsList = []AgentsVersion{}
 	agentsList = append(agentsList, configs.BMA.Debs...)
 	tinkeractionList = []Image{}
@@ -122,7 +119,7 @@ func GetCuratedScript(profile string) error {
 		for _, image := range tinkeractionList {
 			if image.Image == "one-intel-edge/edge-node/tinker-actions/client_auth" {
 				zlog.MiSec().Info().Msgf("Tinker action:%s", image.Version)
-				TinkerAction = image.Version
+				tinkerAction = image.Version
 			}
 		}
 	}
@@ -130,13 +127,42 @@ func GetCuratedScript(profile string) error {
 	zlog.MiSec().Info().Msgf("Agents List' %s", agentsList)
 	if len(agentsList) == 0 {
 		zlog.MiSec().Info().Msg("Failed to get the agent list")
+		return []AgentsVersion{}, "", err
+	}
+	zlog.MiSec().Info().Msgf("tinkerAction version' %s", tinkerAction)
+	if len(tinkerAction) == 0 {
+		zlog.MiSec().Info().Msg("Failed to get the Tinker action version")
+		return []AgentsVersion{}, "", err
+	}
+	return agentsList, tinkerAction, nil
+}
+
+func GetCuratedScript(profile string, sha256 string) error {
+	MODE := os.Getenv("MODE")
+	//MODE := "dev"
+
+	fileServer = os.Getenv("FILE_SERVER")
+	registryService = os.Getenv("REGISTRY_SERVICE")
+	zlog.MiSec().Info().Msgf("MODE: %s", MODE)
+
+	//Current dir
+	currentDir, err := os.Getwd()
+	if err != nil {
+		zlog.MiSec().Info().Msg("Error getting current working directory:")
+
+	}
+	agentsList, tinkerAction, err := GetArtifactsVersion()
+	zlog.MiSec().Info().Msgf("Agents List' %s", agentsList)
+	if len(agentsList) == 0 {
+		zlog.MiSec().Info().Msg("Failed to get the agent list")
 		return err
 	}
-	if len(TinkerAction) == 0 {
+	zlog.MiSec().Info().Msgf("tinkerAction version' %s", tinkerAction)
+	if len(tinkerAction) == 0 {
 		zlog.MiSec().Info().Msg("Failed to get the Tinker action version")
 		return err
 	}
-	createErr := CreateOverlayScript(currentDir, profile, MODE)
+	createErr := CreateOverlayScript(currentDir, profile, MODE, sha256)
 	if createErr != nil {
 		zlog.MiSec().Info().Msgf("Error checking path %v", createErr)
 		return createErr
@@ -187,7 +213,31 @@ func GetReleaseArtifactList(filePath string) (Config, error) {
 	return configs, nil
 }
 
-func CreateOverlayScript(pwd string, profile string, MODE string) error {
+func CreateDir(path string) error {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		// Create the directory
+		err := os.Mkdir(path, 0755)
+		if err != nil {
+			zlog.MiSec().Error().Err(err).Msgf("Error creating directoryL: %v", err)
+			return err
+		}
+		zlog.MiSec().Info().Msgf("Directory created: %s", path)
+	} else {
+		zlog.MiSec().Info().Msgf("Directory already exists: %s", path)
+
+	}
+	return nil
+}
+
+func joinLines(lines []string) string {
+	result := ""
+	for _, line := range lines {
+		result += line + "\n"
+	}
+	return result
+}
+
+func CreateOverlayScript(pwd string, profile string, MODE string, SHAID string) error {
 	parentDir := filepath.Dir(filepath.Dir(pwd))
 	beginString := "true >/etc/environment"
 	scriptDir := filepath.Join(parentDir, "pkg", "script")
@@ -200,7 +250,21 @@ func CreateOverlayScript(pwd string, profile string, MODE string) error {
 	}
 	if exists {
 		zlog.MiSec().Info().Msg("Path exists:")
-		scriptFileName = config.PVC + "/" + "installer.sh"
+		if profile == "" {
+			profile = "default"
+		}
+		profilePath := config.PVC + "/" + profile
+		err = CreateDir(profilePath)
+		if err != nil {
+			zlog.MiSec().Info().Msgf("Error creating path %v", err)
+		}
+		profileSHAPath := profilePath + "/" + SHAID
+		err = CreateDir(profileSHAPath)
+		if err != nil {
+			zlog.MiSec().Info().Msgf("Error creating path %v", err)
+		}
+
+		scriptFileName = profileSHAPath + "/" + "installer.sh"
 	} else {
 		zlog.MiSec().Info().Msg("Path does not exists")
 	}
@@ -212,6 +276,30 @@ func CreateOverlayScript(pwd string, profile string, MODE string) error {
 	}
 
 	zlog.MiSec().Info().Msg("File copied successfully.")
+
+	// Read the source file content
+	sourceContent, err := os.Open(config.DownloadPath + "/" + profile + ".sh")
+	if err != nil {
+		zlog.MiSec().Info().Msgf("Error reading donwloaded profile script file:%v", err)
+		return err
+	}
+	defer sourceContent.Close()
+
+	destinationFile, err := os.OpenFile(scriptFileName, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		zlog.MiSec().Info().Msgf("Error opening installer.sh script:%v", err)
+		return err
+	}
+	defer destinationFile.Close()
+
+	reader := bufio.NewReader(sourceContent)
+	_, err = io.Copy(destinationFile, reader)
+	if err != nil {
+		fmt.Println("Error appending profile script to installer.sh:", err)
+		return err
+	}
+
+	fmt.Println("Contents appended successfully!")
 
 	// Read the installer
 	content, err := os.ReadFile(scriptFileName)
@@ -361,11 +449,11 @@ func CreateOverlayScript(pwd string, profile string, MODE string) error {
 	// Find the start and end positions of the function
 	startIdx := strings.Index(modifiedScript, functionToRemove)
 	if startIdx == -1 {
-		fmt.Println("Function not found in script")
+		zlog.MiSec().Info().Msg("Function not found in script")
 	}
 	endIdx := strings.Index(modifiedScript[startIdx:], "}") + startIdx
 	if endIdx == -1 {
-		fmt.Println("Function end not found in script")
+		zlog.MiSec().Info().Msg("Function end not found in script")
 	}
 
 	// Remove the function from the script
@@ -393,11 +481,11 @@ func CreateOverlayScript(pwd string, profile string, MODE string) error {
 	// Find the start and end positions of the function
 	startIdx = strings.Index(modifiedScript, functionToRemove)
 	if startIdx == -1 {
-		fmt.Println("Function not found in script")
+		zlog.MiSec().Info().Msg("Function not found in script")
 	}
 	endIdx = strings.Index(modifiedScript[startIdx:], "}") + startIdx
 	if endIdx == -1 {
-		fmt.Println("Function end not found in script")
+		zlog.MiSec().Info().Msg("Function end not found in script")
 	}
 
 	// Remove the function from the script

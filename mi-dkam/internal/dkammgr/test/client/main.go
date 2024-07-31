@@ -15,7 +15,7 @@ var zlog = logging.GetLogger("MIDKAMAuth")
 // createArtifacts function
 func GetArtifacts(client pb.DkamServiceClient) {
 	zlog.MiSec().Info().Msg("GetArtifacts.")
-	req := &pb.GetENProfileRequest{ProfileName: "AI", Platform: "Asus"}
+	req := &pb.GetENProfileRequest{ProfileName: "ubuntu-ainode:latest-main", Platform: "Asus", Sha256: "76423945c97fddd415fa17610c7472b07c46d6758d42f4f706f1bbe972f51155"}
 	res, err := client.GetENProfile(context.Background(), req)
 	if err != nil {
 		zlog.MiSec().Fatal().Err(err).Msgf("Error %v", err)

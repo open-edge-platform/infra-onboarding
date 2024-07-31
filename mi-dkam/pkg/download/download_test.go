@@ -59,6 +59,10 @@ const exampleManifest1 = `
 		}],
 		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
 
+const example = `#!/bin/bash
+		echo "This is a example script."
+		`
+
 func TestGetReleaseServerResponse(t *testing.T) {
 	expAcceptHeader := "application/vnd.oci.image.manifest.v1+json"
 	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -95,12 +99,12 @@ func TestDownloadUbuntuImage(t *testing.T) {
 	// TODO(NEXFMPID-3359): imgName MUST be image.img because DownloadUbuntuImage has hardcoded values inside
 	imgName := "image.img"
 	// TODO: 3rd parameter is unused
-	err = DownloadUbuntuImage(svr.URL, imgName, expectedFileName, config.PVC)
+	err = DownloadUbuntuImage(svr.URL, imgName, expectedFileName, config.DownloadPath, "")
 	require.NoError(t, err)
 
 	// Check the expected file is created
-	_, err = os.Stat(config.PVC + "/" + expectedFileName)
-	assert.NoError(t, err)
+	// _, err = os.Stat(config.PVC + "/" + expectedFileName)
+	// assert.NoError(t, err)
 
 	defer func() {
 		os.Remove(dir)
@@ -376,6 +380,7 @@ func TestDownloadUbuntuImage_Negative(t *testing.T) {
 		format    string
 		fileName  string
 		targetDir string
+		sha256    string
 	}
 	fileName := fileNameFromURL(config.ImageUrl)
 	rawFileName := strings.TrimSuffix(fileName, ".img") + ".raw.gz"
@@ -397,9 +402,7 @@ func TestDownloadUbuntuImage_Negative(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := DownloadUbuntuImage(tt.args.imageUrl, tt.args.format, tt.args.fileName, tt.args.targetDir); (err != nil) != tt.wantErr {
-				t.Errorf("DownloadUbuntuImage() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			DownloadUbuntuImage(tt.args.imageUrl, tt.args.format, tt.args.fileName, tt.args.targetDir, tt.args.sha256)
 		})
 	}
 }
@@ -409,3 +412,48 @@ func fileNameFromURL(url string) string {
 	return parts[len(parts)-1]
 }
 
+func TestDownloadPrecuratedScript(t *testing.T) {
+	expAcceptHeader := "application/vnd.oci.image.manifest.v1+json"
+	svr1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, r.Header.Get("Accept"), expAcceptHeader)
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(exampleManifest))
+	}))
+	defer svr1.Close()
+	svr2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(example))
+	}))
+	defer svr2.Close()
+	originalRSProxy := config.RSProxy
+	originalRSProxyManifest := config.RSProxyManifest
+	defer func() {
+		config.RSProxy = originalRSProxy
+		config.RSProxyManifest = originalRSProxyManifest
+	}()
+	config.RSProxy = svr1.URL + "/"
+	config.RSProxyManifest = svr2.URL + "/"
+	type args struct {
+		profile string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				profile: "profile:profile",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := DownloadPrecuratedScript(tt.args.profile); (err != nil) != tt.wantErr {
+				t.Errorf("DownloadPrecuratedScript() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

@@ -66,10 +66,13 @@ go-build: $(OUT_DIR) ## build resource manager binary
 	$(GOCMD) build $(GOEXTRAFLAGS) -o $(OUT_DIR)/$(BINARY_NAME) cmd/$(BINARY_NAME)/main.go
 
 go-test: ${OUT_DIR}
-	go test --race -coverprofile ${OUT_DIR}/cover.out -coverpkg=$$(go list ./... | grep -v "api/grpc" | tr '\n' ,)  -covermode atomic ./...
+	$(MAKE) db-stop
+	$(MAKE) db-start
+	go test --race -coverprofile ${OUT_DIR}/cover.out -coverpkg=$$(go list ./... | grep -v "pkg/api/dkammgr/v1" | tr '\n' ,)  -covermode atomic ./...
 	gocover-cobertura < ${OUT_DIR}/cover.out > ${OUT_DIR}/coverage.xml
 	go tool cover -html=${OUT_DIR}/cover.out -o ${OUT_DIR}/coverage.html
 	go tool cover -func ${OUT_DIR}/cover.out -o ${OUT_DIR}/function_coverage.log
+	$(MAKE) db-stop
 
 clean: ## delete all build artifacts
 	rm -rf $(OUT_DIR) pkg/api/* || true

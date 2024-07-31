@@ -16,6 +16,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/curation"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 )
 
@@ -165,6 +166,49 @@ func DownloadMicroOS(targetDir string, scriptPath string) (bool, error) {
 
 	zlog.MiSec().Info().Msg("File downloaded")
 	return true, nil
+
+}
+
+func DownloadPrecuratedScript(profile string) error {
+
+	url := config.RSProxyProfileManifest + strings.Split(profile, ":")[0] + "/manifests/" + strings.Split(profile, ":")[1]
+	zlog.MiSec().Info().Msgf("Manifest download URL is:%s", url)
+	res := GetReleaseServerResponse(url)
+	if res.Layers != nil {
+		// Access the digest value
+		digest := res.Layers[0].Digest
+		zlog.MiSec().Info().Msgf("Digest: %s", digest)
+
+		file_url := config.RSProxyProfileManifest + strings.Split(profile, ":")[0] + "/blobs/" + digest
+
+		req2, geterr2 := http.NewRequest("GET", file_url, nil)
+		if geterr2 != nil {
+			zlog.MiSec().Error().Err(geterr2).Msgf("Error while making 2nd get request: %v\n", geterr2)
+
+		}
+		resp2, err2 := client.Do(req2)
+		if err2 != nil {
+			zlog.MiSec().Error().Err(err2).Msgf("Client Error: %v\n", err2)
+		}
+		defer resp2.Body.Close()
+		filePath := config.DownloadPath + "/" + strings.Split(profile, ":")[0] + ".sh"
+
+		//Create or open the local file for writing
+		file, fileerr := os.Create(filePath)
+		if fileerr != nil {
+			zlog.MiSec().Error().Err(fileerr).Msgf("Error while creating precurated script.")
+			return fileerr
+		}
+		defer file.Close()
+
+		// Copy the response body to the local file
+		_, copyErr := io.Copy(file, resp2.Body)
+		if copyErr != nil {
+			zlog.MiSec().Error().Err(copyErr).Msgf("Error while coping content ")
+		}
+	}
+	zlog.MiSec().Info().Msg("Precurated script downloaded")
+	return nil
 
 }
 
@@ -322,7 +366,7 @@ func compressImage(inputFile, outputFile string) error {
 	return cmd.Run()
 }
 
-func DownloadUbuntuImage(imageUrl string, format string, fileName string, targetDir string) error {
+func DownloadUbuntuImage(imageUrl string, format string, fileName string, targetDir string, sha256 string) error {
 	// TODO(NEXFMPID-3359): avoid hardcoded file names, and use tmp folder for temporary files
 	zlog.Info().Msgf("Inside Download and Raw form conversion...")
 	if strings.HasSuffix(imageUrl, "raw.gz") {
@@ -379,8 +423,19 @@ func DownloadUbuntuImage(imageUrl string, format string, fileName string, target
 		}
 		if exists {
 			zlog.MiSec().Info().Msg("PVC Path exists")
+			osImagePath := config.PVC + "/" + "OSImage"
+			err = curation.CreateDir(osImagePath)
+			if err != nil {
+				zlog.MiSec().Info().Msgf("Error creating path %v", err)
+			}
+			osImagefilePath := osImagePath + "/" + sha256
+			err = curation.CreateDir(osImagefilePath)
+			if err != nil {
+				zlog.MiSec().Info().Msgf("Error creating path %v", err)
+			}
+
 			zlog.MiSec().Info().Msg(fileName)
-			pvcFilePath := config.PVC + "/" + fileName
+			pvcFilePath := osImagefilePath + "/" + fileName
 			cmd := exec.Command("mv", targetDir+"/"+fileName, pvcFilePath)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
