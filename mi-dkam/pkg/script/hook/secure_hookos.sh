@@ -161,6 +161,12 @@ sign_all_components() {
     #initramfs
     rm -rf initramfs-x86_64.sig
     
+    ######## repack initramfs to zstd format ##################
+    mv initramfs-x86_64 initramfs-x86_64.gz
+    gunzip -c initramfs-x86_64.gz | xz --check=crc32 -k -T 6 > initramfs-x86_64
+    rm initramfs-x86_64.gz
+    ###########################################################
+
     if ! gpg --batch  --homedir "$GPG_KEY_DIR" --local-user "$KEY_ID" --detach-sign initramfs-x86_64;
     then
         echo "Failed to gpg sign initramfs"
