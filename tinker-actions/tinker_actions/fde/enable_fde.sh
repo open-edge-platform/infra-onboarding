@@ -496,7 +496,7 @@ partition_other_devices() {
 	pvcreate "/dev/mapper/${block_dev}_crypt"
 	check_return_value $? "Failed to make mkfs ext4 on ${block_dev}_crypt"
 
-	list_of_lvmg_part+="/dev/mapper/${block_dev}_crypt"
+	list_of_lvmg_part+=("/dev/mapper/${block_dev}_crypt")
 
 	# add to fstab and crypttab
 	
