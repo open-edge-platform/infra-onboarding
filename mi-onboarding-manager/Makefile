@@ -79,19 +79,35 @@ $(VENV_NAME): requirements.txt
 	python3 -m pip install -r requirements.txt
 
 
+#-trimpath: Remove all file system paths from the resulting executable.
+#-mod=readonly: Ignore vendor directory and report an error if go.mod needs to be updated
+#-gcflags="all=-m": Print optimizations applied by the compiler for review and verification against security requirements.
+#-gcflags="all=-spectre=all" Enable all available Spectre mitigations
+#-ldflags="all=-s -w" remove the symbol and debug info
+#-ldflags="all=-X ..." Embedd binary build stamping information.
+# Note that arm64 (MacBooks) does not support any spectre mititations.
+GOARCH:=$(shell go env GOARCH)
+ifeq ($(GOARCH),arm64)
+  GOEXTRAFLAGS:=-trimpath -gcflags="all=-spectre= -N -l" -asmflags="all=-spectre=" -ldflags="all=-s -w"
+else
+  GOEXTRAFLAGS:=-trimpath -gcflags="all=-spectre=all -N -l" -asmflags="all=-spectre=all" -ldflags="all=-s -w"
+endif
+
 ##### CI Targets #####
 
 all: 
 	@# Help: Runs build, lint, test stage
 	build lint test
+
 go-build:
-	--mount=type=cache,target=/root/.cache/go-build GOARCH=amd64 GOOS=linux \
-    $(GOCMD) build -trimpath -o build/onboardingmgr \
-        -ldflags "-s -w -extldflags '-static' -X main.Version=$version" \
-        ./cmd/onboardingmgr
+	--mount=type=cache,target=/root/.cache/go-build \
+    $(GOCMD) build $(GOEXTRAFLAGS) -ldflags="-X 'main.RepoURL=${DOCKER_LABEL_REPO_URL}' -X 'main.Version=${DOCKER_LABEL_VERSION}' \
+	-X 'main.Revision=${DOCKER_LABEL_REVISION}' -X 'main.BuildDate=${DOCKER_LABEL_BUILD_DATE}'" \
+	-o build/onboardingmgr cmd/onboardingmgr/main.go
+
 hadolint: ## Check Dockerfile with Hadolint
 	hadolint Dockerfile
-	
+
 docker-build:  ## build Docker image
 	$(GOCMD) mod vendor
 	docker build . -f Dockerfile --no-cache \

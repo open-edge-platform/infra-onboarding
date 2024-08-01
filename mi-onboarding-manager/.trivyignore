@@ -1,6 +1,10 @@
 # SPDX-FileCopyrightText: (C) 2024 Intel Corporation
 # SPDX-License-Identifier: LicenseRef-Intel
 
+# we need to download files to host so read only fs is not suitable
+# - https://avd.aquasec.com/misconfig/kubernetes/general/avd-ksv-0014/
+AVD-KSV-0014
+
 # CVE-2020-8559 has been fixed on the kube-api side: https://github.com/kubernetes/kubernetes/issues/92914.
 # k8s.io/apimachinery still follows redirects, hence the CVE is not yet fixed there, see:
 # - https://github.com/kubernetes/kubernetes/issues/93129
@@ -100,3 +104,42 @@ CVE-2023-5981
 CVE-2024-2236
 CVE-2023-4039
 CVE-2023-4039
+
+# new Postgres CVE
+CVE-2024-33599
+CVE-2024-33599
+CVE-2024-33599
+CVE-2024-33599
+CVE-2023-24538
+CVE-2023-24540
+CVE-2024-24790
+CVE-2022-27664
+CVE-2022-28131
+CVE-2022-2879
+CVE-2022-2880
+CVE-2022-29804
+CVE-2022-30580
+CVE-2022-30630
+CVE-2022-30631
+CVE-2022-30632
+CVE-2022-30633
+CVE-2022-30634
+CVE-2022-30635
+CVE-2022-32189
+CVE-2022-41715
+CVE-2022-41716
+CVE-2022-41720
+CVE-2022-41722
+CVE-2022-41723
+CVE-2022-41724
+CVE-2022-41725
+CVE-2023-24534
+CVE-2023-24536
+CVE-2023-24537
+CVE-2023-24539
+CVE-2023-29400
+CVE-2023-29403
+CVE-2023-39325
+CVE-2023-45283
+CVE-2023-45287
+CVE-2023-45288
