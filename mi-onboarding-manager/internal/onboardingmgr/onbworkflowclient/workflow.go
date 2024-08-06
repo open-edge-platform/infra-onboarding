@@ -388,7 +388,7 @@ func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName string)
 	got := &tink.Workflow{}
 	clientErr := k8sCli.Get(ctx, types.NamespacedName{Namespace: env.K8sNamespace, Name: workflowName}, got)
 	if clientErr != nil && errors.IsNotFound(clientErr) {
-		zlog.MiSec().MiErr(clientErr).Msg("")
+		zlog.MiSec().Debug().Msgf("%s", clientErr)
 		return nil, inv_errors.Errorfc(codes.NotFound, "Workflow %s doesn't exist", workflowName)
 	}
 
