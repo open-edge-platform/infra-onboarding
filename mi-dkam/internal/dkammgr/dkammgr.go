@@ -37,6 +37,7 @@ var imageName string
 var imagePath string
 var tinkeraction_version string
 var shaID string
+var profilePath string
 
 func NewDKAMService(invClient *invclient.DKAMInventoryClient, _ string, _ bool,
 	enableAuth bool, rbacRules string,
@@ -103,9 +104,15 @@ func (server *Service) GetENProfile(ctx context.Context, req *pb.GetENProfileReq
 	zlog.MiSec().Info().Msgf("Profile Name %s", profile)
 	zlog.MiSec().Info().Msgf("Platform %s", platform)
 	zlog.MiSec().Info().Msgf("Image URL from request %s", req.RepoUrl)
-	zlog.MiSec().Info().Msgf("SHA256 %s", req.Sha256)
+	zlog.MiSec().Info().Msgf("SHA256 %s", req.Sha256)	
 
 	sha256 := GetSHAID(profile, req.InstalledPackages, req.KernelCommand)
+
+	if strings.Contains(profile, ":") {
+		profile = strings.Split(profile, ":")[0]
+	} else {
+		profile = "default"
+	}
 
 	if req.RepoUrl == "" {
 		imageName = config.ImageFileName
@@ -125,10 +132,7 @@ func (server *Service) GetENProfile(ctx context.Context, req *pb.GetENProfileReq
 	osUrl := proxyIP + "/" + imageName
 	zlog.MiSec().Info().Msgf("OS image url is %s", osUrl)
 
-	if profile == "" {
-		profile = "ubuntu-ainode:latest-main"
-	}
-	url = proxyIP + "/" + strings.Split(profile, ":")[0] + "/" + sha256 + "/" + "installer.sh"
+	url = proxyIP + "/" + profile + "/" + sha256 + "/" + "installer.sh"
 	zlog.MiSec().Info().Msgf("Installer script url is %s", url)
 
 	agentsList, tinkerAction, err := curation.GetArtifactsVersion()
@@ -200,17 +204,20 @@ func GetSHAID(profile, installPackages, kernelcmds string) string {
 }
 
 func GetCuratedScript(profile string, installPackages string, kernelcmds string) error {
-	err := download.DownloadPrecuratedScript(profile)
-	if err != nil {
-		zlog.MiSec().Info().Msgf("Failed to download Profile script: %v", err)
-		return err
-	}
 	sha256 := GetSHAID(profile, installPackages, kernelcmds)
-	if profile == "" {
-		profile = "ubuntu-ainode:latest-main"
+	if strings.Contains(profile, ":") {		
+		err := download.DownloadPrecuratedScript(profile)
+		if err != nil {
+			zlog.MiSec().Info().Msgf("Failed to download Profile script: %v", err)
+			return err
+		}
+		profilePath = config.PVC + "/" + strings.Split(profile, ":")[0]
+		profile = strings.Split(profile, ":")[0]
+	} else {
+		profile = "default"
+		profilePath = config.PVC + "/" + profile
 	}
-	profilePath := config.PVC + "/" + strings.Split(profile, ":")[0]
-
+	
 	profileSHAPath := profilePath + "/" + sha256
 	scriptFileName := profileSHAPath + "/" + "installer.sh"
 	installerExists, patherr := download.PathExists(scriptFileName)
@@ -221,7 +228,7 @@ func GetCuratedScript(profile string, installPackages string, kernelcmds string)
 		zlog.MiSec().Info().Msg("Installer exists. Skip curation.")
 	} else {
 
-		err := curation.GetCuratedScript(strings.Split(profile, ":")[0], sha256)
+		err := curation.GetCuratedScript(profile, sha256)
 		if err != nil {
 			zlog.MiSec().Info().Msgf("Failed curate %v", err)
 			return err

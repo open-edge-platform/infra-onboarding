@@ -229,14 +229,6 @@ func CreateDir(path string) error {
 	return nil
 }
 
-func joinLines(lines []string) string {
-	result := ""
-	for _, line := range lines {
-		result += line + "\n"
-	}
-	return result
-}
-
 func CreateOverlayScript(pwd string, profile string, MODE string, SHAID string) error {
 	parentDir := filepath.Dir(filepath.Dir(pwd))
 	beginString := "true >/etc/environment"
@@ -250,9 +242,7 @@ func CreateOverlayScript(pwd string, profile string, MODE string, SHAID string) 
 	}
 	if exists {
 		zlog.MiSec().Info().Msg("Path exists:")
-		if profile == "" {
-			profile = "default"
-		}
+
 		profilePath := config.PVC + "/" + profile
 		err = CreateDir(profilePath)
 		if err != nil {
@@ -277,29 +267,38 @@ func CreateOverlayScript(pwd string, profile string, MODE string, SHAID string) 
 
 	zlog.MiSec().Info().Msg("File copied successfully.")
 
-	// Read the source file content
-	sourceContent, err := os.Open(config.DownloadPath + "/" + profile + ".sh")
+	profileExists, err := PathExists(config.DownloadPath + "/" + profile + ".sh")
 	if err != nil {
-		zlog.MiSec().Info().Msgf("Error reading donwloaded profile script file:%v", err)
-		return err
-	}
-	defer sourceContent.Close()
-
-	destinationFile, err := os.OpenFile(scriptFileName, os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		zlog.MiSec().Info().Msgf("Error opening installer.sh script:%v", err)
-		return err
-	}
-	defer destinationFile.Close()
-
-	reader := bufio.NewReader(sourceContent)
-	_, err = io.Copy(destinationFile, reader)
-	if err != nil {
-		fmt.Println("Error appending profile script to installer.sh:", err)
-		return err
+		zlog.MiSec().Info().Msgf("Error checking path %v", err)
 	}
 
-	fmt.Println("Contents appended successfully!")
+	if profileExists {
+		// Read the source file content
+		sourceContent, err := os.Open(config.DownloadPath + "/" + profile + ".sh")
+		if err != nil {
+			zlog.MiSec().Info().Msgf("Error reading donwloaded profile script file:%v", err)
+			return err
+		}
+		defer sourceContent.Close()
+
+		destinationFile, err := os.OpenFile(scriptFileName, os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			zlog.MiSec().Info().Msgf("Error opening installer.sh script:%v", err)
+			return err
+		}
+		defer destinationFile.Close()
+
+		reader := bufio.NewReader(sourceContent)
+		_, err = io.Copy(destinationFile, reader)
+		if err != nil {
+			zlog.MiSec().Info().Msgf("Error appending profile script to installer.sh:%v", err)
+			return err
+		}
+
+		zlog.MiSec().Info().Msg("Contents appended successfully!")
+	} else {
+		zlog.MiSec().Info().Msg("Use default profile.")
+	}
 
 	// Read the installer
 	content, err := os.ReadFile(scriptFileName)
