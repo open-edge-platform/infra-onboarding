@@ -34,10 +34,15 @@ curl http://localhost:8090/admin/realms/master/clients\?clientId\=host-manager-m
 Keycloak's `client_id` for `host-manager-m2m-client` is `e94f1ef4-82f3-4730-a819-e645eca7a515`. Obtain `client_secret`:
 
 ```bash
+# Set the secret in an environment variable
+export CLIENT_SECRET="client-secret"
+```
+
+```bash
 curl http://localhost:8090/admin/realms/master/clients/e94f1ef4-82f3-4730-a819-e645eca7a515/client-secret \
 -H "Content-Type: application/json" \
--H  "Authorization: Bearer ${JWT_TOKEN}"
-{"type":"secret","value":"JXVZ4eE6YbR56jKsx77TorElreiFphvM"}
+-H  "Authorization: Bearer ${JWT_TOKEN}" \
+-d '{"type":"secret","value":"'"${CLIENT_SECRET}"'"}'
 ```
 
 We have both `id` and `client_secret` at this point. Now, we store credentials to Vault.
@@ -56,11 +61,13 @@ Note the `client_token` above. It will be later used as `X-Vault-Token:`.
 
 Craft the `secret.json` file with Keycloak credentials to store:
 
+Replace actual secrets with placeholder values in the json
+
 ```json
 {
   "data": {
     "client_id": "e94f1ef4-82f3-4730-a819-e645eca7a515",
-    "client_secret": "JXVZ4eE6YbR56jKsx77TorElreiFphvM"
+    "client_secret": "client-secret-placeholder"
   }
 }
 ```
@@ -79,9 +86,17 @@ At this point the secret is stored in Vault and Onboarding Manager will be able 
 
 Verify that the secret has been successfully created (not part of secret onboarding workflow):
 
+NOTE: Actual client secrete will be fetched in place of "client-secret-placeholder"
+VAULT_TOKEN should be replaced by the actual Vault token when the command is executed
+
+```bash
+# Set the VAULT_TOKEN in an environment variable
+export VAULT_TOKEN="actual-vault-token"
+```
+
 ```bash
 curl \
-    --header "X-Vault-Token: hvs.CAESIL7gErRERzkiikKdNAcSYkIi4nMqZT3cqb8DDR39Hhb-Gh4KHGh2cy5FR3RjNG9VMVlFbnY5RXU0ZkdVdjg2Zkc" \
+    --header "X-Vault-Token: $VAULT_TOKEN" \
     --request GET http://127.0.0.1:8200/v1/secret/data/host-manager-m2m-client-secret
-{"request_id":"39f5f0ae-2880-be2e-1061-a342b1988f6b","lease_id":"","renewable":false,"lease_duration":0,"data":{"data":{"client_id":"e94f1ef4-82f3-4730-a819-e645eca7a515","client_secret":"JXVZ4eE6YbR56jKsx77TorElreiFphvM"},"metadata":{"created_time":"2024-02-08T11:57:05.307142Z","custom_metadata":null,"deletion_time":"","destroyed":false,"version":2}},"wrap_info":null,"warnings":null,"auth":null}
+{"request_id":"39f5f0ae-2880-be2e-1061-a342b1988f6b","lease_id":"","renewable":false,"lease_duration":0,"data":{"data":{"client_id":"e94f1ef4-82f3-4730-a819-e645eca7a515","client_secret":"client-secret-placeholder"},"metadata":{"created_time":"2024-02-08T11:57:05.307142Z","custom_metadata":null,"deletion_time":"","destroyed":false,"version":2}},"wrap_info":null,"warnings":null,"auth":null}
 ```
