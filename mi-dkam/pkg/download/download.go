@@ -4,12 +4,16 @@
 package download
 
 import (
+	"bufio"
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -366,8 +370,59 @@ func compressImage(inputFile, outputFile string) error {
 	return cmd.Run()
 }
 
+func getMD5Checksum(filename string) (string, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	hasher := md5.New()
+	if _, err := io.Copy(hasher, file); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%x", hasher.Sum(nil)), nil
+}
+
+func parseMD5SUMS(filename string) (map[string]string, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	checksums := make(map[string]string)
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		parts := strings.Fields(line)
+		if len(parts) == 2 {
+			checksums[parts[1]] = parts[0]
+		}
+	}
+
+	return checksums, scanner.Err()
+}
+
 func DownloadUbuntuImage(imageUrl string, format string, fileName string, targetDir string, sha256 string) error {
 	// TODO(NEXFMPID-3359): avoid hardcoded file names, and use tmp folder for temporary files
+	parsedURL, err := url.Parse(imageUrl)
+	if err != nil {
+		zlog.Info().Msgf("Error parsing URL:%v", err)
+		return err
+	}
+	parsedURL.Path = path.Dir(parsedURL.Path)
+
+	// Reconstruct the URL without the filename
+	resultURL := parsedURL.String()
+	zlog.Info().Msgf("URL without filename:%s", resultURL)
+
+	md5fileUrl := resultURL + "/MD5SUMS"
+	if err := downloadImage(md5fileUrl, "MD5SUMS", targetDir); err != nil {
+		zlog.MiSec().Error().Err(err).Msgf("Error downloading MD5SUMS file:%v", err)
+		return err
+	}
 	zlog.Info().Msgf("Inside Download and Raw form conversion...")
 	if strings.HasSuffix(imageUrl, "raw.gz") {
 		zlog.Info().Msgf("File is in raw format")
@@ -389,6 +444,37 @@ func DownloadUbuntuImage(imageUrl string, format string, fileName string, target
 		if err := downloadImage(imageUrl, format, targetDir); err != nil {
 			zlog.MiSec().Error().Err(err).Msgf("Error downloading image:%v", err)
 			return err
+		}
+
+		zlog.Info().Msg("Parsing MD5SUMS file...")
+		checksums, err := parseMD5SUMS(targetDir + "/" + "MD5SUMS")
+		if err != nil {
+			zlog.MiSec().Error().Err(err).Msgf("Error parsing MD5SUMS file:%v", err)
+			return err
+		}
+
+		imgFileName := "*" + strings.TrimSuffix(fileName, ".raw.gz") + ".img"
+
+		expectedChecksum, ok := checksums[imgFileName]
+		if !ok {
+			zlog.MiSec().Error().Err(err).Msgf("No checksum found for image file in MD5SUMS file %v", err)
+			return err
+		}
+
+		zlog.Info().Msg("Calculating MD5 checksum of downloaded image...")
+		computedChecksum, err := getMD5Checksum(targetDir + "/" + format)
+		if err != nil {
+			zlog.MiSec().Error().Err(err).Msgf("Error calculating MD5 checksum:%v", err)
+			return err
+		}
+
+		zlog.MiSec().Info().Msgf("Expected checksum: %s\n", expectedChecksum)
+		zlog.MiSec().Info().Msgf("Computed checksum: %s\n", computedChecksum)
+
+		if expectedChecksum == computedChecksum {
+			zlog.MiSec().Info().Msgf("Checksum verification succeeded!")
+		} else {
+			zlog.MiSec().Error().Err(err).Msgf("Checksum verification failed! Expected checksum:%s and Computed checksum:%s", expectedChecksum, computedChecksum)
 		}
 
 		// Convert the image to raw format
