@@ -616,6 +616,9 @@ func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.W
 		// indicates unrecoverable error, we should update current_state = ERROR
 		util.PopulateHostStatus(instance, onFailureStatus, intermediateWorkflowState,
 			onFailureOnboardingStatus)
+		util.PopulateInstanceStatusAndCurrentState(instance, computev1.InstanceState_INSTANCE_STATE_ERROR,
+			computev1.InstanceStatus_INSTANCE_STATUS_ERROR,
+			onFailureOnboardingStatus)
 		return inv_errors.Errorfc(codes.Aborted, "")
 	case "", tink.WorkflowStateRunning, tink.WorkflowStatePending:
 		// not started yet or in progress
