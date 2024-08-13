@@ -5,11 +5,13 @@ package download
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"testing"
@@ -127,6 +129,11 @@ func TestPathExists(t *testing.T) {
 	exists, err = PathExists(tmpFolderPath + "/non_exist")
 	require.NoError(t, err)
 	assert.False(t, exists)
+
+	invalidPath := string([]byte{0x00})
+	exists, err = PathExists(invalidPath)
+	assert.Error(t, err)
+	assert.False(t, exists)
 }
 
 func TestDownloadArtifacts(t *testing.T) {
@@ -241,9 +248,15 @@ func TestDownloadMicroOS(t *testing.T) {
 }
 
 func Test_downloadImage(t *testing.T) {
+	sercv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		io.WriteString(w, "responseBody")
+	}))
+	defer sercv.Close()
 	type args struct {
-		url      string
-		fileName string
+		url       string
+		fileName  string
+		targetDir string
 	}
 	tests := []struct {
 		name    string
@@ -264,10 +277,19 @@ func Test_downloadImage(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "Valid URL",
+			args: args{
+				url:       sercv.URL,
+				fileName:  "testfile.jpg",
+				targetDir: t.TempDir(),
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := downloadImage(tt.args.url, tt.args.fileName, config.PVC); (err != nil) != tt.wantErr {
+			if err := downloadImage(tt.args.url, tt.args.fileName, tt.args.targetDir); (err != nil) != tt.wantErr {
 				t.Errorf("downloadImage() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -375,6 +397,11 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 }
 
 func TestDownloadUbuntuImage_Negative(t *testing.T) {
+	sercv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		io.WriteString(w, "responseBody")
+	}))
+	defer sercv.Close()
 	type args struct {
 		imageUrl  string
 		format    string
@@ -399,12 +426,72 @@ func TestDownloadUbuntuImage_Negative(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "Negative test case",
+			args: args{
+				imageUrl:  "raw.gz",
+				format:    "image.img",
+				fileName:  rawFileName,
+				targetDir: config.PVC,
+			},
+			wantErr: true,
+		},
+		{
+			name: "Negative test case_1",
+			args: args{
+				imageUrl:  sercv.URL,
+				format:    "image.img",
+				fileName:  rawFileName,
+				targetDir: t.TempDir(),
+			},
+			wantErr: true,
+		},
+		{
+			name: "Negative test case_2",
+			args: args{
+				imageUrl:  "://example.com",
+				format:    "image.img",
+				fileName:  rawFileName,
+				targetDir: t.TempDir(),
+			},
+			wantErr: true,
+		},
+		{
+			name: "Negative test case_3",
+			args: args{
+				imageUrl:  sercv.URL + "/raw.gz",
+				format:    "image.img",
+				fileName:  rawFileName,
+				targetDir: t.TempDir(),
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			DownloadUbuntuImage(tt.args.imageUrl, tt.args.format, tt.args.fileName, tt.args.targetDir, tt.args.sha256)
 		})
 	}
+}
+
+func TestDownloadUbuntuimage(t *testing.T) {
+	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		io.WriteString(w, "responseBody *final.img")
+	}))
+	defer svr.Close()
+	tmpFolderPath, err := os.MkdirTemp("/tmp", "test_download_ubuntu")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpFolderPath)
+	expectedFileName := "final.raw.gz"
+	dir := config.PVC
+	os.MkdirAll(dir, 0755)
+	imgName := "image.img"
+	err = DownloadUbuntuImage(svr.URL, imgName, expectedFileName, config.DownloadPath, "")
+	require.NoError(t, err)
+	defer func() {
+		os.Remove(dir)
+	}()
 }
 
 func fileNameFromURL(url string) string {
@@ -454,6 +541,102 @@ func TestDownloadPrecuratedScript(t *testing.T) {
 			if err := DownloadPrecuratedScript(tt.args.profile); (err != nil) != tt.wantErr {
 				t.Errorf("DownloadPrecuratedScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
+		})
+	}
+}
+
+func Test_getMD5Checksum(t *testing.T) {
+	type args struct {
+		filename string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "getMD5Checksum test case",
+			args: args{
+				filename: "",
+			},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "getMD5Checksum test case negative",
+			args: args{
+				filename: t.TempDir(),
+			},
+			want:    "",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := getMD5Checksum(tt.args.filename)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getMD5Checksum() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("getMD5Checksum() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_parseMD5SUMS(t *testing.T) {
+	type args struct {
+		filename string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    map[string]string
+		wantErr bool
+	}{
+		{
+			name: "Test case",
+			args: args{
+				filename: "",
+			},
+			want:    map[string]string{},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseMD5SUMS(tt.args.filename)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseMD5SUMS() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if reflect.DeepEqual(got, tt.want) {
+				t.Errorf("parseMD5SUMS() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetReleaseServerRespons(t *testing.T) {
+	type args struct {
+		url string
+	}
+	tests := []struct {
+		name string
+		args args
+		want Response
+	}{
+		{
+			name: "Empty url",
+			args: args{},
+			want: Response{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			GetReleaseServerResponse(tt.args.url)
 		})
 	}
 }

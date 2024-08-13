@@ -15,6 +15,7 @@ import (
 	"os"
 	pa "path"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"testing"
@@ -24,7 +25,9 @@ import (
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/api/dkammgr/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/download"
+	dkam_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/testing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/policy/rbac"
+	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -55,7 +58,23 @@ const exampleManifestWrong = `
 			"size":24800
 		}],
 		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
+const rbacRules = "../../rego/authz.rego"
 
+func TestMain(m *testing.M) {
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	projectRoot := filepath.Dir(filepath.Dir(wd))
+	policyPath := projectRoot + "/build"
+	migrationsDir := projectRoot + "/build"
+
+	inv_testing.StartTestingEnvironment(policyPath, "", migrationsDir)
+	run := m.Run()
+	inv_testing.StopTestingEnvironment()
+
+	os.Exit(run)
+}
 func TestGetArtifacts(t *testing.T) {
 	dir := config.PVC
 	dummyData := `#!/bin/bash
@@ -70,7 +89,7 @@ func TestGetArtifacts(t *testing.T) {
 	service := &Service{}
 
 	// Create a UploadBaseImageRequest
-	request := &pb.GetENProfileRequest{ProfileName: "common", Platform: "ASUS"}
+	request := &pb.GetENProfileRequest{ProfileName: "common:common", Platform: "ASUS"}
 
 	// Call the GetTelemetryQuery function
 	response, err := service.GetENProfile(context.Background(), request)
@@ -133,7 +152,7 @@ func TestGetCuratedScript(t *testing.T) {
 	defer func() {
 		os.Remove(dir + "/installer.sh")
 		os.Remove(dir + "/profile.sh")
-		os.Remove(config.DownloadPath+"/profile.sh")
+		os.Remove(config.DownloadPath + "/profile.sh")
 	}()
 }
 
@@ -233,7 +252,7 @@ func TestSignMicroOS(t *testing.T) {
 	}
 }
 
-func TestBuildSignIpxe(t *testing.T) {
+func TestBuildSignIpxe1(t *testing.T) {
 
 	// Call the function you want to test
 	result, err := BuildSignIpxe()
@@ -486,28 +505,6 @@ func CopyFile(src, dst string) error {
 	return nil
 }
 
-// func TestDownloadUbuntuImage(t *testing.T) {
-// 	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-// 		w.WriteHeader(http.StatusOK)
-// 		w.Write(make([]byte, 20))
-// 	}))
-// 	defer svr.Close()
-// 	tmpFolderPath, err := os.MkdirTemp("/tmp", "test_download_ubuntu")
-// 	require.NoError(t, err)
-// 	defer os.RemoveAll(tmpFolderPath)
-// 	expectedFileName := "final.raw.gz"
-// 	imgName := "image.img"
-// 	dir := config.PVC
-// 	os.MkdirAll(dir, 0755)
-// 	err = download.DownloadUbuntuImage(svr.URL, imgName, expectedFileName, dir, "")
-// 	require.NoError(t, err)
-// 	_, err = os.Stat(config.PVC + "/" + expectedFileName)
-// 	assert.NoError(t, err)
-// 	defer func() {
-// 		os.Remove(dir)
-// 	}()
-// }
-
 func TestGetScriptDir_Case1(t *testing.T) {
 	currentDir, err := os.Getwd()
 	if err != nil {
@@ -522,15 +519,6 @@ func TestGetScriptDir_Case1(t *testing.T) {
 		os.Remove(dir)
 	}()
 }
-
-// func TestDownloadOS_Case1(t *testing.T) {
-// 	originalDir, _ := os.Getwd()
-// 	result := strings.Replace(originalDir, "internal/dkammgr", "pkg/script/jammy-server-cloudimg-amd64.raw.gz", -1)
-// 	os.MkdirAll(result, 0755)
-// 	if err := DownloadOS(); err != nil {
-// 		t.Errorf("Download failed: %v", err)
-// 	}
-// }
 
 func TestService_GetENProfile(t *testing.T) {
 	type fields struct {
@@ -571,6 +559,210 @@ func TestService_GetENProfile(t *testing.T) {
 				ctx: nil,
 				req: &pb.GetENProfileRequest{
 					Sha256: "Sha256",
+				},
+			},
+			want: &pb.GetENProfileResponse{
+				StatusMsg: "Failed to curate",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := &Service{
+				UnimplementedDkamServiceServer: tt.fields.UnimplementedDkamServiceServer,
+				invClient:                      tt.fields.invClient,
+				rbac:                           tt.fields.rbac,
+				authEnabled:                    tt.fields.authEnabled,
+			}
+			_, err := server.GetENProfile(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Service.GetENProfile() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+	}
+}
+
+func TestNewDKAMService(t *testing.T) {
+	type args struct {
+		invClient  *invclient.DKAMInventoryClient
+		in1        string
+		in2        bool
+		enableAuth bool
+		rbacRules  string
+	}
+	dkam_testing.CreateInventoryDKAMClientForTesting()
+	t.Cleanup(func() {
+		dkam_testing.DeleteInventoryDKAMClientForTesting()
+	})
+	rbac.New(rbacRules)
+	tests := []struct {
+		name    string
+		args    args
+		want    *Service
+		wantErr bool
+	}{
+		{
+			name: "NewDKAMService",
+			args: args{
+				invClient:  dkam_testing.InvClient,
+				in1:        "",
+				in2:        false,
+				enableAuth: true,
+				rbacRules:  rbacRules,
+			},
+			want:    &Service{},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewDKAMService(tt.args.invClient, tt.args.in1, tt.args.in2, tt.args.enableAuth, tt.args.rbacRules)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewDKAMService() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewDKAMService() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRemoveDir(t *testing.T) {
+	type args struct {
+		path string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Remove Existing Directory",
+			args: args{
+				path: "testdir",
+			},
+			wantErr: false,
+		},
+		{
+			name: "Remove Non-Existent Directory",
+			args: args{
+				path: "nonexistentdir",
+			},
+			wantErr: false,
+		},
+	}
+	os.Mkdir("testdir", 0755)
+	os.Mkdir("protecteddir", 0000)
+	t.Cleanup(func() {
+		os.RemoveAll("testdir")
+		os.Chmod("protecteddir", 0755)
+		os.RemoveAll("protecteddir")
+	})
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := RemoveDir(tt.args.path); (err != nil) != tt.wantErr {
+				t.Errorf("RemoveDir() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestInitOnboarding(t *testing.T) {
+	type args struct {
+		invClient  *invclient.DKAMInventoryClient
+		enableAuth bool
+		rbacRules  string
+	}
+	dkam_testing.CreateInventoryDKAMClientForTesting()
+	t.Cleanup(func() {
+		dkam_testing.DeleteInventoryDKAMClientForTesting()
+	})
+	rbac.New(rbacRules)
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "InitOnboarding Failure Test Case",
+			args: args{
+				invClient:  nil,
+				enableAuth: false,
+				rbacRules:  rbacRules,
+			},
+		},
+		{
+			name: "InitOnboarding Test Case",
+			args: args{
+				invClient:  dkam_testing.InvClient,
+				enableAuth: true,
+				rbacRules:  rbacRules,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			InitOnboarding(tt.args.invClient, tt.args.enableAuth, tt.args.rbacRules)
+		})
+	}
+}
+
+func TestGetENProfile_err(t *testing.T) {
+	request := &pb.GetENProfileRequest{ProfileName: "common", Platform: "ASUS", Sha256: "sha"}
+	path := config.PVC + "/OSImage" + "/" + request.Sha256
+	os.MkdirAll(path, 0755)
+	fullPath := filepath.Join(path, config.ImageFileName)
+	fmt.Println("fullPath", fullPath)
+	file, err := os.Create(fullPath)
+	assert.NoError(t, err)
+	file.Close()
+	service := &Service{}
+	response, err := service.GetENProfile(context.Background(), request)
+	if err != nil {
+		t.Fatalf("Error calling GetArtifacts: %v", err)
+	}
+	assert.NoError(t, err)
+	assert.NotNil(t, response)
+	assert.Equal(t, true, isImageFile(response.OsUrl))
+	defer func() {
+		os.RemoveAll(path)
+		os.Remove(config.PVC + "/OSImage")
+	}()
+}
+
+func TestService_GetENProfileErr(t *testing.T) {
+	cdr, _ := os.Getwd()
+	err1 := os.MkdirAll(cdr+"/dummy/dummy1/dummy2/dummy3", 0755)
+	assert.NoError(t, err1)
+	err2 := os.Chdir(cdr + "/dummy/dummy1/dummy2/dummy3")
+	assert.NoError(t, err2)
+	type fields struct {
+		UnimplementedDkamServiceServer pb.UnimplementedDkamServiceServer
+		invClient                      *invclient.DKAMInventoryClient
+		rbac                           *rbac.Policy
+		authEnabled                    bool
+	}
+	type args struct {
+		ctx context.Context
+		req *pb.GetENProfileRequest
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *pb.GetENProfileResponse
+		wantErr bool
+	}{
+		{
+			name:   "Test Case with dummy repo url",
+			fields: fields{},
+			args: args{
+				ctx: nil,
+				req: &pb.GetENProfileRequest{
+					RepoUrl: "url",
 				},
 			},
 			want: &pb.GetENProfileResponse{

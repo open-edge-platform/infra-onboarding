@@ -680,7 +680,7 @@ func TestCreateOverlayScript(t *testing.T) {
 		os.Remove(originalDir + "/data/default.sh")
 		os.Remove(originalDir + "/data/data.sh")
 		os.Remove(originalDir + "/data/default/installer.sh")
-		os.Remove(config.DownloadPath+"/default.sh")
+		os.Remove(config.DownloadPath + "/default.sh")
 		CopyFile(dst, srcs)
 	}()
 }
@@ -768,7 +768,7 @@ func TestCreateOverlayScript_Case(t *testing.T) {
 		os.Remove(originalDir + "/data/default.sh")
 		os.Remove(originalDir + "/data/data.sh")
 		os.Remove(originalDir + "/data/default/installer.sh")
-		os.Remove(config.DownloadPath+"/default.sh")
+		os.Remove(config.DownloadPath + "/default.sh")
 		CopyFile(dst, srcs)
 	}()
 }
@@ -859,7 +859,7 @@ func TestCreateOverlayScript_Case1(t *testing.T) {
 		os.Remove(originalDir + "/data/default.sh")
 		os.Remove(originalDir + "/data/data.sh")
 		os.Remove(originalDir + "/data/default/installer.sh")
-		os.Remove(config.DownloadPath+"/default.sh")
+		os.Remove(config.DownloadPath + "/default.sh")
 		CopyFile(dst, srcs)
 	}()
 }
@@ -931,7 +931,7 @@ func TestCreateOverlayScript_Case2(t *testing.T) {
 		os.Remove(originalDir + "/data/default.sh")
 		os.Remove(originalDir + "/data/data.sh")
 		os.Remove(originalDir + "/data/default/installer.sh")
-		os.Remove(config.DownloadPath+"/default.sh")
+		os.Remove(config.DownloadPath + "/default.sh")
 		CopyFile(dst, srcs)
 	}()
 }
@@ -1022,7 +1022,7 @@ func TestCreateOverlayScript_Case4(t *testing.T) {
 		os.Remove(originalDir + "/data/default.sh")
 		os.Remove(originalDir + "/data/data.sh")
 		os.Remove(originalDir + "/data/default/installer.sh")
-		os.Remove(config.DownloadPath+"/default.sh")
+		os.Remove(config.DownloadPath + "/default.sh")
 		CopyFile(dst, srcs)
 	}()
 }
@@ -1109,7 +1109,7 @@ func TestCreateOverlayScript_Case3(t *testing.T) {
 		os.Remove(originalDir + "/data/installer.sh")
 		os.Remove(originalDir + "/data/data.sh")
 		os.Remove(originalDir + "/data/default/installer.sh")
-		os.Remove(config.DownloadPath+"/default.sh")
+		os.Remove(config.DownloadPath + "/default.sh")
 		CopyFile(dst, srcs)
 		os.RemoveAll(path)
 	}()
@@ -1122,21 +1122,47 @@ func TestAddProxies(t *testing.T) {
 		beginLine string
 	}
 	tests := []struct {
-		name string
-		args args
+		name  string
+		args  args
+		setup func() string
 	}{
 		{
 			name: "Invalid file name",
 			args: args{
-				fileName: "",
+				fileName:  "",
+				newLines:  []string{"new proxy line 1", "new proxy line 2"},
+				beginLine: "begin line",
+			},
+		},
+		{
+			name: "File without target line",
+			args: args{
+				fileName:  "testfile.txt",
+				newLines:  []string{"new proxy line 1", "new proxy line 2"},
+				beginLine: "non-existing begin line",
+			},
+			setup: func() string {
+				content := "some line\nanother line"
+				fileName := "testfile.txt"
+				os.WriteFile(fileName, []byte(content), 0644)
+				return fileName
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			AddProxies(tt.args.fileName, tt.args.newLines, tt.args.beginLine)
+			var fileName string
+			if tt.setup != nil {
+				fileName = tt.setup()
+			} else {
+				fileName = tt.args.fileName
+			}
+			AddProxies(fileName, tt.args.newLines, tt.args.beginLine)
+
 		})
 	}
+	pwd, _ := os.Getwd()
+	defer os.Remove(pwd + "/testfile.txt")
 }
 
 func TestAddFirewallRules(t *testing.T) {
@@ -1158,6 +1184,141 @@ func TestAddFirewallRules(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			AddFirewallRules(tt.args.fileName, tt.args.newLines)
+		})
+	}
+}
+
+func TestGetCuratedScript(t *testing.T) {
+	cdr, _ := os.Getwd()
+	err1 := os.MkdirAll(cdr+"/dummy/dummy1/dummy2/dummy3", 0755)
+	assert.NoError(t, err1)
+	err2 := os.Chdir(cdr + "/dummy/dummy1/dummy2/dummy3")
+	assert.NoError(t, err2)
+	defer os.RemoveAll(cdr + "/dummy/dummy1/dummy2/dummy3")
+	type args struct {
+		profile string
+		sha256  string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "GetCuratedScript test case",
+			args: args{
+				profile: "",
+				sha256:  "",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := GetCuratedScript(tt.args.profile, tt.args.sha256); (err != nil) != tt.wantErr {
+				t.Errorf("GetCuratedScript() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestCreateOverlayScript_Err(t *testing.T) {
+	originalDir, _ := os.Getwd()
+	os.MkdirAll(config.DownloadPath, 0755)
+	src := strings.Replace(originalDir, "curation", "script", -1)
+	dir := src + "/Installer"
+	os.MkdirAll(dir, 0755)
+	dataDir := config.PVC
+	os.MkdirAll(dataDir, 0755)
+	dummyData := `#!/bin/bash
+	enable_netipplan
+        install_intel_CAcertificates
+# Add your installation commands here
+`
+	err := os.WriteFile(dataDir+"/installer.sh", []byte(dummyData), 0755)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		os.Exit(1)
+	}
+	err1 := os.WriteFile(dataDir+"/default.sh", []byte(dummyData), 0755)
+	if err1 != nil {
+		fmt.Println("Error creating file:", err1)
+		os.Exit(1)
+	}
+	result := strings.Replace(originalDir, "curation", "script/tmp", -1)
+	dst := filepath.Join(result, "Installer")
+	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+		t.Fatalf("Failed to create directory: %v", err)
+	}
+	srcs := strings.Replace(originalDir, "curation", "script/Installer", -1)
+	CopyFile(srcs, dst)
+	type args struct {
+		pwd     string
+		profile string
+		MODE    string
+		SHAID   string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				pwd: originalDir,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE, tt.args.SHAID); (err != nil) != tt.wantErr {
+				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+	defer func() {
+		os.Remove(dst)
+		os.Remove(dataDir + "/installer.sh")
+		os.Remove(dataDir + "/data.sh")
+		os.Remove(originalDir + "/data/default.sh")
+		os.Remove(originalDir + "/data/data.sh")
+		os.Remove(originalDir + "/data/default/installer.sh")
+		os.Remove(config.DownloadPath + "/default.sh")
+		CopyFile(dst, srcs)
+	}()
+}
+
+func TestPathExists(t *testing.T) {
+	type args struct {
+		path string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    bool
+		wantErr bool
+	}{
+		{
+			name:    "Path exists test case",
+			args:    args{
+				path: string([]byte{0x00}),
+			},
+			want:    false,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := PathExists(tt.args.path)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("PathExists() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("PathExists() = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }

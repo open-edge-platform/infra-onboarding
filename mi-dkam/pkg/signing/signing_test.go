@@ -10,55 +10,6 @@ import (
 	"testing"
 )
 
-// func TestBuildSignIpxe(t *testing.T) {
-// 	type args struct {
-// 		scriptPath string
-// 		dnsName    string
-// 	}
-// 	wd, _ := os.Getwd()
-// 	result := strings.Replace(wd, "signing", "script", -1)
-// 	res := filepath.Join(result, "latest")
-// 	dir := config.PVC
-// 	os.MkdirAll(dir, 0755)
-// 	if err := os.MkdirAll(filepath.Dir(res), 0755); err != nil {
-// 		t.Fatalf("Failed to create directory: %v", err)
-// 	}
-// 	CopyFile(result+"/chain.ipxe", res)
-// 	tests := []struct {
-// 		name    string
-// 		args    args
-// 		want    bool
-// 		wantErr bool
-// 	}{
-// 		{
-// 			name: "Test Case",
-// 			args: args{
-// 				scriptPath: result,
-// 				dnsName:    "",
-// 			},
-// 			want:    true,
-// 			wantErr: false,
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			got, err := BuildSignIpxe(config.PVC, tt.args.scriptPath, tt.args.dnsName)
-// 			if (err != nil) != tt.wantErr {
-// 				t.Errorf("BuildSignIpxe() error = %v, wantErr %v", err, tt.wantErr)
-// 				return
-// 			}
-// 			if got != tt.want {
-// 				t.Errorf("BuildSignIpxe() = %v, want %v", got, tt.want)
-// 			}
-// 		})
-// 	}
-// 	defer func() {
-// 		CopyFile(res, result+"/chain.ipxe")
-// 		os.Remove(res)
-// 		os.Remove(dir)
-// 	}()
-// }
-
 func CopyFile(src, dst string) error {
 	srcFile, err := os.Open(src)
 	if err != nil {
@@ -134,7 +85,7 @@ func Test_copyDir(t *testing.T) {
 		src string
 		dst string
 	}
-	wd,_:=os.Getwd()
+	wd, _ := os.Getwd()
 	tests := []struct {
 		name    string
 		args    args
@@ -150,7 +101,7 @@ func Test_copyDir(t *testing.T) {
 		{
 			name: "Test Case",
 			args: args{
-				dst: wd+"dummy",
+				dst: wd + "dummy",
 			},
 			wantErr: true,
 		},
@@ -162,7 +113,32 @@ func Test_copyDir(t *testing.T) {
 			}
 		})
 	}
-	defer func ()  {
-		os.RemoveAll(wd+"dummy")	
+	defer func() {
+		os.RemoveAll(wd + "dummy")
 	}()
+}
+
+func Test_contains(t *testing.T) {
+	type args struct {
+		slice []string
+		s     string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "failure",
+			args: args{},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := contains(tt.args.slice, tt.args.s); got != tt.want {
+				t.Errorf("contains() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

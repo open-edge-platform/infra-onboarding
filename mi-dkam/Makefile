@@ -68,7 +68,7 @@ go-build: $(OUT_DIR) ## build resource manager binary
 go-test: ${OUT_DIR}
 	$(MAKE) db-stop
 	$(MAKE) db-start
-	go test --race -coverprofile ${OUT_DIR}/cover.out -coverpkg=$$(go list ./... | grep -v "pkg/api/dkammgr/v1" | tr '\n' ,)  -covermode atomic ./...
+	go test --race -coverprofile ${OUT_DIR}/cover.out -coverpkg=$$(go list ./... | grep -v "pkg/api/dkammgr/v1" | grep -v "testing" | tr '\n' ,)  -covermode atomic ./...
 	gocover-cobertura < ${OUT_DIR}/cover.out > ${OUT_DIR}/coverage.xml
 	go tool cover -html=${OUT_DIR}/cover.out -o ${OUT_DIR}/coverage.html
 	go tool cover -func ${OUT_DIR}/cover.out -o ${OUT_DIR}/function_coverage.log

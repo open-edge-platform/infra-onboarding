@@ -6,6 +6,7 @@ package invclient
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -189,6 +190,18 @@ func TestDKAMInventoryClient_GetHostResources(t *testing.T) {
 			wantHostres: nil,
 			wantErr:     false,
 		},
+		{
+			name: "GetHostResources",
+			args: args{
+				ctx: func() context.Context {
+					ctx, cancel := context.WithCancel(context.Background())
+					cancel()
+					return ctx
+				}(),
+			},
+			wantHostres: nil,
+			wantErr:     true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -263,6 +276,19 @@ func TestDKAMInventoryClient_GetHostBmcNic(t *testing.T) {
 			name: "GetHostBmcNic",
 			args: args{
 				ctx:  context.Background(),
+				host: host,
+			},
+			want:    &computev1.HostnicResource{},
+			wantErr: true,
+		},
+		{
+			name: "GetHostBmcNic Failure",
+			args: args{
+				ctx: func() context.Context {
+					ctx, cancel := context.WithCancel(context.Background())
+					cancel()
+					return ctx
+				}(),
 				host: host,
 			},
 			want:    &computev1.HostnicResource{},
@@ -579,6 +605,18 @@ func TestDKAMInventoryClient_GetInstanceResources(t *testing.T) {
 			},
 			want:    []*computev1.InstanceResource{},
 			wantErr: false,
+		},
+		{
+			name: "GetInstanceResources Failure",
+			args: args{
+				ctx: func() context.Context {
+					ctx, cancel := context.WithCancel(context.Background())
+					cancel()
+					return ctx
+				}(),
+			},
+			want:    []*computev1.InstanceResource{},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -933,6 +971,17 @@ func TestDKAMInventoryClient_GetOSResources(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "GetOSResources Failure",
+			args: args{
+				ctx: func() context.Context {
+					ctx, cancel := context.WithCancel(context.Background())
+					cancel()
+					return ctx
+				}(),
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -964,6 +1013,18 @@ func TestDKAMInventoryClient_ListIPAddresses(t *testing.T) {
 				hostNic: &computev1.HostnicResource{},
 			},
 			wantErr: false,
+		},
+		{
+			name: "ListIPAddresses Failure",
+			args: args{
+				ctx: func() context.Context {
+					ctx, cancel := context.WithCancel(context.Background())
+					cancel()
+					return ctx
+				}(),
+				hostNic: &computev1.HostnicResource{},
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -1012,6 +1073,18 @@ func TestDKAMInventoryClient_FindAllResources(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "FindAllResources Failure",
+			args: args{
+				ctx: func() context.Context {
+					ctx, cancel := context.WithCancel(context.Background())
+					cancel()
+					return ctx
+				}(),
+				kinds: []inv_v1.ResourceKind{inv_v1.ResourceKind_RESOURCE_KIND_HOST},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1041,6 +1114,17 @@ func TestDKAMInventoryClient_GetProviderResources(t *testing.T) {
 				ctx: context.Background(),
 			},
 			wantErr: false,
+		},
+		{
+			name: "GetProviderResources Failure",
+			args: args{
+				ctx: func() context.Context {
+					ctx, cancel := context.WithCancel(context.Background())
+					cancel()
+					return ctx
+				}(),
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -1140,6 +1224,7 @@ func TestDKAMInventoryClient_listAndReturnProvider(t *testing.T) {
 		ctx    context.Context
 		filter *inv_v1.ResourceFilter
 	}
+	osr := inv_testing.CreateOs(t)
 	tests := []struct {
 		name    string
 		args    args
@@ -1151,6 +1236,30 @@ func TestDKAMInventoryClient_listAndReturnProvider(t *testing.T) {
 			args: args{
 				ctx:    context.Background(),
 				filter: &inv_v1.ResourceFilter{},
+			},
+			want:    &provider_v1.ProviderResource{},
+			wantErr: true,
+		},
+		{
+			name: "listAndReturnProvider case",
+			args: args{
+				ctx: context.Background(),
+				filter: &inv_v1.ResourceFilter{
+					Resource: &inv_v1.Resource{Resource: &inv_v1.Resource_Os{}},
+					Filter:   fmt.Sprintf("%s = %q", osv1.OperatingSystemResourceFieldResourceId, osr.ResourceId),
+				},
+			},
+			want:    &provider_v1.ProviderResource{},
+			wantErr: true,
+		},
+		{
+			name: "listAndReturnProvider case with name",
+			args: args{
+				ctx: context.Background(),
+				filter: &inv_v1.ResourceFilter{
+					Resource: &inv_v1.Resource{Resource: &inv_v1.Resource_Os{}},
+					Filter:   fmt.Sprintf("%s = %q", provider_v1.ProviderResourceFieldName, "fm_onboarding"),
+				},
 			},
 			want:    &provider_v1.ProviderResource{},
 			wantErr: true,
@@ -1170,6 +1279,7 @@ func TestDKAMInventoryClient_listAndReturnProvider(t *testing.T) {
 func TestDKAMInventoryClient_GetProviderConfig(t *testing.T) {
 	CreateDkamClientForTesting(t)
 	invClient := DkamTestClient
+	inv_testing.CreateProvider(t, "fm_onboarding")
 	type args struct {
 		ctx  context.Context
 		name string
@@ -1331,4 +1441,54 @@ func TestWithClientKind(t *testing.T) {
 	}
 }
 
+func TestDKAMInventoryClient_listAndReturnHost(t *testing.T) {
+	CreateDkamClientForTesting(t)
+	invClient := DkamTestClient
+	type args struct {
+		ctx    context.Context
+		filter *inv_v1.ResourceFilter
+	}
+	osr := inv_testing.CreateOs(t)
+	filter := &inv_v1.ResourceFilter{}
+	tests := []struct {
+		name    string
+		args    args
+		want    *computev1.HostResource
+		wantErr bool
+	}{
+		{
+			name: "listAndReturnHost test case failure",
+			args: args{
+				ctx:    context.Background(),
+				filter: filter,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "listAndReturnHost case",
+			args: args{
+				ctx: context.Background(),
+				filter: &inv_v1.ResourceFilter{
+					Resource: &inv_v1.Resource{Resource: &inv_v1.Resource_Os{}},
+					Filter:   fmt.Sprintf("%s = %q", osv1.OperatingSystemResourceFieldResourceId, osr.ResourceId),
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := invClient.listAndReturnHost(tt.args.ctx, tt.args.filter)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("DKAMInventoryClient.listAndReturnHost() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("DKAMInventoryClient.listAndReturnHost() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
