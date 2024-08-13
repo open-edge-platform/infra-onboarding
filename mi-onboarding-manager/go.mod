@@ -4,7 +4,7 @@
 
 module github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service
 
-go 1.21.9
+go 1.21.13
 
 require (
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.6.3

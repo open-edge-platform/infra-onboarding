@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2024 Intel Corporation
 # SPDX-License-Identifier: LicenseRef-Intel
 
-FROM golang:1.21.9-bookworm as builder
+FROM golang:1.21.13-bookworm as builder
 
 ARG MAKE_TARGET=go-build
 
