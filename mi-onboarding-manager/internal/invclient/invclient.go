@@ -31,8 +31,10 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/validator"
 )
 
+var inventoryTimeout = flag.Duration("invTimeout", DefaultInventoryTimeout, "Inventory API calls timeout")
+
 const (
-	DefaultTimeout          = 3 * time.Second
+	DefaultInventoryTimeout = 5 * time.Second
 	ReconcileDefaultTimeout = 5 * time.Minute // Longer timeout for reconciling all resources
 )
 
@@ -146,7 +148,7 @@ func (c *OnboardingInventoryClient) listAllResources(
 	ctx context.Context,
 	filter *inv_v1.ResourceFilter,
 ) ([]*inv_v1.Resource, error) {
-	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
+	ctx, cancel := context.WithTimeout(ctx, *inventoryTimeout)
 	defer cancel()
 
 	// we agreed to not return a NotFound error to avoid too many 'Not Found'
@@ -550,7 +552,7 @@ func (c *OnboardingInventoryClient) DeleteInstanceResource(ctx context.Context, 
 func (c *OnboardingInventoryClient) DeleteResource(ctx context.Context, resourceID string) error {
 	zlog.Debug().Msgf("Delete resource: %v", resourceID)
 
-	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
+	ctx, cancel := context.WithTimeout(ctx, *inventoryTimeout)
 	defer cancel()
 	_, err := c.Client.Delete(ctx, resourceID)
 	if inv_errors.IsNotFound(err) {
@@ -665,7 +667,7 @@ func (c *OnboardingInventoryClient) GetProviderResources(ctx context.Context) ([
 func (c *OnboardingInventoryClient) DeleteIPAddress(ctx context.Context, resourceID string) error {
 	zlog.Debug().Msgf("Delete IPAddress: %v", resourceID)
 
-	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
+	ctx, cancel := context.WithTimeout(ctx, *inventoryTimeout)
 	defer cancel()
 	ipAddress := &network_v1.IPAddressResource{
 		ResourceId:   resourceID,
