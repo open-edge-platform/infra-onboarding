@@ -219,7 +219,9 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 	response, err := onboarding.GetOSResourceFromDkamService(context.Background(), repoURL, sha256,
 		profileName, installedPackages, platform, kernalCommand)
 	if err != nil {
-		zlogInst.Err(err).Msgf("Failed to trigger DKAM for os instance ID : %s", err)
+		invError := inv_errors.Errorfc(grpc_status.Code(err), "Failed to trigger DKAM for OS instance. Error: %v", err)
+		zlogInst.Err(invError).Msg("Error triggering DKAM for OS instance")
+		return utils.DeviceInfo{}, invError
 	}
 
 	osLocationURL := response.GetOsUrl()
@@ -246,6 +248,13 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		ClientImgName:      ClientImgName,
 		CustomerID:         provider.CustomerID,
 		ENProductKeyIDs:    provider.ENProductKeyIDs,
+	}
+
+	// Adding additional checks.
+	if osLocationURL == "" || installerScriptURL == "" || tinkerVersion == "" {
+		// Create an error from the gRPC status code
+		err := inv_errors.Errorfr(inv_errors.Reason_OPERATION_IN_PROGRESS, "Installation artifacts are not yet ready")
+		return utils.DeviceInfo{}, err
 	}
 
 	if env.ImgType == utils.ImgTypeBkc {

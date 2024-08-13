@@ -61,7 +61,8 @@ func createOsWithArgs(tb testing.TB, doCleanup bool,
 }
 
 func createProviderWithArgs(tb testing.TB, doCleanup bool,
-	resourceId string) (provider *providerv1.ProviderResource) {
+	resourceId string,
+) (provider *providerv1.ProviderResource) {
 	tb.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
@@ -210,8 +211,8 @@ func TestReconcileInstance(t *testing.T) {
 
 	om_testing.AssertInstance(t, instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
-		computev1.InstanceState_INSTANCE_STATE_RUNNING,
-		computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONED)
+		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
+		computev1.InstanceStatus_INSTANCE_STATUS_UNSPECIFIED)
 
 	// run again, current_state == desired_state
 	runReconcilationFunc()
@@ -233,7 +234,7 @@ func TestReconcileInstance(t *testing.T) {
 	om_testing.AssertInstance(t, instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_ERROR,
-		computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONED)
+		computev1.InstanceStatus_INSTANCE_STATUS_UNSPECIFIED)
 
 	// delete
 	res = &inv_v1.Resource{
@@ -251,6 +252,7 @@ func TestReconcileInstance(t *testing.T) {
 
 	_, err = inv_testing.TestClients[inv_testing.APIClient].Get(ctx, instanceID)
 	require.True(t, inv_errors.IsNotFound(err))
+
 }
 
 func TestNewInstanceReconciler(t *testing.T) {
@@ -433,7 +435,7 @@ func TestInstanceReconciler_reconcileInstance(t *testing.T) {
 					Host: &computev1.HostResource{
 						ResourceId:       "host-084d9b08",
 						LegacyHostStatus: computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
-						CurrentState: computev1.HostState_HOST_STATE_UNTRUSTED,
+						CurrentState:     computev1.HostState_HOST_STATE_UNTRUSTED,
 						HostNics: []*computev1.HostnicResource{
 							{
 								ResourceId:   "hostnic-084d9b08",
@@ -496,7 +498,7 @@ func Test_convertInstanceToDeviceInfo(t *testing.T) {
 				ClientImgName:      ClientImgName,
 				ImgType:            "prod_bkc",
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name: "Failed - invalid OS URL format",
@@ -512,7 +514,7 @@ func Test_convertInstanceToDeviceInfo(t *testing.T) {
 				},
 			},
 			want:    utils.DeviceInfo{},
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name: "Failed - no OS resource associated",
@@ -539,4 +541,3 @@ func Test_convertInstanceToDeviceInfo(t *testing.T) {
 		})
 	}
 }
-
