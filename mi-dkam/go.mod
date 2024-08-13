@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: LicenseRef-Intel
 module github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service
 
-go 1.21.9
+go 1.21.13
 
 require (
 	github.com/fsnotify/fsnotify v1.7.0

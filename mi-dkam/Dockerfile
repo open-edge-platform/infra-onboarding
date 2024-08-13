@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2024 Intel Corporation
 # SPDX-License-Identifier: LicenseRef-Intel
 
-FROM golang:1.21.9-bookworm as build
+FROM golang:1.21.13-bookworm as build
 
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
