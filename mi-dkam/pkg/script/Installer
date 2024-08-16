@@ -321,7 +321,7 @@ install_node_agent(){
 
         echo "wait for node agent and client proxy to start"
         while true; do
-            http_status=$(curl -s -o /dev/null -w "%{http_code}" "https://localhost:$APT_SOURCE_PROXY_PORT")
+            http_status=$(curl -s -o /dev/null -w "%{http_code}" "https://localhost:$APT_SOURCE_PROXY_PORT/healthz")
             if [ "$http_status" -eq 200 ]; then
                 echo "Client proxy is active"
                 break
