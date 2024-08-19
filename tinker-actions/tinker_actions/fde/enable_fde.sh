@@ -439,7 +439,112 @@ create_single_hdd_lvmg() {
 }
 
 #####################################################################################
+# create a logical encrypted volume with 512 sector size. This will ensure that the
+# lvm that is created for openebs will be created with a 512 block size.
+# This logic is needed only if there are heterogeneous block sizes.
+# the output of this function is to update the global var update_sector if needed
+block_disk_phy_block_disk() {
+    # list_block_devices=($(lsblk -o NAME,TYPE | grep -i disk  | awk  '$1 ~ /sd*|nvme*/ {print $1}'))
+
+    list_block_devices=($(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*/ {if ($3 !="0B" && $4 ==0)  {print $1}}'))
+    list_of_lvmg_part=''
+    block_size_4k=0
+    block_size_512=0
+    size_4k=0
+    size_512=0
+
+    for block_dev in ${list_block_devices[@]};
+    do
+	grep -i "${DEST_DISK}" <<< "/dev/${block_dev}"
+	if [ $? -eq 0 ]
+	then
+	    continue
+	fi
+
+	# get info if there is a 4kB physical block present
+	parted -s "/dev/${block_dev}" print | grep -i sector | grep -q 4098.$
+	if [ $? -eq 0 ];
+	then
+	    block_size_4k=$(( 1 + $block_size_4k ))
+	    export disk_4k="$disk_4k /dev/${block_dev}"
+	fi
+
+	parted -s "/dev/${block_dev}" print | grep -i sector | grep -q 512.$
+	if [ $? -eq 0 ];
+	then
+	    block_size_512=$(( 1 + $block_size_512 ))
+	    export disk_512="$disk_512 /dev/${block_dev}"
+	fi
+	echo "512 $block_size_512"
+    done
+
+    echo "Total 4kB phy sectors block disk $block_size_4k $disk_4k"
+    echo "Total 512B phy sectors block disk $block_size_512 $disk_512"
+
+    if [ $block_size_512 -ne 0 ] && [ $block_size_4k -ne 0 ];
+    then
+	export UPDATE_SECTOR="--sector-size 512"
+    fi
+}
+
+#####################################################################################
+update_lvmvg() {
+    # this is a fallback mech when lvm group create might have failed with incorrect
+    # block sizes. this will not handle any other failure cases.
+
+    size_512=0
+    size_4k=0
+
+    list_of_lvmg_part_512=''
+    list_of_lvmg_part_4k=''
+    #bigger lvm will be used by orchestrator
+    for disk in $list_of_lvmg_part;
+    do
+	size=$(lsblk -b --output SIZE -n -d "${disk}")
+	parted -s "${disk}" print | grep -i sector | grep -q 512.$
+	if [ $? -eq 0 ];
+	then
+	    size_512=$(( $size_512 + $size ))
+	    list_of_lvmg_part_512+=" ${disk} "
+	else
+	    size_4k=$(( $size_4k + $size ))
+	    list_of_lvmg_part_4k+=" ${disk} "
+	fi
+    done
+
+    if [ $size_4k -gt $size_512 ];
+    then
+	echo "Selected 4k block sized disks because of higher total size"
+	if [[ $list_of_lvmg_part_4k != '' ]];
+	then
+	    vgcreate lvmvg $list_of_lvmg_part_4k
+	    check_return_value $? "Failed to create LVMVG with 4k blocks"
+	fi
+
+	if [[ $list_of_lvmg_part_512 != '' ]];
+	then
+	    vgcreate lvmvg2 $list_of_lvmg_part_512
+	    check_return_value $? "Failed to create LVMVG with 512 blocks"
+	fi
+    else
+	if [[ $list_of_lvmg_part_512 != '' ]];
+	then
+	    vgcreate lvmvg $list_of_lvmg_part_512
+	    check_return_value $? "Failed to create LVMVG-2 with 512 blocks"
+	fi
+
+	if [[ $list_of_lvmg_part_4k != '' ]];
+	then
+	    vgcreate lvmvg2 $list_of_lvmg_part_4k
+	    check_return_value $? "Failed to create LVMVG-2 with 4k blocks"
+	fi
+    fi
+
+}
+
+#####################################################################################
 partition_other_devices() {
+    block_disk_phy_block_disk
     # list_block_devices=($(lsblk -o NAME,TYPE | grep -i disk  | awk  '$1 ~ /sd*|nvme*/ {print $1}'))
 
     ## $3 represents the block device size. if 0 omit
@@ -455,7 +560,7 @@ partition_other_devices() {
 	fi
 	#if its removable disk don't do LVM
 	removable=$(lsblk -n -d -o RM "/dev/${block_dev}")
-        if [ "$removable" -eq 1 ];
+	if [ "$removable" -eq 1 ];
 	then
 	   continue
 	fi
@@ -468,7 +573,7 @@ partition_other_devices() {
 	    echo "partition in $disk $part will be deleted"
 	    rm_part=$(parted -s "/dev/${block_dev}" rm "$part")
 	done
-	
+
 	# new partition
 	parted -s "/dev/${block_dev}" \
 	       mklabel gpt \
@@ -483,10 +588,10 @@ partition_other_devices() {
 		   --pbkdf-memory=2097152 \
 		   --pbkdf-parallel=8  \
 		   --cipher=aes-xts-plain64 \
-		   --reduce-device-size 32M \
+		   --reduce-device-size 32M $UPDATE_SECTOR\
 		   "/dev/${block_dev}${part_suffix}1" \
 		   $luks_key
-	
+
 	check_return_value $? "Failed to luks format for /dev/${block_dev}${part_suffix}1"
 
 	cryptsetup luksOpen "/dev/${block_dev}${part_suffix}1" "${block_dev}_crypt" --key-file=$luks_key
@@ -499,7 +604,7 @@ partition_other_devices() {
 	list_of_lvmg_part+=" /dev/mapper/${block_dev}_crypt"
 
 	# add to fstab and crypttab
-	
+
 	block_dev_actual_partition_uuid=$(blkid "/dev/${block_dev}${part_suffix}1" -s UUID -o value)
 	echo -e "${block_dev}_crypt UUID=${block_dev_actual_partition_uuid} none luks,discard,initramfs,keyscript=/etc/initramfs-tools/tpm2-cryptsetup" >> /mnt/etc/crypttab
 
@@ -514,10 +619,16 @@ partition_other_devices() {
     if [[ $list_of_lvmg_part != '' ]];
     then
 	vgcreate lvmvg $list_of_lvmg_part
-	check_return_value $? "Failed to create a lvmvg group"
+	if [ $? -ne 0 ]
+	then
+	    export list_of_lvmg_part=$list_of_lvmg_part
+	    echo "Failed to create a lvmvg group"
+	    echo "Trying with separated sectors"
+	    update_lvmvg
+	fi
 	echo "vgcreate is completed"
     fi
-    
+
 }
 
 #####################################################################################
@@ -566,7 +677,7 @@ cleanup_rfs_backup() {
 enable_luks(){
     suffix=$(fix_partition_suffix)
     
-    tpm2_getrandom 32 | xxd -p -c999 | tr -d '\n' > $luks_key 
+    tpm2_getrandom 32 | xxd -p -c999 | tr -d '\n' > $luks_key
     check_return_value $? "Failed to get random number"
     # cat $luks_key
 
