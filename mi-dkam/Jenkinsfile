@@ -30,7 +30,7 @@ pipeline {
     environment {
         GIT_SHORT_URL=env.GIT_URL.split('/')[4].toString().replaceAll('.git','')
         PROJECT_NAME = "${GIT_SHORT_URL}"
-        SDLE_UPLOAD_PROJECT_ID = '21867'
+        SDLE_UPLOAD_PROJECT_ID = '21873'
         authorEmail = sh (script: 'git --no-pager show -s --format=\'%ae\'',returnStdout: true).trim()
     }
     stages {
