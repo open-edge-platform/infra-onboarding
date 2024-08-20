@@ -41,6 +41,24 @@ else
     exit 1
 fi
 
+#Get the function name which is causing error
+get_trap_func_name(){
+    line_number=$1
+    script_file="$0"
+    line_content=$(sed "${line_number}q;d" "$script_file")
+    func_name=$(echo $line_content | awk '{print $1}')
+    echo  "$func_name"
+}
+#Function to handle errors
+print_error_on_console() {
+    local exit_code=$?
+    local line_number="$1"
+    local func_name=$(get_trap_func_name $line_number)
+    echo "[ERROR] in function ${func_name} at line ${line_number} - exit code: ${exit_code}" > /dev/tty1
+}
+
+trap 'print_error_on_console ${LINENO}' ERR
+
 PROVISIONING_URL=${PROVISIONING_URL:-"localhost"}
 ACCESS_TOKEN_URL=__KEYCLOAK_URL__
 RELEASE_TOKEN_URL=__RELEASE_TOKEN_URL__
@@ -998,6 +1016,8 @@ disable_unattended_upgrade 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 #Delete the invalid ubuntu boot numbers created from previous installation from boot menu
 delete_invalid_ubuntu_boot_menuoptions  2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 
+echo "Installation completed Successfuly on EdgeNode!!!!" > /dev/tty1 
 echo "Installation done" > "$SCRIPT_DIR"/.base_pkg_install_done
+
 #sudo reboot
 
