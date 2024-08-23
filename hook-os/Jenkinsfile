@@ -7,7 +7,7 @@ def branchPattern = /(main|release-[0-9].[0-9]|release-[0-9][0-9].[0-9][0-9]|rel
 
 def getEnvFromBranch(branch) {
     if (branch ==~ /main/) {
-        return 'protex'
+        return 'protex,checkmarx'
     }
     else {
         return 'virus,trivy'
@@ -136,6 +136,19 @@ pipeline {
                         }
                     }
                 }
+                  stage ('Scan Containers') {
+                    when {
+                        changeRequest()
+                    }
+                    environment {
+                        SCANNERS = 'trivy'
+                    }
+                    steps {
+                        script {
+                            scanContainers()
+                        }
+                    }
+                }
             }
         }
         stage('OIE container host') {
@@ -261,32 +274,6 @@ pipeline {
                         }
                     }
                 }
-                /*stage ('Scan Containers') {
-                        when {
-                            anyOf {
-                            anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest() }
-                        }
-                    }
-                    environment {
-                        PROJECT_NAME                 = "${GIT_SHORT_URL}"
-                        SCANNERS                     = 'trivy'
-                    }
-                    steps {
-                        script {
-                            DOCKER_IMAGES=sh(script: '''
-                            docker images --digests --format '{{.Repository}}{{if ne "<none>" .Tag}}:{{.Tag}}{{else}}@{{.Digest}}{{end}}' | grep -v -e "rrp-devops" -e "rbhe-public" | awk 'BEGIN {ORS=","} {print $0} END {if (NR) print "\\n"}' | sed 's/,$//'
-                            ''', returnStdout: true).trim()
-
-                            sh """
-                                echo $DOCKER_IMAGES
-                            """
-
-                            withEnv(["TRIVY_TARGET_DOCKER_IMAGE=${DOCKER_IMAGES}"]) {
-                                rbheStaticCodeScan()
-                            }
-                        }
-                    }
-                }*/
                 stage('Version dev') {
                     when {
                         expression { env.BRANCH_NAME == 'main' || env.BRANCH_NAME.startsWith('release') && params.buildHookOs == false }
