@@ -17,10 +17,13 @@ jobs:
         uses: intel-innersource/frameworks.actions.maximus.genai-gpt/create-pr-agent@feature/genai_code_review_eval_release
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
-          GITHUB_ACTION.AUTO_REVIEW: true
-          GITHUB_ACTION.AUTO_DESCRIBE: true
+          GITHUB_ACTION.AUTO_REVIEW: false
+          GITHUB_ACTION.AUTO_DESCRIBE: false
           GITHUB_ACTION.UPDATE_TITLE: false
-          
+          USE_CUSTOM_MODEL: true
+          CUSTOM_PROD_API_BASE: ${{ secrets.CUSTOM_PROD_API_BASE }}
+          CUSTOM_PROD_API_KEY: ${{ secrets.CUSTOM_PROD_API_KEY }}
+          GPT4128K_DEPLOY_NAME: ${{ secrets.GPT4128K_DEPLOY_NAME }}
           # Uncomment the line below to enable the pre-merge checks (Ensure to provide the keywords to Code Review Dev Team to include in pre-merge checks)
           # GITHUB_ACTION.ENABLE_PRE_MERGE_CHECKS: true
           
