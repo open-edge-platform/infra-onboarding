@@ -54,6 +54,7 @@ func main() {
 		LogDriver: "syslog",
 		LogOpts: map[string]string{
 			"syslog-address": fmt.Sprintf("udp://%v:5140", cfg.syslogHost),
+			"syslog-format": "rfc3164",
 		},
 		InsecureRegistries: cfg.insecureRegistries,
 	}
