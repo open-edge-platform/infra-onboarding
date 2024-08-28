@@ -51,6 +51,7 @@ get_trap_func_name(){
 }
 #Function to handle errors
 print_error_on_console() {
+    sudo dpkg --configure -a
     local exit_code=$?
     local line_number="$1"
     local func_name=$(get_trap_func_name $line_number)
