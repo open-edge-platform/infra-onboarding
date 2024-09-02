@@ -16,6 +16,10 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"crypto/sha256"
+        "encoding/hex"
+        "io"
+        "net/http"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/tinkerbell/hub/actions/image2disk/v1/pkg/image"
@@ -43,6 +47,40 @@ func main() {
 
 	img := os.Getenv("IMG_URL")
 	compressedEnv := os.Getenv("COMPRESSED")
+	expectedSHA256 := os.Getenv("SHA256")
+
+        // if SHA256 env variable provided as input,compare the expected SHA256 with img_url SHA256
+        if len(expectedSHA256) !=0 {
+                fmt.Printf("-----Calculating the SHA256 checksum for OS image ---\n")
+
+                // get request for the image
+                response, err := http.Get(img)
+                if err != nil {
+			log.Fatal(err)
+                }
+                defer response.Body.Close()
+                hasher := sha256.New()
+
+                // copy the response to hasher
+                if _, err := io.Copy(hasher, response.Body); err != nil {
+			log.Fatal(err)
+                }
+                // get the SHA-256 checksum in bytes
+                checksum := hasher.Sum(nil)
+
+                // convert the checksum to hexa
+                actualSHA256 := hex.EncodeToString(checksum)
+
+                // compare the actualSHA256 with expectedSHA256
+                // if matches write the image to disk,else discard
+                if actualSHA256 != expectedSHA256 {
+                        fmt.Printf("-----Mismatch SHA256 for actualSHA256 & expectedSHA256 ---\n")
+                        log.Infof("expectedSHA256 : [%s] ", expectedSHA256)
+                        log.Infof("actualSHA256 : [%s] ", actualSHA256)
+                        log.Fatal("------SHA256 MISMATCH---------")
+                }
+                fmt.Printf("-----SHA256 MATCHED & proceding for os installation ---\n")
+	    }
 
 	// We can ignore the error and default compressed to false.
 	cmp, _ := strconv.ParseBool(compressedEnv)
