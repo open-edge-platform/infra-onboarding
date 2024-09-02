@@ -10,7 +10,7 @@ def getEnvFromBranch(branch) {
         return 'protex,checkmarx'
     }
     else {
-        return 'virus,trivy'
+        return 'virus,trivy,hadolint'
         // PR checks can be extended with checkmarx, bandit, snyk but source code has to available for them to pass. Protex should be kept only at branch level scanning.
     }
 }
@@ -145,7 +145,9 @@ pipeline {
                     }
                     steps {
                         script {
-                            scanContainers()
+                            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                scanContainers()
+                            }
                         }
                     }
                 }
@@ -224,7 +226,7 @@ pipeline {
                                     def owner = 'intel-innersource'
                                     def repo = 'frameworks.edge.one-intel-edge.edge-node-deployment'
                                     def pullRequestTitle = 'Update Hook OS'
-                                    def pullRequestBody = 'Update Hook OS version\n | Jira ticket | LPDF-000 |'.replaceAll('\n', '\\n')
+                                    def pullRequestBody = 'Update Hook OS version\n | Jira ticket | NEX-6800 |'.replaceAll('\n', '\\n')
                                     def baseBranch = 'main'
                                     def gitBranch = "feature/hook_os_${shortCommitHash}"
                                     def manifestDirectory = 'edge-node-deployment/manifest'
@@ -300,38 +302,6 @@ pipeline {
                 failure {
                     script {
                         emailFailure()
-                    }
-                }
-            }
-        }
-        stage('Execute in file server') {
-            agent {
-                label 'edgenode_internal_deb_file_server'
-            }
-            when {
-            anyOf { branch 'main'; branch 'release-*' }
-            }
-            steps {
-                script {
-                    unstash 'alpine_image'
-                    unstash 'grub_source'
-
-                    def repoVersion = sh(script: 'cat VERSION', returnStdout: true).trim()
-                    def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-                    echo "repoVersion: ${repoVersion}"
-                    if (!repoVersion.contains('-dev')) {
-                        // Perform mkdir and cp steps only if repoVersion doesn't contain '-dev'
-                        sh """
-                            [ -d /srv/repos/apt/debian/fm_en_artifacts/hook-os/${repoVersion}/alpine_image ] || mkdir -p /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}/alpine_image/
-                            cp ${WORKSPACE}/alpine_image/hook_x86_64.tar.gz /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}/alpine_image/hook_x86_64.tar.gz
-                            cp ${WORKSPACE}/grub_source.tar.gz /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}/
-                        """
-                    } else {
-                        sh """
-                            [ -d /srv/repos/apt/debian/fm_en_artifacts/hook-os/${repoVersion}-${commitId}/alpine_image ] || mkdir -p /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}-${commitId}/alpine_image/
-                            cp ${WORKSPACE}/alpine_image/hook_x86_64.tar.gz /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}-${commitId}/alpine_image/hook_x86_64.tar.gz
-                            cp ${WORKSPACE}/grub_source.tar.gz /srv/repos/apt/debian/publish/fm_en_artifacts/hook-os/${repoVersion}-${commitId}/
-                        """
                     }
                 }
             }
