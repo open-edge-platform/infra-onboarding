@@ -77,13 +77,13 @@ func (osr *OsReconciler) reconcileOsInstance(
 	//Download OS image
 	downloadErr := dkammgr.DownloadOS(osinst.RepoUrl, osinst.Sha256)
 	if downloadErr != nil {
-		zlogOs.MiSec().Fatal().Err(downloadErr).Msgf("Error downloading and converting OS image")
+		zlogOs.Err(downloadErr).Msgf("Error downloading and converting OS image")
 		return request.Ack()
 	}
 
 	curationErr := dkammgr.GetCuratedScript(osinst.ProfileName, osinst.InstalledPackages, osinst.KernelCommand)
 	if curationErr != nil {
-		zlogOs.MiSec().Fatal().Err(curationErr).Msgf("Error curating script")
+		zlogOs.Err(curationErr).Msgf("Error curating script")
 		return request.Ack()
 	}
 

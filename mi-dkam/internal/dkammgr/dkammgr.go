@@ -314,7 +314,7 @@ func DownloadOS(osUrl string, sha256 string) error {
 	if _, err := os.Stat(file); os.IsNotExist(err) {
 		// Download the image
 		if err := download.DownloadUbuntuImage(imageURL, "image.img", rawFileName, targetDir, sha256); err != nil {
-			zlog.MiSec().Fatal().Err(err).Msgf("Error downloading image:%v", err)
+			zlog.MiSec().Error().Err(err).Msgf("Error downloading image:%v", err)
 			return err
 		}
 
