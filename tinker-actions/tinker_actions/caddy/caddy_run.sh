@@ -51,11 +51,9 @@ extra_hosts_needed=$(printf '%s\n' "$EXTRA_HOSTS" | sed "s|,|\n|g")
 echo -e "$extra_hosts_needed" >> /etc/hosts
 echo "adding extras host mappings completed"
 
-echo -e "http_proxy=$http_proxy" >> /etc/environment
-echo -e "https_proxy=$https_proxy" >> /etc/environment
-echo -e "no_proxy=$no_proxy" >> /etc/environment
-
-. /etc/environment
+export http_proxy=$http_proxy
+export https_proxy=$https_proxy
+export no_proxy=$no_proxy
 
 # Update ca certificates
 update-ca-certificates
