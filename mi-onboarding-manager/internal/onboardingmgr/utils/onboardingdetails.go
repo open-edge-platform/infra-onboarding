@@ -10,6 +10,7 @@ const (
 	ImgTypeJammy        = "prod_jammy"
 	ImgTypeFocal        = "prod_focal"
 	ImgTypeFocalMs      = "prod_focal-ms"
+	ImgTypeTiberOs      = "prod_tiber-os"
 	DefaultProviderName = "fm_onboarding"
 )
 
@@ -56,5 +57,9 @@ type (
 		// These keys are used to uniquely reference specific products or line items.
 		// within a customer's entitlement.
 		ENProductKeyIDs string
+		// sha256 is used by EN to validate the SHA256 of OS image authenticity.
+		OsImageSHA256 string
+		// OS type differentiate bw Ubuntu Canonical and Tiber OS for now
+		OsType string
 	}
 )

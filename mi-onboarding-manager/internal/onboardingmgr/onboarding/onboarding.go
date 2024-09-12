@@ -49,7 +49,7 @@ func InitOnboarding(invClient *invclient.OnboardingInventoryClient, _ string, en
 }
 
 func GetOSResourceFromDkamService(ctx context.Context, repoURL, sha256, profilename, installedPackages string,
-	platform, kernelCommand string,
+	platform, kernelCommand string, osType string,
 ) (*dkam.GetENProfileResponse, error) {
 	// Get the DKAM manager host and port
 	host := os.Getenv("DKAMHOST")
@@ -65,7 +65,7 @@ func GetOSResourceFromDkamService(ctx context.Context, repoURL, sha256, profilen
 	dkamAddr := fmt.Sprintf("%s:%s", host, port)
 
 	// Create a gRPC connection to DKAM server
-	dkamConn, err := grpc.Dial(dkamAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	dkamConn, err := grpc.NewClient(dkamAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("Failed to connect to DKAM server %s, retry in next iteration...", dkamAddr)
 		return nil, inv_errors.Errorf("Failed to connect to DKAM server")
@@ -82,6 +82,7 @@ func GetOSResourceFromDkamService(ctx context.Context, repoURL, sha256, profilen
 		KernelCommand:     kernelCommand,
 		ProfileName:       profilename,
 		Platform:          platform,
+		OsType:            osType,
 	})
 	if err != nil {
 		zlog.Err(err).Msg("Failed to get software details from DKAM")

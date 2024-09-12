@@ -24,8 +24,6 @@ func TestWorkflowActionToStatusDetail(t *testing.T) {
 	prodBkcWorkflowWithoutDIData, err := NewTemplateDataProdBKC("test-prod-bkc", utils.DeviceInfo{}, false)
 	require.NoError(t, err)
 
-	prodWorkflowData, err := NewTemplateDataProd("test-prod", "", "", "", "", "")
-
 	diWorkflow, err := unmarshalWorkflow(diWorkflowData)
 	require.NoError(t, err)
 
@@ -35,14 +33,11 @@ func TestWorkflowActionToStatusDetail(t *testing.T) {
 	prodBkcWorkflowWithoutDI, err := unmarshalWorkflow(prodBkcWorkflowWithoutDIData)
 	require.NoError(t, err)
 
-	prodWorkflow, err := unmarshalWorkflow(prodWorkflowData)
-	require.NoError(t, err)
 
 	workflows := []*Workflow{
 		diWorkflow,
 		prodBkcWorkflowWithDI,
 		prodBkcWorkflowWithoutDI,
-		prodWorkflow,
 	}
 
 	for _, wf := range workflows {

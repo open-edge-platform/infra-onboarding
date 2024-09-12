@@ -48,6 +48,7 @@ func createOsWithArgs(tb testing.TB, doCleanup bool,
 		Sha256:            inv_testing.GenerateRandomSha256(),
 		InstalledPackages: "intel-opencl-icd\nintel-level-zero-gpu\nlevel-zero",
 		SecurityFeature:   osv1.SecurityFeature_SECURITY_FEATURE_UNSPECIFIED,
+		OsType: osv1.OsType_OS_TYPE_IMMUTABLE,
 	}
 	resp, err := inv_testing.GetClient(tb, inv_testing.APIClient).Create(ctx,
 		&inv_v1.Resource{Resource: &inv_v1.Resource_Os{Os: osr}})

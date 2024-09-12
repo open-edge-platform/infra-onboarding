@@ -21,6 +21,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
@@ -198,6 +199,7 @@ func (ir *InstanceReconciler) reconcileInstance(
 	return request.Ack()
 }
 
+//nolint:funlen // May effect the functionality, need to simplify this in future
 func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 	provider invclient.ProviderConfig,
 ) (utils.DeviceInfo, error) {
@@ -215,9 +217,18 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 	installedPackages := instance.GetOs().GetInstalledPackages()
 	kernalCommand := instance.GetOs().GetKernelCommand()
 	platform := instance.GetOs().GetArchitecture()
+	osType := instance.GetOs().GetOsType()
+	zlogInst.Info().Msgf("----------------------From DeviceInfo -------------------\n")
+	zlogInst.Info().Msgf("repoURL is %s\n", repoURL)
+	zlogInst.Info().Msgf("sha256 is %s\n", sha256)
+	zlogInst.Info().Msgf("profileName is %s\n", profileName)
+	zlogInst.Info().Msgf("installedPackages is %s\n", installedPackages)
+	zlogInst.Info().Msgf("kernalCommand is %s\n", kernalCommand)
+	zlogInst.Info().Msgf("platform is %s\n", platform)
+	zlogInst.Info().Msgf("os type is %s\n", osType.String())
 
 	response, err := onboarding.GetOSResourceFromDkamService(context.Background(), repoURL, sha256,
-		profileName, installedPackages, platform, kernalCommand)
+		profileName, installedPackages, platform, kernalCommand, osType.String())
 	if err != nil {
 		invError := inv_errors.Errorfc(grpc_status.Code(err), "Failed to trigger DKAM for OS instance. Error: %v", err)
 		zlogInst.Err(invError).Msg("Error triggering DKAM for OS instance")
@@ -231,6 +242,17 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 	sutIP := instance.GetHost().GetBmcIp()
 	osLocationURL = utils.ReplaceHostIP(osLocationURL, sutIP)
 	installerScriptURL = utils.ReplaceHostIP(installerScriptURL, sutIP)
+	imageSha256 := response.GetOsImageSha256()
+
+	zlogInst.Info().Msgf("----------------------From DKAM start-------------------\n")
+	zlogInst.Info().Msgf("osLocationURL is %s\n", osLocationURL)
+	zlogInst.Info().Msgf("installerScriptURL is %s\n", installerScriptURL)
+	zlogInst.Info().Msgf("tinkerVersion is %s\n", tinkerVersion)
+
+	zlogInst.Info().Msgf("sutIP is %s\n", sutIP)
+	zlogInst.Info().Msgf("utils.ReplaceHostIP: osLocationURL is %s\n", osLocationURL)
+	zlogInst.Info().Msgf("installerScriptURL is %s\n", osLocationURL)
+	zlogInst.Info().Msgf("imageSha256 is %s\n", imageSha256)
 
 	deviceInfo := utils.DeviceInfo{
 		GUID:               host.GetUuid(),
@@ -248,6 +270,15 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		ClientImgName:      ClientImgName,
 		CustomerID:         provider.CustomerID,
 		ENProductKeyIDs:    provider.ENProductKeyIDs,
+		OsType:             osType.String(),
+	}
+
+	if osType == osv1.OsType_OS_TYPE_IMMUTABLE {
+		deviceInfo.OsImageSHA256 = imageSha256
+		deviceInfo.ImgType = utils.ImgTypeTiberOs
+	} else {
+		deviceInfo.OsImageSHA256 = ""
+		deviceInfo.ImgType = utils.ImgTypeBkc
 	}
 
 	// Adding additional checks.
@@ -257,10 +288,19 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		return utils.DeviceInfo{}, err
 	}
 
-	if env.ImgType == utils.ImgTypeBkc {
-		deviceInfo.OSImageURL = osLocationURL
-		deviceInfo.InstallerScriptURL = installerScriptURL
-	}
+	deviceInfo.OSImageURL = osLocationURL
+	deviceInfo.InstallerScriptURL = installerScriptURL
+
+	zlogInst.Info().Msgf("----------------------At the end prints-------------------\n")
+	zlogInst.Info().Msgf("OSImageURL is %s\n", deviceInfo.OSImageURL)
+	zlogInst.Info().Msgf("InstallerScriptURL is %s\n", deviceInfo.InstallerScriptURL)
+	zlogInst.Info().Msgf("ImgType is %s\n", deviceInfo.ImgType)
+	zlogInst.Info().Msgf("DiskType is %s\n", deviceInfo.DiskType)
+	zlogInst.Info().Msgf("OsType is %s\n", deviceInfo.OsType)
+	zlogInst.Info().Msgf("SecurityFeature is %d\n", deviceInfo.SecurityFeature)
+	zlogInst.Info().Msgf("ClientImgName is %s\n", deviceInfo.ClientImgName)
+	zlogInst.Info().Msgf("CustomerID is %s\n", deviceInfo.CustomerID)
+	zlogInst.Info().Msgf("ENProductKeyIDs is %s\n", deviceInfo.ENProductKeyIDs)
 
 	return deviceInfo, nil
 }

@@ -954,6 +954,9 @@ func TestOnboardingInventoryClient_CreateOSResource(t *testing.T) {
 			name: "CreateOSResource_Success",
 			args: args{
 				ctx: context.Background(),
+				os: &osv1.OperatingSystemResource{
+					OsType: osv1.OsType_OS_TYPE_IMMUTABLE,
+				},
 			},
 			wantErr: false,
 		},
@@ -1818,14 +1821,13 @@ func TestOnboardingInventoryClient_GetProviderConfig(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "Empty Provider",
-			args:    args{
+			name: "Empty Provider",
+			args: args{
 				ctx:  context.Background(),
 				name: "",
 			},
 			wantErr: true,
 		},
-
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1837,4 +1839,3 @@ func TestOnboardingInventoryClient_GetProviderConfig(t *testing.T) {
 		})
 	}
 }
-

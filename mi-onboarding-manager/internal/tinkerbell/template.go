@@ -52,12 +52,12 @@ func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (
 		if err != nil {
 			return nil, err
 		}
-	case utils.ImgTypeFocal:
-		tmplData, err = NewTemplateDataProd(tmplName, deviceInfo.Rootfspart,
-			deviceInfo.InstallerScriptURL, env.ImgURL, tinkerVersion, deviceInfo.CustomerID)
+	case utils.ImgTypeTiberOs:
+		tmplData, err = NewTemplateDataProdTIBEROS(tmplName, deviceInfo, *common.FlagEnableDeviceInitialization)
 		if err != nil {
 			return nil, err
 		}
+
 	case utils.ImgTypeFocalMs:
 		tmplData, err = NewTemplateDataProdMS(tmplName, deviceInfo.Rootfspart, deviceInfo.InstallerScriptURL,
 			deviceInfo.OSImageURL, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.HwMacID, tinkerVersion, deviceInfo.CustomerID)
@@ -65,8 +65,7 @@ func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (
 			return nil, err
 		}
 	default:
-		tmplData, err = NewTemplateDataProd(tmplName, deviceInfo.Rootfspart,
-			deviceInfo.InstallerScriptURL, deviceInfo.OSImageURL, tinkerVersion, deviceInfo.CustomerID)
+		tmplData, err = NewTemplateDataProdTIBEROS(tmplName, deviceInfo, *common.FlagEnableDeviceInitialization)
 		if err != nil {
 			return nil, err
 		}
@@ -114,7 +113,7 @@ func CreateTemplateIfNotExists(ctx context.Context, k8sCli client.Client, templa
 		zlog.Debug().Msgf("Creating new Tinkerbell template %s.", template.Name)
 		createErr := k8sCli.Create(ctx, template)
 		if createErr != nil {
-			zlog.MiSec().MiErr(err).Msgf("")
+			zlog.MiSec().MiErr(createErr).Msgf("")
 			return inv_errors.Errorf("Failed to create Tinkerbell template %s", template.Name)
 		}
 

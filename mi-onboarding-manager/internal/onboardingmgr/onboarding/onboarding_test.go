@@ -62,6 +62,7 @@ func TestGetOSResourceFromDkamService(t *testing.T) {
 		installedPackages string
 		platform          string
 		kernelCommand     string
+		osType            string
 	}
 	tests := []struct {
 		name    string
@@ -80,7 +81,7 @@ func TestGetOSResourceFromDkamService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetOSResourceFromDkamService(tt.args.ctx, tt.args.repoURL, tt.args.sha256, tt.args.profilename, tt.args.installedPackages, tt.args.platform, tt.args.kernelCommand)
+			got, err := GetOSResourceFromDkamService(tt.args.ctx, tt.args.repoURL, tt.args.sha256, tt.args.profilename, tt.args.installedPackages, tt.args.platform, tt.args.kernelCommand, tt.args.osType)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetOSResourceFromDkamService() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -103,6 +104,7 @@ func TestGetOSResourceFromDkamService_Case1(t *testing.T) {
 		installedPackages string
 		platform          string
 		kernelCommand     string
+		osType            string
 	}
 	tests := []struct {
 		name    string
@@ -121,7 +123,7 @@ func TestGetOSResourceFromDkamService_Case1(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetOSResourceFromDkamService(tt.args.ctx, tt.args.repoURL, tt.args.sha256, tt.args.profilename, tt.args.installedPackages, tt.args.platform, tt.args.kernelCommand)
+			got, err := GetOSResourceFromDkamService(tt.args.ctx, tt.args.repoURL, tt.args.sha256, tt.args.profilename, tt.args.installedPackages, tt.args.platform, tt.args.kernelCommand, tt.args.osType)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetOSResourceFromDkamService() error = %v, wantErr %v", err, tt.wantErr)
 				return

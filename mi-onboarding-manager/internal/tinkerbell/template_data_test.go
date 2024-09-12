@@ -10,48 +10,6 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 )
 
-func TestNewTemplateDataProd(t *testing.T) {
-	type args struct {
-		name         string
-		rootPart     string
-		rootPartNo   string
-		hostIP       string
-		provIP       string
-		customerID   string
-		enProductKey string
-	}
-	wf := Workflow{}
-	want, _ := marshalWorkflow(&wf)
-	tests := []struct {
-		name    string
-		args    args
-		want    []byte
-		wantErr bool
-	}{
-		{
-			name: "TestNewTemplateDataProd_ValidData",
-			args: args{
-				name: "TestWorkflow",
-			},
-			want:    want,
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewTemplateDataProd(tt.args.name, tt.args.rootPart, tt.args.rootPartNo, tt.args.hostIP,
-				tt.args.customerID, "")
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NewTemplateDataProd() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewTemplateDataProd() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestNewTemplateDataProdBKC(t *testing.T) {
 	type args struct {
 		name       string

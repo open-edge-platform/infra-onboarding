@@ -17,6 +17,7 @@ const (
 	ActionEraseNonRemovableDisk      = "erase-non-removable-disk" //#nosec G101 -- ignore false positive.
 	ActionSecureBootStatusFlagRead   = "secure-boot-status-flag-read"
 	ActionStreamUbuntuImage          = "stream-ubuntu-image"
+	ActionStreamTiberOSImage         = "stream-tiberos-image"
 	ActionCopySecrets                = "copy-secrets"
 	ActionGrowPartitionInstallScript = "grow-partition-install-script"
 	ActionInstallOpenssl             = "install-openssl"
@@ -24,6 +25,7 @@ const (
 	ActionEnableSSH                  = "enable-ssh"
 	ActionDisableApparmor            = "disable-apparmor"
 	ActionInstallScriptDownload      = "profile-pkg-and-node-agents-install-script-download"
+	ActionCloudInitfileDownload      = "cloud-init-file-for-post-install-script-download"
 	ActionInstallScript              = "service-script-for-profile-pkg-and-node-agents-install"
 	ActionInstallScriptEnable        = "enable-service-script-for-profile-pkg-node-agents"
 	ActionNetplan                    = "write-netplan"
@@ -52,6 +54,8 @@ const (
 	ActionSystemdNetworkOptimize     = "systemd-network-online-optimize"
 	ActionDisableSnapdOptimize       = "systemd-snapd-disable-optimize"
 	ActionENProductKey               = "write-en-product-key"
+	ActionTiberOSPartition           = "tiber-os-partition"
+	ActionCloudinitDsidentity        = "cloud-init-ds-identity"
 )
 
 const (
@@ -90,6 +94,9 @@ const (
 
 	envTinkActionKerenlUpgradeImage     = "TINKER_KERNELUPGRD_IMAGE"
 	defaultTinkActionKernelUpgradeImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/kernelupgrd"
+
+	envTinkActionTiberOSPartitionImage     = "TINKER_TIBEROS_IMAGE_PARTITION"
+	defaultTinkActionTiberOSPartitionImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/tiberos_partition"
 
 	envTinkActionCredcopyImage     = "TINKER_CREDCOPY_IMAGE"                                            // #nosec G101
 	defaultTinkActionCredcopyImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/cred_copy" // #nosec G101
@@ -172,6 +179,14 @@ func tinkActionKernelupgradeImage(tinkerImageVersion string) string {
 	return fmt.Sprintf("%s:%s", defaultTinkActionKernelUpgradeImage, iv)
 }
 
+func tinkActionTiberOSPartitionImage(tinkerImageVersion string) string {
+	iv := getTinkerImageVersion(tinkerImageVersion)
+	if v := os.Getenv(envTinkActionTiberOSPartitionImage); v != "" {
+		return fmt.Sprintf("%s:%s", v, iv)
+	}
+	return fmt.Sprintf("%s:%s", defaultTinkActionTiberOSPartitionImage, iv)
+}
+
 func tinkActionCredcopyImage(tinkerImageVersion string) string {
 	iv := getTinkerImageVersion(tinkerImageVersion)
 	if v := os.Getenv(envTinkActionCredcopyImage); v != "" {
@@ -181,7 +196,7 @@ func tinkActionCredcopyImage(tinkerImageVersion string) string {
 }
 
 //nolint:funlen // May effect the functionality, need to simplify this in future
-func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, tinkerVersion, customerID string) ([]byte, error) {
+func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enableDI bool) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -196,167 +211,163 @@ func NewTemplateDataProd(name, rootPart, rootPartNo, hostIP, tinkerVersion, cust
 			},
 			Actions: []Action{
 				{
-					Name:    ActionStreamUbuntuImage,
-					Image:   tinkActionDiskImage(tinkerVersion),
+					Name:    ActionStreamTiberOSImage,
+					Image:   tinkActionDiskImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutMax9800,
 					Environment: map[string]string{
-						"DEST_DISK":  hardWareDesk,
-						"IMG_URL":    fmt.Sprintf("http://%s:8080/focal-server-cloudimg-amd64.raw.gz", hostIP),
+						"IMG_URL":    deviceInfo.OSImageURL,
 						"COMPRESSED": "true",
+						"SHA256":     deviceInfo.OsImageSHA256,
 					},
 				},
 
 				{
-					Name:    ActionCopySecrets,
-					Image:   env.ProvisionerIP + ":5015/cred_copy:latest",
+					Name:    ActionTiberOSPartition,
+					Image:   tinkActionTiberOSPartitionImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutAvg560,
+				},
+
+				// `ActionCreateUser` tinker action is removed since 'user' is already added in the os image
+				// TODO: Might need to add once the prebuilt os image removes exiting user name 'user'
+				{
+					Name:    ActionCreateCustomerIDDirectory,
+					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE": hardWareDesk + rootPart,
-						"FS_TYPE":      "ext4",
+						"FS_TYPE":             "ext4",
+						"CHROOT":              "y",
+						"DEFAULT_INTERPRETER": "/bin/sh -c",
+						"CMD_LINE":            "mkdir -p /etc/intel_edge_node/customer_id/",
 					},
 				},
+
 				{
-					Name:    ActionGrowPartitionInstallScript,
-					Image:   tinkActionWriteFileImage(tinkerVersion),
+					Name:    ActionCustomerID,
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"DEST_DISK": hardWareDesk + rootPart,
 						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/usr/local/bin/grow_part.sh",
-						"CONTENTS": fmt.Sprintf(`#!/bin/bash
-growpart {{ index .Hardware.Disks 0 }} %s
-resize2fs {{ index .Hardware.Disks 0 }}%s
-touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
+						"DEST_PATH": "/etc/intel_edge_node/customer_id/customer_id",
+						"CONTENTS":  deviceInfo.CustomerID,
+						"UID":       "0",
+						"GID":       "0",
+						"MODE":      "0755",
+						"DIRMODE":   "0755",
+					},
+				},
+
+				{
+					Name:    ActionENProductKey,
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":   "ext4",
+						"DEST_PATH": "/etc/intel_edge_node/customer_id/en_product_key_ids",
+						"CONTENTS":  deviceInfo.ENProductKeyIDs,
+						"UID":       "0",
+						"GID":       "0",
+						"MODE":      "0755",
+						"DIRMODE":   "0755",
+					},
+				},
+
+				{
+					Name:    ActionWriteHostname,
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":   "ext4",
+						"DEST_PATH": "/etc/hostname",
+						"CONTENTS": fmt.Sprintf(`
+%s`, deviceInfo.Hostname),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
 						"DIRMODE": "0755",
 					},
 				},
+
 				{
-					Name:    ActionInstallOpenssl,
-					Image:   tinkActionCexecImage(tinkerVersion),
-					Timeout: timeOutMin90,
+					Name:    ActionCloudInitfileDownload,
+					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutAvg200,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        hardWareDesk + rootPart,
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
+						"SCRIPT_URL":          deviceInfo.InstallerScriptURL,
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "apt -y update && apt -y install openssl",
+						"CMD_LINE": fmt.Sprintf("wget -P /etc/cloud/cloud.cfg.d %s;"+
+							"chmod +x /etc/cloud/cloud.cfg.d/installer.cfg",
+							deviceInfo.InstallerScriptURL),
 					},
 				},
+
 				{
-					Name:    ActionCreateUser,
-					Image:   tinkActionCexecImage(tinkerVersion),
+					Name:    ActionCloudinitDsidentity,
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"BLOCK_DEVICE":        hardWareDesk + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "useradd -p $(openssl passwd -1 tink) -s /bin/bash -d /home/tink/ -m -G sudo tink",
-					},
-				},
-				{
-					Name:    ActionEnableSSH,
-					Image:   tinkActionCexecImage(tinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        hardWareDesk + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE": "ssh-keygen -A; systemctl enable ssh.service; " +
-							"sed -i 's/^PasswordAuthentication no/#PasswordAuthentication yes/g' /etc/ssh/sshd_config",
-					},
-				},
-				{
-					Name:    ActionDisableApparmor,
-					Image:   tinkActionCexecImage(tinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        hardWareDesk + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "systemctl disable apparmor; systemctl disable snapd",
-					},
-				},
-				{
-					Name:    ActionNetplan,
-					Image:   tinkActionWriteFileImage(tinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"DEST_DISK": hardWareDesk + rootPart,
 						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/netplan/config.yaml",
-						"CONTENTS": `
-                network:
-                  version: 2
-                  renderer: networkd
-                  ethernets:
-                    id0:
-                      match:
-                        name: en*
-                      dhcp4: true`,
+						"DEST_PATH": "/etc/cloud/ds-identify.cfg",
+						"CONTENTS":  `datasource: NoCloud`,
+						"UID":       "0",
+						"GID":       "0",
+						"MODE":      "0600",
+						"DIRMODE":   "0700",
+					},
+				},
+
+				{
+					Name:    ActionNetplanConfigure,
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutAvg200,
+					Environment: map[string]string{
+						"FS_TYPE":   "ext4",
+						"DEST_PATH": "/etc/intel_edge_node/update_netplan_config.sh",
+						"CONTENTS": fmt.Sprintf(`#!/bin/bash
+while [ 1 ]
+do
+interface=$(ip route show default | awk '/default/ {print $5}')
+gateway=$(ip route show default | awk '/default/ {print $3}')
+sub_net=$(ip addr show | grep $interface | grep -E 'inet ./*' | awk '{print $2}' | awk -F'/' '{print $2}')
+if [ -z $interface ] || [ -z $gateway ] || [ -z $sub_net ]; then
+   sleep 2
+   continue
+else
+   break
+fi
+done
+# Define the network configuration in YAML format with variables
+config_yaml="
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    id0:
+      match:
+        name: en*
+      dhcp4: no
+      addresses: [ %s/$sub_net ]
+      gateway4: $gateway
+      nameservers:
+        addresses: [%s]
+"
+# Write the YAML configuration to the file
+echo "$config_yaml" | tee /etc/netplan/config.yaml
+netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", ")),
 						"UID":     "0",
 						"GID":     "0",
-						"MODE":    "0644",
+						"MODE":    "0755",
 						"DIRMODE": "0755",
 					},
 				},
-				{
-					Name:    ActionGrowPartitionService,
-					Image:   tinkActionWriteFileImage(tinkerVersion),
-					Timeout: timeOutAvg200,
-					Environment: map[string]string{
-						"DEST_DISK": hardWareDesk + rootPart,
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/systemd/system/install-grow-part.service",
-						"CONTENTS": `
-                                                [Unit]
-                                                Description=disk size grow installer
-                                                After=network.target
-                                                ConditionPathExists = !/usr/local/bin/.grow_part_done
 
-                                                [Service]
-                                                ExecStartPre=/bin/sleep 30
-                                                WorkingDirectory=/usr/local/bin
-                                                ExecStart=/usr/local/bin/grow_part.sh
+				{
+					Name:    ActionEfibootset,
+					Image:   tinkActionEfibootImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutAvg560,
+				},
 
-                                                [Install]
-                                                WantedBy=multi-user.target`,
-						"UID":     "0",
-						"GID":     "0",
-						"MODE":    "0644",
-						"DIRMODE": "0755",
-					},
-				},
-				{
-					Name:    ActionGrowPartitionServiceEnable,
-					Image:   tinkActionCexecImage(tinkerVersion),
-					Timeout: timeOutAvg200,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        hardWareDesk + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "systemctl enable install-grow-part.service",
-					},
-				},
-				{
-					Name:    ActionCustomerID,
-					Image:   tinkActionCexecImage(tinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE": fmt.Sprintf(
-							"echo 'export EN_CUSTOMER_ID=%s' >> /root/.bashrc",
-							customerID),
-					},
-				},
 				{
 					Name:    ActionReboot,
 					Image:   "public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest",
@@ -368,7 +379,102 @@ touch /usr/local/bin/.grow_part_done`, rootPartNo, rootPart),
 			},
 		}},
 	}
+	if !enableDI {
+		// Di not enable
+		directoryActions := []Action{
+			{
+				Name:    ActionCreateSecretsDirectory,
+				Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
+				Timeout: timeOutMin90,
+				Environment: map[string]string{
+					"FS_TYPE":             "ext4",
+					"CHROOT":              "y",
+					"DEFAULT_INTERPRETER": "/bin/sh -c",
+					"CMD_LINE":            "mkdir -p /etc/intel_edge_node/client-credentials/",
+				},
+			},
+			{
+				Name:    ActionWriteClientID,
+				Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+				Timeout: timeOutMin90,
+				Environment: map[string]string{
+					"FS_TYPE":   "ext4",
+					"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_id",
+					"CONTENTS":  deviceInfo.AuthClientID,
+					"UID":       "0",
+					"GID":       "0",
+					"MODE":      "0755",
+					"DIRMODE":   "0755",
+				},
+			},
+			{
+				Name:    ActionWriteClientSecret,
+				Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+				Timeout: timeOutMin90,
+				Environment: map[string]string{
+					"FS_TYPE":   "ext4",
+					"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_secret",
+					"CONTENTS":  deviceInfo.AuthClientSecret,
+					"UID":       "0",
+					"GID":       "0",
+					"MODE":      "0755",
+					"DIRMODE":   "0755",
+				},
+			},
+		}
 
+		// Find the index of the "add-dns-namespace" action
+		var writeHostnameIndex int
+		for i, action := range wf.Tasks[0].Actions {
+			if action.Name == ActionWriteHostname {
+				writeHostnameIndex = i
+				break
+			}
+		}
+
+		// Insert the new actions after the "write-hostname" action
+		wf.Tasks[0].Actions = append(wf.Tasks[0].Actions[:writeHostnameIndex+1],
+			append(directoryActions, wf.Tasks[0].Actions[writeHostnameIndex+1:]...)...)
+	} else {
+		// Di is enabled
+		directoryActions := []Action{
+			{
+				Name:    ActionCopyENSecrets,
+				Image:   tinkActionCredcopyImage(deviceInfo.TinkerVersion),
+				Timeout: timeOutMin90,
+				Environment: map[string]string{
+					"OS_DST_DIR": "/etc/intel_edge_node/client-credentials/",
+					"FS_TYPE":    "ext4",
+				},
+			},
+		}
+
+		// Find the index of the "stream-tiberos-image" action
+		var streamTiberOSImage int
+		for i, action := range wf.Tasks[0].Actions {
+			if action.Name == ActionStreamTiberOSImage {
+				streamTiberOSImage = i
+				break
+			}
+		}
+
+		// Insert the new actions after the "stream-tiberos-image" action
+		wf.Tasks[0].Actions = append(wf.Tasks[0].Actions[:streamTiberOSImage+1],
+			append(directoryActions, wf.Tasks[0].Actions[streamTiberOSImage+1:]...)...)
+	}
+
+	// Creat the User credentials only for dev mode and remove the action for production mode
+	if env.ENDkamMode != envDkamDevMode {
+		for i, task := range wf.Tasks {
+			for j, action := range task.Actions {
+				if action.Name == ActionCreateUser {
+					// Remove the create user  from the slice
+					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
+					break
+				}
+			}
+		}
+	}
 	return marshalWorkflow(&wf)
 }
 
