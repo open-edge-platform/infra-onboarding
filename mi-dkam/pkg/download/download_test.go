@@ -11,7 +11,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"strings"
 	"testing"
@@ -581,39 +580,6 @@ func Test_getMD5Checksum(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("getMD5Checksum() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_parseMD5SUMS(t *testing.T) {
-	type args struct {
-		filename string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    map[string]string
-		wantErr bool
-	}{
-		{
-			name: "Test case",
-			args: args{
-				filename: "",
-			},
-			want:    map[string]string{},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseMD5SUMS(tt.args.filename)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("parseMD5SUMS() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if reflect.DeepEqual(got, tt.want) {
-				t.Errorf("parseMD5SUMS() = %v, want %v", got, tt.want)
 			}
 		})
 	}

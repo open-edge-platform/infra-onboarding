@@ -3,11 +3,11 @@ package dkammgr
 import (
 	//import dependencies
 
+	"bufio"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,6 +18,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/curation"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/download"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/signing"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/policy/rbac"
 )
@@ -30,14 +31,15 @@ type Service struct {
 }
 
 var zlog = logging.GetLogger("MIDKAMgRPC")
-var url string
+var installerUrl string
 var tag = config.Tag
 var file string
 var imageName string
 var imagePath string
-var tinkeraction_version string
 var shaID string
 var profilePath string
+var installerPath string
+var osImageSha string
 
 func NewDKAMService(invClient *invclient.DKAMInventoryClient, _ string, _ bool,
 	enableAuth bool, rbacRules string,
@@ -100,12 +102,18 @@ func (server *Service) GetENProfile(ctx context.Context, req *pb.GetENProfileReq
 	//Get request
 	profile := req.ProfileName
 	platform := req.Platform
+	osType := req.OsType
 
 	zlog.MiSec().Info().Msgf("Profile Name %s", profile)
 	zlog.MiSec().Info().Msgf("Platform %s", platform)
 	zlog.MiSec().Info().Msgf("Image URL from request %s", req.RepoUrl)
-	zlog.MiSec().Info().Msgf("SHA256 %s", req.Sha256)	
+	zlog.MiSec().Info().Msgf("SHA256 %s", req.Sha256)
+	zlog.MiSec().Info().Msgf("OS Type %s", req.OsType)
 
+	proxyIP := "http://%host_ip%/tink-stack"
+	zlog.MiSec().Info().Msgf("proxyIP %s", proxyIP)
+
+	// Get Installer url
 	sha256 := GetSHAID(profile, req.InstalledPackages, req.KernelCommand)
 
 	if strings.Contains(profile, ":") {
@@ -114,26 +122,70 @@ func (server *Service) GetENProfile(ctx context.Context, req *pb.GetENProfileReq
 		profile = "default"
 	}
 
-	if req.RepoUrl == "" {
-		imageName = config.ImageFileName
+	if osType == osv1.OsType_OS_TYPE_MUTABLE.String() {
+		installerUrl = proxyIP + "/" + profile + "/" + sha256 + "/" + "installer.sh"
+		installerPath = config.PVC + "/" + profile + "/" + sha256 + "/" + "installer.sh"
 	} else {
-		fileName := fileNameFromURL(req.RepoUrl)
-		rawFileName := strings.TrimSuffix(fileName, ".img") + ".raw.gz"
-		imageName = rawFileName
+		installerUrl = proxyIP + "/" + profile + "/" + sha256 + "/" + "installer.cfg"
+		installerPath = config.PVC + "/" + profile + "/" + sha256 + "/" + "installer.cfg"
 	}
+
+	zlog.MiSec().Info().Msgf("Installer script url is %s", installerUrl)
+
+	//Get OS url
+
+	if osType == osv1.OsType_OS_TYPE_MUTABLE.String() {
+		if req.RepoUrl == "" {
+			imageName = config.ImageFileName
+		} else {
+			fileName := fileNameFromURL(req.RepoUrl)
+			rawFileName := strings.TrimSuffix(fileName, ".img") + ".raw.gz"
+			imageName = rawFileName
+		}
+		osImageSha = ""
+	} else {
+		imageName = config.TiberOSImage
+
+		file, err := os.Open(config.PVC + "/OSImage/" + req.Sha256 + "/" + config.TiberOSImage + ".sha256sum")
+		if err != nil {
+			zlog.MiSec().Error().Err(err).Msgf("Error while reading sha file: %v", err)
+		}
+		defer file.Close()
+
+		// Create a new scanner to read the file line by line
+		scanner := bufio.NewScanner(file)
+
+		// Read the first (and only) line
+		if scanner.Scan() {
+			line := scanner.Text()
+
+			// Split the line by space
+			parts := strings.Split(line, " ")
+
+			// The checksum is the first part
+			if len(parts) > 0 {
+				osImageSha = parts[0]
+				zlog.MiSec().Info().Msgf("osImageSha:%s", osImageSha)
+			} else {
+				zlog.MiSec().Error().Err(err).Msgf("Invalid format: %v", err)
+			}
+		}
+
+		// Check for any scanning error
+		if err := scanner.Err(); err != nil {
+			zlog.MiSec().Error().Err(err).Msgf("Error while reading sha file: %v", err)
+		}
+	}
+
 	zlog.MiSec().Info().Msgf("Image name: %s ", imageName)
 
 	imagePath = config.PVC + "/OSImage/" + req.Sha256 + "/" + imageName
 	imageName = "OSImage/" + req.Sha256 + "/" + imageName
 
-	proxyIP := "http://%host_ip%/tink-stack"
-	zlog.MiSec().Info().Msgf("proxyIP %s", proxyIP)
-
 	osUrl := proxyIP + "/" + imageName
 	zlog.MiSec().Info().Msgf("OS image url is %s", osUrl)
 
-	url = proxyIP + "/" + profile + "/" + sha256 + "/" + "installer.sh"
-	zlog.MiSec().Info().Msgf("Installer script url is %s", url)
+	// Get OS sha
 
 	agentsList, tinkerAction, err := curation.GetArtifactsVersion()
 	if err != nil {
@@ -154,7 +206,7 @@ func (server *Service) GetENProfile(ctx context.Context, req *pb.GetENProfileReq
 		zlog.MiSec().Info().Msgf("Error checking image file path %v", patherr)
 	}
 
-	installerExists, patherr := download.PathExists(imagePath)
+	installerExists, patherr := download.PathExists(installerPath)
 	if patherr != nil {
 		zlog.MiSec().Info().Msgf("Error checking installer file path %v", patherr)
 	}
@@ -162,11 +214,11 @@ func (server *Service) GetENProfile(ctx context.Context, req *pb.GetENProfileReq
 	if !imageExists || !installerExists || tinkerAction == "" {
 		zlog.MiSec().Info().Msg("Image Path not exists:")
 		zlog.MiSec().Info().Msg("Return Error Message.")
-		return &pb.GetENProfileResponse{StatusCode: false, OsUrl: "", OverlayscriptUrl: "", TinkActionVersion: tinkerAction, StatusMsg: "Failed to curate. Please try again!"}, nil
+		return &pb.GetENProfileResponse{StatusCode: false, OsUrl: "", OverlayscriptUrl: "", TinkActionVersion: tinkerAction, StatusMsg: "Failed to curate. Please try again!", OsImageSha256: osImageSha}, nil
 	} else {
 		zlog.MiSec().Info().Msg("Path exists:")
 		zlog.MiSec().Info().Msg("Return Success Message.")
-		return &pb.GetENProfileResponse{StatusCode: true, OsUrl: osUrl, OverlayscriptUrl: url, TinkActionVersion: tinkerAction, StatusMsg: "Curation successfully done"}, nil
+		return &pb.GetENProfileResponse{StatusCode: true, OsUrl: osUrl, OverlayscriptUrl: installerUrl, TinkActionVersion: tinkerAction, StatusMsg: "Curation successfully done", OsImageSha256: osImageSha}, nil
 	}
 
 }
@@ -198,28 +250,38 @@ func GetSHAID(profile, installPackages, kernelcmds string) string {
 	hash := sha256.Sum256([]byte(combinedStr))
 	shaID = hex.EncodeToString(hash[:])
 
-	fmt.Println("SHA-256 Hash:", shaID)
+	zlog.MiSec().Info().Msgf("SHA-256 Hash: %s", shaID)
 
 	return shaID
 }
 
-func GetCuratedScript(profile string, installPackages string, kernelcmds string) error {
+func GetCuratedScript(profile string, installPackages string, kernelcmds string, osType osv1.OsType) error {
 	sha256 := GetSHAID(profile, installPackages, kernelcmds)
-	if strings.Contains(profile, ":") {		
-		err := download.DownloadPrecuratedScript(profile)
-		if err != nil {
-			zlog.MiSec().Info().Msgf("Failed to download Profile script: %v", err)
-			return err
-		}
-		profilePath = config.PVC + "/" + strings.Split(profile, ":")[0]
+	profileValue := profile
+	var scriptFileName string
+
+	if strings.Contains(profile, ":") {
+
 		profile = strings.Split(profile, ":")[0]
+		profilePath = config.PVC + "/" + profile
+		if osType == osv1.OsType_OS_TYPE_MUTABLE {
+			scriptFileName = profilePath + "/" + sha256 + "/" + "installer.sh"
+		} else {
+			scriptFileName = profilePath + "/" + sha256 + "/" + "installer.cfg"
+		}
+
 	} else {
+
 		profile = "default"
 		profilePath = config.PVC + "/" + profile
+		if osType == osv1.OsType_OS_TYPE_MUTABLE {
+			scriptFileName = profilePath + "/" + sha256 + "/" + "installer.sh"
+		} else {
+			scriptFileName = profilePath + "/" + sha256 + "/" + "installer.cfg"
+		}
+
 	}
-	
-	profileSHAPath := profilePath + "/" + sha256
-	scriptFileName := profileSHAPath + "/" + "installer.sh"
+
 	installerExists, patherr := download.PathExists(scriptFileName)
 	if patherr != nil {
 		zlog.MiSec().Info().Msgf("Error checking installer file path %v", patherr)
@@ -227,12 +289,20 @@ func GetCuratedScript(profile string, installPackages string, kernelcmds string)
 	if installerExists {
 		zlog.MiSec().Info().Msg("Installer exists. Skip curation.")
 	} else {
+		if osType == osv1.OsType_OS_TYPE_MUTABLE {
+			err := download.DownloadPrecuratedScript(profileValue)
+			if err != nil {
+				zlog.MiSec().Info().Msgf("Failed to download Profile script: %v", err)
+				return err
+			}
+		}
 
-		err := curation.GetCuratedScript(profile, sha256)
+		err := curation.GetCuratedScript(profile, sha256, osType)
 		if err != nil {
 			zlog.MiSec().Info().Msgf("Failed curate %v", err)
 			return err
 		}
+
 	}
 	return nil
 }
@@ -300,29 +370,48 @@ func GetScriptDir() string {
 	return scriptPath
 }
 
-func DownloadOS(osUrl string, sha256 string) error {
+func DownloadOS(osUrl string, osType osv1.OsType, sha256 string) error {
 	zlog.Info().Msgf("Inside DownloadOS...")
 	imageURL := osUrl
 	zlog.Info().Msgf("imageURL %s", imageURL)
 	targetDir := config.DownloadPath
-	fileName := fileNameFromURL(imageURL)
-	rawFileName := strings.TrimSuffix(fileName, ".img") + ".raw.gz"
+	if osType == osv1.OsType_OS_TYPE_IMMUTABLE && osType != osv1.OsType_OS_TYPE_UNSPECIFIED {
+		zlog.Info().Msgf("Inside Download Tiber OS")
+		rawFileName := config.TiberOSImage
+		file = config.PVC + "/OSImage/" + sha256 + "/" + rawFileName
+		// Check if the compressed raw image file already exists
+		if _, err := os.Stat(file); os.IsNotExist(err) {
+			// Download the image
+			if err := download.DownloadTiberOSImage(imageURL, targetDir, sha256); err != nil {
+				zlog.MiSec().Error().Err(err).Msgf("Error downloading image:%v", err)
+				return err
+			}
 
-	file = config.PVC + "/OSImage/" + sha256 + "/" + rawFileName
-
-	// Check if the compressed raw image file already exists
-	if _, err := os.Stat(file); os.IsNotExist(err) {
-		// Download the image
-		if err := download.DownloadUbuntuImage(imageURL, "image.img", rawFileName, targetDir, sha256); err != nil {
-			zlog.MiSec().Error().Err(err).Msgf("Error downloading image:%v", err)
-			return err
+		} else {
+			zlog.MiSec().Info().Msgf("Compressed raw image file already exists: %s", file)
 		}
 
 	} else {
-		zlog.MiSec().Info().Msgf("Compressed raw image file already exists: %s", file)
+		zlog.Info().Msgf("Inside Download Ubuntu OS")
+		fileName := fileNameFromURL(imageURL)
+		rawFileName := strings.TrimSuffix(fileName, ".img") + ".raw.gz"
+
+		file = config.PVC + "/OSImage/" + sha256 + "/" + rawFileName
+
+		// Check if the compressed raw image file already exists
+		if _, err := os.Stat(file); os.IsNotExist(err) {
+			// Download the image
+			if err := download.DownloadUbuntuImage(imageURL, "image.img", rawFileName, targetDir, sha256); err != nil {
+				zlog.MiSec().Error().Err(err).Msgf("Error downloading image:%v", err)
+				return err
+			}
+
+		} else {
+			zlog.MiSec().Info().Msgf("Compressed raw image file already exists: %s", file)
+		}
 	}
 
-	zlog.MiSec().Info().Msg("Ubuntu OS downloaded and move to PVC")
+	zlog.MiSec().Info().Msg("OS Image downloaded and move to PVC")
 	return nil
 
 }

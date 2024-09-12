@@ -5,6 +5,7 @@ package reconcilers
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"google.golang.org/protobuf/proto"
@@ -58,8 +59,13 @@ func (osr *OsReconciler) Reconcile(ctx context.Context,
 	// skip reconciliation if Repo URL is already set.
 	// In the future, we should introduce current/desired state to drive reconciliation.
 
-	if osre.RepoUrl == "" || strings.Contains(osre.RepoUrl, ";") {
+	if (osre.RepoUrl == "" || strings.Contains(osre.RepoUrl, ";")) && osre.OsType == osv1.OsType_OS_TYPE_MUTABLE {
 		osre.RepoUrl = config.ImageUrl
+		zlogOs.MiSec().Info().Msgf("Image url: %s ", osre.RepoUrl)
+	}
+
+	if osre.RepoUrl == "" && osre.OsType == osv1.OsType_OS_TYPE_IMMUTABLE {
+		osre.RepoUrl = config.ImmutableImageUrl
 		zlogOs.MiSec().Info().Msgf("Image url: %s ", osre.RepoUrl)
 	}
 
@@ -73,17 +79,17 @@ func (osr *OsReconciler) reconcileOsInstance(
 ) rec_v2.Directive[ResourceID] {
 	id := osinst.GetResourceId()
 	zlogOs.MiSec().Info().Msgf("Reconciling OS instance with ID : %s", id)
-
+	fmt.Printf("Received AType: %v\n", osinst.OsType)
 	//Download OS image
-	downloadErr := dkammgr.DownloadOS(osinst.RepoUrl, osinst.Sha256)
+	downloadErr := dkammgr.DownloadOS(osinst.RepoUrl, osinst.OsType, osinst.Sha256)
 	if downloadErr != nil {
-		zlogOs.Err(downloadErr).Msgf("Error downloading and converting OS image")
+		zlogOs.MiSec().Fatal().Err(downloadErr).Msgf("Error downloading and converting OS image")
 		return request.Ack()
 	}
 
-	curationErr := dkammgr.GetCuratedScript(osinst.ProfileName, osinst.InstalledPackages, osinst.KernelCommand)
+	curationErr := dkammgr.GetCuratedScript(osinst.ProfileName, osinst.InstalledPackages, osinst.KernelCommand, osinst.OsType)
 	if curationErr != nil {
-		zlogOs.Err(curationErr).Msgf("Error curating script")
+		zlogOs.MiSec().Fatal().Err(curationErr).Msgf("Error curating script")
 		return request.Ack()
 	}
 

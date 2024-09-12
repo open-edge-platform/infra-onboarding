@@ -69,6 +69,8 @@ func (m *GetENProfileRequest) validate(all bool) error {
 
 	// no validation rules for KernelCommand
 
+	// no validation rules for OsType
+
 	if len(errors) > 0 {
 		return GetENProfileRequestMultiError(errors)
 	}
@@ -180,6 +182,8 @@ func (m *GetENProfileResponse) validate(all bool) error {
 	// no validation rules for StatusCode
 
 	// no validation rules for StatusMsg
+
+	// no validation rules for OsImageSha256
 
 	if len(errors) > 0 {
 		return GetENProfileResponseMultiError(errors)

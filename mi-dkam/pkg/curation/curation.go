@@ -17,6 +17,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
 )
 
@@ -137,7 +138,7 @@ func GetArtifactsVersion() ([]AgentsVersion, string, error) {
 	return agentsList, tinkerAction, nil
 }
 
-func GetCuratedScript(profile string, sha256 string) error {
+func GetCuratedScript(profile string, sha256 string, osType osv1.OsType) error {
 	MODE := os.Getenv("MODE")
 	//MODE := "dev"
 
@@ -162,10 +163,18 @@ func GetCuratedScript(profile string, sha256 string) error {
 		zlog.MiSec().Info().Msg("Failed to get the Tinker action version")
 		return err
 	}
-	createErr := CreateOverlayScript(currentDir, profile, MODE, sha256)
-	if createErr != nil {
-		zlog.MiSec().Info().Msgf("Error checking path %v", createErr)
-		return createErr
+	if osType == osv1.OsType_OS_TYPE_MUTABLE {
+		createErr := CreateOverlayScript(currentDir, profile, MODE, sha256)
+		if createErr != nil {
+			zlog.MiSec().Info().Msgf("Error checking path %v", createErr)
+			return createErr
+		}
+	} else {
+		createErr := CreateCloudCfgScript(currentDir, profile, MODE, sha256)
+		if createErr != nil {
+			zlog.MiSec().Info().Msgf("Error checking path %v", createErr)
+			return createErr
+		}
 	}
 	return nil
 
@@ -229,6 +238,192 @@ func CreateDir(path string) error {
 	return nil
 }
 
+func CreateCloudCfgScript(pwd string, profile string, MODE string, SHAID string) error {
+	parentDir := filepath.Dir(filepath.Dir(pwd))
+	scriptDir := filepath.Join(parentDir, "pkg", "script")
+	cfgFilePath := filepath.Join(scriptDir, "Installer.cfg")
+	cfgFileName := ""
+	// Copy the file
+
+	exists, err := PathExists(config.PVC)
+	if err != nil {
+		zlog.MiSec().Info().Msgf("Error checking path %v", err)
+	}
+	if exists {
+		zlog.MiSec().Info().Msg("Path exists:")
+
+		profilePath := config.PVC + "/" + profile
+		err = CreateDir(profilePath)
+		if err != nil {
+			zlog.MiSec().Info().Msgf("Error creating path %v", err)
+		}
+		profileSHAPath := profilePath + "/" + SHAID
+		err = CreateDir(profileSHAPath)
+		if err != nil {
+			zlog.MiSec().Info().Msgf("Error creating path %v", err)
+		}
+		cfgFileName = profileSHAPath + "/" + "installer.cfg"
+	} else {
+		zlog.MiSec().Info().Msg("Path does not exists")
+	}
+
+	cpErr := copyFile(cfgFilePath, cfgFileName)
+	if cpErr != nil {
+		zlog.MiSec().Error().Err(cpErr).Msgf("Error: %v", cpErr)
+	}
+
+	// Read the installer
+	content, err := os.ReadFile(cfgFileName)
+	if err != nil {
+		zlog.MiSec().Error().Err(err).Msgf("Error %v", err)
+	}
+
+	//Get FQDN names for agents:
+	orchCluster := os.Getenv("ORCH_CLUSTER")
+	orchInfra := os.Getenv("ORCH_INFRA")
+	orchUpdate := os.Getenv("ORCH_UPDATE")
+	orchPlatformObsHost := os.Getenv("ORCH_PLATFORM_OBS_HOST")
+	orchPlatformObsPort := os.Getenv("ORCH_PLATFORM_OBS_PORT")
+	orchPlatformObsMetricsHost := os.Getenv("ORCH_PLATFORM_OBS_METRICS_HOST")
+	orchPlatformObsMetricsPort := os.Getenv("ORCH_PLATFORM_OBS_METRICS_PORT")
+	orchTelemetryHost := os.Getenv("ORCH_TELEMETRY_HOST")
+	orchTelemetryPort := os.Getenv("ORCH_TELEMETRY_PORT")
+	orchKeycloak := os.Getenv("ORCH_KEYCLOAK")
+	orchRelease := os.Getenv("ORCH_RELEASE")
+	orchAptSrcPort := os.Getenv("ORCH_APT_PORT")
+	orchImgRegProxyPort := os.Getenv("ORCH_IMG_PORT")
+	//orchLicenseHost := os.Getenv("ORCH_LICENSE_HOST")
+	//orchLicensePort := os.Getenv("ORCH_LICENSE_PORT")
+
+	// if MODE == "dev" {
+	// 	ypsUrl = os.Getenv("YPS_URL")
+	// }
+	enforcement := os.Getenv("ENFORCEMENT")
+	zlog.MiSec().Info().Msgf("License Agent YPS URL %s", ypsUrl)
+	zlog.MiSec().Info().Msgf("enforcement %s", enforcement)
+
+	//Proxies
+	httpProxy := os.Getenv("HTTP_PROXY")
+	httpsProxy := os.Getenv("HTTPS_PROXY")
+	noProxy := os.Getenv("NO_PROXY")
+	ftpProxy := os.Getenv("FTP_PROXY")
+	sockProxy := os.Getenv("SOCKS_PROXY")
+
+	//NTP configurations
+	ntpServer := os.Getenv("NTP_SERVERS")
+
+	//Firewall configurations
+	// firewallReqAllow := os.Getenv("FIREWALL_REQ_ALLOW")
+	// zlog.Info().Msg(firewallReqAllow)
+	// firewallCfgAllow := os.Getenv("FIREWALL_CFG_ALLOW")
+	// zlog.Info().Msg(firewallCfgAllow)
+	caexists, err := PathExists("/etc/ssl/orch-ca-cert/ca.crt")
+	if err != nil {
+		zlog.MiSec().Info().Msgf("Error checking path %v", err)
+		zlog.MiSec().Error().Err(err).Msgf("Error: %v", err)
+	}
+
+	var caContent []byte
+	if caexists {
+		caContent, err = os.ReadFile("/etc/ssl/orch-ca-cert/ca.crt")
+		if err != nil {
+			zlog.MiSec().Error().Msgf("Error: %v", err)
+		}
+	}
+
+	// Substitute relevant data in the script
+	//modifiedScript := strings.ReplaceAll(string(content), "__SUBSTITUTE_PACKAGE_COMMANDS__", packages)
+	modifiedScript := strings.ReplaceAll(string(content), "__REGISTRY_URL__", registryService)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__FILE_SERVER__", fileServer)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_CLUSTER__", orchCluster)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_INFRA__", orchInfra)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_UPDATE__", orchUpdate)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PLATFORM_OBS_HOST__", orchPlatformObsHost)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PLATFORM_OBS_PORT__", orchPlatformObsPort)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PLATFORM_OBS_METRICS_HOST__", orchPlatformObsMetricsHost)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PLATFORM_OBS_METRICS_PORT__", orchPlatformObsMetricsPort)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_TELEMETRY_HOST__", orchTelemetryHost)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_TELEMETRY_PORT__", orchTelemetryPort)
+	// modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_LICENSE_HOST__", orchLicenseHost)
+	// modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_LICENSE_PORT__", orchLicensePort)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__KEYCLOAK__", strings.Split(orchKeycloak, ":")[0])
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__RELEASE_FQDN__", strings.Split(orchRelease, ":")[0])
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__KEYCLOAK_URL__", orchKeycloak)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__RELEASE_TOKEN_URL__", orchRelease)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__IMG_REGISTRY_URL__", registryService)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_APT_PORT__", orchAptSrcPort)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_IMG_PORT__", orchImgRegProxyPort)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__NTP_SERVERS__", ntpServer)
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__CA_CERT__", string(caContent))
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__APT_SRC__", string(distribution))
+	//modifiedScript = strings.ReplaceAll(modifiedScript, "__LICENSE_URL__", string(ypsUrl))
+	//modifiedScript = strings.ReplaceAll(modifiedScript, "__ENFORCEMENT__", string(enforcement))
+	// Loop through the agentsList
+
+	// Save the modified script to the specified output path
+	err = os.WriteFile(cfgFileName, []byte(modifiedScript), 0644)
+	if err != nil {
+		zlog.MiSec().Error().Err(err).Msgf("Error: %v", err)
+	}
+
+	var newLines []string
+
+	proxies := map[string]string{
+		"http_proxy":   httpProxy,
+		"https_proxy":  httpsProxy,
+		"ftp_proxy":    ftpProxy,
+		"socks_server": sockProxy,
+		"no_proxy":     noProxy,
+	}
+
+	//Add proxies to the installer script for dev environment.
+	if len(proxies) > 0 {
+
+		for key, value := range proxies {
+			if value != "" {
+				newLines = append(newLines, fmt.Sprintf("                %s=\"%s\"", key, value))
+			}
+		}
+		if httpProxy != "" {
+			newLines = append(newLines, "                if ! grep -q \"http_proxy\" /etc/environment; then")
+			newLines = append(newLines, "                echo \"http_proxy=$http_proxy\" >> /etc/environment;")
+			newLines = append(newLines, "                fi")
+		}
+
+		if httpsProxy != "" {
+			newLines = append(newLines, "                if ! grep -q \"https_proxy\" /etc/environment; then")
+			newLines = append(newLines, "                echo \"https_proxy=$https_proxy\" >> /etc/environment;")
+			newLines = append(newLines, "                fi")
+		}
+
+		if ftpProxy != "" {
+			newLines = append(newLines, "                if ! grep -q \"ftp_proxy\" /etc/environment; then")
+			newLines = append(newLines, "                echo \"ftp_proxy=$ftp_proxy\" >> /etc/environment;")
+			newLines = append(newLines, "                fi")
+		}
+
+		if sockProxy != "" {
+			newLines = append(newLines, "                if ! grep -q \"socks_server\" /etc/environment; then")
+			newLines = append(newLines, "                echo \"socks_server=$socks_server\" >> /etc/environment;")
+			newLines = append(newLines, "                fi")
+		}
+
+		if noProxy != "" {
+			newLines = append(newLines, "                if ! grep -q \"no_proxy\" /etc/environment; then")
+			newLines = append(newLines, "                echo \"no_proxy=$no_proxy\" >> /etc/environment;")
+			newLines = append(newLines, "                fi")
+		}
+		newLines = append(newLines, "                echo \"Proxies added to /etc/environment.\" >> /var/log/startup.log")
+		newLines = append(newLines, "                . /etc/environment;")
+		newLines = append(newLines, "                export http_proxy https_proxy ftp_proxy socks_server no_proxy;")
+
+	}
+
+	AddProxies(cfgFileName, newLines, "echo \"Start the configurations\" >> /var/log/startup.log")
+
+	return nil
+}
+
 func CreateOverlayScript(pwd string, profile string, MODE string, SHAID string) error {
 	parentDir := filepath.Dir(filepath.Dir(pwd))
 	beginString := "true >/etc/environment"
@@ -236,6 +431,7 @@ func CreateOverlayScript(pwd string, profile string, MODE string, SHAID string) 
 	zlog.MiSec().Info().Msg(scriptDir)
 	installerPath := filepath.Join(scriptDir, "Installer")
 	scriptFileName := ""
+
 	exists, err := PathExists(config.PVC)
 	if err != nil {
 		zlog.MiSec().Info().Msgf("Error checking path %v", err)
@@ -255,11 +451,11 @@ func CreateOverlayScript(pwd string, profile string, MODE string, SHAID string) 
 		}
 
 		scriptFileName = profileSHAPath + "/" + "installer.sh"
+
 	} else {
 		zlog.MiSec().Info().Msg("Path does not exists")
 	}
 
-	// Copy the file
 	cpErr := copyFile(installerPath, scriptFileName)
 	if cpErr != nil {
 		zlog.MiSec().Error().Err(cpErr).Msgf("Error: %v", cpErr)

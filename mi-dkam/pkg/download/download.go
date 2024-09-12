@@ -6,6 +6,7 @@ package download
 import (
 	"bufio"
 	"crypto/md5"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -64,6 +65,7 @@ type File struct {
 }
 
 var version string
+var tiberOSimageFileName string
 
 type Data struct {
 	Provisioning struct {
@@ -171,6 +173,132 @@ func DownloadMicroOS(targetDir string, scriptPath string) (bool, error) {
 	zlog.MiSec().Info().Msg("File downloaded")
 	return true, nil
 
+}
+
+func DownloadTiberOSImage(imageUrl string, targetDir string, sha256 string) error {
+	var tag string
+	if strings.Contains(imageUrl, ":") {
+		imageUrl = strings.Split(imageUrl, ":")[0]
+		tag = strings.Split(imageUrl, ":")[1]
+	} else {
+		tag = "latest"
+	}
+	url := config.RSProxyTiberOSManifest + imageUrl + "/manifests/" + tag
+	zlog.MiSec().Info().Msg(url)
+	res := GetReleaseServerResponse(url)
+	zlog.MiSec().Info().Msgf("response %v", res)
+	zlog.MiSec().Info().Msgf("response %v", res.Layers)
+	if res.Layers != nil {
+		// Iterate through layers and print digest and title
+
+		for _, layer := range res.Layers {
+			zlog.MiSec().Info().Msgf("Layer Digest:%s", layer.Digest)
+			digest := layer.Digest
+			title, exists := layer.Annotations["org.opencontainers.image.title"]
+			if exists {
+				zlog.MiSec().Info().Msgf("Image Title:%s", title)
+				title := title
+				// Create an HTTP GET request with the specified URL
+				file_url := config.RSProxyTiberOSManifest + imageUrl + "/blobs/" + digest
+				req, httperr := http.NewRequest("GET", file_url, nil)
+				if httperr != nil {
+					//zlog.MiSec().Fatal().Err(httperr).Msgf("Error creating request: %v\n", httperr)
+					zlog.MiSec().Info().Msg("Failed create GET request to release server.")
+					return httperr
+
+				}
+
+				// Perform the HTTP GET request
+				resp, clienterr := client.Do(req)
+				if clienterr != nil {
+					//zlog.MiSec().Fatal().Err(clienterr).Msgf("Error performing request: %v\n", clienterr)
+					zlog.MiSec().Info().Msg("Failed to connect to release server to download hookOS.")
+					return clienterr
+
+				}
+				defer resp.Body.Close()
+
+				if strings.HasSuffix(title, ".raw.xz") {
+					// Replace everything before the ".raw.xz" with the new prefix
+					tiberOSimageFileName = title
+					title = config.TiberOSImage
+
+				} else {
+					title = config.TiberOSImage + ".sha256sum"
+				}
+				zlog.MiSec().Info().Msgf("Downloading %s", title)
+				filePath := targetDir + "/" + title
+
+				file, fileerr := os.Create(filePath)
+				if fileerr != nil {
+					//zlog.MiSec().Fatal().Err(fileerr).Msgf("Error while creating release manifest file.")
+					zlog.MiSec().Info().Msg("Failed to create file")
+					return fileerr
+				}
+				defer file.Close()
+
+				// Copy the response body to the local file
+				_, copyErr := io.Copy(file, resp.Body)
+				if copyErr != nil {
+					zlog.MiSec().Error().Err(copyErr).Msgf("Error while coping content ")
+				}
+
+			} else {
+				zlog.MiSec().Info().Msg("Image Title not found")
+			}
+		}
+	}
+
+	zlog.MiSec().Info().Msg("Tiber OS Image downloaded")
+	zlog.Info().Msg("Parsing MD5SUMS file...")
+	checksums, err := ParseMD5SUMS(targetDir + "/" + config.TiberOSImage + ".sha256sum")
+	if err != nil {
+		zlog.MiSec().Error().Err(err).Msgf("Error parsing MD5SUMS file:%v", err)
+	}
+	var expectedChecksum string
+	found := false
+	for key, checksum := range checksums {
+		if strings.Contains(key, tiberOSimageFileName) {
+			expectedChecksum = checksum
+			found = true
+			break
+		}
+	}
+
+	// Error handling and output
+	if !found {
+		zlog.MiSec().Info().Msgf("No checksum found for file containing %s in checksum file", tiberOSimageFileName)
+
+	}
+
+	zlog.Info().Msg("Calculating MD5 checksum of downloaded image...")
+	computedChecksum, err := getSHA256Checksum(targetDir + "/" + config.TiberOSImage)
+	if err != nil {
+		zlog.MiSec().Error().Err(err).Msgf("Error calculating MD5 checksum:%v", err)
+
+	}
+
+	zlog.MiSec().Info().Msgf("Expected checksum: %s\n", expectedChecksum)
+	zlog.MiSec().Info().Msgf("Computed checksum: %s\n", computedChecksum)
+
+	if expectedChecksum == computedChecksum {
+		zlog.MiSec().Info().Msgf("Checksum verification succeeded!")
+	} else {
+		zlog.MiSec().Error().Err(err).Msgf("Checksum verification failed! Expected checksum:%s and Computed checksum:%s", expectedChecksum, computedChecksum)
+	}
+
+	copyErr := CopyImageToPVC(targetDir, config.TiberOSImage, sha256)
+	if copyErr != nil {
+		zlog.MiSec().Error().Err(copyErr).Msgf("Failed to copy file to PV:%v", copyErr)
+
+	}
+
+	copyShaFileErr := CopyImageToPVC(targetDir, config.TiberOSImage+".sha256sum", sha256)
+	if copyShaFileErr != nil {
+		zlog.MiSec().Error().Err(copyShaFileErr).Msgf("Failed to copy file to PV:%v", copyShaFileErr)
+
+	}
+	return nil
 }
 
 func DownloadPrecuratedScript(profile string) error {
@@ -385,7 +513,22 @@ func getMD5Checksum(filename string) (string, error) {
 	return fmt.Sprintf("%x", hasher.Sum(nil)), nil
 }
 
-func parseMD5SUMS(filename string) (map[string]string, error) {
+func getSHA256Checksum(filename string) (string, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	hasher := sha256.New()
+	if _, err := io.Copy(hasher, file); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%x", hasher.Sum(nil)), nil
+}
+
+func ParseMD5SUMS(filename string) (map[string]string, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err
@@ -447,7 +590,7 @@ func DownloadUbuntuImage(imageUrl string, format string, fileName string, target
 		}
 
 		zlog.Info().Msg("Parsing MD5SUMS file...")
-		checksums, err := parseMD5SUMS(targetDir + "/" + "MD5SUMS")
+		checksums, err := ParseMD5SUMS(targetDir + "/" + "MD5SUMS")
 		if err != nil {
 			zlog.MiSec().Error().Err(err).Msgf("Error parsing MD5SUMS file:%v", err)
 			return err
@@ -497,15 +640,29 @@ func DownloadUbuntuImage(imageUrl string, format string, fileName string, target
 			zlog.MiSec().Error().Err(err).Msgf("Error removing temporary file: image.raw %v", err)
 		}
 	}
+	copyErr := CopyImageToPVC(targetDir, fileName, sha256)
+	if copyErr != nil {
+		zlog.MiSec().Error().Err(err).Msgf("Failed to copy file to PV:%v", err)
+		return copyErr
+	}
+
+	zlog.MiSec().Info().Msg("File downloaded, converted into raw format and move to PVC")
+	return nil
+
+}
+
+func CopyImageToPVC(targetDir string, fileName string, sha256 string) error {
 	exists, patherr := PathExists(targetDir + "/" + fileName)
 	if patherr != nil {
 		zlog.MiSec().Info().Msgf("Error checking image file path %v", patherr)
+		return patherr
 	}
 	if exists {
 		zlog.MiSec().Info().Msg("image raw file Path exists")
 		exists, err := PathExists(config.PVC)
 		if err != nil {
 			zlog.MiSec().Info().Msgf("Error checking PVC path %v", err)
+			return err
 		}
 		if exists {
 			zlog.MiSec().Info().Msg("PVC Path exists")
@@ -513,11 +670,13 @@ func DownloadUbuntuImage(imageUrl string, format string, fileName string, target
 			err = curation.CreateDir(osImagePath)
 			if err != nil {
 				zlog.MiSec().Info().Msgf("Error creating path %v", err)
+				return err
 			}
 			osImagefilePath := osImagePath + "/" + sha256
 			err = curation.CreateDir(osImagefilePath)
 			if err != nil {
 				zlog.MiSec().Info().Msgf("Error creating path %v", err)
+				return err
 			}
 
 			zlog.MiSec().Info().Msg(fileName)
@@ -529,6 +688,7 @@ func DownloadUbuntuImage(imageUrl string, format string, fileName string, target
 			err := cmd.Run()
 			if err != nil {
 				zlog.MiSec().Info().Msgf("error running 'mv' command: %v", err)
+				return err
 			} else {
 				zlog.MiSec().Info().Msg("OS image copied to PVC")
 			}
@@ -540,9 +700,7 @@ func DownloadUbuntuImage(imageUrl string, format string, fileName string, target
 		zlog.MiSec().Info().Msg("image raw file Path not exists:")
 
 	}
-	zlog.MiSec().Info().Msg("File downloaded, converted into raw format and move to PVC")
 	return nil
-
 }
 
 func PathExists(path string) (bool, error) {

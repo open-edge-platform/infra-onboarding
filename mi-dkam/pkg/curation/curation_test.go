@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -244,7 +245,8 @@ func Test_GetCuratedScript(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("Error creating file:", err2)
 	}
-	err = GetCuratedScript("profile", "")
+	osr := &osv1.OperatingSystemResource{}
+	err = GetCuratedScript("profile", "",osr.OsType)
 
 	assert.NoError(t, err)
 	defer func() {
@@ -280,7 +282,8 @@ func Test_GetCuratedScript_Case(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("Error creating file:", err2)
 	}
-	err = GetCuratedScript("profile", "")
+	osr := &osv1.OperatingSystemResource{}
+	err = GetCuratedScript("profile", "",osr.OsType)
 
 	assert.NoError(t, err)
 	defer func() {
@@ -316,7 +319,8 @@ func Test_GetCuratedScript_Case1(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("Error creating file:", err2)
 	}
-	err = GetCuratedScript("profile", "")
+	osr := &osv1.OperatingSystemResource{}
+	err = GetCuratedScript("profile", "",osr.OsType)
 
 	assert.NoError(t, err)
 	defer func() {
@@ -352,7 +356,8 @@ func Test_GetCuratedScript_Case2(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("Error creating file:", err2)
 	}
-	err = GetCuratedScript("profile", "")
+	osr := &osv1.OperatingSystemResource{}
+	err = GetCuratedScript("profile", "",osr.OsType)
 
 	assert.NoError(t, err)
 
@@ -397,7 +402,8 @@ func Test_GetCuratedScript_Case3(t *testing.T) {
 	src := strings.Replace(originalDir, "curation", "script/latest-dev.yaml", -1)
 	CopyFile(src, res)
 	os.Setenv("NETIP", "static")
-	err = GetCuratedScript("profile", "")
+	osr := &osv1.OperatingSystemResource{}
+	err = GetCuratedScript("profile", "", osr.OsType)
 
 	assert.NoError(t, err)
 	defer func() {
@@ -447,7 +453,8 @@ func Test_GetCuratedScript_Case4(t *testing.T) {
 	os.MkdirAll(direc, 0755)
 	os.Create(direc + "latest-dev.yaml")
 	CopyFile(src, direc+"latest-dev.yaml")
-	err = GetCuratedScript("profile", "")
+	osr := &osv1.OperatingSystemResource{}
+	err = GetCuratedScript("profile", "", osr.OsType)
 
 	assert.NoError(t, err)
 	defer func() {
@@ -1198,6 +1205,7 @@ func TestGetCuratedScript(t *testing.T) {
 	type args struct {
 		profile string
 		sha256  string
+		osType  osv1.OsType
 	}
 	tests := []struct {
 		name    string
@@ -1215,7 +1223,7 @@ func TestGetCuratedScript(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := GetCuratedScript(tt.args.profile, tt.args.sha256); (err != nil) != tt.wantErr {
+			if err := GetCuratedScript(tt.args.profile, tt.args.sha256, tt.args.osType); (err != nil) != tt.wantErr {
 				t.Errorf("GetCuratedScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1301,8 +1309,8 @@ func TestPathExists(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "Path exists test case",
-			args:    args{
+			name: "Path exists test case",
+			args: args{
 				path: string([]byte{0x00}),
 			},
 			want:    false,

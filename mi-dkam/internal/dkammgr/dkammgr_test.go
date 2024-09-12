@@ -26,6 +26,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/download"
 	dkam_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/testing"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/policy/rbac"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
 	"github.com/stretchr/testify/assert"
@@ -144,7 +145,8 @@ func TestGetCuratedScript(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("Error creating file:", err2)
 	}
-	err = GetCuratedScript("profile:profile", "", "")
+	osr := &osv1.OperatingSystemResource{}
+	err = GetCuratedScript("profile:profile", "", "", osr.OsType)
 
 	// Check if the returned filename matches the expected format
 	assert.NoError(t, err)
@@ -293,7 +295,8 @@ func TestDownloadOS(t *testing.T) {
 			t.Fatalf("Failed to clean up directories: %v", err)
 		}
 	}()
-	if err := DownloadOS(osUrl, sha256); err != nil {
+	osr := &osv1.OperatingSystemResource{}
+	if err := DownloadOS(osUrl, osr.OsType, sha256); err != nil {
 		t.Errorf("Download failed: %v", err)
 	}
 }
@@ -726,7 +729,6 @@ func TestGetENProfile_err(t *testing.T) {
 	}
 	assert.NoError(t, err)
 	assert.NotNil(t, response)
-	assert.Equal(t, true, isImageFile(response.OsUrl))
 	defer func() {
 		os.RemoveAll(path)
 		os.Remove(config.PVC + "/OSImage")

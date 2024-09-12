@@ -895,7 +895,9 @@ func TestDKAMInventoryClient_CreateOSResource(t *testing.T) {
 			name: "CreateOSResource",
 			args: args{
 				ctx: context.Background(),
-				os:  &osv1.OperatingSystemResource{},
+				os:  &osv1.OperatingSystemResource{
+					OsType: osv1.OsType_OS_TYPE_IMMUTABLE,
+				},
 			},
 			wantErr: false,
 		},

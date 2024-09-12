@@ -25,6 +25,8 @@ const (
 	OrchCACertificateFile  = "/etc/ssl/orch-ca-cert/ca.crt"
 	BootsCaCertificateFile = "/etc/ssl/boots-ca-cert/ca.crt"
 	LA_YPSURL              = "https://intelcorp.prod.sentinelcloud.com/YPServer/"
+	TiberOSImage           = "tiberos.raw.xz"
+	ImmutableImageUrl      = "one-intel-edge/tiberos-readonly"
 )
 
 // As variable to allow changes in tests
@@ -32,4 +34,5 @@ var (
 	RSProxyManifest        = "http://rs-proxy.rs-proxy.svc.cluster.local:8081/v2/one-intel-edge/edge-node/en/"
 	RSProxy                = "http://rs-proxy.rs-proxy.svc.cluster.local:8081/v2/one-intel-edge/edge-node/file/provisioning-hook-os/"
 	RSProxyProfileManifest = "http://rs-proxy.rs-proxy.svc.cluster.local:8081/v2/one-intel-edge/edge-node/file/profile-scripts/"
+	RSProxyTiberOSManifest = "http://rs-proxy.rs-proxy.svc.cluster.local:8081/v2/"
 )

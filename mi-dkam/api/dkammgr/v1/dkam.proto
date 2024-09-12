@@ -15,6 +15,7 @@ message GetENProfileRequest {
   string sha256 = 4;
   string installed_packages = 5;
   string kernel_command = 6;
+  string os_type = 7;
 }
 
 message GetENProfileResponse {
@@ -23,4 +24,5 @@ message GetENProfileResponse {
   string tink_action_version = 3;
   bool status_code = 4;
   string status_msg = 5;
+  string os_image_sha256 = 6;
 }

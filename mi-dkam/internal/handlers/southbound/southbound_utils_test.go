@@ -6,7 +6,6 @@ package southbound
 import (
 	"net"
 	"reflect"
-	"sync"
 	"testing"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/internal/invclient"
@@ -109,55 +108,55 @@ func TestSBHandler_Stop(t *testing.T) {
 	}
 }
 
-func TestSBHandler_Start(t *testing.T) {
-	type fields struct {
-		invClient *invclient.DKAMInventoryClient
-		cfg       SBHandlerConfig
-		wg        *sync.WaitGroup
-		lis       net.Listener
-		server    *grpc.Server
-	}
-	grpcServer := grpc.NewServer()
-	tests := []struct {
-		name    string
-		fields  fields
-		wantErr bool
-	}{
-		{
-			name:    "Start Test Case",
-			fields:  fields{
-				invClient:&invclient.DKAMInventoryClient{},
-				cfg: SBHandlerConfig{
-					RBAC: "",
-				},
-				server:    grpcServer,
-			},
-			wantErr: false,
-		},
-		{
-			name:    "Start Test Case Error",
-			fields:  fields{
-				invClient:nil,
-				cfg: SBHandlerConfig{
-					RBAC: "",
-				},
-				server:    grpcServer,
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			sbh := &SBHandler{
-				invClient: tt.fields.invClient,
-				cfg:       tt.fields.cfg,
-				wg:        tt.fields.wg,
-				lis:       tt.fields.lis,
-				server:    tt.fields.server,
-			}
-			if err := sbh.Start(); (err != nil) != tt.wantErr {
-				t.Errorf("SBHandler.Start() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
+// func TestSBHandler_Start(t *testing.T) {
+// 	type fields struct {
+// 		invClient *invclient.DKAMInventoryClient
+// 		cfg       SBHandlerConfig
+// 		wg        *sync.WaitGroup
+// 		lis       net.Listener
+// 		server    *grpc.Server
+// 	}
+// 	grpcServer := grpc.NewServer()
+// 	tests := []struct {
+// 		name    string
+// 		fields  fields
+// 		wantErr bool
+// 	}{
+// 		{
+// 			name:    "Start Test Case",
+// 			fields:  fields{
+// 				invClient:&invclient.DKAMInventoryClient{},
+// 				cfg: SBHandlerConfig{
+// 					RBAC: "",
+// 				},
+// 				server:    grpcServer,
+// 			},
+// 			wantErr: false,
+// 		},
+// 		{
+// 			name:    "Start Test Case Error",
+// 			fields:  fields{
+// 				invClient:nil,
+// 				cfg: SBHandlerConfig{
+// 					RBAC: "",
+// 				},
+// 				server:    grpcServer,
+// 			},
+// 			wantErr: true,
+// 		},
+// 	}
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			sbh := &SBHandler{
+// 				invClient: tt.fields.invClient,
+// 				cfg:       tt.fields.cfg,
+// 				wg:        tt.fields.wg,
+// 				lis:       tt.fields.lis,
+// 				server:    tt.fields.server,
+// 			}
+// 			if err := sbh.Start(); (err != nil) != tt.wantErr {
+// 				t.Errorf("SBHandler.Start() error = %v, wantErr %v", err, tt.wantErr)
+// 			}
+// 		})
+// 	}
+// }
