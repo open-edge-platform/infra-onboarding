@@ -47,7 +47,8 @@ ACTION_ARRAY := \
 	erase_non_removable_disks \
 	hook_dind \
 	device-discovery \
-	kernelupgrd
+	kernelupgrd \
+	tiberos_partition
 
 # Create the virtualenv with python tools installed
 VENV_NAME = venv_midkammgr

@@ -32,6 +32,7 @@ erase_non_removable_disks=./tinker_actions/erase_non_removable_disks
 hook_dind=./tinker_actions/hook_dind
 device_discovery=./tinker_actions/device_discovery
 kernel_upgrade=./tinker_actions/kernel_upgrade
+tiberos_partition=./tinker_actions/tiberos_partition
 
 read_sb_status_setup() {
     pushd $read_sb_status
@@ -192,6 +193,15 @@ kernel_upgrade_setup() {
     popd
 }
 
+tiberos_partition_setup() {
+
+    pushd $tiberos_partition
+
+    bash -e build.sh
+
+    popd
+}
+
 main() {
 
     apt install -y build-essential
@@ -216,6 +226,7 @@ main() {
     hook_dind_setup
     device_discovery_setup
     kernel_upgrade_setup
+    tiberos_partition_setup
 }
 
 main
