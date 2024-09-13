@@ -122,12 +122,12 @@ func (server *Service) GetENProfile(ctx context.Context, req *pb.GetENProfileReq
 		profile = "default"
 	}
 
-	if osType == osv1.OsType_OS_TYPE_MUTABLE.String() {
-		installerUrl = proxyIP + "/" + profile + "/" + sha256 + "/" + "installer.sh"
-		installerPath = config.PVC + "/" + profile + "/" + sha256 + "/" + "installer.sh"
-	} else {
+	if osType == osv1.OsType_OS_TYPE_IMMUTABLE.String() {
 		installerUrl = proxyIP + "/" + profile + "/" + sha256 + "/" + "installer.cfg"
 		installerPath = config.PVC + "/" + profile + "/" + sha256 + "/" + "installer.cfg"
+	} else {
+		installerUrl = proxyIP + "/" + profile + "/" + sha256 + "/" + "installer.sh"
+		installerPath = config.PVC + "/" + profile + "/" + sha256 + "/" + "installer.sh"
 	}
 
 	zlog.MiSec().Info().Msgf("Installer script url is %s", installerUrl)
@@ -264,20 +264,20 @@ func GetCuratedScript(profile string, installPackages string, kernelcmds string,
 
 		profile = strings.Split(profile, ":")[0]
 		profilePath = config.PVC + "/" + profile
-		if osType == osv1.OsType_OS_TYPE_MUTABLE {
-			scriptFileName = profilePath + "/" + sha256 + "/" + "installer.sh"
-		} else {
+		if osType == osv1.OsType_OS_TYPE_IMMUTABLE {
 			scriptFileName = profilePath + "/" + sha256 + "/" + "installer.cfg"
+		} else {
+			scriptFileName = profilePath + "/" + sha256 + "/" + "installer.sh"
 		}
 
 	} else {
 
 		profile = "default"
 		profilePath = config.PVC + "/" + profile
-		if osType == osv1.OsType_OS_TYPE_MUTABLE {
-			scriptFileName = profilePath + "/" + sha256 + "/" + "installer.sh"
-		} else {
+		if osType == osv1.OsType_OS_TYPE_IMMUTABLE {
 			scriptFileName = profilePath + "/" + sha256 + "/" + "installer.cfg"
+		} else {
+			scriptFileName = profilePath + "/" + sha256 + "/" + "installer.sh"
 		}
 
 	}

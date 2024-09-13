@@ -26,7 +26,7 @@ const (
 	BootsCaCertificateFile = "/etc/ssl/boots-ca-cert/ca.crt"
 	LA_YPSURL              = "https://intelcorp.prod.sentinelcloud.com/YPServer/"
 	TiberOSImage           = "tiberos.raw.xz"
-	ImmutableImageUrl      = "one-intel-edge/tiberos-readonly"
+	ImmutableImageUrl      = "one-intel-edge/tiberos"
 )
 
 // As variable to allow changes in tests

@@ -163,14 +163,14 @@ func GetCuratedScript(profile string, sha256 string, osType osv1.OsType) error {
 		zlog.MiSec().Info().Msg("Failed to get the Tinker action version")
 		return err
 	}
-	if osType == osv1.OsType_OS_TYPE_MUTABLE {
-		createErr := CreateOverlayScript(currentDir, profile, MODE, sha256)
+	if osType == osv1.OsType_OS_TYPE_IMMUTABLE {
+		createErr := CreateCloudCfgScript(currentDir, profile, MODE, sha256)
 		if createErr != nil {
 			zlog.MiSec().Info().Msgf("Error checking path %v", createErr)
 			return createErr
 		}
 	} else {
-		createErr := CreateCloudCfgScript(currentDir, profile, MODE, sha256)
+		createErr := CreateOverlayScript(currentDir, profile, MODE, sha256)
 		if createErr != nil {
 			zlog.MiSec().Info().Msgf("Error checking path %v", createErr)
 			return createErr
@@ -331,6 +331,7 @@ func CreateCloudCfgScript(pwd string, profile string, MODE string, SHAID string)
 		}
 	}
 
+	caContentUpdated := strings.ReplaceAll(string(caContent), "\n", "\n                 ")
 	// Substitute relevant data in the script
 	//modifiedScript := strings.ReplaceAll(string(content), "__SUBSTITUTE_PACKAGE_COMMANDS__", packages)
 	modifiedScript := strings.ReplaceAll(string(content), "__REGISTRY_URL__", registryService)
@@ -354,7 +355,7 @@ func CreateCloudCfgScript(pwd string, profile string, MODE string, SHAID string)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_APT_PORT__", orchAptSrcPort)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_IMG_PORT__", orchImgRegProxyPort)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__NTP_SERVERS__", ntpServer)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__CA_CERT__", string(caContent))
+	modifiedScript = strings.ReplaceAll(modifiedScript, "__CA_CERT__", string(caContentUpdated))
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__APT_SRC__", string(distribution))
 	//modifiedScript = strings.ReplaceAll(modifiedScript, "__LICENSE_URL__", string(ypsUrl))
 	//modifiedScript = strings.ReplaceAll(modifiedScript, "__ENFORCEMENT__", string(enforcement))
@@ -365,6 +366,9 @@ func CreateCloudCfgScript(pwd string, profile string, MODE string, SHAID string)
 	if err != nil {
 		zlog.MiSec().Error().Err(err).Msgf("Error: %v", err)
 	}
+
+	//Extra hosts
+	extra_hosts := os.Getenv("EXTRA_HOSTS")
 
 	var newLines []string
 
@@ -420,7 +424,24 @@ func CreateCloudCfgScript(pwd string, profile string, MODE string, SHAID string)
 	}
 
 	AddProxies(cfgFileName, newLines, "echo \"Start the configurations\" >> /var/log/startup.log")
+	extra_hosts = strings.ReplaceAll(string(extra_hosts), ",", "\n                ")
+	var kindLines []string
+	//check if its a kind cluster
+	if strings.Contains(orchCluster, "kind.internal") {
+		zlog.MiSec().Info().Msg("Its a kind cluster")
+		kindLines = append(kindLines, fmt.Sprintf("                extra_hosts=\"%s\"", extra_hosts))
+		kindLines = append(kindLines, "                echo \"$extra_hosts\" | while IFS= read -r host; do")
+		kindLines = append(kindLines, "                IFS=' ' read -ra parts <<< \"$host\"")
+		kindLines = append(kindLines, "                ip=\"${parts[0]}\"")
+		kindLines = append(kindLines, "                hostname=\"${parts[1]}\"")
+		kindLines = append(kindLines, "                echo \"$ip $hostname\" >> /etc/hosts")
+		kindLines = append(kindLines, "                done")
+		kindLines = append(kindLines, "                echo \"extra hosts added.\" >> /var/log/startup.log")
+		AddProxies(cfgFileName, kindLines, "echo \"Start the configurations\" >> /var/log/startup.log")
 
+	} else {
+		zlog.MiSec().Info().Msg("Its not a kind cluster")
+	}
 	return nil
 }
 

@@ -177,9 +177,13 @@ func DownloadMicroOS(targetDir string, scriptPath string) (bool, error) {
 
 func DownloadTiberOSImage(imageUrl string, targetDir string, sha256 string) error {
 	var tag string
+	OSImageUrl := imageUrl
 	if strings.Contains(imageUrl, ":") {
-		imageUrl = strings.Split(imageUrl, ":")[0]
-		tag = strings.Split(imageUrl, ":")[1]
+		zlog.MiSec().Info().Msg(OSImageUrl)
+		imageUrl = strings.Split(OSImageUrl, ":")[0]
+		zlog.MiSec().Info().Msg(imageUrl)
+		tag = strings.Split(OSImageUrl, ":")[1]
+		zlog.MiSec().Info().Msg(tag)
 	} else {
 		tag = "latest"
 	}
