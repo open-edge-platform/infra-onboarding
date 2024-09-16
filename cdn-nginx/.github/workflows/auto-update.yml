@@ -15,6 +15,6 @@ on:
 
 jobs:
   Auto-Update-PR:
-    runs-on: gasp
+    runs-on: generic
     steps:
       - uses: intel-innersource/frameworks.actions.thirdparty.auto-update@v2.2.1
