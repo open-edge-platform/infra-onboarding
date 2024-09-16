@@ -204,6 +204,7 @@ if [ "$blk_disk_count" -eq 1 ]; then
     #expand the tiber_persistent partition max to 100GB if only one disk
     new_disk_partition_size="100"
     echo yes | parted ---pretend-input-tty "${disk}"  resizepart "$data_part_number" "${new_disk_partition_size}GB"
+    e2fsck -f "$data_partition_disk"
     resize2fs "$data_partition_disk"
     partprobe "${disk}"
 else
@@ -218,6 +219,7 @@ else
     data_part_end_size=$(echo "$disk_size - $total_size_inuse" | bc)
 
     echo yes | parted ---pretend-input-tty "${disk}"  resizepart "${data_part_number}" "${data_part_end_size}GB"
+    e2fsck -f "$data_partition_disk"
     resize2fs "$data_partition_disk"
     partprobe "${disk}"
 fi
