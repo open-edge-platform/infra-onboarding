@@ -276,9 +276,13 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 	if osType == osv1.OsType_OS_TYPE_IMMUTABLE {
 		deviceInfo.OsImageSHA256 = imageSha256
 		deviceInfo.ImgType = utils.ImgTypeTiberOs
+		// TODO: Fix the correct env image type based on OS type in charts
+		env.ImgType = utils.ImgTypeTiberOs
 	} else {
 		deviceInfo.OsImageSHA256 = ""
 		deviceInfo.ImgType = utils.ImgTypeBkc
+		// TODO: Fix the correct env image type based on OS type in charts
+		env.ImgType = utils.ImgTypeBkc
 	}
 
 	// Adding additional checks.
