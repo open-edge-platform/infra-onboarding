@@ -59,14 +59,14 @@ func (osr *OsReconciler) Reconcile(ctx context.Context,
 	// skip reconciliation if Repo URL is already set.
 	// In the future, we should introduce current/desired state to drive reconciliation.
 
-	if (osre.RepoUrl == "" || strings.Contains(osre.RepoUrl, ";")) && osre.OsType == osv1.OsType_OS_TYPE_MUTABLE {
-		osre.RepoUrl = config.ImageUrl
-		zlogOs.MiSec().Info().Msgf("Image url: %s ", osre.RepoUrl)
+	if (osre.ImageUrl == "" || strings.Contains(osre.ImageUrl, ";")) && osre.OsType == osv1.OsType_OS_TYPE_MUTABLE {
+		osre.ImageUrl = config.ImageUrl
+		zlogOs.MiSec().Info().Msgf("Image url: %s ", osre.ImageUrl)
 	}
 
-	if osre.RepoUrl == "" && osre.OsType == osv1.OsType_OS_TYPE_IMMUTABLE {
-		osre.RepoUrl = config.ImmutableImageUrl
-		zlogOs.MiSec().Info().Msgf("Image url: %s ", osre.RepoUrl)
+	if osre.ImageUrl == "" && osre.OsType == osv1.OsType_OS_TYPE_IMMUTABLE {
+		osre.ImageUrl = config.ImmutableImageUrl
+		zlogOs.MiSec().Info().Msgf("Image url: %s ", osre.ImageUrl)
 	}
 
 	return osr.reconcileOsInstance(ctx, request, osre)
@@ -81,7 +81,7 @@ func (osr *OsReconciler) reconcileOsInstance(
 	zlogOs.MiSec().Info().Msgf("Reconciling OS instance with ID : %s", id)
 	fmt.Printf("Received AType: %v\n", osinst.OsType)
 	//Download OS image
-	downloadErr := dkammgr.DownloadOS(osinst.RepoUrl, osinst.OsType, osinst.Sha256)
+	downloadErr := dkammgr.DownloadOS(osinst.ImageUrl, osinst.OsType, osinst.Sha256)
 	if downloadErr != nil {
 		zlogOs.MiSec().Fatal().Err(downloadErr).Msgf("Error downloading and converting OS image")
 		return request.Ack()

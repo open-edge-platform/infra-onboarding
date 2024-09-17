@@ -17,9 +17,7 @@ import (
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/inventory/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	provider_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/provider/v1"
-	statusv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/status/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
-	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
 	"google.golang.org/protobuf/proto"
 )
@@ -359,112 +357,6 @@ func TestDKAMInventoryClient_GetHostResourceByUUID(t *testing.T) {
 	}
 }
 
-func TestDKAMInventoryClient_UpdateHostStateAndRuntimeStatus(t *testing.T) {
-	CreateDkamClientForTesting(t)
-	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
-	type args struct {
-		ctx  context.Context
-		host *computev1.HostResource
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "UpdateHostStateAndRuntimeStatus",
-			args: args{
-				ctx:  context.Background(),
-				host: host,
-			},
-			wantErr: true,
-		},
-		{
-			name: "UpdateHostStateAndRuntimeStatus Successful",
-			args: args{
-				ctx: context.Background(),
-				host: &computev1.HostResource{
-					HostStatus:          "status",
-					HostStatusTimestamp: 123,
-					HostStatusIndicator: statusv1.StatusIndication_STATUS_INDICATION_IDLE,
-				},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.UpdateHostStateAndRuntimeStatus(tt.args.ctx, tt.args.host); (err != nil) != tt.wantErr {
-				t.Errorf("DKAMInventoryClient.UpdateHostStateAndRuntimeStatus() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestDKAMInventoryClient_SetHostStatus(t *testing.T) {
-	CreateDkamClientForTesting(t)
-	invClient := DkamTestClient
-	type args struct {
-		ctx              context.Context
-		hostID           string
-		hostStatus       computev1.HostStatus
-		statusDetails    string
-		onboardingStatus inv_status.ResourceStatus
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "SetHostStatus",
-			args: args{
-				ctx: context.Background(),
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.SetHostStatus(tt.args.ctx, tt.args.hostID, tt.args.hostStatus, tt.args.statusDetails, tt.args.onboardingStatus); (err != nil) != tt.wantErr {
-				t.Errorf("DKAMInventoryClient.SetHostStatus() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestDKAMInventoryClient_SetHostStatusDetail(t *testing.T) {
-	CreateDkamClientForTesting(t)
-	invClient := DkamTestClient
-	type args struct {
-		ctx              context.Context
-		hostID           string
-		statusDetail     string
-		onboardingStatus inv_status.ResourceStatus
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "SetHostStatusDetail",
-			args: args{
-				ctx: context.Background(),
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.SetHostStatusDetail(tt.args.ctx, tt.args.hostID, tt.args.statusDetail, tt.args.onboardingStatus); (err != nil) != tt.wantErr {
-				t.Errorf("DKAMInventoryClient.SetHostStatusDetail() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestDKAMInventoryClient_DeleteHostResource(t *testing.T) {
 	CreateDkamClientForTesting(t)
 	invClient := DkamTestClient
@@ -727,69 +619,6 @@ func TestDKAMInventoryClient_CreateHostResource(t *testing.T) {
 	}
 }
 
-func TestDKAMInventoryClient_SetInstanceStatus(t *testing.T) {
-	CreateDkamClientForTesting(t)
-	invClient := DkamTestClient
-	type args struct {
-		ctx                context.Context
-		instanceID         string
-		instanceStatus     computev1.InstanceStatus
-		provisioningStatus inv_status.ResourceStatus
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "SetInstanceStatus",
-			args: args{
-				ctx: context.Background(),
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.SetInstanceStatus(tt.args.ctx, tt.args.instanceID, tt.args.instanceStatus, tt.args.provisioningStatus); (err != nil) != tt.wantErr {
-				t.Errorf("DKAMInventoryClient.SetInstanceStatus() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestDKAMInventoryClient_SetInstanceStatusAndCurrentState(t *testing.T) {
-	CreateDkamClientForTesting(t)
-	invClient := DkamTestClient
-	type args struct {
-		ctx                context.Context
-		instanceID         string
-		currentState       computev1.InstanceState
-		instanceStatus     computev1.InstanceStatus
-		provisioningStatus inv_status.ResourceStatus
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "SetInstanceStatusAndCurrentState",
-			args: args{
-				ctx: context.Background(),
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.SetInstanceStatusAndCurrentState(tt.args.ctx, tt.args.instanceID, tt.args.currentState, tt.args.instanceStatus, tt.args.provisioningStatus); (err != nil) != tt.wantErr {
-				t.Errorf("DKAMInventoryClient.SetInstanceStatusAndCurrentState() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestDKAMInventoryClient_DeleteInstanceResource(t *testing.T) {
 	CreateDkamClientForTesting(t)
 	invClient := DkamTestClient
@@ -895,7 +724,7 @@ func TestDKAMInventoryClient_CreateOSResource(t *testing.T) {
 			name: "CreateOSResource",
 			args: args{
 				ctx: context.Background(),
-				os:  &osv1.OperatingSystemResource{
+				os: &osv1.OperatingSystemResource{
 					OsType: osv1.OsType_OS_TYPE_IMMUTABLE,
 				},
 			},
@@ -1493,4 +1322,3 @@ func TestDKAMInventoryClient_listAndReturnHost(t *testing.T) {
 		})
 	}
 }
-

@@ -21,11 +21,9 @@ import (
 	network_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/network/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
 	provider_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/provider/v1"
-	statusv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/status/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/client"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/logging"
-	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/util"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/validator"
 )
@@ -349,71 +347,9 @@ func (c *DKAMInventoryClient) UpdateHostResource(ctx context.Context, host *comp
 	})
 }
 
-func (c *DKAMInventoryClient) UpdateHostStateAndRuntimeStatus(ctx context.Context, host *computev1.HostResource) error {
-	if host.HostStatus == "" || host.HostStatusTimestamp == 0 ||
-		host.HostStatusIndicator == statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED {
-		errMsg := "Missing mandatory host status fields during host status update"
-		err := inv_errors.Errorfc(codes.InvalidArgument, errMsg)
-		zlog.MiSec().MiErr(err).Msgf("Cannot update host status of %v", host)
-		return err
-	}
-
-	return c.UpdateInvResourceFields(ctx, host, []string{
-		computev1.HostResourceFieldCurrentState,
-		computev1.HostResourceFieldLegacyHostStatus,
-		computev1.HostResourceFieldProviderStatus,
-		computev1.HostResourceFieldProviderStatusDetail,
-		computev1.HostResourceFieldHostStatus,
-		computev1.HostResourceFieldHostStatusIndicator,
-		computev1.HostResourceFieldHostStatusTimestamp,
-	})
-}
-
 func (c *DKAMInventoryClient) updateHostCurrentState(ctx context.Context, host *computev1.HostResource) error {
 	return c.UpdateInvResourceFields(ctx, host, []string{
 		computev1.HostResourceFieldCurrentState,
-	})
-}
-
-func (c *DKAMInventoryClient) SetHostStatus(ctx context.Context, hostID string,
-	hostStatus computev1.HostStatus, statusDetails string, onboardingStatus inv_status.ResourceStatus,
-) error {
-	updateHost := &computev1.HostResource{
-		ResourceId:                hostID,
-		LegacyHostStatus:          hostStatus,
-		ProviderStatusDetail:      statusDetails, // report legacy status details as provider status
-		OnboardingStatus:          onboardingStatus.Status,
-		OnboardingStatusIndicator: onboardingStatus.StatusIndicator,
-		OnboardingStatusTimestamp: uint64(time.Now().Unix()),
-	}
-
-	return c.UpdateInvResourceFields(ctx, updateHost, []string{
-		computev1.HostResourceFieldLegacyHostStatus,
-		computev1.HostResourceFieldProviderStatusDetail,
-		computev1.HostResourceFieldOnboardingStatus,
-		computev1.HostResourceFieldOnboardingStatusIndicator,
-		computev1.HostResourceFieldOnboardingStatusTimestamp,
-	})
-}
-
-func (c *DKAMInventoryClient) SetHostStatusDetail(ctx context.Context,
-	hostID, statusDetail string, onboardingStatus inv_status.ResourceStatus,
-) error {
-	updateHost := &computev1.HostResource{
-		ResourceId:                hostID,
-		ProviderStatusDetail:      statusDetail, // report legacy status details as provider status
-		OnboardingStatus:          onboardingStatus.Status,
-		OnboardingStatusIndicator: onboardingStatus.StatusIndicator,
-		OnboardingStatusTimestamp: uint64(time.Now().Unix()),
-	}
-
-	zlog.Info().Msgf("Updateing host status %v", updateHost)
-
-	return c.UpdateInvResourceFields(ctx, updateHost, []string{
-		computev1.HostResourceFieldProviderStatusDetail,
-		computev1.HostResourceFieldOnboardingStatus,
-		computev1.HostResourceFieldOnboardingStatusIndicator,
-		computev1.HostResourceFieldOnboardingStatusTimestamp,
 	})
 }
 
@@ -477,49 +413,6 @@ func (c *DKAMInventoryClient) UpdateInstanceCurrentState(ctx context.Context,
 ) error {
 	return c.UpdateInvResourceFields(ctx, instance, []string{
 		computev1.HostResourceFieldCurrentState,
-	})
-}
-
-func (c *DKAMInventoryClient) SetInstanceStatus(ctx context.Context, instanceID string,
-	instanceStatus computev1.InstanceStatus,
-	provisioningStatus inv_status.ResourceStatus,
-) error {
-	updateInstance := &computev1.InstanceResource{
-		ResourceId:                  instanceID,
-		Status:                      instanceStatus,
-		ProvisioningStatus:          provisioningStatus.Status,
-		ProvisioningStatusIndicator: provisioningStatus.StatusIndicator,
-		ProvisioningStatusTimestamp: uint64(time.Now().Unix()),
-	}
-
-	return c.UpdateInvResourceFields(ctx, updateInstance, []string{
-		computev1.InstanceResourceFieldStatus,
-		computev1.InstanceResourceFieldProvisioningStatus,
-		computev1.InstanceResourceFieldProvisioningStatusIndicator,
-		computev1.InstanceResourceFieldProvisioningStatusTimestamp,
-	})
-}
-
-func (c *DKAMInventoryClient) SetInstanceStatusAndCurrentState(ctx context.Context, instanceID string,
-	currentState computev1.InstanceState,
-	instanceStatus computev1.InstanceStatus,
-	provisioningStatus inv_status.ResourceStatus,
-) error {
-	updateInstance := &computev1.InstanceResource{
-		ResourceId:                  instanceID,
-		CurrentState:                currentState,
-		Status:                      instanceStatus,
-		ProvisioningStatus:          provisioningStatus.Status,
-		ProvisioningStatusIndicator: provisioningStatus.StatusIndicator,
-		ProvisioningStatusTimestamp: uint64(time.Now().Unix()),
-	}
-
-	return c.UpdateInvResourceFields(ctx, updateInstance, []string{
-		computev1.InstanceResourceFieldCurrentState,
-		computev1.InstanceResourceFieldStatus,
-		computev1.InstanceResourceFieldProvisioningStatus,
-		computev1.InstanceResourceFieldProvisioningStatusIndicator,
-		computev1.InstanceResourceFieldProvisioningStatusTimestamp,
 	})
 }
 
