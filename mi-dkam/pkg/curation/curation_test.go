@@ -13,7 +13,7 @@ import (
 	"testing"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
-	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/os/v1"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/os/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -246,7 +246,7 @@ func Test_GetCuratedScript(t *testing.T) {
 		fmt.Println("Error creating file:", err2)
 	}
 	osr := &osv1.OperatingSystemResource{}
-	err = GetCuratedScript("profile", "",osr.OsType)
+	err = GetCuratedScript("profile", "", osr.OsType)
 
 	assert.NoError(t, err)
 	defer func() {
@@ -283,7 +283,7 @@ func Test_GetCuratedScript_Case(t *testing.T) {
 		fmt.Println("Error creating file:", err2)
 	}
 	osr := &osv1.OperatingSystemResource{}
-	err = GetCuratedScript("profile", "",osr.OsType)
+	err = GetCuratedScript("profile", "", osr.OsType)
 
 	assert.NoError(t, err)
 	defer func() {
@@ -320,7 +320,7 @@ func Test_GetCuratedScript_Case1(t *testing.T) {
 		fmt.Println("Error creating file:", err2)
 	}
 	osr := &osv1.OperatingSystemResource{}
-	err = GetCuratedScript("profile", "",osr.OsType)
+	err = GetCuratedScript("profile", "", osr.OsType)
 
 	assert.NoError(t, err)
 	defer func() {
@@ -357,7 +357,7 @@ func Test_GetCuratedScript_Case2(t *testing.T) {
 		fmt.Println("Error creating file:", err2)
 	}
 	osr := &osv1.OperatingSystemResource{}
-	err = GetCuratedScript("profile", "",osr.OsType)
+	err = GetCuratedScript("profile", "", osr.OsType)
 
 	assert.NoError(t, err)
 

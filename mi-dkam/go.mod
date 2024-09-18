@@ -7,7 +7,6 @@ go 1.21.13
 
 require (
 	github.com/fsnotify/fsnotify v1.7.0
-	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory v1.7.1
 	github.com/magefile/mage v1.15.0
 	github.com/stretchr/testify v1.9.0
 	google.golang.org/grpc v1.63.2
@@ -18,6 +17,7 @@ require (
 require (
 	github.com/google/uuid v1.6.0
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go v0.5.1
+	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.0.1
 	github.com/pkg/errors v0.9.1
 
 )
