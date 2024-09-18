@@ -76,9 +76,8 @@ func checkTO2StatusCompleted(_ context.Context, deviceInfo utils.DeviceInfo) (bo
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		errMsg := fmt.Sprintf("Failed to perform API call to %s with status code %v",
+		err = inv_errors.Errorf("Failed to perform API call to %s with status code %v",
 			to2URL, resp.StatusCode)
-		err = inv_errors.Errorf(errMsg)
 		zlog.MiErr(err).Msg("")
 		return false, err
 	}
@@ -148,20 +147,15 @@ func CheckStatusOrRunProdWorkflow(ctx context.Context,
 		return err
 	}
 
-	util.PopulateHostStatus(instance,
-		computev1.HostStatus_HOST_STATUS_PROVISIONING,
-		"", // no details as workflow is not started yet
+	util.PopulateHostOnboardingStatus(instance,
 		om_status.ProvisioningStatusInProgress)
 	// NOTE: this is not used by UI as for now, but update status for future use.
 	util.PopulateInstanceStatusAndCurrentState(
-		instance,
-		instance.GetCurrentState(),
-		computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONING,
+		instance, computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
 		om_status.ProvisioningStatusInProgress)
 
 	return handleWorkflowStatus(instance, workflow,
-		computev1.HostStatus_HOST_STATUS_PROVISIONED, computev1.HostStatus_HOST_STATUS_PROVISION_FAILED,
-		om_status.ProvisioningStatusDone, om_status.ProvisioningStatusFailed)
+		om_status.OnboardingStatusDone, om_status.OnboardingStatusFailed)
 }
 
 func runProdWorkflow(
@@ -172,8 +166,7 @@ func runProdWorkflow(
 	if *common.FlagEnableDeviceInitialization {
 		zlog.Debug().Msgf("Checking TO2 status completed for host %s", deviceInfo.GUID)
 
-		util.PopulateHostStatus(instance, computev1.HostStatus_HOST_STATUS_ONBOARDING,
-			"",
+		util.PopulateHostOnboardingStatus(instance,
 			om_status.OnboardingStatusInProgress)
 
 		// we should wait until TO2 process is completed before running prod workflow
@@ -187,9 +180,7 @@ func runProdWorkflow(
 			return inv_errors.Errorfr(inv_errors.Reason_OPERATION_IN_PROGRESS, "TO2 process started, waiting for it to complete")
 		}
 
-		util.PopulateHostStatus(instance,
-			computev1.HostStatus_HOST_STATUS_ONBOARDED,
-			"",
+		util.PopulateHostOnboardingStatus(instance,
 			om_status.OnboardingStatusDone)
 	}
 
@@ -297,8 +288,7 @@ func CheckStatusOrRunDIWorkflow(ctx context.Context, deviceInfo utils.DeviceInfo
 		return err
 	}
 
-	util.PopulateHostStatus(instance, computev1.HostStatus_HOST_STATUS_INITIALIZING,
-		"", // no details as workflow is not started yet
+	util.PopulateHostOnboardingStatus(instance,
 		om_status.InitializationInProgress)
 
 	diWorkflowName := tinkerbell.GetDIWorkflowName(deviceInfo.GUID)
@@ -325,7 +315,6 @@ func CheckStatusOrRunDIWorkflow(ctx context.Context, deviceInfo utils.DeviceInfo
 	}
 
 	return handleWorkflowStatus(instance, status,
-		computev1.HostStatus_HOST_STATUS_INITIALIZED, computev1.HostStatus_HOST_STATUS_INIT_FAILED,
 		om_status.InitializationDone, om_status.InitializationFailed)
 }
 
@@ -368,8 +357,6 @@ func CheckStatusOrRunRebootWorkflow(
 
 	// keep statuses from the DI workflow on success
 	return handleWorkflowStatus(instance, status,
-		//nolint:staticcheck // the field will be deprecated soon
-		instance.GetHost().GetLegacyHostStatus(), computev1.HostStatus_HOST_STATUS_INIT_FAILED,
 		inv_status.New(instance.GetProvisioningStatus(), instance.GetProvisioningStatusIndicator()),
 		om_status.InitializationFailed)
 }
@@ -596,7 +583,6 @@ func DeleteProdWorkflowResourcesIfExist(ctx context.Context, hostUUID, imgType s
 }
 
 func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.Workflow,
-	onSuccessStatus, onFailureStatus computev1.HostStatus,
 	onSuccessOnboardingStatus, onFailureOnboardingStatus inv_status.ResourceStatus,
 ) error {
 	intermediateWorkflowState := tinkerbell.GenerateStatusDetailFromWorkflowState(workflow)
@@ -609,20 +595,22 @@ func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.W
 	switch workflow.Status.State {
 	case tink.WorkflowStateSuccess:
 		// success, proceed further
-		util.PopulateHostStatus(instance, onSuccessStatus, "",
-			onSuccessOnboardingStatus)
+		util.PopulateHostOnboardingStatus(instance, onSuccessOnboardingStatus)
+		util.PopulateInstanceStatusAndCurrentState(
+			instance, computev1.InstanceState_INSTANCE_STATE_RUNNING,
+			om_status.ProvisioningStatusInProgress)
 		return nil
 	case tink.WorkflowStateFailed, tink.WorkflowStateTimeout:
 		// indicates unrecoverable error, we should update current_state = ERROR
-		util.PopulateHostStatus(instance, onFailureStatus, intermediateWorkflowState,
-			onFailureOnboardingStatus)
+		util.PopulateHostOnboardingStatus(instance, onFailureOnboardingStatus)
 		util.PopulateInstanceStatusAndCurrentState(instance, computev1.InstanceState_INSTANCE_STATE_ERROR,
-			computev1.InstanceStatus_INSTANCE_STATUS_ERROR,
 			onFailureOnboardingStatus)
 		return inv_errors.Errorfc(codes.Aborted, "")
 	case "", tink.WorkflowStateRunning, tink.WorkflowStatePending:
 		// not started yet or in progress
-		util.PopulateHostStatusDetail(instance, intermediateWorkflowState)
+		/* TODO: extend the modern status to add detailed intermediateWorkflowState in below ticket
+		https://jira.devtools.intel.com/browse/NEX-11962 */
+		util.PopulateHostOnboardingStatus(instance, om_status.OnboardingStatusInProgress)
 		return inv_errors.Errorfr(inv_errors.Reason_OPERATION_IN_PROGRESS, "")
 	default:
 		zlog.MiSec().MiError("Unknown workflow state %s", workflow.Status.State)

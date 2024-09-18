@@ -92,8 +92,6 @@ func TestHostReconcileDeauthorization(t *testing.T) {
 	om_testing.AssertHost(t, hostID,
 		computev1.HostState_HOST_STATE_ONBOARDED,
 		computev1.HostState_HOST_STATE_UNSPECIFIED,
-		computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
-		"",
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -117,8 +115,6 @@ func TestHostReconcileDeauthorization(t *testing.T) {
 	om_testing.AssertHost(t, hostID,
 		computev1.HostState_HOST_STATE_UNTRUSTED,
 		computev1.HostState_HOST_STATE_UNSPECIFIED,
-		computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
-		"",
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(false, false, false)
@@ -130,8 +126,6 @@ func TestHostReconcileDeauthorization(t *testing.T) {
 	om_testing.AssertHost(t, hostID,
 		computev1.HostState_HOST_STATE_UNTRUSTED,
 		computev1.HostState_HOST_STATE_UNTRUSTED,
-		computev1.HostStatus_HOST_STATUS_INVALIDATED,
-		"",
 		om_status.AuthorizationStatusInvalidated)
 }
 
@@ -194,8 +188,6 @@ func TestReconcileHostDeletion(t *testing.T) {
 	om_testing.AssertHost(t, hostID,
 		computev1.HostState_HOST_STATE_ONBOARDED,
 		computev1.HostState_HOST_STATE_UNSPECIFIED,
-		computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
-		"",
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// try to delete first, Instance exists so deletion should fail
@@ -221,8 +213,6 @@ func TestReconcileHostDeletion(t *testing.T) {
 	om_testing.AssertHost(t, hostID,
 		computev1.HostState_HOST_STATE_DELETED,
 		computev1.HostState_HOST_STATE_UNSPECIFIED,
-		computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
-		om_status.LegacyHostStatusDeletingWithDetails(expectedDetails),
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 	om_testing.AssertHostOnboardingStatus(t, hostID, om_status.ModernHostStatusDeletingWithDetails(expectedDetails))
 
@@ -248,8 +238,6 @@ func TestReconcileHostDeletion(t *testing.T) {
 	om_testing.AssertHost(t, hostID,
 		computev1.HostState_HOST_STATE_DELETED,
 		computev1.HostState_HOST_STATE_UNSPECIFIED,
-		computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
-		om_status.LegacyHostStatusDeleting,
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 	om_testing.AssertHostOnboardingStatus(t, hostID, om_status.DeletingStatus)
 
@@ -308,8 +296,6 @@ func TestReconcileHostWithProvider(t *testing.T) {
 	om_testing.AssertHost(t, hostID,
 		computev1.HostState_HOST_STATE_ONBOARDED,
 		computev1.HostState_HOST_STATE_UNSPECIFIED,
-		computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
-		"",
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// Trying to delete the Host. It contains Provider, so nothing should happen during the reconciliation.
@@ -319,8 +305,6 @@ func TestReconcileHostWithProvider(t *testing.T) {
 	om_testing.AssertHost(t, hostID,
 		computev1.HostState_HOST_STATE_DELETED,
 		computev1.HostState_HOST_STATE_UNSPECIFIED,
-		computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
-		"",
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// performing reconciliation
@@ -330,8 +314,6 @@ func TestReconcileHostWithProvider(t *testing.T) {
 	om_testing.AssertHost(t, hostID,
 		computev1.HostState_HOST_STATE_DELETED,
 		computev1.HostState_HOST_STATE_UNSPECIFIED,
-		computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
-		"",
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 }
 

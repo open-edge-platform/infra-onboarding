@@ -57,8 +57,6 @@ func AssertHost(
 	resID string,
 	expectedDesiredState computev1.HostState,
 	expectedCurrentState computev1.HostState,
-	expectedLegacyStatus computev1.HostStatus,
-	expectedProviderStatusDetail string,
 	expectedHostStatus inv_status.ResourceStatus,
 ) {
 	tb.Helper()
@@ -71,10 +69,6 @@ func AssertHost(
 	host := gresp.GetResource().GetHost()
 	assert.Equal(tb, expectedDesiredState, host.GetDesiredState())
 	assert.Equal(tb, expectedCurrentState, host.GetCurrentState())
-	//nolint:staticcheck // legacy host status will be deprecated post-24.03.
-	assert.Equal(tb, expectedLegacyStatus, host.GetLegacyHostStatus())
-	//nolint:staticcheck // this field will be deprecated soon
-	assert.Equal(tb, expectedProviderStatusDetail, host.GetProviderStatusDetail())
 	assert.Equal(tb, expectedHostStatus.Status, host.GetHostStatus())
 	assert.Equal(tb, expectedHostStatus.StatusIndicator, host.GetHostStatusIndicator())
 }
@@ -97,7 +91,7 @@ func AssertInstance(
 	resID string,
 	expectedDesiredState computev1.InstanceState,
 	expectedCurrentState computev1.InstanceState,
-	expectedStatus computev1.InstanceStatus,
+	expectedStatus inv_status.ResourceStatus,
 ) {
 	tb.Helper()
 
@@ -111,6 +105,6 @@ func AssertInstance(
 
 	assert.Equal(tb, expectedDesiredState, instance.GetDesiredState())
 	assert.Equal(tb, expectedCurrentState, instance.GetCurrentState())
-	//nolint:staticcheck // legacy host status will be deprecated post-24.03.
-	assert.Equal(tb, expectedStatus, instance.GetStatus())
+	assert.Equal(tb, expectedStatus.Status, instance.GetInstanceStatus())
+	assert.Equal(tb, expectedStatus.StatusIndicator, instance.GetInstanceStatusIndicator())
 }

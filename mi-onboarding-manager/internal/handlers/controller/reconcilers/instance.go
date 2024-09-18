@@ -101,23 +101,18 @@ func (ir *InstanceReconciler) updateHostInstanceStatusAndCurrentState(
 	newInstance *computev1.InstanceResource,
 ) {
 	newHost := newInstance.GetHost()
-	//nolint:staticcheck // this field will be deprecated soon
-	zlogInst.Debug().Msgf("Updating Host %s status with %s, status details: %s, onboarding status: %q", newHost.GetUuid(),
-		newHost.GetLegacyHostStatus(), newHost.GetProviderStatusDetail(), newHost.GetOnboardingStatus())
+	zlogInst.Debug().Msgf("Updating Host %s onboarding status: %q", newHost.GetUuid(), newHost.GetOnboardingStatus())
 
 	if !util.IsSameHostStatus(oldInstance.GetHost(), newHost) {
-		if err := ir.invClient.SetHostStatus(
+		if err := ir.invClient.SetHostOnboardingStatus(
 			ctx, newHost.GetResourceId(),
-			//nolint:staticcheck // this field will be deprecated soon
-			newHost.GetLegacyHostStatus(), newHost.GetProviderStatusDetail(),
 			inv_status.New(newHost.GetOnboardingStatus(), newHost.GetOnboardingStatusIndicator())); err != nil {
 			zlogInst.MiSec().MiErr(err).Msgf("Failed to update host %s status", newHost.GetResourceId())
 		}
 	}
 
-	zlogInst.Debug().Msgf("Updating Instance %s with state %s and status %s, provisioning status: %q",
+	zlogInst.Debug().Msgf("Updating Instance %s with state %s, provisioning status: %q",
 		newInstance.GetResourceId(), newInstance.GetCurrentState(),
-		newInstance.GetStatus(), //nolint:staticcheck // this field will be deprecated soon
 		newInstance.GetProvisioningStatus())
 
 	if !util.IsSameInstanceStatusAndState(oldInstance, newInstance) {
@@ -125,7 +120,6 @@ func (ir *InstanceReconciler) updateHostInstanceStatusAndCurrentState(
 			ctx,
 			newInstance.GetResourceId(),
 			newInstance.GetCurrentState(),
-			newInstance.GetStatus(), //nolint:staticcheck // this field will be deprecated soon
 			inv_status.New(newInstance.GetProvisioningStatus(), newInstance.GetProvisioningStatusIndicator()),
 		); err != nil {
 			zlogInst.MiSec().MiErr(err).Msgf("Failed to update instance %s status", newInstance.GetResourceId())
@@ -139,11 +133,9 @@ func (ir *InstanceReconciler) reconcileInstance(
 	instance *computev1.InstanceResource,
 ) rec_v2.Directive[ResourceID] {
 	instanceID := instance.GetResourceId()
-	host := instance.GetHost()
 
-	zlogInst.Info().Msgf("Reconciling Instance with ID %s, with Current state: %v, Desired state: %v, HostState: %s",
-		instance.GetResourceId(), instance.GetCurrentState(), instance.GetDesiredState(),
-		host.GetLegacyHostStatus()) //nolint:staticcheck // this field will be deprecated soon
+	zlogInst.Info().Msgf("Reconciling Instance with ID %s, with Current state: %v, Desired state: %v",
+		instance.GetResourceId(), instance.GetCurrentState(), instance.GetDesiredState())
 
 	if instance.GetDesiredState() == computev1.InstanceState_INSTANCE_STATE_RUNNING {
 		err := ir.tryProvisionInstance(ctx, instance)
@@ -205,19 +197,19 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 ) (utils.DeviceInfo, error) {
 	host := instance.GetHost() // eager-loaded
 
-	if instance.GetOs() == nil {
+	if instance.GetDesiredOs() == nil {
 		// this should not happen but just in case
 		return utils.DeviceInfo{}, inv_errors.Errorfc(codes.InvalidArgument,
 			"Instance %s doesn't have any OS associated", instance.GetResourceId())
 	}
 
-	repoURL := instance.GetOs().GetRepoUrl()
-	sha256 := instance.GetOs().GetSha256()
-	profileName := instance.GetOs().GetProfileName()
-	installedPackages := instance.GetOs().GetInstalledPackages()
-	kernalCommand := instance.GetOs().GetKernelCommand()
-	platform := instance.GetOs().GetArchitecture()
-	osType := instance.GetOs().GetOsType()
+	repoURL := instance.GetDesiredOs().GetImageUrl()
+	sha256 := instance.GetDesiredOs().GetSha256()
+	profileName := instance.GetDesiredOs().GetProfileName()
+	installedPackages := instance.GetDesiredOs().GetInstalledPackages()
+	kernalCommand := instance.GetDesiredOs().GetKernelCommand()
+	platform := instance.GetDesiredOs().GetArchitecture()
+	osType := instance.GetDesiredOs().GetOsType()
 	zlogInst.Info().Msgf("----------------------From DeviceInfo -------------------\n")
 	zlogInst.Info().Msgf("repoURL is %s\n", repoURL)
 	zlogInst.Info().Msgf("sha256 is %s\n", sha256)
@@ -326,7 +318,7 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 	oldInstance := proto.Clone(instance).(*computev1.InstanceResource)
 
 	zlogInst.Debug().Msgf("Trying to provision Instance %s with OS %s",
-		instance.GetResourceId(), instance.GetOs().GetName())
+		instance.GetResourceId(), instance.GetDesiredOs().GetName())
 
 	defer func() {
 		// if unrecoverable error, set current_state to ERROR
@@ -359,9 +351,7 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 		return err
 	}
 
-	util.PopulateInstanceStatusAndCurrentState(instance,
-		computev1.InstanceState_INSTANCE_STATE_RUNNING,
-		computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONED,
+	util.PopulateInstanceStatusAndCurrentState(instance, computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		om_status.ProvisioningStatusDone)
 
 	return nil

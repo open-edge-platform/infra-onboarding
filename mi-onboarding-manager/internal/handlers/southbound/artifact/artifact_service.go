@@ -364,7 +364,7 @@ func (s *NodeArtifactService) checkNCreateInstance(ctx context.Context,
 			Host: &computev1.HostResource{
 				ResourceId: host.ResourceId,
 			},
-			Os: &osv1.OperatingSystemResource{
+			DesiredOs: &osv1.OperatingSystemResource{
 				ResourceId: pconf.DefaultOs,
 			},
 			SecurityFeature: osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION,

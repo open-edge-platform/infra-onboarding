@@ -480,6 +480,7 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 
 //nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
 func NewTemplateDataProdBKC(name string, deviceInfo utils.DeviceInfo, enableDI bool) ([]byte, error) {
+	// #nosec G115
 	securityFeatureTypeVar := osv1.SecurityFeature(deviceInfo.SecurityFeature)
 	securityFeatureStr := securityFeatureTypeVar.String()
 
@@ -956,6 +957,7 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 	}
 
 	// FDE removal if security feature flag is not set for FDE
+	// #nosec G115
 	if osv1.SecurityFeature(deviceInfo.SecurityFeature) !=
 		osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION {
 		for i, task := range wf.Tasks {

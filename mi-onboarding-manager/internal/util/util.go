@@ -16,9 +16,7 @@ func IsSameHostStatus(
 	oldHost *computev1.HostResource,
 	newHost *computev1.HostResource,
 ) bool {
-	return oldHost.LegacyHostStatus == newHost.LegacyHostStatus && //nolint:staticcheck // this field will be deprecated soon
-		oldHost.ProviderStatusDetail == newHost.ProviderStatusDetail && //nolint:staticcheck // this field will be deprecated soon
-		oldHost.OnboardingStatusIndicator == newHost.OnboardingStatusIndicator &&
+	return oldHost.OnboardingStatusIndicator == newHost.OnboardingStatusIndicator &&
 		oldHost.OnboardingStatus == newHost.OnboardingStatus
 }
 
@@ -26,42 +24,26 @@ func IsSameInstanceStatusAndState(
 	oldInstance *computev1.InstanceResource,
 	newInstance *computev1.InstanceResource,
 ) bool {
-	return oldInstance.Status == newInstance.Status && //nolint:staticcheck // this field will be deprecated soon
-		oldInstance.CurrentState == newInstance.CurrentState &&
+	return oldInstance.CurrentState == newInstance.CurrentState &&
 		oldInstance.ProvisioningStatus == newInstance.ProvisioningStatus &&
 		oldInstance.ProvisioningStatusIndicator == newInstance.ProvisioningStatusIndicator
 }
 
-func PopulateHostStatus(
+func PopulateHostOnboardingStatus(
 	instance *computev1.InstanceResource,
-	hoststatus computev1.HostStatus,
-	statusDetails string,
 	onboardingStatus inv_status.ResourceStatus,
 ) {
-	host := instance.GetHost()                // eager-loaded
-	host.LegacyHostStatus = hoststatus        //nolint:staticcheck // this field will be deprecated soon
-	host.ProviderStatusDetail = statusDetails //nolint:staticcheck // this field will be deprecated soon
+	host := instance.GetHost() // eager-loaded
 	host.OnboardingStatus = onboardingStatus.Status
 	host.OnboardingStatusIndicator = onboardingStatus.StatusIndicator
-}
-
-func PopulateHostStatusDetail(
-	instance *computev1.InstanceResource,
-	statusDetails string,
-) {
-	host := instance.GetHost() // eager-loaded
-
-	host.ProviderStatusDetail = statusDetails //nolint:staticcheck // this field will be deprecated soon
 }
 
 func PopulateInstanceStatusAndCurrentState(
 	instance *computev1.InstanceResource,
 	currentState computev1.InstanceState,
-	instancestatus computev1.InstanceStatus,
 	provisioningStatus inv_status.ResourceStatus,
 ) {
 	instance.CurrentState = currentState
-	instance.Status = instancestatus //nolint:staticcheck // this field will be deprecated soon
 	instance.ProvisioningStatus = provisioningStatus.Status
 	instance.ProvisioningStatusIndicator = provisioningStatus.StatusIndicator
 }

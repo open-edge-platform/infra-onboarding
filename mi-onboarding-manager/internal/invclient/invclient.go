@@ -364,17 +364,13 @@ func (c *OnboardingInventoryClient) UpdateHostResource(ctx context.Context, host
 func (c *OnboardingInventoryClient) UpdateHostStateAndRuntimeStatus(ctx context.Context, host *computev1.HostResource) error {
 	if host.HostStatus == "" || host.HostStatusTimestamp == 0 ||
 		host.HostStatusIndicator == statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED {
-		errMsg := "Missing mandatory host status fields during host status update"
-		err := inv_errors.Errorfc(codes.InvalidArgument, errMsg)
+		err := inv_errors.Errorfc(codes.InvalidArgument, "Missing mandatory host status fields during host status update")
 		zlog.MiSec().MiErr(err).Msgf("Cannot update host status of %v", host)
 		return err
 	}
 
 	return c.UpdateInvResourceFields(ctx, host, []string{
 		computev1.HostResourceFieldCurrentState,
-		computev1.HostResourceFieldLegacyHostStatus,
-		computev1.HostResourceFieldProviderStatus,
-		computev1.HostResourceFieldProviderStatusDetail,
 		computev1.HostResourceFieldHostStatus,
 		computev1.HostResourceFieldHostStatusIndicator,
 		computev1.HostResourceFieldHostStatusTimestamp,
@@ -387,21 +383,17 @@ func (c *OnboardingInventoryClient) updateHostCurrentState(ctx context.Context, 
 	})
 }
 
-func (c *OnboardingInventoryClient) SetHostStatus(ctx context.Context, hostID string,
-	hostStatus computev1.HostStatus, statusDetails string, onboardingStatus inv_status.ResourceStatus,
+func (c *OnboardingInventoryClient) SetHostOnboardingStatus(ctx context.Context, hostID string,
+	onboardingStatus inv_status.ResourceStatus,
 ) error {
 	updateHost := &computev1.HostResource{
 		ResourceId:                hostID,
-		LegacyHostStatus:          hostStatus,
-		ProviderStatusDetail:      statusDetails, // report legacy status details as provider status
 		OnboardingStatus:          onboardingStatus.Status,
 		OnboardingStatusIndicator: onboardingStatus.StatusIndicator,
 		OnboardingStatusTimestamp: uint64(time.Now().Unix()),
 	}
 
 	return c.UpdateInvResourceFields(ctx, updateHost, []string{
-		computev1.HostResourceFieldLegacyHostStatus,
-		computev1.HostResourceFieldProviderStatusDetail,
 		computev1.HostResourceFieldOnboardingStatus,
 		computev1.HostResourceFieldOnboardingStatusIndicator,
 		computev1.HostResourceFieldOnboardingStatusTimestamp,
@@ -409,11 +401,10 @@ func (c *OnboardingInventoryClient) SetHostStatus(ctx context.Context, hostID st
 }
 
 func (c *OnboardingInventoryClient) SetHostStatusDetail(ctx context.Context,
-	hostID, statusDetail string, onboardingStatus inv_status.ResourceStatus,
+	hostID string, onboardingStatus inv_status.ResourceStatus,
 ) error {
 	updateHost := &computev1.HostResource{
 		ResourceId:                hostID,
-		ProviderStatusDetail:      statusDetail, // report legacy status details as provider status
 		OnboardingStatus:          onboardingStatus.Status,
 		OnboardingStatusIndicator: onboardingStatus.StatusIndicator,
 		OnboardingStatusTimestamp: uint64(time.Now().Unix()),
@@ -422,7 +413,6 @@ func (c *OnboardingInventoryClient) SetHostStatusDetail(ctx context.Context,
 	zlog.Info().Msgf("Updateing host status %v", updateHost)
 
 	return c.UpdateInvResourceFields(ctx, updateHost, []string{
-		computev1.HostResourceFieldProviderStatusDetail,
 		computev1.HostResourceFieldOnboardingStatus,
 		computev1.HostResourceFieldOnboardingStatusIndicator,
 		computev1.HostResourceFieldOnboardingStatusTimestamp,
@@ -492,20 +482,17 @@ func (c *OnboardingInventoryClient) UpdateInstanceCurrentState(ctx context.Conte
 	})
 }
 
-func (c *OnboardingInventoryClient) SetInstanceStatus(ctx context.Context, instanceID string,
-	instanceStatus computev1.InstanceStatus,
+func (c *OnboardingInventoryClient) SetInstanceProvisioningStatus(ctx context.Context, instanceID string,
 	provisioningStatus inv_status.ResourceStatus,
 ) error {
 	updateInstance := &computev1.InstanceResource{
 		ResourceId:                  instanceID,
-		Status:                      instanceStatus,
 		ProvisioningStatus:          provisioningStatus.Status,
 		ProvisioningStatusIndicator: provisioningStatus.StatusIndicator,
 		ProvisioningStatusTimestamp: uint64(time.Now().Unix()),
 	}
 
 	return c.UpdateInvResourceFields(ctx, updateInstance, []string{
-		computev1.InstanceResourceFieldStatus,
 		computev1.InstanceResourceFieldProvisioningStatus,
 		computev1.InstanceResourceFieldProvisioningStatusIndicator,
 		computev1.InstanceResourceFieldProvisioningStatusTimestamp,
@@ -514,13 +501,11 @@ func (c *OnboardingInventoryClient) SetInstanceStatus(ctx context.Context, insta
 
 func (c *OnboardingInventoryClient) SetInstanceStatusAndCurrentState(ctx context.Context, instanceID string,
 	currentState computev1.InstanceState,
-	instanceStatus computev1.InstanceStatus,
 	provisioningStatus inv_status.ResourceStatus,
 ) error {
 	updateInstance := &computev1.InstanceResource{
 		ResourceId:                  instanceID,
 		CurrentState:                currentState,
-		Status:                      instanceStatus,
 		ProvisioningStatus:          provisioningStatus.Status,
 		ProvisioningStatusIndicator: provisioningStatus.StatusIndicator,
 		ProvisioningStatusTimestamp: uint64(time.Now().Unix()),
@@ -528,7 +513,6 @@ func (c *OnboardingInventoryClient) SetInstanceStatusAndCurrentState(ctx context
 
 	return c.UpdateInvResourceFields(ctx, updateInstance, []string{
 		computev1.InstanceResourceFieldCurrentState,
-		computev1.InstanceResourceFieldStatus,
 		computev1.InstanceResourceFieldProvisioningStatus,
 		computev1.InstanceResourceFieldProvisioningStatusIndicator,
 		computev1.InstanceResourceFieldProvisioningStatusTimestamp,

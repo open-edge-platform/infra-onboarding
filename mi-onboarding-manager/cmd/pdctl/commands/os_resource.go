@@ -6,6 +6,7 @@ package commands
 
 import (
 	"context"
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/validator"
 
 	"github.com/spf13/cobra"
@@ -107,7 +108,7 @@ func createOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 
 		osResource := &osv1.OperatingSystemResource{
 			UpdateSources: updateSources,
-			RepoUrl:       repoURL,
+			ImageUrl:      repoURL,
 			Sha256:        sha256,
 			ProfileName:   profileName,
 		}
@@ -215,7 +216,7 @@ func updateOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 		}
 		osRes.UpdateSources = updateSources
 		if repourl, _ := cmd.Flags().GetString("repo_url"); repourl != "" {
-			osRes.RepoUrl = repourl
+			osRes.ImageUrl = repourl
 		}
 		if sha256, _ := cmd.Flags().GetString("sha256"); sha256 != "" {
 			osRes.Sha256 = sha256
@@ -225,7 +226,7 @@ func updateOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 		}
 		err = client.UpdateInvResourceFields(cmd.Context(), osRes, []string{
 			osv1.OperatingSystemResourceFieldUpdateSources,
-			osv1.OperatingSystemResourceFieldRepoUrl,
+			osv1.OperatingSystemResourceFieldImageUrl,
 		})
 		if err != nil {
 			return err

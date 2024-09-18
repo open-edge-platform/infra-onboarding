@@ -6,9 +6,10 @@ package commands
 
 import (
 	"context"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/validator"
 	"strings"
 	"time"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/validator"
 
 	"github.com/spf13/cobra"
 
@@ -210,7 +211,7 @@ func createInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 			Host: &computev1.HostResource{
 				ResourceId: hostID,
 			},
-			Os: &osv1.OperatingSystemResource{
+			DesiredOs: &osv1.OperatingSystemResource{
 				ResourceId: osID,
 			},
 			// Set other fields based on parameters

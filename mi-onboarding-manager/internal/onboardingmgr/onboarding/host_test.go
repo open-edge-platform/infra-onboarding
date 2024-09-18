@@ -14,7 +14,6 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
 	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
-	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/testing"
 )
@@ -40,7 +39,6 @@ func TestUpdateHostStatusByHostGuid(t *testing.T) {
 		ctx              context.Context
 		invClient        *invclient.OnboardingInventoryClient
 		hostUUID         string
-		hoststatus       computev1.HostStatus
 		statusDetails    string
 		onboardingStatus inv_status.ResourceStatus
 	}
@@ -48,7 +46,7 @@ func TestUpdateHostStatusByHostGuid(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	host:=inv_testing.CreateHost(t,nil,nil,nil,nil)
+	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
 	tests := []struct {
 		name    string
 		args    args
@@ -60,7 +58,6 @@ func TestUpdateHostStatusByHostGuid(t *testing.T) {
 				ctx:              context.TODO(),
 				invClient:        om_testing.InvClient,
 				hostUUID:         host.Uuid,
-				hoststatus:       computev1.HostStatus_HOST_STATUS_ONBOARDED,
 				statusDetails:    "some detail",
 				onboardingStatus: om_status.OnboardingStatusDone,
 			},
@@ -69,10 +66,9 @@ func TestUpdateHostStatusByHostGuid(t *testing.T) {
 		{
 			name: "InvalidUUIDError",
 			args: args{
-				ctx:        context.TODO(),
-				invClient:  om_testing.InvClient,
-				hostUUID:   "mockhostUUID",
-				hoststatus: computev1.HostStatus_HOST_STATUS_RUNNING,
+				ctx:       context.TODO(),
+				invClient: om_testing.InvClient,
+				hostUUID:  "mockhostUUID",
 			},
 			wantErr: true,
 		},
@@ -80,7 +76,7 @@ func TestUpdateHostStatusByHostGuid(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := UpdateHostStatusByHostGUID(tt.args.ctx, tt.args.invClient, tt.args.hostUUID,
-				tt.args.hoststatus, tt.args.statusDetails, tt.args.onboardingStatus); (err != nil) != tt.wantErr {
+				tt.args.statusDetails, tt.args.onboardingStatus); (err != nil) != tt.wantErr {
 				t.Errorf("UpdateHostStatusByHostGUID() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

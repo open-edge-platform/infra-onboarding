@@ -6,6 +6,8 @@ package reconcilers
 
 import (
 	"context"
+	statusv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/status/v1"
+	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 	"os"
 	"reflect"
 	"strings"
@@ -43,12 +45,12 @@ func createOsWithArgs(tb testing.TB, doCleanup bool,
 	osr = &osv1.OperatingSystemResource{
 		Name:              "for unit testing purposes",
 		UpdateSources:     []string{"test entries"},
-		RepoUrl:           "example.raw.gz",
+		ImageUrl:          "example.raw.gz",
 		ProfileName:       inv_testing.GenerateRandomProfileName(),
 		Sha256:            inv_testing.GenerateRandomSha256(),
 		InstalledPackages: "intel-opencl-icd\nintel-level-zero-gpu\nlevel-zero",
 		SecurityFeature:   osv1.SecurityFeature_SECURITY_FEATURE_UNSPECIFIED,
-		OsType: osv1.OsType_OS_TYPE_IMMUTABLE,
+		OsType:            osv1.OsType_OS_TYPE_IMMUTABLE,
 	}
 	resp, err := inv_testing.GetClient(tb, inv_testing.APIClient).Create(ctx,
 		&inv_v1.Resource{Resource: &inv_v1.Resource_Os{Os: osr}})
@@ -116,7 +118,7 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 	om_testing.AssertInstance(t, instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		computev1.InstanceStatus_INSTANCE_STATUS_UNSPECIFIED)
+		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// Trying to delete the Instance. It contains Provider, so nothing should happen during the reconciliation.
 	// Setting the Desired state of the Instance to be DELETED.
@@ -125,7 +127,7 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 	om_testing.AssertInstance(t, instanceID,
 		computev1.InstanceState_INSTANCE_STATE_DELETED, // Desired state has just been updated
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		computev1.InstanceStatus_INSTANCE_STATUS_UNSPECIFIED)
+		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// performing Instance reconciliation
 	err = instanceController.Reconcile(ResourceID(instanceID))
@@ -135,7 +137,7 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 	om_testing.AssertInstance(t, instanceID,
 		computev1.InstanceState_INSTANCE_STATE_DELETED, // Desired state has just been updated
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		computev1.InstanceStatus_INSTANCE_STATUS_UNSPECIFIED)
+		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 }
 
 func TestReconcileInstance(t *testing.T) {
@@ -187,7 +189,7 @@ func TestReconcileInstance(t *testing.T) {
 	om_testing.AssertInstance(t, instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		computev1.InstanceStatus_INSTANCE_STATUS_UNSPECIFIED)
+		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// getting rid of the Host event
 	<-om_testing.InvClient.Watcher
@@ -213,7 +215,7 @@ func TestReconcileInstance(t *testing.T) {
 	om_testing.AssertInstance(t, instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		computev1.InstanceStatus_INSTANCE_STATUS_UNSPECIFIED)
+		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// run again, current_state == desired_state
 	runReconcilationFunc()
@@ -235,7 +237,7 @@ func TestReconcileInstance(t *testing.T) {
 	om_testing.AssertInstance(t, instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_ERROR,
-		computev1.InstanceStatus_INSTANCE_STATUS_UNSPECIFIED)
+		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// delete
 	res = &inv_v1.Resource{
@@ -253,7 +255,6 @@ func TestReconcileInstance(t *testing.T) {
 
 	_, err = inv_testing.TestClients[inv_testing.APIClient].Get(ctx, instanceID)
 	require.True(t, inv_errors.IsNotFound(err))
-
 }
 
 func TestNewInstanceReconciler(t *testing.T) {
@@ -406,8 +407,7 @@ func TestInstanceReconciler_reconcileInstance(t *testing.T) {
 				instance: &computev1.InstanceResource{
 					DesiredState: computev1.InstanceState_INSTANCE_STATE_RUNNING,
 					Host: &computev1.HostResource{
-						ResourceId:       "host-084d9b08",
-						LegacyHostStatus: computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
+						ResourceId: "host-084d9b08",
 						HostNics: []*computev1.HostnicResource{
 							{
 								ResourceId:   "hostnic-084d9b08",
@@ -417,8 +417,8 @@ func TestInstanceReconciler_reconcileInstance(t *testing.T) {
 						BmcIp: "00.00.00.00",
 					},
 
-					Os: &osv1.OperatingSystemResource{
-						RepoUrl: "osUrl.raw.gz;overlayUrl",
+					DesiredOs: &osv1.OperatingSystemResource{
+						ImageUrl: "osUrl.raw.gz;overlayUrl",
 					},
 				},
 			},
@@ -434,9 +434,8 @@ func TestInstanceReconciler_reconcileInstance(t *testing.T) {
 				instance: &computev1.InstanceResource{
 					DesiredState: computev1.InstanceState_INSTANCE_STATE_UNTRUSTED,
 					Host: &computev1.HostResource{
-						ResourceId:       "host-084d9b08",
-						LegacyHostStatus: computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
-						CurrentState:     computev1.HostState_HOST_STATE_UNTRUSTED,
+						ResourceId:   "host-084d9b08",
+						CurrentState: computev1.HostState_HOST_STATE_UNTRUSTED,
 						HostNics: []*computev1.HostnicResource{
 							{
 								ResourceId:   "hostnic-084d9b08",
@@ -446,8 +445,8 @@ func TestInstanceReconciler_reconcileInstance(t *testing.T) {
 						BmcIp: "00.00.00.00",
 					},
 
-					Os: &osv1.OperatingSystemResource{
-						RepoUrl: "osUrl.raw.gz;overlayUrl",
+					DesiredOs: &osv1.OperatingSystemResource{
+						ImageUrl: "osUrl.raw.gz;overlayUrl",
 					},
 				},
 			},
@@ -484,8 +483,8 @@ func Test_convertInstanceToDeviceInfo(t *testing.T) {
 						BmcIp: "0.0.0.0",
 					},
 					SecurityFeature: osv1.SecurityFeature_SECURITY_FEATURE_UNSPECIFIED,
-					Os: &osv1.OperatingSystemResource{
-						RepoUrl: "http://some-url.raw.gz;http://some-url-2;v0.7.4",
+					DesiredOs: &osv1.OperatingSystemResource{
+						ImageUrl: "http://some-url.raw.gz;http://some-url-2;v0.7.4",
 					},
 				},
 			},
@@ -509,8 +508,8 @@ func Test_convertInstanceToDeviceInfo(t *testing.T) {
 						BmcIp: "0.0.0.0",
 					},
 					SecurityFeature: osv1.SecurityFeature_SECURITY_FEATURE_UNSPECIFIED,
-					Os: &osv1.OperatingSystemResource{
-						RepoUrl: "http://some-url;http://some-url-2;v0.7.4",
+					DesiredOs: &osv1.OperatingSystemResource{
+						ImageUrl: "http://some-url;http://some-url-2;v0.7.4",
 					},
 				},
 			},

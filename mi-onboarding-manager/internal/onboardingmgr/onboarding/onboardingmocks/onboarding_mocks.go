@@ -104,11 +104,6 @@ type MockInvClient struct {
 	mock.Mock
 }
 
-func (m *MockInvClient) UpdateHostStatusByHostGUID(ctx context.Context, hostGUID string, status computev1.HostStatus) error {
-	args := m.Called(ctx, hostGUID, status)
-	return args.Error(0)
-}
-
 type MockDeviceInfo struct {
 	mock.Mock
 }

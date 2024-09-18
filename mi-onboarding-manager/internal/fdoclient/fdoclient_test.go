@@ -260,7 +260,7 @@ func TestDoVoucherExtension(t *testing.T) {
 		} else {
 			*common.FlagRVEnabled = true
 		}
-	
+
 		defer func() {
 			if common.FlagRVEnabled != nil {
 				*common.FlagRVEnabled = false

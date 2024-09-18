@@ -13,8 +13,6 @@ import (
 func TestPopulateHostStatus(t *testing.T) {
 	type args struct {
 		instance         *computev1.InstanceResource
-		hoststatus       computev1.HostStatus
-		statusDetails    string
 		onboardingStatus inv_status.ResourceStatus
 	}
 	tests := []struct {
@@ -29,40 +27,12 @@ func TestPopulateHostStatus(t *testing.T) {
 						ResourceId: "host-084d9b08",
 					},
 				},
-				hoststatus: computev1.HostStatus_HOST_STATUS_BOOT_FAILED,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			PopulateHostStatus(tt.args.instance, tt.args.hoststatus, tt.args.statusDetails, tt.args.onboardingStatus)
-		})
-	}
-}
-
-func TestPopulateHostStatusDetail(t *testing.T) {
-	type args struct {
-		instance      *computev1.InstanceResource
-		statusDetails string
-	}
-	tests := []struct {
-		name string
-		args args
-	}{
-		{
-			name: "TestPopulateHostStatusDetail_WithDetails",
-			args: args{
-				instance: &computev1.InstanceResource{
-					Host: &computev1.HostResource{
-						ResourceId: "host-084d9b08",
-					},
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			PopulateHostStatusDetail(tt.args.instance, tt.args.statusDetails)
+			PopulateHostOnboardingStatus(tt.args.instance, tt.args.onboardingStatus)
 		})
 	}
 }
@@ -71,7 +41,6 @@ func TestPopulateInstanceStatusAndCurrentState(t *testing.T) {
 	type args struct {
 		instance           *computev1.InstanceResource
 		currentState       computev1.InstanceState
-		instancestatus     computev1.InstanceStatus
 		provisioningStatus inv_status.ResourceStatus
 	}
 	tests := []struct {
@@ -87,7 +56,7 @@ func TestPopulateInstanceStatusAndCurrentState(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			PopulateInstanceStatusAndCurrentState(tt.args.instance, tt.args.currentState, tt.args.instancestatus, tt.args.provisioningStatus)
+			PopulateInstanceStatusAndCurrentState(tt.args.instance, tt.args.currentState, tt.args.provisioningStatus)
 		})
 	}
 }

@@ -333,7 +333,7 @@ func TestOnboardingInventoryClient_GetHostResourceByResourceID(t *testing.T) {
 	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
 	type args struct {
 		hostID           string
-		hostStatus       computev1.HostStatus
+		expectedHost     *computev1.HostResource
 		details          string
 		onboardingStatus inv_status.ResourceStatus
 	}
@@ -347,7 +347,7 @@ func TestOnboardingInventoryClient_GetHostResourceByResourceID(t *testing.T) {
 			name: "GettingHostResourceByResourceID_ValidResponse",
 			args: args{
 				hostID:           host.GetResourceId(),
-				hostStatus:       computev1.HostStatus_HOST_STATUS_UNSPECIFIED,
+				expectedHost:     host,
 				details:          "some detail",
 				onboardingStatus: om_status.OnboardingStatusInProgress,
 			},
@@ -362,7 +362,9 @@ func TestOnboardingInventoryClient_GetHostResourceByResourceID(t *testing.T) {
 			hostInv, err := invClient.GetHostResourceByResourceID(ctx, host.ResourceId)
 			require.NoError(t, err)
 			require.NotNil(t, hostInv)
-			assert.Equal(t, tt.args.hostStatus, hostInv.GetLegacyHostStatus())
+			if eq, diff := inv_testing.ProtoEqualOrDiff(hostInv, tt.args.expectedHost); !eq {
+				t.Errorf("Data not equal: %v", diff)
+			}
 		})
 	}
 	t.Run("Invalid Resource Id", func(t *testing.T) {
@@ -380,7 +382,6 @@ func TestOnboardingInventoryClient_CreateHostResource(t *testing.T) {
 	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
 	type args struct {
 		hostID           string
-		hostStatus       computev1.HostStatus
 		details          string
 		onboardingStatus inv_status.ResourceStatus
 	}
@@ -394,7 +395,6 @@ func TestOnboardingInventoryClient_CreateHostResource(t *testing.T) {
 			name: "CreatingHostResource_Success",
 			args: args{
 				hostID:           host.GetResourceId(),
-				hostStatus:       computev1.HostStatus_HOST_STATUS_ONBOARDING,
 				details:          "some detail",
 				onboardingStatus: om_status.OnboardingStatusInProgress,
 			},
@@ -413,7 +413,7 @@ func TestOnboardingInventoryClient_CreateHostResource(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			err := invClient.SetHostStatus(ctx, tt.args.hostID, tt.args.hostStatus, tt.args.details, tt.args.onboardingStatus)
+			err := invClient.SetHostOnboardingStatus(ctx, tt.args.hostID, tt.args.onboardingStatus)
 			if err != nil {
 				if tt.valid {
 					t.Errorf("Failed: %s", err)
@@ -442,8 +442,6 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
 	type args struct {
 		hostID           string
-		hostStatus       computev1.HostStatus
-		details          string
 		onboardingStatus inv_status.ResourceStatus
 		uuid             string
 	}
@@ -457,8 +455,6 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 			name: "InvalidUUID_ResourceRetrievalError",
 			args: args{
 				hostID:           host.GetResourceId(),
-				hostStatus:       computev1.HostStatus_HOST_STATUS_ONBOARDING,
-				details:          "some detail",
 				onboardingStatus: om_status.OnboardingStatusInProgress,
 				uuid:             "123",
 			},
@@ -469,8 +465,6 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 			name: "MissingUUID_ResourceRetrievalError",
 			args: args{
 				hostID:           host.GetResourceId(),
-				hostStatus:       computev1.HostStatus_HOST_STATUS_ONBOARDING,
-				details:          "some detail",
 				onboardingStatus: om_status.OnboardingStatusInProgress,
 			},
 			want:  nil,
@@ -480,8 +474,6 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 			name: "ValidUUID_ResourceRetrievalSuccess",
 			args: args{
 				hostID:           host.GetResourceId(),
-				hostStatus:       computev1.HostStatus_HOST_STATUS_ONBOARDING,
-				details:          "some detail",
 				onboardingStatus: om_status.OnboardingStatusInProgress,
 				uuid:             host.Uuid,
 			},
@@ -494,8 +486,6 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 			name: "InvalidUUID_ResourceRetrievalSuccess",
 			args: args{
 				hostID:           host.GetResourceId(),
-				hostStatus:       computev1.HostStatus_HOST_STATUS_ONBOARDING,
-				details:          "some detail",
 				onboardingStatus: om_status.OnboardingStatusInProgress,
 				uuid:             "123",
 			},
@@ -506,8 +496,6 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 			name: "ValidUUID_ResourceRetrievalError",
 			args: args{
 				hostID:           host.GetResourceId(),
-				hostStatus:       computev1.HostStatus_HOST_STATUS_ONBOARDING,
-				details:          "some detail",
 				onboardingStatus: om_status.OnboardingStatusInProgress,
 				uuid:             "123",
 			},
@@ -520,13 +508,12 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			invClient.SetHostStatus(ctx, tt.args.hostID, tt.args.hostStatus, tt.args.details, tt.args.onboardingStatus)
+			invClient.SetHostOnboardingStatus(ctx, tt.args.hostID, tt.args.onboardingStatus)
 			if !t.Failed() && tt.valid {
 				hostInv, err := invClient.GetHostResourceByUUID(ctx, host.Uuid)
 				require.NoError(t, err)
 				require.NotNil(t, hostInv)
 
-				assert.Equal(t, tt.args.hostStatus, hostInv.GetLegacyHostStatus())
 				assert.Equal(t, tt.args.onboardingStatus.Status, hostInv.GetOnboardingStatus())
 				assert.Equal(t, tt.args.onboardingStatus.StatusIndicator, hostInv.GetOnboardingStatusIndicator())
 			}
@@ -540,7 +527,6 @@ func TestOnboardingInventoryClient_DeleteHostResource(t *testing.T) {
 	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
 	type args struct {
 		hostID           string
-		hostStatus       computev1.HostStatus
 		details          string
 		onboardingStatus inv_status.ResourceStatus
 	}
@@ -553,7 +539,6 @@ func TestOnboardingInventoryClient_DeleteHostResource(t *testing.T) {
 			name: "Success",
 			args: args{
 				hostID:           host.GetResourceId(),
-				hostStatus:       computev1.HostStatus_HOST_STATUS_ONBOARDING,
 				details:          "some detail",
 				onboardingStatus: om_status.OnboardingStatusInProgress,
 			},
@@ -588,8 +573,6 @@ func TestOnboardingInventoryClient_SetHostStatus(t *testing.T) {
 
 	type args struct {
 		hostID           string
-		hostStatus       computev1.HostStatus
-		details          string
 		onboardingStatus inv_status.ResourceStatus
 	}
 	tests := []struct {
@@ -601,8 +584,6 @@ func TestOnboardingInventoryClient_SetHostStatus(t *testing.T) {
 			name: "Success",
 			args: args{
 				hostID:           host.GetResourceId(),
-				hostStatus:       computev1.HostStatus_HOST_STATUS_ONBOARDING,
-				details:          "some detail",
 				onboardingStatus: om_status.OnboardingStatusInProgress,
 			},
 			valid: true,
@@ -621,7 +602,7 @@ func TestOnboardingInventoryClient_SetHostStatus(t *testing.T) {
 			defer cancel()
 
 			timeBeforeUpdate := time.Now().Unix()
-			err := invClient.SetHostStatus(ctx, tt.args.hostID, tt.args.hostStatus, tt.args.details, tt.args.onboardingStatus)
+			err := invClient.SetHostOnboardingStatus(ctx, tt.args.hostID, tt.args.onboardingStatus)
 			if err != nil {
 				if tt.valid {
 					t.Errorf("Failed: %s", err)
@@ -640,7 +621,6 @@ func TestOnboardingInventoryClient_SetHostStatus(t *testing.T) {
 				require.NoError(t, err)
 				require.NotNil(t, hostInv)
 
-				assert.Equal(t, tt.args.hostStatus, hostInv.GetLegacyHostStatus())
 				assert.Equal(t, tt.args.onboardingStatus.Status, hostInv.GetOnboardingStatus())
 				assert.Equal(t, tt.args.onboardingStatus.StatusIndicator, hostInv.GetOnboardingStatusIndicator())
 				assert.LessOrEqual(t, uint64(timeBeforeUpdate), hostInv.GetOnboardingStatusTimestamp())
@@ -656,9 +636,8 @@ func TestOnboardingInventoryClient_SetHostStatusDetail(t *testing.T) {
 	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
 
 	type args struct {
-		hostID       string
-		statusDetail string
-		status       inv_status.ResourceStatus
+		hostID string
+		status inv_status.ResourceStatus
 	}
 	tests := []struct {
 		name  string
@@ -668,9 +647,8 @@ func TestOnboardingInventoryClient_SetHostStatusDetail(t *testing.T) {
 		{
 			name: "Success",
 			args: args{
-				hostID:       host.GetResourceId(),
-				statusDetail: "some detail",
-				status:       om_status.DeletingStatus,
+				hostID: host.GetResourceId(),
+				status: om_status.DeletingStatus,
 			},
 			valid: true,
 		},
@@ -688,7 +666,7 @@ func TestOnboardingInventoryClient_SetHostStatusDetail(t *testing.T) {
 			defer cancel()
 
 			timeBeforeUpdate := time.Now().Unix()
-			err := invClient.SetHostStatusDetail(ctx, tt.args.hostID, tt.args.statusDetail, tt.args.status)
+			err := invClient.SetHostStatusDetail(ctx, tt.args.hostID, tt.args.status)
 			if err != nil {
 				if tt.valid {
 					t.Errorf("Failed: %s", err)
@@ -707,7 +685,6 @@ func TestOnboardingInventoryClient_SetHostStatusDetail(t *testing.T) {
 				require.NoError(t, err)
 				require.NotNil(t, hostInv)
 
-				assert.Equal(t, tt.args.statusDetail, hostInv.GetProviderStatusDetail())
 				assert.Equal(t, tt.args.status.Status, hostInv.GetOnboardingStatus())
 				assert.Equal(t, tt.args.status.StatusIndicator, hostInv.GetOnboardingStatusIndicator())
 				assert.LessOrEqual(t, uint64(timeBeforeUpdate), hostInv.GetOnboardingStatusTimestamp())
@@ -763,9 +740,12 @@ func TestOnboardingInventoryClient_GetInstanceResourceByResourceID(t *testing.T)
 	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
 	os := inv_testing.CreateOs(t)
 	inst := inv_testing.CreateInstance(t, host, os)
+	inst.DesiredOs = os
+	inst.CurrentOs = os
+	inst.Host = host
 	type args struct {
-		instID     string
-		instStatus computev1.InstanceStatus
+		instID           string
+		expectedInstance *computev1.InstanceResource
 	}
 	tests := []struct {
 		name  string
@@ -775,16 +755,15 @@ func TestOnboardingInventoryClient_GetInstanceResourceByResourceID(t *testing.T)
 		{
 			name: "GetInstanceResourceByResourceID_Success",
 			args: args{
-				instID:     inst.GetResourceId(),
-				instStatus: computev1.InstanceStatus_INSTANCE_STATUS_UNSPECIFIED,
+				instID:           inst.GetResourceId(),
+				expectedInstance: inst,
 			},
 			valid: true,
 		},
 		{
 			name: "GetInstanceResourceByResourceID_Error",
 			args: args{
-				instID:     "1234567",
-				instStatus: computev1.InstanceStatus_INSTANCE_STATUS_UNSPECIFIED,
+				instID: "1234567",
 			},
 			valid: false,
 		},
@@ -793,7 +772,7 @@ func TestOnboardingInventoryClient_GetInstanceResourceByResourceID(t *testing.T)
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			InstanceResource, err := invClient.GetInstanceResourceByResourceID(ctx, tt.args.instID)
+			invInst, err := invClient.GetInstanceResourceByResourceID(ctx, tt.args.instID)
 			if err != nil {
 				if tt.valid {
 					t.Errorf("Failed: %s", err)
@@ -807,7 +786,9 @@ func TestOnboardingInventoryClient_GetInstanceResourceByResourceID(t *testing.T)
 			}
 
 			if !t.Failed() && tt.valid {
-				assert.Equal(t, tt.args.instStatus, InstanceResource.GetStatus())
+				if eq, diff := inv_testing.ProtoEqualOrDiff(invInst, tt.args.expectedInstance); !eq {
+					t.Errorf("Data not equal: %v", diff)
+				}
 			}
 		})
 	}
@@ -1152,13 +1133,10 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
 	type args struct {
-		hostID               string
-		hostCurrentState     computev1.HostState
-		runtimeHostStatus    inv_status.ResourceStatus
-		updateTimestamp      int64
-		legacyHostStatus     computev1.HostStatus
-		providerStatus       string
-		providerStatusDetail string
+		hostID            string
+		hostCurrentState  computev1.HostState
+		runtimeHostStatus inv_status.ResourceStatus
+		updateTimestamp   int64
 	}
 	tests := []struct {
 		name       string
@@ -1169,26 +1147,20 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 		{
 			name: "Success",
 			args: args{
-				hostID:               host.GetResourceId(),
-				hostCurrentState:     computev1.HostState_HOST_STATE_UNTRUSTED,
-				runtimeHostStatus:    om_status.AuthorizationStatusInvalidated,
-				legacyHostStatus:     computev1.HostStatus_HOST_STATUS_INVALIDATED,
-				providerStatus:       "some status",
-				providerStatusDetail: "some detail",
-				updateTimestamp:      time.Now().Unix(),
+				hostID:            host.GetResourceId(),
+				hostCurrentState:  computev1.HostState_HOST_STATE_UNTRUSTED,
+				runtimeHostStatus: om_status.AuthorizationStatusInvalidated,
+				updateTimestamp:   time.Now().Unix(),
 			},
 			valid: true,
 		},
 		{
 			name: "Failed_NotFound",
 			args: args{
-				hostID:               "host-12345678",
-				hostCurrentState:     computev1.HostState_HOST_STATE_UNTRUSTED,
-				runtimeHostStatus:    om_status.AuthorizationStatusInvalidated,
-				legacyHostStatus:     computev1.HostStatus_HOST_STATUS_INVALIDATED,
-				providerStatus:       "some status",
-				providerStatusDetail: "some detail",
-				updateTimestamp:      time.Now().Unix(),
+				hostID:            "host-12345678",
+				hostCurrentState:  computev1.HostState_HOST_STATE_UNTRUSTED,
+				runtimeHostStatus: om_status.AuthorizationStatusInvalidated,
+				updateTimestamp:   time.Now().Unix(),
 			},
 			valid:      false,
 			statusCode: codes.NotFound,
@@ -1208,14 +1180,11 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 			defer cancel()
 
 			hostUp := &computev1.HostResource{
-				ResourceId:           tt.args.hostID,
-				CurrentState:         tt.args.hostCurrentState,
-				LegacyHostStatus:     tt.args.legacyHostStatus,
-				ProviderStatus:       tt.args.providerStatus,
-				ProviderStatusDetail: tt.args.providerStatusDetail,
-				HostStatus:           tt.args.runtimeHostStatus.Status,
-				HostStatusIndicator:  tt.args.runtimeHostStatus.StatusIndicator,
-				HostStatusTimestamp:  uint64(tt.args.updateTimestamp),
+				ResourceId:          tt.args.hostID,
+				CurrentState:        tt.args.hostCurrentState,
+				HostStatus:          tt.args.runtimeHostStatus.Status,
+				HostStatusIndicator: tt.args.runtimeHostStatus.StatusIndicator,
+				HostStatusTimestamp: uint64(tt.args.updateTimestamp),
 			}
 
 			err := OnboardingTestClient.UpdateHostStateAndRuntimeStatus(ctx, hostUp)
@@ -1238,9 +1207,6 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 				require.NotNil(t, hostInv)
 
 				assert.Equal(t, tt.args.hostCurrentState, hostInv.GetCurrentState())
-				assert.Equal(t, tt.args.legacyHostStatus, hostInv.GetLegacyHostStatus())
-				assert.Equal(t, tt.args.providerStatus, hostInv.GetProviderStatus())
-				assert.Equal(t, tt.args.providerStatusDetail, hostInv.GetProviderStatusDetail())
 				assert.Equal(t, tt.args.runtimeHostStatus.Status, hostInv.GetHostStatus())
 				assert.Equal(t, tt.args.runtimeHostStatus.StatusIndicator, hostInv.GetHostStatusIndicator())
 				assert.LessOrEqual(t, uint64(tt.args.updateTimestamp), hostInv.GetHostStatusTimestamp())
@@ -1264,7 +1230,6 @@ func TestOnboardingInventoryClient_SetInstanceStatus(t *testing.T) {
 
 	type args struct {
 		instanceID         string
-		instanceStatus     computev1.InstanceStatus
 		provisioningStatus inv_status.ResourceStatus
 	}
 	tests := []struct {
@@ -1276,7 +1241,6 @@ func TestOnboardingInventoryClient_SetInstanceStatus(t *testing.T) {
 			name: "Success",
 			args: args{
 				instanceID:         inst.GetResourceId(),
-				instanceStatus:     computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONED,
 				provisioningStatus: om_status.ProvisioningStatusDone,
 			},
 			valid: true,
@@ -1285,7 +1249,6 @@ func TestOnboardingInventoryClient_SetInstanceStatus(t *testing.T) {
 			name: "Failed_NotFound",
 			args: args{
 				instanceID:         "inst-12345678",
-				instanceStatus:     computev1.InstanceStatus_INSTANCE_STATUS_PROVISIONED,
 				provisioningStatus: om_status.ProvisioningStatusDone,
 			},
 			valid: false,
@@ -1297,7 +1260,7 @@ func TestOnboardingInventoryClient_SetInstanceStatus(t *testing.T) {
 			defer cancel()
 
 			timeBeforeUpdate := time.Now().Unix()
-			err := invClient.SetInstanceStatus(ctx, tt.args.instanceID, tt.args.instanceStatus, tt.args.provisioningStatus)
+			err := invClient.SetInstanceProvisioningStatus(ctx, tt.args.instanceID, tt.args.provisioningStatus)
 			if err != nil {
 				if tt.valid {
 					t.Errorf("Failed: %s", err)
@@ -1317,7 +1280,6 @@ func TestOnboardingInventoryClient_SetInstanceStatus(t *testing.T) {
 				require.NotNil(t, hostInv)
 
 				instInv := hostInv.Instance
-				assert.Equal(t, tt.args.instanceStatus, instInv.GetStatus())
 				assert.Equal(t, tt.args.provisioningStatus.Status, instInv.GetProvisioningStatus())
 				assert.Equal(t, tt.args.provisioningStatus.StatusIndicator, instInv.GetProvisioningStatusIndicator())
 				assert.LessOrEqual(t, uint64(timeBeforeUpdate), instInv.GetProvisioningStatusTimestamp())
@@ -1720,7 +1682,6 @@ func TestOnboardingInventoryClient_SetInstanceStatusAndCurrentState(t *testing.T
 		ctx                context.Context
 		instanceID         string
 		currentState       computev1.InstanceState
-		instanceStatus     computev1.InstanceStatus
 		provisioningStatus inv_status.ResourceStatus
 	}
 	tests := []struct {
@@ -1738,7 +1699,7 @@ func TestOnboardingInventoryClient_SetInstanceStatusAndCurrentState(t *testing.T
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.SetInstanceStatusAndCurrentState(tt.args.ctx, tt.args.instanceID, tt.args.currentState, tt.args.instanceStatus, tt.args.provisioningStatus); (err != nil) != tt.wantErr {
+			if err := invClient.SetInstanceStatusAndCurrentState(tt.args.ctx, tt.args.instanceID, tt.args.currentState, tt.args.provisioningStatus); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.SetInstanceStatusAndCurrentState() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

@@ -29,7 +29,7 @@ var (
 	OnboardingStatusBooting        = inv_status.New("Booting", statusv1.StatusIndication_STATUS_INDICATION_IN_PROGRESS)
 	OnboardingStatusInProgress     = inv_status.New("Onboarding", statusv1.StatusIndication_STATUS_INDICATION_IN_PROGRESS)
 	OnboardingStatusDone           = inv_status.New("Onboarded", statusv1.StatusIndication_STATUS_INDICATION_IDLE)
-	OnboardingStatusFailed         = inv_status.New("Error", statusv1.StatusIndication_STATUS_INDICATION_ERROR)
+	OnboardingStatusFailed         = inv_status.New("Onboarding Failed", statusv1.StatusIndication_STATUS_INDICATION_ERROR)
 	AuthorizationStatusInvalidated = inv_status.New("Invalidated", statusv1.StatusIndication_STATUS_INDICATION_IDLE)
 
 	DeletingStatus = inv_status.New("Deleting", statusv1.StatusIndication_STATUS_INDICATION_IN_PROGRESS)

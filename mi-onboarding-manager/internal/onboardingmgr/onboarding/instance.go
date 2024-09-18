@@ -11,14 +11,13 @@ import (
 	"google.golang.org/grpc/codes"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/api/compute/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/errors"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/pkg/status"
 )
 
 func UpdateInstanceStatusByGUID(ctx context.Context,
 	invClient *invclient.OnboardingInventoryClient,
-	hostUUID string, instancestatus computev1.InstanceStatus, provisioningStatus inv_status.ResourceStatus,
+	hostUUID string, provisioningStatus inv_status.ResourceStatus,
 ) error {
 	zlog.Info().Msg("UpdateInstanceStatusByGUID")
 
@@ -39,11 +38,10 @@ func UpdateInstanceStatusByGUID(ctx context.Context,
 	zlog.Debug().Msgf("Node and its Instance Resource Exist")
 	zlog.Debug().Msgf("GetInstanceResourceBySN = %v", instanceResc)
 
-	zlog.Debug().Msgf("Update Instance resc (%v) status: %v", instanceResc.ResourceId,
-		instancestatus)
+	zlog.Debug().Msgf("Update Instance resc (%v) status", instanceResc.ResourceId)
 	zlog.Debug().Msgf("Update Instance (%v) provisioning status: %v", instanceResc.ResourceId, provisioningStatus)
 
-	if err = invClient.SetInstanceStatus(ctx, instanceResc.GetResourceId(), instancestatus, provisioningStatus); err != nil {
+	if err = invClient.SetInstanceProvisioningStatus(ctx, instanceResc.GetResourceId(), provisioningStatus); err != nil {
 		zlog.MiSec().MiErr(err).Msgf("Failed to update status of Instance %v", instanceResc.ResourceId)
 		return err
 	}

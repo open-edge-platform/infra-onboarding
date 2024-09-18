@@ -132,7 +132,6 @@ func TestReconcileAll(t *testing.T) {
 	}, rec_v2.WithParallelism(1))
 	nbHandler.controllers[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = controllerInstance
 
-
 	// Create beforehand the resources
 	host := inv_testing.CreateHostNoCleanup(t, nil, nil, nil, nil)
 	osRes := inv_testing.CreateOsNoCleanup(t)
@@ -156,7 +155,6 @@ func TestReconcileAll(t *testing.T) {
 	// delayed CREATED events
 	assert.True(t, <-doneHost)
 	assert.True(t, <-doneInstance)
-
 
 	// Do hard delete directly, the reconciler is fake and won't actually delete the resource
 	inv_testing.HardDeleteInstance(t, inst.ResourceId)

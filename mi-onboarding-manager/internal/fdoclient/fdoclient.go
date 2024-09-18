@@ -78,9 +78,8 @@ func doAPICall(ctx context.Context, apiURL, httpMethod, apiUser, contentType str
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		errMsg := fmt.Sprintf("Failed to perform %s API call to %s with status code %v",
+		err = inv_errors.Errorf("Failed to perform %s API call to %s with status code %v",
 			httpMethod, apiURL, resp.StatusCode)
-		err = inv_errors.Errorf(errMsg)
 		zlog.MiErr(err).Msg("")
 		return nil, err
 	}

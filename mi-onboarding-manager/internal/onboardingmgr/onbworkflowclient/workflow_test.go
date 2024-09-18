@@ -531,8 +531,6 @@ func Test_handleWorkflowStatus(t *testing.T) {
 	type args struct {
 		instance                  *computev1.InstanceResource
 		workflow                  *tink.Workflow
-		onSuccessStatus           computev1.HostStatus
-		onFailureStatus           computev1.HostStatus
 		onSuccessOnboardingStatus inv_status.ResourceStatus
 		onFailureOnboardingStatus inv_status.ResourceStatus
 	}
@@ -556,7 +554,7 @@ func Test_handleWorkflowStatus(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := handleWorkflowStatus(tt.args.instance, tt.args.workflow, tt.args.onSuccessStatus, tt.args.onFailureStatus, tt.args.onSuccessOnboardingStatus, tt.args.onFailureOnboardingStatus); (err != nil) != tt.wantErr {
+			if err := handleWorkflowStatus(tt.args.instance, tt.args.workflow, tt.args.onSuccessOnboardingStatus, tt.args.onFailureOnboardingStatus); (err != nil) != tt.wantErr {
 				t.Errorf("handleWorkflowStatus() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -567,8 +565,6 @@ func Test_handleWorkflowStatus_Case(t *testing.T) {
 	type args struct {
 		instance                  *computev1.InstanceResource
 		workflow                  *tink.Workflow
-		onSuccessStatus           computev1.HostStatus
-		onFailureStatus           computev1.HostStatus
 		onSuccessOnboardingStatus inv_status.ResourceStatus
 		onFailureOnboardingStatus inv_status.ResourceStatus
 	}
@@ -596,7 +592,7 @@ func Test_handleWorkflowStatus_Case(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := handleWorkflowStatus(tt.args.instance, tt.args.workflow, tt.args.onSuccessStatus, tt.args.onFailureStatus, tt.args.onSuccessOnboardingStatus, tt.args.onFailureOnboardingStatus); (err != nil) != tt.wantErr {
+			if err := handleWorkflowStatus(tt.args.instance, tt.args.workflow, tt.args.onSuccessOnboardingStatus, tt.args.onFailureOnboardingStatus); (err != nil) != tt.wantErr {
 				t.Errorf("handleWorkflowStatus() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -607,8 +603,6 @@ func Test_handleWorkflowStatus_Case1(t *testing.T) {
 	type args struct {
 		instance                  *computev1.InstanceResource
 		workflow                  *tink.Workflow
-		onSuccessStatus           computev1.HostStatus
-		onFailureStatus           computev1.HostStatus
 		onSuccessOnboardingStatus inv_status.ResourceStatus
 		onFailureOnboardingStatus inv_status.ResourceStatus
 	}
@@ -636,7 +630,7 @@ func Test_handleWorkflowStatus_Case1(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := handleWorkflowStatus(tt.args.instance, tt.args.workflow, tt.args.onSuccessStatus, tt.args.onFailureStatus, tt.args.onSuccessOnboardingStatus, tt.args.onFailureOnboardingStatus); (err != nil) != tt.wantErr {
+			if err := handleWorkflowStatus(tt.args.instance, tt.args.workflow, tt.args.onSuccessOnboardingStatus, tt.args.onFailureOnboardingStatus); (err != nil) != tt.wantErr {
 				t.Errorf("handleWorkflowStatus() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -647,8 +641,6 @@ func Test_handleWorkflowStatus_Case2(t *testing.T) {
 	type args struct {
 		instance                  *computev1.InstanceResource
 		workflow                  *tink.Workflow
-		onSuccessStatus           computev1.HostStatus
-		onFailureStatus           computev1.HostStatus
 		onSuccessOnboardingStatus inv_status.ResourceStatus
 		onFailureOnboardingStatus inv_status.ResourceStatus
 	}
@@ -676,7 +668,7 @@ func Test_handleWorkflowStatus_Case2(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := handleWorkflowStatus(tt.args.instance, tt.args.workflow, tt.args.onSuccessStatus, tt.args.onFailureStatus, tt.args.onSuccessOnboardingStatus, tt.args.onFailureOnboardingStatus); (err != nil) != tt.wantErr {
+			if err := handleWorkflowStatus(tt.args.instance, tt.args.workflow, tt.args.onSuccessOnboardingStatus, tt.args.onFailureOnboardingStatus); (err != nil) != tt.wantErr {
 				t.Errorf("handleWorkflowStatus() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1153,8 +1145,6 @@ func Test_handleWorkflowStatus_Case3(t *testing.T) {
 	type args struct {
 		instance                  *computev1.InstanceResource
 		workflow                  *tink.Workflow
-		onSuccessStatus           computev1.HostStatus
-		onFailureStatus           computev1.HostStatus
 		onSuccessOnboardingStatus inv_status.ResourceStatus
 		onFailureOnboardingStatus inv_status.ResourceStatus
 	}
@@ -1182,7 +1172,7 @@ func Test_handleWorkflowStatus_Case3(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := handleWorkflowStatus(tt.args.instance, tt.args.workflow, tt.args.onSuccessStatus, tt.args.onFailureStatus, tt.args.onSuccessOnboardingStatus, tt.args.onFailureOnboardingStatus); (err != nil) != tt.wantErr {
+			if err := handleWorkflowStatus(tt.args.instance, tt.args.workflow, tt.args.onSuccessOnboardingStatus, tt.args.onFailureOnboardingStatus); (err != nil) != tt.wantErr {
 				t.Errorf("handleWorkflowStatus() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

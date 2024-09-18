@@ -33,7 +33,6 @@ func TestWorkflowActionToStatusDetail(t *testing.T) {
 	prodBkcWorkflowWithoutDI, err := unmarshalWorkflow(prodBkcWorkflowWithoutDIData)
 	require.NoError(t, err)
 
-
 	workflows := []*Workflow{
 		diWorkflow,
 		prodBkcWorkflowWithDI,
