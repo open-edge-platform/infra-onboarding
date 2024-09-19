@@ -38,14 +38,13 @@ $(VENV_NAME): requirements.txt
 	python3 -m pip install --upgrade pip;\
 	python3 -m pip install -r requirements.txt
 
-all: 
+all:
 	@# Help: Runs build, lint, test stages
-	build lint test 	
-	
+	build lint test
+
 build:
 	@# Help: Runs build stage
 	@echo "---MAKEFILE BUILD---"
-	@echo "---BUILD started---"
 	@echo "--Updated step below--"
 	chmod +x prereq.sh && bash prereq.sh
 	chmod +x build_hookos.sh && bash build_hookos.sh
@@ -53,8 +52,7 @@ build:
 
 dev-build:
 	@# Help: Runs build stage
-	@echo "---MAKEFILE BUILD---"
-	@echo "---DEV BUILD started---"
+	@echo "---MAKEFILE DEV BUILD---"
 	@echo "--Updated step below--"
 	chmod +x build_hookos.sh && bash -x build_hookos.sh
 	@echo "---END MAKEFILE Build---"
@@ -78,18 +76,23 @@ test:
 	@echo "---MAKEFILE TEST---"
 	echo $@
 	@echo "---END MAKEFILE TEST---"
-	
+
 coverage:
 	@# Help: Runs coverage stage
 	@echo "---MAKEFILE COVERAGE---"
 	echo $@
 	@echo "---END MAKEFILE COVERAGE---"
 
-list: 
+list:
 	@# Help: displays make targets
 	help
 
-help:	
+clean:
+	@# Help: displays make targets
+	sudo rm -rf  out/*
+	rm -rf alpine_*
+
+help:
 	@printf "%-20s %s\n" "Target" "Description"
 	@printf "%-20s %s\n" "------" "-----------"
 	@make -pqR : 2>/dev/null \
@@ -97,4 +100,4 @@ help:
         | sort \
         | egrep -v -e '^[^[:alnum:]]' -e '^$@$$' \
         | xargs -I _ sh -c 'printf "%-20s " _; make _ -nB | (grep -i "^# Help:" || echo "") | tail -1 | sed "s/^# Help: //g"'
-	
+
