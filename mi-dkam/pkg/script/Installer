@@ -289,9 +289,7 @@ install_node_agent(){
             echo "User '$USERNAME' added successfully."
         fi
 
-        chmod -R 700 /etc/intel_edge_node/client-credentials
-        chown -R node-agent:bm-agents /etc/intel_edge_node
-
+        
         echo "node-agent node-agent/onboarding.serviceURL string ${ORCH_I_URL}" | debconf-set-selections
         echo "node-agent node-agent/auth.accessTokenURL string ${ACCESS_TOKEN_URL}" | debconf-set-selections
         echo "node-agent node-agent/auth.rsTokenURL string ${RELEASE_TOKEN_URL}" | debconf-set-selections
@@ -340,7 +338,7 @@ install_node_agent(){
 
         echo "wait for node agent and client proxy to start"
         while true; do
-            http_status=$(curl -s -o /dev/null -w "%{http_code}" "https://localhost:$APT_SOURCE_PROXY_PORT/healthz")
+            http_status=$(curl -s -o /dev/null -w "%{http_code}" "https://localhost:$APT_SOURCE_PROXY_PORT/edge-node.asc")
             if [ "$http_status" -eq 200 ]; then
                 echo "Client proxy is active"
                 break
