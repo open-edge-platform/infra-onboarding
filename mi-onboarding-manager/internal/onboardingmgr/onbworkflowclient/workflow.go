@@ -147,15 +147,12 @@ func CheckStatusOrRunProdWorkflow(ctx context.Context,
 		return err
 	}
 
-	util.PopulateHostOnboardingStatus(instance,
-		om_status.ProvisioningStatusInProgress)
-	// NOTE: this is not used by UI as for now, but update status for future use.
 	util.PopulateInstanceStatusAndCurrentState(
 		instance, computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
 		om_status.ProvisioningStatusInProgress)
 
 	return handleWorkflowStatus(instance, workflow,
-		om_status.OnboardingStatusDone, om_status.OnboardingStatusFailed)
+		om_status.ProvisioningStatusDone, om_status.ProvisioningStatusFailed)
 }
 
 func runProdWorkflow(
@@ -583,7 +580,7 @@ func DeleteProdWorkflowResourcesIfExist(ctx context.Context, hostUUID, imgType s
 }
 
 func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.Workflow,
-	onSuccessOnboardingStatus, onFailureOnboardingStatus inv_status.ResourceStatus,
+	onSuccessProvisioningStatus, onFailureProvisioningStatus inv_status.ResourceStatus,
 ) error {
 	intermediateWorkflowState := tinkerbell.GenerateStatusDetailFromWorkflowState(workflow)
 
@@ -595,22 +592,22 @@ func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.W
 	switch workflow.Status.State {
 	case tink.WorkflowStateSuccess:
 		// success, proceed further
-		util.PopulateHostOnboardingStatus(instance, onSuccessOnboardingStatus)
 		util.PopulateInstanceStatusAndCurrentState(
 			instance, computev1.InstanceState_INSTANCE_STATE_RUNNING,
-			om_status.ProvisioningStatusInProgress)
+			onSuccessProvisioningStatus)
 		return nil
 	case tink.WorkflowStateFailed, tink.WorkflowStateTimeout:
 		// indicates unrecoverable error, we should update current_state = ERROR
-		util.PopulateHostOnboardingStatus(instance, onFailureOnboardingStatus)
 		util.PopulateInstanceStatusAndCurrentState(instance, computev1.InstanceState_INSTANCE_STATE_ERROR,
-			onFailureOnboardingStatus)
+			onFailureProvisioningStatus)
 		return inv_errors.Errorfc(codes.Aborted, "")
 	case "", tink.WorkflowStateRunning, tink.WorkflowStatePending:
 		// not started yet or in progress
 		/* TODO: extend the modern status to add detailed intermediateWorkflowState in below ticket
 		https://jira.devtools.intel.com/browse/NEX-11962 */
-		util.PopulateHostOnboardingStatus(instance, om_status.OnboardingStatusInProgress)
+		util.PopulateInstanceStatusAndCurrentState(
+			instance, computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
+			om_status.ProvisioningStatusInProgress)
 		return inv_errors.Errorfr(inv_errors.Reason_OPERATION_IN_PROGRESS, "")
 	default:
 		zlog.MiSec().MiError("Unknown workflow state %s", workflow.Status.State)
