@@ -204,7 +204,7 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 	}
 
 	repoURL := instance.GetDesiredOs().GetImageUrl()
-	sha256 := instance.GetDesiredOs().GetSha256()
+	imageSha256 := instance.GetDesiredOs().GetSha256()
 	profileName := instance.GetDesiredOs().GetProfileName()
 	installedPackages := instance.GetDesiredOs().GetInstalledPackages()
 	kernalCommand := instance.GetDesiredOs().GetKernelCommand()
@@ -212,14 +212,14 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 	osType := instance.GetDesiredOs().GetOsType()
 	zlogInst.Info().Msgf("----------------------From DeviceInfo -------------------\n")
 	zlogInst.Info().Msgf("repoURL is %s\n", repoURL)
-	zlogInst.Info().Msgf("sha256 is %s\n", sha256)
+	zlogInst.Info().Msgf("sha256 is %s\n", imageSha256)
 	zlogInst.Info().Msgf("profileName is %s\n", profileName)
 	zlogInst.Info().Msgf("installedPackages is %s\n", installedPackages)
 	zlogInst.Info().Msgf("kernalCommand is %s\n", kernalCommand)
 	zlogInst.Info().Msgf("platform is %s\n", platform)
 	zlogInst.Info().Msgf("os type is %s\n", osType.String())
 
-	response, err := onboarding.GetOSResourceFromDkamService(context.Background(), repoURL, sha256,
+	response, err := onboarding.GetOSResourceFromDkamService(context.Background(), repoURL, imageSha256,
 		profileName, installedPackages, platform, kernalCommand, osType.String())
 	if err != nil {
 		invError := inv_errors.Errorfc(grpc_status.Code(err), "Failed to trigger DKAM for OS instance. Error: %v", err)
@@ -234,7 +234,6 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 	sutIP := instance.GetHost().GetBmcIp()
 	osLocationURL = utils.ReplaceHostIP(osLocationURL, sutIP)
 	installerScriptURL = utils.ReplaceHostIP(installerScriptURL, sutIP)
-	imageSha256 := response.GetOsImageSha256()
 
 	zlogInst.Info().Msgf("----------------------From DKAM start-------------------\n")
 	zlogInst.Info().Msgf("osLocationURL is %s\n", osLocationURL)
@@ -255,6 +254,7 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		SecurityFeature:    uint32(instance.GetSecurityFeature()),
 		ImgType:            env.ImgType,
 		OSImageURL:         env.ImgURL,
+		OsImageSHA256:      imageSha256,
 		DiskType:           env.DiskType,
 		Rootfspart:         utils.CalculateRootFS(env.ImgType, env.DiskType),
 		InstallerScriptURL: env.InstallerScriptURL,
@@ -266,12 +266,10 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 	}
 
 	if osType == osv1.OsType_OS_TYPE_IMMUTABLE {
-		deviceInfo.OsImageSHA256 = imageSha256
 		deviceInfo.ImgType = utils.ImgTypeTiberOs
 		// TODO: Fix the correct env image type based on OS type in charts
 		env.ImgType = utils.ImgTypeTiberOs
 	} else {
-		deviceInfo.OsImageSHA256 = ""
 		deviceInfo.ImgType = utils.ImgTypeBkc
 		// TODO: Fix the correct env image type based on OS type in charts
 		env.ImgType = utils.ImgTypeBkc
