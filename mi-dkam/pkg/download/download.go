@@ -4,8 +4,6 @@
 package download
 
 import (
-	"bufio"
-	"crypto/md5"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -175,7 +173,7 @@ func DownloadMicroOS(targetDir string, scriptPath string) (bool, error) {
 
 }
 
-func DownloadTiberOSImage(imageUrl string, targetDir string, sha256 string) error {
+func DownloadTiberOSImage(imageUrl string, targetDir string, imageSha256 string) error {
 	var tag string
 	OSImageUrl := imageUrl
 	if strings.Contains(imageUrl, ":") {
@@ -254,54 +252,28 @@ func DownloadTiberOSImage(imageUrl string, targetDir string, sha256 string) erro
 	}
 
 	zlog.MiSec().Info().Msg("Tiber OS Image downloaded")
-	zlog.Info().Msg("Parsing MD5SUMS file...")
-	checksums, err := ParseMD5SUMS(targetDir + "/" + config.TiberOSImage + ".sha256sum")
-	if err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error parsing MD5SUMS file:%v", err)
-	}
-	var expectedChecksum string
-	found := false
-	for key, checksum := range checksums {
-		if strings.Contains(key, tiberOSimageFileName) {
-			expectedChecksum = checksum
-			found = true
-			break
-		}
-	}
-
-	// Error handling and output
-	if !found {
-		zlog.MiSec().Info().Msgf("No checksum found for file containing %s in checksum file", tiberOSimageFileName)
-
-	}
 
 	zlog.Info().Msg("Calculating MD5 checksum of downloaded image...")
 	computedChecksum, err := getSHA256Checksum(targetDir + "/" + config.TiberOSImage)
 	if err != nil {
 		zlog.MiSec().Error().Err(err).Msgf("Error calculating MD5 checksum:%v", err)
-
 	}
 
-	zlog.MiSec().Info().Msgf("Expected checksum: %s\n", expectedChecksum)
+	zlog.MiSec().Info().Msgf("Expected checksum: %s\n", imageSha256)
 	zlog.MiSec().Info().Msgf("Computed checksum: %s\n", computedChecksum)
 
-	if expectedChecksum == computedChecksum {
+	if imageSha256 == computedChecksum {
 		zlog.MiSec().Info().Msgf("Checksum verification succeeded!")
 	} else {
-		zlog.MiSec().Error().Err(err).Msgf("Checksum verification failed! Expected checksum:%s and Computed checksum:%s", expectedChecksum, computedChecksum)
+		zlog.MiSec().Error().Err(err).Msgf("Checksum verification failed! Expected checksum:%s and Computed checksum:%s", imageSha256, computedChecksum)
 	}
 
-	copyErr := CopyImageToPVC(targetDir, config.TiberOSImage, sha256)
+	copyErr := CopyImageToPVC(targetDir, config.TiberOSImage, imageSha256)
 	if copyErr != nil {
 		zlog.MiSec().Error().Err(copyErr).Msgf("Failed to copy file to PV:%v", copyErr)
 
 	}
 
-	copyShaFileErr := CopyImageToPVC(targetDir, config.TiberOSImage+".sha256sum", sha256)
-	if copyShaFileErr != nil {
-		zlog.MiSec().Error().Err(copyShaFileErr).Msgf("Failed to copy file to PV:%v", copyShaFileErr)
-
-	}
 	return nil
 }
 
@@ -502,21 +474,6 @@ func compressImage(inputFile, outputFile string) error {
 	return cmd.Run()
 }
 
-func getMD5Checksum(filename string) (string, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-
-	hasher := md5.New()
-	if _, err := io.Copy(hasher, file); err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("%x", hasher.Sum(nil)), nil
-}
-
 func getSHA256Checksum(filename string) (string, error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -532,27 +489,7 @@ func getSHA256Checksum(filename string) (string, error) {
 	return fmt.Sprintf("%x", hasher.Sum(nil)), nil
 }
 
-func ParseMD5SUMS(filename string) (map[string]string, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	checksums := make(map[string]string)
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-		parts := strings.Fields(line)
-		if len(parts) == 2 {
-			checksums[parts[1]] = parts[0]
-		}
-	}
-
-	return checksums, scanner.Err()
-}
-
-func DownloadUbuntuImage(imageUrl string, format string, fileName string, targetDir string, sha256 string) error {
+func DownloadUbuntuImage(imageUrl string, format string, fileName string, targetDir string, imageSha256 string) error {
 	// TODO(NEXFMPID-3359): avoid hardcoded file names, and use tmp folder for temporary files
 	parsedURL, err := url.Parse(imageUrl)
 	if err != nil {
@@ -565,11 +502,6 @@ func DownloadUbuntuImage(imageUrl string, format string, fileName string, target
 	resultURL := parsedURL.String()
 	zlog.Info().Msgf("URL without filename:%s", resultURL)
 
-	md5fileUrl := resultURL + "/MD5SUMS"
-	if err := downloadImage(md5fileUrl, "MD5SUMS", targetDir); err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error downloading MD5SUMS file:%v", err)
-		return err
-	}
 	zlog.Info().Msgf("Inside Download and Raw form conversion...")
 	if strings.HasSuffix(imageUrl, "raw.gz") {
 		zlog.Info().Msgf("File is in raw format")
@@ -593,35 +525,20 @@ func DownloadUbuntuImage(imageUrl string, format string, fileName string, target
 			return err
 		}
 
-		zlog.Info().Msg("Parsing MD5SUMS file...")
-		checksums, err := ParseMD5SUMS(targetDir + "/" + "MD5SUMS")
-		if err != nil {
-			zlog.MiSec().Error().Err(err).Msgf("Error parsing MD5SUMS file:%v", err)
-			return err
-		}
-
-		imgFileName := "*" + strings.TrimSuffix(fileName, ".raw.gz") + ".img"
-
-		expectedChecksum, ok := checksums[imgFileName]
-		if !ok {
-			zlog.MiSec().Error().Err(err).Msgf("No checksum found for image file in MD5SUMS file %v", err)
-			return err
-		}
-
 		zlog.Info().Msg("Calculating MD5 checksum of downloaded image...")
-		computedChecksum, err := getMD5Checksum(targetDir + "/" + format)
+		computedChecksum, err := getSHA256Checksum(targetDir + "/" + format)
 		if err != nil {
 			zlog.MiSec().Error().Err(err).Msgf("Error calculating MD5 checksum:%v", err)
 			return err
 		}
 
-		zlog.MiSec().Info().Msgf("Expected checksum: %s\n", expectedChecksum)
+		zlog.MiSec().Info().Msgf("Expected checksum: %s\n", imageSha256)
 		zlog.MiSec().Info().Msgf("Computed checksum: %s\n", computedChecksum)
 
-		if expectedChecksum == computedChecksum {
+		if imageSha256 == computedChecksum {
 			zlog.MiSec().Info().Msgf("Checksum verification succeeded!")
 		} else {
-			zlog.MiSec().Error().Err(err).Msgf("Checksum verification failed! Expected checksum:%s and Computed checksum:%s", expectedChecksum, computedChecksum)
+			zlog.MiSec().Error().Err(err).Msgf("Checksum verification failed! Expected checksum:%s and Computed checksum:%s", imageSha256, computedChecksum)
 		}
 
 		// Convert the image to raw format
@@ -644,7 +561,7 @@ func DownloadUbuntuImage(imageUrl string, format string, fileName string, target
 			zlog.MiSec().Error().Err(err).Msgf("Error removing temporary file: image.raw %v", err)
 		}
 	}
-	copyErr := CopyImageToPVC(targetDir, fileName, sha256)
+	copyErr := CopyImageToPVC(targetDir, fileName, imageSha256)
 	if copyErr != nil {
 		zlog.MiSec().Error().Err(err).Msgf("Failed to copy file to PV:%v", err)
 		return copyErr

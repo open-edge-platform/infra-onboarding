@@ -544,47 +544,6 @@ func TestDownloadPrecuratedScript(t *testing.T) {
 	}
 }
 
-func Test_getMD5Checksum(t *testing.T) {
-	type args struct {
-		filename string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
-		{
-			name: "getMD5Checksum test case",
-			args: args{
-				filename: "",
-			},
-			want:    "",
-			wantErr: true,
-		},
-		{
-			name: "getMD5Checksum test case negative",
-			args: args{
-				filename: t.TempDir(),
-			},
-			want:    "",
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := getMD5Checksum(tt.args.filename)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("getMD5Checksum() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("getMD5Checksum() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestGetReleaseServerRespons(t *testing.T) {
 	type args struct {
 		url string
