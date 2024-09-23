@@ -442,6 +442,21 @@ func CreateCloudCfgScript(pwd string, profile string, MODE string, SHAID string)
 	} else {
 		zlog.MiSec().Info().Msg("Its not a kind cluster")
 	}
+	var caLines []string
+	if MODE == "dev" {
+		zlog.MiSec().Info().Msg("It is an internal deployment.")
+		caLines = append(caLines, "                echo \"update intel CA certificates\" >> /var/log/startup.log")
+		caLines = append(caLines, "                cd /etc/pki/ca-trust/source/anchors")
+		caLines = append(caLines, "                wget https://certificates.intel.com/repository/certificates/IntelSHA2RootChain-Base64.zip")
+		caLines = append(caLines, "                unzip IntelSHA2RootChain-Base64.zip")
+		caLines = append(caLines, "                update-ca-trust")
+		caLines = append(caLines, "                rm -f IntelSHA2RootChain-Base64.zip")
+		caLines = append(caLines, "                echo \"Intel CA updated.\" >> /var/log/startup.log")
+		AddProxies(cfgFileName, caLines, "update-ca-trust")
+
+	} else {
+		zlog.MiSec().Info().Msg("Its not a internal deployment")
+	}
 	return nil
 }
 
