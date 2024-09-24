@@ -289,7 +289,6 @@ install_node_agent(){
             echo "User '$USERNAME' added successfully."
         fi
 
-        
         echo "node-agent node-agent/onboarding.serviceURL string ${ORCH_I_URL}" | debconf-set-selections
         echo "node-agent node-agent/auth.accessTokenURL string ${ACCESS_TOKEN_URL}" | debconf-set-selections
         echo "node-agent node-agent/auth.rsTokenURL string ${RELEASE_TOKEN_URL}" | debconf-set-selections
@@ -671,6 +670,13 @@ install_CA_cert(){
 		echo "Skipping install_CA_cert"
     else
         echo "$CA_CERT" > /usr/local/share/ca-certificates/orch-ca.crt && update-ca-certificates -f
+        # Copy CA certificate to /etc/intel_edge_node to allow Observability pod to mount
+        mkdir -p /etc/intel_edge_node/orch-ca-cert
+        chmod 755 /etc/intel_edge_node/orch-ca-cert
+        chown root:root /etc/intel_edge_node/orch-ca-cert
+        echo "$CA_CERT" > /etc/intel_edge_node/orch-ca-cert/orch-ca.crt
+        chmod 644 /etc/intel_edge_node/orch-ca-cert/orch-ca.crt
+        chown root:root /etc/intel_edge_node/orch-ca-cert/orch-ca.crt
         echo "install_CA_cert done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
