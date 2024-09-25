@@ -854,6 +854,7 @@ creat_lvm_partition(){
             do
                 parted -s "/dev/$disk" mklabel gpt mkpart primary 0% 100%
                 partprobe
+		sync
                 if [[ "$disk" == *"nvme"* ]]; then
                     part_number=p
                     disks+=("/dev/${disk}${part_number}1")
@@ -863,7 +864,7 @@ creat_lvm_partition(){
                 fi
             done
         fi
-        #wipse the crypt luck offset if its created during FDE enabled case
+	#wipse the crypt luck offset if its created during FDE enabled case
         for disk in "${disks[@]}"
         do
             wipefs -o 0 "$disk"
