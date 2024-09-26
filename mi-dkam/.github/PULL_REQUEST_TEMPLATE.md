@@ -21,7 +21,7 @@ _Provide a 1-2 line brief overview of the changes submitted through the Pull Req
 | Info | Please fill out this column |
 | ------ | ----------- |
 | Root Cause | Specifically for bugs, empty in case of no variants |
-| Jira ticket | Add the name to the Jira ticket eg: "LPEDN-622". Automation will do the linking to Jira |
+| Jira ticket | Add the name to the Jira ticket eg: "NEX-XXX". Automation will do the linking to Jira |
 
 
 ### CODE MAINTAINABILITY
