@@ -14,6 +14,7 @@ import (
 	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/tinkerbell"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/compute/v1"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/os/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/flags"
 )
 
@@ -25,7 +26,7 @@ func TestCheckStatusOrRunProdWorkflow(t *testing.T) {
 		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
 	*common.FlagEnableDeviceInitialization = true
-	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, true, false)
 	type args struct {
 		ctx        context.Context
 		deviceInfo utils.DeviceInfo
@@ -44,9 +45,10 @@ func TestCheckStatusOrRunProdWorkflow(t *testing.T) {
 					Host: &computev1.HostResource{
 						ResourceId: "host-084d9b08",
 					},
+					DesiredOs: &osv1.OperatingSystemResource{},
 				},
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

@@ -7,7 +7,6 @@ module github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra
 go 1.21.13
 
 require (
-	//github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.6.12
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.7.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.0

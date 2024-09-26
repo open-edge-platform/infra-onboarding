@@ -1683,6 +1683,7 @@ func TestOnboardingInventoryClient_SetInstanceStatusAndCurrentState(t *testing.T
 		instanceID         string
 		currentState       computev1.InstanceState
 		provisioningStatus inv_status.ResourceStatus
+		currentOS          *osv1.OperatingSystemResource
 	}
 	tests := []struct {
 		name    string
@@ -1699,8 +1700,8 @@ func TestOnboardingInventoryClient_SetInstanceStatusAndCurrentState(t *testing.T
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.SetInstanceStatusAndCurrentState(tt.args.ctx, tt.args.instanceID, tt.args.currentState, tt.args.provisioningStatus); (err != nil) != tt.wantErr {
-				t.Errorf("OnboardingInventoryClient.SetInstanceStatusAndCurrentState() error = %v, wantErr %v", err, tt.wantErr)
+			if err := invClient.UpdateInstance(tt.args.ctx, tt.args.instanceID, tt.args.currentState, tt.args.provisioningStatus, tt.args.currentOS); (err != nil) != tt.wantErr {
+				t.Errorf("OnboardingInventoryClient.UpdateInstance() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

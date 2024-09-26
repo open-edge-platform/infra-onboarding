@@ -15,7 +15,7 @@ import (
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/errors"
 )
 
-func NewHardware(name, ns, id, device, ip, gateway string) *tink.Hardware {
+func NewHardware(name, ns, id, device, ip, gateway, osResourceID string) *tink.Hardware {
 	hw := &tink.Hardware{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Hardware",
@@ -38,7 +38,7 @@ func NewHardware(name, ns, id, device, ip, gateway string) *tink.Hardware {
 					Hostname: name,
 					OperatingSystem: &tink.MetadataInstanceOperatingSystem{
 						Distro:  "ubuntu",
-						OsSlug:  "ubuntu_20_04",
+						OsSlug:  osResourceID, // passing OS resource id
 						Version: "20.04",
 					},
 				},
@@ -72,13 +72,14 @@ func NewHardware(name, ns, id, device, ip, gateway string) *tink.Hardware {
 
 // TODO (LPIO-1865): We can probably optimize it.
 // Instead of doing GET+CREATE we can try CREATE and check if resource already exists.
-func CreateHardwareIfNotExists(ctx context.Context, k8sCli client.Client, k8sNamespace string, deviceInfo utils.DeviceInfo,
+func CreateHardwareIfNotExists(ctx context.Context, k8sCli client.Client, k8sNamespace string,
+	deviceInfo utils.DeviceInfo, osResourceID string,
 ) error {
 	hwInfo := NewHardware(
 		GetTinkHardwareName(deviceInfo.GUID),
 		k8sNamespace,
 		deviceInfo.HwMacID,
-		deviceInfo.DiskType, deviceInfo.HwIP, deviceInfo.Gateway)
+		deviceInfo.DiskType, deviceInfo.HwIP, deviceInfo.Gateway, osResourceID)
 
 	obj := &tink.Hardware{}
 	err := k8sCli.Get(ctx, client.ObjectKeyFromObject(hwInfo), obj)

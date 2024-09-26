@@ -195,7 +195,8 @@ func runProdWorkflow(
 
 	// NOTE: IMO (Tomasz) this is a one-time operation that should be done when a host is discovered and created.
 	// So it shouldn't be here (move to host reconciler?)
-	if createHwErr := tinkerbell.CreateHardwareIfNotExists(ctx, k8sCli, env.K8sNamespace, deviceInfo); createHwErr != nil {
+	if createHwErr := tinkerbell.CreateHardwareIfNotExists(ctx, k8sCli, env.K8sNamespace, deviceInfo,
+		instance.GetDesiredOs().ResourceId); createHwErr != nil {
 		return createHwErr
 	}
 
@@ -295,7 +296,7 @@ func CheckStatusOrRunDIWorkflow(ctx context.Context, deviceInfo utils.DeviceInfo
 		// This may happen if:
 		// 1) workflow for Instance is not created yet -> proceed to runWorkflow()
 		// 2) we already finished & removed workflow for Instance -> in this case we should never get here
-		runErr := runDIWorkflow(ctx, kubeClient, deviceInfo)
+		runErr := runDIWorkflow(ctx, kubeClient, deviceInfo, instance)
 		if runErr != nil {
 			return runErr
 		}
@@ -466,10 +467,13 @@ func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName string)
 	return got, nil
 }
 
-func runDIWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils.DeviceInfo) error {
+func runDIWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils.DeviceInfo,
+	instance *computev1.InstanceResource,
+) error {
 	zlog.Info().Msgf("Creating DI workflow for host %s", deviceInfo.GUID)
 
-	if err := tinkerbell.CreateHardwareIfNotExists(ctx, k8sCli, env.K8sNamespace, deviceInfo); err != nil {
+	if err := tinkerbell.CreateHardwareIfNotExists(ctx, k8sCli, env.K8sNamespace, deviceInfo,
+		instance.GetDesiredOs().ResourceId); err != nil {
 		return err
 	}
 
@@ -589,12 +593,33 @@ func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.W
 		workflow.Status.State,
 		intermediateWorkflowState)
 
+	k8sCli, err := tinkerbell.K8sClientFactory()
+	if err != nil {
+		return err
+	}
+
 	switch workflow.Status.State {
 	case tink.WorkflowStateSuccess:
 		// success, proceed further
 		util.PopulateInstanceStatusAndCurrentState(
 			instance, computev1.InstanceState_INSTANCE_STATE_RUNNING,
 			onSuccessProvisioningStatus)
+
+		// Retrieve the Tinkerbell hardware resource to get the OS resource ID
+		hardwareName := tinkerbell.GetTinkHardwareName(instance.GetHost().GetUuid())
+		hardware := &tink.Hardware{}
+		err := k8sCli.Get(context.Background(), client.ObjectKey{Name: hardwareName, Namespace: env.K8sNamespace}, hardware)
+		if err != nil {
+			return inv_errors.Errorf("Failed to retrieve Tinkerbell hardware %s: %v", hardwareName, err)
+		}
+
+		if hardware.Spec.Metadata.Instance.OperatingSystem != nil {
+			osResourceID := hardware.Spec.Metadata.Instance.OperatingSystem.OsSlug // Use OsSlug as a unique identifier
+
+			util.PopulateCurrentOS(instance, osResourceID)
+		} else {
+			return inv_errors.Errorf("OS resource ID not found in Tinkerbell hardware %s", hardwareName)
+		}
 		return nil
 	case tink.WorkflowStateFailed, tink.WorkflowStateTimeout:
 		// indicates unrecoverable error, we should update current_state = ERROR

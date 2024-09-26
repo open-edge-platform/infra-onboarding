@@ -115,12 +115,13 @@ func (ir *InstanceReconciler) updateHostInstanceStatusAndCurrentState(
 		newInstance.GetResourceId(), newInstance.GetCurrentState(),
 		newInstance.GetProvisioningStatus())
 
-	if !util.IsSameInstanceStatusAndState(oldInstance, newInstance) {
-		if err := ir.invClient.SetInstanceStatusAndCurrentState(
+	if !util.IsSameInstanceStatusAndState(oldInstance, newInstance) || oldInstance.CurrentOs != newInstance.CurrentOs {
+		if err := ir.invClient.UpdateInstance(
 			ctx,
 			newInstance.GetResourceId(),
 			newInstance.GetCurrentState(),
 			inv_status.New(newInstance.GetProvisioningStatus(), newInstance.GetProvisioningStatusIndicator()),
+			newInstance.GetCurrentOs(),
 		); err != nil {
 			zlogInst.MiSec().MiErr(err).Msgf("Failed to update instance %s status", newInstance.GetResourceId())
 		}

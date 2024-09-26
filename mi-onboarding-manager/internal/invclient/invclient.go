@@ -499,9 +499,10 @@ func (c *OnboardingInventoryClient) SetInstanceProvisioningStatus(ctx context.Co
 	})
 }
 
-func (c *OnboardingInventoryClient) SetInstanceStatusAndCurrentState(ctx context.Context, instanceID string,
+func (c *OnboardingInventoryClient) UpdateInstance(ctx context.Context, instanceID string,
 	currentState computev1.InstanceState,
 	provisioningStatus inv_status.ResourceStatus,
+	currentOS *osv1.OperatingSystemResource,
 ) error {
 	updateInstance := &computev1.InstanceResource{
 		ResourceId:                  instanceID,
@@ -509,6 +510,7 @@ func (c *OnboardingInventoryClient) SetInstanceStatusAndCurrentState(ctx context
 		ProvisioningStatus:          provisioningStatus.Status,
 		ProvisioningStatusIndicator: provisioningStatus.StatusIndicator,
 		ProvisioningStatusTimestamp: uint64(time.Now().Unix()),
+		CurrentOs:                   currentOS,
 	}
 
 	return c.UpdateInvResourceFields(ctx, updateInstance, []string{
@@ -516,6 +518,7 @@ func (c *OnboardingInventoryClient) SetInstanceStatusAndCurrentState(ctx context
 		computev1.InstanceResourceFieldProvisioningStatus,
 		computev1.InstanceResourceFieldProvisioningStatusIndicator,
 		computev1.InstanceResourceFieldProvisioningStatusTimestamp,
+		computev1.InstanceResourceEdgeCurrentOs,
 	})
 }
 

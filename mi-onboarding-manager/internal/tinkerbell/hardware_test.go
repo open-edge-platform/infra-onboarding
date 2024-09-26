@@ -24,12 +24,13 @@ import (
 
 func TestNewHardware(t *testing.T) {
 	type args struct {
-		name    string
-		ns      string
-		id      string
-		device  string
-		ip      string
-		gateway string
+		name         string
+		ns           string
+		id           string
+		device       string
+		ip           string
+		gateway      string
+		osResourceID string
 	}
 	tests := []struct {
 		name string
@@ -46,7 +47,7 @@ func TestNewHardware(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := NewHardware(tt.args.name, tt.args.ns, tt.args.id, tt.args.device,
-				tt.args.ip, tt.args.gateway); reflect.DeepEqual(got, tt.want) {
+				tt.args.ip, tt.args.gateway, tt.args.osResourceID); reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewHardware() = %v, want %v", got, tt.want)
 			}
 		})
@@ -198,6 +199,7 @@ func TestCreateHardwareIfNotExists(t *testing.T) {
 		k8sCli       client.Client
 		k8sNamespace string
 		deviceInfo   utils.DeviceInfo
+		osResourceID string
 	}
 	mockClient := MockClient{}
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -248,7 +250,7 @@ func TestCreateHardwareIfNotExists(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := CreateHardwareIfNotExists(tt.args.ctx, tt.args.k8sCli, tt.args.k8sNamespace, tt.args.deviceInfo); (err != nil) != tt.wantErr {
+			if err := CreateHardwareIfNotExists(tt.args.ctx, tt.args.k8sCli, tt.args.k8sNamespace, tt.args.deviceInfo, tt.args.osResourceID); (err != nil) != tt.wantErr {
 				t.Errorf("CreateHardwareIfNotExists() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

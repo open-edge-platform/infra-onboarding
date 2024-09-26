@@ -8,6 +8,7 @@ import (
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/compute/v1"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/os/v1"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/status"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/util"
 )
@@ -62,4 +63,8 @@ func IsSameHost(
 	}
 
 	return proto.Equal(clonedHostres, updatedHostres), nil
+}
+
+func PopulateCurrentOS(instance *computev1.InstanceResource, osResourceID string) {
+	instance.CurrentOs = &osv1.OperatingSystemResource{ResourceId: osResourceID}
 }
