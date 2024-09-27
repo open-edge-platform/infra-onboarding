@@ -80,6 +80,7 @@ func SignHookOS(scriptPath string, targetDir string) (bool, error) {
 	logging_svc := os.Getenv("ORCH_PLATFORM_OBS_HOST")
 	extra_hosts := os.Getenv("EXTRA_HOSTS")
 	onboarding_manager_svc := os.Getenv("OM_SERVICE_URL")
+	onboarding_stream_svc := os.Getenv("OM_STREAM_URL")
 
 	content, err := os.ReadFile("config")
 	if err != nil {
@@ -104,6 +105,7 @@ func SignHookOS(scriptPath string, targetDir string) (bool, error) {
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__oci_release_svc__", oci_release_svc)
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__logging_svc__", logging_svc)
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__onboarding_manager_svc__", onboarding_manager_svc)
+	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__onboarding_manager_svc__", onboarding_stream_svc)
 	// Write the modified config back to the file
 	errconf := os.WriteFile("config", []byte(modifiedConfig), 0644)
 	if errconf != nil {

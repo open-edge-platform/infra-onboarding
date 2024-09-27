@@ -48,6 +48,7 @@ create_env_config() {
 	tink_stack_svc="${tink_stack_svc:-}"
 	tink_server_svc="${tink_server_svc:-}"
 	onboarding_manager_svc="${onboarding_manager_svc:-}"
+	onboarding_stream_svc="${onboarding_stream_svc:-}"
 	http_proxy="${http_proxy:-}"
 	no_proxy="${no_proxy:-}"
     if [ -n "$fdo_manufacturer_svc" ];
@@ -60,6 +61,7 @@ create_env_config() {
 	echo -e "tink_stack_svc=$tink_stack_svc" 
 	echo -e "tink_server_svc=$tink_server_svc"
 	echo -e "onboarding_manager_svc=$onboarding_manager_svc"
+	echo -e "onboarding_stream_svc=$onboarding_stream_svc"
 	} >> "$LOCATION_OF_ENV_CONFIG"
     fi
 

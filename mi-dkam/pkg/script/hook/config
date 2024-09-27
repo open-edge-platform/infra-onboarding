@@ -50,6 +50,7 @@ logging_svc="__logging_svc__"
 tink_stack_svc="__tink_stack_svc__"
 tink_server_svc="__tink_server_svc__"
 onboarding_manager_svc="__onboarding_manager_svc__"
+onboarding_stream_svc="__onboarding_stream_svc__"
 ## Organizationonal proxy config (default is intel)
 http_proxy="__http_proxy__"
 https_proxy="__https_proxy__"
