@@ -4,7 +4,9 @@
 package download
 
 import (
+	"crypto/sha256"
 	"fmt"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/os/v1"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -81,26 +83,33 @@ func TestGetReleaseServerResponse(t *testing.T) {
 }
 
 func TestDownloadUbuntuImage(t *testing.T) {
+	randBytes := make([]byte, 20)
 	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Assert expected header
 		w.WriteHeader(http.StatusOK)
 		// Return random bytes
-		w.Write(make([]byte, 20))
+		w.Write(randBytes)
 	}))
 	defer svr.Close()
 
 	tmpFolderPath, err := os.MkdirTemp("/tmp", "test_download_ubuntu")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpFolderPath)
-	expectedFileName := "final.raw.gz"
 
 	dir := config.PVC
 	os.MkdirAll(dir, 0755)
 
-	// TODO(NEXFMPID-3359): imgName MUST be image.img because DownloadUbuntuImage has hardcoded values inside
-	imgName := "image.img"
-	// TODO: 3rd parameter is unused
-	err = DownloadUbuntuImage(svr.URL, imgName, expectedFileName, config.DownloadPath, "")
+	hasher := sha256.New()
+	_, err = hasher.Write(randBytes)
+	require.NoError(t, err)
+
+	testSha256 := fmt.Sprintf("%x", hasher.Sum(nil))
+	err = DownloadUbuntuImage(&osv1.OperatingSystemResource{
+		ImageUrl:    svr.URL,
+		Sha256:      testSha256,
+		ProfileName: "test-profile",
+		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
+	}, config.DownloadPath)
 	require.NoError(t, err)
 
 	// Check the expected file is created
@@ -288,7 +297,7 @@ func Test_downloadImage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := downloadImage(tt.args.url, tt.args.fileName, tt.args.targetDir); (err != nil) != tt.wantErr {
+			if err := downloadImage(tt.args.url, tt.args.targetDir+tt.args.fileName); (err != nil) != tt.wantErr {
 				t.Errorf("downloadImage() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -402,14 +411,10 @@ func TestDownloadUbuntuImage_Negative(t *testing.T) {
 	}))
 	defer sercv.Close()
 	type args struct {
-		imageUrl  string
-		format    string
-		fileName  string
 		targetDir string
-		sha256    string
+		osr       *osv1.OperatingSystemResource
 	}
-	fileName := fileNameFromURL(config.ImageUrl)
-	rawFileName := strings.TrimSuffix(fileName, ".img") + ".raw.gz"
+
 	tests := []struct {
 		name    string
 		args    args
@@ -418,84 +423,64 @@ func TestDownloadUbuntuImage_Negative(t *testing.T) {
 		{
 			name: "Negative",
 			args: args{
-				imageUrl:  config.ImageUrl,
-				format:    "image.img",
-				fileName:  rawFileName,
 				targetDir: config.PVC,
+				osr: &osv1.OperatingSystemResource{
+					ImageUrl:    config.ImageUrl,
+					ProfileName: "test-profile-name",
+				},
 			},
 			wantErr: true,
 		},
 		{
 			name: "Negative test case",
 			args: args{
-				imageUrl:  "raw.gz",
-				format:    "image.img",
-				fileName:  rawFileName,
 				targetDir: config.PVC,
+				osr: &osv1.OperatingSystemResource{
+					ImageUrl:    "raw.gz",
+					ProfileName: "test-profile-name",
+				},
 			},
 			wantErr: true,
 		},
 		{
 			name: "Negative test case_1",
 			args: args{
-				imageUrl:  sercv.URL,
-				format:    "image.img",
-				fileName:  rawFileName,
 				targetDir: t.TempDir(),
+				osr: &osv1.OperatingSystemResource{
+					ImageUrl:    sercv.URL,
+					ProfileName: "test-profile-name",
+				},
 			},
 			wantErr: true,
 		},
 		{
 			name: "Negative test case_2",
 			args: args{
-				imageUrl:  "://example.com",
-				format:    "image.img",
-				fileName:  rawFileName,
 				targetDir: t.TempDir(),
+				osr: &osv1.OperatingSystemResource{
+					ImageUrl:    "://example.com",
+					ProfileName: "test-profile-name",
+				},
 			},
 			wantErr: true,
 		},
 		{
 			name: "Negative test case_3",
 			args: args{
-				imageUrl:  sercv.URL + "/raw.gz",
-				format:    "image.img",
-				fileName:  rawFileName,
 				targetDir: t.TempDir(),
+				osr: &osv1.OperatingSystemResource{
+					ImageUrl:    sercv.URL + "/raw.gz",
+					ProfileName: "test-profile-name",
+				},
 			},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			DownloadUbuntuImage(tt.args.imageUrl, tt.args.format, tt.args.fileName, tt.args.targetDir, tt.args.sha256)
+			DownloadUbuntuImage(tt.args.osr, tt.args.targetDir)
 		})
 	}
-}
-
-func TestDownloadUbuntuimage(t *testing.T) {
-	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, "responseBody *final.img")
-	}))
-	defer svr.Close()
-	tmpFolderPath, err := os.MkdirTemp("/tmp", "test_download_ubuntu")
-	require.NoError(t, err)
-	defer os.RemoveAll(tmpFolderPath)
-	expectedFileName := "final.raw.gz"
-	dir := config.PVC
-	os.MkdirAll(dir, 0755)
-	imgName := "image.img"
-	err = DownloadUbuntuImage(svr.URL, imgName, expectedFileName, config.DownloadPath, "")
-	require.NoError(t, err)
-	defer func() {
-		os.Remove(dir)
-	}()
-}
-
-func fileNameFromURL(url string) string {
-	parts := strings.Split(url, "/")
-	return parts[len(parts)-1]
 }
 
 func TestDownloadPrecuratedScript(t *testing.T) {

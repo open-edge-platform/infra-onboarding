@@ -295,8 +295,12 @@ func TestDownloadOS(t *testing.T) {
 			t.Fatalf("Failed to clean up directories: %v", err)
 		}
 	}()
-	osr := &osv1.OperatingSystemResource{}
-	if err := DownloadOS(osUrl, osr.OsType, sha256); err != nil {
+	osr := &osv1.OperatingSystemResource{
+		ImageUrl: osUrl,
+		OsType:   osv1.OsType_OS_TYPE_MUTABLE,
+		Sha256:   sha256,
+	}
+	if err := DownloadOS(osr); err != nil {
 		t.Errorf("Download failed: %v", err)
 	}
 }

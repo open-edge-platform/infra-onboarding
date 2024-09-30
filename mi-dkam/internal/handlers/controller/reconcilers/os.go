@@ -81,7 +81,7 @@ func (osr *OsReconciler) reconcileOsInstance(
 	zlogOs.MiSec().Info().Msgf("Reconciling OS instance with ID : %s", id)
 	fmt.Printf("Received AType: %v\n", osinst.OsType)
 	//Download OS image
-	downloadErr := dkammgr.DownloadOS(osinst.ImageUrl, osinst.OsType, osinst.Sha256)
+	downloadErr := dkammgr.DownloadOS(osinst)
 	if downloadErr != nil {
 		zlogOs.MiSec().Fatal().Err(downloadErr).Msgf("Error downloading and converting OS image")
 		return request.Ack()
