@@ -189,33 +189,33 @@ pipeline {
                 }
             }
         }
-	    stage('Version dev') {
+
+        stage('Artifact') {
+            steps {
+                artifactUpload()
+            }
+        }
+        stage('Version dev') {
             when {
                 anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; }
             }
             steps {
                 withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
                 {
-                echo "Start new development cycle if needed"
-                sh '''
-                # Use writable user for git
-                echo "machine github.com" >> $HOME/.netrc
-                echo "  login not-used" >> $HOME/.netrc
-                echo "  password $PASSWORD" >> $HOME/.netrc
-                echo "machine api.github.com" >> $HOME/.netrc
-                echo "  login not-used" >> $HOME/.netrc
-                echo "  password $PASSWORD" >> $HOME/.netrc
-
-                # Append -dev
-                REVIEWER_1="raphaelvrosa" REVIEWER_2="daniele-moro" /opt/ci/version-dev.sh
-                '''
+                    versionDev("raphaelvrosa", "daniele-moro")
                 }
             }
         }
-
-	stage('Artifact') {
+        stage('Auto approve') {
+            when {
+                changeRequest()
+            }
             steps {
-                artifactUpload()
+                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_devops_approve_github_api', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+                    script {
+                        autoApproveAndMergePR()
+                    }
+                }
             }
         }
     }
