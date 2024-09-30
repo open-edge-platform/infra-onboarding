@@ -1,38 +1,171 @@
+// #####################################################################################
+// # INTEL CONFIDENTIAL                                                                #
+// # Copyright (C) 2024 Intel Corporation                                              #
+// # This software and the related documents are Intel copyrighted materials,          #
+// # and your use of them is governed by the express license under which they          #
+// # were provided to you ("License"). Unless the License provides otherwise,          #
+// # you may not use, modify, copy, publish, distribute, disclose or transmit          #
+// # this software or the related documents without Intel's prior written permission.  #
+// # This software and the related documents are provided as is, with no express       #
+// # or implied warranties, other than those that are expressly stated in the License. #
+// #####################################################################################
+
 package main
 
 import (
+	"bufio"
 	"context"
+	"crypto/x509"
 	"fmt"
+	"io"
+	"log"
+	"math/rand"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
 
 	pb_om "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
+	"golang.org/x/oauth2"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/oauth"
 )
 
-func grpcMaestroOnboardNodeJWT(ctx context.Context, address string, port int, mac string, ip string, uuid string, serial string) error {
+const (
+	tokenFolder             = "/dev/shm"
+	envConfigPath           = "/etc/hook/env_config"
+	extraHostsFile          = "/etc/hosts"
+	accessTokenFile         = tokenFolder + "/idp_access_token"
+	releaseTokenFile        = tokenFolder + "/release_token"
+	keycloakTokenURL        = "/realms/master/protocol/openid-connect/token"
+	releaseTokenURL         = "/token"
+	clientCredentialsFolder = "/dev/shm/"
+	clientIDPath            = clientCredentialsFolder + "/client_id"
+	clientSecretPath        = clientCredentialsFolder + "/client_secret"
+	kernelArgsFilePath      = "/host_proc_cmdline"
+	caCertPath              = "/usr/local/share/ca-certificates/ca.crt"
+)
+
+func updateHosts(extraHosts string) error {
+	// Update hosts if they were provided
+	if extraHosts != "" {
+		// Replace commas with newlines
+		extraHostsNeeded := strings.ReplaceAll(extraHosts, ",", "\n")
+
+		// Append to /etc/hosts
+		hostsFile := "/etc/hosts"
+		err := os.WriteFile(hostsFile, []byte(extraHostsNeeded), os.ModeAppend|0644)
+		if err != nil {
+			return fmt.Errorf("error updating /etc/hosts: %w", err)
+		}
+
+		fmt.Println("Adding extra host mappings completed")
+	}
+	return nil
+}
+
+func loadEnvConfig(path string) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if len(line) > 0 && line[0] != '#' {
+			parts := strings.SplitN(line, "=", 2)
+			if len(parts) == 2 {
+				os.Setenv(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))
+			}
+		}
+	}
+	return scanner.Err()
+}
+
+// saveToFile writes data to the specified file path with the given permissions
+func saveToFile(path, data string) error {
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Use io.Writer interface to write data
+	_, err = io.WriteString(file, data)
+	return err
+}
+
+// readEnvVars checks if all required environment variables are set and returns an error if any are missing.
+func readEnvVars(requiredVars []string) (map[string]string, error) {
+	envVars := make(map[string]string)
+
+	for _, key := range requiredVars {
+		value, exists := os.LookupEnv(key)
+		if !exists || value == "" {
+			return nil, fmt.Errorf("environment variable %s is missing", key)
+		}
+		envVars[key] = value
+	}
+
+	return envVars, nil
+}
+
+func grpcMaestroOnboardNodeJWT(ctx context.Context, address string, port int, mac string, ip string, uuid string, serial string, caCertPath string, accessTokenPath string) error {
+	// Load the CA certificate
+	caCert, err := os.ReadFile(caCertPath)
+	if err != nil {
+		return fmt.Errorf("failed to read CA certificate: %v", err)
+	}
+	fmt.Println("caCert: ", caCert)
+	// Create a certificate pool from the CA certificate
+	certPool := x509.NewCertPool()
+	if !certPool.AppendCertsFromPEM(caCert) {
+		return fmt.Errorf("failed to append CA certificate to cert pool")
+	}
+
+	// Create the credentials using the certificate pool
+	creds := credentials.NewClientTLSFromCert(certPool, "")
+
+	// Read JWT token from file
+	jwtToken, err := os.ReadFile(accessTokenPath)
+	if err != nil {
+		return fmt.Errorf("failed to read JWT token from file: %v", err)
+	}
+	// Convert JWT token to string and trim whitespace
+	tokenString := strings.TrimSpace(string(jwtToken))
+
 	target := fmt.Sprintf("%s:%d", address, port)
-	fmt.Println("\n address", target)
+	fmt.Println("address", target)
+	fmt.Println("token", tokenString)
 	conn, err := grpc.DialContext(
 		ctx,
 		target,
 		grpc.WithBlock(),
-		grpc.WithInsecure(), // Use insecure connection
+		grpc.WithTransportCredentials(
+			creds,
+		),
+		grpc.WithPerRPCCredentials(
+			oauth.TokenSource{
+				TokenSource: oauth2.StaticTokenSource(
+					&oauth2.Token{AccessToken: tokenString}, // Send the access token as part of the HTTP Authorization header
+				),
+			},
+		),
 	)
 	if err != nil {
 		return fmt.Errorf("could not dial server %s: %v", target, err)
-	} else {
-		fmt.Println("Connection success")
 	}
 	defer conn.Close()
 	fmt.Println("Dial Complete")
+
 	cli := pb_om.NewNodeArtifactServiceNBClient(conn)
 	// Create a NodeData object
 	nodeData := &pb_om.NodeData{
-		// HwId: "host-e6b916b3",
 		Hwdata: []*pb_om.HwData{
 			{
 				MacId:        mac,
@@ -51,77 +184,135 @@ func grpcMaestroOnboardNodeJWT(ctx context.Context, address string, port int, ma
 	if _, err := cli.CreateNodes(ctx, nodeRequest); err != nil {
 		return fmt.Errorf("could not call gRPC endpoint for server %s: %v", target, err)
 	}
+
 	return nil
 }
 
 func main() {
-	requiredEnvVars := []string{"OBM_ADDRESS", "MAC_ID"}
-	for _, envVar := range requiredEnvVars {
-		if os.Getenv(envVar) == "" {
-			fmt.Printf("Environment variable %s is not set.\n", envVar)
-			os.Exit(1)
-		}
-	}
-	macAddr := os.Getenv("MAC_ID")
-	obm_addr := os.Getenv("OBM_ADDRESS")
-	// Split the string into IP and port using ":" as the delimiter
-	parts := strings.Split(obm_addr, ":")
-
-	// Ensure there are exactly two parts (IP and port)
-	if len(parts) != 2 {
-		fmt.Println("Invalid obm_addr format.")
-		os.Exit(1)
+	// Define the required environment variables
+	requiredVars := []string{
+		"EXTRA_HOSTS",
+		"OBM_ADDRESS",
+		"OBM_NIO_ADDRESS",
+		"OBM_PORT",
+		"KEYCLOAK_URL",
 	}
 
-	// Assign the split parts to respective variables
-	obm_ip := parts[0]
-	// Convert port to an integer
-	obm_port, err := strconv.Atoi(parts[1])
+	// Check and load the environment variables
+	envVars, err := readEnvVars(requiredVars)
 	if err != nil {
-		fmt.Println("Error converting port to integer:", err)
-		os.Exit(1)
+		log.Fatal("Error:", err)
 	}
-	// Print the results
-	fmt.Printf("OBM IP: %s\n", obm_ip)
-	fmt.Printf("OBM Port: %d\n", obm_port)
 
-	// logic to detect ip, serial, and uuid based on mac starts here
+	// Environment variables from the envVars map
+	fmt.Println("Environment variables loaded successfully:", envVars)
+
+	obm_port, err := strconv.Atoi(envVars["OBM_PORT"])
+	if err != nil {
+		log.Fatalf("Error converting port to integer: %v\n", err)
+
+	}
+
+	// parse kernel args
+	cfg, err := parseKernelArguments(kernelArgsFilePath)
+	if err != nil {
+		log.Fatalf("Error parsing kernel arguments: %v\n", err)
+	}
+	// Use cfg as needed, for example, printing the parsed configuration
+	fmt.Printf("Parsed Config: %+v\n", cfg)
+	macAddr := cfg.workerID
+
+	// Load environment variables from env_config
+	if err := loadEnvConfig(envConfigPath); err != nil {
+		log.Fatalf("Failed to load env_config: %v", err)
+	}
+
+	// add extra hosts
+	if err := updateHosts(envVars["EXTRA_HOSTS"]); err != nil {
+		log.Fatalf("Failed to add extra hosts: %v", err)
+	}
+
+	// logic to detect serial, uuid, and ip based on mac starts here
 	serialNumber, err := getSerialNumber()
 	if err != nil {
-		fmt.Printf("Error getting serial number: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Error getting serial number: %v\n", err)
 	} else {
 		fmt.Printf("Serial Number: %s\n", serialNumber)
 	}
 
 	uuid, err := getUUID()
 	if err != nil {
-		fmt.Printf("Error getting UUID: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Error getting UUID: %v\n", err)
 	} else {
 		fmt.Printf("UUID: %s\n", uuid)
 	}
-
 	ipAddress, err := getIPAddress(macAddr)
 	if err != nil {
-		fmt.Printf("Error getting IP address: %v\n", err)
-		os.Exit(1)
+		log.Fatal("Error getting IP address: ", err)
 	} else {
 		fmt.Printf("IP Address for MAC %s: %s\n", macAddr, ipAddress)
 	}
-	// logic to detect ip, serial, and uuid based on mac ends here
+	// logic to detect serial, uuid, and ip based on mac ends here
 
-	retryDelay := 2 * time.Second // Delay between retries
-	for {
-		err := grpcMaestroOnboardNodeJWT(context.Background(), obm_ip, obm_port, macAddr, ipAddress, uuid, serialNumber)
-		if err == nil {
-			fmt.Println("Device discovery done")
-			return
+	//grpc streaming starts here
+	clientID, clientSecret, err, fallback := grpcStreamClient(context.Background(), envVars["OBM_NIO_ADDRESS"], obm_port, macAddr, uuid, serialNumber, ipAddress, caCertPath)
+	if fallback {
+		fmt.Printf("Executing fallback method because of error: %s\n", err)
+		//Interactive client Auth starts here
+		if err := exec.Command("/bin/sh", "client-auth.sh").Run(); err != nil {
+			fmt.Println("Error in running client-auth.sh:", err)
+			os.Exit(1)
 		}
+		fmt.Println("client-auth.sh executed sucessfully")
+		// Interactive client Auth ends here
 
-		fmt.Printf("There was an error in updating the edge-node details with the onboarding manager, may be caddy is down: %v\n", err)
-		fmt.Printf("Retrying update in %v...\n", retryDelay)
-		time.Sleep(retryDelay)
+		maxRetries := 3
+		retryDelay := 2 * time.Second // Fixed delay between retries
+
+		for retries := 0; retries < maxRetries; retries++ {
+			err := grpcMaestroOnboardNodeJWT(context.Background(), envVars["OBM_ADDRESS"], obm_port, macAddr, ipAddress, uuid, serialNumber, caCertPath, accessTokenFile)
+			if err == nil {
+				fmt.Println("Device discovery done")
+				return
+			}
+
+			// Log the error and retry info
+			fmt.Printf("There was an error in updating the edge-node details with the onboarding manager: %v\n", err)
+			if retries < maxRetries-1 {
+				fmt.Printf("Retrying update... attempt %d of %d\n", retries+2, maxRetries) // retries+2 to show next attempt
+				time.Sleep(retryDelay + time.Duration(rand.Intn(1000))*time.Millisecond)   // Slight random jitter
+			}
+		}
+		// If we exhausted the retries
+		log.Fatalf("Max retries reached. Could not complete device discovery.")
+	} else {
+		if err != nil {
+			log.Fatalf("Error Case: %v", err)
+		}
+		if err := saveToFile(clientIDPath, clientID); err != nil {
+			log.Fatalf("error writing clientID: %v", err)
+		}
+		if err := saveToFile(clientSecretPath, clientSecret); err != nil {
+			log.Fatalf("error writing clientSecret: %v", err)
+		}
+		fmt.Println("Credentials written successfully.")
+		// grpc streaming ends here
+
+		// client auth starts here
+		idpAccessToken, releaseToken, err := clientAuth(clientID, clientSecret, envVars["KEYCLOAK_URL"], keycloakTokenURL, releaseTokenURL, caCertPath)
+		if err != nil {
+			log.Fatalf("Error: %v\n", err)
+		}
+		fmt.Printf("IDP Access Token: %s\n", idpAccessToken)
+		fmt.Printf("Release Token: %s\n", releaseToken)
+		// Write access_token to idp_access_token file
+		if err := saveToFile(accessTokenFile, idpAccessToken); err != nil {
+			log.Fatalf("failed to save access token to file: %v", err)
+		}
+		// Write release_token to release_token file
+		if err := saveToFile(releaseTokenFile, releaseToken); err != nil {
+			log.Fatalf("failed to save release token to file: %v", err)
+		}
+		// client auth ends here
 	}
-
 }
