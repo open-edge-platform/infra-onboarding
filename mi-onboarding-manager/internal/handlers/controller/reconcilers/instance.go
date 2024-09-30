@@ -293,9 +293,11 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 	zlogInst.Info().Msgf("DiskType is %s\n", deviceInfo.DiskType)
 	zlogInst.Info().Msgf("OsType is %s\n", deviceInfo.OsType)
 	zlogInst.Info().Msgf("SecurityFeature is %d\n", deviceInfo.SecurityFeature)
+	zlogInst.Info().Msgf("SecurityFeature is %s\n", instance.GetSecurityFeature().String())
 	zlogInst.Info().Msgf("ClientImgName is %s\n", deviceInfo.ClientImgName)
 	zlogInst.Info().Msgf("CustomerID is %s\n", deviceInfo.CustomerID)
 	zlogInst.Info().Msgf("ENProductKeyIDs is %s\n", deviceInfo.ENProductKeyIDs)
+	zlogInst.Info().Msgf("OsImageSHA256 is %s\n", deviceInfo.OsImageSHA256)
 
 	return deviceInfo, nil
 }

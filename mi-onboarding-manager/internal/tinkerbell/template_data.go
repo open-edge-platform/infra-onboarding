@@ -197,6 +197,10 @@ func tinkActionCredcopyImage(tinkerImageVersion string) string {
 
 //nolint:funlen // May effect the functionality, need to simplify this in future
 func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enableDI bool) ([]byte, error) {
+	// #nosec G115
+	securityFeatureTypeVar := osv1.SecurityFeature(deviceInfo.SecurityFeature)
+	securityFeatureStr := securityFeatureTypeVar.String()
+
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -210,6 +214,17 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 				"/lib/firmware:/lib/firmware:ro",
 			},
 			Actions: []Action{
+				{
+					Name:    ActionSecureBootStatusFlagRead,
+					Image:   tinkActionSecurebootFlagReadImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutAvg560,
+					Environment: map[string]string{
+						"SECURITY_FEATURE_FLAG": securityFeatureStr,
+					},
+					Volumes: []string{
+						"/:/host:rw",
+					},
+				},
 				{
 					Name:    ActionStreamTiberOSImage,
 					Image:   tinkActionDiskImage(deviceInfo.TinkerVersion),
@@ -229,6 +244,18 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 
 				// `ActionCreateUser` tinker action is removed since 'user' is already added in the os image
 				// TODO: Might need to add once the prebuilt os image removes exiting user name 'user'
+				{
+					Name:    ActionCreateUser,
+					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":             "ext4",
+						"CHROOT":              "y",
+						"DEFAULT_INTERPRETER": "/bin/sh -c",
+						"CMD_LINE": fmt.Sprintf("useradd -p $(openssl passwd -1 %s) -s /bin/bash -d /home/%s/ -m -G sudo %s",
+							env.ENPassWord, env.ENUserName, env.ENUserName),
+					},
+				},
 				{
 					Name:    ActionCreateCustomerIDDirectory,
 					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
