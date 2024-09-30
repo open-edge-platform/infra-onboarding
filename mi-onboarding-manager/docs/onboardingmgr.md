@@ -12,6 +12,8 @@
     - [NodeData](#onboardingmgr-NodeData)
     - [NodeRequest](#onboardingmgr-NodeRequest)
     - [NodeResponse](#onboardingmgr-NodeResponse)
+    - [OnboardStreamRequest](#onboardingmgr-OnboardStreamRequest)
+    - [OnboardStreamResponse](#onboardingmgr-OnboardStreamResponse)
     - [Ports](#onboardingmgr-Ports)
     - [Proxy](#onboardingmgr-Proxy)
     - [Supplier](#onboardingmgr-Supplier)
@@ -19,6 +21,7 @@
     - [ArtifactData.ArtifactCategory](#onboardingmgr-ArtifactData-ArtifactCategory)
     - [ArtifactData.Response](#onboardingmgr-ArtifactData-Response)
     - [NodeData.Response](#onboardingmgr-NodeData-Response)
+    - [OnboardStreamResponse.NodeState](#onboardingmgr-OnboardStreamResponse-NodeState)
   
     - [NodeArtifactServiceNB](#onboardingmgr-NodeArtifactServiceNB)
   
@@ -196,6 +199,43 @@ Node App Artifact ID to be stored here.This ID is retured to GetArtifacts{id} |
 
 
 
+<a name="onboardingmgr-OnboardStreamRequest"></a>
+
+### OnboardStreamRequest
+OnboardStreamRequest represents a request sent from EN to the OM
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| uuid | [string](#string) |  | The UUID of the EN being onboarded |
+| serialnum | [string](#string) |  | The serial number of the EN |
+| mac_id | [string](#string) |  | The MAC ID of the EN |
+| host_ip | [string](#string) |  | The IP of the EN |
+
+
+
+
+
+
+<a name="onboardingmgr-OnboardStreamResponse"></a>
+
+### OnboardStreamResponse
+OnboardStreamResponse represents a response sent from the OM to a EN
+over the bidirectional stream
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| status | [google.rpc.Status](#google-rpc-Status) |  | The status of the onboarding request |
+| node_state | [OnboardStreamResponse.NodeState](#onboardingmgr-OnboardStreamResponse-NodeState) |  | The current state of the device as stored in EIM Inventory |
+| client_id | [string](#string) |  | The client_id provided to the node upon successful onboarding |
+| client_secret | [string](#string) |  | The client_secret provided to the node upon successful onboarding |
+
+
+
+
+
+
 <a name="onboardingmgr-Ports"></a>
 
 ### Ports
@@ -291,6 +331,20 @@ Node App Artifact ID to be stored here.This ID is retured to GetArtifacts{id} |
 | FAILURE | 1 | Failure |
 
 
+
+<a name="onboardingmgr-OnboardStreamResponse-NodeState"></a>
+
+### OnboardStreamResponse.NodeState
+NodeState represents state of the device as stored in EIM Inventory
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| UNSPECIFIED | 0 | Node state is unspecified or unknown |
+| REGISTERED | 1 | Allow to retry, Node is registered but not yet onboarded |
+| ONBOARDED | 2 | Node successfully onboarded |
+| DELETED | 3 | The host should be removed from the system. |
+
+
  
 
  
@@ -311,6 +365,7 @@ Artifact &amp; Node Endpoints towards Inventory Manager
 | GetNodes | [NodeRequest](#onboardingmgr-NodeRequest) | [NodeResponse](#onboardingmgr-NodeResponse) |  |
 | UpdateNodes | [NodeRequest](#onboardingmgr-NodeRequest) | [NodeResponse](#onboardingmgr-NodeResponse) |  |
 | DeleteNodes | [NodeRequest](#onboardingmgr-NodeRequest) | [NodeResponse](#onboardingmgr-NodeResponse) |  |
+| OnboardNodeStream | [OnboardStreamRequest](#onboardingmgr-OnboardStreamRequest) stream | [OnboardStreamResponse](#onboardingmgr-OnboardStreamResponse) stream | OnboardNodeStream establishes a bidirectional stream between the EN and the OM It allows EN to send stream requests and receive responses |
 
  
 

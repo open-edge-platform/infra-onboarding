@@ -1801,3 +1801,150 @@ func TestOnboardingInventoryClient_GetProviderConfig(t *testing.T) {
 		})
 	}
 }
+
+
+func TestOnboardingInventoryClient_updateHostMacID(t *testing.T) {
+	CreateOnboardingClientForTesting(t)
+	invClient := OnboardingTestClient
+	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	type fields struct {
+		Client  client.InventoryClient
+		Watcher chan *client.WatchEvents
+	}
+	type args struct {
+		ctx  context.Context
+		host *computev1.HostResource
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "UpdateHostMacID_PositiveCase",
+			fields: fields{
+				Watcher: make(chan *client.WatchEvents),
+			},
+			args: args{
+				ctx:  context.Background(),
+				host: host,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := invClient.updateHostMacID(tt.args.ctx, tt.args.host); (err != nil) != tt.wantErr {
+				t.Errorf("OnboardingInventoryClient.updateHostMacID() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestOnboardingInventoryClient_UpdateHostMacID(t *testing.T) {
+	CreateOnboardingClientForTesting(t)
+	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	invClient := OnboardingTestClient
+	type fields struct {
+		Client  client.InventoryClient
+		Watcher chan *client.WatchEvents
+	}
+	type args struct {
+		ctx        context.Context
+		resourceID string
+		macid      string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "UpdateHostMacID_PositiveCase",
+			fields: fields{
+				Watcher: make(chan *client.WatchEvents),
+			},
+			args: args{
+				ctx:        context.Background(),
+				resourceID: host.ResourceId,
+				macid:      "123",
+			},
+			wantErr: false,
+		},
+		{
+			name: "UpdateHostMacID_NegativeCase",
+			fields: fields{
+				Watcher: make(chan *client.WatchEvents),
+			},
+			args: args{
+				ctx:        context.Background(),
+				resourceID: "",
+				macid:      "",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := invClient.UpdateHostMacID(tt.args.ctx, tt.args.resourceID, tt.args.macid); (err != nil) != tt.wantErr {
+				t.Errorf("OnboardingInventoryClient.UpdateHostMacID() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestOnboardingInventoryClient_UpdateHostIP(t *testing.T) {
+	CreateOnboardingClientForTesting(t)
+	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	invClient := OnboardingTestClient
+	type fields struct {
+		Client  client.InventoryClient
+		Watcher chan *client.WatchEvents
+	}
+	type args struct {
+		ctx        context.Context
+		resourceID string
+		hostIP     string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "UpdateHostIP_WithValidData",
+			fields: fields{
+				Watcher: make(chan *client.WatchEvents),
+			},
+			args: args{
+				ctx:        context.Background(),
+				resourceID: host.ResourceId,
+				hostIP:     "123",
+			},
+			wantErr: false,
+		},
+		{
+			name: "UpdateHostIP_InvalidData",
+			fields: fields{
+				Watcher: make(chan *client.WatchEvents),
+			},
+			args: args{
+				ctx:        context.Background(),
+				resourceID: "",
+				hostIP:     "",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := invClient.UpdateHostIP(tt.args.ctx, tt.args.resourceID, tt.args.hostIP); (err != nil) != tt.wantErr {
+				t.Errorf("OnboardingInventoryClient.UpdateHostIP() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+

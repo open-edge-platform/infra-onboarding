@@ -2,6 +2,9 @@ syntax = "proto3";
 
 package onboardingmgr;
 
+import "google/rpc/status.proto";
+import "validate/validate.proto";
+
 option go_package = "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/tree/main/api/grpc/onboardingmgr;onboardingmgr";
 
 //Artifact & Node Endpoints towards Inventory Manager
@@ -21,6 +24,10 @@ service NodeArtifactServiceNB {
   rpc UpdateNodes(NodeRequest) returns (NodeResponse) {}
 
   rpc DeleteNodes(NodeRequest) returns (NodeResponse) {}
+
+  // OnboardNodeStream establishes a bidirectional stream between the EN and the OM
+  // It allows EN to send stream requests and receive responses
+  rpc OnboardNodeStream(stream OnboardStreamRequest) returns (stream OnboardStreamResponse) {}
 }
 
 message ArtifactRequest {
@@ -132,4 +139,32 @@ message CustomerParams {
   string dps_scope_id = 5; // DPS Scope ID
   string dps_registration_id = 6; // DPS registration ID
   string dps_enrollment_sym_key = 7; // DPS Enrollment Symetric Key
+}
+
+// OnboardStreamRequest represents a request sent from EN to the OM
+message OnboardStreamRequest {
+  // The UUID of the EN being onboarded
+  string uuid = 1 [(validate.rules).string.uuid = true];
+  // The serial number of the EN
+  string serialnum = 2 [(validate.rules).string = {max_len: 128}];
+  // The MAC ID of the EN
+  string mac_id = 3 [(validate.rules).string.pattern = "^[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}$"];
+  // The IP of the EN
+  string host_ip = 4 [(validate.rules).string.pattern = "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"];
+}
+
+// OnboardStreamResponse represents a response sent from the OM to a EN
+// over the bidirectional stream
+message OnboardStreamResponse {
+  // NodeState represents state of the device as stored in EIM Inventory
+  enum NodeState {
+    UNSPECIFIED = 0; // Node state is unspecified or unknown
+    REGISTERED = 1; // Allow to retry, Node is registered but not yet onboarded
+    ONBOARDED = 2; // Node successfully onboarded
+    DELETED = 3; // The host should be removed from the system.
+  }
+  google.rpc.Status status = 1; // The status of the onboarding request
+  NodeState node_state = 2; // The current state of the device as stored in EIM Inventory
+  string client_id = 3; // The client_id provided to the node upon successful onboarding
+  string client_secret = 4; // The client_secret provided to the node upon successful onboarding
 }

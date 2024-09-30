@@ -6,6 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 package utils
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"regexp"
@@ -13,6 +14,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/auth"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/errors"
 	logging "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/logging"
 )
 
@@ -87,4 +90,27 @@ func Close() {
 			zlog.MiSec().MiErr(err).Msgf("failed to close timestamp log file")
 		}
 	}
+}
+
+func FetchClientSecret(ctx context.Context, uuid string) (string, string, error) {
+	authService, err := auth.AuthServiceFactory(ctx)
+	if err != nil {
+		return "", "", err
+	}
+	defer authService.Logout(ctx)
+
+	clientID, clientSecret, err := authService.GetCredentialsByUUID(ctx, uuid)
+	if err != nil && inv_errors.IsNotFound(err) {
+		return authService.CreateCredentialsWithUUID(ctx, uuid)
+	}
+
+	if err != nil {
+		zlog.MiSec().MiErr(err).Msgf("")
+		// some other error that may need retry
+		return "", "", inv_errors.Errorf("Failed to check if EN credentials for host %s exist.", uuid)
+	}
+
+	zlog.Debug().Msgf("EN credentials for host %s already exists.", uuid)
+
+	return clientID, clientSecret, nil
 }

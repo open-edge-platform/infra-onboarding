@@ -35,6 +35,9 @@ var (
 	_ = sort.Sort
 )
 
+// define the regex for a UUID once up-front
+var _onboarding_uuidPattern = regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+
 // Validate checks the field values on ArtifactRequest with the rules defined
 // in the proto definition for this message. If any rules are violated, the
 // first error encountered is returned, or nil if there are no violations.
@@ -1459,3 +1462,299 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = CustomerParamsValidationError{}
+
+// Validate checks the field values on OnboardStreamRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *OnboardStreamRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on OnboardStreamRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// OnboardStreamRequestMultiError, or nil if none found.
+func (m *OnboardStreamRequest) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *OnboardStreamRequest) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if err := m._validateUuid(m.GetUuid()); err != nil {
+		err = OnboardStreamRequestValidationError{
+			field:  "Uuid",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if utf8.RuneCountInString(m.GetSerialnum()) > 128 {
+		err := OnboardStreamRequestValidationError{
+			field:  "Serialnum",
+			reason: "value length must be at most 128 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if !_OnboardStreamRequest_MacId_Pattern.MatchString(m.GetMacId()) {
+		err := OnboardStreamRequestValidationError{
+			field:  "MacId",
+			reason: "value does not match regex pattern \"^[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}$\"",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if !_OnboardStreamRequest_HostIp_Pattern.MatchString(m.GetHostIp()) {
+		err := OnboardStreamRequestValidationError{
+			field:  "HostIp",
+			reason: "value does not match regex pattern \"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$\"",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return OnboardStreamRequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *OnboardStreamRequest) _validateUuid(uuid string) error {
+	if matched := _onboarding_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// OnboardStreamRequestMultiError is an error wrapping multiple validation
+// errors returned by OnboardStreamRequest.ValidateAll() if the designated
+// constraints aren't met.
+type OnboardStreamRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m OnboardStreamRequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m OnboardStreamRequestMultiError) AllErrors() []error { return m }
+
+// OnboardStreamRequestValidationError is the validation error returned by
+// OnboardStreamRequest.Validate if the designated constraints aren't met.
+type OnboardStreamRequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e OnboardStreamRequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e OnboardStreamRequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e OnboardStreamRequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e OnboardStreamRequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e OnboardStreamRequestValidationError) ErrorName() string {
+	return "OnboardStreamRequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e OnboardStreamRequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sOnboardStreamRequest.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = OnboardStreamRequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = OnboardStreamRequestValidationError{}
+
+var _OnboardStreamRequest_MacId_Pattern = regexp.MustCompile("^[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}$")
+
+var _OnboardStreamRequest_HostIp_Pattern = regexp.MustCompile("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$")
+
+// Validate checks the field values on OnboardStreamResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *OnboardStreamResponse) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on OnboardStreamResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// OnboardStreamResponseMultiError, or nil if none found.
+func (m *OnboardStreamResponse) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *OnboardStreamResponse) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if all {
+		switch v := interface{}(m.GetStatus()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, OnboardStreamResponseValidationError{
+					field:  "Status",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, OnboardStreamResponseValidationError{
+					field:  "Status",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetStatus()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return OnboardStreamResponseValidationError{
+				field:  "Status",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	// no validation rules for NodeState
+
+	// no validation rules for ClientId
+
+	// no validation rules for ClientSecret
+
+	if len(errors) > 0 {
+		return OnboardStreamResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// OnboardStreamResponseMultiError is an error wrapping multiple validation
+// errors returned by OnboardStreamResponse.ValidateAll() if the designated
+// constraints aren't met.
+type OnboardStreamResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m OnboardStreamResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m OnboardStreamResponseMultiError) AllErrors() []error { return m }
+
+// OnboardStreamResponseValidationError is the validation error returned by
+// OnboardStreamResponse.Validate if the designated constraints aren't met.
+type OnboardStreamResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e OnboardStreamResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e OnboardStreamResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e OnboardStreamResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e OnboardStreamResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e OnboardStreamResponseValidationError) ErrorName() string {
+	return "OnboardStreamResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e OnboardStreamResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sOnboardStreamResponse.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = OnboardStreamResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = OnboardStreamResponseValidationError{}

@@ -5,6 +5,7 @@ package artifact
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -14,10 +15,15 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
+
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/compute/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/policy/rbac"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/testing"
+
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 )
 
 const rbacRules = "../../../../rego/authz.rego"
@@ -2865,6 +2871,273 @@ func TestNodeArtifactService_checkNCreateInstance(t *testing.T) {
 			}
 			if err := s.checkNCreateInstance(tt.args.ctx, tt.args.pconf, tt.args.host); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.checkNCreateInstance() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+type MockNodeArtifactServiceNB_OnboardNodeStreamServer struct {
+	mock.Mock
+}
+
+func (m *MockNodeArtifactServiceNB_OnboardNodeStreamServer) Send(response *pb.OnboardStreamResponse) error {
+	args := m.Called(response)
+	return args.Error(0)
+}
+
+func (m *MockNodeArtifactServiceNB_OnboardNodeStreamServer) Recv() (*pb.OnboardStreamRequest, error) {
+	args := m.Called()
+	return args.Get(0).(*pb.OnboardStreamRequest), args.Error(1)
+}
+
+func (m *MockNodeArtifactServiceNB_OnboardNodeStreamServer) SetHeader(md metadata.MD) error {
+	args := m.Called(md)
+	return args.Error(0)
+}
+
+func (m *MockNodeArtifactServiceNB_OnboardNodeStreamServer) SendHeader(md metadata.MD) error {
+	args := m.Called(md)
+	return args.Error(0)
+}
+
+func (m *MockNodeArtifactServiceNB_OnboardNodeStreamServer) SetTrailer(md metadata.MD) {
+	m.Called(md)
+}
+
+func (m *MockNodeArtifactServiceNB_OnboardNodeStreamServer) Context() context.Context {
+	args := m.Called()
+	return args.Get(0).(context.Context)
+}
+
+func (m *MockNodeArtifactServiceNB_OnboardNodeStreamServer) SendMsg(msg interface{}) error {
+	args := m.Called(msg)
+	return args.Error(0)
+}
+
+func (m *MockNodeArtifactServiceNB_OnboardNodeStreamServer) RecvMsg(msg interface{}) error {
+	args := m.Called(msg)
+	return args.Error(0)
+}
+
+func Test_sendStreamErrorResponse(t *testing.T) {
+	type args struct {
+		stream  pb.NodeArtifactServiceNB_OnboardNodeStreamServer
+		code    codes.Code
+		message string
+	}
+	var art MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	art.On("Send", mock.Anything).Return(errors.New("err"))
+	var art1 MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	art1.On("Send", mock.Anything).Return(nil)
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "negative",
+			args: args{
+				stream:  &art,
+				code:    codes.InvalidArgument,
+				message: "error",
+			},
+			wantErr: true,
+		},
+		{
+			name: "positive",
+			args: args{
+				stream: &art1,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := sendStreamErrorResponse(tt.args.stream, tt.args.code, tt.args.message); (err != nil) != tt.wantErr {
+				t.Errorf("sendStreamErrorResponse() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestNodeArtifactService_handleRegisteredState(t *testing.T) {
+	type fields struct {
+		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
+		invClient                                *invclient.OnboardingInventoryClient
+		invClientAPI                             *invclient.OnboardingInventoryClient
+		rbac                                     *rbac.Policy
+		authEnabled                              bool
+	}
+	var art MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	art.On("Send", mock.Anything).Return(errors.New("err"))
+	var art1 MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	art1.On("Send", mock.Anything).Return(nil)
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	type args struct {
+		stream  pb.NodeArtifactServiceNB_OnboardNodeStreamServer
+		hostInv *computev1.HostResource
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "negative",
+			fields: fields{
+				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
+				invClient:                                &invclient.OnboardingInventoryClient{},
+				invClientAPI:                             &invclient.OnboardingInventoryClient{},
+				rbac:                                     &rbac.Policy{},
+				authEnabled:                              false,
+			},
+			args: args{
+				stream:  &art,
+				hostInv: &computev1.HostResource{},
+			},
+			wantErr: true,
+		},
+		{
+			name: "postive",
+			fields: fields{
+				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
+				invClient:                                om_testing.InvClient,
+				invClientAPI:                             om_testing.InvClient,
+				rbac:                                     &rbac.Policy{},
+				authEnabled:                              false,
+			},
+			args: args{
+				stream:  &art1,
+				hostInv: &computev1.HostResource{},
+			},
+			wantErr: true,
+		},
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &NodeArtifactService{
+				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+				invClient:                                tt.fields.invClient,
+				invClientAPI:                             tt.fields.invClientAPI,
+				rbac:                                     tt.fields.rbac,
+				authEnabled:                              tt.fields.authEnabled,
+			}
+			if err := s.handleRegisteredState(tt.args.stream, tt.args.hostInv); (err != nil) != tt.wantErr {
+				t.Errorf("NodeArtifactService.handleRegisteredState() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestNodeArtifactService_handleOnboardedState(t *testing.T) {
+	type fields struct {
+		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
+		invClient                                *invclient.OnboardingInventoryClient
+		invClientAPI                             *invclient.OnboardingInventoryClient
+		rbac                                     *rbac.Policy
+		authEnabled                              bool
+	}
+	var art MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	art.On("Send", mock.Anything).Return(errors.New("err"))
+	var art1 MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	art1.On("Send", mock.Anything).Return(nil)
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	type args struct {
+		stream  pb.NodeArtifactServiceNB_OnboardNodeStreamServer
+		hostInv *computev1.HostResource
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "negative",
+			fields: fields{
+				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
+				invClient:                                &invclient.OnboardingInventoryClient{},
+				invClientAPI:                             &invclient.OnboardingInventoryClient{},
+				rbac:                                     &rbac.Policy{},
+				authEnabled:                              false,
+			},
+			args: args{
+				stream:  &art,
+				hostInv: &computev1.HostResource{},
+			},
+			wantErr: true,
+		},
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &NodeArtifactService{
+				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+				invClient:                                tt.fields.invClient,
+				invClientAPI:                             tt.fields.invClientAPI,
+				rbac:                                     tt.fields.rbac,
+				authEnabled:                              tt.fields.authEnabled,
+			}
+			if err := s.handleOnboardedState(tt.args.stream, tt.args.hostInv); (err != nil) != tt.wantErr {
+				t.Errorf("NodeArtifactService.handleOnboardedState() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestNodeArtifactService_handleDefaultState(t *testing.T) {
+	var art MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	art.On("Send", mock.Anything).Return(errors.New("err"))
+	type fields struct {
+		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
+		invClient                                *invclient.OnboardingInventoryClient
+		invClientAPI                             *invclient.OnboardingInventoryClient
+		rbac                                     *rbac.Policy
+		authEnabled                              bool
+	}
+	type args struct {
+		stream pb.NodeArtifactServiceNB_OnboardNodeStreamServer
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "HandleDefaultState_WithSendError",
+			fields: fields{
+				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
+				invClient:                                &invclient.OnboardingInventoryClient{},
+				invClientAPI:                             &invclient.OnboardingInventoryClient{},
+				rbac:                                     &rbac.Policy{},
+				authEnabled:                              false,
+			},
+			args: args{
+				stream: &art,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &NodeArtifactService{
+				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+				invClient:                                tt.fields.invClient,
+				invClientAPI:                             tt.fields.invClientAPI,
+				rbac:                                     tt.fields.rbac,
+				authEnabled:                              tt.fields.authEnabled,
+			}
+			if err := s.handleDefaultState(tt.args.stream); (err != nil) != tt.wantErr {
+				t.Errorf("NodeArtifactService.handleDefaultState() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

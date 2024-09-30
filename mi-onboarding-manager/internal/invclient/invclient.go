@@ -33,6 +33,7 @@ import (
 
 var inventoryTimeout = flag.Duration("invTimeout", DefaultInventoryTimeout, "Inventory API calls timeout")
 
+const MaxSerialNumberLength = 36
 const (
 	DefaultInventoryTimeout = 5 * time.Second
 	ReconcileDefaultTimeout = 5 * time.Minute // Longer timeout for reconciling all resources
@@ -499,6 +500,50 @@ func (c *OnboardingInventoryClient) SetInstanceProvisioningStatus(ctx context.Co
 	})
 }
 
+func (c *OnboardingInventoryClient) updateHostMacID(ctx context.Context, host *computev1.HostResource) error {
+	return c.UpdateInvResourceFields(ctx, host, []string{
+		computev1.HostResourceFieldPxeMac,
+	})
+}
+
+func (c *OnboardingInventoryClient) UpdateHostMacID(ctx context.Context, resourceID string,
+	macid string,
+) error {
+	h := &computev1.HostResource{
+		ResourceId: resourceID,
+		PxeMac:     macid,
+	}
+
+	err := c.updateHostMacID(ctx, h)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *OnboardingInventoryClient) updateHostIP(ctx context.Context, host *computev1.HostResource) error {
+	return c.UpdateInvResourceFields(ctx, host, []string{
+		computev1.HostResourceFieldBmcIp,
+	})
+}
+
+func (c *OnboardingInventoryClient) UpdateHostIP(ctx context.Context, resourceID string,
+	hostIP string,
+) error {
+	h := &computev1.HostResource{
+		ResourceId: resourceID,
+		BmcIp:      hostIP,
+	}
+
+	err := c.updateHostIP(ctx, h)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *OnboardingInventoryClient) UpdateInstance(ctx context.Context, instanceID string,
 	currentState computev1.InstanceState,
 	provisioningStatus inv_status.ResourceStatus,
@@ -742,4 +787,39 @@ func (c *OnboardingInventoryClient) GetProviderConfig(
 	}
 
 	return &pconf, nil
+}
+
+func (c *OnboardingInventoryClient) UpdateHostCurrentState(ctx context.Context, resourceID string,
+	hostCurrentState computev1.HostState,
+) error {
+	h := &computev1.HostResource{
+		ResourceId:   resourceID,
+		CurrentState: hostCurrentState,
+	}
+
+	err := c.updateHostCurrentState(ctx, h)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *OnboardingInventoryClient) GetHostResourceBySerailNumber(
+	ctx context.Context,
+	serialNumber string,
+) (*computev1.HostResource, error) {
+	// additional check for length is needed because .Parse() accepts other non-standard format (see function docs).
+	if len(serialNumber) != MaxSerialNumberLength {
+		return nil, inv_errors.Errorfc(codes.InvalidArgument, "invalid SerialNumber")
+	}
+
+	filter := &inv_v1.ResourceFilter{
+		Resource: &inv_v1.Resource{
+			Resource: &inv_v1.Resource_Host{},
+		},
+		Filter: fmt.Sprintf("%s = %q", computev1.HostResourceFieldSerialNumber, serialNumber),
+	}
+
+	return c.listAndReturnHost(ctx, filter)
 }

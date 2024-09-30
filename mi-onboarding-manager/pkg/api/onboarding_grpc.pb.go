@@ -30,6 +30,9 @@ type NodeArtifactServiceNBClient interface {
 	GetNodes(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error)
 	UpdateNodes(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error)
 	DeleteNodes(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error)
+	// OnboardNodeStream establishes a bidirectional stream between the EN and the OM
+	// It allows EN to send stream requests and receive responses
+	OnboardNodeStream(ctx context.Context, opts ...grpc.CallOption) (NodeArtifactServiceNB_OnboardNodeStreamClient, error)
 }
 
 type nodeArtifactServiceNBClient struct {
@@ -112,6 +115,37 @@ func (c *nodeArtifactServiceNBClient) DeleteNodes(ctx context.Context, in *NodeR
 	return out, nil
 }
 
+func (c *nodeArtifactServiceNBClient) OnboardNodeStream(ctx context.Context, opts ...grpc.CallOption) (NodeArtifactServiceNB_OnboardNodeStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &NodeArtifactServiceNB_ServiceDesc.Streams[0], "/onboardingmgr.NodeArtifactServiceNB/OnboardNodeStream", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &nodeArtifactServiceNBOnboardNodeStreamClient{stream}
+	return x, nil
+}
+
+type NodeArtifactServiceNB_OnboardNodeStreamClient interface {
+	Send(*OnboardStreamRequest) error
+	Recv() (*OnboardStreamResponse, error)
+	grpc.ClientStream
+}
+
+type nodeArtifactServiceNBOnboardNodeStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *nodeArtifactServiceNBOnboardNodeStreamClient) Send(m *OnboardStreamRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *nodeArtifactServiceNBOnboardNodeStreamClient) Recv() (*OnboardStreamResponse, error) {
+	m := new(OnboardStreamResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // NodeArtifactServiceNBServer is the server API for NodeArtifactServiceNB service.
 // All implementations should embed UnimplementedNodeArtifactServiceNBServer
 // for forward compatibility
@@ -124,6 +158,9 @@ type NodeArtifactServiceNBServer interface {
 	GetNodes(context.Context, *NodeRequest) (*NodeResponse, error)
 	UpdateNodes(context.Context, *NodeRequest) (*NodeResponse, error)
 	DeleteNodes(context.Context, *NodeRequest) (*NodeResponse, error)
+	// OnboardNodeStream establishes a bidirectional stream between the EN and the OM
+	// It allows EN to send stream requests and receive responses
+	OnboardNodeStream(NodeArtifactServiceNB_OnboardNodeStreamServer) error
 }
 
 // UnimplementedNodeArtifactServiceNBServer should be embedded to have forward compatible implementations.
@@ -153,6 +190,9 @@ func (UnimplementedNodeArtifactServiceNBServer) UpdateNodes(context.Context, *No
 }
 func (UnimplementedNodeArtifactServiceNBServer) DeleteNodes(context.Context, *NodeRequest) (*NodeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteNodes not implemented")
+}
+func (UnimplementedNodeArtifactServiceNBServer) OnboardNodeStream(NodeArtifactServiceNB_OnboardNodeStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method OnboardNodeStream not implemented")
 }
 
 // UnsafeNodeArtifactServiceNBServer may be embedded to opt out of forward compatibility for this service.
@@ -310,6 +350,32 @@ func _NodeArtifactServiceNB_DeleteNodes_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NodeArtifactServiceNB_OnboardNodeStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(NodeArtifactServiceNBServer).OnboardNodeStream(&nodeArtifactServiceNBOnboardNodeStreamServer{stream})
+}
+
+type NodeArtifactServiceNB_OnboardNodeStreamServer interface {
+	Send(*OnboardStreamResponse) error
+	Recv() (*OnboardStreamRequest, error)
+	grpc.ServerStream
+}
+
+type nodeArtifactServiceNBOnboardNodeStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *nodeArtifactServiceNBOnboardNodeStreamServer) Send(m *OnboardStreamResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *nodeArtifactServiceNBOnboardNodeStreamServer) Recv() (*OnboardStreamRequest, error) {
+	m := new(OnboardStreamRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // NodeArtifactServiceNB_ServiceDesc is the grpc.ServiceDesc for NodeArtifactServiceNB service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -350,6 +416,13 @@ var NodeArtifactServiceNB_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _NodeArtifactServiceNB_DeleteNodes_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "OnboardNodeStream",
+			Handler:       _NodeArtifactServiceNB_OnboardNodeStream_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "onboarding.proto",
 }

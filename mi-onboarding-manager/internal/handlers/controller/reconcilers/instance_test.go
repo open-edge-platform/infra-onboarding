@@ -6,13 +6,14 @@ package reconcilers
 
 import (
 	"context"
-	statusv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/status/v1"
-	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/status"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	statusv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/status/v1"
+	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/status"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -50,7 +51,7 @@ func createOsWithArgs(tb testing.TB, doCleanup bool,
 		Sha256:            inv_testing.GenerateRandomSha256(),
 		InstalledPackages: "intel-opencl-icd\nintel-level-zero-gpu\nlevel-zero",
 		SecurityFeature:   osv1.SecurityFeature_SECURITY_FEATURE_UNSPECIFIED,
-		OsType:            osv1.OsType_OS_TYPE_IMMUTABLE,
+		OsType: osv1.OsType_OS_TYPE_IMMUTABLE,
 	}
 	resp, err := inv_testing.GetClient(tb, inv_testing.APIClient).Create(ctx,
 		&inv_v1.Resource{Resource: &inv_v1.Resource_Os{Os: osr}})

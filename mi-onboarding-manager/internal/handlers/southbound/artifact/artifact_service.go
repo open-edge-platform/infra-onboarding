@@ -5,8 +5,12 @@ package artifact
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"io"
 	"time"
 
+	google_rpc "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
@@ -127,6 +131,255 @@ func CopyNodeReqToNodeData(payload []*pb.NodeData) ([]*computev1.HostResource, e
 	zlog.Debug().Msgf("Generates a list of hosts of length=%d", len(hosts))
 
 	return hosts, nil
+}
+
+// sendStreamErrorResponse to send an error response on the stream.
+func sendStreamErrorResponse(stream pb.NodeArtifactServiceNB_OnboardNodeStreamServer,
+	code codes.Code, message string,
+) error {
+	response := &pb.OnboardStreamResponse{
+		Status: &google_rpc.Status{
+			Code:    int32(code),
+			Message: message,
+		},
+		NodeState: pb.OnboardStreamResponse_UNSPECIFIED,
+	}
+	return sendOnboardStreamResponse(stream, response)
+}
+
+// sendOnboardStreamResponse send a response on the stream.
+func sendOnboardStreamResponse(stream pb.NodeArtifactServiceNB_OnboardNodeStreamServer,
+	response *pb.OnboardStreamResponse,
+) error {
+	if err := stream.Send(response); err != nil {
+		zlog.Error().Err(err).Msg("Failed to send response on the stream")
+		return err
+	}
+	return nil
+}
+
+// receiveFromStream receive a message from the stream.
+func (s *NodeArtifactService) receiveFromStream(stream pb.NodeArtifactServiceNB_OnboardNodeStreamServer) (
+	*pb.OnboardStreamRequest, error,
+) {
+	zlog.Info().Msgf("OnboardNodeStream started: receiveFromStream")
+	req, err := stream.Recv()
+	if errors.Is(err, io.EOF) {
+		zlog.Info().Msgf("OnboardNodeStream client has closed the stream")
+		return nil, io.EOF
+	}
+	if err != nil {
+		zlog.MiSec().MiErr(err).Msgf("OnboardNodeStream error receiving from stream: %v", err)
+		return nil, err
+	}
+	return req, nil
+}
+
+// handleRegisteredState  processes the REGISTERED state.
+func (s *NodeArtifactService) handleRegisteredState(stream pb.NodeArtifactServiceNB_OnboardNodeStreamServer,
+	hostInv *computev1.HostResource,
+) error {
+	response := &pb.OnboardStreamResponse{
+		Status:    &google_rpc.Status{Code: int32(codes.OK)},
+		NodeState: pb.OnboardStreamResponse_REGISTERED,
+	}
+	if err := sendOnboardStreamResponse(stream, response); err != nil {
+		return err
+	}
+	// make the current state to registered
+	err := s.invClient.UpdateHostCurrentState(context.Background(),
+		hostInv.ResourceId, computev1.HostState_HOST_STATE_REGISTERED)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// handleRegisteredState processes the ONBOARDED state.
+func (s *NodeArtifactService) handleOnboardedState(stream pb.NodeArtifactServiceNB_OnboardNodeStreamServer,
+	hostInv *computev1.HostResource,
+) error {
+	clientID, clientSecret, err := utils.FetchClientSecret(context.Background(), hostInv.Uuid)
+	if err != nil {
+		zlog.Error().Err(err).Msg("Failed to fetch client id and secret from keycloak")
+		return err
+	}
+	zlog.Info().Msgf("Host Desired state : %v\n, client ID: %v\n client secret: %v\n",
+		hostInv.DesiredState, clientID, clientSecret)
+	if err := sendOnboardStreamResponse(stream, &pb.OnboardStreamResponse{
+		NodeState:    pb.OnboardStreamResponse_ONBOARDED,
+		Status:       &google_rpc.Status{Code: int32(codes.OK)},
+		ClientId:     clientID,
+		ClientSecret: clientSecret,
+	}); err != nil {
+		zlog.Error().Err(err).Msg("Failed to send response client Id and secret on the stream")
+		return err
+	}
+	// make the current state to ONBOARDED.
+	errUpdatehostStatus := s.invClient.UpdateHostCurrentState(context.Background(),
+		hostInv.ResourceId, computev1.HostState_HOST_STATE_ONBOARDED)
+	if errUpdatehostStatus != nil {
+		zlog.Error().Err(errUpdatehostStatus).Msg("Failed to update host current status to ONBOARDED")
+		return errUpdatehostStatus
+	}
+	// closes the stream after sending the final response
+	return nil
+}
+
+// handleDefaultState processes the UNSPECIFIED state.
+func (s *NodeArtifactService) handleDefaultState(stream pb.NodeArtifactServiceNB_OnboardNodeStreamServer) error {
+	return sendOnboardStreamResponse(stream, &pb.OnboardStreamResponse{
+		Status: &google_rpc.Status{
+			Code:    int32(codes.Unknown),
+			Message: "The node state is unspecified or unknown.",
+		},
+		NodeState: pb.OnboardStreamResponse_UNSPECIFIED,
+	})
+}
+
+//nolint:funlen,cyclop // reason: function is long due to necessary logic; cyclomatic complexity is high due to necessary handling
+func (s *NodeArtifactService) OnboardNodeStream(stream pb.NodeArtifactServiceNB_OnboardNodeStreamServer) error {
+	zlog.Info().Msgf("OnboardNodeStream started")
+
+	var hostInv *computev1.HostResource
+	var startZeroTouchAfterClose bool // Flag to start zero touch after closing the stream
+
+	// Start zero-touch process when the stream closes
+	defer func() {
+		if startZeroTouchAfterClose && hostInv != nil {
+			go func() {
+				ctx := context.Background()
+				// Start the zero-touch process.
+				if err := s.startZeroTouch(ctx, hostInv.GetResourceId()); err != nil {
+					zlog.Error().Err(err).Msg("Failed to start zero touch process")
+				}
+			}()
+		}
+	}()
+
+	for {
+		// Receive a message from the stream
+		req, err := s.receiveFromStream(stream)
+		if err != nil {
+			return err
+		}
+
+		// Validate the stream request using the generated Validate method
+		if reqValidateerr := req.Validate(); reqValidateerr != nil {
+			return sendStreamErrorResponse(stream, codes.InvalidArgument, reqValidateerr.Error())
+		}
+
+		// Check if the Serial Number already exists when UUID is empty
+		if req.Uuid == "" {
+			hostResource, errGetSN := s.invClient.GetHostResourceBySerailNumber(context.Background(),
+				req.Serialnum)
+			if errGetSN == nil {
+				// If serial number exists in the system.
+				zlog.Info().Msgf("Node %v exists for serial number %v", hostResource.Uuid, req.Serialnum)
+				return sendStreamErrorResponse(stream, codes.AlreadyExists, "Serial number already exists")
+			}
+			zlog.Error().Err(errGetSN).Msgf("Error retrieving host resource by serial number: %v", req.Serialnum)
+			return sendStreamErrorResponse(stream, codes.Internal, errGetSN.Error())
+		}
+
+		// Process the request based on sequence diagram
+		// Process the request and look up the host state using
+		// the UUID from the request.
+
+		// 1. If the UUID provided by the EN is not found in the inventory
+		hostInv, err = s.invClient.GetHostResourceByUUID(context.Background(), req.Uuid)
+		if err != nil {
+			zlog.Info().Msgf("Node Doesn't Exist for UUID %v\n", req.Uuid)
+			// The server sends the Device "NotFound" grpc code over the stream
+			// and continues to keep the stream open
+			// The EN close the stream from its side and then proceed to invoke
+			// the unary gRPC API for IO processing
+			if errdevNotFound := sendStreamErrorResponse(stream, codes.NotFound, err.Error()); errdevNotFound != nil {
+				zlog.Error().Err(errdevNotFound).Msg("Failed to send 'NotFound' error response on the stream")
+				return errdevNotFound
+			}
+			continue // The stream remains open, waiting for the client to close it
+		}
+
+		// Only update MAC ID if it's empty or differs from the incoming request
+		if hostInv.PxeMac == "" || hostInv.PxeMac != req.GetMacId() {
+			macAddress := req.GetMacId()
+			errupdatemacStatus := s.invClient.UpdateHostMacID(context.Background(), hostInv.ResourceId, macAddress)
+			if errupdatemacStatus != nil {
+				zlog.Error().Err(errupdatemacStatus).Msg("Failed to update host MAC ID")
+				return errupdatemacStatus
+			}
+			zlog.Info().Msgf("MAC ID updated to %s for resource %s", macAddress, hostInv.ResourceId)
+		} else {
+			zlog.Info().Msgf("MAC ID %s already set for resource %s, skipping update.",
+				hostInv.PxeMac, hostInv.ResourceId)
+		}
+
+		// Only update hostip if it's empty or differs from the incoming request
+		if hostInv.BmcIp == "" || hostInv.BmcIp != req.GetHostIp() {
+			bmcIP := req.GetHostIp()
+			errUpdateBmcStatus := s.invClient.UpdateHostIP(context.Background(), hostInv.ResourceId, bmcIP)
+			if errUpdateBmcStatus != nil {
+				zlog.Error().Err(errUpdateBmcStatus).Msg("Failed to update host BMC IP")
+				return errUpdateBmcStatus
+			}
+			zlog.Info().Msgf("Host IP updated to %s for resource %s", bmcIP, hostInv.ResourceId)
+		} else {
+			zlog.Info().Msgf("Host IP %s already set for resource %s, skipping update.",
+				hostInv.BmcIp, hostInv.ResourceId)
+		}
+
+		// 2. If the UUID is found but the current state is ONBOARDED or PROVISIONED or ERROR,
+		// the OM sends a FAILED_PRECONDITION
+		if hostInv.CurrentState == computev1.HostState_HOST_STATE_ONBOARDED ||
+			hostInv.CurrentState == computev1.HostState_HOST_STATE_PROVISIONED ||
+			hostInv.CurrentState == computev1.HostState_HOST_STATE_ERROR {
+			zlog.Info().Msgf("Node already exists for UUID %v and node current state %v",
+				req.Uuid, hostInv.CurrentState)
+			// Send a failure response indicating the node is already onboarded or provisioned.
+			return sendStreamErrorResponse(stream, codes.FailedPrecondition,
+				fmt.Sprintf("Node is already %s", hostInv.CurrentState.String()))
+		}
+
+		zlog.Info().Msgf("Node %v exists in inventory. Desired state: %v, Current state: %v",
+			hostInv.Uuid, hostInv.DesiredState, hostInv.CurrentState)
+
+		// 3. If the DesiredState is not REGISTERED, or ONBOARDED,
+		// the OM sends a FAILURE_UNSPECIFIED response and returns an error, closing the stream
+
+		// send the response to EN based on host Desired state
+		switch hostInv.DesiredState {
+		// The host is in the REGISTERED state.
+		// Allow the EN to retry but do not close the stream.
+		// Assume SI initalially configure desiredstate as REGISTERED
+		case computev1.HostState_HOST_STATE_REGISTERED:
+			if err := s.handleRegisteredState(stream, hostInv); err != nil {
+				return err
+			}
+			// continue to keep the stream open when the EN is in the REGISTERED state,
+			// allowing for retries without closing the stream
+			continue
+
+		case computev1.HostState_HOST_STATE_ONBOARDED:
+			/*
+				If the DesiredState is ONBOARDED, the server proceeds with onboarding,
+				communicates with Keycloak to create EN secrets, sends a SUCCESS response
+				with the client_id and client_secret, and then returns nil, closing the stream
+			*/
+			if err := s.handleOnboardedState(stream, hostInv); err != nil {
+				return err
+			}
+			startZeroTouchAfterClose = true
+			return nil // Close the stream
+
+		default:
+			// For other states, send an error.
+			if err := s.handleDefaultState(stream); err != nil {
+				return err
+			}
+			return nil // Close the stream
+		}
+	}
 }
 
 func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
