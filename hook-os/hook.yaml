@@ -36,11 +36,12 @@ onboot:
       mkdir:
         - /var/lib/dhcpcd
 
-  - name: client_auth
-    image: client_auth:latest
+  - name: device-discovery
+    image: device-discovery:latest
     capabilities:
       - all
-    binds:
+    net: host
+    binds.add:
       - /dev:/dev
       - /dev/console:/dev/console
       - /dev/ttyS0:/dev/ttyS0
@@ -49,10 +50,14 @@ onboot:
       - /var:/var:rshared,rbind
       - /dev/shm:/dev/shm
       - /etc/hook/env_config:/etc/hook/env_config
+      - /proc/cmdline:/host_proc_cmdline
+      - /etc/idp/ca.pem:/usr/local/share/ca-certificates/ca.crt
     rootfsPropagation: shared
     env:
-      - CLIENT_AUTH_PRE_BIND=TRUE
       - KEYCLOAK_URL=update_idp_url
+      - OBM_ADDRESS=update_onboarding_manager_svc
+      - OBM_NIO_ADDRESS=update_onboarding_stream_svc
+      - OBM_PORT=443
       - EXTRA_HOSTS=update_extra_hosts
 
 
@@ -146,7 +151,6 @@ services:
     env:
       - tink_stack_svc=update_tink_stack_svc
       - tink_server_svc=update_tink_server_svc
-      - onboarding_manager_svc=update_onboarding_manager_svc
       - release_svc=update_release_svc
       - logging_svc=update_logging_svc
       - fdo_manufacturer_svc=update_manufacturer_svc

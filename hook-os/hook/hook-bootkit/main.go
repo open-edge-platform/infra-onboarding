@@ -39,15 +39,6 @@ type tinkConfig struct {
 	// tinkWorkerImage is the Tink worker image location.
 	tinkWorkerImage string
 
-	// device_discovery_enabled is the flag to enable device discovery
-	deviceDiscoveryEnabled string
-
-	// device_discovery_image is the device discovery image
-	deviceDiscoveryImage string
-
-	// onboarding_manager_address is the address of onboarding manager
-	onboardingManagerAddress string
-
 	// tinkServerTLS is whether or not to use TLS for tink-server communication.
 	tinkServerTLS string
 	httpProxy     string
@@ -71,14 +62,6 @@ func main() {
 	cmdLines := strings.Split(string(content), " ")
 	cfg := parseCmdLine(cmdLines)
 	fmt.Printf("Parsed command line: %+v\n", cfg)
-	// Device-Discovery logic starts here
-	if cfg.deviceDiscoveryEnabled == "true" {
-		if err := deviceDiscovery(cfg); err != nil {
-			// Handle error
-			panic(err)
-		}
-	}
-	// Device-Discovery logic ends here
 
 	// Generate the path to the tink-worker
 	var imageName string
@@ -237,12 +220,6 @@ func parseCmdLine(cmdLines []string) (cfg tinkConfig) {
 			cfg.tinkWorkerImage = cmdLine[1]
 		case "tinkerbell_tls":
 			cfg.tinkServerTLS = cmdLine[1]
-		case "device_discovery_enabled":
-			cfg.deviceDiscoveryEnabled = cmdLine[1]
-		case "device_discovery_image":
-			cfg.deviceDiscoveryImage = cmdLine[1]
-		case "onboarding_manager_address":
-			cfg.onboardingManagerAddress = cmdLine[1]
 		case "HTTP_PROXY":
 			cfg.httpProxy = cmdLine[1]
 		case "HTTPS_PROXY":
