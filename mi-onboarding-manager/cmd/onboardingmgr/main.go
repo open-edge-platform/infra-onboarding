@@ -12,6 +12,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/env"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/controller"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/southbound"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
@@ -94,6 +95,8 @@ func main() {
 	// Print a summary of the build
 	printSummary()
 	flag.Parse()
+
+	env.MustEnsureRequired()
 
 	// Startup order, respecting deps
 	// 1. Setup tracing

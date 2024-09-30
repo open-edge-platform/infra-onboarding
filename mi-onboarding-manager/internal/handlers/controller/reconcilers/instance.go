@@ -230,7 +230,7 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 
 	osLocationURL := response.GetOsUrl()
 	installerScriptURL := response.GetOverlayscriptUrl()
-	tinkerVersion := response.GetTinkActionVersion()
+	tinkerVersion := env.TinkerActionVersion
 
 	sutIP := instance.GetHost().GetBmcIp()
 	osLocationURL = utils.ReplaceHostIP(osLocationURL, sutIP)

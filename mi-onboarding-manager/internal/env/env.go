@@ -28,6 +28,7 @@ const (
 	envDkamMode      = "EN_DKAMMODE"
 	envUserName      = "EN_USERNAME"
 	envPassWord      = "EN_PASSWORD"
+	envTinkerVersion = "TINKER_VERSION"
 
 	defaultOwnerURL     = "mi-fdo-owner"
 	defaultOwnerPort    = "58042"
@@ -55,6 +56,8 @@ var (
 	FdoOwnerDNS  = GetEnvWithDefault(envFdoOwnerDNS, defaultOwnerURL)
 	FdoOwnerPort = GetEnvWithDefault(envFdoOwnerPort, defaultOwnerPort)
 	K8sNamespace = GetEnvWithDefault(envK8sNamespace, defaultK8sNamespace)
+
+	TinkerActionVersion = os.Getenv(envTinkerVersion)
 )
 
 var zlog = logging.GetLogger("Env")
@@ -67,4 +70,19 @@ func GetEnvWithDefault(key, defaultVal string) string {
 	zlog.Warn().Msgf("%s env var is not set, using default image type: %s",
 		envImageType, defaultVal)
 	return defaultVal
+}
+
+func MustGetEnv(key string) string {
+	v, found := os.LookupEnv(key)
+	if found && v != "" {
+		zlog.Debug().Msgf("Found env var %s = %s", key, v)
+		return v
+	}
+
+	zlog.Fatal().Msgf("Mandatory env var %s is not set or empty!", key)
+	return ""
+}
+
+func MustEnsureRequired() {
+	TinkerActionVersion = MustGetEnv(envTinkerVersion)
 }
