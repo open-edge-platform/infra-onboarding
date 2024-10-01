@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	clientName = "TestOnboardingInventoryClient"
+	clientName = inv_testing.ClientType("TestOnboardingInventoryClient")
 	zlog       = logging.GetLogger("Onboarding-Manager-Testing")
 	InvClient  *invclient.OnboardingInventoryClient
 )

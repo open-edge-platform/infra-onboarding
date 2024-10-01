@@ -74,7 +74,7 @@ func TestReconcileEvent(t *testing.T) {
 		nbHandler.Stop()
 	})
 
-	host := inv_testing.CreateHostNoCleanup(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHostNoCleanup(t, nil, nil)
 	osRes := inv_testing.CreateOsNoCleanup(t)
 	inst := inv_testing.CreateInstanceNoCleanup(t, host, osRes)
 	assert.True(t, <-doneHost)
@@ -133,7 +133,7 @@ func TestReconcileAll(t *testing.T) {
 	nbHandler.controllers[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = controllerInstance
 
 	// Create beforehand the resources
-	host := inv_testing.CreateHostNoCleanup(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHostNoCleanup(t, nil, nil)
 	osRes := inv_testing.CreateOsNoCleanup(t)
 	inst := inv_testing.CreateInstanceNoCleanup(t, host, osRes)
 
@@ -220,7 +220,7 @@ func TestReconcileNoControllers(t *testing.T) {
 	delete(nbHandler.controllers, inv_v1.ResourceKind_RESOURCE_KIND_HOST)
 	delete(nbHandler.controllers, inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE)
 	delete(nbHandler.controllers, inv_v1.ResourceKind_RESOURCE_KIND_OS)
-	newHost := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	newHost := inv_testing.CreateHost(t, nil, nil)
 	newOs := inv_testing.CreateOs(t)
 	inv_testing.CreateInstance(t, newHost, newOs)
 

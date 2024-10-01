@@ -329,10 +329,9 @@ func (s *NodeArtifactService) OnboardNodeStream(stream pb.NodeArtifactServiceNB_
 				hostInv.BmcIp, hostInv.ResourceId)
 		}
 
-		// 2. If the UUID is found but the current state is ONBOARDED or PROVISIONED or ERROR,
+		// 2. If the UUID is found but the current state is ONBOARDED or ERROR,
 		// the OM sends a FAILED_PRECONDITION
 		if hostInv.CurrentState == computev1.HostState_HOST_STATE_ONBOARDED ||
-			hostInv.CurrentState == computev1.HostState_HOST_STATE_PROVISIONED ||
 			hostInv.CurrentState == computev1.HostState_HOST_STATE_ERROR {
 			zlog.Info().Msgf("Node already exists for UUID %v and node current state %v",
 				req.Uuid, hostInv.CurrentState)

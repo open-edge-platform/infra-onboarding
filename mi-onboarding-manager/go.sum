@@ -711,8 +711,8 @@ github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go v
 github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go v0.5.1/go.mod h1:fRN1YcRCnh3rRTFFi2OqmWkJfW5PZsYFYjcp5GYtvsI=
 github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.7.0 h1:M+byrvIuuaEk7sRhqV50dA2JX4Ihg3VMyiCtfXDmCnI=
 github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.7.0/go.mod h1:s0fxZbWo8qKLqv+LxGwUAVzKS+EaVN6/2JvcOWfMPUA=
-github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.0.1 h1:xNn0KZq44VCXjuEUKwC8pQx9HxhYa38wFoMWzrDUCa4=
-github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.0.1/go.mod h1:uix/NMYsOZyWwSvzD789peYeEkhCm2OnqAvjk0sD6oA=
+github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.0.2-0.20240930091357-7d70ad9d4053 h1:XwNvCvRwZxmEhVPrHZ6CX76LLzY50I2NiVIGA7zA5ZE=
+github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.0.2-0.20240930091357-7d70ad9d4053/go.mod h1:rupxa47BHE99k4l1Qy0fu/BwMSsXmDCq5JrtMie55DI=
 github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=
 github.com/jackc/pgpassfile v1.0.0/go.mod h1:CEx0iS5ambNFdcRtxPj5JhEz+xB6uRky5eyVu/W2HEg=
 github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a h1:bbPeKD0xmW/Y25WS6cokEszi5g+S0QxI/d45PkRi7Nk=
@@ -848,8 +848,8 @@ github.com/sagikazarmark/slog-shim v0.1.0 h1:diDBnUNK9N/354PgrxMywXnAwEr1QZcOr6g
 github.com/sagikazarmark/slog-shim v0.1.0/go.mod h1:SrcSrq8aKtyuqEI1uvTDTK1arOWRIczQRv+GVI1AkeQ=
 github.com/segmentio/ksuid v1.0.4 h1:sBo2BdShXjmcugAMwjugoGUdUV0pcxY5mW4xKRn3v4c=
 github.com/segmentio/ksuid v1.0.4/go.mod h1:/XUiZBD3kVx5SmUOl55voK5yeAbBNNIed+2O73XgrPE=
-github.com/sergi/go-diff v1.2.0 h1:XU+rvMAioB0UC3q1MFrIQy4Vo5/4VsRDQQXHsEya6xQ=
-github.com/sergi/go-diff v1.2.0/go.mod h1:STckp+ISIX8hZLjrqAeVduY0gWCT9IjLuqbuNXdaHfM=
+github.com/sergi/go-diff v1.1.0 h1:we8PVUC3FE2uYfodKH/nBHMSetSfHDR6scGdBi+erh0=
+github.com/sergi/go-diff v1.1.0/go.mod h1:STckp+ISIX8hZLjrqAeVduY0gWCT9IjLuqbuNXdaHfM=
 github.com/sirupsen/logrus v1.4.2/go.mod h1:tLMulIdttU9McNUspp0xgXVQah82FyeX6MwdIuYE2rE=
 github.com/sirupsen/logrus v1.9.0 h1:trlNQbNUG3OdDrDil03MCb1H2o9nJ1x4/5LYw7byDE0=
 github.com/sirupsen/logrus v1.9.0/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=

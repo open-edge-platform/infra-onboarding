@@ -56,7 +56,7 @@ func createOsWithArgs(tb testing.TB, doCleanup bool,
 	resp, err := inv_testing.GetClient(tb, inv_testing.APIClient).Create(ctx,
 		&inv_v1.Resource{Resource: &inv_v1.Resource_Os{Os: osr}})
 	require.NoError(tb, err)
-	osr.ResourceId = resp.ResourceId
+	osr.ResourceId = resp.GetOs().GetResourceId()
 	if doCleanup {
 		tb.Cleanup(func() { inv_testing.DeleteResource(tb, osr.ResourceId) })
 	}
@@ -82,7 +82,7 @@ func createProviderWithArgs(tb testing.TB, doCleanup bool,
 	resp, err := inv_testing.GetClient(tb, inv_testing.APIClient).Create(ctx,
 		&inv_v1.Resource{Resource: &inv_v1.Resource_Provider{Provider: provider}})
 	require.NoError(tb, err)
-	provider.ResourceId = resp.ResourceId
+	provider.ResourceId = resp.GetProvider().GetResourceId()
 	if doCleanup {
 		tb.Cleanup(func() { inv_testing.DeleteResource(tb, provider.ResourceId) })
 	}
@@ -104,7 +104,7 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 	instanceController := rec_v2.NewController[ResourceID](instanceReconciler.Reconcile, rec_v2.WithParallelism(1))
 	// do not Stop() to avoid races, should be safe in tests
 
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	osRes := createOsWithArgs(t, true)
 	providerResource := inv_testing.CreateProviderWithArgs(t, "lenovo", "8.8.8.8", nil,
 		providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL, providerv1.ProviderVendor_PROVIDER_VENDOR_LENOVO_LOCA)
@@ -164,7 +164,7 @@ func TestReconcileInstance(t *testing.T) {
 	instanceController := rec_v2.NewController[ResourceID](instanceReconciler.Reconcile, rec_v2.WithParallelism(1))
 	// do not Stop() to avoid races, should be safe in tests
 
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	osRes := createOsWithArgs(t, true)
 	_ = createProviderWithArgs(t, true, osRes.ResourceId)           // Creating Provider profile which would be fetched by the reconciler.
 	instance := inv_testing.CreateInstanceNoCleanup(t, host, osRes) // Instance should not be assigned to the Provider.

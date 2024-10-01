@@ -24,7 +24,7 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v1.0.4
 	github.com/google/uuid v1.6.0
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go v0.5.1
-	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.0.1
+	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.0.2-0.20240930091357-7d70ad9d4053
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1
 	sigs.k8s.io/controller-runtime v0.17.0
 )

@@ -27,8 +27,8 @@ func TestUpdateInstanceStatusByGuid(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
-	hostRes := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
+	hostRes := inv_testing.CreateHost(t, nil, nil)
 	osRes := inv_testing.CreateOs(t)
 	inv_testing.CreateInstance(t, hostRes, osRes)
 	tests := []struct {

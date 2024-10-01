@@ -26,7 +26,7 @@ func TestSouthbound_CreateNodes(t *testing.T) {
 	t.Run("AlreadyExists", func(t *testing.T) {
 		ctx := createOutgoingContextWithENJWT(t)
 
-		h1 := inv_testing.CreateHost(t, nil, nil, nil, nil)
+		h1 := inv_testing.CreateHost(t, nil, nil)
 		inCreate := &pb.NodeRequest{
 			Payload: []*pb.NodeData{
 				{

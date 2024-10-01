@@ -164,7 +164,7 @@ func TestOnboardingInventoryClient_Close(t *testing.T) {
 func TestOnboardingInventoryClient_UpdateHostResource(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		ctx  context.Context
 		host *computev1.HostResource
@@ -212,7 +212,7 @@ func TestOnboardingInventoryClient_UpdateHostResource(t *testing.T) {
 func TestOnboardingInventoryClient_GetHostResources(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		ctx context.Context
 	}
@@ -277,7 +277,7 @@ func TestOnboardingInventoryClient_FindAllInstances(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
 
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		hostID         string
 		instanceStatus []string
@@ -330,7 +330,7 @@ func TestOnboardingInventoryClient_FindAllInstances(t *testing.T) {
 func TestOnboardingInventoryClient_GetHostResourceByResourceID(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		hostID           string
 		expectedHost     *computev1.HostResource
@@ -379,7 +379,7 @@ func TestOnboardingInventoryClient_GetHostResourceByResourceID(t *testing.T) {
 func TestOnboardingInventoryClient_CreateHostResource(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		hostID           string
 		details          string
@@ -439,7 +439,7 @@ func TestOnboardingInventoryClient_CreateHostResource(t *testing.T) {
 func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		hostID           string
 		onboardingStatus inv_status.ResourceStatus
@@ -524,7 +524,7 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 func TestOnboardingInventoryClient_DeleteHostResource(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		hostID           string
 		details          string
@@ -569,7 +569,7 @@ func TestOnboardingInventoryClient_SetHostStatus(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
 
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 
 	type args struct {
 		hostID           string
@@ -633,7 +633,7 @@ func TestOnboardingInventoryClient_SetHostStatusDetail(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
 
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 
 	type args struct {
 		hostID string
@@ -696,7 +696,7 @@ func TestOnboardingInventoryClient_SetHostStatusDetail(t *testing.T) {
 func TestOnboardingInventoryClient_CreateInstanceResource(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	osRes := inv_testing.CreateOs(t)
 	inst := inv_testing.CreateInstance(t, host, osRes)
 	type args struct {
@@ -737,7 +737,7 @@ func TestOnboardingInventoryClient_GetInstanceResourceByResourceID(t *testing.T)
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
 
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	os := inv_testing.CreateOs(t)
 	inst := inv_testing.CreateInstance(t, host, os)
 	inst.DesiredOs = os
@@ -834,7 +834,7 @@ func TestOnboardingInventoryClient_GetInstanceResources(t *testing.T) {
 func TestOnboardingInventoryClient_DeleteInstanceResource(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	osRes := inv_testing.CreateOs(t)
 	inst := inv_testing.CreateInstance(t, host, osRes)
 	type args struct {
@@ -875,7 +875,7 @@ func TestOnboardingInventoryClient_DeleteInstanceResource(t *testing.T) {
 func TestOnboardingInventoryClient_DeleteResource(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		ctx        context.Context
 		resourceID string
@@ -1131,7 +1131,7 @@ func TestOnboardingInventoryClient_UpdateInvResourceFields(t *testing.T) {
 
 func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		hostID            string
 		hostCurrentState  computev1.HostState
@@ -1224,7 +1224,7 @@ func TestOnboardingInventoryClient_SetInstanceStatus(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
 
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	osRes := inv_testing.CreateOs(t)
 	inst := inv_testing.CreateInstance(t, host, osRes)
 
@@ -1640,7 +1640,7 @@ func TestOnboardingInventoryClient_DeleteIPAddress(t *testing.T) {
 func TestOnboardingInventoryClient_GetHostBmcNic(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		ctx  context.Context
 		host *computev1.HostResource
@@ -1802,11 +1802,10 @@ func TestOnboardingInventoryClient_GetProviderConfig(t *testing.T) {
 	}
 }
 
-
 func TestOnboardingInventoryClient_updateHostMacID(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	type fields struct {
 		Client  client.InventoryClient
 		Watcher chan *client.WatchEvents
@@ -1844,7 +1843,7 @@ func TestOnboardingInventoryClient_updateHostMacID(t *testing.T) {
 
 func TestOnboardingInventoryClient_UpdateHostMacID(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	invClient := OnboardingTestClient
 	type fields struct {
 		Client  client.InventoryClient
@@ -1897,7 +1896,7 @@ func TestOnboardingInventoryClient_UpdateHostMacID(t *testing.T) {
 
 func TestOnboardingInventoryClient_UpdateHostIP(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	invClient := OnboardingTestClient
 	type fields struct {
 		Client  client.InventoryClient
@@ -1947,4 +1946,3 @@ func TestOnboardingInventoryClient_UpdateHostIP(t *testing.T) {
 		})
 	}
 }
-

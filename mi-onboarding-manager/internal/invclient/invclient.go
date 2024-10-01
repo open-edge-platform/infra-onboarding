@@ -28,6 +28,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/logging"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/status"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/util"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/util/collections"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/validator"
 )
 
@@ -186,7 +187,13 @@ func (c *OnboardingInventoryClient) createResource(ctx context.Context, resource
 	if err != nil {
 		return "", err
 	}
-	return res.ResourceId, nil
+	_, rID, err := util.GetResourceKeyFromResource(res)
+	if err != nil {
+		// This error should never happen
+		zlog.MiSec().MiErr(err).Msgf("this error should never happen")
+		return "", err
+	}
+	return rID, nil
 }
 
 func (c *OnboardingInventoryClient) UpdateInvResourceFields(ctx context.Context,
@@ -671,10 +678,14 @@ func (c *OnboardingInventoryClient) FindAllResources(ctx context.Context,
 		filter := &inv_v1.ResourceFilter{
 			Resource: res,
 		}
-		resources, err := c.Client.FindAll(ctx, filter)
+		findAllResp, err := c.Client.FindAll(ctx, filter)
 		if err != nil {
 			return nil, err
 		}
+		resources := collections.MapSlice[*client.ResourceTenantIDCarrier, string](
+			findAllResp, func(carrier *client.ResourceTenantIDCarrier) string {
+				return carrier.GetResourceId()
+			})
 		allResources = append(allResources, resources...)
 	}
 	return allResources, nil

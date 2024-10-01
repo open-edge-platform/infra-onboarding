@@ -46,7 +46,7 @@ func TestUpdateHostStatusByHostGuid(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	tests := []struct {
 		name    string
 		args    args

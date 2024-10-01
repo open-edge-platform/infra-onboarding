@@ -49,16 +49,16 @@ func (m *MockInventoryClient) Get(ctx context.Context, id string) (*inv_v1.GetRe
 	return args.Get(0).(*inv_v1.GetResourceResponse), args.Error(1)
 }
 
-func (m *MockInventoryClient) Create(ctx context.Context, resource *inv_v1.Resource) (*inv_v1.CreateResourceResponse, error) {
+func (m *MockInventoryClient) Create(ctx context.Context, resource *inv_v1.Resource) (*inv_v1.Resource, error) {
 	args := m.Called(ctx, resource)
-	return args.Get(0).(*inv_v1.CreateResourceResponse), args.Error(1)
+	return args.Get(0).(*inv_v1.Resource), args.Error(1)
 }
 
 func (m *MockInventoryClient) Update(ctx context.Context, id string,
 	mask *fieldmaskpb.FieldMask, resource *inv_v1.Resource,
-) (*inv_v1.UpdateResourceResponse, error) {
+) (*inv_v1.Resource, error) {
 	args := m.Called(ctx, id, mask, resource)
-	return args.Get(0).(*inv_v1.UpdateResourceResponse), args.Error(1)
+	return args.Get(0).(*inv_v1.Resource), args.Error(1)
 }
 
 func (m *MockInventoryClient) Delete(ctx context.Context, id string) (*inv_v1.DeleteResourceResponse, error) {

@@ -1379,7 +1379,7 @@ func TestNodeArtifactService_UpdateNodes_Case1(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	hwdata := &pb.HwData{
 		Uuid: host.Uuid,
 	}
@@ -1466,7 +1466,7 @@ func TestNodeArtifactService_UpdateNodes_Case2(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	hwdata := &pb.HwData{
 		Uuid: host.Uuid,
 	}
@@ -1800,7 +1800,7 @@ func TestNodeArtifactService_UpdateNodes_Case6(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	hwdata := &pb.HwData{
 		Uuid: host.Uuid,
 	}
@@ -1884,7 +1884,7 @@ func TestNodeArtifactService_startZeroTouch(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	os := inv_testing.CreateOs(t)
 	inv_testing.CreateInstance(t, host, os)
 	tests := []struct {
@@ -2107,7 +2107,7 @@ func TestNodeArtifactService_UpdateNodes_Case7(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	hwdata := &pb.HwData{
 		Uuid: host.Uuid,
 	}
@@ -2189,7 +2189,7 @@ func TestNodeArtifactService_startZeroTouch_Case1(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -2237,7 +2237,7 @@ func TestNodeArtifactService_startZeroTouch_Case2(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -2285,7 +2285,7 @@ func TestNodeArtifactService_startZeroTouch_Case3(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -2333,7 +2333,7 @@ func TestNodeArtifactService_startZeroTouch_Case4(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	osRes := inv_testing.CreateOs(t)
 	inv_testing.CreateInstance(t, host, osRes)
 	inv_testing.CreateProvider(t, utils.DefaultProviderName)

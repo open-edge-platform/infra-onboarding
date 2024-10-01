@@ -72,7 +72,7 @@ func TestHostReconcileDeauthorization(t *testing.T) {
 	hostController := rec_v2.NewController[ResourceID](hostReconciler.Reconcile, rec_v2.WithParallelism(1))
 	// do not Stop() to avoid races, should be safe in tests
 
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 
 	hostID := host.GetResourceId()
 
@@ -151,7 +151,7 @@ func TestReconcileHostDeletion(t *testing.T) {
 	hostController := rec_v2.NewController[ResourceID](hostReconciler.Reconcile, rec_v2.WithParallelism(1))
 	// do not Stop() to avoid races, should be safe in tests
 
-	host := inv_testing.CreateHostNoCleanup(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHostNoCleanup(t, nil, nil)
 	hostNic := inv_testing.CreateHostNicNoCleanup(t, host)
 	hostStorage := inv_testing.CreateHostStorageNoCleanup(t, host)
 	hostUsb := inv_testing.CreateHostusbNoCleanup(t, host)
@@ -285,7 +285,7 @@ func TestReconcileHostWithProvider(t *testing.T) {
 	// creating Provider
 	providerResource := inv_testing.CreateProviderWithArgs(t, "lenovo", "8.8.8.8", nil,
 		providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL, providerv1.ProviderVendor_PROVIDER_VENDOR_LENOVO_LOCA)
-	host := inv_testing.CreateHost(t, nil, nil, providerResource, nil)
+	host := inv_testing.CreateHost(t, nil, providerResource)
 
 	hostID := host.GetResourceId()
 
@@ -442,7 +442,7 @@ func TestHostReconciler_deleteHost(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		ctx  context.Context
 		host *computev1.HostResource
@@ -497,7 +497,7 @@ func TestHostReconciler_deleteHostGpuByHost(t *testing.T) {
 		ctx     context.Context
 		hostres *computev1.HostResource
 	}
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -553,7 +553,7 @@ func TestHostReconciler_deleteHostNicByHost(t *testing.T) {
 		ctx     context.Context
 		hostres *computev1.HostResource
 	}
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -609,7 +609,7 @@ func TestHostReconciler_deleteIPsByHostNic(t *testing.T) {
 		ctx     context.Context
 		hostNic *computev1.HostnicResource
 	}
-	hostRes := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	hostRes := inv_testing.CreateHost(t, nil, nil)
 	hostNic := inv_testing.CreateHostNic(t, hostRes)
 	tests := []struct {
 		name    string
@@ -659,7 +659,7 @@ func TestHostReconciler_deleteHostStorageByHost(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	hostRes := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	hostRes := inv_testing.CreateHost(t, nil, nil)
 	type fields struct {
 		invClient *invclient.OnboardingInventoryClient
 	}
@@ -715,7 +715,7 @@ func TestHostReconciler_deleteHostUsbByHost(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	hostRes := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	hostRes := inv_testing.CreateHost(t, nil, nil)
 	type fields struct {
 		invClient *invclient.OnboardingInventoryClient
 	}
