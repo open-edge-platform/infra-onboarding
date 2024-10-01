@@ -25,6 +25,7 @@ import (
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/util"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/util/collections"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/validator"
 )
 
@@ -171,7 +172,13 @@ func (c *DKAMInventoryClient) createResource(ctx context.Context, resource *inv_
 	if err != nil {
 		return "", err
 	}
-	return res.ResourceId, nil
+	_, rID, err := util.GetResourceKeyFromResource(res)
+	if err != nil {
+		// This should never happen
+		zlog.MiSec().MiErr(err).Msgf("this error should never happen")
+		return "", err
+	}
+	return rID, nil
 }
 
 func (c *DKAMInventoryClient) UpdateInvResourceFields(ctx context.Context,
@@ -520,10 +527,14 @@ func (c *DKAMInventoryClient) FindAllResources(ctx context.Context,
 		filter := &inv_v1.ResourceFilter{
 			Resource: res,
 		}
-		resources, err := c.Client.FindAll(ctx, filter)
+		findAllResp, err := c.Client.FindAll(ctx, filter)
 		if err != nil {
 			return nil, err
 		}
+		resources := collections.MapSlice[*client.ResourceTenantIDCarrier, string](
+			findAllResp, func(carrier *client.ResourceTenantIDCarrier) string {
+				return carrier.GetResourceId()
+			})
 		allResources = append(allResources, resources...)
 	}
 	return allResources, nil

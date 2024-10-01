@@ -293,7 +293,7 @@ func TestDKAMController_reconcileResource(t *testing.T) {
 	t.Cleanup(func() {
 		dkam_testing.DeleteInventoryDKAMClientForTesting()
 	})
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	type fields struct {
 		filters map[inv_v1.ResourceKind]Filter
 	}

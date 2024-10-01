@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	clientName = "TestDKAMInventoryClient"
+	clientName = inv_testing.ClientType("TestDKAMInventoryClient")
 	zlog       = logging.GetLogger("DKAM-Manager-Testing")
 	InvClient  *invclient.DKAMInventoryClient
 )

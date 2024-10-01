@@ -140,7 +140,7 @@ func TestDKAMInventoryClient_Close(t *testing.T) {
 func TestDKAMInventoryClient_UpdateHostResource(t *testing.T) {
 	CreateDkamClientForTesting(t)
 	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		ctx  context.Context
 		host *computev1.HostResource
@@ -215,7 +215,7 @@ func TestDKAMInventoryClient_GetHostResources(t *testing.T) {
 func TestDKAMInventoryClient_GetHostResourceByResourceID(t *testing.T) {
 	CreateDkamClientForTesting(t)
 	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		ctx        context.Context
 		resourceID string
@@ -259,7 +259,7 @@ func TestDKAMInventoryClient_GetHostResourceByResourceID(t *testing.T) {
 func TestDKAMInventoryClient_GetHostBmcNic(t *testing.T) {
 	CreateDkamClientForTesting(t)
 	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		ctx  context.Context
 		host *computev1.HostResource
@@ -307,7 +307,7 @@ func TestDKAMInventoryClient_GetHostBmcNic(t *testing.T) {
 func TestDKAMInventoryClient_GetHostResourceByUUID(t *testing.T) {
 	CreateDkamClientForTesting(t)
 	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		ctx  context.Context
 		uuid string
@@ -360,7 +360,7 @@ func TestDKAMInventoryClient_GetHostResourceByUUID(t *testing.T) {
 func TestDKAMInventoryClient_DeleteHostResource(t *testing.T) {
 	CreateDkamClientForTesting(t)
 	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		ctx        context.Context
 		resourceID string
@@ -399,7 +399,7 @@ func TestDKAMInventoryClient_DeleteHostResource(t *testing.T) {
 func TestDKAMInventoryClient_CreateInstanceResource(t *testing.T) {
 	CreateDkamClientForTesting(t)
 	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	os := inv_testing.CreateOs(t)
 	instance := inv_testing.CreateInstance(t, host, os)
 	type args struct {
@@ -435,7 +435,7 @@ func TestDKAMInventoryClient_CreateInstanceResource(t *testing.T) {
 func TestDKAMInventoryClient_GetInstanceResourceByResourceID(t *testing.T) {
 	CreateDkamClientForTesting(t)
 	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	os := inv_testing.CreateOs(t)
 	instance := inv_testing.CreateInstance(t, host, os)
 	type args struct {
@@ -587,7 +587,7 @@ func TestDKAMInventoryClient_FindAllInstances(t *testing.T) {
 func TestDKAMInventoryClient_CreateHostResource(t *testing.T) {
 	CreateDkamClientForTesting(t)
 	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		ctx  context.Context
 		host *computev1.HostResource
@@ -622,7 +622,7 @@ func TestDKAMInventoryClient_CreateHostResource(t *testing.T) {
 func TestDKAMInventoryClient_DeleteInstanceResource(t *testing.T) {
 	CreateDkamClientForTesting(t)
 	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	os := inv_testing.CreateOs(t)
 	instance := inv_testing.CreateInstance(t, host, os)
 	type args struct {
@@ -663,7 +663,7 @@ func TestDKAMInventoryClient_DeleteInstanceResource(t *testing.T) {
 func TestDKAMInventoryClient_DeleteResource(t *testing.T) {
 	CreateDkamClientForTesting(t)
 	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		ctx        context.Context
 		resourceID string
@@ -972,7 +972,7 @@ func TestDKAMInventoryClient_GetProviderResources(t *testing.T) {
 func TestDKAMInventoryClient_DeleteIPAddress(t *testing.T) {
 	CreateDkamClientForTesting(t)
 	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil, nil, nil)
+	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		ctx        context.Context
 		resourceID string
