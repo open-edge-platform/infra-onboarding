@@ -87,7 +87,7 @@ func (osr *OsReconciler) reconcileOsInstance(
 		return request.Ack()
 	}
 
-	curationErr := dkammgr.GetCuratedScript(osinst.ProfileName, osinst.InstalledPackages, osinst.KernelCommand, osinst.OsType)
+	curationErr := dkammgr.GetCuratedScript(osinst)
 	if curationErr != nil {
 		zlogOs.MiSec().Fatal().Err(curationErr).Msgf("Error curating script")
 		return request.Ack()

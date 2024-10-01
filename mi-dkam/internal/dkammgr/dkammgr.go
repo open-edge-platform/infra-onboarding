@@ -4,8 +4,6 @@ import (
 	//import dependencies
 
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/util"
 	"os"
@@ -31,13 +29,8 @@ type Service struct {
 }
 
 var zlog = logging.GetLogger("MIDKAMgRPC")
-var installerUrl string
 var tag = config.Tag
 var file string
-var imagePath string
-var shaID string
-var profilePath string
-var installerPath string
 
 func NewDKAMService(invClient *invclient.DKAMInventoryClient, _ string, _ bool,
 	enableAuth bool, rbacRules string,
@@ -111,25 +104,6 @@ func (server *Service) GetENProfile(ctx context.Context, req *pb.GetENProfileReq
 	proxyIP := "http://%host_ip%/tink-stack"
 	zlog.MiSec().Info().Msgf("proxyIP %s", proxyIP)
 
-	// Get Installer url
-	sha256 := GetSHAID(profile, req.InstalledPackages, req.KernelCommand)
-
-	if strings.Contains(profile, ":") {
-		profile = strings.Split(profile, ":")[0]
-	} else {
-		profile = "default"
-	}
-
-	if osType == osv1.OsType_OS_TYPE_IMMUTABLE.String() {
-		installerUrl = proxyIP + "/" + profile + "/" + sha256 + "/" + "installer.cfg"
-		installerPath = config.PVC + "/" + profile + "/" + sha256 + "/" + "installer.cfg"
-	} else {
-		installerUrl = proxyIP + "/" + profile + "/" + sha256 + "/" + "installer.sh"
-		installerPath = config.PVC + "/" + profile + "/" + sha256 + "/" + "installer.sh"
-	}
-
-	zlog.MiSec().Info().Msgf("Installer script url is %s", installerUrl)
-
 	// TODO: OS resource is temporarily created, can be removed once OM uses DKAM util helper to generate OS location
 	//  instead of querying DKAM for OS url
 	osRes := &osv1.OperatingSystemResource{
@@ -137,11 +111,22 @@ func (server *Service) GetENProfile(ctx context.Context, req *pb.GetENProfileReq
 		OsType:      osv1.OsType(osv1.OsType_value[osType]),
 		ProfileName: req.ProfileName,
 	}
+
+	installerUrl, err := util.GetInstallerLocation(osRes, proxyIP)
+	if err != nil {
+		return &pb.GetENProfileResponse{StatusCode: false}, nil
+	}
+
+	installerPath, err := util.GetInstallerLocation(osRes, config.PVC)
+	if err != nil {
+		return &pb.GetENProfileResponse{StatusCode: false}, nil
+	}
+
+	zlog.MiSec().Info().Msgf("Installer script url is %s, installer path %s", installerUrl, installerPath)
+
 	osUrl := util.GetOSImageLocation(osRes, proxyIP)
 
 	zlog.MiSec().Info().Msgf("OS image url is %s", osUrl)
-
-	// Get OS sha
 
 	agentsList, tinkerAction, err := curation.GetArtifactsVersion()
 	if err != nil {
@@ -197,45 +182,10 @@ func RemoveDir(path string) error {
 	return nil
 }
 
-func GetSHAID(profile, installPackages, kernelcmds string) string {
-	manifestTag := os.Getenv("MANIFEST_TAG")
-
-	combinedStr := profile + installPackages + kernelcmds + manifestTag
-
-	// Calculate the SHA-256 hash
-	hash := sha256.Sum256([]byte(combinedStr))
-	shaID = hex.EncodeToString(hash[:])
-
-	zlog.MiSec().Info().Msgf("SHA-256 Hash: %s", shaID)
-
-	return shaID
-}
-
-func GetCuratedScript(profile string, installPackages string, kernelcmds string, osType osv1.OsType) error {
-	sha256 := GetSHAID(profile, installPackages, kernelcmds)
-	profileValue := profile
-	var scriptFileName string
-
-	if strings.Contains(profile, ":") {
-
-		profile = strings.Split(profile, ":")[0]
-		profilePath = config.PVC + "/" + profile
-		if osType == osv1.OsType_OS_TYPE_IMMUTABLE {
-			scriptFileName = profilePath + "/" + sha256 + "/" + "installer.cfg"
-		} else {
-			scriptFileName = profilePath + "/" + sha256 + "/" + "installer.sh"
-		}
-
-	} else {
-
-		profile = "default"
-		profilePath = config.PVC + "/" + profile
-		if osType == osv1.OsType_OS_TYPE_IMMUTABLE {
-			scriptFileName = profilePath + "/" + sha256 + "/" + "installer.cfg"
-		} else {
-			scriptFileName = profilePath + "/" + sha256 + "/" + "installer.sh"
-		}
-
+func GetCuratedScript(os *osv1.OperatingSystemResource) error {
+	scriptFileName, err := util.GetInstallerLocation(os, config.PVC)
+	if err != nil {
+		return err
 	}
 
 	installerExists, patherr := download.PathExists(scriptFileName)
@@ -245,15 +195,15 @@ func GetCuratedScript(profile string, installPackages string, kernelcmds string,
 	if installerExists {
 		zlog.MiSec().Info().Msg("Installer exists. Skip curation.")
 	} else {
-		if osType == osv1.OsType_OS_TYPE_MUTABLE {
-			err := download.DownloadPrecuratedScript(profileValue)
+		if os.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE {
+			err := download.DownloadPrecuratedScript(os.GetProfileName())
 			if err != nil {
 				zlog.MiSec().Info().Msgf("Failed to download Profile script: %v", err)
 				return err
 			}
 		}
 
-		err := curation.GetCuratedScript(profile, sha256, osType)
+		err := curation.CurateScript(os)
 		if err != nil {
 			zlog.MiSec().Info().Msgf("Failed curate %v", err)
 			return err

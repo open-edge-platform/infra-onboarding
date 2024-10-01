@@ -145,8 +145,11 @@ func TestGetCuratedScript(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("Error creating file:", err2)
 	}
-	osr := &osv1.OperatingSystemResource{}
-	err = GetCuratedScript("profile:profile", "", "", osr.OsType)
+	osr := &osv1.OperatingSystemResource{
+		ProfileName: "profile:profile",
+		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
+	}
+	err = GetCuratedScript(osr)
 
 	// Check if the returned filename matches the expected format
 	assert.NoError(t, err)

@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/util"
 	"io"
 	"net"
 	"os"
@@ -138,14 +139,9 @@ func GetArtifactsVersion() ([]AgentsVersion, string, error) {
 	return agentsList, tinkerAction, nil
 }
 
-func GetCuratedScript(profile string, sha256 string, osType osv1.OsType) error {
-	MODE := os.Getenv("MODE")
-	//MODE := "dev"
-
+func CurateScript(osRes *osv1.OperatingSystemResource) error {
 	fileServer = os.Getenv("FILE_SERVER")
 	registryService = os.Getenv("REGISTRY_SERVICE")
-	zlog.MiSec().Info().Msgf("MODE: %s", MODE)
-
 	//Current dir
 	currentDir, err := os.Getwd()
 	if err != nil {
@@ -163,14 +159,14 @@ func GetCuratedScript(profile string, sha256 string, osType osv1.OsType) error {
 		zlog.MiSec().Info().Msg("Failed to get the Tinker action version")
 		return err
 	}
-	if osType == osv1.OsType_OS_TYPE_IMMUTABLE {
-		createErr := CreateCloudCfgScript(currentDir, profile, MODE, sha256)
+	if osRes.GetOsType() == osv1.OsType_OS_TYPE_IMMUTABLE {
+		createErr := CreateCloudCfgScript(currentDir, osRes)
 		if createErr != nil {
 			zlog.MiSec().Info().Msgf("Error checking path %v", createErr)
 			return createErr
 		}
 	} else {
-		createErr := CreateOverlayScript(currentDir, profile, MODE, sha256)
+		createErr := CreateOverlayScript(currentDir, osRes)
 		if createErr != nil {
 			zlog.MiSec().Info().Msgf("Error checking path %v", createErr)
 			return createErr
@@ -222,23 +218,10 @@ func GetReleaseArtifactList(filePath string) (Config, error) {
 	return configs, nil
 }
 
-func CreateDir(path string) error {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		// Create the directory
-		err := os.Mkdir(path, 0755)
-		if err != nil {
-			zlog.MiSec().Error().Err(err).Msgf("Error creating directoryL: %v", err)
-			return err
-		}
-		zlog.MiSec().Info().Msgf("Directory created: %s", path)
-	} else {
-		zlog.MiSec().Info().Msgf("Directory already exists: %s", path)
+func CreateCloudCfgScript(pwd string, osRes *osv1.OperatingSystemResource) error {
+	MODE := os.Getenv("MODE")
+	zlog.MiSec().Info().Msgf("MODE: %s", MODE)
 
-	}
-	return nil
-}
-
-func CreateCloudCfgScript(pwd string, profile string, MODE string, SHAID string) error {
 	parentDir := filepath.Dir(filepath.Dir(pwd))
 	scriptDir := filepath.Join(parentDir, "pkg", "script")
 	cfgFilePath := filepath.Join(scriptDir, "Installer.cfg")
@@ -252,17 +235,15 @@ func CreateCloudCfgScript(pwd string, profile string, MODE string, SHAID string)
 	if exists {
 		zlog.MiSec().Info().Msg("Path exists:")
 
-		profilePath := config.PVC + "/" + profile
-		err = CreateDir(profilePath)
+		cfgFileName, err = util.GetInstallerLocation(osRes, config.PVC)
 		if err != nil {
+			return err
+		}
+
+		dir := filepath.Dir(cfgFileName)
+		if err := os.MkdirAll(dir, 0755); err != nil {
 			zlog.MiSec().Info().Msgf("Error creating path %v", err)
 		}
-		profileSHAPath := profilePath + "/" + SHAID
-		err = CreateDir(profileSHAPath)
-		if err != nil {
-			zlog.MiSec().Info().Msgf("Error creating path %v", err)
-		}
-		cfgFileName = profileSHAPath + "/" + "installer.cfg"
 	} else {
 		zlog.MiSec().Info().Msg("Path does not exists")
 	}
@@ -460,7 +441,10 @@ func CreateCloudCfgScript(pwd string, profile string, MODE string, SHAID string)
 	return nil
 }
 
-func CreateOverlayScript(pwd string, profile string, MODE string, SHAID string) error {
+func CreateOverlayScript(pwd string, osRes *osv1.OperatingSystemResource) error {
+	MODE := os.Getenv("MODE")
+	zlog.MiSec().Info().Msgf("MODE: %s", MODE)
+
 	parentDir := filepath.Dir(filepath.Dir(pwd))
 	beginString := "true >/etc/environment"
 	scriptDir := filepath.Join(parentDir, "pkg", "script")
@@ -475,19 +459,15 @@ func CreateOverlayScript(pwd string, profile string, MODE string, SHAID string) 
 	if exists {
 		zlog.MiSec().Info().Msg("Path exists:")
 
-		profilePath := config.PVC + "/" + profile
-		err = CreateDir(profilePath)
+		scriptFileName, err = util.GetInstallerLocation(osRes, config.PVC)
 		if err != nil {
-			zlog.MiSec().Info().Msgf("Error creating path %v", err)
-		}
-		profileSHAPath := profilePath + "/" + SHAID
-		err = CreateDir(profileSHAPath)
-		if err != nil {
-			zlog.MiSec().Info().Msgf("Error creating path %v", err)
+			return err
 		}
 
-		scriptFileName = profileSHAPath + "/" + "installer.sh"
-
+		dir := filepath.Dir(scriptFileName)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			zlog.MiSec().Info().Msgf("Error creating path %v", err)
+		}
 	} else {
 		zlog.MiSec().Info().Msg("Path does not exists")
 	}
@@ -499,14 +479,16 @@ func CreateOverlayScript(pwd string, profile string, MODE string, SHAID string) 
 
 	zlog.MiSec().Info().Msg("File copied successfully.")
 
-	profileExists, err := PathExists(config.DownloadPath + "/" + profile + ".sh")
+	profileName := strings.Split(osRes.GetProfileName(), ":")[0]
+
+	profileExists, err := PathExists(config.DownloadPath + "/" + profileName + ".sh")
 	if err != nil {
 		zlog.MiSec().Info().Msgf("Error checking path %v", err)
 	}
 
 	if profileExists {
 		// Read the source file content
-		sourceContent, err := os.Open(config.DownloadPath + "/" + profile + ".sh")
+		sourceContent, err := os.Open(config.DownloadPath + "/" + profileName + ".sh")
 		if err != nil {
 			zlog.MiSec().Info().Msgf("Error reading donwloaded profile script file:%v", err)
 			return err

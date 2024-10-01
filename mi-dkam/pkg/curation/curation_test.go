@@ -245,8 +245,11 @@ func Test_GetCuratedScript(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("Error creating file:", err2)
 	}
-	osr := &osv1.OperatingSystemResource{}
-	err = GetCuratedScript("profile", "", osr.OsType)
+	osr := &osv1.OperatingSystemResource{
+		ProfileName: "profile",
+		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
+	}
+	err = CurateScript(osr)
 
 	assert.NoError(t, err)
 	defer func() {
@@ -282,8 +285,11 @@ func Test_GetCuratedScript_Case(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("Error creating file:", err2)
 	}
-	osr := &osv1.OperatingSystemResource{}
-	err = GetCuratedScript("profile", "", osr.OsType)
+	osr := &osv1.OperatingSystemResource{
+		ProfileName: "profile",
+		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
+	}
+	err = CurateScript(osr)
 
 	assert.NoError(t, err)
 	defer func() {
@@ -319,8 +325,11 @@ func Test_GetCuratedScript_Case1(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("Error creating file:", err2)
 	}
-	osr := &osv1.OperatingSystemResource{}
-	err = GetCuratedScript("profile", "", osr.OsType)
+	osr := &osv1.OperatingSystemResource{
+		ProfileName: "profile",
+		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
+	}
+	err = CurateScript(osr)
 
 	assert.NoError(t, err)
 	defer func() {
@@ -356,8 +365,11 @@ func Test_GetCuratedScript_Case2(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("Error creating file:", err2)
 	}
-	osr := &osv1.OperatingSystemResource{}
-	err = GetCuratedScript("profile", "", osr.OsType)
+	osr := &osv1.OperatingSystemResource{
+		ProfileName: "profile",
+		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
+	}
+	err = CurateScript(osr)
 
 	assert.NoError(t, err)
 
@@ -402,8 +414,11 @@ func Test_GetCuratedScript_Case3(t *testing.T) {
 	src := strings.Replace(originalDir, "curation", "script/latest-dev.yaml", -1)
 	CopyFile(src, res)
 	os.Setenv("NETIP", "static")
-	osr := &osv1.OperatingSystemResource{}
-	err = GetCuratedScript("profile", "", osr.OsType)
+	osr := &osv1.OperatingSystemResource{
+		ProfileName: "profile",
+		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
+	}
+	err = CurateScript(osr)
 
 	assert.NoError(t, err)
 	defer func() {
@@ -453,8 +468,11 @@ func Test_GetCuratedScript_Case4(t *testing.T) {
 	os.MkdirAll(direc, 0755)
 	os.Create(direc + "latest-dev.yaml")
 	CopyFile(src, direc+"latest-dev.yaml")
-	osr := &osv1.OperatingSystemResource{}
-	err = GetCuratedScript("profile", "", osr.OsType)
+	osr := &osv1.OperatingSystemResource{
+		ProfileName: "profile",
+		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
+	}
+	err = CurateScript(osr)
 
 	assert.NoError(t, err)
 	defer func() {
@@ -657,8 +675,6 @@ func TestCreateOverlayScript(t *testing.T) {
 	type args struct {
 		pwd     string
 		profile string
-		MODE    string
-		SHAID   string
 	}
 	tests := []struct {
 		name    string
@@ -675,7 +691,11 @@ func TestCreateOverlayScript(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE, tt.args.SHAID); (err != nil) != tt.wantErr {
+			osr := &osv1.OperatingSystemResource{
+				ProfileName: tt.args.profile,
+				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
+			}
+			if err := CreateOverlayScript(tt.args.pwd, osr); (err != nil) != tt.wantErr {
 				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -743,8 +763,6 @@ func TestCreateOverlayScript_Case(t *testing.T) {
 	type args struct {
 		pwd     string
 		profile string
-		MODE    string
-		SHAID   string
 	}
 	tests := []struct {
 		name    string
@@ -761,7 +779,11 @@ func TestCreateOverlayScript_Case(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE, tt.args.SHAID); (err != nil) != tt.wantErr {
+			osr := &osv1.OperatingSystemResource{
+				ProfileName: tt.args.profile,
+				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
+			}
+			if err := CreateOverlayScript(tt.args.pwd, osr); (err != nil) != tt.wantErr {
 				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -834,8 +856,6 @@ func TestCreateOverlayScript_Case1(t *testing.T) {
 	type args struct {
 		pwd     string
 		profile string
-		MODE    string
-		SHAID   string
 	}
 	tests := []struct {
 		name    string
@@ -852,7 +872,11 @@ func TestCreateOverlayScript_Case1(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE, tt.args.SHAID); (err != nil) != tt.wantErr {
+			osr := &osv1.OperatingSystemResource{
+				ProfileName: tt.args.profile,
+				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
+			}
+			if err := CreateOverlayScript(tt.args.pwd, osr); (err != nil) != tt.wantErr {
 				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -908,8 +932,6 @@ func TestCreateOverlayScript_Case2(t *testing.T) {
 	type args struct {
 		pwd     string
 		profile string
-		MODE    string
-		SHAID   string
 	}
 	tests := []struct {
 		name    string
@@ -926,7 +948,11 @@ func TestCreateOverlayScript_Case2(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE, tt.args.SHAID); (err != nil) != tt.wantErr {
+			osr := &osv1.OperatingSystemResource{
+				ProfileName: tt.args.profile,
+				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
+			}
+			if err := CreateOverlayScript(tt.args.pwd, osr); (err != nil) != tt.wantErr {
 				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -997,8 +1023,6 @@ func TestCreateOverlayScript_Case4(t *testing.T) {
 	type args struct {
 		pwd     string
 		profile string
-		MODE    string
-		SHAID   string
 	}
 	tests := []struct {
 		name    string
@@ -1015,7 +1039,11 @@ func TestCreateOverlayScript_Case4(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE, tt.args.SHAID); (err != nil) != tt.wantErr {
+			osr := &osv1.OperatingSystemResource{
+				ProfileName: tt.args.profile,
+				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
+			}
+			if err := CreateOverlayScript(tt.args.pwd, osr); (err != nil) != tt.wantErr {
 				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1084,8 +1112,6 @@ func TestCreateOverlayScript_Case3(t *testing.T) {
 	type args struct {
 		pwd     string
 		profile string
-		MODE    string
-		SHAID   string
 	}
 	tests := []struct {
 		name    string
@@ -1095,15 +1121,20 @@ func TestCreateOverlayScript_Case3(t *testing.T) {
 		{
 			name: "Test Case",
 			args: args{
-				pwd:  originalDir,
-				MODE: "dev",
+				pwd: originalDir,
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE, tt.args.SHAID); (err != nil) != tt.wantErr {
+			os.Setenv("MODE", "dev")
+			defer os.Unsetenv("MODE")
+			osr := &osv1.OperatingSystemResource{
+				ProfileName: tt.args.profile,
+				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
+			}
+			if err := CreateOverlayScript(tt.args.pwd, osr); (err != nil) != tt.wantErr {
 				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1213,7 +1244,7 @@ func TestGetCuratedScript(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "GetCuratedScript test case",
+			name: "CurateScript test case",
 			args: args{
 				profile: "",
 				sha256:  "",
@@ -1223,8 +1254,12 @@ func TestGetCuratedScript(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := GetCuratedScript(tt.args.profile, tt.args.sha256, tt.args.osType); (err != nil) != tt.wantErr {
-				t.Errorf("GetCuratedScript() error = %v, wantErr %v", err, tt.wantErr)
+			osr := &osv1.OperatingSystemResource{
+				ProfileName: tt.args.profile,
+				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
+			}
+			if err := CurateScript(osr); (err != nil) != tt.wantErr {
+				t.Errorf("CurateScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -1263,8 +1298,6 @@ func TestCreateOverlayScript_Err(t *testing.T) {
 	type args struct {
 		pwd     string
 		profile string
-		MODE    string
-		SHAID   string
 	}
 	tests := []struct {
 		name    string
@@ -1281,7 +1314,11 @@ func TestCreateOverlayScript_Err(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := CreateOverlayScript(tt.args.pwd, tt.args.profile, tt.args.MODE, tt.args.SHAID); (err != nil) != tt.wantErr {
+			osr := &osv1.OperatingSystemResource{
+				ProfileName: tt.args.profile,
+				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
+			}
+			if err := CreateOverlayScript(tt.args.pwd, osr); (err != nil) != tt.wantErr {
 				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

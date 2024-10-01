@@ -4,6 +4,9 @@
 package util
 
 import (
+	"fmt"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/errors"
+
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/os/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/logging"
 )
@@ -41,4 +44,35 @@ func GetOSImageLocation(os *osv1.OperatingSystemResource, rootDir string) string
 // GetOSImageLocationWithCustomFilename returns a relative, standard path where OS image is stored, using a custom filename,
 func GetOSImageLocationWithCustomFilename(os *osv1.OperatingSystemResource, rootDir string, fileName string) string {
 	return getOSImageLocation(os, rootDir, fileName)
+}
+
+// GetInstallerLocation returns a relative, standard path where OS installation artifacts are stored.
+// We assume that installation artifacts are unique per OS resource as scripts may change over time for OS profiles.
+// That's why we use OS resource ID to uniquely identify the installation artifact.
+// NOTE1: This may lead to some duplication of files if multiple OS resources use the same installer scripts,
+// we may use profile_version+profile_name (once profile_version is populated) to save space on the PV.
+// NOTE2: We should make sure that installation artifacts doesn't include any tenant-specific information.
+// Multiple tenants should be able to share the same installation artifacts (see NOTE1).
+// FIXME: use OS resource ID instead of profile name to uniqely identify installation artifacts until we fully integrate profile_version.
+func GetInstallerLocation(os *osv1.OperatingSystemResource, rootDir string) (string, error) {
+	// profileIdentifier is a unique identifier of OS profile. For now we use profile name as a non-ideal solution,
+	// because DKAM gRPC API is not aware of OS resource ID. Once we remove gRPC API completely, we can safely use OS resource ID.
+	// FIXME: use OS resource ID instead of profile name
+	profileIdentifier := os.GetProfileName()
+
+	installerPath := fmt.Sprintf("%s/OSArtifacts/%s/installer", rootDir, profileIdentifier)
+
+	switch os.GetOsType() {
+	case osv1.OsType_OS_TYPE_IMMUTABLE:
+		installerPath += ".cfg"
+	case osv1.OsType_OS_TYPE_MUTABLE:
+		installerPath += ".sh"
+	default:
+		invErr := inv_errors.Errorf("Unsupported OS type %v, may result in wrong installation artifacts path",
+			os.GetOsType())
+		zlog.MiSec().Error().Err(invErr).Msg("")
+		return "", invErr
+	}
+
+	return installerPath, nil
 }
