@@ -4,8 +4,8 @@ github.com/envoyproxy/protoc-gen-validate v1.0.4 h1:gVPz/FMfvh57HdSJQyvBtF00j8JU
 github.com/envoyproxy/protoc-gen-validate v1.0.4/go.mod h1:qys6tmnRsYrQqIhm2bvKZH4Blx/1gTIZ2UKVY1M+Yew=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
-github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service v1.4.3-0.20240925182520-228ea42d3737 h1:rpBJ/7/mVhu+EbvpY2EJ8s3vSrbl6OguOiRW6L7UZ6w=
-github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service v1.4.3-0.20240925182520-228ea42d3737/go.mod h1:twjQzt0B1kDyMlheBaPMPLKk7jgObME5Rtd7RYDw+es=
+github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service v1.7.1-0.20241001140913-eb81f4665dcc h1:To4gPdRCagcyQ/Zyn9WXuIa873Tkl6MBoFhgDfGh01Y=
+github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service v1.7.1-0.20241001140913-eb81f4665dcc/go.mod h1:A5ZucyclNqY/Ro6sun5KcmEZ23V9E4Lg96R4s3sWimk=
 golang.org/x/net v0.28.0 h1:a9JDOJc5GMUJ0+UDqmLT86WiEy7iWyIhz8gz8E4e5hE=
 golang.org/x/net v0.28.0/go.mod h1:yqtgsTWOOnlGLG9GFRrK3++bGOUEkNBoHZc8MEDWPNg=
 golang.org/x/oauth2 v0.21.0 h1:tsimM75w1tF/uws5rbeHzIWxEqElMehnc+iW793zsZs=

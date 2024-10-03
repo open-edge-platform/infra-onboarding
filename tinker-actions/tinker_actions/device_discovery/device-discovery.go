@@ -101,13 +101,23 @@ func saveToFile(path, data string) error {
 }
 
 // readEnvVars checks if all required environment variables are set and returns an error if any are missing.
-func readEnvVars(requiredVars []string) (map[string]string, error) {
+func readEnvVars(requiredVars []string, optionalVars []string) (map[string]string, error) {
 	envVars := make(map[string]string)
 
+	// Process required environment variables
 	for _, key := range requiredVars {
 		value, exists := os.LookupEnv(key)
 		if !exists || value == "" {
 			return nil, fmt.Errorf("environment variable %s is missing", key)
+		}
+		envVars[key] = value
+	}
+
+	// Process optional environment variables
+	for _, key := range optionalVars {
+		value, exists := os.LookupEnv(key)
+		if !exists || value == "" {
+			continue // Skip if the optional variable doesn't exist or is empty
 		}
 		envVars[key] = value
 	}
@@ -191,15 +201,18 @@ func grpcMaestroOnboardNodeJWT(ctx context.Context, address string, port int, ma
 func main() {
 	// Define the required environment variables
 	requiredVars := []string{
-		"EXTRA_HOSTS",
 		"OBM_ADDRESS",
 		"OBM_NIO_ADDRESS",
 		"OBM_PORT",
 		"KEYCLOAK_URL",
 	}
 
+	optionalVars := []string{
+		"EXTRA_HOSTS",
+	}
+
 	// Check and load the environment variables
-	envVars, err := readEnvVars(requiredVars)
+	envVars, err := readEnvVars(requiredVars, optionalVars)
 	if err != nil {
 		log.Fatal("Error:", err)
 	}
@@ -228,8 +241,13 @@ func main() {
 	}
 
 	// add extra hosts
-	if err := updateHosts(envVars["EXTRA_HOSTS"]); err != nil {
-		log.Fatalf("Failed to add extra hosts: %v", err)
+	extraHosts, exists := envVars["EXTRA_HOSTS"]
+	if exists && extraHosts != "" {
+		if err := updateHosts(extraHosts); err != nil {
+			log.Fatalf("Failed to add extra hosts: %v", err)
+		}
+	} else {
+		log.Println("No extra hosts provided, skipping update.")
 	}
 
 	// logic to detect serial, uuid, and ip based on mac starts here
