@@ -52,8 +52,9 @@ const (
 func updateHosts(extraHosts string) error {
 	// Update hosts if they were provided
 	if extraHosts != "" {
-		// Replace commas with newlines
+		// Replace commas with newlines and remove double quotes
 		extraHostsNeeded := strings.ReplaceAll(extraHosts, ",", "\n")
+		extraHostsNeeded = strings.ReplaceAll(extraHostsNeeded, "\"", "")
 
 		// Append to /etc/hosts
 		hostsFile := "/etc/hosts"
@@ -201,14 +202,19 @@ func grpcMaestroOnboardNodeJWT(ctx context.Context, address string, port int, ma
 func main() {
 	// Define the required environment variables
 	requiredVars := []string{
-		"OBM_ADDRESS",
-		"OBM_NIO_ADDRESS",
+		"onboarding_manager_svc",
+		"onboarding_stream_svc",
 		"OBM_PORT",
 		"KEYCLOAK_URL",
 	}
 
 	optionalVars := []string{
 		"EXTRA_HOSTS",
+	}
+
+	// Load environment variables from env_config
+	if err := loadEnvConfig(envConfigPath); err != nil {
+		log.Fatalf("Failed to load env_config: %v", err)
 	}
 
 	// Check and load the environment variables
@@ -234,11 +240,6 @@ func main() {
 	// Use cfg as needed, for example, printing the parsed configuration
 	fmt.Printf("Parsed Config: %+v\n", cfg)
 	macAddr := cfg.workerID
-
-	// Load environment variables from env_config
-	if err := loadEnvConfig(envConfigPath); err != nil {
-		log.Fatalf("Failed to load env_config: %v", err)
-	}
 
 	// add extra hosts
 	extraHosts, exists := envVars["EXTRA_HOSTS"]
@@ -273,7 +274,7 @@ func main() {
 	// logic to detect serial, uuid, and ip based on mac ends here
 
 	//grpc streaming starts here
-	clientID, clientSecret, err, fallback := grpcStreamClient(context.Background(), envVars["OBM_NIO_ADDRESS"], obm_port, macAddr, uuid, serialNumber, ipAddress, caCertPath)
+	clientID, clientSecret, err, fallback := grpcStreamClient(context.Background(), envVars["onboarding_stream_svc"], obm_port, macAddr, uuid, serialNumber, ipAddress, caCertPath)
 	if fallback {
 		fmt.Printf("Executing fallback method because of error: %s\n", err)
 		//Interactive client Auth starts here
@@ -288,7 +289,7 @@ func main() {
 		retryDelay := 2 * time.Second // Fixed delay between retries
 
 		for retries := 0; retries < maxRetries; retries++ {
-			err := grpcMaestroOnboardNodeJWT(context.Background(), envVars["OBM_ADDRESS"], obm_port, macAddr, ipAddress, uuid, serialNumber, caCertPath, accessTokenFile)
+			err := grpcMaestroOnboardNodeJWT(context.Background(), envVars["onboarding_manager_svc"], obm_port, macAddr, ipAddress, uuid, serialNumber, caCertPath, accessTokenFile)
 			if err == nil {
 				fmt.Println("Device discovery done")
 				return
