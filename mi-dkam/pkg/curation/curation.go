@@ -8,12 +8,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/util"
 	"io"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/util"
 
 	"gopkg.in/yaml.v2"
 
@@ -284,11 +285,11 @@ func CreateCloudCfgScript(pwd string, osRes *osv1.OperatingSystemResource) error
 	zlog.MiSec().Info().Msgf("enforcement %s", enforcement)
 
 	//Proxies
-	httpProxy := os.Getenv("HTTP_PROXY")
-	httpsProxy := os.Getenv("HTTPS_PROXY")
-	noProxy := os.Getenv("NO_PROXY")
-	ftpProxy := os.Getenv("FTP_PROXY")
-	sockProxy := os.Getenv("SOCKS_PROXY")
+	httpProxy := os.Getenv("EN_HTTP_PROXY")
+	httpsProxy := os.Getenv("EN_HTTPS_PROXY")
+	noProxy := os.Getenv("EN_NO_PROXY")
+	ftpProxy := os.Getenv("EN_FTP_PROXY")
+	sockProxy := os.Getenv("EN_SOCKS_PROXY")
 
 	//NTP configurations
 	ntpServer := os.Getenv("NTP_SERVERS")
@@ -544,11 +545,11 @@ func CreateOverlayScript(pwd string, osRes *osv1.OperatingSystemResource) error 
 	zlog.MiSec().Info().Msgf("enforcement %s", enforcement)
 
 	//Proxies
-	httpProxy := os.Getenv("HTTP_PROXY")
-	httpsProxy := os.Getenv("HTTPS_PROXY")
-	noProxy := os.Getenv("NO_PROXY")
-	ftpProxy := os.Getenv("FTP_PROXY")
-	sockProxy := os.Getenv("SOCKS_PROXY")
+	httpProxy := os.Getenv("EN_HTTP_PROXY")
+	httpsProxy := os.Getenv("EN_HTTPS_PROXY")
+	noProxy := os.Getenv("EN_NO_PROXY")
+	ftpProxy := os.Getenv("EN_FTP_PROXY")
+	sockProxy := os.Getenv("EN_SOCKS_PROXY")
 
 	//Extra hosts
 	extra_hosts := os.Getenv("EXTRA_HOSTS")

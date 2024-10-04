@@ -60,11 +60,11 @@ func SignHookOS(scriptPath string, targetDir string) (bool, error) {
 	keycloak_url := os.Getenv("KEYCLOAK_URL")
 	//harbor_url_tinker_actions := harborServer + "/one-intel-edge/edge-node/tinker-actions"
 	////////// Proxies **********************************
-	http_proxy := os.Getenv("HTTP_PROXY")
-	https_proxy := os.Getenv("HTTPS_PROXY")
-	ftp_proxy := os.Getenv("FTP_PROXY")
-	socks_proxy := os.Getenv("SOCKS_PROXY")
-	no_proxy := os.Getenv("NO_PROXY")
+	http_proxy := os.Getenv("EN_HTTP_PROXY")
+	https_proxy := os.Getenv("EN_HTTPS_PROXY")
+	ftp_proxy := os.Getenv("EN_FTP_PROXY")
+	socks_proxy := os.Getenv("EN_SOCKS_PROXY")
+	no_proxy := os.Getenv("EN_NO_PROXY")
 
 	//Name server
 	//nameserver := os.Getenv("NAMESERVERS")
