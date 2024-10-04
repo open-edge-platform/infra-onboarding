@@ -55,8 +55,8 @@ onboot:
     rootfsPropagation: shared
     env:
       - KEYCLOAK_URL=update_idp_url
-      - OBM_ADDRESS=update_onboarding_manager_svc
-      - OBM_NIO_ADDRESS=update_onboarding_stream_svc
+      - onboarding_manager_svc=update_onboarding_manager_svc
+      - onboarding_stream_svc=update_onboarding_stream_svc
       - OBM_PORT=443
       - EXTRA_HOSTS=update_extra_hosts
 
