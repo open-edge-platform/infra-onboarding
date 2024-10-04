@@ -486,7 +486,7 @@ func (c *OnboardingInventoryClient) UpdateInstanceCurrentState(ctx context.Conte
 	instance *computev1.InstanceResource,
 ) error {
 	return c.UpdateInvResourceFields(ctx, instance, []string{
-		computev1.HostResourceFieldCurrentState,
+		computev1.InstanceResourceFieldCurrentState,
 	})
 }
 

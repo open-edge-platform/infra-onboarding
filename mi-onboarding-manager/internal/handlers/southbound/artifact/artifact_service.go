@@ -405,6 +405,8 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 	/* TODO: Need to check this hostresdata array for all the serial numbers existence
 	 *		 already in the system
 	 */
+	// IO path - set the current state to ONBOARDED
+	host.CurrentState = computev1.HostState_HOST_STATE_ONBOARDED
 	host.OnboardingStatus = om_status.OnboardingStatusDone.Status
 	host.OnboardingStatusIndicator = om_status.OnboardingStatusDone.StatusIndicator
 	host.OnboardingStatusTimestamp = uint64(time.Now().Unix())
