@@ -283,12 +283,19 @@ pipeline {
                     steps {
                         withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
                         {
-                        echo "Start new development cycle if needed"
-                        netrcPatch()
-                        sh '''
-                        # Append -dev
-                        REVIEWER_1="manju956" REVIEWER_2="Ram-srini" /opt/ci/version-dev.sh
-                        '''
+                            versionDev()
+                        }
+                    }
+                }
+                stage('Auto approve') {
+                    when {
+                        changeRequest()
+                    }
+                    steps {
+                        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_devops_approve_github_api', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+                            script {
+                                autoApproveAndMergePR()
+                            }
                         }
                     }
                 }
