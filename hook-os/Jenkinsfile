@@ -208,7 +208,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Update EN manifest with new version') {
+                /*stage('Update EN manifest with new version') {
                     when {
                         expression { env.BRANCH_NAME == 'main' || env.BRANCH_NAME.startsWith('release') && params.buildHookOs == false }
                     }
@@ -275,7 +275,7 @@ pipeline {
                             }
                         }
                     }
-                }
+                }*/
                 stage('Version dev') {
                     when {
                         expression { env.BRANCH_NAME == 'main' || env.BRANCH_NAME.startsWith('release') && params.buildHookOs == false }
