@@ -31,7 +31,10 @@ echo => Chainloading to CDN-NGINX
 echo 
 echo sleeping for 5s
 sleep 5
-chain ${tink_url}/boot.ipxe || goto chainloaderror
+set idx:int32 0
+set retry_limit:int32 5
+:chainloop
+chain ${tink_url}/boot.ipxe || iseq ${idx} ${retry_limit} && goto chainloaderror || inc idx && echo Unable to reach the cloud instance to proceed with the next step && echo RETRY NO ${idx} && sleep 3 && goto chainloop
 
 :ifconferror
 echo 
