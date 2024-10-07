@@ -28,7 +28,6 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/logging"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/status"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/util"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/util/collections"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/validator"
 )
 
@@ -52,7 +51,7 @@ var (
 )
 
 type OnboardingInventoryClient struct {
-	Client  client.InventoryClient
+	Client  client.TenantAwareInventoryClient
 	Watcher chan *client.WatchEvents
 }
 
@@ -119,7 +118,7 @@ func NewOnboardingInventoryClientWithOptions(opts ...Option) (*OnboardingInvento
 		EnableTracing: options.EnableTracing,
 	}
 
-	invClient, err := client.NewInventoryClient(ctx, cfg)
+	invClient, err := client.NewTenantAwareInventoryClient(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +127,7 @@ func NewOnboardingInventoryClientWithOptions(opts ...Option) (*OnboardingInvento
 }
 
 func NewOnboardingInventoryClient(
-	invClient client.InventoryClient, watcher chan *client.WatchEvents,
+	invClient client.TenantAwareInventoryClient, watcher chan *client.WatchEvents,
 ) (*OnboardingInventoryClient, error) {
 	cli := &OnboardingInventoryClient{
 		Client:  invClient,
@@ -173,8 +172,9 @@ func (c *OnboardingInventoryClient) listAllResources(
 	return resources, nil
 }
 
-func (c *OnboardingInventoryClient) getResourceByID(ctx context.Context, resourceID string) (*inv_v1.GetResourceResponse, error) {
-	getresresp, err := c.Client.Get(ctx, resourceID)
+func (c *OnboardingInventoryClient) getResourceByID(ctx context.Context, tenantID, resourceID string,
+) (*inv_v1.GetResourceResponse, error) {
+	getresresp, err := c.Client.Get(ctx, tenantID, resourceID)
 	if err != nil {
 		return nil, err
 	}
@@ -182,8 +182,10 @@ func (c *OnboardingInventoryClient) getResourceByID(ctx context.Context, resourc
 	return getresresp, nil
 }
 
-func (c *OnboardingInventoryClient) createResource(ctx context.Context, resource *inv_v1.Resource) (string, error) {
-	res, err := c.Client.Create(ctx, resource)
+func (c *OnboardingInventoryClient) createResource(ctx context.Context,
+	tenantID string, resource *inv_v1.Resource,
+) (string, error) {
+	res, err := c.Client.Create(ctx, tenantID, resource)
 	if err != nil {
 		return "", err
 	}
@@ -196,7 +198,7 @@ func (c *OnboardingInventoryClient) createResource(ctx context.Context, resource
 	return rID, nil
 }
 
-func (c *OnboardingInventoryClient) UpdateInvResourceFields(ctx context.Context,
+func (c *OnboardingInventoryClient) UpdateInvResourceFields(ctx context.Context, tenantID string,
 	resource proto.Message, fields []string,
 ) error {
 	if resource == nil {
@@ -223,7 +225,7 @@ func (c *OnboardingInventoryClient) UpdateInvResourceFields(ctx context.Context,
 		return err
 	}
 
-	_, err = c.Client.Update(ctx, invResourceID, fieldMask, invResource)
+	_, err = c.Client.Update(ctx, tenantID, invResourceID, fieldMask, invResource)
 	return err
 }
 
@@ -250,14 +252,14 @@ func (c *OnboardingInventoryClient) listAndReturnHost(
 	return host, nil
 }
 
-func (c *OnboardingInventoryClient) FindAllInstances(ctx context.Context) ([]string, error) {
+func (c *OnboardingInventoryClient) FindAllInstances(ctx context.Context) ([]*client.ResourceTenantIDCarrier, error) {
 	return c.FindAllResources(ctx, []inv_v1.ResourceKind{inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE})
 }
 
-func (c *OnboardingInventoryClient) CreateHostResource(ctx context.Context,
+func (c *OnboardingInventoryClient) CreateHostResource(ctx context.Context, tenantID string,
 	host *computev1.HostResource,
 ) (string, error) {
-	return c.createResource(ctx, &inv_v1.Resource{
+	return c.createResource(ctx, tenantID, &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Host{
 			Host: host,
 		},
@@ -279,10 +281,10 @@ func (c *OnboardingInventoryClient) GetHostResources(ctx context.Context,
 	return util.GetSpecificResourceList[*computev1.HostResource](resources)
 }
 
-func (c *OnboardingInventoryClient) GetHostResourceByResourceID(ctx context.Context,
+func (c *OnboardingInventoryClient) GetHostResourceByResourceID(ctx context.Context, tenantID string,
 	resourceID string,
 ) (*computev1.HostResource, error) {
-	resp, err := c.getResourceByID(ctx, resourceID)
+	resp, err := c.getResourceByID(ctx, tenantID, resourceID)
 	if err != nil {
 		return nil, err
 	}
@@ -352,8 +354,8 @@ func (c *OnboardingInventoryClient) GetHostResourceByUUID(
 	return c.listAndReturnHost(ctx, filter)
 }
 
-func (c *OnboardingInventoryClient) UpdateHostResource(ctx context.Context, host *computev1.HostResource) error {
-	return c.UpdateInvResourceFields(ctx, host, []string{
+func (c *OnboardingInventoryClient) UpdateHostResource(ctx context.Context, tenantID string, host *computev1.HostResource) error {
+	return c.UpdateInvResourceFields(ctx, tenantID, host, []string{
 		computev1.HostResourceFieldKind,
 		computev1.HostResourceFieldName,
 		computev1.HostResourceFieldSerialNumber,
@@ -369,7 +371,9 @@ func (c *OnboardingInventoryClient) UpdateHostResource(ctx context.Context, host
 	})
 }
 
-func (c *OnboardingInventoryClient) UpdateHostStateAndRuntimeStatus(ctx context.Context, host *computev1.HostResource) error {
+func (c *OnboardingInventoryClient) UpdateHostStateAndRuntimeStatus(ctx context.Context,
+	tenantID string, host *computev1.HostResource,
+) error {
 	if host.HostStatus == "" || host.HostStatusTimestamp == 0 ||
 		host.HostStatusIndicator == statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED {
 		err := inv_errors.Errorfc(codes.InvalidArgument, "Missing mandatory host status fields during host status update")
@@ -377,7 +381,7 @@ func (c *OnboardingInventoryClient) UpdateHostStateAndRuntimeStatus(ctx context.
 		return err
 	}
 
-	return c.UpdateInvResourceFields(ctx, host, []string{
+	return c.UpdateInvResourceFields(ctx, tenantID, host, []string{
 		computev1.HostResourceFieldCurrentState,
 		computev1.HostResourceFieldHostStatus,
 		computev1.HostResourceFieldHostStatusIndicator,
@@ -385,55 +389,57 @@ func (c *OnboardingInventoryClient) UpdateHostStateAndRuntimeStatus(ctx context.
 	})
 }
 
-func (c *OnboardingInventoryClient) updateHostCurrentState(ctx context.Context, host *computev1.HostResource) error {
-	return c.UpdateInvResourceFields(ctx, host, []string{
+func (c *OnboardingInventoryClient) updateHostCurrentState(ctx context.Context,
+	tenantID string, host *computev1.HostResource,
+) error {
+	return c.UpdateInvResourceFields(ctx, tenantID, host, []string{
 		computev1.HostResourceFieldCurrentState,
 	})
 }
 
-func (c *OnboardingInventoryClient) SetHostOnboardingStatus(ctx context.Context, hostID string,
+func (c *OnboardingInventoryClient) SetHostOnboardingStatus(ctx context.Context, tenantID string, hostID string,
 	onboardingStatus inv_status.ResourceStatus,
 ) error {
 	updateHost := &computev1.HostResource{
 		ResourceId:                hostID,
 		OnboardingStatus:          onboardingStatus.Status,
 		OnboardingStatusIndicator: onboardingStatus.StatusIndicator,
-		OnboardingStatusTimestamp: uint64(time.Now().Unix()),
+		OnboardingStatusTimestamp: uint64(time.Now().Unix()), // #nosec G115
 	}
 
-	return c.UpdateInvResourceFields(ctx, updateHost, []string{
+	return c.UpdateInvResourceFields(ctx, tenantID, updateHost, []string{
 		computev1.HostResourceFieldOnboardingStatus,
 		computev1.HostResourceFieldOnboardingStatusIndicator,
 		computev1.HostResourceFieldOnboardingStatusTimestamp,
 	})
 }
 
-func (c *OnboardingInventoryClient) SetHostStatusDetail(ctx context.Context,
+func (c *OnboardingInventoryClient) SetHostStatusDetail(ctx context.Context, tenantID string,
 	hostID string, onboardingStatus inv_status.ResourceStatus,
 ) error {
 	updateHost := &computev1.HostResource{
 		ResourceId:                hostID,
 		OnboardingStatus:          onboardingStatus.Status,
 		OnboardingStatusIndicator: onboardingStatus.StatusIndicator,
-		OnboardingStatusTimestamp: uint64(time.Now().Unix()),
+		OnboardingStatusTimestamp: uint64(time.Now().Unix()), // #nosec G115
 	}
 
 	zlog.Info().Msgf("Updateing host status %v", updateHost)
 
-	return c.UpdateInvResourceFields(ctx, updateHost, []string{
+	return c.UpdateInvResourceFields(ctx, tenantID, updateHost, []string{
 		computev1.HostResourceFieldOnboardingStatus,
 		computev1.HostResourceFieldOnboardingStatusIndicator,
 		computev1.HostResourceFieldOnboardingStatusTimestamp,
 	})
 }
 
-func (c *OnboardingInventoryClient) DeleteHostResource(ctx context.Context, resourceID string) error {
+func (c *OnboardingInventoryClient) DeleteHostResource(ctx context.Context, tenantID, resourceID string) error {
 	h := &computev1.HostResource{
 		ResourceId:   resourceID,
 		CurrentState: computev1.HostState_HOST_STATE_DELETED,
 	}
 
-	err := c.updateHostCurrentState(ctx, h)
+	err := c.updateHostCurrentState(ctx, tenantID, h)
 	if err != nil {
 		return err
 	}
@@ -441,20 +447,20 @@ func (c *OnboardingInventoryClient) DeleteHostResource(ctx context.Context, reso
 	return nil
 }
 
-func (c *OnboardingInventoryClient) CreateInstanceResource(ctx context.Context,
+func (c *OnboardingInventoryClient) CreateInstanceResource(ctx context.Context, tenantID string,
 	inst *computev1.InstanceResource,
 ) (string, error) {
-	return c.createResource(ctx, &inv_v1.Resource{
+	return c.createResource(ctx, tenantID, &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Instance{
 			Instance: inst,
 		},
 	})
 }
 
-func (c *OnboardingInventoryClient) GetInstanceResourceByResourceID(ctx context.Context,
+func (c *OnboardingInventoryClient) GetInstanceResourceByResourceID(ctx context.Context, tenantID string,
 	resourceID string,
 ) (*computev1.InstanceResource, error) {
-	resp, err := c.getResourceByID(ctx, resourceID)
+	resp, err := c.getResourceByID(ctx, tenantID, resourceID)
 	if err != nil {
 		return nil, err
 	}
@@ -482,38 +488,38 @@ func (c *OnboardingInventoryClient) GetInstanceResources(ctx context.Context) ([
 	return util.GetSpecificResourceList[*computev1.InstanceResource](resources)
 }
 
-func (c *OnboardingInventoryClient) UpdateInstanceCurrentState(ctx context.Context,
+func (c *OnboardingInventoryClient) UpdateInstanceCurrentState(ctx context.Context, tenantID string,
 	instance *computev1.InstanceResource,
 ) error {
-	return c.UpdateInvResourceFields(ctx, instance, []string{
+	return c.UpdateInvResourceFields(ctx, tenantID, instance, []string{
 		computev1.InstanceResourceFieldCurrentState,
 	})
 }
 
-func (c *OnboardingInventoryClient) SetInstanceProvisioningStatus(ctx context.Context, instanceID string,
+func (c *OnboardingInventoryClient) SetInstanceProvisioningStatus(ctx context.Context, tenantID string, instanceID string,
 	provisioningStatus inv_status.ResourceStatus,
 ) error {
 	updateInstance := &computev1.InstanceResource{
 		ResourceId:                  instanceID,
 		ProvisioningStatus:          provisioningStatus.Status,
 		ProvisioningStatusIndicator: provisioningStatus.StatusIndicator,
-		ProvisioningStatusTimestamp: uint64(time.Now().Unix()),
+		ProvisioningStatusTimestamp: uint64(time.Now().Unix()), // #nosec G115
 	}
 
-	return c.UpdateInvResourceFields(ctx, updateInstance, []string{
+	return c.UpdateInvResourceFields(ctx, tenantID, updateInstance, []string{
 		computev1.InstanceResourceFieldProvisioningStatus,
 		computev1.InstanceResourceFieldProvisioningStatusIndicator,
 		computev1.InstanceResourceFieldProvisioningStatusTimestamp,
 	})
 }
 
-func (c *OnboardingInventoryClient) updateHostMacID(ctx context.Context, host *computev1.HostResource) error {
-	return c.UpdateInvResourceFields(ctx, host, []string{
+func (c *OnboardingInventoryClient) updateHostMacID(ctx context.Context, tenantID string, host *computev1.HostResource) error {
+	return c.UpdateInvResourceFields(ctx, tenantID, host, []string{
 		computev1.HostResourceFieldPxeMac,
 	})
 }
 
-func (c *OnboardingInventoryClient) UpdateHostMacID(ctx context.Context, resourceID string,
+func (c *OnboardingInventoryClient) UpdateHostMacID(ctx context.Context, tenantID string, resourceID string,
 	macid string,
 ) error {
 	h := &computev1.HostResource{
@@ -521,7 +527,7 @@ func (c *OnboardingInventoryClient) UpdateHostMacID(ctx context.Context, resourc
 		PxeMac:     macid,
 	}
 
-	err := c.updateHostMacID(ctx, h)
+	err := c.updateHostMacID(ctx, tenantID, h)
 	if err != nil {
 		return err
 	}
@@ -529,13 +535,13 @@ func (c *OnboardingInventoryClient) UpdateHostMacID(ctx context.Context, resourc
 	return nil
 }
 
-func (c *OnboardingInventoryClient) updateHostIP(ctx context.Context, host *computev1.HostResource) error {
-	return c.UpdateInvResourceFields(ctx, host, []string{
+func (c *OnboardingInventoryClient) updateHostIP(ctx context.Context, tenantID string, host *computev1.HostResource) error {
+	return c.UpdateInvResourceFields(ctx, tenantID, host, []string{
 		computev1.HostResourceFieldBmcIp,
 	})
 }
 
-func (c *OnboardingInventoryClient) UpdateHostIP(ctx context.Context, resourceID string,
+func (c *OnboardingInventoryClient) UpdateHostIP(ctx context.Context, tenantID string, resourceID string,
 	hostIP string,
 ) error {
 	h := &computev1.HostResource{
@@ -543,7 +549,7 @@ func (c *OnboardingInventoryClient) UpdateHostIP(ctx context.Context, resourceID
 		BmcIp:      hostIP,
 	}
 
-	err := c.updateHostIP(ctx, h)
+	err := c.updateHostIP(ctx, tenantID, h)
 	if err != nil {
 		return err
 	}
@@ -551,7 +557,7 @@ func (c *OnboardingInventoryClient) UpdateHostIP(ctx context.Context, resourceID
 	return nil
 }
 
-func (c *OnboardingInventoryClient) UpdateInstance(ctx context.Context, instanceID string,
+func (c *OnboardingInventoryClient) UpdateInstance(ctx context.Context, tenantID string, instanceID string,
 	currentState computev1.InstanceState,
 	provisioningStatus inv_status.ResourceStatus,
 	currentOS *osv1.OperatingSystemResource,
@@ -561,11 +567,11 @@ func (c *OnboardingInventoryClient) UpdateInstance(ctx context.Context, instance
 		CurrentState:                currentState,
 		ProvisioningStatus:          provisioningStatus.Status,
 		ProvisioningStatusIndicator: provisioningStatus.StatusIndicator,
-		ProvisioningStatusTimestamp: uint64(time.Now().Unix()),
+		ProvisioningStatusTimestamp: uint64(time.Now().Unix()), // #nosec G115
 		CurrentOs:                   currentOS,
 	}
 
-	return c.UpdateInvResourceFields(ctx, updateInstance, []string{
+	return c.UpdateInvResourceFields(ctx, tenantID, updateInstance, []string{
 		computev1.InstanceResourceFieldCurrentState,
 		computev1.InstanceResourceFieldProvisioningStatus,
 		computev1.InstanceResourceFieldProvisioningStatusIndicator,
@@ -574,13 +580,13 @@ func (c *OnboardingInventoryClient) UpdateInstance(ctx context.Context, instance
 	})
 }
 
-func (c *OnboardingInventoryClient) DeleteInstanceResource(ctx context.Context, resourceID string) error {
+func (c *OnboardingInventoryClient) DeleteInstanceResource(ctx context.Context, tenantID, resourceID string) error {
 	inst := &computev1.InstanceResource{
 		ResourceId:   resourceID,
 		CurrentState: computev1.InstanceState_INSTANCE_STATE_DELETED,
 	}
 
-	err := c.UpdateInstanceCurrentState(ctx, inst)
+	err := c.UpdateInstanceCurrentState(ctx, tenantID, inst)
 	if err != nil {
 		return err
 	}
@@ -588,12 +594,12 @@ func (c *OnboardingInventoryClient) DeleteInstanceResource(ctx context.Context, 
 	return nil
 }
 
-func (c *OnboardingInventoryClient) DeleteResource(ctx context.Context, resourceID string) error {
+func (c *OnboardingInventoryClient) DeleteResource(ctx context.Context, tenantID, resourceID string) error {
 	zlog.Debug().Msgf("Delete resource: %v", resourceID)
 
 	ctx, cancel := context.WithTimeout(ctx, *inventoryTimeout)
 	defer cancel()
-	_, err := c.Client.Delete(ctx, resourceID)
+	_, err := c.Client.Delete(ctx, tenantID, resourceID)
 	if inv_errors.IsNotFound(err) {
 		zlog.Debug().Msgf("Not found while deleting resource, dropping err: resourceID=%s", resourceID)
 		return nil
@@ -605,20 +611,20 @@ func (c *OnboardingInventoryClient) DeleteResource(ctx context.Context, resource
 	return err
 }
 
-func (c *OnboardingInventoryClient) CreateOSResource(ctx context.Context,
+func (c *OnboardingInventoryClient) CreateOSResource(ctx context.Context, tenantID string,
 	os *osv1.OperatingSystemResource,
 ) (string, error) {
-	return c.createResource(ctx, &inv_v1.Resource{
+	return c.createResource(ctx, tenantID, &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Os{
 			Os: os,
 		},
 	})
 }
 
-func (c *OnboardingInventoryClient) GetOSResourceByResourceID(ctx context.Context,
+func (c *OnboardingInventoryClient) GetOSResourceByResourceID(ctx context.Context, tenantID string,
 	resourceID string,
 ) (*osv1.OperatingSystemResource, error) {
-	resp, err := c.getResourceByID(ctx, resourceID)
+	resp, err := c.getResourceByID(ctx, tenantID, resourceID)
 	if err != nil {
 		return nil, err
 	}
@@ -668,8 +674,8 @@ func (c *OnboardingInventoryClient) ListIPAddresses(ctx context.Context, hostNic
 
 func (c *OnboardingInventoryClient) FindAllResources(ctx context.Context,
 	kinds []inv_v1.ResourceKind,
-) ([]string, error) {
-	var allResources []string
+) ([]*client.ResourceTenantIDCarrier, error) {
+	var allResources []*client.ResourceTenantIDCarrier
 	for _, kind := range kinds {
 		res, err := util.GetResourceFromKind(kind)
 		if err != nil {
@@ -678,14 +684,10 @@ func (c *OnboardingInventoryClient) FindAllResources(ctx context.Context,
 		filter := &inv_v1.ResourceFilter{
 			Resource: res,
 		}
-		findAllResp, err := c.Client.FindAll(ctx, filter)
+		resources, err := c.Client.FindAll(ctx, filter)
 		if err != nil {
 			return nil, err
 		}
-		resources := collections.MapSlice[*client.ResourceTenantIDCarrier, string](
-			findAllResp, func(carrier *client.ResourceTenantIDCarrier) string {
-				return carrier.GetResourceId()
-			})
 		allResources = append(allResources, resources...)
 	}
 	return allResources, nil
@@ -707,7 +709,7 @@ func (c *OnboardingInventoryClient) GetProviderResources(ctx context.Context) ([
 
 // DeleteIPAddress deletes an existing IP address resource in Inventory
 // by setting to DELETED the current state of the resource.
-func (c *OnboardingInventoryClient) DeleteIPAddress(ctx context.Context, resourceID string) error {
+func (c *OnboardingInventoryClient) DeleteIPAddress(ctx context.Context, tenantID, resourceID string) error {
 	zlog.Debug().Msgf("Delete IPAddress: %v", resourceID)
 
 	ctx, cancel := context.WithTimeout(ctx, *inventoryTimeout)
@@ -717,7 +719,7 @@ func (c *OnboardingInventoryClient) DeleteIPAddress(ctx context.Context, resourc
 		CurrentState: network_v1.IPAddressState_IP_ADDRESS_STATE_DELETED,
 	}
 
-	err := c.UpdateInvResourceFields(ctx, ipAddress, []string{network_v1.IPAddressResourceFieldCurrentState})
+	err := c.UpdateInvResourceFields(ctx, tenantID, ipAddress, []string{network_v1.IPAddressResourceFieldCurrentState})
 	if inv_errors.IsNotFound(err) {
 		zlog.Debug().Msgf("Not found while IP address delete, dropping err: resourceID=%s", resourceID)
 		return nil
@@ -800,7 +802,7 @@ func (c *OnboardingInventoryClient) GetProviderConfig(
 	return &pconf, nil
 }
 
-func (c *OnboardingInventoryClient) UpdateHostCurrentState(ctx context.Context, resourceID string,
+func (c *OnboardingInventoryClient) UpdateHostCurrentState(ctx context.Context, tenantID string, resourceID string,
 	hostCurrentState computev1.HostState,
 ) error {
 	h := &computev1.HostResource{
@@ -808,7 +810,7 @@ func (c *OnboardingInventoryClient) UpdateHostCurrentState(ctx context.Context, 
 		CurrentState: hostCurrentState,
 	}
 
-	err := c.updateHostCurrentState(ctx, h)
+	err := c.updateHostCurrentState(ctx, tenantID, h)
 	if err != nil {
 		return err
 	}

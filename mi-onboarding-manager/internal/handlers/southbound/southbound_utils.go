@@ -12,6 +12,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/logging"
+	inv_tenant "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/tenant"
 )
 
 // Misc variables.
@@ -62,8 +63,11 @@ func (sbh *SBHandler) Start() error {
 	if err != nil {
 		return err
 	}
-
-	sbh.server = grpc.NewServer()
+	var srvOpts []grpc.ServerOption
+	var unaryInter []grpc.UnaryServerInterceptor
+	unaryInter = append(unaryInter, inv_tenant.GetExtractTenantIDInterceptor())
+	srvOpts = append(srvOpts, grpc.ChainUnaryInterceptor(unaryInter...))
+	sbh.server = grpc.NewServer(srvOpts...)
 	pb.RegisterNodeArtifactServiceNBServer(sbh.server, nodeArtifactService)
 
 	// Run go routine to start the gRPC server

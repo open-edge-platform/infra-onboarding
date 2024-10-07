@@ -35,16 +35,17 @@ func NewHostReconciler(c *invclient.OnboardingInventoryClient, enableTracing boo
 }
 
 func (hr *HostReconciler) Reconcile(ctx context.Context,
-	request rec_v2.Request[ResourceID],
-) rec_v2.Directive[ResourceID] {
+	request rec_v2.Request[ReconcilerID],
+) rec_v2.Directive[ReconcilerID] {
 	if hr.enableTracing {
 		ctx = tracing.StartTrace(ctx, "MIOnboardingManager", "HostReconciler")
 		defer tracing.StopTrace(ctx)
 	}
-	resourceID := request.ID.String()
-	zlogHost.Info().Msgf("Reconciling Host %s", resourceID)
+	resourceID := request.ID.GetResourceID()
+	tenantID := request.ID.GetTenantID()
+	zlogHost.Info().Msgf("Reconciling Host resourceID %s and tenantID %s", resourceID, tenantID)
 
-	host, err := hr.invClient.GetHostResourceByResourceID(ctx, resourceID)
+	host, err := hr.invClient.GetHostResourceByResourceID(ctx, tenantID, resourceID)
 	if directive := HandleInventoryError(err, request); directive != nil {
 		return directive
 	}
@@ -66,9 +67,9 @@ func (hr *HostReconciler) Reconcile(ctx context.Context,
 
 func (hr *HostReconciler) reconcileHost(
 	ctx context.Context,
-	request rec_v2.Request[ResourceID],
+	request rec_v2.Request[ReconcilerID],
 	host *computev1.HostResource,
-) rec_v2.Directive[ResourceID] {
+) rec_v2.Directive[ReconcilerID] {
 	zlogHost.Debug().Msgf("Reconciling host with ID %s, with Current state: %v, Desired state: %v.",
 		host.GetResourceId(), host.GetCurrentState(), host.GetDesiredState())
 
@@ -100,7 +101,7 @@ func (hr *HostReconciler) checkIfInstanceIsAssociated(ctx context.Context, host 
 		zlogHost.Warn().Err(reconcErr).Msg("")
 
 		details := fmt.Sprintf("waiting on %s deletion", host.GetInstance().GetResourceId())
-		err := hr.invClient.SetHostStatusDetail(ctx, host.GetResourceId(),
+		err := hr.invClient.SetHostStatusDetail(ctx, host.GetTenantId(), host.GetResourceId(),
 			om_status.ModernHostStatusDeletingWithDetails(details))
 		if err != nil {
 			// log debug message only in the case of failure
@@ -124,14 +125,15 @@ func (hr *HostReconciler) deleteHost(
 		return err
 	}
 
-	if err := hr.invClient.SetHostStatusDetail(ctx, host.GetResourceId(), om_status.DeletingStatus); err != nil {
+	if err := hr.invClient.SetHostStatusDetail(ctx, host.GetTenantId(), host.GetResourceId(),
+		om_status.DeletingStatus); err != nil {
 		// log debug message only in the case of failure
 		zlogHost.Debug().Err(err).Msgf("Failed to update status detail for host %s", host.GetResourceId())
 	}
 
 	// if the current state is Untrusted, host certificates are already revoked
 	if host.GetCurrentState() != computev1.HostState_HOST_STATE_UNTRUSTED {
-		if err := kk_auth.RevokeHostCredentials(ctx, host.GetUuid()); err != nil {
+		if err := kk_auth.RevokeHostCredentials(ctx, host.GetTenantId(), host.GetUuid()); err != nil {
 			return err
 		}
 	}
@@ -159,7 +161,7 @@ func (hr *HostReconciler) deleteHost(
 		return err
 	}
 
-	err := hr.invClient.DeleteHostResource(ctx, host.GetResourceId())
+	err := hr.invClient.DeleteHostResource(ctx, host.GetTenantId(), host.GetResourceId())
 	if err != nil {
 		zlogHost.MiSec().MiError("Failed to delete Host %s", host.GetResourceId()).Msg("deleteHost")
 		// inventory error will be handled by upper layer
@@ -175,7 +177,7 @@ func (hr *HostReconciler) deleteHostGpuByHost(ctx context.Context, hostres *comp
 
 	for _, gpu := range gpus {
 		zlogHost.Debug().Msgf("Deleting host GPU with ID=%s", gpu.GetResourceId())
-		err := hr.invClient.DeleteResource(ctx, gpu.GetResourceId())
+		err := hr.invClient.DeleteResource(ctx, gpu.GetTenantId(), gpu.GetResourceId())
 		if err != nil {
 			return err
 		}
@@ -195,7 +197,7 @@ func (hr *HostReconciler) deleteHostNicByHost(ctx context.Context, hostres *comp
 		}
 
 		zlogHost.Debug().Msgf("Deleting host NIC with ID=%s", nic.GetResourceId())
-		err := hr.invClient.DeleteResource(ctx, nic.GetResourceId())
+		err := hr.invClient.DeleteResource(ctx, nic.GetTenantId(), nic.GetResourceId())
 		if err != nil {
 			return err
 		}
@@ -213,7 +215,7 @@ func (hr *HostReconciler) deleteIPsByHostNic(ctx context.Context, hostNic *compu
 
 	for _, ip := range nicIPs {
 		zlogHost.Debug().Msgf("Deleting IP address with ID=%s", ip.GetResourceId())
-		err := hr.invClient.DeleteIPAddress(ctx, ip.GetResourceId())
+		err := hr.invClient.DeleteIPAddress(ctx, ip.GetTenantId(), ip.GetResourceId())
 		if err != nil {
 			return err
 		}
@@ -228,7 +230,7 @@ func (hr *HostReconciler) deleteHostStorageByHost(ctx context.Context, hostres *
 
 	for _, disk := range disks {
 		zlogHost.Debug().Msgf("Deleting host storage with ID=%s", disk.GetResourceId())
-		err := hr.invClient.DeleteResource(ctx, disk.GetResourceId())
+		err := hr.invClient.DeleteResource(ctx, disk.GetTenantId(), disk.GetResourceId())
 		if err != nil {
 			return err
 		}
@@ -242,7 +244,7 @@ func (hr *HostReconciler) deleteHostUsbByHost(ctx context.Context, host *compute
 
 	for _, usb := range usbs {
 		zlogHost.Debug().Msgf("Deleting host USB with ID=%s", usb.GetResourceId())
-		err := hr.invClient.DeleteResource(ctx, usb.GetResourceId())
+		err := hr.invClient.DeleteResource(ctx, usb.GetTenantId(), usb.GetResourceId())
 		if err != nil {
 			return err
 		}
@@ -254,7 +256,7 @@ func (hr *HostReconciler) deleteHostUsbByHost(ctx context.Context, host *compute
 func (hr *HostReconciler) invalidateHost(ctx context.Context, host *computev1.HostResource) error {
 	zlogHost.Debug().Msgf("Invalidating Host %s", host.GetResourceId())
 
-	if err := kk_auth.RevokeHostCredentials(ctx, host.GetUuid()); err != nil {
+	if err := kk_auth.RevokeHostCredentials(ctx, host.GetTenantId(), host.GetUuid()); err != nil {
 		return err
 	}
 
@@ -262,15 +264,15 @@ func (hr *HostReconciler) invalidateHost(ctx context.Context, host *computev1.Ho
 		ResourceId:          host.GetResourceId(),
 		CurrentState:        computev1.HostState_HOST_STATE_UNTRUSTED,
 		HostStatus:          om_status.AuthorizationStatusInvalidated.Status,
-		HostStatusIndicator: om_status.AuthorizationStatusInvalidated.StatusIndicator,
-		HostStatusTimestamp: uint64(time.Now().Unix()),
+		HostStatusIndicator: om_status.AuthorizationStatusInvalidated.StatusIndicator, // #nosec G115
+		HostStatusTimestamp: uint64(time.Now().Unix()),                                // #nosec G115
 	}
 
 	// Although Onboarding Manager should not update host_status that is updated by HRM,
 	// the host authorization status (being a host_status) must be updated by OM, because
 	// OM is the only source of truth for state reconciliation. Anyway, this operation is safe to
 	// HRM because once the state is moved to UNTRUSTED, HRM won't perform any runtime status update.
-	if err := hr.invClient.UpdateHostStateAndRuntimeStatus(ctx, &untrustedHost); err != nil {
+	if err := hr.invClient.UpdateHostStateAndRuntimeStatus(ctx, host.GetTenantId(), &untrustedHost); err != nil {
 		zlogHost.MiSec().MiError("Failed to update host state and status").Msg("invalidateHost")
 		return err
 	}

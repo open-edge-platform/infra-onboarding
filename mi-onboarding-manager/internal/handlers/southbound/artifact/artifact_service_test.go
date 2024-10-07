@@ -18,6 +18,7 @@ import (
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/compute/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/policy/rbac"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/tenant"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/testing"
 
 	"github.com/stretchr/testify/mock"
@@ -26,7 +27,10 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-const rbacRules = "../../../../rego/authz.rego"
+const (
+	tenant1   = "11111111-1111-1111-1111-111111111111"
+	rbacRules = "../../../../rego/authz.rego"
+)
 
 func TestMain(m *testing.M) {
 	wd, err := os.Getwd()
@@ -137,7 +141,7 @@ func TestCopyNodeReqtoNodetData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := CopyNodeReqToNodeData(tt.args.payload)
+			got, err := CopyNodeReqToNodeData(tt.args.payload, tenant1)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CopyNodeReqToNodeData() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -173,7 +177,8 @@ func TestNodeArtifactService_CreateNodes_Case(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	ctx := createIncomingContextWithENJWT(t)
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -431,7 +436,8 @@ func TestNodeArtifactService_CreateNodes_Case3(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	ctx := createIncomingContextWithENJWT(t)
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
@@ -597,7 +603,8 @@ func TestNodeArtifactService_DeleteNodes_Case1(t *testing.T) {
 	hwdatas1 := []*pb.HwData{hwdata1}
 	payload1 := pb.NodeData{Hwdata: hwdatas1}
 	payloads1 := []*pb.NodeData{&payload1}
-	ctx := createIncomingContextWithENJWT(t)
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -822,7 +829,8 @@ func TestNodeArtifactService_DeleteNodes_Case4(t *testing.T) {
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
-	ctx := createIncomingContextWithENJWT(t)
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -977,7 +985,8 @@ func TestNodeArtifactService_DeleteNodes_Case6(t *testing.T) {
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
-	ctx := createIncomingContextWithENJWT(t)
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1379,7 +1388,8 @@ func TestNodeArtifactService_UpdateNodes_Case1(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	host := inv_testing.CreateHost(t, nil, nil)
+	dao := inv_testing.NewInvResourceDAOOrFail(t)
+	host := dao.CreateHost(t, tenant1)
 	hwdata := &pb.HwData{
 		Uuid: host.Uuid,
 	}
@@ -1389,7 +1399,8 @@ func TestNodeArtifactService_UpdateNodes_Case1(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	ctx := createIncomingContextWithENJWT(t)
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1466,7 +1477,8 @@ func TestNodeArtifactService_UpdateNodes_Case2(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	host := inv_testing.CreateHost(t, nil, nil)
+	dao := inv_testing.NewInvResourceDAOOrFail(t)
+	host := dao.CreateHost(t, tenant1)
 	hwdata := &pb.HwData{
 		Uuid: host.Uuid,
 	}
@@ -1477,7 +1489,8 @@ func TestNodeArtifactService_UpdateNodes_Case2(t *testing.T) {
 		Payload: payloads,
 	}
 
-	ctx := createIncomingContextWithENJWT(t)
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1800,7 +1813,8 @@ func TestNodeArtifactService_UpdateNodes_Case6(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	host := inv_testing.CreateHost(t, nil, nil)
+	dao := inv_testing.NewInvResourceDAOOrFail(t)
+	host := dao.CreateHost(t, tenant1)
 	hwdata := &pb.HwData{
 		Uuid: host.Uuid,
 	}
@@ -1810,7 +1824,8 @@ func TestNodeArtifactService_UpdateNodes_Case6(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	ctx := createIncomingContextWithENJWT(t)
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1877,8 +1892,9 @@ func TestNodeArtifactService_startZeroTouch(t *testing.T) {
 		invClientAPI                             *invclient.OnboardingInventoryClient
 	}
 	type args struct {
-		ctx       context.Context
-		hostResID string
+		ctx          context.Context
+		hostTenantID string
+		hostResID    string
 	}
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -1900,8 +1916,9 @@ func TestNodeArtifactService_startZeroTouch(t *testing.T) {
 				invClientAPI: om_testing.InvClient,
 			},
 			args: args{
-				ctx:       context.Background(),
-				hostResID: host.ResourceId,
+				ctx:          context.Background(),
+				hostTenantID: host.TenantId,
+				hostResID:    host.ResourceId,
 			},
 			wantErr: false,
 		},
@@ -1913,7 +1930,7 @@ func TestNodeArtifactService_startZeroTouch(t *testing.T) {
 				invClient:                                tt.fields.invClient,
 				invClientAPI:                             tt.fields.invClientAPI,
 			}
-			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostResID); (err != nil) != tt.wantErr {
+			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1927,8 +1944,9 @@ func TestNodeArtifactService_startZeroTouch_Case(t *testing.T) {
 		invClientAPI                             *invclient.OnboardingInventoryClient
 	}
 	type args struct {
-		ctx       context.Context
-		hostResID string
+		ctx          context.Context
+		hostTenantID string
+		hostResID    string
 	}
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -1947,8 +1965,9 @@ func TestNodeArtifactService_startZeroTouch_Case(t *testing.T) {
 				invClientAPI: om_testing.InvClient,
 			},
 			args: args{
-				ctx:       context.Background(),
-				hostResID: "host-084d9b08",
+				ctx:          context.Background(),
+				hostTenantID: "123",
+				hostResID:    "host-084d9b08",
 			},
 			wantErr: true,
 		},
@@ -1960,7 +1979,7 @@ func TestNodeArtifactService_startZeroTouch_Case(t *testing.T) {
 				invClient:                                tt.fields.invClient,
 				invClientAPI:                             tt.fields.invClientAPI,
 			}
-			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostResID); (err != nil) != tt.wantErr {
+			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -2032,7 +2051,8 @@ func TestNodeArtifactService_CreateNodes_Case5(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	ctx := createIncomingContextWithENJWT(t)
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -2107,7 +2127,8 @@ func TestNodeArtifactService_UpdateNodes_Case7(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	host := inv_testing.CreateHost(t, nil, nil)
+	dao := inv_testing.NewInvResourceDAOOrFail(t)
+	host := dao.CreateHost(t, tenant1)
 	hwdata := &pb.HwData{
 		Uuid: host.Uuid,
 	}
@@ -2117,7 +2138,8 @@ func TestNodeArtifactService_UpdateNodes_Case7(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	ctx := createIncomingContextWithENJWT(t)
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -2182,8 +2204,9 @@ func TestNodeArtifactService_startZeroTouch_Case1(t *testing.T) {
 		invClientAPI                             *invclient.OnboardingInventoryClient
 	}
 	type args struct {
-		ctx       context.Context
-		hostResID string
+		ctx          context.Context
+		hostTenantID string
+		hostResID    string
 	}
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -2203,8 +2226,9 @@ func TestNodeArtifactService_startZeroTouch_Case1(t *testing.T) {
 				invClientAPI: om_testing.InvClient,
 			},
 			args: args{
-				ctx:       context.Background(),
-				hostResID: host.ResourceId,
+				ctx:          context.Background(),
+				hostTenantID: host.TenantId,
+				hostResID:    host.ResourceId,
 			},
 			wantErr: false,
 		},
@@ -2216,7 +2240,7 @@ func TestNodeArtifactService_startZeroTouch_Case1(t *testing.T) {
 				invClient:                                tt.fields.invClient,
 				invClientAPI:                             tt.fields.invClientAPI,
 			}
-			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostResID); (err != nil) != tt.wantErr {
+			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -2230,8 +2254,9 @@ func TestNodeArtifactService_startZeroTouch_Case2(t *testing.T) {
 		invClientAPI                             *invclient.OnboardingInventoryClient
 	}
 	type args struct {
-		ctx       context.Context
-		hostResID string
+		ctx          context.Context
+		hostTenantID string
+		hostResID    string
 	}
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -2251,8 +2276,9 @@ func TestNodeArtifactService_startZeroTouch_Case2(t *testing.T) {
 				invClientAPI: om_testing.InvClient,
 			},
 			args: args{
-				ctx:       context.Background(),
-				hostResID: host.ResourceId,
+				ctx:          context.Background(),
+				hostTenantID: host.TenantId,
+				hostResID:    host.ResourceId,
 			},
 			wantErr: false,
 		},
@@ -2264,7 +2290,7 @@ func TestNodeArtifactService_startZeroTouch_Case2(t *testing.T) {
 				invClient:                                tt.fields.invClient,
 				invClientAPI:                             tt.fields.invClientAPI,
 			}
-			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostResID); (err != nil) != tt.wantErr {
+			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -2278,8 +2304,9 @@ func TestNodeArtifactService_startZeroTouch_Case3(t *testing.T) {
 		invClientAPI                             *invclient.OnboardingInventoryClient
 	}
 	type args struct {
-		ctx       context.Context
-		hostResID string
+		ctx          context.Context
+		hostTenantID string
+		hostResID    string
 	}
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -2299,8 +2326,9 @@ func TestNodeArtifactService_startZeroTouch_Case3(t *testing.T) {
 				invClientAPI: om_testing.InvClient,
 			},
 			args: args{
-				ctx:       context.Background(),
-				hostResID: host.ResourceId,
+				ctx:          context.Background(),
+				hostTenantID: host.TenantId,
+				hostResID:    host.ResourceId,
 			},
 			wantErr: false,
 		},
@@ -2312,7 +2340,7 @@ func TestNodeArtifactService_startZeroTouch_Case3(t *testing.T) {
 				invClient:                                tt.fields.invClient,
 				invClientAPI:                             tt.fields.invClientAPI,
 			}
-			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostResID); (err != nil) != tt.wantErr {
+			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -2326,8 +2354,9 @@ func TestNodeArtifactService_startZeroTouch_Case4(t *testing.T) {
 		invClientAPI                             *invclient.OnboardingInventoryClient
 	}
 	type args struct {
-		ctx       context.Context
-		hostResID string
+		ctx          context.Context
+		hostTenantID string
+		hostResID    string
 	}
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -2350,8 +2379,9 @@ func TestNodeArtifactService_startZeroTouch_Case4(t *testing.T) {
 				invClientAPI: om_testing.InvClient,
 			},
 			args: args{
-				ctx:       context.Background(),
-				hostResID: host.ResourceId,
+				ctx:          context.Background(),
+				hostTenantID: host.TenantId,
+				hostResID:    host.ResourceId,
 			},
 			wantErr: false,
 		},
@@ -2363,7 +2393,7 @@ func TestNodeArtifactService_startZeroTouch_Case4(t *testing.T) {
 				invClient:                                tt.fields.invClient,
 				invClientAPI:                             tt.fields.invClientAPI,
 			}
-			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostResID); (err != nil) != tt.wantErr {
+			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -2741,7 +2771,8 @@ func TestNodeArtifactService_CreateNodes_Case7(t *testing.T) {
 		Payload: payloads,
 	}
 
-	ctx := createIncomingContextWithENJWT(t)
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -2814,9 +2845,10 @@ func TestNodeArtifactService_checkNCreateInstance(t *testing.T) {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
 	type args struct {
-		ctx   context.Context
-		pconf invclient.ProviderConfig
-		host  *computev1.HostResource
+		ctx      context.Context
+		pconf    invclient.ProviderConfig
+		tenentID string
+		host     *computev1.HostResource
 	}
 	ctx := createIncomingContextWithENJWT(t)
 	tests := []struct {
@@ -2838,7 +2870,8 @@ func TestNodeArtifactService_checkNCreateInstance(t *testing.T) {
 				pconf: invclient.ProviderConfig{
 					AutoProvision: true,
 				},
-				host: &computev1.HostResource{},
+				host:     &computev1.HostResource{},
+				tenentID: "",
 			},
 			wantErr: true,
 		},
@@ -2869,7 +2902,7 @@ func TestNodeArtifactService_checkNCreateInstance(t *testing.T) {
 				rbac:                                     tt.fields.rbac,
 				authEnabled:                              tt.fields.authEnabled,
 			}
-			if err := s.checkNCreateInstance(tt.args.ctx, tt.args.pconf, tt.args.host); (err != nil) != tt.wantErr {
+			if err := s.checkNCreateInstance(tt.args.ctx, tt.args.tenentID, tt.args.pconf, tt.args.host); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.checkNCreateInstance() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

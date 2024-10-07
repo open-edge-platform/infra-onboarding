@@ -21,8 +21,8 @@ import (
 )
 
 var (
-	clientName = inv_testing.ClientType("TestOnboardingInventoryClient")
-	zlog       = logging.GetLogger("Onboarding-Manager-Testing")
+	clientName inv_testing.ClientType = "TestOnboardingInventoryClient"
+	zlog                              = logging.GetLogger("Onboarding-Manager-Testing")
 	InvClient  *invclient.OnboardingInventoryClient
 )
 
@@ -38,7 +38,7 @@ func CreateInventoryOnboardingClientForTesting() {
 		zlog.Fatal().Err(err).Msg("Cannot create Inventory OnboardingRM client")
 	}
 
-	InvClient, err = invclient.NewOnboardingInventoryClient(inv_testing.TestClients[clientName],
+	InvClient, err = invclient.NewOnboardingInventoryClient(inv_testing.TestClients[clientName].GetTenantAwareInventoryClient(),
 		inv_testing.TestClientsEvents[clientName])
 	if err != nil {
 		zlog.Fatal().Err(err).Msg("Cannot create Inventory OnboardingRM client")
@@ -54,6 +54,7 @@ func DeleteInventoryOnboardingClientForTesting() {
 
 func AssertHost(
 	tb testing.TB,
+	tenantID string,
 	resID string,
 	expectedDesiredState computev1.HostState,
 	expectedCurrentState computev1.HostState,
@@ -64,7 +65,7 @@ func AssertHost(
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	gresp, err := inv_testing.TestClients[inv_testing.APIClient].Get(ctx, resID)
+	gresp, err := inv_testing.TestClients[inv_testing.APIClient].GetTenantAwareInventoryClient().Get(ctx, tenantID, resID)
 	require.NoError(tb, err)
 	host := gresp.GetResource().GetHost()
 	assert.Equal(tb, expectedDesiredState, host.GetDesiredState())
@@ -88,6 +89,7 @@ func AssertHostOnboardingStatus(tb testing.TB, resID string, expectedOnboardingS
 
 func AssertInstance(
 	tb testing.TB,
+	tenantID string,
 	resID string,
 	expectedDesiredState computev1.InstanceState,
 	expectedCurrentState computev1.InstanceState,
@@ -98,7 +100,7 @@ func AssertInstance(
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	gresp, err := inv_testing.TestClients[inv_testing.APIClient].Get(ctx, resID)
+	gresp, err := inv_testing.TestClients[inv_testing.APIClient].GetTenantAwareInventoryClient().Get(ctx, tenantID, resID)
 	require.NoError(tb, err)
 
 	instance := gresp.GetResource().GetInstance()

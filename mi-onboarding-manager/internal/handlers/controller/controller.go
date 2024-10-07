@@ -42,7 +42,7 @@ type Filter func(event *inv_v1.SubscribeEventsResponse) bool
 type OnboardingController struct {
 	invClient   *invclient.OnboardingInventoryClient
 	filters     map[inv_v1.ResourceKind]Filter
-	controllers map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ResourceID]
+	controllers map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ReconcilerID]
 	wg          *sync.WaitGroup
 	stop        chan bool
 }
@@ -51,17 +51,17 @@ func New(
 	invClient *invclient.OnboardingInventoryClient,
 	enableTracing bool,
 ) (*OnboardingController, error) {
-	controllers := make(map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ResourceID])
+	controllers := make(map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ReconcilerID])
 	filters := make(map[inv_v1.ResourceKind]Filter)
 
 	hostRcnl := reconcilers.NewHostReconciler(invClient, enableTracing)
-	hostCtrl := rec_v2.NewController[reconcilers.ResourceID](
+	hostCtrl := rec_v2.NewController[reconcilers.ReconcilerID](
 		hostRcnl.Reconcile, rec_v2.WithParallelism(parallelism))
 	controllers[inv_v1.ResourceKind_RESOURCE_KIND_HOST] = hostCtrl
 	filters[inv_v1.ResourceKind_RESOURCE_KIND_HOST] = hostEventFilter
 
 	instRcnl := reconcilers.NewInstanceReconciler(invClient, enableTracing)
-	instCtrl := rec_v2.NewController[reconcilers.ResourceID](
+	instCtrl := rec_v2.NewController[reconcilers.ReconcilerID](
 		instRcnl.Reconcile, rec_v2.WithParallelism(parallelism))
 	controllers[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instCtrl
 	filters[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instanceEventFilter
@@ -111,7 +111,12 @@ func (obc *OnboardingController) controlLoop() {
 				zlog.Debug().Msgf("Event %v is not allowed by filter", ev.Event)
 				continue
 			}
-			if err := obc.reconcileResource(ev.Event.ResourceId); err != nil {
+			tID, resID, err := util.GetResourceKeyFromResource(ev.Event.GetResource())
+			if err != nil {
+				zlog.MiSec().Err(err).Msgf("Failed to get resource key from event: event=%v", ev.Event)
+				continue
+			}
+			if err := obc.reconcileResource(tID, resID); err != nil {
 				zlog.MiSec().MiErr(err).Msgf("reconciliation resource failed")
 			}
 		case <-ticker.C:
@@ -163,7 +168,7 @@ func (obc *OnboardingController) reconcileAll() error {
 	}
 
 	for _, id := range ids {
-		err = obc.reconcileResource(id)
+		err = obc.reconcileResource(id.GetTenantId(), id.GetResourceId())
 		if err != nil {
 			return err
 		}
@@ -172,20 +177,22 @@ func (obc *OnboardingController) reconcileAll() error {
 	return nil
 }
 
-func (obc *OnboardingController) reconcileResource(resourceID string) error {
+func (obc *OnboardingController) reconcileResource(tenantID, resourceID string) error {
 	expectedKind, err := util.GetResourceKindFromResourceID(resourceID)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("unknown resource kind for resource ID %s", resourceID))
 	}
 
-	zlog.Debug().Msgf("Reconciling resource (%s) of kind=%s", resourceID, expectedKind)
+	zlog.Debug().Msgf("Reconciling resource (%s) of kind=%s",
+		fmt.Sprintf("[tenantID=%s, resourceID=%s]", tenantID, resourceID), expectedKind)
 
 	controller, ok := obc.controllers[expectedKind]
 	if !ok {
-		return fmt.Errorf("unknown resource controller for kind %s with ID %s", expectedKind, resourceID)
+		return fmt.Errorf("unknown resource controller for kind %s with ID %s",
+			expectedKind, fmt.Sprintf("[tenantID=%s, resourceID=%s]", tenantID, resourceID))
 	}
 
-	if err = controller.Reconcile(reconcilers.ResourceID(resourceID)); err != nil {
+	if err = controller.Reconcile(reconcilers.NewReconcilerID(tenantID, resourceID)); err != nil {
 		zlog.Err(err).Msgf("Error while reconciling resource ID %s", resourceID)
 		return err
 	}

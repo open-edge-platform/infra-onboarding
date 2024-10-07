@@ -35,7 +35,8 @@ func UpdateHostStatusByHostGUID(ctx context.Context,
 	zlog.Debug().Msgf("Update host resc (%v) status", hostResc.ResourceId)
 	zlog.Debug().Msgf("Update Host (%v) onboarding status: %v", hostResc.ResourceId, onboardingStatus)
 
-	if err = invClient.SetHostOnboardingStatus(ctx, hostResc.GetResourceId(), onboardingStatus); err != nil {
+	if err = invClient.SetHostOnboardingStatus(ctx, hostResc.GetTenantId(),
+		hostResc.GetResourceId(), onboardingStatus); err != nil {
 		zlog.MiSec().MiError("Failed to update host resource info").Msg("UpdateHostStatusByHostGUID")
 		return err
 	}

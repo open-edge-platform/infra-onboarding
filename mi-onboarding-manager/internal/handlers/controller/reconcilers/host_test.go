@@ -69,7 +69,7 @@ func TestHostReconcileDeauthorization(t *testing.T) {
 	hostReconciler := NewHostReconciler(om_testing.InvClient, true)
 	require.NotNil(t, hostReconciler)
 
-	hostController := rec_v2.NewController[ResourceID](hostReconciler.Reconcile, rec_v2.WithParallelism(1))
+	hostController := rec_v2.NewController[ReconcilerID](hostReconciler.Reconcile, rec_v2.WithParallelism(1))
 	// do not Stop() to avoid races, should be safe in tests
 
 	host := inv_testing.CreateHost(t, nil, nil)
@@ -80,7 +80,7 @@ func TestHostReconcileDeauthorization(t *testing.T) {
 		select {
 		case ev, ok := <-inv_testing.TestClientsEvents[inv_testing.RMClient]:
 			require.True(t, ok, "No events received")
-			err := hostController.Reconcile(ResourceID(ev.Event.ResourceId))
+			err := hostController.Reconcile(NewReconcilerID(host.GetTenantId(), ev.Event.ResourceId))
 			assert.NoError(t, err, "Reconciliation failed")
 		case <-time.After(1 * time.Second):
 			t.Fatalf("No events received within timeout")
@@ -89,7 +89,7 @@ func TestHostReconcileDeauthorization(t *testing.T) {
 	}
 
 	runReconcilationFunc()
-	om_testing.AssertHost(t, hostID,
+	om_testing.AssertHost(t, host.GetTenantId(), hostID,
 		computev1.HostState_HOST_STATE_ONBOARDED,
 		computev1.HostState_HOST_STATE_UNSPECIFIED,
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
@@ -112,7 +112,7 @@ func TestHostReconcileDeauthorization(t *testing.T) {
 	runReconcilationFunc()
 
 	// auth service mock should return error, so no success
-	om_testing.AssertHost(t, hostID,
+	om_testing.AssertHost(t, host.GetTenantId(), hostID,
 		computev1.HostState_HOST_STATE_UNTRUSTED,
 		computev1.HostState_HOST_STATE_UNSPECIFIED,
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
@@ -123,7 +123,7 @@ func TestHostReconcileDeauthorization(t *testing.T) {
 	require.NoError(t, err)
 	runReconcilationFunc()
 
-	om_testing.AssertHost(t, hostID,
+	om_testing.AssertHost(t, host.GetTenantId(), hostID,
 		computev1.HostState_HOST_STATE_UNTRUSTED,
 		computev1.HostState_HOST_STATE_UNTRUSTED,
 		om_status.AuthorizationStatusInvalidated)
@@ -148,7 +148,7 @@ func TestReconcileHostDeletion(t *testing.T) {
 	hostReconciler := NewHostReconciler(om_testing.InvClient, true)
 	require.NotNil(t, hostReconciler)
 
-	hostController := rec_v2.NewController[ResourceID](hostReconciler.Reconcile, rec_v2.WithParallelism(1))
+	hostController := rec_v2.NewController[ReconcilerID](hostReconciler.Reconcile, rec_v2.WithParallelism(1))
 	// do not Stop() to avoid races, should be safe in tests
 
 	host := inv_testing.CreateHostNoCleanup(t, nil, nil)
@@ -175,7 +175,7 @@ func TestReconcileHostDeletion(t *testing.T) {
 				if resKind != inv_v1.ResourceKind_RESOURCE_KIND_HOST {
 					continue
 				}
-				err = hostController.Reconcile(ResourceID(ev.Event.ResourceId))
+				err = hostController.Reconcile(NewReconcilerID(host.GetTenantId(), ev.Event.ResourceId))
 				assert.NoError(t, err, "Reconciliation failed")
 				return
 			case <-time.After(1 * time.Second):
@@ -185,7 +185,7 @@ func TestReconcileHostDeletion(t *testing.T) {
 	}
 
 	runReconcilationFunc() // CREATED event
-	om_testing.AssertHost(t, hostID,
+	om_testing.AssertHost(t, host.GetTenantId(), hostID,
 		computev1.HostState_HOST_STATE_ONBOARDED,
 		computev1.HostState_HOST_STATE_UNSPECIFIED,
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
@@ -210,7 +210,7 @@ func TestReconcileHostDeletion(t *testing.T) {
 	runReconcilationFunc() // UPDATED event (status update)
 
 	expectedDetails := fmt.Sprintf("waiting on %s deletion", instance.GetResourceId())
-	om_testing.AssertHost(t, hostID,
+	om_testing.AssertHost(t, host.GetTenantId(), hostID,
 		computev1.HostState_HOST_STATE_DELETED,
 		computev1.HostState_HOST_STATE_UNSPECIFIED,
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
@@ -235,7 +235,7 @@ func TestReconcileHostDeletion(t *testing.T) {
 
 	runReconcilationFunc()
 
-	om_testing.AssertHost(t, hostID,
+	om_testing.AssertHost(t, host.GetTenantId(), hostID,
 		computev1.HostState_HOST_STATE_DELETED,
 		computev1.HostState_HOST_STATE_UNSPECIFIED,
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
@@ -279,7 +279,7 @@ func TestReconcileHostWithProvider(t *testing.T) {
 	hostReconciler := NewHostReconciler(om_testing.InvClient, true)
 	require.NotNil(t, hostReconciler)
 
-	hostController := rec_v2.NewController[ResourceID](hostReconciler.Reconcile, rec_v2.WithParallelism(1))
+	hostController := rec_v2.NewController[ReconcilerID](hostReconciler.Reconcile, rec_v2.WithParallelism(1))
 	// do not Stop() to avoid races, should be safe in tests
 
 	// creating Provider
@@ -290,10 +290,10 @@ func TestReconcileHostWithProvider(t *testing.T) {
 	hostID := host.GetResourceId()
 
 	// performing reconciliation
-	err := hostController.Reconcile(ResourceID(hostID))
+	err := hostController.Reconcile(NewReconcilerID(host.GetTenantId(), host.GetResourceId()))
 	assert.NoError(t, err, "Reconciliation failed")
 
-	om_testing.AssertHost(t, hostID,
+	om_testing.AssertHost(t, host.GetTenantId(), hostID,
 		computev1.HostState_HOST_STATE_ONBOARDED,
 		computev1.HostState_HOST_STATE_UNSPECIFIED,
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
@@ -302,16 +302,16 @@ func TestReconcileHostWithProvider(t *testing.T) {
 	// Setting the Desired state of the Host to be DELETED.
 	inv_testing.DeleteResource(t, hostID)
 
-	om_testing.AssertHost(t, hostID,
+	om_testing.AssertHost(t, host.GetTenantId(), hostID,
 		computev1.HostState_HOST_STATE_DELETED,
 		computev1.HostState_HOST_STATE_UNSPECIFIED,
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// performing reconciliation
-	err = hostController.Reconcile(ResourceID(hostID))
+	err = hostController.Reconcile(NewReconcilerID(host.GetTenantId(), host.GetResourceId()))
 	assert.NoError(t, err, "Reconciliation failed")
 
-	om_testing.AssertHost(t, hostID,
+	om_testing.AssertHost(t, host.GetTenantId(), hostID,
 		computev1.HostState_HOST_STATE_DELETED,
 		computev1.HostState_HOST_STATE_UNSPECIFIED,
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
@@ -351,10 +351,10 @@ func TestHostReconciler_Reconcile_Case1(t *testing.T) {
 	}
 	type args struct {
 		ctx     context.Context
-		request rec_v2.Request[ResourceID]
+		request rec_v2.Request[ReconcilerID]
 	}
-	testRequest := rec_v2.Request[ResourceID]{
-		ID: ResourceID("test-id"),
+	testRequest := rec_v2.Request[ReconcilerID]{
+		ID: NewReconcilerID(tenantID, "12345678"),
 	}
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -364,7 +364,7 @@ func TestHostReconciler_Reconcile_Case1(t *testing.T) {
 		name   string
 		fields fields
 		args   args
-		want   rec_v2.Directive[ResourceID]
+		want   rec_v2.Directive[ReconcilerID]
 	}{
 		{
 			name: "TestCase1",
@@ -772,20 +772,20 @@ func TestHostReconciler_Reconcile(t *testing.T) {
 	}
 	type args struct {
 		ctx     context.Context
-		request rec_v2.Request[ResourceID]
+		request rec_v2.Request[ReconcilerID]
 	}
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	testRequest := rec_v2.Request[ResourceID]{
-		ID: ResourceID("test-id"),
+	testRequest := rec_v2.Request[ReconcilerID]{
+		ID: NewReconcilerID(tenantID, "12345678"),
 	}
 	tests := []struct {
 		name   string
 		fields fields
 		args   args
-		want   rec_v2.Directive[ResourceID]
+		want   rec_v2.Directive[ReconcilerID]
 	}{
 		{
 			name: "TestCase for checking reclonic resource id",
@@ -821,14 +821,14 @@ func TestHostReconciler_reconcileHost(t *testing.T) {
 	}
 	type args struct {
 		ctx     context.Context
-		request rec_v2.Request[ResourceID]
+		request rec_v2.Request[ReconcilerID]
 		host    *computev1.HostResource
 	}
 	tests := []struct {
 		name   string
 		fields fields
 		args   args
-		want   rec_v2.Directive[ResourceID]
+		want   rec_v2.Directive[ReconcilerID]
 	}{
 		{
 			name: "Test Case for reclonic host with host resource values",
@@ -837,7 +837,7 @@ func TestHostReconciler_reconcileHost(t *testing.T) {
 			},
 			args: args{
 				ctx:     context.Background(),
-				request: rec_v2.Request[ResourceID]{},
+				request: rec_v2.Request[ReconcilerID]{},
 				host: &computev1.HostResource{
 					DesiredState: computev1.HostState_HOST_STATE_DELETED,
 				},

@@ -16,18 +16,18 @@ type authServiceMock struct {
 	mock.Mock
 }
 
-func (a *authServiceMock) CreateCredentialsWithUUID(ctx context.Context, uuid string) (string, string, error) {
-	args := a.Called()
-	return args.Get(0).(string), args.Get(1).(string), args.Error(0)
+func (a *authServiceMock) CreateCredentialsWithUUID(ctx context.Context, tenantID, uuid string) (string, string, error) {
+	args := a.Called(ctx, tenantID, uuid)
+	return args.String(0), args.String(1), args.Error(2)
 }
 
-func (a *authServiceMock) GetCredentialsByUUID(ctx context.Context, uuid string) (string, string, error) {
-	args := a.Called()
-	return args.Get(0).(string), args.Get(1).(string), args.Error(0)
+func (a *authServiceMock) GetCredentialsByUUID(ctx context.Context, tenantID, uuid string) (string, string, error) {
+	args := a.Called(ctx, tenantID, uuid)
+	return args.String(0), args.String(1), args.Error(2)
 }
 
-func (a *authServiceMock) RevokeCredentialsByUUID(ctx context.Context, uuid string) error {
-	args := a.Called()
+func (a *authServiceMock) RevokeCredentialsByUUID(ctx context.Context, tenantID, uuid string) error {
+	args := a.Called(ctx, tenantID, uuid)
 	return args.Error(0)
 }
 
@@ -39,21 +39,21 @@ func AuthServiceMockFactory(createShouldFail, getShouldFail, revokeShouldFail bo
 	authMock := &authServiceMock{}
 
 	if createShouldFail {
-		authMock.On("CreateCredentialsWithUUID", mock.Anything, mock.Anything).Return("", "", inv_errors.Errorf(""))
+		authMock.On("CreateCredentialsWithUUID", mock.Anything, mock.Anything, mock.Anything).Return("", "", inv_errors.Errorf(""))
 	} else {
-		authMock.On("CreateCredentialsWithUUID", mock.Anything, mock.Anything).Return(nil)
+		authMock.On("CreateCredentialsWithUUID", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	}
 
 	if getShouldFail {
-		authMock.On("GetCredentialsByUUID", mock.Anything, mock.Anything).Return("", "", inv_errors.Errorf(""))
+		authMock.On("GetCredentialsByUUID", mock.Anything, mock.Anything, mock.Anything).Return("", "", inv_errors.Errorf(""))
 	} else {
-		authMock.On("GetCredentialsByUUID", mock.Anything, mock.Anything).Return("", "", nil)
+		authMock.On("GetCredentialsByUUID", mock.Anything, mock.Anything, mock.Anything).Return("", "", nil)
 	}
 
 	if revokeShouldFail {
-		authMock.On("RevokeCredentialsByUUID", mock.Anything, mock.Anything).Return(inv_errors.Errorf(""))
+		authMock.On("RevokeCredentialsByUUID", mock.Anything, mock.Anything, mock.Anything).Return(inv_errors.Errorf(""))
 	} else {
-		authMock.On("RevokeCredentialsByUUID", mock.Anything, mock.Anything).Return(nil)
+		authMock.On("RevokeCredentialsByUUID", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	}
 
 	authMock.On("Logout", mock.Anything, mock.Anything).Return()

@@ -25,6 +25,7 @@ import (
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/policy/rbac"
+	inv_tenant "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/tenant"
 )
 
 const (
@@ -109,7 +110,7 @@ func NewArtifactService(invClient *invclient.OnboardingInventoryClient, inventor
 	}, nil
 }
 
-func CopyNodeReqToNodeData(payload []*pb.NodeData) ([]*computev1.HostResource, error) {
+func CopyNodeReqToNodeData(payload []*pb.NodeData, tenantID string) ([]*computev1.HostResource, error) {
 	zlog.Info().Msgf("CopyNodeReqToNodeData")
 
 	zlog.Debug().Msgf("Parsing NodeData of length=%d", len(payload))
@@ -122,6 +123,7 @@ func CopyNodeReqToNodeData(payload []*pb.NodeData) ([]*computev1.HostResource, e
 				SerialNumber: hwData.Serialnum,
 				Uuid:         hwData.Uuid,
 				PxeMac:       hwData.MacId,
+				TenantId:     tenantID,
 			}
 			zlog.Debug().Msgf("Adding HostResource: %v", hostres)
 			hosts = append(hosts, hostres)
@@ -139,7 +141,7 @@ func sendStreamErrorResponse(stream pb.NodeArtifactServiceNB_OnboardNodeStreamSe
 ) error {
 	response := &pb.OnboardStreamResponse{
 		Status: &google_rpc.Status{
-			Code:    int32(code),
+			Code:    int32(code), // #nosec G115
 			Message: message,
 		},
 		NodeState: pb.OnboardStreamResponse_UNSPECIFIED,
@@ -187,7 +189,7 @@ func (s *NodeArtifactService) handleRegisteredState(stream pb.NodeArtifactServic
 		return err
 	}
 	// make the current state to registered
-	err := s.invClient.UpdateHostCurrentState(context.Background(),
+	err := s.invClient.UpdateHostCurrentState(context.Background(), hostInv.GetTenantId(),
 		hostInv.ResourceId, computev1.HostState_HOST_STATE_REGISTERED)
 	if err != nil {
 		return err
@@ -199,7 +201,7 @@ func (s *NodeArtifactService) handleRegisteredState(stream pb.NodeArtifactServic
 func (s *NodeArtifactService) handleOnboardedState(stream pb.NodeArtifactServiceNB_OnboardNodeStreamServer,
 	hostInv *computev1.HostResource,
 ) error {
-	clientID, clientSecret, err := utils.FetchClientSecret(context.Background(), hostInv.Uuid)
+	clientID, clientSecret, err := utils.FetchClientSecret(context.Background(), hostInv.GetTenantId(), hostInv.Uuid)
 	if err != nil {
 		zlog.Error().Err(err).Msg("Failed to fetch client id and secret from keycloak")
 		return err
@@ -216,7 +218,7 @@ func (s *NodeArtifactService) handleOnboardedState(stream pb.NodeArtifactService
 		return err
 	}
 	// make the current state to ONBOARDED.
-	errUpdatehostStatus := s.invClient.UpdateHostCurrentState(context.Background(),
+	errUpdatehostStatus := s.invClient.UpdateHostCurrentState(context.Background(), hostInv.GetTenantId(),
 		hostInv.ResourceId, computev1.HostState_HOST_STATE_ONBOARDED)
 	if errUpdatehostStatus != nil {
 		zlog.Error().Err(errUpdatehostStatus).Msg("Failed to update host current status to ONBOARDED")
@@ -250,7 +252,7 @@ func (s *NodeArtifactService) OnboardNodeStream(stream pb.NodeArtifactServiceNB_
 			go func() {
 				ctx := context.Background()
 				// Start the zero-touch process.
-				if err := s.startZeroTouch(ctx, hostInv.GetResourceId()); err != nil {
+				if err := s.startZeroTouch(ctx, hostInv.GetTenantId(), hostInv.GetResourceId()); err != nil {
 					zlog.Error().Err(err).Msg("Failed to start zero touch process")
 				}
 			}()
@@ -288,6 +290,7 @@ func (s *NodeArtifactService) OnboardNodeStream(stream pb.NodeArtifactServiceNB_
 
 		// 1. If the UUID provided by the EN is not found in the inventory
 		hostInv, err = s.invClient.GetHostResourceByUUID(context.Background(), req.Uuid)
+		tenantID := hostInv.GetTenantId()
 		if err != nil {
 			zlog.Info().Msgf("Node Doesn't Exist for UUID %v\n", req.Uuid)
 			// The server sends the Device "NotFound" grpc code over the stream
@@ -304,7 +307,7 @@ func (s *NodeArtifactService) OnboardNodeStream(stream pb.NodeArtifactServiceNB_
 		// Only update MAC ID if it's empty or differs from the incoming request
 		if hostInv.PxeMac == "" || hostInv.PxeMac != req.GetMacId() {
 			macAddress := req.GetMacId()
-			errupdatemacStatus := s.invClient.UpdateHostMacID(context.Background(), hostInv.ResourceId, macAddress)
+			errupdatemacStatus := s.invClient.UpdateHostMacID(context.Background(), tenantID, hostInv.ResourceId, macAddress)
 			if errupdatemacStatus != nil {
 				zlog.Error().Err(errupdatemacStatus).Msg("Failed to update host MAC ID")
 				return errupdatemacStatus
@@ -318,7 +321,7 @@ func (s *NodeArtifactService) OnboardNodeStream(stream pb.NodeArtifactServiceNB_
 		// Only update hostip if it's empty or differs from the incoming request
 		if hostInv.BmcIp == "" || hostInv.BmcIp != req.GetHostIp() {
 			bmcIP := req.GetHostIp()
-			errUpdateBmcStatus := s.invClient.UpdateHostIP(context.Background(), hostInv.ResourceId, bmcIP)
+			errUpdateBmcStatus := s.invClient.UpdateHostIP(context.Background(), tenantID, hostInv.ResourceId, bmcIP)
 			if errUpdateBmcStatus != nil {
 				zlog.Error().Err(errUpdateBmcStatus).Msg("Failed to update host BMC IP")
 				return errUpdateBmcStatus
@@ -381,6 +384,7 @@ func (s *NodeArtifactService) OnboardNodeStream(stream pb.NodeArtifactServiceNB_
 	}
 }
 
+//nolint:cyclop // May effect the functionality now, need to simplify this in future
 func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
 	zlog.Info().Msgf("CreateNodes")
 	if s.authEnabled {
@@ -392,8 +396,17 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 		}
 	}
 
+	tenantID, present := inv_tenant.GetTenantIDFromContext(ctx)
+	if !present {
+		// This should never happen! Interceptor should either fail or set it!
+		err := inv_errors.Errorfc(codes.Unauthenticated, "Tenant ID is not present in context")
+		zlog.MiSec().MiErr(err).Msg("Request CreateNodes is not authenticated")
+		return nil, err
+	}
+	zlog.Debug().Msgf("CreateNodes: tenantID=%s", tenantID)
+
 	/* Copy node data from user */
-	hostresdata, err := CopyNodeReqToNodeData(req.Payload)
+	hostresdata, err := CopyNodeReqToNodeData(req.Payload, tenantID)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("CopyNodeReqToNodeData error: %v", err)
 		return nil, err
@@ -409,35 +422,35 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 	host.CurrentState = computev1.HostState_HOST_STATE_ONBOARDED
 	host.OnboardingStatus = om_status.OnboardingStatusDone.Status
 	host.OnboardingStatusIndicator = om_status.OnboardingStatusDone.StatusIndicator
-	host.OnboardingStatusTimestamp = uint64(time.Now().Unix())
+	host.OnboardingStatusTimestamp = uint64(time.Now().Unix()) // #nosec G115
 
 	hostInv, err := s.invClient.GetHostResourceByUUID(ctx, host.Uuid)
 
 	switch {
 	case inv_errors.IsNotFound(err):
-		zlog.Info().Msgf("Create op : Node Doesn't Exist for GUID %s\n", host.Uuid)
+		zlog.Info().Msgf("Create op : Node Doesn't Exist for GUID %s and tID=%s\n", host.Uuid, tenantID)
 
 	case err == nil:
-		zlog.Debug().Msgf("Create op : Node and its Host Resource Already Exist for GUID %s \n", host.Uuid)
-		if ztErr := s.startZeroTouch(ctx, hostInv.ResourceId); ztErr != nil {
+		zlog.Debug().Msgf("Create op : Node and its Host Resource Already Exist for GUID %s, tID=%s \n", host.Uuid, tenantID)
+		if ztErr := s.startZeroTouch(ctx, tenantID, hostInv.ResourceId); ztErr != nil {
 			zlog.MiSec().MiErr(ztErr).Msgf("startZeroTouch error: %v", ztErr)
 			return nil, ztErr
 		}
 		return &pb.NodeResponse{Payload: req.Payload}, nil
 
 	case err != nil:
-		zlog.MiSec().MiErr(err).Msgf("Create op :Failed CreateNodes() for GUID %s\n", host.Uuid)
+		zlog.MiSec().MiErr(err).Msgf("Create op :Failed CreateNodes() for GUID %s tID=%s \n", host.Uuid, tenantID)
 		return nil, err
 	}
 
-	hostResID, err = s.invClient.CreateHostResource(ctx, host)
+	hostResID, err = s.invClient.CreateHostResource(ctx, tenantID, host)
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("Cannot create Host resource: %v", host)
+		zlog.MiSec().MiErr(err).Msgf("Cannot create Host resource: %v tID=%s", host, tenantID)
 		return nil, err
 	}
-	zlog.Debug().Msgf("CreateHostResource ID = %s", hostResID)
+	zlog.Debug().Msgf("CreateHostResource ID = %s and tID=%s", hostResID, tenantID)
 
-	if err := s.startZeroTouch(ctx, hostResID); err != nil {
+	if err := s.startZeroTouch(ctx, tenantID, hostResID); err != nil {
 		zlog.MiSec().MiErr(err).Msgf("startZeroTouch error: %v", err)
 		return nil, err
 	}
@@ -455,7 +468,17 @@ func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.NodeReque
 			return nil, err
 		}
 	}
-	hostresdata, err := CopyNodeReqToNodeData(req.Payload)
+
+	tenantID, present := inv_tenant.GetTenantIDFromContext(ctx)
+	if !present {
+		// This should never happen! Interceptor should either fail or set it!
+		err := inv_errors.Errorfc(codes.Unauthenticated, "Tenant ID is not present in context")
+		zlog.MiSec().MiErr(err).Msg("Request DeleteNodes is not authenticated")
+		return nil, err
+	}
+
+	zlog.Debug().Msgf("DeleteNodes: tenantID=%s", tenantID)
+	hostresdata, err := CopyNodeReqToNodeData(req.Payload, tenantID)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("CopyNodeReqToNodeData error: %v", err)
 		return nil, err
@@ -468,14 +491,15 @@ func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.NodeReque
 
 	switch {
 	case inv_errors.IsNotFound(err):
-		zlog.MiSec().MiErr(err).Msgf("Delete op : Node Doesn't Exist for GUID %s\n", hostresdata[0].Uuid)
+		zlog.MiSec().MiErr(err).Msgf("Delete op : Node Doesn't Exist for GUID %s ,tID=%s\n", hostresdata[0].Uuid, tenantID)
 		return &pb.NodeResponse{Payload: req.Payload}, nil
 
 	case err == nil:
-		zlog.Debug().Msgf("Delete op : Node and its Host Resource Already Exist for GUID %s \n", hostresdata[0].Uuid)
+		zlog.Debug().Msgf("Delete op : Node and its Host Resource Already Exist for GUID %s ,tID=%s \n",
+			hostresdata[0].Uuid, tenantID)
 
 	case err != nil:
-		zlog.MiSec().MiErr(err).Msgf("Delete op : Failed DeleteNodes() for GUID %s\n", hostresdata[0].Uuid)
+		zlog.MiSec().MiErr(err).Msgf("Delete op : Failed DeleteNodes() for GUID %s,tID=%s\n", hostresdata[0].Uuid, tenantID)
 		return nil, err
 	}
 
@@ -485,9 +509,9 @@ func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.NodeReque
 	hostResID = hostresget.ResourceId
 	hostresdata[0].ResourceId = hostResID
 
-	err = s.invClient.DeleteHostResource(ctx, hostResID)
+	err = s.invClient.DeleteHostResource(ctx, tenantID, hostResID)
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("\nDeleteHostResource() Error : %v\n", err)
+		zlog.MiSec().MiErr(err).Msgf("\nDeleteHostResource()  Error : %v\n", err)
 		return nil, err
 	}
 
@@ -539,7 +563,17 @@ func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeReque
 		}
 	}
 
-	host, err := CopyNodeReqToNodeData(req.Payload)
+	tenantID, present := inv_tenant.GetTenantIDFromContext(ctx)
+	if !present {
+		// This should never happen! Interceptor should either fail or set it!
+		err := inv_errors.Errorfc(codes.Unauthenticated, "Tenant ID is not present in context")
+		zlog.MiSec().MiErr(err).Msg("Request UpdateNodes is not authenticated")
+		return nil, err
+	}
+
+	zlog.Debug().Msgf("UpdateNodes: tenantID=%s", tenantID)
+
+	host, err := CopyNodeReqToNodeData(req.Payload, tenantID)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("CopyNodeReqToNodeData error: %v", err)
 		return nil, err
@@ -551,14 +585,14 @@ func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeReque
 	hostInv, err := s.invClient.GetHostResourceByUUID(ctx, host[0].Uuid)
 	switch {
 	case inv_errors.IsNotFound(err):
-		zlog.MiSec().MiErr(err).Msgf("Update op : Node Doesn't Exist for GUID %s\n", host[0].Uuid)
+		zlog.MiSec().MiErr(err).Msgf("Update op : Node Doesn't Exist for GUID %s,tID=%s\n", host[0].Uuid, tenantID)
 		return nil, err
 
 	case err == nil:
-		zlog.Debug().Msgf("Update op : Node and its Host Resource Already Exist for GUID %s \n", host[0].Uuid)
+		zlog.Debug().Msgf("Update op : Node and its Host Resource Already Exist for GUID %s ,tID=%s\n", host[0].Uuid, tenantID)
 
 	case err != nil:
-		zlog.MiSec().MiErr(err).Msgf("Update op : Failed CreateNodes() for GUID %s\n", host[0].Uuid)
+		zlog.MiSec().MiErr(err).Msgf("Update op : Failed CreateNodes() for GUID %s,tID=%s\n", host[0].Uuid, tenantID)
 		return nil, err
 	}
 
@@ -571,32 +605,32 @@ func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeReque
 
 	if !isSameHost || doHostUpdate {
 		host[0].ResourceId = hostInv.GetResourceId()
-		err = s.invClient.UpdateInvResourceFields(ctx, host[0], UpdateHostFieldmask.Paths)
+		err = s.invClient.UpdateInvResourceFields(ctx, tenantID, host[0], UpdateHostFieldmask.Paths)
 		if err != nil {
 			zlog.MiSec().MiErr(err).Msgf("UpdateNodes() : UpdateHostResource() Error : %v", err)
 			return nil, err
 		}
 	} else {
 		zlog.Debug().Msgf("Skipping to update Host resource due to no changes. "+
-			"Original Host: %v, Updated Host: %v", hostInv, host[0])
+			"Original Host: %v, Updated Host: %v ,tID=%s", hostInv, host[0], tenantID)
 	}
 
 	return &pb.NodeResponse{Payload: req.Payload}, nil
 }
 
-func (s *NodeArtifactService) startZeroTouch(ctx context.Context, hostResID string) error {
-	zlog.Info().Msgf("Starting zero touch for host ID %s...", hostResID)
+func (s *NodeArtifactService) startZeroTouch(ctx context.Context, tenantID, hostResID string) error {
+	zlog.Info().Msgf("Starting zero touch for host ID %s  tenant ID %s...", hostResID, tenantID)
 
-	host, err := s.invClient.GetHostResourceByResourceID(ctx, hostResID)
+	host, err := s.invClient.GetHostResourceByResourceID(ctx, tenantID, hostResID)
 	if err != nil {
-		zlog.Err(err).Msgf("No host found with resource ID %s", hostResID)
+		zlog.Err(err).Msgf("No host found with resource ID %s,,tID=%s", hostResID, tenantID)
 		return err // Return the error to the caller
 	}
 
 	// Check if an instance has already been created for the host
 	if host.Instance != nil {
-		zlog.Debug().Msgf("An Instance (%s) is already created for a host %s",
-			host.GetInstance().GetResourceId(), host.GetResourceId())
+		zlog.Debug().Msgf("An Instance (%s) is already created for a host %s ,tID=%s",
+			host.GetInstance().GetResourceId(), host.GetResourceId(), tenantID)
 		return nil
 	}
 
@@ -608,10 +642,10 @@ func (s *NodeArtifactService) startZeroTouch(ctx context.Context, hostResID stri
 	}
 
 	// if AutoProvision is set, create an Instance for the Host with the OS set to the value of the default OS
-	return s.checkNCreateInstance(ctx, *pconf, host)
+	return s.checkNCreateInstance(ctx, tenantID, *pconf, host)
 }
 
-func (s *NodeArtifactService) checkNCreateInstance(ctx context.Context,
+func (s *NodeArtifactService) checkNCreateInstance(ctx context.Context, tenantID string,
 	pconf invclient.ProviderConfig, host *computev1.HostResource,
 ) error {
 	if pconf.AutoProvision {
@@ -629,8 +663,8 @@ func (s *NodeArtifactService) checkNCreateInstance(ctx context.Context,
 
 			SecurityFeature: osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION,
 		}
-		if _, err := s.invClientAPI.CreateInstanceResource(ctx, instance); err != nil {
-			zlog.Err(err).Msgf("Failed to CreateInstanceResource for host resource (uuid=%s)", hostResID)
+		if _, err := s.invClientAPI.CreateInstanceResource(ctx, tenantID, instance); err != nil {
+			zlog.Err(err).Msgf("Failed to CreateInstanceResource for host resource (uuid=%s),tID=%s", hostResID, tenantID)
 			return err
 		}
 	}

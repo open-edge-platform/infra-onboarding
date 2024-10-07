@@ -36,6 +36,8 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/util"
 )
 
+const tenantID = "11111111-1111-1111-1111-111111111111"
+
 // FIXME: remove and use Inventory helper once RepoURL is made configurable in the Inv library
 func createOsWithArgs(tb testing.TB, doCleanup bool,
 ) (osr *osv1.OperatingSystemResource) {
@@ -51,7 +53,7 @@ func createOsWithArgs(tb testing.TB, doCleanup bool,
 		Sha256:            inv_testing.GenerateRandomSha256(),
 		InstalledPackages: "intel-opencl-icd\nintel-level-zero-gpu\nlevel-zero",
 		SecurityFeature:   osv1.SecurityFeature_SECURITY_FEATURE_UNSPECIFIED,
-		OsType: osv1.OsType_OS_TYPE_IMMUTABLE,
+		OsType:            osv1.OsType_OS_TYPE_IMMUTABLE,
 	}
 	resp, err := inv_testing.GetClient(tb, inv_testing.APIClient).Create(ctx,
 		&inv_v1.Resource{Resource: &inv_v1.Resource_Os{Os: osr}})
@@ -101,7 +103,7 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 	instanceReconciler := NewInstanceReconciler(om_testing.InvClient, true)
 	require.NotNil(t, instanceReconciler)
 
-	instanceController := rec_v2.NewController[ResourceID](instanceReconciler.Reconcile, rec_v2.WithParallelism(1))
+	instanceController := rec_v2.NewController[ReconcilerID](instanceReconciler.Reconcile, rec_v2.WithParallelism(1))
 	// do not Stop() to avoid races, should be safe in tests
 
 	host := inv_testing.CreateHost(t, nil, nil)
@@ -112,11 +114,11 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 	instanceID := instance.GetResourceId()
 
 	// performing reconciliation
-	err := instanceController.Reconcile(ResourceID(instanceID))
+	err := instanceController.Reconcile(NewReconcilerID(instance.GetTenantId(), instanceID))
 	assert.NoError(t, err, "Reconciliation failed")
 
 	// making sure no changes to the Instance has happened
-	om_testing.AssertInstance(t, instanceID,
+	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
@@ -125,17 +127,17 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 	// Setting the Desired state of the Instance to be DELETED.
 	inv_testing.DeleteResource(t, instanceID)
 	// No change at the Instance Current State and Status should have happened
-	om_testing.AssertInstance(t, instanceID,
+	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_DELETED, // Desired state has just been updated
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// performing Instance reconciliation
-	err = instanceController.Reconcile(ResourceID(instanceID))
+	err = instanceController.Reconcile(NewReconcilerID(instance.GetTenantId(), instanceID))
 	assert.NoError(t, err, "Reconciliation failed")
 
 	// No change at the Instance Current State and Status should have happened
-	om_testing.AssertInstance(t, instanceID,
+	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_DELETED, // Desired state has just been updated
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
@@ -161,7 +163,7 @@ func TestReconcileInstance(t *testing.T) {
 	instanceReconciler := NewInstanceReconciler(om_testing.InvClient, true)
 	require.NotNil(t, instanceReconciler)
 
-	instanceController := rec_v2.NewController[ResourceID](instanceReconciler.Reconcile, rec_v2.WithParallelism(1))
+	instanceController := rec_v2.NewController[ReconcilerID](instanceReconciler.Reconcile, rec_v2.WithParallelism(1))
 	// do not Stop() to avoid races, should be safe in tests
 
 	host := inv_testing.CreateHost(t, nil, nil)
@@ -177,7 +179,7 @@ func TestReconcileInstance(t *testing.T) {
 			expectedKind, err := util.GetResourceKindFromResourceID(ev.Event.ResourceId)
 			require.NoError(t, err)
 			if expectedKind == inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE {
-				err = instanceController.Reconcile(ResourceID(ev.Event.ResourceId))
+				err = instanceController.Reconcile(NewReconcilerID(instance.GetTenantId(), ev.Event.ResourceId))
 				assert.NoError(t, err, "Reconciliation failed")
 			}
 		case <-time.After(1 * time.Second):
@@ -187,7 +189,7 @@ func TestReconcileInstance(t *testing.T) {
 	}
 
 	runReconcilationFunc()
-	om_testing.AssertInstance(t, instanceID,
+	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
@@ -213,7 +215,7 @@ func TestReconcileInstance(t *testing.T) {
 
 	runReconcilationFunc()
 
-	om_testing.AssertInstance(t, instanceID,
+	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
@@ -235,7 +237,7 @@ func TestReconcileInstance(t *testing.T) {
 	require.NoError(t, err)
 
 	runReconcilationFunc()
-	om_testing.AssertInstance(t, instanceID,
+	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_ERROR,
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
@@ -292,9 +294,9 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 	}
 	type args struct {
 		ctx     context.Context
-		request rec_v2.Request[ResourceID]
+		request rec_v2.Request[ReconcilerID]
 	}
-	testRequest := rec_v2.Request[ResourceID]{}
+	testRequest := rec_v2.Request[ReconcilerID]{}
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
@@ -303,7 +305,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 		name   string
 		fields fields
 		args   args
-		want   rec_v2.Directive[ResourceID]
+		want   rec_v2.Directive[ReconcilerID]
 	}{
 		{
 			name: "Test Reconciliation on Instance Deletion Success",
@@ -312,7 +314,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			},
 			args: args{
 				ctx:     context.TODO(),
-				request: rec_v2.Request[ResourceID]{},
+				request: rec_v2.Request[ReconcilerID]{ID: NewReconcilerID(tenantID, "12345678")},
 			},
 			want: testRequest.Ack(),
 		},
@@ -323,7 +325,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			},
 			args: args{
 				ctx:     context.TODO(),
-				request: rec_v2.Request[ResourceID]{},
+				request: rec_v2.Request[ReconcilerID]{ID: NewReconcilerID(tenantID, "12345678")},
 			},
 			want: testRequest.Ack(),
 		},
@@ -334,7 +336,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			},
 			args: args{
 				ctx:     context.TODO(),
-				request: rec_v2.Request[ResourceID]{},
+				request: rec_v2.Request[ReconcilerID]{ID: NewReconcilerID(tenantID, "12345678")},
 			},
 			want: testRequest.Ack(),
 		},
@@ -345,7 +347,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			},
 			args: args{
 				ctx:     context.TODO(),
-				request: rec_v2.Request[ResourceID]{},
+				request: rec_v2.Request[ReconcilerID]{ID: NewReconcilerID(tenantID, "12345678")},
 			},
 			want: testRequest.Ack(),
 		},
@@ -356,7 +358,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			},
 			args: args{
 				ctx:     context.TODO(),
-				request: rec_v2.Request[ResourceID]{},
+				request: rec_v2.Request[ReconcilerID]{ID: NewReconcilerID(tenantID, "12345678")},
 			},
 			want: testRequest.Ack(),
 		},
@@ -388,14 +390,14 @@ func TestInstanceReconciler_reconcileInstance(t *testing.T) {
 	}
 	type args struct {
 		ctx      context.Context
-		request  rec_v2.Request[ResourceID]
+		request  rec_v2.Request[ReconcilerID]
 		instance *computev1.InstanceResource
 	}
 	tests := []struct {
 		name   string
 		fields fields
 		args   args
-		want   rec_v2.Directive[ResourceID]
+		want   rec_v2.Directive[ReconcilerID]
 	}{
 		{
 			name: "Test Reconciliation with Running Instance and BMC Interface",
@@ -404,7 +406,7 @@ func TestInstanceReconciler_reconcileInstance(t *testing.T) {
 			},
 			args: args{
 				ctx:     context.Background(),
-				request: rec_v2.Request[ResourceID]{},
+				request: rec_v2.Request[ReconcilerID]{},
 				instance: &computev1.InstanceResource{
 					DesiredState: computev1.InstanceState_INSTANCE_STATE_RUNNING,
 					Host: &computev1.HostResource{
@@ -431,7 +433,7 @@ func TestInstanceReconciler_reconcileInstance(t *testing.T) {
 			},
 			args: args{
 				ctx:     context.Background(),
-				request: rec_v2.Request[ResourceID]{},
+				request: rec_v2.Request[ReconcilerID]{},
 				instance: &computev1.InstanceResource{
 					DesiredState: computev1.InstanceState_INSTANCE_STATE_UNTRUSTED,
 					Host: &computev1.HostResource{

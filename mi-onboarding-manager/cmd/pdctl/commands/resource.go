@@ -26,7 +26,10 @@ var (
 	fields     string
 )
 
-const timeDuration = 5 * time.Second
+const (
+	timeDuration = 5 * time.Second
+	tenant1      = "11111111-1111-1111-1111-111111111111"
+)
 
 func InstanceResCmds() *cobra.Command {
 	instanceCmd := &cobra.Command{
@@ -161,7 +164,7 @@ func getInstanceByID(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Co
 		defer client.Close()
 
 		// existing code for getting instance by ID
-		inst, err := client.GetInstanceResourceByResourceID(ctx, resourceID)
+		inst, err := client.GetInstanceResourceByResourceID(ctx, tenant1, resourceID)
 		if err != nil {
 			return err
 		}
@@ -222,7 +225,7 @@ func createInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 			return validationErr
 		}
 
-		_, err = client.CreateInstanceResource(ctx, instance)
+		_, err = client.CreateInstanceResource(ctx, instance.GetTenantId(), instance)
 		if err != nil {
 			return err
 		}
@@ -253,12 +256,12 @@ func deleteInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 		defer client.Close()
 
 		// existing code for getting instance by ID
-		inst, err := client.GetInstanceResourceByResourceID(ctx, resourceID)
+		inst, err := client.GetInstanceResourceByResourceID(ctx, tenant1, resourceID)
 		if err != nil {
 			return err
 		}
 
-		err = client.DeleteInstanceResource(ctx, inst.GetResourceId())
+		err = client.DeleteInstanceResource(ctx, inst.GetTenantId(), inst.GetResourceId())
 		if err != nil {
 			return err
 		}
@@ -288,7 +291,7 @@ func updateInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 		defer client.Close()
 
 		// existing code for getting instance by ID
-		inst, err := client.GetInstanceResourceByResourceID(ctx, resourceID)
+		inst, err := client.GetInstanceResourceByResourceID(ctx, tenant1, resourceID)
 		if err != nil {
 			return err
 		}
@@ -302,7 +305,7 @@ func updateInstance(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 			}
 		}
 
-		err = client.UpdateInvResourceFields(ctx, inst, fieldSlice)
+		err = client.UpdateInvResourceFields(ctx, inst.GetTenantId(), inst, fieldSlice)
 		if err != nil {
 			return err
 		}
@@ -465,7 +468,7 @@ func createResource(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Com
 			return validationErr
 		}
 
-		_, err = client.CreateHostResource(ctx, hostResource)
+		_, err = client.CreateHostResource(ctx, hostResource.GetTenantId(), hostResource)
 		if err != nil {
 			return err
 		}
@@ -527,7 +530,7 @@ func getResourceByID(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Co
 		}
 		defer client.Close()
 
-		host, err := client.GetHostResourceByResourceID(ctx, resourceID)
+		host, err := client.GetHostResourceByResourceID(ctx, tenant1, resourceID)
 		if err != nil {
 			return err
 		}
@@ -588,12 +591,12 @@ func deleteHost(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command
 		defer client.Close()
 
 		// existing code for getting instance by ID
-		host, err := client.GetHostResourceByResourceID(ctx, uuID)
+		host, err := client.GetHostResourceByResourceID(ctx, tenant1, uuID)
 		if err != nil {
 			return err
 		}
 
-		err = client.DeleteHostResource(ctx, host.GetResourceId())
+		err = client.DeleteHostResource(ctx, host.GetTenantId(), host.GetResourceId())
 		if err != nil {
 			return err
 		}
@@ -623,7 +626,7 @@ func updateHost(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command
 		defer client.Close()
 
 		// existing code for getting host by ID
-		host, err := client.GetHostResourceByResourceID(ctx, resourceID)
+		host, err := client.GetHostResourceByResourceID(ctx, tenant1, resourceID)
 		if err != nil {
 			return err
 		}
@@ -657,7 +660,7 @@ func updateHost(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command
 			host.CurrentState = computev1.HostState(computev1.HostState_value[currentState])
 		}
 
-		err = client.UpdateHostResource(ctx, host)
+		err = client.UpdateHostResource(ctx, host.GetTenantId(), host)
 		if err != nil {
 			return err
 		}

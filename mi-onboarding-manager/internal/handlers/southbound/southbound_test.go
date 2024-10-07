@@ -21,12 +21,18 @@ var (
 	hostSN   = "87654321"
 )
 
+const (
+	tenant1 = "11111111-1111-1111-1111-111111111111"
+	tenant2 = "22222222-2222-2222-2222-222222222222"
+)
+
 func TestSouthbound_CreateNodes(t *testing.T) {
 	// already exists, don't create
 	t.Run("AlreadyExists", func(t *testing.T) {
-		ctx := createOutgoingContextWithENJWT(t)
-
-		h1 := inv_testing.CreateHost(t, nil, nil)
+		dao := inv_testing.NewInvResourceDAOOrFail(t)
+		ctx, cancel := inv_testing.CreateContextWithENJWT(t, inv_testing.WithTenantID(tenant1))
+		defer cancel()
+		h1 := dao.CreateHost(t, tenant1)
 		inCreate := &pb.NodeRequest{
 			Payload: []*pb.NodeData{
 				{
@@ -49,7 +55,7 @@ func TestSouthbound_CreateNodes(t *testing.T) {
 	})
 
 	t.Run("Error_CannotGetHostByUUID", func(t *testing.T) {
-		ctx, cancel := inv_testing.CreateContextWithJWT(t)
+		ctx, cancel := inv_testing.CreateContextWithENJWT(t, inv_testing.WithTenantID(tenant1))
 		defer cancel()
 		inCreate := &pb.NodeRequest{
 			Payload: []*pb.NodeData{
@@ -73,7 +79,8 @@ func TestSouthbound_CreateNodes(t *testing.T) {
 	})
 
 	t.Run("Success", func(t *testing.T) {
-		ctx := createOutgoingContextWithENJWT(t)
+		ctx, cancel := inv_testing.CreateContextWithENJWT(t, inv_testing.WithTenantID(tenant1))
+		defer cancel()
 		bmcIP := "10.10.1.1"
 		inCreate := &pb.NodeRequest{
 			Payload: []*pb.NodeData{
@@ -106,7 +113,7 @@ func TestSouthbound_CreateNodes(t *testing.T) {
 
 func TestSouthbound_DeleteNodes(t *testing.T) {
 	t.Run("Error_CannotGetHostByUUID", func(t *testing.T) {
-		ctx, cancel := inv_testing.CreateContextWithJWT(t)
+		ctx, cancel := inv_testing.CreateContextWithENJWT(t, inv_testing.WithTenantID(tenant1))
 		defer cancel()
 		nodeReq := &pb.NodeRequest{
 			Payload: []*pb.NodeData{
@@ -130,7 +137,8 @@ func TestSouthbound_DeleteNodes(t *testing.T) {
 	})
 
 	t.Run("NotFound", func(t *testing.T) {
-		ctx := createOutgoingContextWithENJWT(t)
+		ctx, cancel := inv_testing.CreateContextWithENJWT(t, inv_testing.WithTenantID(tenant1))
+		defer cancel()
 		nodeReq := &pb.NodeRequest{
 			Payload: []*pb.NodeData{
 				{
@@ -153,7 +161,8 @@ func TestSouthbound_DeleteNodes(t *testing.T) {
 	})
 
 	t.Run("Success_Delete", func(t *testing.T) {
-		ctx := createOutgoingContextWithENJWT(t)
+		ctx, cancel := inv_testing.CreateContextWithENJWT(t, inv_testing.WithTenantID(tenant1))
+		defer cancel()
 
 		hostUUID := uuid.NewString()
 		nodeReq := &pb.NodeRequest{
@@ -189,7 +198,8 @@ func TestSouthbound_DeleteNodes(t *testing.T) {
 
 func TestSouthbound_UpdateNodes(t *testing.T) {
 	t.Run("NotFound", func(t *testing.T) {
-		ctx := createOutgoingContextWithENJWT(t)
+		ctx, cancel := inv_testing.CreateContextWithENJWT(t, inv_testing.WithTenantID(tenant1))
+		defer cancel()
 
 		inUpdate := &pb.NodeRequest{
 			Payload: []*pb.NodeData{
@@ -238,7 +248,8 @@ func TestSouthbound_UpdateNodes(t *testing.T) {
 	})
 
 	t.Run("Success_Update", func(t *testing.T) {
-		ctx := createOutgoingContextWithENJWT(t)
+		ctx, cancel := inv_testing.CreateContextWithENJWT(t, inv_testing.WithTenantID(tenant1))
+		defer cancel()
 
 		nodeReq := &pb.NodeRequest{
 			Payload: []*pb.NodeData{

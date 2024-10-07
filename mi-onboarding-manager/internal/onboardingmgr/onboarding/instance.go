@@ -41,7 +41,8 @@ func UpdateInstanceStatusByGUID(ctx context.Context,
 	zlog.Debug().Msgf("Update Instance resc (%v) status", instanceResc.ResourceId)
 	zlog.Debug().Msgf("Update Instance (%v) provisioning status: %v", instanceResc.ResourceId, provisioningStatus)
 
-	if err = invClient.SetInstanceProvisioningStatus(ctx, instanceResc.GetResourceId(), provisioningStatus); err != nil {
+	if err = invClient.SetInstanceProvisioningStatus(ctx, instanceResc.GetTenantId(),
+		instanceResc.GetResourceId(), provisioningStatus); err != nil {
 		zlog.MiSec().MiErr(err).Msgf("Failed to update status of Instance %v", instanceResc.ResourceId)
 		return err
 	}

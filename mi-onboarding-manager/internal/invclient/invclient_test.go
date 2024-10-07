@@ -28,6 +28,11 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+const (
+	tenant1 = "11111111-1111-1111-1111-111111111111"
+	tenant2 = "22222222-2222-2222-2222-222222222222"
+)
+
 func TestMain(m *testing.M) {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -125,7 +130,7 @@ func TestNewOnboardingInventoryClientWithOptions(t *testing.T) {
 
 func TestNewOnboardingInventoryClient(t *testing.T) {
 	type args struct {
-		invClient client.InventoryClient
+		invClient client.TenantAwareInventoryClient
 		watcher   chan *client.WatchEvents
 	}
 	tests := []struct {
@@ -166,8 +171,9 @@ func TestOnboardingInventoryClient_UpdateHostResource(t *testing.T) {
 	invClient := OnboardingTestClient
 	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
-		ctx  context.Context
-		host *computev1.HostResource
+		ctx      context.Context
+		host     *computev1.HostResource
+		tenantID string
 	}
 	tests := []struct {
 		name  string
@@ -177,8 +183,9 @@ func TestOnboardingInventoryClient_UpdateHostResource(t *testing.T) {
 		{
 			name: "UpdatingHostResource",
 			args: args{
-				ctx:  context.Background(),
-				host: host,
+				ctx:      context.Background(),
+				host:     host,
+				tenantID: host.GetTenantId(),
 			},
 			valid: true,
 		},
@@ -187,7 +194,7 @@ func TestOnboardingInventoryClient_UpdateHostResource(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			err := invClient.UpdateHostResource(ctx, tt.args.host)
+			err := invClient.UpdateHostResource(ctx, tt.args.tenantID, tt.args.host)
 			if err != nil {
 				if tt.valid {
 					t.Errorf("Failed: %s", err)
@@ -280,14 +287,14 @@ func TestOnboardingInventoryClient_FindAllInstances(t *testing.T) {
 	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		hostID         string
-		instanceStatus []string
+		instanceStatus []*client.ResourceTenantIDCarrier
 		details        string
 		ctx            context.Context
 	}
 	tests := []struct {
 		name  string
 		args  args
-		want  []string
+		want  []*client.ResourceTenantIDCarrier
 		valid bool
 	}{
 		{
@@ -332,6 +339,7 @@ func TestOnboardingInventoryClient_GetHostResourceByResourceID(t *testing.T) {
 	invClient := OnboardingTestClient
 	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
+		tenantID         string
 		hostID           string
 		expectedHost     *computev1.HostResource
 		details          string
@@ -346,6 +354,7 @@ func TestOnboardingInventoryClient_GetHostResourceByResourceID(t *testing.T) {
 		{
 			name: "GettingHostResourceByResourceID_ValidResponse",
 			args: args{
+				tenantID:         host.GetTenantId(),
 				hostID:           host.GetResourceId(),
 				expectedHost:     host,
 				details:          "some detail",
@@ -359,7 +368,7 @@ func TestOnboardingInventoryClient_GetHostResourceByResourceID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			hostInv, err := invClient.GetHostResourceByResourceID(ctx, host.ResourceId)
+			hostInv, err := invClient.GetHostResourceByResourceID(ctx, tt.args.tenantID, host.ResourceId)
 			require.NoError(t, err)
 			require.NotNil(t, hostInv)
 			if eq, diff := inv_testing.ProtoEqualOrDiff(hostInv, tt.args.expectedHost); !eq {
@@ -370,7 +379,7 @@ func TestOnboardingInventoryClient_GetHostResourceByResourceID(t *testing.T) {
 	t.Run("Invalid Resource Id", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		hostInv, err := invClient.GetHostResourceByResourceID(ctx, "12345")
+		hostInv, err := invClient.GetHostResourceByResourceID(ctx, tenant1, "12345")
 		require.Error(t, err)
 		require.Nil(t, hostInv)
 	})
@@ -381,6 +390,7 @@ func TestOnboardingInventoryClient_CreateHostResource(t *testing.T) {
 	invClient := OnboardingTestClient
 	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
+		tenantID         string
 		hostID           string
 		details          string
 		onboardingStatus inv_status.ResourceStatus
@@ -394,6 +404,7 @@ func TestOnboardingInventoryClient_CreateHostResource(t *testing.T) {
 		{
 			name: "CreatingHostResource_Success",
 			args: args{
+				tenantID:         host.GetTenantId(),
 				hostID:           host.GetResourceId(),
 				details:          "some detail",
 				onboardingStatus: om_status.OnboardingStatusInProgress,
@@ -413,7 +424,7 @@ func TestOnboardingInventoryClient_CreateHostResource(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			err := invClient.SetHostOnboardingStatus(ctx, tt.args.hostID, tt.args.onboardingStatus)
+			err := invClient.SetHostOnboardingStatus(ctx, tt.args.tenantID, tt.args.hostID, tt.args.onboardingStatus)
 			if err != nil {
 				if tt.valid {
 					t.Errorf("Failed: %s", err)
@@ -426,8 +437,9 @@ func TestOnboardingInventoryClient_CreateHostResource(t *testing.T) {
 				}
 			}
 			if !t.Failed() && tt.valid {
-				hostInv, err := invClient.CreateHostResource(ctx, &computev1.HostResource{
-					Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+				hostInv, err := invClient.CreateHostResource(ctx, tt.args.tenantID, &computev1.HostResource{
+					Uuid:     "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+					TenantId: tt.args.tenantID,
 				})
 				require.NoError(t, err)
 				require.NotNil(t, hostInv)
@@ -441,6 +453,7 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 	invClient := OnboardingTestClient
 	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
+		tenantID         string
 		hostID           string
 		onboardingStatus inv_status.ResourceStatus
 		uuid             string
@@ -454,6 +467,7 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 		{
 			name: "InvalidUUID_ResourceRetrievalError",
 			args: args{
+				tenantID:         host.GetTenantId(),
 				hostID:           host.GetResourceId(),
 				onboardingStatus: om_status.OnboardingStatusInProgress,
 				uuid:             "123",
@@ -464,6 +478,7 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 		{
 			name: "MissingUUID_ResourceRetrievalError",
 			args: args{
+				tenantID:         host.GetTenantId(),
 				hostID:           host.GetResourceId(),
 				onboardingStatus: om_status.OnboardingStatusInProgress,
 			},
@@ -473,6 +488,7 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 		{
 			name: "ValidUUID_ResourceRetrievalSuccess",
 			args: args{
+				tenantID:         host.GetTenantId(),
 				hostID:           host.GetResourceId(),
 				onboardingStatus: om_status.OnboardingStatusInProgress,
 				uuid:             host.Uuid,
@@ -485,6 +501,7 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 		{
 			name: "InvalidUUID_ResourceRetrievalSuccess",
 			args: args{
+				tenantID:         host.GetTenantId(),
 				hostID:           host.GetResourceId(),
 				onboardingStatus: om_status.OnboardingStatusInProgress,
 				uuid:             "123",
@@ -495,6 +512,7 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 		{
 			name: "ValidUUID_ResourceRetrievalError",
 			args: args{
+				tenantID:         host.GetTenantId(),
 				hostID:           host.GetResourceId(),
 				onboardingStatus: om_status.OnboardingStatusInProgress,
 				uuid:             "123",
@@ -508,7 +526,7 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			invClient.SetHostOnboardingStatus(ctx, tt.args.hostID, tt.args.onboardingStatus)
+			invClient.SetHostOnboardingStatus(ctx, tt.args.tenantID, tt.args.hostID, tt.args.onboardingStatus)
 			if !t.Failed() && tt.valid {
 				hostInv, err := invClient.GetHostResourceByUUID(ctx, host.Uuid)
 				require.NoError(t, err)
@@ -526,6 +544,7 @@ func TestOnboardingInventoryClient_DeleteHostResource(t *testing.T) {
 	invClient := OnboardingTestClient
 	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
+		tenantID         string
 		hostID           string
 		details          string
 		onboardingStatus inv_status.ResourceStatus
@@ -538,6 +557,7 @@ func TestOnboardingInventoryClient_DeleteHostResource(t *testing.T) {
 		{
 			name: "Success",
 			args: args{
+				tenantID:         host.GetTenantId(),
 				hostID:           host.GetResourceId(),
 				details:          "some detail",
 				onboardingStatus: om_status.OnboardingStatusInProgress,
@@ -547,7 +567,8 @@ func TestOnboardingInventoryClient_DeleteHostResource(t *testing.T) {
 		{
 			name: "Failed_NotFound",
 			args: args{
-				hostID: "host-12345678",
+				tenantID: tenant1,
+				hostID:   "host-12345678",
 			},
 			valid: false,
 		},
@@ -557,7 +578,7 @@ func TestOnboardingInventoryClient_DeleteHostResource(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 			if !t.Failed() && tt.valid {
-				err := invClient.DeleteHostResource(ctx, host.ResourceId)
+				err := invClient.DeleteHostResource(ctx, tt.args.tenantID, host.ResourceId)
 				require.NoError(t, err)
 
 			}
@@ -572,6 +593,7 @@ func TestOnboardingInventoryClient_SetHostStatus(t *testing.T) {
 	host := inv_testing.CreateHost(t, nil, nil)
 
 	type args struct {
+		tenantID         string
 		hostID           string
 		onboardingStatus inv_status.ResourceStatus
 	}
@@ -583,6 +605,7 @@ func TestOnboardingInventoryClient_SetHostStatus(t *testing.T) {
 		{
 			name: "Success",
 			args: args{
+				tenantID:         host.GetTenantId(),
 				hostID:           host.GetResourceId(),
 				onboardingStatus: om_status.OnboardingStatusInProgress,
 			},
@@ -591,7 +614,8 @@ func TestOnboardingInventoryClient_SetHostStatus(t *testing.T) {
 		{
 			name: "Failed_NotFound",
 			args: args{
-				hostID: "host-12345678",
+				tenantID: tenant1,
+				hostID:   "host-12345678",
 			},
 			valid: false,
 		},
@@ -602,7 +626,7 @@ func TestOnboardingInventoryClient_SetHostStatus(t *testing.T) {
 			defer cancel()
 
 			timeBeforeUpdate := time.Now().Unix()
-			err := invClient.SetHostOnboardingStatus(ctx, tt.args.hostID, tt.args.onboardingStatus)
+			err := invClient.SetHostOnboardingStatus(ctx, tt.args.tenantID, tt.args.hostID, tt.args.onboardingStatus)
 			if err != nil {
 				if tt.valid {
 					t.Errorf("Failed: %s", err)
@@ -636,8 +660,9 @@ func TestOnboardingInventoryClient_SetHostStatusDetail(t *testing.T) {
 	host := inv_testing.CreateHost(t, nil, nil)
 
 	type args struct {
-		hostID string
-		status inv_status.ResourceStatus
+		tenantID string
+		hostID   string
+		status   inv_status.ResourceStatus
 	}
 	tests := []struct {
 		name  string
@@ -647,15 +672,17 @@ func TestOnboardingInventoryClient_SetHostStatusDetail(t *testing.T) {
 		{
 			name: "Success",
 			args: args{
-				hostID: host.GetResourceId(),
-				status: om_status.DeletingStatus,
+				tenantID: host.GetTenantId(),
+				hostID:   host.GetResourceId(),
+				status:   om_status.DeletingStatus,
 			},
 			valid: true,
 		},
 		{
 			name: "Failed_NotFound",
 			args: args{
-				hostID: "host-12345678",
+				tenantID: tenant1,
+				hostID:   "host-12345678",
 			},
 			valid: false,
 		},
@@ -666,7 +693,7 @@ func TestOnboardingInventoryClient_SetHostStatusDetail(t *testing.T) {
 			defer cancel()
 
 			timeBeforeUpdate := time.Now().Unix()
-			err := invClient.SetHostStatusDetail(ctx, tt.args.hostID, tt.args.status)
+			err := invClient.SetHostStatusDetail(ctx, tt.args.tenantID, tt.args.hostID, tt.args.status)
 			if err != nil {
 				if tt.valid {
 					t.Errorf("Failed: %s", err)
@@ -700,8 +727,9 @@ func TestOnboardingInventoryClient_CreateInstanceResource(t *testing.T) {
 	osRes := inv_testing.CreateOs(t)
 	inst := inv_testing.CreateInstance(t, host, osRes)
 	type args struct {
-		ctx  context.Context
-		inst *computev1.InstanceResource
+		ctx      context.Context
+		inst     *computev1.InstanceResource
+		tenantID string
 	}
 	tests := []struct {
 		name    string
@@ -712,8 +740,9 @@ func TestOnboardingInventoryClient_CreateInstanceResource(t *testing.T) {
 		{
 			name: "CreateInstanceResource -success",
 			args: args{
-				ctx:  context.Background(),
-				inst: inst,
+				ctx:      context.Background(),
+				inst:     inst,
+				tenantID: inst.GetTenantId(),
 			},
 			want:    "",
 			wantErr: true,
@@ -721,7 +750,7 @@ func TestOnboardingInventoryClient_CreateInstanceResource(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := invClient.CreateInstanceResource(tt.args.ctx, tt.args.inst)
+			got, err := invClient.CreateInstanceResource(tt.args.ctx, tt.args.tenantID, tt.args.inst)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.CreateInstanceResource() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -744,6 +773,7 @@ func TestOnboardingInventoryClient_GetInstanceResourceByResourceID(t *testing.T)
 	inst.CurrentOs = os
 	inst.Host = host
 	type args struct {
+		tenantID         string
 		instID           string
 		expectedInstance *computev1.InstanceResource
 	}
@@ -755,6 +785,7 @@ func TestOnboardingInventoryClient_GetInstanceResourceByResourceID(t *testing.T)
 		{
 			name: "GetInstanceResourceByResourceID_Success",
 			args: args{
+				tenantID:         inst.GetTenantId(),
 				instID:           inst.GetResourceId(),
 				expectedInstance: inst,
 			},
@@ -763,7 +794,8 @@ func TestOnboardingInventoryClient_GetInstanceResourceByResourceID(t *testing.T)
 		{
 			name: "GetInstanceResourceByResourceID_Error",
 			args: args{
-				instID: "1234567",
+				tenantID: tenant1,
+				instID:   "1234567",
 			},
 			valid: false,
 		},
@@ -772,7 +804,7 @@ func TestOnboardingInventoryClient_GetInstanceResourceByResourceID(t *testing.T)
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			invInst, err := invClient.GetInstanceResourceByResourceID(ctx, tt.args.instID)
+			invInst, err := invClient.GetInstanceResourceByResourceID(ctx, tt.args.tenantID, tt.args.instID)
 			if err != nil {
 				if tt.valid {
 					t.Errorf("Failed: %s", err)
@@ -839,6 +871,7 @@ func TestOnboardingInventoryClient_DeleteInstanceResource(t *testing.T) {
 	inst := inv_testing.CreateInstance(t, host, osRes)
 	type args struct {
 		ctx        context.Context
+		tenantID   string
 		resourceID string
 	}
 	tests := []struct {
@@ -850,6 +883,7 @@ func TestOnboardingInventoryClient_DeleteInstanceResource(t *testing.T) {
 			name: "DeleteInstanceResource_Success",
 			args: args{
 				ctx:        context.Background(),
+				tenantID:   inst.GetTenantId(),
 				resourceID: inst.GetResourceId(),
 			},
 			wantErr: false,
@@ -865,7 +899,7 @@ func TestOnboardingInventoryClient_DeleteInstanceResource(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.DeleteInstanceResource(tt.args.ctx, tt.args.resourceID); (err != nil) != tt.wantErr {
+			if err := invClient.DeleteInstanceResource(tt.args.ctx, tt.args.tenantID, tt.args.resourceID); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.DeleteInstanceResource() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -878,6 +912,7 @@ func TestOnboardingInventoryClient_DeleteResource(t *testing.T) {
 	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		ctx        context.Context
+		tenantID   string
 		resourceID string
 	}
 	tests := []struct {
@@ -890,6 +925,7 @@ func TestOnboardingInventoryClient_DeleteResource(t *testing.T) {
 			args: args{
 				ctx:        context.Background(),
 				resourceID: host.GetResourceId(),
+				tenantID:   host.GetTenantId(),
 			},
 			wantErr: false,
 		},
@@ -897,6 +933,7 @@ func TestOnboardingInventoryClient_DeleteResource(t *testing.T) {
 			name: "DeleteResource_Error",
 			args: args{
 				ctx:        context.Background(),
+				tenantID:   tenant1,
 				resourceID: "12345678",
 			},
 			wantErr: true,
@@ -906,13 +943,14 @@ func TestOnboardingInventoryClient_DeleteResource(t *testing.T) {
 			args: args{
 				ctx:        context.Background(),
 				resourceID: "",
+				tenantID:   tenant1,
 			},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.DeleteResource(tt.args.ctx, tt.args.resourceID); (err != nil) != tt.wantErr {
+			if err := invClient.DeleteResource(tt.args.ctx, tt.args.tenantID, tt.args.resourceID); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.DeleteResource() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -923,8 +961,9 @@ func TestOnboardingInventoryClient_CreateOSResource(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
 	type args struct {
-		ctx context.Context
-		os  *osv1.OperatingSystemResource
+		ctx      context.Context
+		tenantID string
+		os       *osv1.OperatingSystemResource
 	}
 	tests := []struct {
 		name    string
@@ -934,9 +973,11 @@ func TestOnboardingInventoryClient_CreateOSResource(t *testing.T) {
 		{
 			name: "CreateOSResource_Success",
 			args: args{
-				ctx: context.Background(),
+				ctx:      context.Background(),
+				tenantID: tenant1,
 				os: &osv1.OperatingSystemResource{
-					OsType: osv1.OsType_OS_TYPE_IMMUTABLE,
+					OsType:   osv1.OsType_OS_TYPE_IMMUTABLE,
+					TenantId: tenant1,
 				},
 			},
 			wantErr: false,
@@ -944,7 +985,7 @@ func TestOnboardingInventoryClient_CreateOSResource(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := invClient.CreateOSResource(tt.args.ctx, tt.args.os)
+			_, err := invClient.CreateOSResource(tt.args.ctx, tt.args.tenantID, tt.args.os)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.CreateOSResource() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -959,6 +1000,7 @@ func TestOnboardingInventoryClient_GetOSResourceByResourceID(t *testing.T) {
 	osRes := inv_testing.CreateOs(t)
 	type args struct {
 		ctx        context.Context
+		tenantID   string
 		resourceID string
 	}
 	tests := []struct {
@@ -970,6 +1012,7 @@ func TestOnboardingInventoryClient_GetOSResourceByResourceID(t *testing.T) {
 			name: "TestGetOSResourceByResourceID_Success",
 			args: args{
 				ctx:        context.Background(),
+				tenantID:   osRes.GetTenantId(),
 				resourceID: osRes.GetResourceId(),
 			},
 			wantErr: false,
@@ -985,7 +1028,7 @@ func TestOnboardingInventoryClient_GetOSResourceByResourceID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := invClient.GetOSResourceByResourceID(tt.args.ctx, tt.args.resourceID)
+			_, err := invClient.GetOSResourceByResourceID(tt.args.ctx, tt.args.tenantID, tt.args.resourceID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.GetOSResourceByResourceID() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1106,6 +1149,7 @@ func TestOnboardingInventoryClient_UpdateInvResourceFields(t *testing.T) {
 	invClient := OnboardingTestClient
 	type args struct {
 		ctx      context.Context
+		tenantID string
 		resource proto.Message
 		fields   []string
 	}
@@ -1122,7 +1166,7 @@ func TestOnboardingInventoryClient_UpdateInvResourceFields(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.UpdateInvResourceFields(tt.args.ctx, tt.args.resource, tt.args.fields); (err != nil) != tt.wantErr {
+			if err := invClient.UpdateInvResourceFields(tt.args.ctx, tt.args.tenantID, tt.args.resource, tt.args.fields); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.UpdateInvResourceFields() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1133,6 +1177,7 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
+		tenantID          string
 		hostID            string
 		hostCurrentState  computev1.HostState
 		runtimeHostStatus inv_status.ResourceStatus
@@ -1147,6 +1192,7 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 		{
 			name: "Success",
 			args: args{
+				tenantID:          host.GetTenantId(),
 				hostID:            host.GetResourceId(),
 				hostCurrentState:  computev1.HostState_HOST_STATE_UNTRUSTED,
 				runtimeHostStatus: om_status.AuthorizationStatusInvalidated,
@@ -1157,6 +1203,7 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 		{
 			name: "Failed_NotFound",
 			args: args{
+				tenantID:          tenant1,
 				hostID:            "host-12345678",
 				hostCurrentState:  computev1.HostState_HOST_STATE_UNTRUSTED,
 				runtimeHostStatus: om_status.AuthorizationStatusInvalidated,
@@ -1187,7 +1234,7 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 				HostStatusTimestamp: uint64(tt.args.updateTimestamp),
 			}
 
-			err := OnboardingTestClient.UpdateHostStateAndRuntimeStatus(ctx, hostUp)
+			err := OnboardingTestClient.UpdateHostStateAndRuntimeStatus(ctx, tt.args.tenantID, hostUp)
 			if err != nil {
 				if tt.valid {
 					t.Errorf("Failed: %s", err)
@@ -1229,6 +1276,7 @@ func TestOnboardingInventoryClient_SetInstanceStatus(t *testing.T) {
 	inst := inv_testing.CreateInstance(t, host, osRes)
 
 	type args struct {
+		tenantID           string
 		instanceID         string
 		provisioningStatus inv_status.ResourceStatus
 	}
@@ -1240,6 +1288,7 @@ func TestOnboardingInventoryClient_SetInstanceStatus(t *testing.T) {
 		{
 			name: "Success",
 			args: args{
+				tenantID:           inst.GetTenantId(),
 				instanceID:         inst.GetResourceId(),
 				provisioningStatus: om_status.ProvisioningStatusDone,
 			},
@@ -1248,6 +1297,7 @@ func TestOnboardingInventoryClient_SetInstanceStatus(t *testing.T) {
 		{
 			name: "Failed_NotFound",
 			args: args{
+				tenantID:           inst.GetTenantId(),
 				instanceID:         "inst-12345678",
 				provisioningStatus: om_status.ProvisioningStatusDone,
 			},
@@ -1260,7 +1310,7 @@ func TestOnboardingInventoryClient_SetInstanceStatus(t *testing.T) {
 			defer cancel()
 
 			timeBeforeUpdate := time.Now().Unix()
-			err := invClient.SetInstanceProvisioningStatus(ctx, tt.args.instanceID, tt.args.provisioningStatus)
+			err := invClient.SetInstanceProvisioningStatus(ctx, tt.args.tenantID, tt.args.instanceID, tt.args.provisioningStatus)
 			if err != nil {
 				if tt.valid {
 					t.Errorf("Failed: %s", err)
@@ -1353,6 +1403,7 @@ func TestOnboardingInventoryClient_UpdateInvResourceFields_Case(t *testing.T) {
 	hostResCopy := proto.Clone(hostResource)
 	type args struct {
 		ctx      context.Context
+		tenantID string
 		resource proto.Message
 		fields   []string
 	}
@@ -1371,7 +1422,7 @@ func TestOnboardingInventoryClient_UpdateInvResourceFields_Case(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.UpdateInvResourceFields(tt.args.ctx, tt.args.resource, tt.args.fields); (err != nil) != tt.wantErr {
+			if err := invClient.UpdateInvResourceFields(tt.args.ctx, tt.args.tenantID, tt.args.resource, tt.args.fields); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.UpdateInvResourceFields() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1385,6 +1436,7 @@ func TestOnboardingInventoryClient_UpdateInvResourceFields_Case1(t *testing.T) {
 	resCopy := proto.Clone(res)
 	type args struct {
 		ctx      context.Context
+		tenantID string
 		resource proto.Message
 		fields   []string
 	}
@@ -1404,7 +1456,7 @@ func TestOnboardingInventoryClient_UpdateInvResourceFields_Case1(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.UpdateInvResourceFields(tt.args.ctx, tt.args.resource, tt.args.fields); (err != nil) != tt.wantErr {
+			if err := invClient.UpdateInvResourceFields(tt.args.ctx, tt.args.tenantID, tt.args.resource, tt.args.fields); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.UpdateInvResourceFields() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1418,6 +1470,7 @@ func TestOnboardingInventoryClient_UpdateInvResourceFields_Case3(t *testing.T) {
 	hostResCopy := proto.Clone(hostResource)
 	type args struct {
 		ctx      context.Context
+		tenantID string
 		resource proto.Message
 		fields   []string
 	}
@@ -1437,7 +1490,7 @@ func TestOnboardingInventoryClient_UpdateInvResourceFields_Case3(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.UpdateInvResourceFields(tt.args.ctx, tt.args.resource, tt.args.fields); (err != nil) != tt.wantErr {
+			if err := invClient.UpdateInvResourceFields(tt.args.ctx, tt.args.tenantID, tt.args.resource, tt.args.fields); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.UpdateInvResourceFields() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1449,6 +1502,7 @@ func TestOnboardingInventoryClient_GetInstanceResourceByResourceID_Case(t *testi
 	invClient := OnboardingTestClient
 	type args struct {
 		ctx        context.Context
+		tenantID   string
 		resourceID string
 	}
 	tests := []struct {
@@ -1461,6 +1515,7 @@ func TestOnboardingInventoryClient_GetInstanceResourceByResourceID_Case(t *testi
 			name: "TestGetInstanceResourceByResourceID_Success",
 			args: args{
 				ctx:        context.Background(),
+				tenantID:   tenant1,
 				resourceID: "inst-78789",
 			},
 			want:    nil,
@@ -1470,6 +1525,7 @@ func TestOnboardingInventoryClient_GetInstanceResourceByResourceID_Case(t *testi
 			name: "TestGetInstanceResourceByResourceID_ErrorHandling",
 			args: args{
 				ctx:        context.Background(),
+				tenantID:   tenant1,
 				resourceID: "1234553",
 			},
 			want:    nil,
@@ -1478,7 +1534,7 @@ func TestOnboardingInventoryClient_GetInstanceResourceByResourceID_Case(t *testi
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := invClient.GetInstanceResourceByResourceID(tt.args.ctx, tt.args.resourceID)
+			got, err := invClient.GetInstanceResourceByResourceID(tt.args.ctx, tt.args.tenantID, tt.args.resourceID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.GetInstanceResourceByResourceID() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1525,6 +1581,7 @@ func TestOnboardingInventoryClient_GetOSResourceByResourceID_Case(t *testing.T) 
 	invClient := OnboardingTestClient
 	type args struct {
 		ctx        context.Context
+		tenantID   string
 		resourceID string
 	}
 	tests := []struct {
@@ -1537,6 +1594,7 @@ func TestOnboardingInventoryClient_GetOSResourceByResourceID_Case(t *testing.T) 
 			name: "TestGetOSResourceByID_Success",
 			args: args{
 				ctx:        context.Background(),
+				tenantID:   tenant1,
 				resourceID: "os-093dd2d7",
 			},
 			want:    nil,
@@ -1546,6 +1604,7 @@ func TestOnboardingInventoryClient_GetOSResourceByResourceID_Case(t *testing.T) 
 			name: "TestGetOSResourceByID_ErrorHandling",
 			args: args{
 				ctx:        context.Background(),
+				tenantID:   tenant1,
 				resourceID: "1234566",
 			},
 			want:    nil,
@@ -1554,7 +1613,7 @@ func TestOnboardingInventoryClient_GetOSResourceByResourceID_Case(t *testing.T) 
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := invClient.GetOSResourceByResourceID(tt.args.ctx, tt.args.resourceID)
+			got, err := invClient.GetOSResourceByResourceID(tt.args.ctx, tt.args.tenantID, tt.args.resourceID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.GetOSResourceByResourceID() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1604,6 +1663,7 @@ func TestOnboardingInventoryClient_DeleteIPAddress(t *testing.T) {
 	invClient := OnboardingTestClient
 	type args struct {
 		ctx        context.Context
+		tenantID   string
 		resourceID string
 	}
 	tests := []struct {
@@ -1615,6 +1675,7 @@ func TestOnboardingInventoryClient_DeleteIPAddress(t *testing.T) {
 			name: "TestDeleteIPAddress_Success",
 			args: args{
 				ctx:        context.Background(),
+				tenantID:   tenant1,
 				resourceID: "os-093dd2d7",
 			},
 			wantErr: false,
@@ -1623,6 +1684,7 @@ func TestOnboardingInventoryClient_DeleteIPAddress(t *testing.T) {
 			name: "TestDeleteIPAddress_Error",
 			args: args{
 				ctx:        context.Background(),
+				tenantID:   tenant1,
 				resourceID: "123",
 			},
 			wantErr: true,
@@ -1630,7 +1692,7 @@ func TestOnboardingInventoryClient_DeleteIPAddress(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.DeleteIPAddress(tt.args.ctx, tt.args.resourceID); (err != nil) != tt.wantErr {
+			if err := invClient.DeleteIPAddress(tt.args.ctx, tt.args.tenantID, tt.args.resourceID); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.DeleteIPAddress() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1680,6 +1742,7 @@ func TestOnboardingInventoryClient_SetInstanceStatusAndCurrentState(t *testing.T
 	invClient := OnboardingTestClient
 	type args struct {
 		ctx                context.Context
+		tenantID           string
 		instanceID         string
 		currentState       computev1.InstanceState
 		provisioningStatus inv_status.ResourceStatus
@@ -1700,7 +1763,7 @@ func TestOnboardingInventoryClient_SetInstanceStatusAndCurrentState(t *testing.T
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.UpdateInstance(tt.args.ctx, tt.args.instanceID, tt.args.currentState, tt.args.provisioningStatus, tt.args.currentOS); (err != nil) != tt.wantErr {
+			if err := invClient.UpdateInstance(tt.args.ctx, tt.args.tenantID, tt.args.instanceID, tt.args.currentState, tt.args.provisioningStatus, tt.args.currentOS); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.UpdateInstance() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1811,8 +1874,9 @@ func TestOnboardingInventoryClient_updateHostMacID(t *testing.T) {
 		Watcher chan *client.WatchEvents
 	}
 	type args struct {
-		ctx  context.Context
-		host *computev1.HostResource
+		ctx      context.Context
+		tenantID string
+		host     *computev1.HostResource
 	}
 	tests := []struct {
 		name    string
@@ -1826,15 +1890,16 @@ func TestOnboardingInventoryClient_updateHostMacID(t *testing.T) {
 				Watcher: make(chan *client.WatchEvents),
 			},
 			args: args{
-				ctx:  context.Background(),
-				host: host,
+				ctx:      context.Background(),
+				tenantID: host.GetTenantId(),
+				host:     host,
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.updateHostMacID(tt.args.ctx, tt.args.host); (err != nil) != tt.wantErr {
+			if err := invClient.updateHostMacID(tt.args.ctx, tt.args.tenantID, tt.args.host); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.updateHostMacID() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1852,6 +1917,7 @@ func TestOnboardingInventoryClient_UpdateHostMacID(t *testing.T) {
 	type args struct {
 		ctx        context.Context
 		resourceID string
+		tenantID   string
 		macid      string
 	}
 	tests := []struct {
@@ -1867,6 +1933,7 @@ func TestOnboardingInventoryClient_UpdateHostMacID(t *testing.T) {
 			},
 			args: args{
 				ctx:        context.Background(),
+				tenantID:   host.GetTenantId(),
 				resourceID: host.ResourceId,
 				macid:      "123",
 			},
@@ -1887,7 +1954,7 @@ func TestOnboardingInventoryClient_UpdateHostMacID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.UpdateHostMacID(tt.args.ctx, tt.args.resourceID, tt.args.macid); (err != nil) != tt.wantErr {
+			if err := invClient.UpdateHostMacID(tt.args.ctx, tt.args.tenantID, tt.args.resourceID, tt.args.macid); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.UpdateHostMacID() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1905,6 +1972,7 @@ func TestOnboardingInventoryClient_UpdateHostIP(t *testing.T) {
 	type args struct {
 		ctx        context.Context
 		resourceID string
+		tenantID   string
 		hostIP     string
 	}
 	tests := []struct {
@@ -1920,6 +1988,7 @@ func TestOnboardingInventoryClient_UpdateHostIP(t *testing.T) {
 			},
 			args: args{
 				ctx:        context.Background(),
+				tenantID:   host.GetTenantId(),
 				resourceID: host.ResourceId,
 				hostIP:     "123",
 			},
@@ -1940,7 +2009,7 @@ func TestOnboardingInventoryClient_UpdateHostIP(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.UpdateHostIP(tt.args.ctx, tt.args.resourceID, tt.args.hostIP); (err != nil) != tt.wantErr {
+			if err := invClient.UpdateHostIP(tt.args.ctx, tt.args.tenantID, tt.args.resourceID, tt.args.hostIP); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.UpdateHostIP() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

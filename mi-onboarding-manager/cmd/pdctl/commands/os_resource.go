@@ -116,7 +116,7 @@ func createOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 			return validationErr
 		}
 
-		_, err = client.CreateOSResource(cmd.Context(), osResource)
+		_, err = client.CreateOSResource(cmd.Context(), tenant1, osResource)
 		if err != nil {
 			return err
 		}
@@ -144,7 +144,7 @@ func getByID(dialer *grpcDialer) func(cmd *cobra.Command, args []string) error {
 		}
 		defer client.Close()
 
-		osRes, err := client.GetOSResourceByResourceID(cmd.Context(), resourceID)
+		osRes, err := client.GetOSResourceByResourceID(cmd.Context(), tenant1, resourceID)
 		if err != nil {
 			return err
 		}
@@ -173,12 +173,12 @@ func deleteOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 		}
 		defer client.Close()
 
-		inst, err := client.GetOSResourceByResourceID(cmd.Context(), resourceID)
+		inst, err := client.GetOSResourceByResourceID(cmd.Context(), tenant1, resourceID)
 		if err != nil {
 			return err
 		}
 
-		err = client.DeleteResource(cmd.Context(), inst.GetResourceId())
+		err = client.DeleteResource(cmd.Context(), inst.GetTenantId(), inst.GetResourceId())
 		if err != nil {
 			return err
 		}
@@ -206,7 +206,7 @@ func updateOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 		}
 		defer client.Close()
 
-		osRes, err := client.GetOSResourceByResourceID(cmd.Context(), resourceID)
+		osRes, err := client.GetOSResourceByResourceID(cmd.Context(), tenant1, resourceID)
 		if err != nil {
 			return err
 		}
@@ -224,7 +224,7 @@ func updateOsResource(dialer *grpcDialer) func(cmd *cobra.Command, args []string
 		if profilename, _ := cmd.Flags().GetString("profile_name"); profilename != "" {
 			osRes.ProfileName = profilename
 		}
-		err = client.UpdateInvResourceFields(cmd.Context(), osRes, []string{
+		err = client.UpdateInvResourceFields(cmd.Context(), osRes.GetTenantId(), osRes, []string{
 			osv1.OperatingSystemResourceFieldUpdateSources,
 			osv1.OperatingSystemResourceFieldImageUrl,
 		})

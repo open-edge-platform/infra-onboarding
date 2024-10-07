@@ -51,17 +51,17 @@ func TestReconcileEvent(t *testing.T) {
 
 	// Use a mock reconciler
 	doneHost := make(chan bool, 1)
-	controllerHost := rec_v2.NewController[reconcilers.ResourceID](func(ctx context.Context,
-		request rec_v2.Request[reconcilers.ResourceID],
-	) rec_v2.Directive[reconcilers.ResourceID] {
+	controllerHost := rec_v2.NewController[reconcilers.ReconcilerID](func(ctx context.Context,
+		request rec_v2.Request[reconcilers.ReconcilerID],
+	) rec_v2.Directive[reconcilers.ReconcilerID] {
 		doneHost <- true
 		return request.Ack()
 	}, rec_v2.WithParallelism(1))
 	nbHandler.controllers[inv_v1.ResourceKind_RESOURCE_KIND_HOST] = controllerHost
 	doneInstance := make(chan bool, 1)
-	controllerInstance := rec_v2.NewController[reconcilers.ResourceID](func(ctx context.Context,
-		request rec_v2.Request[reconcilers.ResourceID],
-	) rec_v2.Directive[reconcilers.ResourceID] {
+	controllerInstance := rec_v2.NewController[reconcilers.ReconcilerID](func(ctx context.Context,
+		request rec_v2.Request[reconcilers.ReconcilerID],
+	) rec_v2.Directive[reconcilers.ReconcilerID] {
 		doneInstance <- true
 		return request.Ack()
 	}, rec_v2.WithParallelism(1))
@@ -115,18 +115,18 @@ func TestReconcileAll(t *testing.T) {
 
 	// Use a mock reconciler
 	doneHost := make(chan bool, 1)
-	controllerHost := rec_v2.NewController[reconcilers.ResourceID](func(ctx context.Context,
-		request rec_v2.Request[reconcilers.ResourceID],
-	) rec_v2.Directive[reconcilers.ResourceID] {
+	controllerHost := rec_v2.NewController[reconcilers.ReconcilerID](func(ctx context.Context,
+		request rec_v2.Request[reconcilers.ReconcilerID],
+	) rec_v2.Directive[reconcilers.ReconcilerID] {
 		doneHost <- true
 		return request.Ack()
 	}, rec_v2.WithParallelism(1))
 	nbHandler.controllers[inv_v1.ResourceKind_RESOURCE_KIND_HOST] = controllerHost
 
 	doneInstance := make(chan bool, 1)
-	controllerInstance := rec_v2.NewController[reconcilers.ResourceID](func(ctx context.Context,
-		request rec_v2.Request[reconcilers.ResourceID],
-	) rec_v2.Directive[reconcilers.ResourceID] {
+	controllerInstance := rec_v2.NewController[reconcilers.ReconcilerID](func(ctx context.Context,
+		request rec_v2.Request[reconcilers.ReconcilerID],
+	) rec_v2.Directive[reconcilers.ReconcilerID] {
 		doneInstance <- true
 		return request.Ack()
 	}, rec_v2.WithParallelism(1))
@@ -193,18 +193,18 @@ func TestReconcileNoControllers(t *testing.T) {
 
 	// Use a mock reconciler
 	doneHost := make(chan bool, 1)
-	controllerHost := rec_v2.NewController[reconcilers.ResourceID](func(ctx context.Context,
-		request rec_v2.Request[reconcilers.ResourceID],
-	) rec_v2.Directive[reconcilers.ResourceID] {
+	controllerHost := rec_v2.NewController[reconcilers.ReconcilerID](func(ctx context.Context,
+		request rec_v2.Request[reconcilers.ReconcilerID],
+	) rec_v2.Directive[reconcilers.ReconcilerID] {
 		doneHost <- true
 		return request.Ack()
 	}, rec_v2.WithParallelism(1))
 	nbHandler.controllers[inv_v1.ResourceKind_RESOURCE_KIND_HOST] = controllerHost
 
 	doneInstance := make(chan bool, 1)
-	controllerInstance := rec_v2.NewController[reconcilers.ResourceID](func(ctx context.Context,
-		request rec_v2.Request[reconcilers.ResourceID],
-	) rec_v2.Directive[reconcilers.ResourceID] {
+	controllerInstance := rec_v2.NewController[reconcilers.ReconcilerID](func(ctx context.Context,
+		request rec_v2.Request[reconcilers.ReconcilerID],
+	) rec_v2.Directive[reconcilers.ReconcilerID] {
 		doneInstance <- true
 		return request.Ack()
 	}, rec_v2.WithParallelism(1))
@@ -298,7 +298,7 @@ func TestOnboardingController_Stop(t *testing.T) {
 	type fields struct {
 		invClient   *invclient.OnboardingInventoryClient
 		filters     map[inv_v1.ResourceKind]Filter
-		controllers map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ResourceID]
+		controllers map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ReconcilerID]
 		wg          *sync.WaitGroup
 		stop        chan bool
 	}
@@ -311,7 +311,7 @@ func TestOnboardingController_Stop(t *testing.T) {
 			fields: fields{
 				invClient:   nil,
 				filters:     make(map[inv_v1.ResourceKind]Filter),
-				controllers: make(map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ResourceID]),
+				controllers: make(map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ReconcilerID]),
 				wg:          &sync.WaitGroup{},
 				stop:        make(chan bool),
 			},

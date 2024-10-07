@@ -184,7 +184,7 @@ func runProdWorkflow(
 	if !*common.FlagEnableDeviceInitialization {
 		// normally EN credentials should be created as part of the device initialization phase,
 		// but we have to do it here if the DI phase is disabled.
-		clientID, clientSecret, err := createENCredentialsIfNotExists(ctx, deviceInfo)
+		clientID, clientSecret, err := createENCredentialsIfNotExists(ctx, instance.GetTenantId(), deviceInfo)
 		if err != nil {
 			return err
 		}
@@ -227,7 +227,7 @@ func runProdWorkflow(
 }
 
 // RunFDOActions runs all required FDO actions such as voucher extension and SVI calls.
-func RunFDOActions(ctx context.Context, deviceInfo *utils.DeviceInfo) error {
+func RunFDOActions(ctx context.Context, tenantID string, deviceInfo *utils.DeviceInfo) error {
 	if !*common.FlagEnableDeviceInitialization {
 		zlog.Warn().Msgf("enableDeviceInitialization is set to false, skipping FDO actions")
 		return nil
@@ -242,7 +242,7 @@ func RunFDOActions(ctx context.Context, deviceInfo *utils.DeviceInfo) error {
 	}
 	deviceInfo.FdoGUID = fdoGUID
 
-	clientID, clientSecret, err := createENCredentialsIfNotExists(ctx, *deviceInfo)
+	clientID, clientSecret, err := createENCredentialsIfNotExists(ctx, tenantID, *deviceInfo)
 	if err != nil {
 		return err
 	}
@@ -544,16 +544,16 @@ func uploadFDOVoucherScript(ctx context.Context, deviceInfo utils.DeviceInfo) (s
 }
 
 // TODO (LPIO-1865).
-func createENCredentialsIfNotExists(ctx context.Context, deviceInfo utils.DeviceInfo) (string, string, error) {
+func createENCredentialsIfNotExists(ctx context.Context, tenantID string, deviceInfo utils.DeviceInfo) (string, string, error) {
 	authService, err := auth.AuthServiceFactory(ctx)
 	if err != nil {
 		return "", "", err
 	}
 	defer authService.Logout(ctx)
 
-	clientID, clientSecret, err := authService.GetCredentialsByUUID(ctx, deviceInfo.GUID)
+	clientID, clientSecret, err := authService.GetCredentialsByUUID(ctx, tenantID, deviceInfo.GUID)
 	if err != nil && inv_errors.IsNotFound(err) {
-		return authService.CreateCredentialsWithUUID(ctx, deviceInfo.GUID)
+		return authService.CreateCredentialsWithUUID(ctx, tenantID, deviceInfo.GUID)
 	}
 
 	if err != nil {

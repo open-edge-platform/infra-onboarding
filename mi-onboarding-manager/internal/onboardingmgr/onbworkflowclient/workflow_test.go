@@ -889,6 +889,7 @@ func TestRunFDOActions(t *testing.T) {
 	*common.FlagEnableDeviceInitialization = true
 	type args struct {
 		ctx        context.Context
+		tenantID   string
 		deviceInfo *utils.DeviceInfo
 	}
 	tests := []struct {
@@ -900,6 +901,7 @@ func TestRunFDOActions(t *testing.T) {
 			name: "TestRunFDOActions_DeviceInfoEmpty",
 			args: args{
 				ctx:        context.Background(),
+				tenantID:   "11111111-1111-1111-1111-111111111111",
 				deviceInfo: &utils.DeviceInfo{},
 			},
 			wantErr: true,
@@ -909,7 +911,7 @@ func TestRunFDOActions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			env.FdoOwnerDNS = "localhost"
 			env.FdoOwnerPort = "58042"
-			if err := RunFDOActions(tt.args.ctx, tt.args.deviceInfo); (err != nil) != tt.wantErr {
+			if err := RunFDOActions(tt.args.ctx, tt.args.tenantID, tt.args.deviceInfo); (err != nil) != tt.wantErr {
 				t.Errorf("RunFDOActions() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1141,6 +1143,7 @@ func TestRunFDOActions_Case1(t *testing.T) {
 		"Enabl")
 	type args struct {
 		ctx        context.Context
+		tenantID   string
 		deviceInfo *utils.DeviceInfo
 	}
 	tests := []struct {
@@ -1152,6 +1155,7 @@ func TestRunFDOActions_Case1(t *testing.T) {
 			name: "Test Case",
 			args: args{
 				ctx:        context.Background(),
+				tenantID:   "11111111-1111-1111-1111-111111111111",
 				deviceInfo: &utils.DeviceInfo{},
 			},
 			wantErr: false,
@@ -1161,7 +1165,7 @@ func TestRunFDOActions_Case1(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			env.FdoOwnerDNS = "localhost"
 			env.FdoOwnerPort = "58042"
-			if err := RunFDOActions(tt.args.ctx, tt.args.deviceInfo); (err != nil) != tt.wantErr {
+			if err := RunFDOActions(tt.args.ctx, tt.args.tenantID, tt.args.deviceInfo); (err != nil) != tt.wantErr {
 				t.Errorf("RunFDOActions() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

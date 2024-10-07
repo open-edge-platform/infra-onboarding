@@ -4,6 +4,8 @@
 package reconcilers
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc/codes"
@@ -23,13 +25,26 @@ var (
 	retryMaxDelay = maxDelay
 )
 
-type ResourceID string
+// Inventory resource IDs + tenant IDs are used to feed reconciler functions.
+type ReconcilerID string
 
-func (id ResourceID) String() string {
-	return string(id)
+func (id ReconcilerID) String() string {
+	return fmt.Sprintf("[tenantID=%s, resourceID=%s]", id.GetTenantID(), id.GetResourceID())
 }
 
-func HandleInventoryError(err error, request rec_v2.Request[ResourceID]) rec_v2.Directive[ResourceID] {
+func (id ReconcilerID) GetTenantID() string {
+	return strings.Split(string(id), "_")[0]
+}
+
+func (id ReconcilerID) GetResourceID() string {
+	return strings.Split(string(id), "_")[1]
+}
+
+func NewReconcilerID(tenantID, resourceID string) ReconcilerID {
+	return ReconcilerID(fmt.Sprintf("%s_%s", tenantID, resourceID))
+}
+
+func HandleInventoryError(err error, request rec_v2.Request[ReconcilerID]) rec_v2.Directive[ReconcilerID] {
 	if _, ok := grpc_status.FromError(err); !ok {
 		return request.Ack()
 	}
@@ -46,7 +61,7 @@ func HandleInventoryError(err error, request rec_v2.Request[ResourceID]) rec_v2.
 	return nil
 }
 
-func HandleProvisioningError(err error, request rec_v2.Request[ResourceID]) rec_v2.Directive[ResourceID] {
+func HandleProvisioningError(err error, request rec_v2.Request[ReconcilerID]) rec_v2.Directive[ReconcilerID] {
 	if _, ok := grpc_status.FromError(err); !ok {
 		return request.Ack()
 	}

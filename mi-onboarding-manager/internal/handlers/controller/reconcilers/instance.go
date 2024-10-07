@@ -52,16 +52,17 @@ func NewInstanceReconciler(c *invclient.OnboardingInventoryClient, enableTracing
 }
 
 func (ir *InstanceReconciler) Reconcile(ctx context.Context,
-	request rec_v2.Request[ResourceID],
-) rec_v2.Directive[ResourceID] {
+	request rec_v2.Request[ReconcilerID],
+) rec_v2.Directive[ReconcilerID] {
 	if ir.enableTracing {
 		ctx = tracing.StartTrace(ctx, "MIOnboardingManager", "InstanceReconciler")
 		defer tracing.StopTrace(ctx)
 	}
-	resourceID := request.ID.String()
-	zlogInst.Info().Msgf("Reconciling Instance (%s)", resourceID)
+	resourceID := request.ID.GetResourceID()
+	tenantID := request.ID.GetTenantID()
+	zlogInst.Info().Msgf("Reconciling Instance resourceID (%s) and tenantID (%s)", resourceID, tenantID)
 
-	instance, err := ir.invClient.GetInstanceResourceByResourceID(ctx, resourceID)
+	instance, err := ir.invClient.GetInstanceResourceByResourceID(ctx, tenantID, resourceID)
 	if directive := HandleInventoryError(err, request); directive != nil {
 		return directive
 	}
@@ -105,7 +106,7 @@ func (ir *InstanceReconciler) updateHostInstanceStatusAndCurrentState(
 
 	if !util.IsSameHostStatus(oldInstance.GetHost(), newHost) {
 		if err := ir.invClient.SetHostOnboardingStatus(
-			ctx, newHost.GetResourceId(),
+			ctx, newHost.GetTenantId(), newHost.GetResourceId(),
 			inv_status.New(newHost.GetOnboardingStatus(), newHost.GetOnboardingStatusIndicator())); err != nil {
 			zlogInst.MiSec().MiErr(err).Msgf("Failed to update host %s status", newHost.GetResourceId())
 		}
@@ -118,6 +119,7 @@ func (ir *InstanceReconciler) updateHostInstanceStatusAndCurrentState(
 	if !util.IsSameInstanceStatusAndState(oldInstance, newInstance) || oldInstance.CurrentOs != newInstance.CurrentOs {
 		if err := ir.invClient.UpdateInstance(
 			ctx,
+			newInstance.GetTenantId(),
 			newInstance.GetResourceId(),
 			newInstance.GetCurrentState(),
 			inv_status.New(newInstance.GetProvisioningStatus(), newInstance.GetProvisioningStatusIndicator()),
@@ -130,9 +132,9 @@ func (ir *InstanceReconciler) updateHostInstanceStatusAndCurrentState(
 
 func (ir *InstanceReconciler) reconcileInstance(
 	ctx context.Context,
-	request rec_v2.Request[ResourceID],
+	request rec_v2.Request[ReconcilerID],
 	instance *computev1.InstanceResource,
-) rec_v2.Directive[ResourceID] {
+) rec_v2.Directive[ReconcilerID] {
 	instanceID := instance.GetResourceId()
 
 	zlogInst.Info().Msgf("Reconciling Instance with ID %s, with Current state: %v, Desired state: %v",
@@ -164,6 +166,7 @@ func (ir *InstanceReconciler) reconcileInstance(
 
 		err := ir.invClient.UpdateInstanceCurrentState(
 			ctx,
+			instance.GetTenantId(),
 			&computev1.InstanceResource{
 				ResourceId:   instance.GetResourceId(),
 				CurrentState: computev1.InstanceState_INSTANCE_STATE_DELETED,
@@ -178,6 +181,7 @@ func (ir *InstanceReconciler) reconcileInstance(
 	if instance.GetDesiredState() == computev1.InstanceState_INSTANCE_STATE_UNTRUSTED {
 		err := ir.invClient.UpdateInstanceCurrentState(
 			ctx,
+			instance.GetTenantId(),
 			&computev1.InstanceResource{
 				ResourceId:   instance.GetResourceId(),
 				CurrentState: computev1.InstanceState_INSTANCE_STATE_UNTRUSTED,
@@ -251,8 +255,8 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		HwSerialID:         host.GetSerialNumber(),
 		HwMacID:            host.GetPxeMac(),
 		HwIP:               host.GetBmcIp(),
-		Hostname:           host.GetResourceId(), // we use resource ID as hostname to uniquely identify a host
-		SecurityFeature:    uint32(instance.GetSecurityFeature()),
+		Hostname:           host.GetResourceId(),                  // we use resource ID as hostname to uniquely identify a host
+		SecurityFeature:    uint32(instance.GetSecurityFeature()), // #nosec G115
 		ImgType:            env.ImgType,
 		OSImageURL:         env.ImgURL,
 		OsImageSHA256:      imageSha256,
@@ -337,7 +341,7 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 	}
 
 	// 2. Run FDO actions
-	if err := onbworkflowclient.RunFDOActions(ctx, &deviceInfo); err != nil {
+	if err := onbworkflowclient.RunFDOActions(ctx, instance.GetTenantId(), &deviceInfo); err != nil {
 		return err
 	}
 

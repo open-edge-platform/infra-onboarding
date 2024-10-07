@@ -92,16 +92,16 @@ func Close() {
 	}
 }
 
-func FetchClientSecret(ctx context.Context, uuid string) (string, string, error) {
+func FetchClientSecret(ctx context.Context, tenantID, uuid string) (string, string, error) {
 	authService, err := auth.AuthServiceFactory(ctx)
 	if err != nil {
 		return "", "", err
 	}
 	defer authService.Logout(ctx)
 
-	clientID, clientSecret, err := authService.GetCredentialsByUUID(ctx, uuid)
+	clientID, clientSecret, err := authService.GetCredentialsByUUID(ctx, tenantID, uuid)
 	if err != nil && inv_errors.IsNotFound(err) {
-		return authService.CreateCredentialsWithUUID(ctx, uuid)
+		return authService.CreateCredentialsWithUUID(ctx, tenantID, uuid)
 	}
 
 	if err != nil {
