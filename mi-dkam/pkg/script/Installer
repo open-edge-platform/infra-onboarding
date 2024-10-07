@@ -261,23 +261,25 @@ install_node_agent(){
         sudo mv oras-install/oras /usr/local/bin/
         rm -rf oras_${ORAS_VERSION}_*.tar.gz oras-install/
 
-        #Below code is intended to resolve dependencies for MTLS based apt and bypass need for ESP based provisioning
-        #IMPORTANT: If additional new users or groups need to be created by DKAM, they MUST be added after the users and group created below
-        #to avoid those users or groups being assigned to IDs that are reserved. A list of the reserved UID and GID values are below:
+        # IMPORTANT: These hardcoded uid/gid must be aligned to that in TiberOS specified in
+        # https://github.com/intel-innersource/os.linux.tiberos.tiberlinuxos/blob/main/SPECS/cluster-agent/cluster-agent.conf.
+        # If additional new users or groups need to be created by DKAM, they MUST be added after the users and group created below to
+        # avoid those users or groups being assigned to IDs that are reserved. A list of the reserved UID and GID values are below:
         #
         #|----------|------------|--------------|
         #|   Name   | User/Group | Reserverd ID |
         #|----------|------------|--------------|
-        #|bm-agents |    Group   |      998     |
-        #|node-agent|    User    |      997     |
-        #|promtheus |    User    |      994     |
+        #|bm-agents |    Group   |      500     |
+        #|prometheus|    User    |      501     |
+        #|fluent-bit|    User    |      502     |
         #|----------|------------|--------------|
 
-        groupadd -f bm-agents -g 998 --system
-        id -u node-agent &>/dev/null || useradd node-agent -u 997 --system -g bm-agents
-        id -u prometheus &>/dev/null || useradd prometheus -u 994 --system -g bm-agents
+        groupadd -f bm-agents -g 500 --system
+        id -u prometheus &>/dev/null || useradd prometheus -u 501 --system -g bm-agents
+        id -u fluent-bit &>/dev/null || useradd fluent-bit -u 502 --system -g bm-agents -G adm
+        id -u node-agent &>/dev/null || useradd node-agent --system -g bm-agents
         id -u platform-update-agent &>/dev/null || useradd platform-update-agent --system -g bm-agents
-        id -u fluent-bit &>/dev/null || useradd fluent-bit --system -g bm-agents -G adm
+
         USERNAME="etcd"
 
         # Check if the etcd already exists
