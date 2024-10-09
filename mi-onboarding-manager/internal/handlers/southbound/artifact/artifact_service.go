@@ -650,6 +650,8 @@ func (s *NodeArtifactService) checkNCreateInstance(ctx context.Context, tenantID
 ) error {
 	if pconf.AutoProvision {
 		instance := &computev1.InstanceResource{
+			TenantId: tenantID,
+
 			Kind:         computev1.InstanceKind_INSTANCE_KIND_METAL,
 			DesiredState: computev1.InstanceState_INSTANCE_STATE_RUNNING,
 			CurrentState: computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
