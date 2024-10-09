@@ -1,7 +1,6 @@
 package dkammgr
 
 import (
-	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -15,14 +14,12 @@ import (
 	"os"
 	pa "path"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/internal/invclient"
-	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/api/dkammgr/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/download"
 	dkam_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/testing"
@@ -75,41 +72,6 @@ func TestMain(m *testing.M) {
 	inv_testing.StopTestingEnvironment()
 
 	os.Exit(run)
-}
-func TestGetArtifacts(t *testing.T) {
-	dir := config.PVC
-	dummyData := `#!/bin/bash
-	enable_netipplan
-# Add your installation commands here
-`
-	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
-	if err != nil {
-		fmt.Println("Error creating file:", err)
-	}
-	// Initialize the service
-	service := &Service{}
-
-	// Create a UploadBaseImageRequest
-	request := &pb.GetENProfileRequest{ProfileName: "common:common", Platform: "ASUS"}
-
-	// Call the GetTelemetryQuery function
-	response, err := service.GetENProfile(context.Background(), request)
-	if err != nil {
-		t.Fatalf("Error calling GetArtifacts: %v", err)
-	}
-	// Check for errors in the response
-	assert.NoError(t, err)
-	// Assert that the response is not nil
-	assert.NotNil(t, response)
-	assert.Equal(t, false, isImageFile(response.OsUrl))
-	defer func() {
-		os.Remove(config.PVC + "/installer.sh")
-	}()
-
-}
-
-func isImageFile(filename string) bool {
-	return strings.HasSuffix(filename, ".raw.gz")
 }
 
 func TestDownloadArtifacts(t *testing.T) {
@@ -321,23 +283,6 @@ func TestFileNameFromURL(t *testing.T) {
 	assert.Equal(t, "jammy-server-cloudimg-amd64.img", result)
 }
 
-func TestGetENProfile(t *testing.T) {
-	request := &pb.GetENProfileRequest{ProfileName: "common", Platform: "ASUS"}
-	// Initialize the service
-	service := &Service{}
-
-	// Call the GetTelemetryQuery function
-	response, err := service.GetENProfile(context.Background(), request)
-	if err != nil {
-		t.Fatalf("Error calling GetArtifacts: %v", err)
-	}
-	// Check for errors in the response
-	assert.NoError(t, err)
-	// Assert that the response is not nil
-	assert.NotNil(t, response)
-	assert.Equal(t, false, isImageFile(response.OsUrl))
-}
-
 func TestDownloadArtifacts_Case(t *testing.T) {
 
 	// Create a UploadBaseImageRequest
@@ -530,116 +475,6 @@ func TestGetScriptDir_Case1(t *testing.T) {
 	}()
 }
 
-func TestService_GetENProfile(t *testing.T) {
-	type fields struct {
-		UnimplementedDkamServiceServer pb.UnimplementedDkamServiceServer
-		invClient                      *invclient.DKAMInventoryClient
-		rbac                           *rbac.Policy
-		authEnabled                    bool
-	}
-	type args struct {
-		ctx context.Context
-		req *pb.GetENProfileRequest
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    *pb.GetENProfileResponse
-		wantErr bool
-	}{
-		{
-			name:   "Test Case with dummy repo url",
-			fields: fields{},
-			args: args{
-				ctx: nil,
-				req: &pb.GetENProfileRequest{
-					RepoUrl: "url",
-				},
-			},
-			want: &pb.GetENProfileResponse{
-				StatusMsg: "Failed to curate",
-			},
-			wantErr: false,
-		},
-		{
-			name:   "Test Case with dummy sha256",
-			fields: fields{},
-			args: args{
-				ctx: nil,
-				req: &pb.GetENProfileRequest{
-					Sha256: "Sha256",
-				},
-			},
-			want: &pb.GetENProfileResponse{
-				StatusMsg: "Failed to curate",
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			server := &Service{
-				UnimplementedDkamServiceServer: tt.fields.UnimplementedDkamServiceServer,
-				invClient:                      tt.fields.invClient,
-				rbac:                           tt.fields.rbac,
-				authEnabled:                    tt.fields.authEnabled,
-			}
-			_, err := server.GetENProfile(tt.args.ctx, tt.args.req)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Service.GetENProfile() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-}
-
-func TestNewDKAMService(t *testing.T) {
-	type args struct {
-		invClient  *invclient.DKAMInventoryClient
-		in1        string
-		in2        bool
-		enableAuth bool
-		rbacRules  string
-	}
-	dkam_testing.CreateInventoryDKAMClientForTesting()
-	t.Cleanup(func() {
-		dkam_testing.DeleteInventoryDKAMClientForTesting()
-	})
-	rbac.New(rbacRules)
-	tests := []struct {
-		name    string
-		args    args
-		want    *Service
-		wantErr bool
-	}{
-		{
-			name: "NewDKAMService",
-			args: args{
-				invClient:  dkam_testing.InvClient,
-				in1:        "",
-				in2:        false,
-				enableAuth: true,
-				rbacRules:  rbacRules,
-			},
-			want:    &Service{},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewDKAMService(tt.args.invClient, tt.args.in1, tt.args.in2, tt.args.enableAuth, tt.args.rbacRules)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NewDKAMService() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewDKAMService() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestRemoveDir(t *testing.T) {
 	type args struct {
 		path string
@@ -716,83 +551,6 @@ func TestInitOnboarding(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			InitOnboarding(tt.args.invClient, tt.args.enableAuth, tt.args.rbacRules)
-		})
-	}
-}
-
-func TestGetENProfile_err(t *testing.T) {
-	request := &pb.GetENProfileRequest{ProfileName: "common", Platform: "ASUS", Sha256: "sha"}
-	path := config.PVC + "/OSImage" + "/" + request.Sha256
-	os.MkdirAll(path, 0755)
-	fullPath := filepath.Join(path, config.ImageFileName)
-	fmt.Println("fullPath", fullPath)
-	file, err := os.Create(fullPath)
-	assert.NoError(t, err)
-	file.Close()
-	service := &Service{}
-	response, err := service.GetENProfile(context.Background(), request)
-	if err != nil {
-		t.Fatalf("Error calling GetArtifacts: %v", err)
-	}
-	assert.NoError(t, err)
-	assert.NotNil(t, response)
-	defer func() {
-		os.RemoveAll(path)
-		os.Remove(config.PVC + "/OSImage")
-	}()
-}
-
-func TestService_GetENProfileErr(t *testing.T) {
-	cdr, _ := os.Getwd()
-	err1 := os.MkdirAll(cdr+"/dummy/dummy1/dummy2/dummy3", 0755)
-	assert.NoError(t, err1)
-	err2 := os.Chdir(cdr + "/dummy/dummy1/dummy2/dummy3")
-	assert.NoError(t, err2)
-	type fields struct {
-		UnimplementedDkamServiceServer pb.UnimplementedDkamServiceServer
-		invClient                      *invclient.DKAMInventoryClient
-		rbac                           *rbac.Policy
-		authEnabled                    bool
-	}
-	type args struct {
-		ctx context.Context
-		req *pb.GetENProfileRequest
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    *pb.GetENProfileResponse
-		wantErr bool
-	}{
-		{
-			name:   "Test Case with dummy repo url",
-			fields: fields{},
-			args: args{
-				ctx: nil,
-				req: &pb.GetENProfileRequest{
-					RepoUrl: "url",
-				},
-			},
-			want: &pb.GetENProfileResponse{
-				StatusMsg: "Failed to curate",
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			server := &Service{
-				UnimplementedDkamServiceServer: tt.fields.UnimplementedDkamServiceServer,
-				invClient:                      tt.fields.invClient,
-				rbac:                           tt.fields.rbac,
-				authEnabled:                    tt.fields.authEnabled,
-			}
-			_, err := server.GetENProfile(tt.args.ctx, tt.args.req)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Service.GetENProfile() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
 		})
 	}
 }

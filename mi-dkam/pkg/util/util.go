@@ -53,12 +53,10 @@ func GetOSImageLocationWithCustomFilename(os *osv1.OperatingSystemResource, root
 // we may use profile_version+profile_name (once profile_version is populated) to save space on the PV.
 // NOTE2: We should make sure that installation artifacts doesn't include any tenant-specific information.
 // Multiple tenants should be able to share the same installation artifacts (see NOTE1).
-// FIXME: use OS resource ID instead of profile name to uniqely identify installation artifacts until we fully integrate profile_version.
 func GetInstallerLocation(os *osv1.OperatingSystemResource, rootDir string) (string, error) {
-	// profileIdentifier is a unique identifier of OS profile. For now we use profile name as a non-ideal solution,
-	// because DKAM gRPC API is not aware of OS resource ID. Once we remove gRPC API completely, we can safely use OS resource ID.
-	// FIXME: use OS resource ID instead of profile name
-	profileIdentifier := os.GetProfileName()
+	// profileIdentifier is a unique identifier of OS profile. For now we use OS resource ID instead of
+	// profile_name+profile_version to uniqely identify installation artifacts until we fully integrate profile_version.
+	profileIdentifier := os.GetResourceId()
 
 	installerPath := fmt.Sprintf("%s/OSArtifacts/%s/installer", rootDir, profileIdentifier)
 

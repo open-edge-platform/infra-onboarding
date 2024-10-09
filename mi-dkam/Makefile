@@ -45,11 +45,9 @@ $(VENV_NAME): requirements.txt
 	python3 -m pip install -r requirements.txt
 
 #### Development Targets ####
-generate: buf-generate ## generate all files
-
 build: go-build ## Build local binaries
 
-lint: go-lint license shellcheck buf-lint
+lint: go-lint license shellcheck
 
 shellcheck: ## lint shell scripts with shellcheck
 	shellcheck --version

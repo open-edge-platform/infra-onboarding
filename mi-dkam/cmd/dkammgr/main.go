@@ -17,7 +17,6 @@ import (
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/internal/dkammgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/internal/handlers/controller"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/internal/handlers/southbound"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/internal/invclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/client"
@@ -112,22 +111,6 @@ func main() {
 		zlog.MiSec().Fatal().Err(err).Msgf("Unable to start onboarding controller")
 	}
 
-	sbHandler, err := southbound.NewSBHandler(invClient, southbound.SBHandlerConfig{
-		ServerAddress:    *servaddr,
-		EnableTracing:    *enableTracing,
-		InventoryAddress: *inventoryAddress,
-		EnableAuth:       *enableAuth,
-		RBAC:             *rbacRules,
-	})
-	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Unable to create southbound handler")
-	}
-
-	err = sbHandler.Start()
-	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Unable to start southbound handler")
-	}
-
 	setupOamServerAndSetReady(*enableTracing, *oamServerAddress)
 
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
@@ -135,7 +118,6 @@ func main() {
 
 	// Terminate Onboarding Manager when termination signal received
 	close(termChan)
-	sbHandler.Stop()
 	dkamController.Stop()
 	invClient.Close()
 

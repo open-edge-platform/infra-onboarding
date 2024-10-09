@@ -85,17 +85,6 @@ pipeline {
             }        
         }
 
-        stage('Generate Code') {
-            steps {
-                sh '''
-                echo "Generating the code"
-                make clean
-                make generate
-                bash -c "diff -u <(echo -n) <(git diff)"
-                '''
-            }
-        }
-
         stage('Build') {
           steps {
             sh '''

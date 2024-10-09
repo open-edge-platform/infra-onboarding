@@ -3,8 +3,6 @@ package dkammgr
 import (
 	//import dependencies
 
-	"context"
-	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,7 +10,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/util"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/internal/invclient"
-	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/api/dkammgr/v1"
+
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/curation"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/download"
@@ -22,41 +20,9 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/policy/rbac"
 )
 
-type Service struct {
-	pb.UnimplementedDkamServiceServer
-	invClient   *invclient.DKAMInventoryClient
-	rbac        *rbac.Policy
-	authEnabled bool
-}
-
-var zlog = logging.GetLogger("MIDKAMgRPC")
+var zlog = logging.GetLogger("DKAM-Mgr")
 var tag = config.Tag
 var file string
-
-func NewDKAMService(invClient *invclient.DKAMInventoryClient, _ string, _ bool,
-	enableAuth bool, rbacRules string,
-) (*Service, error) {
-	if invClient == nil {
-		return nil, errors.New("invClient is nil in DKAMService")
-	}
-
-	var rbacPolicy *rbac.Policy
-	var err error
-	if enableAuth {
-		zlog.Info().Msgf("Authentication is enabled, starting RBAC server for DKAMService")
-		// start OPA server with policies
-		rbacPolicy, err = rbac.New(rbacRules)
-		if err != nil {
-			zlog.Fatal().Msg("Failed to start RBAC OPA server")
-		}
-	}
-
-	return &Service{
-		invClient:   invClient,
-		rbac:        rbacPolicy,
-		authEnabled: enableAuth,
-	}, nil
-}
 
 func DownloadArtifacts() error {
 	MODE := GetMODE()
@@ -88,81 +54,6 @@ func DownloadArtifacts() error {
 	}
 
 	return nil
-}
-
-func (server *Service) GetENProfile(ctx context.Context, req *pb.GetENProfileRequest) (*pb.GetENProfileResponse, error) {
-	//Get request
-	profile := req.ProfileName
-	platform := req.Platform
-	osType := req.OsType
-
-	zlog.MiSec().Info().Msgf("Profile Name %s", profile)
-	zlog.MiSec().Info().Msgf("Platform %s", platform)
-	zlog.MiSec().Info().Msgf("Image URL from request %s", req.RepoUrl)
-	zlog.MiSec().Info().Msgf("SHA256 %s", req.Sha256)
-	zlog.MiSec().Info().Msgf("OS Type %s", req.OsType)
-
-	proxyIP := "http://%host_ip%/tink-stack"
-	zlog.MiSec().Info().Msgf("proxyIP %s", proxyIP)
-
-	// TODO: OS resource is temporarily created, can be removed once OM uses DKAM util helper to generate OS location
-	//  instead of querying DKAM for OS url
-	osRes := &osv1.OperatingSystemResource{
-		Sha256:      req.Sha256,
-		OsType:      osv1.OsType(osv1.OsType_value[osType]),
-		ProfileName: req.ProfileName,
-	}
-
-	installerUrl, err := util.GetInstallerLocation(osRes, proxyIP)
-	if err != nil {
-		return &pb.GetENProfileResponse{StatusCode: false}, nil
-	}
-
-	installerPath, err := util.GetInstallerLocation(osRes, config.PVC)
-	if err != nil {
-		return &pb.GetENProfileResponse{StatusCode: false}, nil
-	}
-
-	zlog.MiSec().Info().Msgf("Installer script url is %s, installer path %s", installerUrl, installerPath)
-
-	osUrl := util.GetOSImageLocation(osRes, proxyIP)
-
-	zlog.MiSec().Info().Msgf("OS image url is %s", osUrl)
-
-	agentsList, tinkerAction, err := curation.GetArtifactsVersion()
-	if err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error creating directoryL: %v", err)
-	}
-	if len(agentsList) == 0 {
-		zlog.MiSec().Info().Msg("Failed to get the agent list")
-	}
-
-	if len(tinkerAction) == 0 {
-		zlog.MiSec().Info().Msg("Failed to get the Tinker action version")
-	}
-
-	zlog.MiSec().Info().Msgf("tinkerAction version' %s", tinkerAction)
-
-	imageExists, patherr := download.PathExists(util.GetOSImageLocation(osRes, config.PVC))
-	if patherr != nil {
-		zlog.MiSec().Info().Msgf("Error checking image file path %v", patherr)
-	}
-
-	installerExists, patherr := download.PathExists(installerPath)
-	if patherr != nil {
-		zlog.MiSec().Info().Msgf("Error checking installer file path %v", patherr)
-	}
-
-	if !imageExists || !installerExists || tinkerAction == "" {
-		zlog.MiSec().Info().Msg("Image Path not exists:")
-		zlog.MiSec().Info().Msg("Return Error Message.")
-		return &pb.GetENProfileResponse{StatusCode: false, OsUrl: "", OverlayscriptUrl: "", TinkActionVersion: tinkerAction, StatusMsg: "Failed to curate. Please try again!", OsImageSha256: req.Sha256}, nil
-	} else {
-		zlog.MiSec().Info().Msg("Path exists:")
-		zlog.MiSec().Info().Msg("Return Success Message.")
-		return &pb.GetENProfileResponse{StatusCode: true, OsUrl: osUrl, OverlayscriptUrl: installerUrl, TinkActionVersion: tinkerAction, StatusMsg: "Curation successfully done", OsImageSha256: req.Sha256}, nil
-	}
-
 }
 
 func RemoveDir(path string) error {
