@@ -242,8 +242,6 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 					Timeout: timeOutAvg560,
 				},
 
-				// `ActionCreateUser` tinker action is removed since 'user' is already added in the os image
-				// TODO: Might need to add once the prebuilt os image removes exiting user name 'user'
 				{
 					Name:    ActionCreateUser,
 					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
@@ -377,7 +375,7 @@ network:
       addresses: [ %s/$sub_net ]
       gateway4: $gateway
       nameservers:
-        addresses: [%s]
+        addresses: [ %s ]
 "
 # Write the YAML configuration to the file
 echo "$config_yaml" | tee /etc/netplan/config.yaml
@@ -755,7 +753,7 @@ network:
       addresses: [ %s/$sub_net ]
       gateway4: $gateway
       nameservers:
-        addresses: [%s]
+        addresses: [ %s ]
 "
 # Write the YAML configuration to the file
 echo "$config_yaml" | tee /etc/netplan/config.yaml
