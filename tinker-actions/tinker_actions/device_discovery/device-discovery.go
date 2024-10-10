@@ -24,6 +24,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	pb_om "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
@@ -199,6 +200,107 @@ func grpcMaestroOnboardNodeJWT(ctx context.Context, address string, port int, ma
 	return nil
 }
 
+func deviceDiscovery(debug bool, timeout time.Duration, obsSVC string, obmSVC string, obmPort int, keycloakURL string, macAddr string, uuid string, serialNumber string, ipAddress string, caCertPath string) {
+	if debug {
+		// Set a timeout when debug is true
+		ctx, cancel := context.WithTimeout(context.Background(), timeout) // Set the timeout you want
+		defer cancel()
+
+		fmt.Println("Starting gRPC client with timeout")
+		grpcClient(ctx, obsSVC, obmSVC, obmPort, keycloakURL, macAddr, uuid, serialNumber, ipAddress, caCertPath)
+	} else {
+		// Run without timeout if debug is false
+		fmt.Println("Starting gRPC client without timeout")
+		grpcClient(context.Background(), obsSVC, obmSVC, obmPort, keycloakURL, macAddr, uuid, serialNumber, ipAddress, caCertPath)
+	}
+}
+
+func grpcClient(ctx context.Context, obsSVC string, obmSVC string, obmPort int, keycloakURL string, macAddr string, uuid string, serialNumber string, ipAddress string, caCertPath string) {
+	// grpc streaming starts here
+	// time.Sleep(time.Second * 20)
+	clientID, clientSecret, err, fallback := grpcStreamClient(ctx, obsSVC, obmPort, macAddr, uuid, serialNumber, ipAddress, caCertPath)
+	if fallback {
+		fmt.Printf("Executing fallback method because of error: %s\n", err)
+		// Interactive client Auth starts here
+		cmd := exec.CommandContext(ctx, "/bin/sh", "client-auth.sh")
+		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+
+		if err := cmd.Start(); err != nil {
+			fmt.Println("Error starting command:", err)
+			return
+		}
+
+		done := make(chan error, 1)
+		go func() {
+			done <- cmd.Wait()
+		}()
+
+		select {
+		case err := <-done:
+			if err != nil {
+				fmt.Println("Error executing command:", err)
+				os.Exit(1)
+			} else {
+				fmt.Println("client-auth.sh executed successfully")
+			}
+		case <-ctx.Done():
+			fmt.Println("client-auth.sh timed out, killing process group...")
+			syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) // Kill the process group
+			os.Exit(1)
+		}
+		// Interactive client Auth ends here
+
+		maxRetries := 3
+		retryDelay := 2 * time.Second // Fixed delay between retries
+
+		for retries := 0; retries < maxRetries; retries++ {
+			err := grpcMaestroOnboardNodeJWT(ctx, obmSVC, obmPort, macAddr, ipAddress, uuid, serialNumber, caCertPath, accessTokenFile)
+			if err == nil {
+				fmt.Println("Device discovery done")
+				return
+			}
+
+			// Log the error and retry info
+			fmt.Printf("There was an error in updating the edge-node details with the onboarding manager: %v\n", err)
+			if retries < maxRetries-1 {
+				fmt.Printf("Retrying update... attempt %d of %d\n", retries+2, maxRetries) // retries+2 to show next attempt
+				time.Sleep(retryDelay + time.Duration(rand.Intn(1000))*time.Millisecond)   // Slight random jitter
+			}
+		}
+		// If we exhausted the retries
+		log.Fatalf("Max retries reached. Could not complete device discovery.")
+	} else {
+		if err != nil {
+			log.Fatalf("Error Case: %v", err)
+		}
+		if err := saveToFile(clientIDPath, clientID); err != nil {
+			log.Fatalf("error writing clientID: %v", err)
+		}
+		if err := saveToFile(clientSecretPath, clientSecret); err != nil {
+			log.Fatalf("error writing clientSecret: %v", err)
+		}
+		fmt.Println("Credentials written successfully.")
+		// grpc streaming ends here
+
+		// client auth starts here
+		idpAccessToken, releaseToken, err := clientAuth(clientID, clientSecret, keycloakURL, keycloakTokenURL, releaseTokenURL, caCertPath)
+		if err != nil {
+			log.Fatalf("Error: %v\n", err)
+		}
+		fmt.Printf("IDP Access Token: %s\n", idpAccessToken)
+		fmt.Printf("Release Token: %s\n", releaseToken)
+		// Write access_token to idp_access_token file
+		if err := saveToFile(accessTokenFile, idpAccessToken); err != nil {
+			log.Fatalf("failed to save access token to file: %v", err)
+		}
+		// Write release_token to release_token file
+		if err := saveToFile(releaseTokenFile, releaseToken); err != nil {
+			log.Fatalf("failed to save release token to file: %v", err)
+		}
+		// client auth ends here
+	}
+}
+
 func main() {
 	// Define the required environment variables
 	requiredVars := []string{
@@ -226,7 +328,7 @@ func main() {
 	// Environment variables from the envVars map
 	fmt.Println("Environment variables loaded successfully:", envVars)
 
-	obm_port, err := strconv.Atoi(envVars["OBM_PORT"])
+	obmPort, err := strconv.Atoi(envVars["OBM_PORT"])
 	if err != nil {
 		log.Fatalf("Error converting port to integer: %v\n", err)
 
@@ -240,6 +342,20 @@ func main() {
 	// Use cfg as needed, for example, printing the parsed configuration
 	fmt.Printf("Parsed Config: %+v\n", cfg)
 	macAddr := cfg.workerID
+
+	// Convert string to bool
+	debug, err := strconv.ParseBool(cfg.debug)
+	if err != nil {
+		fmt.Println("Error parsing DEBUG:", err)
+		return
+	}
+
+	// Convert string to time.Duration
+	timeout, err := time.ParseDuration(cfg.timeout)
+	if err != nil {
+		fmt.Println("Error parsing TIMEOUT:", err)
+		return
+	}
 
 	// add extra hosts
 	extraHosts, exists := envVars["EXTRA_HOSTS"]
@@ -273,65 +389,5 @@ func main() {
 	}
 	// logic to detect serial, uuid, and ip based on mac ends here
 
-	//grpc streaming starts here
-	clientID, clientSecret, err, fallback := grpcStreamClient(context.Background(), envVars["onboarding_stream_svc"], obm_port, macAddr, uuid, serialNumber, ipAddress, caCertPath)
-	if fallback {
-		fmt.Printf("Executing fallback method because of error: %s\n", err)
-		//Interactive client Auth starts here
-		if err := exec.Command("/bin/sh", "client-auth.sh").Run(); err != nil {
-			fmt.Println("Error in running client-auth.sh:", err)
-			os.Exit(1)
-		}
-		fmt.Println("client-auth.sh executed sucessfully")
-		// Interactive client Auth ends here
-
-		maxRetries := 3
-		retryDelay := 2 * time.Second // Fixed delay between retries
-
-		for retries := 0; retries < maxRetries; retries++ {
-			err := grpcMaestroOnboardNodeJWT(context.Background(), envVars["onboarding_manager_svc"], obm_port, macAddr, ipAddress, uuid, serialNumber, caCertPath, accessTokenFile)
-			if err == nil {
-				fmt.Println("Device discovery done")
-				return
-			}
-
-			// Log the error and retry info
-			fmt.Printf("There was an error in updating the edge-node details with the onboarding manager: %v\n", err)
-			if retries < maxRetries-1 {
-				fmt.Printf("Retrying update... attempt %d of %d\n", retries+2, maxRetries) // retries+2 to show next attempt
-				time.Sleep(retryDelay + time.Duration(rand.Intn(1000))*time.Millisecond)   // Slight random jitter
-			}
-		}
-		// If we exhausted the retries
-		log.Fatalf("Max retries reached. Could not complete device discovery.")
-	} else {
-		if err != nil {
-			log.Fatalf("Error Case: %v", err)
-		}
-		if err := saveToFile(clientIDPath, clientID); err != nil {
-			log.Fatalf("error writing clientID: %v", err)
-		}
-		if err := saveToFile(clientSecretPath, clientSecret); err != nil {
-			log.Fatalf("error writing clientSecret: %v", err)
-		}
-		fmt.Println("Credentials written successfully.")
-		// grpc streaming ends here
-
-		// client auth starts here
-		idpAccessToken, releaseToken, err := clientAuth(clientID, clientSecret, envVars["KEYCLOAK_URL"], keycloakTokenURL, releaseTokenURL, caCertPath)
-		if err != nil {
-			log.Fatalf("Error: %v\n", err)
-		}
-		fmt.Printf("IDP Access Token: %s\n", idpAccessToken)
-		fmt.Printf("Release Token: %s\n", releaseToken)
-		// Write access_token to idp_access_token file
-		if err := saveToFile(accessTokenFile, idpAccessToken); err != nil {
-			log.Fatalf("failed to save access token to file: %v", err)
-		}
-		// Write release_token to release_token file
-		if err := saveToFile(releaseTokenFile, releaseToken); err != nil {
-			log.Fatalf("failed to save release token to file: %v", err)
-		}
-		// client auth ends here
-	}
+	deviceDiscovery(debug, timeout, envVars["onboarding_stream_svc"], envVars["onboarding_manager_svc"], obmPort, envVars["KEYCLOAK_URL"], macAddr, uuid, serialNumber, ipAddress, caCertPath)
 }

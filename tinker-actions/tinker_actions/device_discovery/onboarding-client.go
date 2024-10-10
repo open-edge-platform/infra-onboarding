@@ -147,9 +147,9 @@ func grpcStreamClient(ctx context.Context, address string, port int, mac string,
 			}
 		} else if resp.Status.Code == int32(codes.NotFound) {
 			fallback = true
-			return "", "", fmt.Errorf("resp.Status.Message"), fallback
+			return "", "", fmt.Errorf(resp.Status.Message), fallback
 		} else {
-			return "", "", fmt.Errorf("resp.Status.Message"), fallback
+			return "", "", fmt.Errorf(resp.Status.Message), fallback
 		}
 	}
 
