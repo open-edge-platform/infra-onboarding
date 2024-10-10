@@ -15,8 +15,15 @@ RUN apt-get update
 RUN apt-get install -y parted cryptsetup-bin tpm2-tools xxd
 RUN apt-get install -y lvm2 procps
 
+RUN apt-get install -y file fdisk 
+
 COPY enable_fde.sh /
+COPY enable_fde_tiber.sh /
+COPY os_selection.sh /
 
 RUN chmod +x enable_fde.sh
+RUN chmod +x enable_fde_tiber.sh
+RUN chmod +x os_selection.sh
 
-CMD ["/bin/bash", "/enable_fde.sh"]
+#CMD ["/bin/bash", "/enable_fde_tiber.sh"]
+CMD ["/bin/bash", "/os_selection.sh"]
