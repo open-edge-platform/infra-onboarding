@@ -74,7 +74,7 @@ func TestDeleteDIWorkflowResourcesIfExist(t *testing.T) {
 		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
 	*common.FlagEnableDeviceInitialization = true
-	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
+	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
 	type args struct {
 		ctx          context.Context
 		k8sNamespace string
@@ -202,7 +202,7 @@ func TestDeleteProdWorkflowResourcesIfExist_Case(t *testing.T) {
 		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
 	*common.FlagEnableDeviceInitialization = true
-	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
+	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
 	type args struct {
 		ctx          context.Context
 		k8sNamespace string
@@ -267,7 +267,7 @@ func TestDeleteRebootWorkflowResourcesIfExist_Case(t *testing.T) {
 		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
 	*common.FlagEnableDeviceInitialization = true
-	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
+	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
 	type args struct {
 		ctx          context.Context
 		k8sNamespace string

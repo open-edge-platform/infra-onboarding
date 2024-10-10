@@ -6,16 +6,17 @@ package reconcilers
 
 import (
 	"context"
+	"fmt"
 
 	"google.golang.org/grpc/codes"
 	grpc_status "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
 	rec_v2 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go/pkg/controller/v2"
+	dkam_util "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/util"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/common"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/env"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
-	onboarding "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onbworkflowclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/util"
@@ -32,6 +33,8 @@ const (
 	instanceReconcilerLoggerName = "InstanceReconciler"
 	checkInvURLLength            = 2
 	ClientImgName                = "jammy-server-cloudimg-amd64.raw.gz"
+
+	TinkStackURLTemplate = "http://%s/tink-stack"
 )
 
 // Misc variables.
@@ -196,7 +199,6 @@ func (ir *InstanceReconciler) reconcileInstance(
 	return request.Ack()
 }
 
-//nolint:funlen // May effect the functionality, need to simplify this in future
 func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 	provider invclient.ProviderConfig,
 ) (utils.DeviceInfo, error) {
@@ -208,47 +210,21 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 			"Instance %s doesn't have any OS associated", instance.GetResourceId())
 	}
 
-	repoURL := instance.GetDesiredOs().GetImageUrl()
-	imageSha256 := instance.GetDesiredOs().GetSha256()
-	profileName := instance.GetDesiredOs().GetProfileName()
-	installedPackages := instance.GetDesiredOs().GetInstalledPackages()
-	kernalCommand := instance.GetDesiredOs().GetKernelCommand()
-	platform := instance.GetDesiredOs().GetArchitecture()
-	osType := instance.GetDesiredOs().GetOsType()
-	zlogInst.Info().Msgf("----------------------From DeviceInfo -------------------\n")
-	zlogInst.Info().Msgf("repoURL is %s\n", repoURL)
-	zlogInst.Info().Msgf("sha256 is %s\n", imageSha256)
-	zlogInst.Info().Msgf("profileName is %s\n", profileName)
-	zlogInst.Info().Msgf("installedPackages is %s\n", installedPackages)
-	zlogInst.Info().Msgf("kernalCommand is %s\n", kernalCommand)
-	zlogInst.Info().Msgf("platform is %s\n", platform)
-	zlogInst.Info().Msgf("os type is %s\n", osType.String())
+	desiredOs := instance.GetDesiredOs()
 
-	response, err := onboarding.GetOSResourceFromDkamService(context.Background(), repoURL, imageSha256,
-		profileName, installedPackages, platform, kernalCommand, osType.String())
+	zlogInst.Debug().Msgf("Converting Instance %s to device info. OS resource: %s",
+		instance.GetResourceId(), desiredOs)
+
+	localHostIP := instance.GetHost().GetBmcIp()
+	proxyURL := fmt.Sprintf(TinkStackURLTemplate, localHostIP)
+
+	// OS and Installer location returned to EN points to a local server that proxies requests to Provisioning Nginx
+	osLocationURL := dkam_util.GetOSImageLocation(instance.GetDesiredOs(), proxyURL)
+	installerScriptURL, err := dkam_util.GetInstallerLocation(instance.GetDesiredOs(), proxyURL)
 	if err != nil {
-		invError := inv_errors.Errorfc(grpc_status.Code(err), "Failed to trigger DKAM for OS instance. Error: %v", err)
-		zlogInst.Err(invError).Msg("Error triggering DKAM for OS instance")
-		return utils.DeviceInfo{}, invError
+		return utils.DeviceInfo{}, err
 	}
-
-	osLocationURL := response.GetOsUrl()
-	installerScriptURL := response.GetOverlayscriptUrl()
 	tinkerVersion := env.TinkerActionVersion
-
-	sutIP := instance.GetHost().GetBmcIp()
-	osLocationURL = utils.ReplaceHostIP(osLocationURL, sutIP)
-	installerScriptURL = utils.ReplaceHostIP(installerScriptURL, sutIP)
-
-	zlogInst.Info().Msgf("----------------------From DKAM start-------------------\n")
-	zlogInst.Info().Msgf("osLocationURL is %s\n", osLocationURL)
-	zlogInst.Info().Msgf("installerScriptURL is %s\n", installerScriptURL)
-	zlogInst.Info().Msgf("tinkerVersion is %s\n", tinkerVersion)
-
-	zlogInst.Info().Msgf("sutIP is %s\n", sutIP)
-	zlogInst.Info().Msgf("utils.ReplaceHostIP: osLocationURL is %s\n", osLocationURL)
-	zlogInst.Info().Msgf("installerScriptURL is %s\n", osLocationURL)
-	zlogInst.Info().Msgf("imageSha256 is %s\n", imageSha256)
 
 	deviceInfo := utils.DeviceInfo{
 		GUID:               host.GetUuid(),
@@ -258,19 +234,19 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		Hostname:           host.GetResourceId(),                  // we use resource ID as hostname to uniquely identify a host
 		SecurityFeature:    uint32(instance.GetSecurityFeature()), // #nosec G115
 		ImgType:            env.ImgType,
-		OSImageURL:         env.ImgURL,
-		OsImageSHA256:      imageSha256,
+		OSImageURL:         osLocationURL,
+		OsImageSHA256:      desiredOs.GetSha256(),
 		DiskType:           env.DiskType,
 		Rootfspart:         utils.CalculateRootFS(env.ImgType, env.DiskType),
-		InstallerScriptURL: env.InstallerScriptURL,
+		InstallerScriptURL: installerScriptURL,
 		TinkerVersion:      tinkerVersion,
 		ClientImgName:      ClientImgName,
 		CustomerID:         provider.CustomerID,
 		ENProductKeyIDs:    provider.ENProductKeyIDs,
-		OsType:             osType.String(),
+		OsType:             desiredOs.GetOsType().String(),
 	}
 
-	if osType == osv1.OsType_OS_TYPE_IMMUTABLE {
+	if desiredOs.GetOsType() == osv1.OsType_OS_TYPE_IMMUTABLE {
 		deviceInfo.ImgType = utils.ImgTypeTiberOs
 		// TODO: Fix the correct env image type based on OS type in charts
 		env.ImgType = utils.ImgTypeTiberOs
@@ -280,28 +256,8 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		env.ImgType = utils.ImgTypeBkc
 	}
 
-	// Adding additional checks.
-	if osLocationURL == "" || installerScriptURL == "" || tinkerVersion == "" {
-		// Create an error from the gRPC status code
-		err := inv_errors.Errorfr(inv_errors.Reason_OPERATION_IN_PROGRESS, "Installation artifacts are not yet ready")
-		return utils.DeviceInfo{}, err
-	}
-
-	deviceInfo.OSImageURL = osLocationURL
-	deviceInfo.InstallerScriptURL = installerScriptURL
-
-	zlogInst.Info().Msgf("----------------------At the end prints-------------------\n")
-	zlogInst.Info().Msgf("OSImageURL is %s\n", deviceInfo.OSImageURL)
-	zlogInst.Info().Msgf("InstallerScriptURL is %s\n", deviceInfo.InstallerScriptURL)
-	zlogInst.Info().Msgf("ImgType is %s\n", deviceInfo.ImgType)
-	zlogInst.Info().Msgf("DiskType is %s\n", deviceInfo.DiskType)
-	zlogInst.Info().Msgf("OsType is %s\n", deviceInfo.OsType)
-	zlogInst.Info().Msgf("SecurityFeature is %d\n", deviceInfo.SecurityFeature)
-	zlogInst.Info().Msgf("SecurityFeature is %s\n", instance.GetSecurityFeature().String())
-	zlogInst.Info().Msgf("ClientImgName is %s\n", deviceInfo.ClientImgName)
-	zlogInst.Info().Msgf("CustomerID is %s\n", deviceInfo.CustomerID)
-	zlogInst.Info().Msgf("ENProductKeyIDs is %s\n", deviceInfo.ENProductKeyIDs)
-	zlogInst.Info().Msgf("OsImageSHA256 is %s\n", deviceInfo.OsImageSHA256)
+	zlogInst.Debug().Msgf("DeviceInfo generated from OS resource (%s): %+v",
+		instance.GetDesiredOs().GetResourceId(), deviceInfo)
 
 	return deviceInfo, nil
 }

@@ -26,7 +26,7 @@ func TestCheckStatusOrRunProdWorkflow(t *testing.T) {
 		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
 	*common.FlagEnableDeviceInitialization = true
-	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, true, false)
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, true, false, false)
 	type args struct {
 		ctx        context.Context
 		deviceInfo utils.DeviceInfo
@@ -68,7 +68,7 @@ func TestCheckStatusOrRunRebootWorkflow(t *testing.T) {
 		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
 	*common.FlagEnableDeviceInitialization = false
-	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
 	type args struct {
 		ctx        context.Context
 		deviceInfo utils.DeviceInfo

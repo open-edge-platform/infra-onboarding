@@ -7,7 +7,6 @@ module github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra
 go 1.21.13
 
 require (
-	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.7.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
@@ -24,10 +23,9 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v1.0.4
 	github.com/google/uuid v1.6.0
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go v0.5.1
-
+	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.10.2-0.20241009102340-00e6a92a17f6
+	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.1.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1
-	
-	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.0.2-0.20241001093804-aa610746f134
 	sigs.k8s.io/controller-runtime v0.17.0
 )
 

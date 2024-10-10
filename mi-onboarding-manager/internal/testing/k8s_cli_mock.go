@@ -6,6 +6,7 @@ package testing
 
 import (
 	"context"
+	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/client"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -22,6 +23,9 @@ import (
 
 type k8sCliMock struct {
 	mock.Mock
+
+	// withInventory use real Inventory client to get current OS to fill in the Tink Hardware CRD object
+	withInventory bool
 }
 
 func (k *k8sCliMock) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
@@ -30,6 +34,30 @@ func (k *k8sCliMock) Get(ctx context.Context, key client.ObjectKey, obj client.O
 	if strings.HasPrefix(key.Name, "workflow-") {
 		workflow := obj.(*tink.Workflow)
 		workflow.Status.State = tink.WorkflowStateSuccess
+	}
+
+	if strings.HasPrefix(key.Name, "machine-") {
+		// If workfkow state is SUCCESS (see above), OM fetches Tink hardware to update current OS of Instance.
+		// For testing purpose, and to avoid NotFound OS resource during update, we set current OS to Instance's desired OS.
+		// Therefore, we retrieve existing Instance to get desired OS and set OsSlug to its resource ID.
+		// This behavior can be controlled by withInventory flag.
+
+		osResourceID := "os-12345678"
+
+		if k.withInventory {
+			hostUUID := strings.TrimPrefix(key.Name, "machine-")
+			host, _ := InvClient.Client.GetHostByUUID(context.Background(), inv_client.FakeTenantID, hostUUID)
+			osResourceID = host.GetInstance().GetDesiredOs().GetResourceId()
+		}
+
+		hardware := obj.(*tink.Hardware)
+		hardware.Spec.Metadata = &tink.HardwareMetadata{
+			Instance: &tink.MetadataInstance{
+				OperatingSystem: &tink.MetadataInstanceOperatingSystem{
+					OsSlug: osResourceID,
+				},
+			},
+		}
 	}
 
 	return args.Error(0)
@@ -95,8 +123,10 @@ func (k *k8sCliMock) IsObjectNamespaced(obj runtime.Object) (bool, error) {
 	return args.Get(0).(bool), args.Error(1)
 }
 
-func K8sCliMockFactory(createShouldFail, getShouldFail, deleteShouldFail bool) func() (client.Client, error) {
-	k8sMock := &k8sCliMock{}
+func K8sCliMockFactory(createShouldFail, getShouldFail, deleteShouldFail, useRealInventory bool) func() (client.Client, error) {
+	k8sMock := &k8sCliMock{
+		withInventory: useRealInventory,
+	}
 
 	if createShouldFail {
 		k8sMock.On("Create", mock.Anything, mock.Anything, mock.Anything).Return("", "", errors.New(""))

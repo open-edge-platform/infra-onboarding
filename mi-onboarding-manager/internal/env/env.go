@@ -17,9 +17,7 @@ const (
 	envNameservers   = "EN_NAMESERVERS"
 	envImageType     = "IMAGE_TYPE"
 	envDiskType      = "DISK_PARTITION"
-	envImgURL        = "IMG_URL"
 	envProvisionerIP = "PD_IP"
-	envOverlayURL    = "OVERLAY_URL"
 	envFdoMfgDNS     = "FDO_MFG_URL"
 	envFdoMfgPort    = "FDO_MFG_PORT"
 	envFdoOwnerDNS   = "FDO_OWNER_URL"
@@ -38,17 +36,15 @@ const (
 )
 
 var (
-	DiskType           = os.Getenv(envDiskType)
-	ImgURL             = os.Getenv(envImgURL)
-	ProvisionerIP      = os.Getenv(envProvisionerIP)
-	InstallerScriptURL = os.Getenv(envOverlayURL)
-	ENProxyHTTP        = os.Getenv(envHTTPProxy)
-	ENProxyHTTPS       = os.Getenv(envHTTPSProxy)
-	ENProxyNo          = os.Getenv(envNoProxy)
-	ENNameservers      = os.Getenv(envNameservers)
-	ENDkamMode         = os.Getenv(envDkamMode)
-	ENUserName         = os.Getenv(envUserName)
-	ENPassWord         = os.Getenv(envPassWord)
+	DiskType      = os.Getenv(envDiskType)
+	ProvisionerIP = os.Getenv(envProvisionerIP)
+	ENProxyHTTP   = os.Getenv(envHTTPProxy)
+	ENProxyHTTPS  = os.Getenv(envHTTPSProxy)
+	ENProxyNo     = os.Getenv(envNoProxy)
+	ENNameservers = os.Getenv(envNameservers)
+	ENDkamMode    = os.Getenv(envDkamMode)
+	ENUserName    = os.Getenv(envUserName)
+	ENPassWord    = os.Getenv(envPassWord)
 
 	ImgType      = GetEnvWithDefault(envImageType, utils.ImgTypeJammy)
 	FdoMfgDNS    = GetEnvWithDefault(envFdoMfgDNS, defaultMfgURL)

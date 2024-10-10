@@ -93,7 +93,7 @@ func AssertInstance(
 	resID string,
 	expectedDesiredState computev1.InstanceState,
 	expectedCurrentState computev1.InstanceState,
-	expectedStatus inv_status.ResourceStatus,
+	expectedProvisioningStatus inv_status.ResourceStatus,
 ) {
 	tb.Helper()
 
@@ -107,6 +107,6 @@ func AssertInstance(
 
 	assert.Equal(tb, expectedDesiredState, instance.GetDesiredState())
 	assert.Equal(tb, expectedCurrentState, instance.GetCurrentState())
-	assert.Equal(tb, expectedStatus.Status, instance.GetInstanceStatus())
-	assert.Equal(tb, expectedStatus.StatusIndicator, instance.GetInstanceStatusIndicator())
+	assert.Equal(tb, expectedProvisioningStatus.Status, instance.GetProvisioningStatus())
+	assert.Equal(tb, expectedProvisioningStatus.StatusIndicator, instance.GetProvisioningStatusIndicator())
 }

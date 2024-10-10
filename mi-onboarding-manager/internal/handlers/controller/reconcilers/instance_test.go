@@ -6,6 +6,7 @@ package reconcilers
 
 import (
 	"context"
+	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
 	"os"
 	"reflect"
 	"strings"
@@ -153,7 +154,7 @@ func TestReconcileInstance(t *testing.T) {
 
 	// TODO: test with DI enabled, once FDO client is refactored
 	*common.FlagEnableDeviceInitialization = false
-	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, true)
 
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -217,8 +218,8 @@ func TestReconcileInstance(t *testing.T) {
 
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
-		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+		computev1.InstanceState_INSTANCE_STATE_RUNNING,
+		om_status.ProvisioningStatusDone)
 
 	// run again, current_state == desired_state
 	runReconcilationFunc()
@@ -240,7 +241,7 @@ func TestReconcileInstance(t *testing.T) {
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_ERROR,
-		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+		om_status.ProvisioningStatusDone)
 
 	// delete
 	res = &inv_v1.Resource{

@@ -62,7 +62,7 @@ func Test_newK8SClient(t *testing.T) {
 		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
 	*common.FlagEnableDeviceInitialization = true
-	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
+	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
 	tests := []struct {
 		name    string
 		want    client.Client
@@ -96,7 +96,7 @@ func TestDeleteHardwareForHostIfExist(t *testing.T) {
 		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
 	*common.FlagEnableDeviceInitialization = true
-	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
+	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
 	type args struct {
 		ctx          context.Context
 		k8sNamespace string

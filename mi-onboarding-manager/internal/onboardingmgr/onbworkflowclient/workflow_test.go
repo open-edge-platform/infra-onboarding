@@ -375,7 +375,7 @@ func TestCheckStatusOrRunDIWorkflow_Case1(t *testing.T) {
 		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
 	*common.FlagEnableDeviceInitialization = true
-	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
 	type args struct {
 		ctx        context.Context
 		deviceInfo utils.DeviceInfo
@@ -576,7 +576,7 @@ func Test_handleWorkflowStatus_Case(t *testing.T) {
 		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
 	*common.FlagEnableDeviceInitialization = false
-	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, true, false)
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, true, false, false)
 	tests := []struct {
 		name    string
 		args    args
@@ -588,6 +588,7 @@ func Test_handleWorkflowStatus_Case(t *testing.T) {
 				instance: &computev1.InstanceResource{
 					Host: &computev1.HostResource{
 						ResourceId: "host-084d9b08",
+						Uuid:       uuid.NewString(),
 					},
 				},
 				workflow: &tink.Workflow{
