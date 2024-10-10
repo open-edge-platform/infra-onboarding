@@ -42,7 +42,7 @@ type Filter func(event *inv_v1.SubscribeEventsResponse) bool
 type DKAMController struct {
 	invClient   *invclient.DKAMInventoryClient
 	filters     map[inv_v1.ResourceKind]Filter
-	controllers map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ResourceID]
+	controllers map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ReconcilerID]
 	wg          *sync.WaitGroup
 	stop        chan bool
 }
@@ -51,11 +51,11 @@ func New(
 	invClient *invclient.DKAMInventoryClient,
 	enableTracing bool,
 ) (*DKAMController, error) {
-	controllers := make(map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ResourceID])
+	controllers := make(map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ReconcilerID])
 	filters := make(map[inv_v1.ResourceKind]Filter)
 
 	osRcnl := reconcilers.NewOsReconciler(invClient, enableTracing)
-	osCtrl := rec_v2.NewController[reconcilers.ResourceID](
+	osCtrl := rec_v2.NewController[reconcilers.ReconcilerID](
 		osRcnl.Reconcile, rec_v2.WithParallelism(parallelism))
 	controllers[inv_v1.ResourceKind_RESOURCE_KIND_OS] = osCtrl
 	filters[inv_v1.ResourceKind_RESOURCE_KIND_OS] = osEventFilter
@@ -106,7 +106,7 @@ func (obc *DKAMController) controlLoop(ctx context.Context) {
 				zlog.Debug().Msgf("Event %v is not allowed by filter", ev.Event)
 				continue
 			}
-			if err := obc.reconcileResource(ev.Event.ResourceId); err != nil {
+			if err := obc.reconcileResource(ev.Event.Resource); err != nil {
 				zlog.MiSec().MiErr(err).Msgf("reconciliation resource failed")
 			}
 		case <-ticker.C:
@@ -147,13 +147,13 @@ func (obc *DKAMController) reconcileAll(ctx context.Context) error {
 	resourceKinds := []inv_v1.ResourceKind{
 		inv_v1.ResourceKind_RESOURCE_KIND_OS,
 	}
-	ids, err := obc.invClient.FindAllResources(ctx, resourceKinds)
+	resources, err := obc.invClient.ListAllResources(ctx, resourceKinds)
 	if err != nil && !inv_errors.IsNotFound(err) {
 		return err
 	}
 
-	for _, id := range ids {
-		err = obc.reconcileResource(id)
+	for _, resource := range resources {
+		err = obc.reconcileResource(resource)
 		if err != nil {
 			return err
 		}
@@ -162,7 +162,12 @@ func (obc *DKAMController) reconcileAll(ctx context.Context) error {
 	return nil
 }
 
-func (obc *DKAMController) reconcileResource(resourceID string) error {
+func (obc *DKAMController) reconcileResource(resource *inv_v1.Resource) error {
+	tenantID, resourceID, err := util.GetResourceKeyFromResource(resource)
+	if err != nil {
+		return err
+	}
+
 	expectedKind, err := util.GetResourceKindFromResourceID(resourceID)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("unknown resource kind for resource ID %s", resourceID))
@@ -175,7 +180,7 @@ func (obc *DKAMController) reconcileResource(resourceID string) error {
 		return fmt.Errorf("unknown resource controller for kind %s with ID %s", expectedKind, resourceID)
 	}
 
-	if err = controller.Reconcile(reconcilers.ResourceID(resourceID)); err != nil {
+	if err = controller.Reconcile(reconcilers.WrapReconcilerID(tenantID, resourceID)); err != nil {
 		zlog.Err(err).Msgf("Error while reconciling resource ID %s", resourceID)
 		return err
 	}

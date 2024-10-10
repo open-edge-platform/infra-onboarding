@@ -35,7 +35,8 @@ func CreateDkamClientForTesting(tb testing.TB) {
 	}
 
 	DkamTestClient, err = NewDKAMInventoryClient(
-		inv_testing.TestClients[testClientName], inv_testing.TestClientsEvents[testClientName])
+		inv_testing.TestClients[testClientName].GetTenantAwareInventoryClient(),
+		inv_testing.TestClientsEvents[testClientName])
 	if err != nil {
 		zlogTest.Fatal().Err(err).Msg("Cannot create dkam invclient client")
 	}

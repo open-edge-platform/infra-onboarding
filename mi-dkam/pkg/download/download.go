@@ -285,16 +285,17 @@ func DownloadTiberOSImage(osRes *osv1.OperatingSystemResource, targetDir string)
 }
 
 func DownloadPrecuratedScript(profile string) error {
-
-	url := config.RSProxyProfileManifest + strings.Split(profile, ":")[0] + "/manifests/" + strings.Split(profile, ":")[1]
-	zlog.MiSec().Info().Msgf("Manifest download URL is:%s", url)
-	res := GetReleaseServerResponse(url)
+	// FIXME: hardcode profile script version for now, will be addressed in https://jira.devtools.intel.com/browse/NEX-11556
+	profileScriptVersion := "1.0.2"
+	rsProxyURL := config.RSProxyProfileManifest + profile + "/manifests/" + profileScriptVersion
+	zlog.MiSec().Info().Msgf("Manifest download URL is:%s", rsProxyURL)
+	res := GetReleaseServerResponse(rsProxyURL)
 	if res.Layers != nil {
 		// Access the digest value
 		digest := res.Layers[0].Digest
 		zlog.MiSec().Info().Msgf("Digest: %s", digest)
 
-		file_url := config.RSProxyProfileManifest + strings.Split(profile, ":")[0] + "/blobs/" + digest
+		file_url := config.RSProxyProfileManifest + profile + "/blobs/" + digest
 
 		req2, geterr2 := http.NewRequest("GET", file_url, nil)
 		if geterr2 != nil {
@@ -306,7 +307,7 @@ func DownloadPrecuratedScript(profile string) error {
 			zlog.MiSec().Error().Err(err2).Msgf("Client Error: %v\n", err2)
 		}
 		defer resp2.Body.Close()
-		filePath := config.DownloadPath + "/" + strings.Split(profile, ":")[0] + ".sh"
+		filePath := config.DownloadPath + "/" + profile + ".sh"
 
 		//Create or open the local file for writing
 		file, fileerr := os.Create(filePath)

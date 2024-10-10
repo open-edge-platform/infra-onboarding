@@ -6,6 +6,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/compute/v1"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -340,7 +341,16 @@ func TestDKAMController_reconcileResource(t *testing.T) {
 			obc := &DKAMController{
 				filters: tt.fields.filters,
 			}
-			if err := obc.reconcileResource(tt.args.resourceID); (err != nil) != tt.wantErr {
+
+			resource := &inv_v1.Resource{
+				Resource: &inv_v1.Resource_Host{
+					Host: &computev1.HostResource{
+						ResourceId: tt.args.resourceID,
+					},
+				},
+			}
+
+			if err := obc.reconcileResource(resource); (err != nil) != tt.wantErr {
 				t.Errorf("DKAMController.reconcileResource() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -400,9 +410,10 @@ func TestReconcileEvent(t *testing.T) {
 	nbHandler, err := New(dkam_testing.InvClient, false)
 	require.NoError(t, err)
 	doneOS := make(chan bool, 1)
-	controllerOS := rec_v2.NewController[reconcilers.ResourceID](func(ctx context.Context,
-		request rec_v2.Request[reconcilers.ResourceID],
-	) rec_v2.Directive[reconcilers.ResourceID] {
+
+	controllerOS := rec_v2.NewController[reconcilers.ReconcilerID](func(ctx context.Context,
+		request rec_v2.Request[reconcilers.ReconcilerID],
+	) rec_v2.Directive[reconcilers.ReconcilerID] {
 		doneOS <- true
 		return request.Ack()
 	}, rec_v2.WithParallelism(1))

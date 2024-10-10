@@ -5,6 +5,7 @@ package reconcilers
 
 import (
 	"context"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/client"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -70,21 +71,21 @@ func TestOsReconciler_Reconcile(t *testing.T) {
 	}
 	type args struct {
 		ctx     context.Context
-		request rec_v2.Request[ResourceID]
+		request rec_v2.Request[ReconcilerID]
 	}
 	dkam_testing.CreateInventoryDKAMClientForTesting()
 	t.Cleanup(func() {
 		dkam_testing.DeleteInventoryDKAMClientForTesting()
 	})
-	testRequest := rec_v2.Request[ResourceID]{
-		ID: ResourceID("test-id"),
+	testRequest := rec_v2.Request[ReconcilerID]{
+		ID: WrapReconcilerID(client.FakeTenantID, "test-id"),
 	}
 
 	tests := []struct {
 		name   string
 		fields fields
 		args   args
-		want   rec_v2.Directive[ResourceID]
+		want   rec_v2.Directive[ReconcilerID]
 	}{
 		{
 			name: "TestOsReconciler_ReconcileWithErrorFetchingResource",

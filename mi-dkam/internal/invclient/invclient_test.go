@@ -19,7 +19,6 @@ import (
 	provider_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/provider/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/client"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/testing"
-	"google.golang.org/protobuf/proto"
 )
 
 func TestMain(m *testing.M) {
@@ -101,7 +100,7 @@ func TestNewDKAMInventoryClientWithOptions(t *testing.T) {
 }
 func TestNewDKAMInventoryClient(t *testing.T) {
 	type args struct {
-		invClient client.InventoryClient
+		invClient client.TenantAwareInventoryClient
 		watcher   chan *client.WatchEvents
 	}
 	tests := []struct {
@@ -135,37 +134,6 @@ func TestDKAMInventoryClient_Close(t *testing.T) {
 	CreateDkamClientForTesting(t)
 	invClient := DkamTestClient
 	invClient.Close()
-}
-
-func TestDKAMInventoryClient_UpdateHostResource(t *testing.T) {
-	CreateDkamClientForTesting(t)
-	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil)
-	type args struct {
-		ctx  context.Context
-		host *computev1.HostResource
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Updating host",
-			args: args{
-				ctx:  context.Background(),
-				host: host,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.UpdateHostResource(tt.args.ctx, tt.args.host); (err != nil) != tt.wantErr {
-				t.Errorf("DKAMInventoryClient.UpdateHostResource() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
 }
 
 func TestDKAMInventoryClient_GetHostResources(t *testing.T) {
@@ -206,98 +174,6 @@ func TestDKAMInventoryClient_GetHostResources(t *testing.T) {
 			_, err := invClient.GetHostResources(tt.args.ctx)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DKAMInventoryClient.GetHostResources() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-}
-
-func TestDKAMInventoryClient_GetHostResourceByResourceID(t *testing.T) {
-	CreateDkamClientForTesting(t)
-	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil)
-	type args struct {
-		ctx        context.Context
-		resourceID string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *computev1.HostResource
-		wantErr bool
-	}{
-		{
-			name: "GetHostResourceByResourceID",
-			args: args{
-				ctx:        context.Background(),
-				resourceID: host.ResourceId,
-			},
-			want:    host,
-			wantErr: false,
-		},
-		{
-			name: "InvalidResourceID",
-			args: args{
-				ctx:        context.Background(),
-				resourceID: "",
-			},
-			want:    nil,
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := invClient.GetHostResourceByResourceID(tt.args.ctx, tt.args.resourceID)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DKAMInventoryClient.GetHostResourceByResourceID() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-}
-
-func TestDKAMInventoryClient_GetHostBmcNic(t *testing.T) {
-	CreateDkamClientForTesting(t)
-	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil)
-	type args struct {
-		ctx  context.Context
-		host *computev1.HostResource
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *computev1.HostnicResource
-		wantErr bool
-	}{
-		{
-			name: "GetHostBmcNic",
-			args: args{
-				ctx:  context.Background(),
-				host: host,
-			},
-			want:    &computev1.HostnicResource{},
-			wantErr: true,
-		},
-		{
-			name: "GetHostBmcNic Failure",
-			args: args{
-				ctx: func() context.Context {
-					ctx, cancel := context.WithCancel(context.Background())
-					cancel()
-					return ctx
-				}(),
-				host: host,
-			},
-			want:    &computev1.HostnicResource{},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := invClient.GetHostBmcNic(tt.args.ctx, tt.args.host)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DKAMInventoryClient.GetHostBmcNic() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 		})
@@ -357,127 +233,6 @@ func TestDKAMInventoryClient_GetHostResourceByUUID(t *testing.T) {
 	}
 }
 
-func TestDKAMInventoryClient_DeleteHostResource(t *testing.T) {
-	CreateDkamClientForTesting(t)
-	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil)
-	type args struct {
-		ctx        context.Context
-		resourceID string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "DeleteHostResource",
-			args: args{
-				ctx:        context.Background(),
-				resourceID: host.ResourceId,
-			},
-			wantErr: false,
-		},
-		{
-			name: "DeleteHostResource Failure",
-			args: args{
-				ctx:        context.Background(),
-				resourceID: "",
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.DeleteHostResource(tt.args.ctx, tt.args.resourceID); (err != nil) != tt.wantErr {
-				t.Errorf("DKAMInventoryClient.DeleteHostResource() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestDKAMInventoryClient_CreateInstanceResource(t *testing.T) {
-	CreateDkamClientForTesting(t)
-	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil)
-	os := inv_testing.CreateOs(t)
-	instance := inv_testing.CreateInstance(t, host, os)
-	type args struct {
-		ctx  context.Context
-		inst *computev1.InstanceResource
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "CreateInstanceResource",
-			args: args{
-				ctx:  context.Background(),
-				inst: instance,
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := invClient.CreateInstanceResource(tt.args.ctx, tt.args.inst)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DKAMInventoryClient.CreateInstanceResource() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-
-		})
-	}
-}
-
-func TestDKAMInventoryClient_GetInstanceResourceByResourceID(t *testing.T) {
-	CreateDkamClientForTesting(t)
-	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil)
-	os := inv_testing.CreateOs(t)
-	instance := inv_testing.CreateInstance(t, host, os)
-	type args struct {
-		ctx        context.Context
-		resourceID string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *computev1.InstanceResource
-		wantErr bool
-	}{
-		{
-			name: "GetInstanceResourceByResourceID",
-			args: args{
-				ctx:        context.Background(),
-				resourceID: instance.ResourceId,
-			},
-			want:    &computev1.InstanceResource{},
-			wantErr: false,
-		},
-		{
-			name: "GetInstanceResourceByResourceID Failure",
-			args: args{
-				ctx:        context.Background(),
-				resourceID: "",
-			},
-			want:    &computev1.InstanceResource{},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := invClient.GetInstanceResourceByResourceID(tt.args.ctx, tt.args.resourceID)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DKAMInventoryClient.GetInstanceResourceByResourceID() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-}
-
 func TestDKAMInventoryClient_GetInstanceResources(t *testing.T) {
 	CreateDkamClientForTesting(t)
 	invClient := DkamTestClient
@@ -522,36 +277,6 @@ func TestDKAMInventoryClient_GetInstanceResources(t *testing.T) {
 	}
 }
 
-func TestDKAMInventoryClient_UpdateInstanceCurrentState(t *testing.T) {
-	CreateDkamClientForTesting(t)
-	invClient := DkamTestClient
-	type args struct {
-		ctx      context.Context
-		instance *computev1.InstanceResource
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "UpdateInstanceCurrentState",
-			args: args{
-				ctx:      context.Background(),
-				instance: &computev1.InstanceResource{},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.UpdateInstanceCurrentState(tt.args.ctx, tt.args.instance); (err != nil) != tt.wantErr {
-				t.Errorf("DKAMInventoryClient.UpdateInstanceCurrentState() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestDKAMInventoryClient_FindAllInstances(t *testing.T) {
 	CreateDkamClientForTesting(t)
 	invClient := DkamTestClient
@@ -584,164 +309,6 @@ func TestDKAMInventoryClient_FindAllInstances(t *testing.T) {
 	}
 }
 
-func TestDKAMInventoryClient_CreateHostResource(t *testing.T) {
-	CreateDkamClientForTesting(t)
-	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil)
-	type args struct {
-		ctx  context.Context
-		host *computev1.HostResource
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
-		{
-			name: "CreateHostResource Failure",
-			args: args{
-				ctx:  context.Background(),
-				host: host,
-			},
-			want:    "",
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := invClient.CreateHostResource(tt.args.ctx, tt.args.host)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DKAMInventoryClient.CreateHostResource() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-}
-
-func TestDKAMInventoryClient_DeleteInstanceResource(t *testing.T) {
-	CreateDkamClientForTesting(t)
-	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil)
-	os := inv_testing.CreateOs(t)
-	instance := inv_testing.CreateInstance(t, host, os)
-	type args struct {
-		ctx        context.Context
-		resourceID string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "DeleteInstanceResource Failure",
-			args: args{
-				ctx:        context.Background(),
-				resourceID: "",
-			},
-			wantErr: true,
-		},
-		{
-			name: "DeleteInstanceResource",
-			args: args{
-				ctx:        context.Background(),
-				resourceID: instance.ResourceId,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.DeleteInstanceResource(tt.args.ctx, tt.args.resourceID); (err != nil) != tt.wantErr {
-				t.Errorf("DKAMInventoryClient.DeleteInstanceResource() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestDKAMInventoryClient_DeleteResource(t *testing.T) {
-	CreateDkamClientForTesting(t)
-	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil)
-	type args struct {
-		ctx        context.Context
-		resourceID string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "DeleteResource Failure",
-			args: args{
-				ctx:        context.Background(),
-				resourceID: "",
-			},
-			wantErr: true,
-		},
-		{
-			name: "DeleteResource",
-			args: args{
-				ctx:        context.Background(),
-				resourceID: host.ResourceId,
-			},
-			wantErr: false,
-		},
-		{
-			name: "Invalid Resource Id",
-			args: args{
-				ctx:        context.Background(),
-				resourceID: "host-084d9b08",
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.DeleteResource(tt.args.ctx, tt.args.resourceID); (err != nil) != tt.wantErr {
-				t.Errorf("DKAMInventoryClient.DeleteResource() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestDKAMInventoryClient_CreateOSResource(t *testing.T) {
-	CreateDkamClientForTesting(t)
-	invClient := DkamTestClient
-	type args struct {
-		ctx context.Context
-		os  *osv1.OperatingSystemResource
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
-		{
-			name: "CreateOSResource",
-			args: args{
-				ctx: context.Background(),
-				os: &osv1.OperatingSystemResource{
-					OsType: osv1.OsType_OS_TYPE_IMMUTABLE,
-				},
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := invClient.CreateOSResource(tt.args.ctx, tt.args.os)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DKAMInventoryClient.CreateOSResource() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-}
-
 func TestDKAMInventoryClient_GetOSResourceByResourceID(t *testing.T) {
 	CreateDkamClientForTesting(t)
 	invClient := DkamTestClient
@@ -749,6 +316,7 @@ func TestDKAMInventoryClient_GetOSResourceByResourceID(t *testing.T) {
 	type args struct {
 		ctx        context.Context
 		resourceID string
+		tenantID   string
 	}
 	tests := []struct {
 		name    string
@@ -760,6 +328,7 @@ func TestDKAMInventoryClient_GetOSResourceByResourceID(t *testing.T) {
 			args: args{
 				ctx:        context.Background(),
 				resourceID: "",
+				tenantID:   os.GetTenantId(),
 			},
 			wantErr: true,
 		},
@@ -768,13 +337,14 @@ func TestDKAMInventoryClient_GetOSResourceByResourceID(t *testing.T) {
 			args: args{
 				ctx:        context.Background(),
 				resourceID: os.ResourceId,
+				tenantID:   os.GetTenantId(),
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := invClient.GetOSResourceByResourceID(tt.args.ctx, tt.args.resourceID)
+			_, err := invClient.GetOSResourceByResourceID(tt.args.ctx, tt.args.tenantID, tt.args.resourceID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DKAMInventoryClient.GetOSResourceByResourceID() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -969,53 +539,6 @@ func TestDKAMInventoryClient_GetProviderResources(t *testing.T) {
 	}
 }
 
-func TestDKAMInventoryClient_DeleteIPAddress(t *testing.T) {
-	CreateDkamClientForTesting(t)
-	invClient := DkamTestClient
-	host := inv_testing.CreateHost(t, nil, nil)
-	type args struct {
-		ctx        context.Context
-		resourceID string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "DeleteIPAddress Failure",
-			args: args{
-				ctx:        context.Background(),
-				resourceID: "",
-			},
-			wantErr: true,
-		},
-		{
-			name: "DeleteIPAddress",
-			args: args{
-				ctx:        context.Background(),
-				resourceID: host.ResourceId,
-			},
-			wantErr: false,
-		},
-		{
-			name: "Invalid ResourceId",
-			args: args{
-				ctx:        context.Background(),
-				resourceID: "host-084d9b08",
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.DeleteIPAddress(tt.args.ctx, tt.args.resourceID); (err != nil) != tt.wantErr {
-				t.Errorf("DKAMInventoryClient.DeleteIPAddress() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestGetProviderResourceByName(t *testing.T) {
 	type args struct {
 		ctx  context.Context
@@ -1142,65 +665,6 @@ func TestDKAMInventoryClient_GetProviderConfig(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DKAMInventoryClient.GetProviderConfig() error = %v, wantErr %v", err, tt.wantErr)
 				return
-			}
-		})
-	}
-}
-
-func TestDKAMInventoryClient_UpdateInvResourceFields(t *testing.T) {
-	CreateDkamClientForTesting(t)
-	invClient := DkamTestClient
-	hostResource := &computev1.HostResource{}
-	hostResCopy := proto.Clone(hostResource)
-	type args struct {
-		ctx      context.Context
-		resource proto.Message
-		fields   []string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "UpdateInvResourceFields with empty fields",
-			args: args{
-				ctx:      context.Background(),
-				resource: hostResCopy,
-				fields:   []string{},
-			},
-			wantErr: false,
-		},
-		{
-			name: "UpdateInvResourceFields",
-			args: args{
-				ctx:      context.Background(),
-				resource: hostResCopy,
-				fields:   []string{"field"},
-			},
-			wantErr: true,
-		},
-		{
-			name: "Nil Resourcefields",
-			args: args{
-				ctx: context.Background(),
-			},
-			wantErr: true,
-		},
-		{
-			name: "Invalid Resource",
-			args: args{
-				ctx:      context.Background(),
-				resource: proto.Clone(&provider_v1.ProviderResource{}),
-				fields:   []string{"field"},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.UpdateInvResourceFields(tt.args.ctx, tt.args.resource, tt.args.fields); (err != nil) != tt.wantErr {
-				t.Errorf("DKAMInventoryClient.UpdateInvResourceFields() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

@@ -480,7 +480,7 @@ func CreateOverlayScript(pwd string, osRes *osv1.OperatingSystemResource) error 
 
 	zlog.MiSec().Info().Msg("File copied successfully.")
 
-	profileName := strings.Split(osRes.GetProfileName(), ":")[0]
+	profileName := osRes.GetProfileName()
 
 	profileExists, err := PathExists(config.DownloadPath + "/" + profileName + ".sh")
 	if err != nil {

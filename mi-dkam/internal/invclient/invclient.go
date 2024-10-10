@@ -12,10 +12,6 @@ import (
 	"time"
 
 	uuid_lib "github.com/google/uuid"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/fieldmaskpb"
-
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/inventory/v1"
 	network_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/network/v1"
@@ -27,6 +23,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/util"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/util/collections"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/validator"
+	"google.golang.org/grpc/codes"
 )
 
 const (
@@ -39,7 +36,7 @@ var (
 )
 
 type DKAMInventoryClient struct {
-	Client  client.InventoryClient
+	Client  client.TenantAwareInventoryClient
 	Watcher chan *client.WatchEvents
 }
 
@@ -104,7 +101,7 @@ func NewDKAMInventoryClientWithOptions(opts ...Option) (*DKAMInventoryClient, er
 		EnableTracing: options.EnableTracing,
 	}
 
-	invClient, err := client.NewInventoryClient(ctx, cfg)
+	invClient, err := client.NewTenantAwareInventoryClient(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +110,7 @@ func NewDKAMInventoryClientWithOptions(opts ...Option) (*DKAMInventoryClient, er
 }
 
 func NewDKAMInventoryClient(
-	invClient client.InventoryClient, watcher chan *client.WatchEvents,
+	invClient client.TenantAwareInventoryClient, watcher chan *client.WatchEvents,
 ) (*DKAMInventoryClient, error) {
 	cli := &DKAMInventoryClient{
 		Client:  invClient,
@@ -158,58 +155,13 @@ func (c *DKAMInventoryClient) listAllResources(
 	return resources, nil
 }
 
-func (c *DKAMInventoryClient) getResourceByID(ctx context.Context, resourceID string) (*inv_v1.GetResourceResponse, error) {
-	getresresp, err := c.Client.Get(ctx, resourceID)
+func (c *DKAMInventoryClient) getResourceByID(ctx context.Context, tenantID, resourceID string) (*inv_v1.GetResourceResponse, error) {
+	getresresp, err := c.Client.Get(ctx, tenantID, resourceID)
 	if err != nil {
 		return nil, err
 	}
 
 	return getresresp, nil
-}
-
-func (c *DKAMInventoryClient) createResource(ctx context.Context, resource *inv_v1.Resource) (string, error) {
-	res, err := c.Client.Create(ctx, resource)
-	if err != nil {
-		return "", err
-	}
-	_, rID, err := util.GetResourceKeyFromResource(res)
-	if err != nil {
-		// This should never happen
-		zlog.MiSec().MiErr(err).Msgf("this error should never happen")
-		return "", err
-	}
-	return rID, nil
-}
-
-func (c *DKAMInventoryClient) UpdateInvResourceFields(ctx context.Context,
-	resource proto.Message, fields []string,
-) error {
-	if resource == nil {
-		return inv_errors.Errorfc(codes.InvalidArgument, "no resource provided")
-	}
-
-	if len(fields) == 0 {
-		return nil
-	}
-
-	resCopy := proto.Clone(resource)
-	invResource, invResourceID, err := getInventoryResourceAndID(resCopy)
-	if err != nil {
-		return err
-	}
-
-	fieldMask, err := fieldmaskpb.New(resCopy, fields...)
-	if err != nil {
-		return inv_errors.Wrap(err)
-	}
-
-	err = util.ValidateMaskAndFilterMessage(resCopy, fieldMask, true)
-	if err != nil {
-		return err
-	}
-
-	_, err = c.Client.Update(ctx, invResourceID, fieldMask, invResource)
-	return err
 }
 
 func (c *DKAMInventoryClient) listAndReturnHost(
@@ -239,16 +191,6 @@ func (c *DKAMInventoryClient) FindAllInstances(ctx context.Context) ([]string, e
 	return c.FindAllResources(ctx, []inv_v1.ResourceKind{inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE})
 }
 
-func (c *DKAMInventoryClient) CreateHostResource(ctx context.Context,
-	host *computev1.HostResource,
-) (string, error) {
-	return c.createResource(ctx, &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Host{
-			Host: host,
-		},
-	})
-}
-
 func (c *DKAMInventoryClient) GetHostResources(ctx context.Context,
 ) (hostres []*computev1.HostResource, err error) {
 	filter := &inv_v1.ResourceFilter{
@@ -262,59 +204,6 @@ func (c *DKAMInventoryClient) GetHostResources(ctx context.Context,
 		return nil, err
 	}
 	return util.GetSpecificResourceList[*computev1.HostResource](resources)
-}
-
-func (c *DKAMInventoryClient) GetHostResourceByResourceID(ctx context.Context,
-	resourceID string,
-) (*computev1.HostResource, error) {
-	resp, err := c.getResourceByID(ctx, resourceID)
-	if err != nil {
-		return nil, err
-	}
-
-	host := resp.GetResource().GetHost()
-
-	if validateErr := validator.ValidateMessage(host); validateErr != nil {
-		return nil, inv_errors.Wrap(validateErr)
-	}
-
-	return host, nil
-}
-
-func (c *DKAMInventoryClient) GetHostBmcNic(ctx context.Context, host *computev1.HostResource,
-) (*computev1.HostnicResource, error) {
-	filter := &inv_v1.ResourceFilter{
-		Resource: &inv_v1.Resource{
-			Resource: &inv_v1.Resource_Hostnic{},
-		},
-		Filter: fmt.Sprintf("%s.%s = %q AND %s = true",
-			computev1.HostnicResourceEdgeHost,
-			computev1.HostResourceFieldResourceId,
-			host.GetResourceId(),
-			computev1.HostnicResourceFieldBmcInterface),
-	}
-
-	resources, err := c.listAllResources(ctx, filter)
-	if err != nil {
-		return nil, err
-	}
-
-	hostNics, err := util.GetSpecificResourceList[*computev1.HostnicResource](resources)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(hostNics) == 0 {
-		return nil, inv_errors.Errorfc(codes.NotFound,
-			"No BMC interfaces found for Host %s", host.ResourceId)
-	}
-
-	if len(hostNics) > 1 {
-		zlog.Warn().Msgf("More than one BMC interface found for host %s, using the first NIC from the list.",
-			host.GetResourceId())
-	}
-
-	return hostNics[0], nil
 }
 
 func (c *DKAMInventoryClient) GetHostResourceByUUID(
@@ -337,70 +226,6 @@ func (c *DKAMInventoryClient) GetHostResourceByUUID(
 	return c.listAndReturnHost(ctx, filter)
 }
 
-func (c *DKAMInventoryClient) UpdateHostResource(ctx context.Context, host *computev1.HostResource) error {
-	return c.UpdateInvResourceFields(ctx, host, []string{
-		computev1.HostResourceFieldKind,
-		computev1.HostResourceFieldName,
-		computev1.HostResourceFieldSerialNumber,
-		computev1.HostResourceFieldCurrentState,
-		computev1.HostResourceFieldMgmtIp,
-		computev1.HostResourceFieldBmcKind,
-		computev1.HostResourceFieldBmcIp,
-		computev1.HostResourceFieldBmcUsername,
-		computev1.HostResourceFieldBmcPassword,
-		computev1.HostResourceFieldPxeMac,
-		computev1.HostResourceFieldHostname,
-		// other host fields are updated by Host Resource Manager
-	})
-}
-
-func (c *DKAMInventoryClient) updateHostCurrentState(ctx context.Context, host *computev1.HostResource) error {
-	return c.UpdateInvResourceFields(ctx, host, []string{
-		computev1.HostResourceFieldCurrentState,
-	})
-}
-
-func (c *DKAMInventoryClient) DeleteHostResource(ctx context.Context, resourceID string) error {
-	h := &computev1.HostResource{
-		ResourceId:   resourceID,
-		CurrentState: computev1.HostState_HOST_STATE_DELETED,
-	}
-
-	err := c.updateHostCurrentState(ctx, h)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *DKAMInventoryClient) CreateInstanceResource(ctx context.Context,
-	inst *computev1.InstanceResource,
-) (string, error) {
-	return c.createResource(ctx, &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Instance{
-			Instance: inst,
-		},
-	})
-}
-
-func (c *DKAMInventoryClient) GetInstanceResourceByResourceID(ctx context.Context,
-	resourceID string,
-) (*computev1.InstanceResource, error) {
-	resp, err := c.getResourceByID(ctx, resourceID)
-	if err != nil {
-		return nil, err
-	}
-
-	inst := resp.GetResource().GetInstance()
-
-	if validateErr := validator.ValidateMessage(inst); validateErr != nil {
-		return nil, inv_errors.Wrap(validateErr)
-	}
-
-	return inst, nil
-}
-
 func (c *DKAMInventoryClient) GetInstanceResources(ctx context.Context) ([]*computev1.InstanceResource, error) {
 	filter := &inv_v1.ResourceFilter{
 		Resource: &inv_v1.Resource{
@@ -415,59 +240,10 @@ func (c *DKAMInventoryClient) GetInstanceResources(ctx context.Context) ([]*comp
 	return util.GetSpecificResourceList[*computev1.InstanceResource](resources)
 }
 
-func (c *DKAMInventoryClient) UpdateInstanceCurrentState(ctx context.Context,
-	instance *computev1.InstanceResource,
-) error {
-	return c.UpdateInvResourceFields(ctx, instance, []string{
-		computev1.HostResourceFieldCurrentState,
-	})
-}
-
-func (c *DKAMInventoryClient) DeleteInstanceResource(ctx context.Context, resourceID string) error {
-	inst := &computev1.InstanceResource{
-		ResourceId:   resourceID,
-		CurrentState: computev1.InstanceState_INSTANCE_STATE_DELETED,
-	}
-
-	err := c.UpdateInstanceCurrentState(ctx, inst)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *DKAMInventoryClient) DeleteResource(ctx context.Context, resourceID string) error {
-	zlog.Debug().Msgf("Delete resource: %v", resourceID)
-
-	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
-	defer cancel()
-	_, err := c.Client.Delete(ctx, resourceID)
-	if inv_errors.IsNotFound(err) {
-		zlog.Debug().Msgf("Not found while deleting resource, dropping err: resourceID=%s", resourceID)
-		return nil
-	}
-	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("Failed to delete resource: resourceID=%s", resourceID)
-		return err
-	}
-	return err
-}
-
-func (c *DKAMInventoryClient) CreateOSResource(ctx context.Context,
-	os *osv1.OperatingSystemResource,
-) (string, error) {
-	return c.createResource(ctx, &inv_v1.Resource{
-		Resource: &inv_v1.Resource_Os{
-			Os: os,
-		},
-	})
-}
-
 func (c *DKAMInventoryClient) GetOSResourceByResourceID(ctx context.Context,
-	resourceID string,
+	tenantID, resourceID string,
 ) (*osv1.OperatingSystemResource, error) {
-	resp, err := c.getResourceByID(ctx, resourceID)
+	resp, err := c.getResourceByID(ctx, tenantID, resourceID)
 	if err != nil {
 		return nil, err
 	}
@@ -540,6 +316,27 @@ func (c *DKAMInventoryClient) FindAllResources(ctx context.Context,
 	return allResources, nil
 }
 
+func (c *DKAMInventoryClient) ListAllResources(ctx context.Context,
+	kinds []inv_v1.ResourceKind,
+) ([]*inv_v1.Resource, error) {
+	var allResources []*inv_v1.Resource
+	for _, kind := range kinds {
+		res, err := util.GetResourceFromKind(kind)
+		if err != nil {
+			return nil, err
+		}
+		filter := &inv_v1.ResourceFilter{
+			Resource: res,
+		}
+		resources, err := c.Client.ListAll(ctx, filter)
+		if err != nil {
+			return nil, err
+		}
+		allResources = append(allResources, resources...)
+	}
+	return allResources, nil
+}
+
 func (c *DKAMInventoryClient) GetProviderResources(ctx context.Context) ([]*provider_v1.ProviderResource, error) {
 	filter := &inv_v1.ResourceFilter{
 		Resource: &inv_v1.Resource{
@@ -552,31 +349,6 @@ func (c *DKAMInventoryClient) GetProviderResources(ctx context.Context) ([]*prov
 		return nil, err
 	}
 	return util.GetSpecificResourceList[*provider_v1.ProviderResource](resources)
-}
-
-// DeleteIPAddress deletes an existing IP address resource in Inventory
-// by setting to DELETED the current state of the resource.
-func (c *DKAMInventoryClient) DeleteIPAddress(ctx context.Context, resourceID string) error {
-	zlog.Debug().Msgf("Delete IPAddress: %v", resourceID)
-
-	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
-	defer cancel()
-	ipAddress := &network_v1.IPAddressResource{
-		ResourceId:   resourceID,
-		CurrentState: network_v1.IPAddressState_IP_ADDRESS_STATE_DELETED,
-	}
-
-	err := c.UpdateInvResourceFields(ctx, ipAddress, []string{network_v1.IPAddressResourceFieldCurrentState})
-	if inv_errors.IsNotFound(err) {
-		zlog.Debug().Msgf("Not found while IP address delete, dropping err: resourceID=%s", resourceID)
-		return nil
-	}
-	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("Failed delete IPAddress resource %s", resourceID)
-		return err
-	}
-
-	return err
 }
 
 func (c *DKAMInventoryClient) listAndReturnProvider(

@@ -42,16 +42,16 @@ func NewOsReconciler(c *invclient.DKAMInventoryClient, enableTracing bool) *OsRe
 
 // Reconcile is responsible for reconciling operating system instances based on the provided request.
 func (osr *OsReconciler) Reconcile(ctx context.Context,
-	request rec_v2.Request[ResourceID],
-) rec_v2.Directive[ResourceID] {
+	request rec_v2.Request[ReconcilerID],
+) rec_v2.Directive[ReconcilerID] {
 	if osr.enableTracing {
 		ctx = tracing.StartTrace(ctx, "MIDKAM", "OsReconciler")
 		defer tracing.StopTrace(ctx)
 	}
 
-	resourceID := request.ID.String()
-	zlogOs.MiSec().Debug().Msgf("Reconciling os instance : %s", resourceID)
-	osre, err := osr.invClient.GetOSResourceByResourceID(ctx, resourceID)
+	tenantID, resourceID := UnwrapReconcilerID(request.ID)
+	zlogOs.MiSec().Debug().Msgf("Reconciling OS %s of tenant %s", resourceID, tenantID)
+	osre, err := osr.invClient.GetOSResourceByResourceID(ctx, tenantID, resourceID)
 	if directive := HandleInventoryError(err, request); directive != nil {
 		return directive
 	}
@@ -74,9 +74,9 @@ func (osr *OsReconciler) Reconcile(ctx context.Context,
 
 func (osr *OsReconciler) reconcileOsInstance(
 	ctx context.Context,
-	request rec_v2.Request[ResourceID],
+	request rec_v2.Request[ReconcilerID],
 	osinst *osv1.OperatingSystemResource,
-) rec_v2.Directive[ResourceID] {
+) rec_v2.Directive[ReconcilerID] {
 	id := osinst.GetResourceId()
 	zlogOs.MiSec().Info().Msgf("Reconciling OS instance with ID : %s", id)
 	fmt.Printf("Received AType: %v\n", osinst.OsType)

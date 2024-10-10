@@ -5,6 +5,7 @@ package reconcilers
 
 import (
 	"errors"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/client"
 	"testing"
 
 	rec_v2 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go/pkg/controller/v2"
@@ -16,15 +17,15 @@ import (
 func TestHandleInventoryError(t *testing.T) {
 	type args struct {
 		err     error
-		request rec_v2.Request[ResourceID]
+		request rec_v2.Request[ReconcilerID]
 	}
-	testRequest := rec_v2.Request[ResourceID]{
-		ID: ResourceID("test-id"),
+	testRequest := rec_v2.Request[ReconcilerID]{
+		ID: WrapReconcilerID(client.FakeTenantID, "test-id"),
 	}
 	tests := []struct {
 		name string
 		args args
-		want rec_v2.Directive[ResourceID]
+		want rec_v2.Directive[ReconcilerID]
 	}{
 		{
 			name: "HandleInventoryError Test Case - Non-gRPC Error",
@@ -61,15 +62,15 @@ func TestHandleInventoryError(t *testing.T) {
 func TestHandleProvisioningError(t *testing.T) {
 	type args struct {
 		err     error
-		request rec_v2.Request[ResourceID]
+		request rec_v2.Request[ReconcilerID]
 	}
-	testRequest := rec_v2.Request[ResourceID]{
-		ID: ResourceID("test-id"),
+	testRequest := rec_v2.Request[ReconcilerID]{
+		ID: WrapReconcilerID(client.FakeTenantID, "test-id"),
 	}
 	tests := []struct {
 		name string
 		args args
-		want rec_v2.Directive[ResourceID]
+		want rec_v2.Directive[ReconcilerID]
 	}{
 		{
 			name: "Non-gRPC Error",
