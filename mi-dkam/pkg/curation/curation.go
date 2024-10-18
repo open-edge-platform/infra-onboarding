@@ -429,10 +429,10 @@ func CreateCloudCfgScript(pwd string, osRes *osv1.OperatingSystemResource) error
 		zlog.MiSec().Info().Msg("It is an internal deployment.")
 		caLines = append(caLines, "                echo \"update intel CA certificates\" >> /var/log/startup.log")
 		caLines = append(caLines, "                cd /etc/pki/ca-trust/source/anchors")
-		caLines = append(caLines, "                wget https://certificates.intel.com/repository/certificates/IntelSHA2RootChain-Base64.zip")
-		caLines = append(caLines, "                unzip IntelSHA2RootChain-Base64.zip")
+		caLines = append(caLines, "                curl -o tmp.zip https://certificates.intel.com/repository/certificates/IntelSHA2RootChain-Base64.zip")
+		caLines = append(caLines, "                unzip tmp.zip")
 		caLines = append(caLines, "                update-ca-trust")
-		caLines = append(caLines, "                rm -f IntelSHA2RootChain-Base64.zip")
+		caLines = append(caLines, "                rm -f tmp.zip")
 		caLines = append(caLines, "                echo \"Intel CA updated.\" >> /var/log/startup.log")
 		AddProxies(cfgFileName, caLines, "update-ca-trust")
 
