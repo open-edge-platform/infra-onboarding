@@ -343,51 +343,6 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 				},
 
 				{
-					Name:    ActionNetplanConfigure,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutAvg200,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/intel_edge_node/update_netplan_config.sh",
-						"CONTENTS": fmt.Sprintf(`#!/bin/bash
-while [ 1 ]
-do
-interface=$(ip route show default | awk '/default/ {print $5}')
-gateway=$(ip route show default | awk '/default/ {print $3}')
-sub_net=$(ip addr show | grep $interface | grep -E 'inet ./*' | awk '{print $2}' | awk -F'/' '{print $2}')
-if [ -z $interface ] || [ -z $gateway ] || [ -z $sub_net ]; then
-   sleep 2
-   continue
-else
-   break
-fi
-done
-# Define the network configuration in YAML format with variables
-config_yaml="
-network:
-  version: 2
-  renderer: networkd
-  ethernets:
-    id0:
-      match:
-        name: en*
-      dhcp4: no
-      addresses: [ %s/$sub_net ]
-      gateway4: $gateway
-      nameservers:
-        addresses: [ %s ]
-"
-# Write the YAML configuration to the file
-echo "$config_yaml" | tee /etc/netplan/config.yaml
-netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", ")),
-						"UID":     "0",
-						"GID":     "0",
-						"MODE":    "0755",
-						"DIRMODE": "0755",
-					},
-				},
-
-				{
 					Name:    ActionEfibootset,
 					Image:   tinkActionEfibootImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg560,
