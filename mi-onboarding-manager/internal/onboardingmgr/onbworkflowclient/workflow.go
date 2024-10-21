@@ -199,7 +199,7 @@ func runProdWorkflow(
 		instance.GetDesiredOs().ResourceId); createHwErr != nil {
 		return createHwErr
 	}
-
+	deviceInfo.TenantID = instance.GetTenantId()
 	prodTemplate, err := tinkerbell.GenerateTemplateForProd(env.K8sNamespace, deviceInfo)
 	if err != nil {
 		zlog.MiErr(err).Msg("")

@@ -40,6 +40,7 @@ var workflowStepToStatusDetail = map[string]string{
 	ActionAddDNSNamespace:            "Configuring DNS settings",
 	ActionCreateSecretsDirectory:     "Creating secrets directory",
 	ActionWriteClientID:              "Saving client ID",
+	ActionTenantID:                   "saving tenant ID",
 	ActionWriteClientSecret:          "Saving client secret",
 	ActionWriteHostname:              "Setting host name",
 	ActionWriteEtcHosts:              "Setting into /etc/hosts",

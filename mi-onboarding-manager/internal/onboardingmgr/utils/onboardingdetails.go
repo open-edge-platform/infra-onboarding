@@ -61,5 +61,7 @@ type (
 		OsImageSHA256 string
 		// OS type differentiate bw Ubuntu Canonical and Tiber OS for now
 		OsType string
+		// Tenant ID of resource
+		TenantID string
 	}
 )

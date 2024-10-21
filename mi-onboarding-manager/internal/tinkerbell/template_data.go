@@ -51,6 +51,7 @@ const (
 	ActionWriteEtcHosts              = "Write-Hosts-etc"
 	ActionCreateCustomerIDDirectory  = "Customer-ID-Directory"
 	ActionCustomerID                 = "write-customer-id"
+	ActionTenantID                   = "tenant-id"
 	ActionSystemdNetworkOptimize     = "systemd-network-online-optimize"
 	ActionDisableSnapdOptimize       = "systemd-snapd-disable-optimize"
 	ActionENProductKey               = "write-en-product-key"
@@ -280,7 +281,20 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 						"DIRMODE":   "0755",
 					},
 				},
-
+				{
+					Name:    ActionTenantID,
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":   "ext4",
+						"DEST_PATH": "/etc/intel_edge_node/tenantId",
+						"CONTENTS":  fmt.Sprintf("TENANT_ID=%s", deviceInfo.TenantID),
+						"UID":       "0",
+						"GID":       "0",
+						"MODE":      "0755",
+						"DIRMODE":   "0755",
+					},
+				},
 				{
 					Name:    ActionENProductKey,
 					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
@@ -779,6 +793,20 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/intel_edge_node/customer_id/customer_id",
 						"CONTENTS":  deviceInfo.CustomerID,
+						"UID":       "0",
+						"GID":       "0",
+						"MODE":      "0755",
+						"DIRMODE":   "0755",
+					},
+				},
+				{
+					Name:    ActionTenantID,
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":   "ext4",
+						"DEST_PATH": "/etc/intel_edge_node/tenantId",
+						"CONTENTS":  fmt.Sprintf("TENANT_ID=%s", deviceInfo.TenantID),
 						"UID":       "0",
 						"GID":       "0",
 						"MODE":      "0755",
