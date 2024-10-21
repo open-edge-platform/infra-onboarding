@@ -291,6 +291,11 @@ func (s *NodeArtifactService) OnboardNodeStream(stream pb.NodeArtifactServiceNB_
 		// 1. If the UUID provided by the EN is not found in the inventory
 		hostInv, err = s.invClient.GetHostResourceByUUID(context.Background(), req.Uuid)
 		tenantID := hostInv.GetTenantId()
+		hostInv.CurrentState = computev1.HostState_HOST_STATE_ONBOARDED
+		hostInv.OnboardingStatus = om_status.OnboardingStatusDone.Status
+		hostInv.OnboardingStatusIndicator = om_status.OnboardingStatusDone.StatusIndicator
+		hostInv.OnboardingStatusTimestamp = uint64(time.Now().Unix()) // #nosec G115
+
 		if err != nil {
 			zlog.Info().Msgf("Node Doesn't Exist for UUID %v\n", req.Uuid)
 			// The server sends the Device "NotFound" grpc code over the stream
