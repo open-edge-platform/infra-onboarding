@@ -667,9 +667,14 @@ func (s *NodeArtifactService) checkNCreateInstance(ctx context.Context, tenantID
 			DesiredOs: &osv1.OperatingSystemResource{
 				ResourceId: pconf.DefaultOs,
 			},
-
-			SecurityFeature: osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION,
 		}
+		osRes, err := s.invClientAPI.GetOSResourceByResourceID(ctx, tenantID, pconf.DefaultOs)
+		if err != nil {
+			zlog.Err(err).Msgf("Failed to GetOSResourceByResourceID for host resource (uuid=%s)", hostResID)
+			return err
+		}
+		instance.SecurityFeature = osRes.GetSecurityFeature()
+
 		if _, err := s.invClientAPI.CreateInstanceResource(ctx, tenantID, instance); err != nil {
 			zlog.Err(err).Msgf("Failed to CreateInstanceResource for host resource (uuid=%s),tID=%s", hostResID, tenantID)
 			return err
