@@ -13,6 +13,16 @@
 
 ####################
 set -eu
+
+# Source the eject script (ensure this file exists and is correct)
+source eject_all_removable_disks.sh
+
+# Eject all removable devices
+if ! eject_all_removable_devices; then
+    echo "Error: Failed to eject all removable devices."
+    exit 1
+fi
+
 # Format drives
 # 1. Size should not be 0
 # 2. Type should be disk and not partition or rom

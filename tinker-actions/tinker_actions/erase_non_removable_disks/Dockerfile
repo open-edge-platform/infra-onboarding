@@ -13,6 +13,10 @@ FROM alpine:3.19
 
 RUN apk --no-cache add lsblk
 
+COPY eject_all_removable_disks.sh /
+
+RUN chmod +x eject_all_removable_disks.sh
+
 COPY erase_non_removable_disks.sh /
 
 RUN chmod +x erase_non_removable_disks.sh
