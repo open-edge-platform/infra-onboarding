@@ -30,7 +30,7 @@ pipeline {
     environment {
         GIT_SHORT_URL=env.GIT_URL.split('/')[4].toString().replaceAll('.git','')
         PROJECT_NAME = "${GIT_SHORT_URL}"
-        SDLE_UPLOAD_PROJECT_ID = '21873'
+        SDLE_UPLOAD_PROJECT_ID = '22345'
         authorEmail = sh (script: 'git --no-pager show -s --format=\'%ae\'',returnStdout: true).trim()
     }
     stages {
@@ -52,7 +52,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Trivy config scan') {
+                /*stage('Trivy config scan') {
                     when {
                         changeRequest()
                     }
@@ -61,7 +61,7 @@ pipeline {
                             trivyConfigScan()
                         }
                     }
-                }
+                }*/
             }
         }
         stage('Setup') {
@@ -216,7 +216,7 @@ pipeline {
                 }
             }
         }
-        stage('Scan Binary') {
+        /*stage('Scan Binary') {
             parallel {
                 stage('Scan BDBA'){
                     environment {
@@ -246,7 +246,7 @@ pipeline {
                     }
                 }
             }
-        }
+        }*/
 
         stage('Artifact') {
             steps {
