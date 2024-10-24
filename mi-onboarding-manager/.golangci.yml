@@ -9,6 +9,7 @@ linters:
     - bidichk
     - bodyclose
     - cyclop
+    - copyloopvar
     - depguard
     - dogsled
     - durationcheck
@@ -16,7 +17,6 @@ linters:
     - errname
     - errorlint
     - exhaustive
-    - exportloopref
     - funlen
     - gci
     - gochecknoinits
@@ -26,8 +26,8 @@ linters:
     - godot
     - gofmt
     - gofumpt
+    - goimports
     - goheader
-    - gomnd
     - gomoddirectives
     - goprintffuncname
     - gosec
@@ -35,6 +35,7 @@ linters:
     - govet
     - ineffassign
     - lll
+    - mnd
     - misspell
     - nakedret
     - nilerr
@@ -61,11 +62,6 @@ linters:
     # - dupl  #TBD
 
 run:
-  skip-dirs:
-    - "cmd/pdctl"
-  skip-files:
-    - ".*_test\\.go"
-    - ".*_mock\\.go"
   timeout: 10m
 
   issues-exit-code: 1
@@ -82,7 +78,8 @@ linters-settings:
     # SDL requirements dictate a maximum cyclomatic complexity of 10
     max-complexity: 10
   govet:
-    check-shadowing: true
+    enable:
+      - shadow
   misspell:
     locale: US
   lll:
@@ -117,9 +114,9 @@ linters-settings:
       - unnamedResult
   errcheck:
     # Report `a := b.(MyStruct)` when `a, ok := ...` should be.
-    check-type-assertions: true   # Default: false
+    check-type-assertions: true # Default: false
     # Report skipped checks:`num, _ := strconv.Atoi(numStr)`.
-    check-blank: true   # Default: false
+    check-blank: true # Default: false
     # Function to skip.
     exclude-functions:
       - io/ioutil.ReadFile
@@ -127,7 +124,7 @@ linters-settings:
       - io.Copy(os.Stdout)
   nakedret:
     # No naked returns, ever.
-    max-func-lines: 1   # Default: 30
+    max-func-lines: 1 # Default: 30
   tagliatelle:
     case:
       rules:
@@ -185,8 +182,13 @@ linters-settings:
           - github.com/stretchr/testify/assert
           - github.com/grpc-ecosystem/go-grpc-middleware/util/metautils
         deny:
-
 issues:
+  exclude-dirs:
+    - "cmd/pdctl"
+  exclude-files:
+    - ".*_test\\.go"
+    - ".*_mock\\.go"
+
   max-issues-per-linter: 0
 
   max-same-issues: 0
@@ -220,7 +222,7 @@ output:
   # Example: "checkstyle:report.json,colored-line-number"
   #
   # Default: colored-line-number
-  format: colored-line-number:stdout,html:build/golangci-lint_report.html
+  formats: colored-line-number:stdout,html:build/golangci-lint_report.html
 
   print-linter-name: true
 

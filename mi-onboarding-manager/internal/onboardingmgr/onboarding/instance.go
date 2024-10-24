@@ -23,19 +23,19 @@ func UpdateInstanceStatusByGUID(ctx context.Context,
 
 	hostResc, err := invClient.GetHostResourceByUUID(ctx, hostUUID)
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("Node Doesn't Exist")
+		zlog.MiSec().MiErr(err).Msg("Node Doesn't Exist")
 		return err
 	}
-	zlog.Debug().Msgf("Node and its Host Resource Exist")
+	zlog.Debug().Msg("Node and its Host Resource Exist")
 	zlog.Debug().Msgf("GetHostResourceBySN = %v", hostResc)
 
 	instanceResc := hostResc.GetInstance()
 	if instanceResc == nil {
 		err = inv_errors.Errorfc(codes.NotFound, "Instance Doesn't Exist")
-		zlog.MiSec().MiErr(err).Msgf(hostUUID)
+		zlog.MiSec().MiErr(err).Msgf("Host UUID: %s", hostUUID)
 		return err
 	}
-	zlog.Debug().Msgf("Node and its Instance Resource Exist")
+	zlog.Debug().Msg("Node and its Instance Resource Exist")
 	zlog.Debug().Msgf("GetInstanceResourceBySN = %v", instanceResc)
 
 	zlog.Debug().Msgf("Update Instance resc (%v) status", instanceResc.ResourceId)

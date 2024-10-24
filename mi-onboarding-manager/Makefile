@@ -53,9 +53,9 @@ SECRETS_DIR := /var/run/secrets
 
 # Tools versions
 GOLINTVERSION_HAVE        := $(shell golangci-lint version | sed 's/.*version //' | sed 's/ .*//')
-POSTGRES_VERSION          := 14.9
-BUFVERSION_REQ		    	  := 1.27.1
-OPAVERSION_REQ            := 0.49.0
+POSTGRES_VERSION          := 16.4
+BUFVERSION_REQ		      := 1.45.0
+OPAVERSION_REQ            := 0.69.0
 
 GOCMD := GOPRIVATE="github.com/intel-innersource/*" go
 
