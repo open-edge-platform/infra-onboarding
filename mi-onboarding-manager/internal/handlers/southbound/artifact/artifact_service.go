@@ -25,6 +25,7 @@ import (
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/policy/rbac"
+	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/status"
 	inv_tenant "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/tenant"
 )
 
@@ -217,9 +218,11 @@ func (s *NodeArtifactService) handleOnboardedState(stream pb.NodeArtifactService
 		zlog.Error().Err(err).Msg("Failed to send response client Id and secret on the stream")
 		return err
 	}
-	// make the current state to ONBOARDED.
-	errUpdatehostStatus := s.invClient.UpdateHostCurrentState(context.Background(), hostInv.GetTenantId(),
-		hostInv.ResourceId, computev1.HostState_HOST_STATE_ONBOARDED)
+	// make the current state to ONBOARDED and onboarding status to ONBOARDED
+	errUpdatehostStatus := s.invClient.UpdateHostCurrentStateNOnboardStatus(context.Background(),
+		hostInv.GetTenantId(), hostInv.ResourceId, computev1.HostState_HOST_STATE_ONBOARDED,
+		inv_status.New(om_status.OnboardingStatusDone.Status,
+			om_status.OnboardingStatusDone.StatusIndicator))
 	if errUpdatehostStatus != nil {
 		zlog.Error().Err(errUpdatehostStatus).Msg("Failed to update host current status to ONBOARDED")
 		return errUpdatehostStatus
@@ -291,10 +294,6 @@ func (s *NodeArtifactService) OnboardNodeStream(stream pb.NodeArtifactServiceNB_
 		// 1. If the UUID provided by the EN is not found in the inventory
 		hostInv, err = s.invClient.GetHostResourceByUUID(context.Background(), req.Uuid)
 		tenantID := hostInv.GetTenantId()
-		hostInv.CurrentState = computev1.HostState_HOST_STATE_ONBOARDED
-		hostInv.OnboardingStatus = om_status.OnboardingStatusDone.Status
-		hostInv.OnboardingStatusIndicator = om_status.OnboardingStatusDone.StatusIndicator
-		hostInv.OnboardingStatusTimestamp = uint64(time.Now().Unix()) // #nosec G115
 
 		if err != nil {
 			zlog.Info().Msgf("Node Doesn't Exist for UUID %v\n", req.Uuid)

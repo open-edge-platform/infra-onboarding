@@ -818,6 +818,25 @@ func (c *OnboardingInventoryClient) UpdateHostCurrentState(ctx context.Context, 
 	return nil
 }
 
+func (c *OnboardingInventoryClient) UpdateHostCurrentStateNOnboardStatus(ctx context.Context, tenantID string, resourceID string,
+	hostCurrentState computev1.HostState, onboardingStatus inv_status.ResourceStatus,
+) error {
+	updateHost := &computev1.HostResource{
+		ResourceId:                resourceID,
+		CurrentState:              hostCurrentState,
+		OnboardingStatus:          onboardingStatus.Status,
+		OnboardingStatusIndicator: onboardingStatus.StatusIndicator,
+		OnboardingStatusTimestamp: uint64(time.Now().Unix()), // #nosec G115
+	}
+
+	return c.UpdateInvResourceFields(ctx, tenantID, updateHost, []string{
+		computev1.HostResourceFieldCurrentState,
+		computev1.HostResourceFieldOnboardingStatus,
+		computev1.HostResourceFieldOnboardingStatusIndicator,
+		computev1.HostResourceFieldOnboardingStatusTimestamp,
+	})
+}
+
 func (c *OnboardingInventoryClient) GetHostResourceBySerailNumber(
 	ctx context.Context,
 	serialNumber string,
