@@ -65,7 +65,7 @@ func (sbh *SBHandler) Start() error {
 	}
 	var srvOpts []grpc.ServerOption
 	var unaryInter []grpc.UnaryServerInterceptor
-	unaryInter = append(unaryInter, inv_tenant.GetExtractTenantIDInterceptor())
+	unaryInter = append(unaryInter, inv_tenant.GetExtractTenantIDInterceptor(inv_tenant.GetOnboardingRoles()))
 	srvOpts = append(srvOpts, grpc.ChainUnaryInterceptor(unaryInter...))
 	sbh.server = grpc.NewServer(srvOpts...)
 	pb.RegisterNodeArtifactServiceNBServer(sbh.server, nodeArtifactService)
