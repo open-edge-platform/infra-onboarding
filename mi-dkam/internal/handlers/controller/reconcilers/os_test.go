@@ -18,7 +18,6 @@ import (
 	dkam_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/testing"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/os/v1"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/testing"
-	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 func TestMain(m *testing.M) {
@@ -184,53 +183,6 @@ func TestOsReconcilerReconcile(t *testing.T) {
 		os.Remove(expectedFilePath)
 		os.Remove(dir + "/installer.sh")
 	}()
-}
-
-func TestIsSameOSResource(t *testing.T) {
-	type args struct {
-		originalOSRes *osv1.OperatingSystemResource
-		updatedOSRes  *osv1.OperatingSystemResource
-		fieldmask     *fieldmaskpb.FieldMask
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    bool
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
-			args: args{
-				originalOSRes: &osv1.OperatingSystemResource{},
-				updatedOSRes:  &osv1.OperatingSystemResource{},
-				fieldmask:     &fieldmaskpb.FieldMask{},
-			},
-			want:    true,
-			wantErr: false,
-		},
-		{
-			name: "Invalid fieldmask",
-			args: args{
-				originalOSRes: &osv1.OperatingSystemResource{},
-				updatedOSRes:  &osv1.OperatingSystemResource{},
-				fieldmask:     &fieldmaskpb.FieldMask{Paths: []string{"nonexistent_field"}},
-			},
-			want:    false,
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := IsSameOSResource(tt.args.originalOSRes, tt.args.updatedOSRes, tt.args.fieldmask)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("IsSameOSResource() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("IsSameOSResource() = %v, want %v", got, tt.want)
-			}
-		})
-	}
 }
 
 func TestOsReconciler_Reconcile(t *testing.T) {

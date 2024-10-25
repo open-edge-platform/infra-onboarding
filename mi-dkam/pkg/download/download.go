@@ -4,11 +4,13 @@
 package download
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/util"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/os/v1"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -176,7 +178,7 @@ func DownloadMicroOS(targetDir string, scriptPath string) (bool, error) {
 
 // DownloadTiberOSImage downloads OS image from the Release Service,
 // verifies the SHA256 checksum and copies the OS image to targetDir.
-func DownloadTiberOSImage(osRes *osv1.OperatingSystemResource, targetDir string) error {
+func DownloadTiberOSImage(ctx context.Context, osRes *osv1.OperatingSystemResource, targetDir string) error {
 	var tag string
 
 	rsArtifactName := ""
@@ -208,7 +210,7 @@ func DownloadTiberOSImage(osRes *osv1.OperatingSystemResource, targetDir string)
 				title := title
 				// Create an HTTP GET request with the specified URL
 				file_url := config.RSProxyTiberOSManifest + rsArtifactName + "/blobs/" + digest
-				req, httperr := http.NewRequest("GET", file_url, nil)
+				req, httperr := http.NewRequestWithContext(ctx, "GET", file_url, nil)
 				if httperr != nil {
 					//zlog.MiSec().Fatal().Err(httperr).Msgf("Error creating request: %v\n", httperr)
 					zlog.MiSec().Info().Msg("Failed create GET request to release server.")
@@ -284,7 +286,7 @@ func DownloadTiberOSImage(osRes *osv1.OperatingSystemResource, targetDir string)
 	return nil
 }
 
-func DownloadPrecuratedScript(profile string) error {
+func DownloadPrecuratedScript(ctx context.Context, profile string) error {
 	// FIXME: hardcode profile script version for now, will be addressed in https://jira.devtools.intel.com/browse/NEX-11556
 	profileScriptVersion := "1.0.2"
 	rsProxyURL := config.RSProxyProfileManifest + profile + "/manifests/" + profileScriptVersion
@@ -297,7 +299,7 @@ func DownloadPrecuratedScript(profile string) error {
 
 		file_url := config.RSProxyProfileManifest + profile + "/blobs/" + digest
 
-		req2, geterr2 := http.NewRequest("GET", file_url, nil)
+		req2, geterr2 := http.NewRequestWithContext(ctx, "GET", file_url, nil)
 		if geterr2 != nil {
 			zlog.MiSec().Error().Err(geterr2).Msgf("Error while making 2nd get request: %v\n", geterr2)
 
@@ -451,20 +453,38 @@ func installPackage(packageName string) error {
 }
 
 // Download an image from a URL and save it to a file
-func downloadImage(url string, targetFilePath string) error {
-	response, err := http.Get(url)
+func downloadImage(ctx context.Context, url string, targetFilePath string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return err
+		errMsg := fmt.Sprintf("Failed to create HTTP GET request to %s", url)
+		zlog.MiSec().MiErr(err).Msgf(errMsg)
+		return inv_errors.Errorf(errMsg)
+	}
+
+	response, err := http.DefaultClient.Do(req)
+	if err != nil {
+		errMsg := fmt.Sprintf("Failed to download file from %s", url)
+		zlog.MiSec().MiErr(err).Msgf(errMsg)
+		return inv_errors.Errorf(errMsg)
 	}
 	defer response.Body.Close()
+
 	file, err := os.Create(targetFilePath)
 	if err != nil {
-		return err
+		errMsg := fmt.Sprintf("Failed to create file %s", targetFilePath)
+		zlog.MiSec().MiErr(err).Msgf(errMsg)
+		return inv_errors.Errorf(errMsg)
 	}
 	defer file.Close()
 
 	_, err = io.Copy(file, response.Body)
-	return err
+	if err != nil {
+		errMsg := fmt.Sprintf("Failed to save file %s", targetFilePath)
+		zlog.MiSec().MiErr(err).Msgf(errMsg)
+		return inv_errors.Errorf(errMsg)
+	}
+
+	return nil
 }
 
 // Convert an image to raw format using qemu-img
@@ -498,7 +518,7 @@ func getSHA256Checksum(filename string) (string, error) {
 
 // DownloadUbuntuImage downloads Ubuntu OS from the upstream mirror,
 // verifies the SHA256 checksum and copies the OS image to targetDir.
-func DownloadUbuntuImage(osRes *osv1.OperatingSystemResource, targetDir string) error {
+func DownloadUbuntuImage(ctx context.Context, osRes *osv1.OperatingSystemResource, targetDir string) error {
 	// TODO(NEXFMPID-3359): avoid hardcoded file names, and use tmp folder for temporary files
 	parsedURL, err := url.Parse(osRes.GetImageUrl())
 	if err != nil {
@@ -516,7 +536,7 @@ func DownloadUbuntuImage(osRes *osv1.OperatingSystemResource, targetDir string) 
 	zlog.Info().Msgf("Inside Download and Raw form conversion...")
 	if strings.HasSuffix(osRes.GetImageUrl(), "raw.gz") {
 		zlog.Info().Msgf("File is in raw format")
-		if err := downloadImage(osRes.GetImageUrl(),
+		if err := downloadImage(ctx, osRes.GetImageUrl(),
 			tempDownloadDir+"/"+osRes.GetProfileName()+".raw.gz"); err != nil {
 			zlog.MiSec().Error().Err(err).Msgf("Error downloading image:%v", err)
 			return err
@@ -532,7 +552,7 @@ func DownloadUbuntuImage(osRes *osv1.OperatingSystemResource, targetDir string) 
 		}
 
 		// Download the image
-		if err := downloadImage(osRes.GetImageUrl(), tempDownloadDir+"/image.img"); err != nil {
+		if err := downloadImage(ctx, osRes.GetImageUrl(), tempDownloadDir+"/image.img"); err != nil {
 			zlog.MiSec().Error().Err(err).Msgf("Error downloading image:%v", err)
 			return err
 		}

@@ -4,6 +4,7 @@
 package download
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/os/v1"
@@ -104,7 +105,7 @@ func TestDownloadUbuntuImage(t *testing.T) {
 	require.NoError(t, err)
 
 	testSha256 := fmt.Sprintf("%x", hasher.Sum(nil))
-	err = DownloadUbuntuImage(&osv1.OperatingSystemResource{
+	err = DownloadUbuntuImage(context.TODO(), &osv1.OperatingSystemResource{
 		ImageUrl:    svr.URL,
 		Sha256:      testSha256,
 		ProfileName: "test-profile",
@@ -297,7 +298,7 @@ func Test_downloadImage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := downloadImage(tt.args.url, tt.args.targetDir+tt.args.fileName); (err != nil) != tt.wantErr {
+			if err := downloadImage(context.TODO(), tt.args.url, tt.args.targetDir+tt.args.fileName); (err != nil) != tt.wantErr {
 				t.Errorf("downloadImage() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -478,7 +479,7 @@ func TestDownloadUbuntuImage_Negative(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			DownloadUbuntuImage(tt.args.osr, tt.args.targetDir)
+			DownloadUbuntuImage(context.TODO(), tt.args.osr, tt.args.targetDir)
 		})
 	}
 }
@@ -522,7 +523,7 @@ func TestDownloadPrecuratedScript(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := DownloadPrecuratedScript(tt.args.profile); (err != nil) != tt.wantErr {
+			if err := DownloadPrecuratedScript(context.TODO(), tt.args.profile); (err != nil) != tt.wantErr {
 				t.Errorf("DownloadPrecuratedScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

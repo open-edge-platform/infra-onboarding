@@ -1,12 +1,14 @@
 package dkammgr
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/util"
 	"io"
 	"math/big"
 	"net/http"
@@ -111,7 +113,7 @@ func TestGetCuratedScript(t *testing.T) {
 		ProfileName: "profile:profile",
 		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 	}
-	err = GetCuratedScript(osr)
+	err = GetCuratedScript(context.TODO(), osr)
 
 	// Check if the returned filename matches the expected format
 	assert.NoError(t, err)
@@ -236,11 +238,15 @@ func TestBuildSignIpxe1(t *testing.T) {
 }
 
 func TestDownloadOS(t *testing.T) {
-	osUrl := "https://example.com/image.img"
-	sha256 := "testsha256"
-	fileName := fileNameFromURL(osUrl)
-	rawFileName := strings.TrimSuffix(fileName, ".img") + ".raw.gz"
-	expectedFilePath := config.PVC + "/OSImage/" + sha256 + "/" + rawFileName
+	osUrl := "https://cloud-images.ubuntu.com/releases/22.04/release-20240912/ubuntu-22.04-server-cloudimg-amd64.img"
+	sha256 := "5da0b3d37d02ca6c6760caa4041b4df14e08abc7bc9b2db39133eef8ee145f6d"
+	osr := &osv1.OperatingSystemResource{
+		ImageUrl: osUrl,
+		OsType:   osv1.OsType_OS_TYPE_MUTABLE,
+		Sha256:   sha256,
+	}
+
+	expectedFilePath := util.GetOSImageLocation(osr, config.PVC)
 	err := os.MkdirAll(filepath.Dir(expectedFilePath), 0755)
 	if err != nil {
 		t.Fatalf("Failed to create directories: %v", err)
@@ -260,12 +266,8 @@ func TestDownloadOS(t *testing.T) {
 			t.Fatalf("Failed to clean up directories: %v", err)
 		}
 	}()
-	osr := &osv1.OperatingSystemResource{
-		ImageUrl: osUrl,
-		OsType:   osv1.OsType_OS_TYPE_MUTABLE,
-		Sha256:   sha256,
-	}
-	if err := DownloadOS(osr); err != nil {
+
+	if err := DownloadOS(context.TODO(), osr); err != nil {
 		t.Errorf("Download failed: %v", err)
 	}
 }

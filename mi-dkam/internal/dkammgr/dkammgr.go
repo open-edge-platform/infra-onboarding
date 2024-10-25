@@ -3,6 +3,7 @@ package dkammgr
 import (
 	//import dependencies
 
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -74,7 +75,7 @@ func RemoveDir(path string) error {
 	return nil
 }
 
-func GetCuratedScript(os *osv1.OperatingSystemResource) error {
+func GetCuratedScript(ctx context.Context, os *osv1.OperatingSystemResource) error {
 	scriptFileName, err := util.GetInstallerLocation(os, config.PVC)
 	if err != nil {
 		return err
@@ -88,7 +89,7 @@ func GetCuratedScript(os *osv1.OperatingSystemResource) error {
 		zlog.MiSec().Info().Msg("Installer exists. Skip curation.")
 	} else {
 		if os.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE {
-			err := download.DownloadPrecuratedScript(os.GetProfileName())
+			err := download.DownloadPrecuratedScript(ctx, os.GetProfileName())
 			if err != nil {
 				zlog.MiSec().Info().Msgf("Failed to download Profile script: %v", err)
 				return err
@@ -168,7 +169,7 @@ func GetScriptDir() string {
 	return scriptPath
 }
 
-func DownloadOS(osRes *osv1.OperatingSystemResource) error {
+func DownloadOS(ctx context.Context, osRes *osv1.OperatingSystemResource) error {
 	zlog.Info().Msgf("Inside DownloadOS...")
 	imageURL := osRes.GetImageUrl()
 	zlog.Info().Msgf("imageURL %s", imageURL)
@@ -180,7 +181,7 @@ func DownloadOS(osRes *osv1.OperatingSystemResource) error {
 		// Check if the compressed raw image file already exists
 		if _, err := os.Stat(file); os.IsNotExist(err) {
 			// Download the image
-			if err := download.DownloadTiberOSImage(osRes, targetDir); err != nil {
+			if err := download.DownloadTiberOSImage(ctx, osRes, targetDir); err != nil {
 				zlog.MiSec().Error().Err(err).Msgf("Error downloading image:%v", err)
 				return err
 			}
@@ -196,7 +197,7 @@ func DownloadOS(osRes *osv1.OperatingSystemResource) error {
 		// Check if the compressed raw image file already exists
 		if _, err := os.Stat(file); os.IsNotExist(err) {
 			// Download the image
-			if err := download.DownloadUbuntuImage(osRes, targetDir); err != nil {
+			if err := download.DownloadUbuntuImage(ctx, osRes, targetDir); err != nil {
 				zlog.MiSec().Error().Err(err).Msgf("Error downloading image:%v", err)
 				return err
 			}
