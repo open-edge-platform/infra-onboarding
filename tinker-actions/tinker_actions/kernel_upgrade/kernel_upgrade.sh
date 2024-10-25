@@ -123,7 +123,7 @@ else
                 growpart "/dev/${os_disk}" "${part_number}"
                 resize2fs "$rootfs_part"
         fi
-
+	sync
         update_kernel_image $rootfs_part $efiboot_part
 
 fi
