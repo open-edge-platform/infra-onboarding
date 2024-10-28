@@ -136,9 +136,6 @@ func grpcStreamClient(ctx context.Context, address string, port int, mac string,
 				}
 				return clientID, clientSecret, nil, fallback
 
-			case pb.OnboardStreamResponse_DELETED:
-				return "", "", fmt.Errorf("edge node is deleted"), fallback
-
 			case pb.OnboardStreamResponse_UNSPECIFIED:
 				return "", "", fmt.Errorf("edge node state is unspecified or unknown"), fallback
 
