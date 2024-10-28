@@ -1833,6 +1833,47 @@ func TestGetProviderResourceByName(t *testing.T) {
 	}
 }
 
+func TestOnboardingInventoryClient_GetLicenseProviderConfig(t *testing.T) {
+	CreateOnboardingClientForTesting(t)
+	invClient := OnboardingTestClient
+	type args struct {
+		ctx  context.Context
+		name string
+	}
+	inv_testing.CreateProvider(t, "dummyprovider")
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "GettingLicenseProver_SuccessfulResponse",
+			args: args{
+				ctx:  context.Background(),
+				name: "dummyprovider",
+			},
+			wantErr: true,
+		},
+		{
+			name: "Empty Provider",
+			args: args{
+				ctx:  context.Background(),
+				name: "",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := invClient.GetLicenseProviderConfig(tt.args.ctx, tt.args.name)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("OnboardingInventoryClient.GetProviderConfig() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+	}
+}
+
 func TestOnboardingInventoryClient_GetProviderConfig(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient

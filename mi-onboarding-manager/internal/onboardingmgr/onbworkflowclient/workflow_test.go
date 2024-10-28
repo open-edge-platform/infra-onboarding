@@ -920,7 +920,6 @@ func TestRunFDOActions(t *testing.T) {
 	defer func() {
 		*common.FlagEnableDeviceInitialization = true
 	}()
-
 }
 
 func TestCheckStatusOrRunRebootWorkflow(t *testing.T) {

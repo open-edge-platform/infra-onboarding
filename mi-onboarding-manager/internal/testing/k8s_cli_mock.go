@@ -6,8 +6,9 @@ package testing
 
 import (
 	"context"
-	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/client"
 	"strings"
+
+	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/client"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"

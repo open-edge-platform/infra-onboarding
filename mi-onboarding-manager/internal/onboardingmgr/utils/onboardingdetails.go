@@ -12,6 +12,7 @@ const (
 	ImgTypeFocalMs      = "prod_focal-ms"
 	ImgTypeTiberOs      = "prod_tiber-os"
 	DefaultProviderName = "fm_onboarding"
+	LicensingProvider   = "itep_licensing"
 )
 
 type (

@@ -6,12 +6,13 @@ package reconcilers
 
 import (
 	"context"
-	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
 
 	statusv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/status/v1"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/status"
@@ -68,7 +69,7 @@ func createOsWithArgs(tb testing.TB, doCleanup bool,
 }
 
 func createProviderWithArgs(tb testing.TB, doCleanup bool,
-	resourceId string,
+	resourceId, name string, providerKind providerv1.ProviderKind,
 ) (provider *providerv1.ProviderResource) {
 	tb.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -76,8 +77,8 @@ func createProviderWithArgs(tb testing.TB, doCleanup bool,
 	str := "{\"defaultOs\":\"osID\",\"autoProvision\":true,\"customerID\":\"170312\",\"enProductKeyIDs\":\"a6d7cf35-049a-4959-88b0-3bcb91beb857\"}"
 	str = strings.Replace(str, "osID", resourceId, 1)
 	provider = &providerv1.ProviderResource{
-		ProviderKind:   providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL,
-		Name:           "fm_onboarding",
+		ProviderKind:   providerKind,
+		Name:           name,
 		ApiEndpoint:    "xyz123",
 		ApiCredentials: []string{"abc123"},
 		Config:         str,
@@ -169,8 +170,9 @@ func TestReconcileInstance(t *testing.T) {
 
 	host := inv_testing.CreateHost(t, nil, nil)
 	osRes := createOsWithArgs(t, true)
-	_ = createProviderWithArgs(t, true, osRes.ResourceId)           // Creating Provider profile which would be fetched by the reconciler.
-	instance := inv_testing.CreateInstanceNoCleanup(t, host, osRes) // Instance should not be assigned to the Provider.
+	_ = createProviderWithArgs(t, true, osRes.ResourceId, "itep_licensing", providerv1.ProviderKind_PROVIDER_KIND_LICENSING) // Creating license Provider profile which would be fetched by the reconciler.
+	_ = createProviderWithArgs(t, true, osRes.ResourceId, "fm_onboarding", providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL)  // Creating Provider profile which would be fetched by the reconciler.
+	instance := inv_testing.CreateInstanceNoCleanup(t, host, osRes)                                                          // Instance should not be assigned to the Provider.
 	instanceID := instance.GetResourceId()
 
 	runReconcilationFunc := func() {
@@ -470,8 +472,8 @@ func TestInstanceReconciler_reconcileInstance(t *testing.T) {
 
 func Test_convertInstanceToDeviceInfo(t *testing.T) {
 	type args struct {
-		instance *computev1.InstanceResource
-		provider invclient.ProviderConfig
+		instance        *computev1.InstanceResource
+		licenseProvider invclient.LicenseProviderConfig
 	}
 	tests := []struct {
 		name    string
@@ -537,7 +539,7 @@ func Test_convertInstanceToDeviceInfo(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			env.ImgType = utils.ImgTypeBkc
-			_, err := convertInstanceToDeviceInfo(tt.args.instance, tt.args.provider)
+			_, err := convertInstanceToDeviceInfo(tt.args.instance, tt.args.licenseProvider)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
 				return
