@@ -90,6 +90,16 @@ else
         rootfs_part=$(blkid | grep -i rootfs | grep -i ext4 |  awk -F: '{print $1}')
         efiboot_part=$(blkid | grep -i uefi | grep -i vfat |  awk -F: '{print $1}')
 
+        # Take biggest partition as rootfs if ext4 partion not detected
+        if [ -z "$rootfs_part" ]; then
+                if echo "$efiboot_part" | grep -q "nvme"; then
+                        prefix_disk=$(echo "$efiboot_part" | grep -oE 'nvme[0-9]+n[0-9]+' | head -n 1)
+                elif echo "$efiboot_part" | grep -q "sd"; then
+                        prefix_disk=$(echo "$efiboot_part" | grep -oE 'sd[a-z]+' | head -n 1)
+                fi
+	        rootfs_part=$(lsblk -o NAME,SIZE -nr "/dev/$prefix_disk" | grep -v "^$prefix_disk " | sort -k 2 -h | tail -n 1 | awk '{print "/dev/" $1}')
+        fi
+
         if echo "$rootfs_part" | grep -q "nvme"; then
                 os_disk=$(echo "$rootfs_part" | grep -oE 'nvme[0-9]+n[0-9]+' | head -n 1)
                 part_number=$(echo "$rootfs_part" | awk 'NR==1 {print $1}' | awk -F'p' '{print $2}')
@@ -121,7 +131,9 @@ else
                 sgdisk -e "/dev/${os_disk}"
                 e2fsck -f "$rootfs_part"
                 growpart "/dev/${os_disk}" "${part_number}"
+		partprobe "/dev/${os_disk}"
                 resize2fs "$rootfs_part"
+		partprobe "/dev/${os_disk}"
         fi
 	sync
         update_kernel_image $rootfs_part $efiboot_part
