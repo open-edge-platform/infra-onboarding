@@ -32,6 +32,9 @@ var (
 	OnboardingStatusFailed         = inv_status.New("Onboarding Failed", statusv1.StatusIndication_STATUS_INDICATION_ERROR)
 	AuthorizationStatusInvalidated = inv_status.New("Invalidated", statusv1.StatusIndication_STATUS_INDICATION_IDLE)
 
+	HostRegistrationDone     = inv_status.New("Host is Registered", statusv1.StatusIndication_STATUS_INDICATION_IDLE)
+	HostRegistrationInFailed = inv_status.New("Host Registration Failed", statusv1.StatusIndication_STATUS_INDICATION_ERROR)
+
 	DeletingStatus = inv_status.New("Deleting", statusv1.StatusIndication_STATUS_INDICATION_IN_PROGRESS)
 )
 
@@ -45,4 +48,28 @@ func LegacyHostStatusDeletingWithDetails(detail string) string {
 
 func ModernHostStatusDeletingWithDetails(detail string) inv_status.ResourceStatus {
 	return inv_status.New(LegacyHostStatusDeletingWithDetails(detail), statusv1.StatusIndication_STATUS_INDICATION_IN_PROGRESS)
+}
+
+func NewHostRegistrationUUIDFailed() inv_status.ResourceStatus {
+	return inv_status.New("Host Registration Failed due to mismatch of UUID, Correct UUID is",
+		statusv1.StatusIndication_STATUS_INDICATION_ERROR)
+}
+
+func NewHostRegistrationSerialNumFailed() inv_status.ResourceStatus {
+	return inv_status.New("Host Registration Failed due to mismatch of Serial Number, Correct Serial Number is",
+		statusv1.StatusIndication_STATUS_INDICATION_ERROR)
+}
+
+func HostRegistrationUUIDFailedWithDetails(detail string) inv_status.ResourceStatus {
+	return inv_status.New(
+		fmt.Sprintf("%s: %s", NewHostRegistrationUUIDFailed().Status, detail),
+		statusv1.StatusIndication_STATUS_INDICATION_ERROR,
+	)
+}
+
+func HostRegistrationSerialNumFailedWithDetails(detail string) inv_status.ResourceStatus {
+	return inv_status.New(
+		fmt.Sprintf("%s: %s", NewHostRegistrationSerialNumFailed().Status, detail),
+		statusv1.StatusIndication_STATUS_INDICATION_ERROR,
+	)
 }

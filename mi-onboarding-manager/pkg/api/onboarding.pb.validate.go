@@ -1497,10 +1497,10 @@ func (m *OnboardStreamRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if utf8.RuneCountInString(m.GetSerialnum()) > 128 {
+	if !_OnboardStreamRequest_Serialnum_Pattern.MatchString(m.GetSerialnum()) {
 		err := OnboardStreamRequestValidationError{
 			field:  "Serialnum",
-			reason: "value length must be at most 128 runes",
+			reason: "value does not match regex pattern \"^[A-Za-z0-9]{5,20}$\"",
 		}
 		if !all {
 			return err
@@ -1511,7 +1511,7 @@ func (m *OnboardStreamRequest) validate(all bool) error {
 	if !_OnboardStreamRequest_MacId_Pattern.MatchString(m.GetMacId()) {
 		err := OnboardStreamRequestValidationError{
 			field:  "MacId",
-			reason: "value does not match regex pattern \"^[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}$\"",
+			reason: "value does not match regex pattern \"^([0-9a-fA-F]{2}([-:])){5}[0-9a-fA-F]{2}$\"",
 		}
 		if !all {
 			return err
@@ -1618,7 +1618,9 @@ var _ interface {
 	ErrorName() string
 } = OnboardStreamRequestValidationError{}
 
-var _OnboardStreamRequest_MacId_Pattern = regexp.MustCompile("^[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}$")
+var _OnboardStreamRequest_Serialnum_Pattern = regexp.MustCompile("^[A-Za-z0-9]{5,20}$")
+
+var _OnboardStreamRequest_MacId_Pattern = regexp.MustCompile("^([0-9a-fA-F]{2}([-:])){5}[0-9a-fA-F]{2}$")
 
 var _OnboardStreamRequest_HostIp_Pattern = regexp.MustCompile("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$")
 

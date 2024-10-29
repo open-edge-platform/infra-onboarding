@@ -513,50 +513,6 @@ func (c *OnboardingInventoryClient) SetInstanceProvisioningStatus(ctx context.Co
 	})
 }
 
-func (c *OnboardingInventoryClient) updateHostMacID(ctx context.Context, tenantID string, host *computev1.HostResource) error {
-	return c.UpdateInvResourceFields(ctx, tenantID, host, []string{
-		computev1.HostResourceFieldPxeMac,
-	})
-}
-
-func (c *OnboardingInventoryClient) UpdateHostMacID(ctx context.Context, tenantID string, resourceID string,
-	macid string,
-) error {
-	h := &computev1.HostResource{
-		ResourceId: resourceID,
-		PxeMac:     macid,
-	}
-
-	err := c.updateHostMacID(ctx, tenantID, h)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *OnboardingInventoryClient) updateHostIP(ctx context.Context, tenantID string, host *computev1.HostResource) error {
-	return c.UpdateInvResourceFields(ctx, tenantID, host, []string{
-		computev1.HostResourceFieldBmcIp,
-	})
-}
-
-func (c *OnboardingInventoryClient) UpdateHostIP(ctx context.Context, tenantID string, resourceID string,
-	hostIP string,
-) error {
-	h := &computev1.HostResource{
-		ResourceId: resourceID,
-		BmcIp:      hostIP,
-	}
-
-	err := c.updateHostIP(ctx, tenantID, h)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (c *OnboardingInventoryClient) UpdateInstance(ctx context.Context, tenantID string, instanceID string,
 	currentState computev1.InstanceState,
 	provisioningStatus inv_status.ResourceStatus,
@@ -828,20 +784,29 @@ func (c *OnboardingInventoryClient) GetLicenseProviderConfig(
 	return &pconf, nil
 }
 
-func (c *OnboardingInventoryClient) UpdateHostCurrentState(ctx context.Context, tenantID string, resourceID string,
-	hostCurrentState computev1.HostState,
+func (c *OnboardingInventoryClient) UpdateHostRegState(ctx context.Context, tenantID string, resourceID string,
+	hostCurrentState computev1.HostState, hostIP string,
+	macid string,
+	registrationStatus inv_status.ResourceStatus,
 ) error {
 	h := &computev1.HostResource{
-		ResourceId:   resourceID,
-		CurrentState: hostCurrentState,
+		ResourceId:                  resourceID,
+		CurrentState:                hostCurrentState,
+		BmcIp:                       hostIP,
+		PxeMac:                      macid,
+		RegistrationStatus:          registrationStatus.Status,
+		RegistrationStatusIndicator: registrationStatus.StatusIndicator,
+		RegistrationStatusTimestamp: uint64(time.Now().Unix()), // #nosec G115
 	}
 
-	err := c.updateHostCurrentState(ctx, tenantID, h)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return c.UpdateInvResourceFields(ctx, tenantID, h, []string{
+		computev1.HostResourceFieldCurrentState,
+		computev1.HostResourceFieldBmcIp,
+		computev1.HostResourceFieldPxeMac,
+		computev1.HostResourceFieldRegistrationStatus,
+		computev1.HostResourceFieldRegistrationStatusIndicator,
+		computev1.HostResourceFieldRegistrationStatusTimestamp,
+	})
 }
 
 func (c *OnboardingInventoryClient) UpdateHostCurrentStateNOnboardStatus(ctx context.Context, tenantID string, resourceID string,
@@ -863,20 +828,30 @@ func (c *OnboardingInventoryClient) UpdateHostCurrentStateNOnboardStatus(ctx con
 	})
 }
 
-func (c *OnboardingInventoryClient) GetHostResourceBySerailNumber(
+func (c *OnboardingInventoryClient) GetHostResource(
 	ctx context.Context,
-	serialNumber string,
+	filterType string,
+	filterValue string,
 ) (*computev1.HostResource, error) {
-	// additional check for length is needed because .Parse() accepts other non-standard format (see function docs).
-	if len(serialNumber) != MaxSerialNumberLength {
-		return nil, inv_errors.Errorfc(codes.InvalidArgument, "invalid SerialNumber")
-	}
+	var filter *inv_v1.ResourceFilter
 
-	filter := &inv_v1.ResourceFilter{
-		Resource: &inv_v1.Resource{
-			Resource: &inv_v1.Resource_Host{},
-		},
-		Filter: fmt.Sprintf("%s = %q", computev1.HostResourceFieldSerialNumber, serialNumber),
+	switch filterType {
+	case computev1.HostResourceFieldUuid:
+		filter = &inv_v1.ResourceFilter{
+			Resource: &inv_v1.Resource{
+				Resource: &inv_v1.Resource_Host{},
+			},
+			Filter: fmt.Sprintf("%s = %q", computev1.HostResourceFieldUuid, filterValue),
+		}
+	case computev1.HostResourceFieldSerialNumber:
+		filter = &inv_v1.ResourceFilter{
+			Resource: &inv_v1.Resource{
+				Resource: &inv_v1.Resource_Host{},
+			},
+			Filter: fmt.Sprintf("%s = %q", computev1.HostResourceFieldSerialNumber, filterValue),
+		}
+	default:
+		return nil, inv_errors.Errorfc(codes.InvalidArgument, "invalid filter type")
 	}
 
 	return c.listAndReturnHost(ctx, filter)

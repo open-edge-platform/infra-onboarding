@@ -15,12 +15,12 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
-
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/compute/v1"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/auth"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/flags"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/policy/rbac"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/tenant"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/testing"
-
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -3009,9 +3009,11 @@ func TestNodeArtifactService_handleRegisteredState(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
+	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
 		stream  pb.NodeArtifactServiceNB_OnboardNodeStreamServer
 		hostInv *computev1.HostResource
+		req     *pb.OnboardStreamRequest
 	}
 	tests := []struct {
 		name    string
@@ -3023,7 +3025,7 @@ func TestNodeArtifactService_handleRegisteredState(t *testing.T) {
 			name: "negative",
 			fields: fields{
 				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
-				invClient:                                &invclient.OnboardingInventoryClient{},
+				invClient:                                om_testing.InvClient,
 				invClientAPI:                             &invclient.OnboardingInventoryClient{},
 				rbac:                                     &rbac.Policy{},
 				authEnabled:                              false,
@@ -3045,9 +3047,12 @@ func TestNodeArtifactService_handleRegisteredState(t *testing.T) {
 			},
 			args: args{
 				stream:  &art1,
-				hostInv: &computev1.HostResource{},
+				hostInv: host,
+				req: &pb.OnboardStreamRequest{
+					Uuid: "f9f8-434a-8620-bbed2a12b0ad",
+				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		// TODO: Add test cases.
 	}
@@ -3060,7 +3065,7 @@ func TestNodeArtifactService_handleRegisteredState(t *testing.T) {
 				rbac:                                     tt.fields.rbac,
 				authEnabled:                              tt.fields.authEnabled,
 			}
-			if err := s.handleRegisteredState(tt.args.stream, tt.args.hostInv); (err != nil) != tt.wantErr {
+			if err := s.handleRegisteredState(tt.args.stream, tt.args.hostInv, tt.args.req); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.handleRegisteredState() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -3171,6 +3176,351 @@ func TestNodeArtifactService_handleDefaultState(t *testing.T) {
 			}
 			if err := s.handleDefaultState(tt.args.stream); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.handleDefaultState() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestNodeArtifactServiceOnboardNodeStream(t *testing.T) {
+	type fields struct {
+		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
+		invClient                                *invclient.OnboardingInventoryClient
+		invClientAPI                             *invclient.OnboardingInventoryClient
+		rbac                                     *rbac.Policy
+		authEnabled                              bool
+	}
+	type args struct {
+		stream pb.NodeArtifactServiceNB_OnboardNodeStreamServer
+	}
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	host := inv_testing.CreateHost(t, nil, nil)
+	os.Setenv("ONBOARDING_MANAGER_CLIENT_NAME", "env")
+	os.Setenv("ONBOARDING_CREDENTIALS_SECRET_NAME", "env")
+	var art MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	art.On("Recv").Return(&pb.OnboardStreamRequest{}, errors.New("err"))
+	var art1 MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	currAuthServiceFactory := auth.AuthServiceFactory
+	currFlagDisableCredentialsManagement := *flags.FlagDisableCredentialsManagement
+	defer func() {
+		auth.AuthServiceFactory = currAuthServiceFactory
+		*flags.FlagDisableCredentialsManagement = currFlagDisableCredentialsManagement
+	}()
+	*flags.FlagDisableCredentialsManagement = false
+	auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(false, false, true)
+	art1.On("Send", mock.Anything).Return(nil)
+	art1.On("Recv").Return(&pb.OnboardStreamRequest{
+		Uuid:      host.Uuid,
+		Serialnum: host.SerialNumber,
+		MacId:     host.PxeMac,
+		HostIp:    host.BmcIp,
+	}, nil)
+	var art2 MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	art2.On("Send", mock.Anything).Return(nil)
+	art2.On("Recv").Return(&pb.OnboardStreamRequest{
+		Uuid:      host.Uuid,
+		Serialnum: host.SerialNumber,
+		MacId:     host.PxeMac,
+		HostIp:    host.BmcIp,
+	}, nil)
+	var art3 MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	art3.On("Send", mock.Anything).Return(nil)
+	art3.On("Recv").Return(&pb.OnboardStreamRequest{
+		Serialnum: host.SerialNumber,
+		Uuid:      host.Uuid,
+	}, nil)
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "OnboardNodeStream Negative Test Case",
+			fields: fields{
+				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
+				invClient:                                &invclient.OnboardingInventoryClient{},
+				invClientAPI:                             &invclient.OnboardingInventoryClient{},
+				rbac:                                     &rbac.Policy{},
+				authEnabled:                              false,
+			},
+			args: args{
+				stream: &art,
+			},
+			wantErr: true,
+		},
+		{
+			name: "OnboardNodeStream Positive Test Case",
+			fields: fields{
+				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
+				invClient:                                om_testing.InvClient,
+				invClientAPI:                             &invclient.OnboardingInventoryClient{},
+				rbac:                                     &rbac.Policy{},
+				authEnabled:                              false,
+			},
+			args: args{
+				stream: &art1,
+			},
+			wantErr: false,
+		},
+		{
+			name: "OnboardNodeStream current state as onboarded",
+			fields: fields{
+				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
+				invClient:                                om_testing.InvClient,
+				invClientAPI:                             &invclient.OnboardingInventoryClient{},
+				rbac:                                     &rbac.Policy{},
+				authEnabled:                              false,
+			},
+			args: args{
+				stream: &art2,
+			},
+			wantErr: false,
+		},
+		{
+			name: "OnboardNodeStream with uuid and serial number",
+			fields: fields{
+				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
+				invClient:                                om_testing.InvClient,
+				invClientAPI:                             &invclient.OnboardingInventoryClient{},
+				rbac:                                     &rbac.Policy{},
+				authEnabled:                              false,
+			},
+			args: args{
+				stream: &art3,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &NodeArtifactService{
+				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+				invClient:                                tt.fields.invClient,
+				invClientAPI:                             tt.fields.invClientAPI,
+				rbac:                                     tt.fields.rbac,
+				authEnabled:                              tt.fields.authEnabled,
+			}
+			if err := s.OnboardNodeStream(tt.args.stream); (err != nil) != tt.wantErr {
+				t.Errorf("NodeArtifactService.OnboardNodeStream() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+	defer func() {
+		os.Unsetenv("ONBOARDING_MANAGER_CLIENT_NAME")
+		os.Unsetenv("ONBOARDING_CREDENTIALS_SECRET_NAME")
+	}()
+}
+
+func TestNodeArtifactService_getHostResource(t *testing.T) {
+	type fields struct {
+		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
+		invClient                                *invclient.OnboardingInventoryClient
+		invClientAPI                             *invclient.OnboardingInventoryClient
+		rbac                                     *rbac.Policy
+		authEnabled                              bool
+	}
+	type args struct {
+		req *pb.OnboardStreamRequest
+	}
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	host := inv_testing.CreateHost(t, nil, nil)
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *computev1.HostResource
+		wantErr bool
+	}{
+		{
+			name: "getHostResource test case with uuid",
+			fields: fields{
+				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
+				invClient:                                om_testing.InvClient,
+				invClientAPI:                             &invclient.OnboardingInventoryClient{},
+				rbac:                                     &rbac.Policy{},
+				authEnabled:                              false,
+			},
+			args: args{
+				req: &pb.OnboardStreamRequest{
+					Uuid: "f9f8-434a-8620-bbed2a12b0ad",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "getHostResource test case with serial number",
+			fields: fields{
+				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
+				invClient:                                om_testing.InvClient,
+				invClientAPI:                             &invclient.OnboardingInventoryClient{},
+				rbac:                                     &rbac.Policy{},
+				authEnabled:                              false,
+			},
+			args: args{
+				req: &pb.OnboardStreamRequest{
+					Serialnum: "12345",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "getHostResource test case with serial number and host uuid",
+			fields: fields{
+				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
+				invClient:                                om_testing.InvClient,
+				invClientAPI:                             &invclient.OnboardingInventoryClient{},
+				rbac:                                     &rbac.Policy{},
+				authEnabled:                              false,
+			},
+			args: args{
+				req: &pb.OnboardStreamRequest{
+					Uuid:      host.Uuid,
+					Serialnum: "12345",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "getHostResource test case with empty request",
+			fields: fields{
+				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
+				invClient:                                om_testing.InvClient,
+				invClientAPI:                             &invclient.OnboardingInventoryClient{},
+				rbac:                                     &rbac.Policy{},
+				authEnabled:                              false,
+			},
+			args: args{
+				req: &pb.OnboardStreamRequest{},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &NodeArtifactService{
+				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+				invClient:                                tt.fields.invClient,
+				invClientAPI:                             tt.fields.invClientAPI,
+				rbac:                                     tt.fields.rbac,
+				authEnabled:                              tt.fields.authEnabled,
+			}
+			s.getHostResource(tt.args.req)
+		})
+	}
+}
+func TestNodeArtifactService_getHostResourcetest(t *testing.T) {
+	type fields struct {
+		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
+		invClient                                *invclient.OnboardingInventoryClient
+		invClientAPI                             *invclient.OnboardingInventoryClient
+		rbac                                     *rbac.Policy
+		authEnabled                              bool
+	}
+	type args struct {
+		req *pb.OnboardStreamRequest
+	}
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	// Create a host for testing
+	host1 := inv_testing.CreateHostWithArgs(t, "host-1", "44414747-3031-3052-b030-453347474122", "", "", nil, nil, true)
+	host2 := inv_testing.CreateHostWithArgs(t, "host-2", "", "ABCDEFG", "", nil, nil, true)
+	host3 := inv_testing.CreateHostWithArgs(t, "host-3", "44414747-3031-3052-b030-453347474166", "ABCDEHI", "", nil, nil, true)
+	//host4 := inv_testing.CreateHostWithArgs(t, "host-4", "", "", "", nil, nil, true)
+
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *computev1.HostResource
+		wantErr bool
+	}{
+		{
+			name: "getHostResource test case with uuid",
+			fields: fields{
+				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
+				invClient:                                om_testing.InvClient,
+				invClientAPI:                             &invclient.OnboardingInventoryClient{},
+				rbac:                                     &rbac.Policy{},
+				authEnabled:                              false,
+			},
+			args: args{
+				req: &pb.OnboardStreamRequest{
+					Uuid: "44414747-3031-3052-b030-453347474122",
+				},
+			},
+			want:    host1,
+			wantErr: false,
+		},
+		{
+			name: "getHostResource test case with serial number",
+			fields: fields{
+				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
+				invClient:                                om_testing.InvClient,
+				invClientAPI:                             &invclient.OnboardingInventoryClient{},
+				rbac:                                     &rbac.Policy{},
+				authEnabled:                              false,
+			},
+			args: args{
+				req: &pb.OnboardStreamRequest{
+					Serialnum: "ABCDEFG",
+				},
+			},
+			want:    host2,
+			wantErr: false,
+		},
+		{
+			name: "getHostResource test case with serial number and host uuid",
+			fields: fields{
+				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
+				invClient:                                om_testing.InvClient,
+				invClientAPI:                             &invclient.OnboardingInventoryClient{},
+				rbac:                                     &rbac.Policy{},
+				authEnabled:                              false,
+			},
+			args: args{
+				req: &pb.OnboardStreamRequest{
+					Uuid:      "44414747-3031-3052-b030-453347474166",
+					Serialnum: "ABCDEHI",
+				},
+			},
+			want:    host3,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &NodeArtifactService{
+				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+				invClient:                                tt.fields.invClient,
+				invClientAPI:                             tt.fields.invClientAPI,
+				rbac:                                     tt.fields.rbac,
+				authEnabled:                              tt.fields.authEnabled,
+			}
+			got, err := s.getHostResource(tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NodeArtifactService.getHostResource() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !tt.wantErr {
+				if got != tt.want {
+					t.Logf("Expected: %+v\n", tt.want)
+					t.Logf("Got: %+v\n", got)
+				}
+			} else {
+				if got != nil {
+					t.Logf("Expected result to be nil when there is an error, but got: %+v\n", got)
+				}
 			}
 		})
 	}

@@ -210,7 +210,7 @@ OnboardStreamRequest represents a request sent from EN to the OM
 | uuid | [string](#string) |  | The UUID of the EN being onboarded |
 | serialnum | [string](#string) |  | The serial number of the EN |
 | mac_id | [string](#string) |  | The MAC ID of the EN |
-| host_ip | [string](#string) |  | The IP of the EN |
+| host_ip | [string](#string) |  | The IP (IPv4 pattern) of the EN |
 
 
 
@@ -342,7 +342,6 @@ NodeState represents state of the device as stored in EIM Inventory
 | UNSPECIFIED | 0 | Node state is unspecified or unknown |
 | REGISTERED | 1 | Allow to retry, Node is registered but not yet onboarded |
 | ONBOARDED | 2 | Node successfully onboarded |
-| DELETED | 3 | The host should be removed from the system. |
 
 
  

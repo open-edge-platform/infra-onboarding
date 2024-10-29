@@ -1906,7 +1906,7 @@ func TestOnboardingInventoryClient_GetProviderConfig(t *testing.T) {
 	}
 }
 
-func TestOnboardingInventoryClient_updateHostMacID(t *testing.T) {
+func TestOnboardingInventoryClient_UpdateHostRegState(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
 	host := inv_testing.CreateHost(t, nil, nil)
@@ -1926,7 +1926,7 @@ func TestOnboardingInventoryClient_updateHostMacID(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "UpdateHostMacID_PositiveCase",
+			name: "UpdateHostDetailsByID_PositiveCase",
 			fields: fields{
 				Watcher: make(chan *client.WatchEvents),
 			},
@@ -1940,118 +1940,58 @@ func TestOnboardingInventoryClient_updateHostMacID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.updateHostMacID(tt.args.ctx, tt.args.tenantID, tt.args.host); (err != nil) != tt.wantErr {
+			if err := invClient.UpdateHostRegState(tt.args.ctx, tt.args.tenantID, tt.args.host.ResourceId, computev1.HostState_HOST_STATE_REGISTERED, "", "", om_status.HostRegistrationDone); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.updateHostMacID() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestOnboardingInventoryClient_UpdateHostMacID(t *testing.T) {
-	CreateOnboardingClientForTesting(t)
-	host := inv_testing.CreateHost(t, nil, nil)
-	invClient := OnboardingTestClient
+func TestOnboardingInventoryClient_GetHostResource(t *testing.T) {
 	type fields struct {
-		Client  client.InventoryClient
+		Client  client.TenantAwareInventoryClient
 		Watcher chan *client.WatchEvents
 	}
 	type args struct {
-		ctx        context.Context
-		resourceID string
-		tenantID   string
-		macid      string
+		ctx         context.Context
+		filterType  string
+		filterValue string
 	}
 	tests := []struct {
 		name    string
 		fields  fields
 		args    args
+		want    *computev1.HostResource
 		wantErr bool
 	}{
 		{
-			name: "UpdateHostMacID_PositiveCase",
+			name: "Test Case for empty filter",
 			fields: fields{
+				Client:  nil,
 				Watcher: make(chan *client.WatchEvents),
 			},
 			args: args{
-				ctx:        context.Background(),
-				tenantID:   host.GetTenantId(),
-				resourceID: host.ResourceId,
-				macid:      "123",
+				ctx:         context.Background(),
+				filterType:  "",
+				filterValue: "",
 			},
-			wantErr: false,
-		},
-		{
-			name: "UpdateHostMacID_NegativeCase",
-			fields: fields{
-				Watcher: make(chan *client.WatchEvents),
-			},
-			args: args{
-				ctx:        context.Background(),
-				resourceID: "",
-				macid:      "",
-			},
+			want:    nil,
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.UpdateHostMacID(tt.args.ctx, tt.args.tenantID, tt.args.resourceID, tt.args.macid); (err != nil) != tt.wantErr {
-				t.Errorf("OnboardingInventoryClient.UpdateHostMacID() error = %v, wantErr %v", err, tt.wantErr)
+			c := &OnboardingInventoryClient{
+				Client:  tt.fields.Client,
+				Watcher: tt.fields.Watcher,
 			}
-		})
-	}
-}
-
-func TestOnboardingInventoryClient_UpdateHostIP(t *testing.T) {
-	CreateOnboardingClientForTesting(t)
-	host := inv_testing.CreateHost(t, nil, nil)
-	invClient := OnboardingTestClient
-	type fields struct {
-		Client  client.InventoryClient
-		Watcher chan *client.WatchEvents
-	}
-	type args struct {
-		ctx        context.Context
-		resourceID string
-		tenantID   string
-		hostIP     string
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "UpdateHostIP_WithValidData",
-			fields: fields{
-				Watcher: make(chan *client.WatchEvents),
-			},
-			args: args{
-				ctx:        context.Background(),
-				tenantID:   host.GetTenantId(),
-				resourceID: host.ResourceId,
-				hostIP:     "123",
-			},
-			wantErr: false,
-		},
-		{
-			name: "UpdateHostIP_InvalidData",
-			fields: fields{
-				Watcher: make(chan *client.WatchEvents),
-			},
-			args: args{
-				ctx:        context.Background(),
-				resourceID: "",
-				hostIP:     "",
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.UpdateHostIP(tt.args.ctx, tt.args.tenantID, tt.args.resourceID, tt.args.hostIP); (err != nil) != tt.wantErr {
-				t.Errorf("OnboardingInventoryClient.UpdateHostIP() error = %v, wantErr %v", err, tt.wantErr)
+			got, err := c.GetHostResource(tt.args.ctx, tt.args.filterType, tt.args.filterValue)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("OnboardingInventoryClient.GetHostResource() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("OnboardingInventoryClient.GetHostResource() = %v, want %v", got, tt.want)
 			}
 		})
 	}

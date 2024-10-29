@@ -180,7 +180,7 @@ func (s *NodeArtifactService) receiveFromStream(stream pb.NodeArtifactServiceNB_
 
 // handleRegisteredState  processes the REGISTERED state.
 func (s *NodeArtifactService) handleRegisteredState(stream pb.NodeArtifactServiceNB_OnboardNodeStreamServer,
-	hostInv *computev1.HostResource,
+	hostInv *computev1.HostResource, req *pb.OnboardStreamRequest,
 ) error {
 	response := &pb.OnboardStreamResponse{
 		Status:    &google_rpc.Status{Code: int32(codes.OK)},
@@ -189,10 +189,16 @@ func (s *NodeArtifactService) handleRegisteredState(stream pb.NodeArtifactServic
 	if err := sendOnboardStreamResponse(stream, response); err != nil {
 		return err
 	}
-	// make the current state to registered
-	err := s.invClient.UpdateHostCurrentState(context.Background(), hostInv.GetTenantId(),
-		hostInv.ResourceId, computev1.HostState_HOST_STATE_REGISTERED)
+
+	// Update the host details, state, and registration status
+	err := s.invClient.UpdateHostRegState(context.Background(),
+		hostInv.GetTenantId(),
+		hostInv.ResourceId,
+		computev1.HostState_HOST_STATE_REGISTERED, req.HostIp,
+		req.MacId,
+		inv_status.New(om_status.HostRegistrationDone.Status, om_status.HostRegistrationDone.StatusIndicator))
 	if err != nil {
+		zlog.Error().Err(err).Msgf("Update failed for host resource id %v", hostInv.ResourceId)
 		return err
 	}
 	return nil
@@ -235,11 +241,135 @@ func (s *NodeArtifactService) handleOnboardedState(stream pb.NodeArtifactService
 func (s *NodeArtifactService) handleDefaultState(stream pb.NodeArtifactServiceNB_OnboardNodeStreamServer) error {
 	return sendOnboardStreamResponse(stream, &pb.OnboardStreamResponse{
 		Status: &google_rpc.Status{
-			Code:    int32(codes.Unknown),
-			Message: "The node state is unspecified or unknown.",
+			Code:    int32(codes.FailedPrecondition),
+			Message: "The node state is unspecified",
 		},
 		NodeState: pb.OnboardStreamResponse_UNSPECIFIED,
 	})
+}
+
+//nolint:cyclop,funlen // reason: function is long due to necessary logic; cyclomatic complexity is high due to necessary handling
+func (s *NodeArtifactService) getHostResource(req *pb.OnboardStreamRequest) (*computev1.HostResource, error) {
+	var hostResource *computev1.HostResource
+	var serialNumberMatch, uuidMatch bool
+	var hostResourceByUUID, hostResourceBySN *computev1.HostResource
+
+	// Check if UUID is provided
+	if req.Uuid != "" {
+		var errUUID error
+		hostResourceByUUID, errUUID = s.invClient.GetHostResource(context.Background(), computev1.HostResourceFieldUuid, req.Uuid)
+		if errUUID != nil {
+			if inv_errors.IsNotFound(errUUID) {
+				zlog.Error().Err(errUUID).Msgf("Node doesn't exist for UUID: %v", req.Uuid)
+			} else {
+				zlog.Error().Err(errUUID).Msgf("Error retrieving host resource by UUID: %v", req.Uuid)
+				return nil, inv_errors.Errorfc(codes.Internal, "Error retrieving host resource by UUID")
+			}
+		} else {
+			uuidMatch = true
+			hostResource = hostResourceByUUID
+			zlog.Info().Msgf("Node exists for UUID %v", req.Uuid)
+
+			// Check the associated serial number
+			if hostResource.SerialNumber == "" {
+				zlog.Info().Msgf("Proceeding with registration for UUID %v with no Serial Number in inventory", req.Uuid)
+				return hostResource, nil
+			}
+		}
+	}
+
+	// Check if Serial Number is provided
+	if req.Serialnum != "" {
+		var errSN error
+		hostResourceBySN, errSN = s.invClient.GetHostResource(
+			context.Background(),
+			computev1.HostResourceFieldSerialNumber,
+			req.Serialnum,
+		)
+		if errSN != nil {
+			if inv_errors.IsNotFound(errSN) {
+				zlog.Error().Err(errSN).Msgf("Node doesn't exist for serial number: %v", req.Serialnum)
+			} else {
+				zlog.Error().Err(errSN).Msgf("Error retrieving host resource by serial number: %v", req.Serialnum)
+				return nil, inv_errors.Errorfc(codes.Internal, "Error retrieving host resource by serial number")
+			}
+		} else {
+			serialNumberMatch = true
+			if hostResource == nil {
+				hostResource = hostResourceBySN
+			}
+			zlog.Info().Msgf("Node exists for serial number %v", req.Serialnum)
+
+			if hostResource.Uuid == "" {
+				zlog.Info().Msgf("Proceeding with registration for Serial Number %v with no UUID in inventory", req.Serialnum)
+				return hostResource, nil
+			}
+		}
+	}
+
+	// Handle mismatches between the two resources
+	if uuidMatch && serialNumberMatch {
+		// Ensure both resources are not nil
+		if hostResourceByUUID != nil && hostResourceBySN != nil {
+			if hostResourceByUUID.ResourceId != hostResourceBySN.ResourceId {
+				zlog.Warn().Msgf("Mismatch: UUID %v and Serial Number %v refer to different resources", req.Uuid, req.Serialnum)
+				return nil, inv_errors.Errorfc(codes.InvalidArgument, "UUID and Serial Number refer to different resources")
+			}
+			// Set hostResource to one of them (either works)
+			hostResource = hostResourceByUUID // or hostResourceBySN, both are the same in this case
+		} else {
+			zlog.Warn().Msg("One of the resources is nil while checking for UUID and Serial Number match")
+			return nil, inv_errors.Errorfc(codes.Internal, "Error: One of the host resources is nil")
+		}
+	}
+
+	// Handle cases based on matches found
+	if (uuidMatch && !serialNumberMatch) || (!uuidMatch && serialNumberMatch) {
+		var detail string
+		var status inv_status.ResourceStatus
+		var errorType string
+
+		if !serialNumberMatch {
+			detail = req.Serialnum
+			status = om_status.HostRegistrationSerialNumFailedWithDetails(detail)
+			errorType = computev1.HostResourceFieldSerialNumber
+			zlog.Error().Msgf("Node doesn't exist for serial number: %v", detail)
+		} else {
+			detail = req.Uuid
+			status = om_status.HostRegistrationUUIDFailedWithDetails(detail)
+			errorType = computev1.HostResourceFieldUuid
+			zlog.Error().Msgf("Node doesn't exist for UUID: %v", detail)
+		}
+
+		// Update host details if hostResource is not nil
+		if hostResource != nil {
+			if updateErr := s.invClient.UpdateHostRegState(context.Background(), hostResource.GetTenantId(),
+				hostResource.ResourceId, hostResource.CurrentState, "", "", status,
+			); updateErr != nil {
+				return nil, updateErr
+			}
+		}
+		// Return a NotFound error with relevant details
+		return nil, inv_errors.Errorfc(codes.NotFound, "Node doesn't exist for %s: %v", errorType, detail)
+	}
+
+	if uuidMatch && serialNumberMatch {
+		zlog.Info().Msgf("Both UUID and Serial Number match: %v", hostResource)
+		return hostResource, nil // Return the matched host resource
+	}
+
+	// If both UUID and serial number are not found
+	if !uuidMatch && !serialNumberMatch {
+		zlog.Info().Msg("Device not found for provided UUID and Serial Number")
+		return nil, inv_errors.Errorfc(
+			codes.NotFound,
+			"Device not found for both UUID: %v and Serial Number: %v",
+			req.Uuid,
+			req.Serialnum,
+		)
+	}
+
+	return hostResource, nil
 }
 
 //nolint:funlen,cyclop // reason: function is long due to necessary logic; cyclomatic complexity is high due to necessary handling
@@ -247,6 +377,7 @@ func (s *NodeArtifactService) OnboardNodeStream(stream pb.NodeArtifactServiceNB_
 	zlog.Info().Msgf("OnboardNodeStream started")
 
 	var hostInv *computev1.HostResource
+
 	var startZeroTouchAfterClose bool // Flag to start zero touch after closing the stream
 
 	// Start zero-touch process when the stream closes
@@ -274,66 +405,25 @@ func (s *NodeArtifactService) OnboardNodeStream(stream pb.NodeArtifactServiceNB_
 			return sendStreamErrorResponse(stream, codes.InvalidArgument, reqValidateerr.Error())
 		}
 
-		// Check if the Serial Number already exists when UUID is empty
-		if req.Uuid == "" {
-			hostResource, errGetSN := s.invClient.GetHostResourceBySerailNumber(context.Background(),
-				req.Serialnum)
-			if errGetSN == nil {
-				// If serial number exists in the system.
-				zlog.Info().Msgf("Node %v exists for serial number %v", hostResource.Uuid, req.Serialnum)
-				return sendStreamErrorResponse(stream, codes.AlreadyExists, "Serial number already exists")
-			}
-			zlog.Error().Err(errGetSN).Msgf("Error retrieving host resource by serial number: %v", req.Serialnum)
-			return sendStreamErrorResponse(stream, codes.Internal, errGetSN.Error())
-		}
-
-		// Process the request based on sequence diagram
-		// Process the request and look up the host state using
-		// the UUID from the request.
-
-		// 1. If the UUID provided by the EN is not found in the inventory
-		hostInv, err = s.invClient.GetHostResourceByUUID(context.Background(), req.Uuid)
-		tenantID := hostInv.GetTenantId()
-
+		// Retrieves the host resource based on UUID or Serial Number.
+		hostInv, err = s.getHostResource(req)
 		if err != nil {
-			zlog.Info().Msgf("Node Doesn't Exist for UUID %v\n", req.Uuid)
-			// The server sends the Device "NotFound" grpc code over the stream
-			// and continues to keep the stream open
-			// The EN close the stream from its side and then proceed to invoke
-			// the unary gRPC API for IO processing
-			if errdevNotFound := sendStreamErrorResponse(stream, codes.NotFound, err.Error()); errdevNotFound != nil {
-				zlog.Error().Err(errdevNotFound).Msg("Failed to send 'NotFound' error response on the stream")
-				return errdevNotFound
+			if inv_errors.IsNotFound(err) {
+				zlog.Error().Err(err).Msg("Device not found")
+				if errdevNotFound := sendStreamErrorResponse(stream, codes.NotFound,
+					"Device not found"); errdevNotFound != nil {
+					zlog.Error().Err(errdevNotFound).Msg("Failed to send 'NotFound' error response on the stream")
+					return errdevNotFound
+				}
+				continue
 			}
-			continue // The stream remains open, waiting for the client to close it
-		}
-
-		// Only update MAC ID if it's empty or differs from the incoming request
-		if hostInv.PxeMac == "" || hostInv.PxeMac != req.GetMacId() {
-			macAddress := req.GetMacId()
-			errupdatemacStatus := s.invClient.UpdateHostMacID(context.Background(), tenantID, hostInv.ResourceId, macAddress)
-			if errupdatemacStatus != nil {
-				zlog.Error().Err(errupdatemacStatus).Msg("Failed to update host MAC ID")
-				return errupdatemacStatus
+			zlog.Error().Err(err).Msg("Internal server error")
+			if errInternal := sendStreamErrorResponse(stream, codes.Internal,
+				"Internal server error"); errInternal != nil {
+				zlog.Error().Err(errInternal).Msg("Failed to send 'Internal' error response on the stream")
+				return errInternal
 			}
-			zlog.Info().Msgf("MAC ID updated to %s for resource %s", macAddress, hostInv.ResourceId)
-		} else {
-			zlog.Info().Msgf("MAC ID %s already set for resource %s, skipping update.",
-				hostInv.PxeMac, hostInv.ResourceId)
-		}
-
-		// Only update hostip if it's empty or differs from the incoming request
-		if hostInv.BmcIp == "" || hostInv.BmcIp != req.GetHostIp() {
-			bmcIP := req.GetHostIp()
-			errUpdateBmcStatus := s.invClient.UpdateHostIP(context.Background(), tenantID, hostInv.ResourceId, bmcIP)
-			if errUpdateBmcStatus != nil {
-				zlog.Error().Err(errUpdateBmcStatus).Msg("Failed to update host BMC IP")
-				return errUpdateBmcStatus
-			}
-			zlog.Info().Msgf("Host IP updated to %s for resource %s", bmcIP, hostInv.ResourceId)
-		} else {
-			zlog.Info().Msgf("Host IP %s already set for resource %s, skipping update.",
-				hostInv.BmcIp, hostInv.ResourceId)
+			return nil // Close the stream
 		}
 
 		// 2. If the UUID is found but the current state is ONBOARDED or ERROR,
@@ -359,7 +449,7 @@ func (s *NodeArtifactService) OnboardNodeStream(stream pb.NodeArtifactServiceNB_
 		// Allow the EN to retry but do not close the stream.
 		// Assume SI initalially configure desiredstate as REGISTERED
 		case computev1.HostState_HOST_STATE_REGISTERED:
-			if err := s.handleRegisteredState(stream, hostInv); err != nil {
+			if err := s.handleRegisteredState(stream, hostInv, req); err != nil {
 				return err
 			}
 			// continue to keep the stream open when the EN is in the REGISTERED state,

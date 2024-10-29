@@ -146,10 +146,10 @@ message OnboardStreamRequest {
   // The UUID of the EN being onboarded
   string uuid = 1 [(validate.rules).string.uuid = true];
   // The serial number of the EN
-  string serialnum = 2 [(validate.rules).string = {max_len: 128}];
+  string serialnum = 2 [(validate.rules).string.pattern = "^[A-Za-z0-9]{5,20}$"];
   // The MAC ID of the EN
-  string mac_id = 3 [(validate.rules).string.pattern = "^[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}([-:])[0-9a-fA-F]{2}$"];
-  // The IP of the EN
+  string mac_id = 3 [(validate.rules).string.pattern = "^([0-9a-fA-F]{2}([-:])){5}[0-9a-fA-F]{2}$"];
+  // The IP (IPv4 pattern) of the EN
   string host_ip = 4 [(validate.rules).string.pattern = "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"];
 }
 
@@ -161,7 +161,6 @@ message OnboardStreamResponse {
     UNSPECIFIED = 0; // Node state is unspecified or unknown
     REGISTERED = 1; // Allow to retry, Node is registered but not yet onboarded
     ONBOARDED = 2; // Node successfully onboarded
-    DELETED = 3; // The host should be removed from the system.
   }
   google.rpc.Status status = 1; // The status of the onboarding request
   NodeState node_state = 2; // The current state of the device as stored in EIM Inventory
