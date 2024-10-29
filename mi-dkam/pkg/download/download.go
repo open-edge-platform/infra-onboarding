@@ -8,9 +8,6 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/util"
-	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/os/v1"
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -19,6 +16,10 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/util"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/os/v1"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/errors"
 
 	"gopkg.in/yaml.v2"
 
@@ -54,9 +55,6 @@ var client = &http.Client{
 		IdleConnTimeout:   30,
 	},
 }
-
-// Extract the digest value from the appropriate layer
-var res Response
 
 type File struct {
 	Description string `yaml:"description"`
@@ -386,6 +384,7 @@ func DownloadArtifacts(targetDir string, tag string, manifestTag string) error {
 }
 
 func GetReleaseServerResponse(url string) Response {
+	var res Response
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		zlog.MiSec().Error().Err(err).Msgf("Error making get request: %v\n", err)
