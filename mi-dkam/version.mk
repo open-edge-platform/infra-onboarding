@@ -5,23 +5,23 @@
 
 # Tools versions
 GOLINTVERSION_HAVE             := $(shell golangci-lint version | sed 's/.*version //' | sed 's/ .*//')
-GOLINTVERSION_REQ              := 1.54.2
+GOLINTVERSION_REQ              := 1.61.0
 GOJUNITREPORTVERSION_HAVE      := $(shell go-junit-report -version | sed s/.*" v"// | sed 's/ .*//')
-GOJUNITREPORTVERSION_REQ       := 1.0.0
+GOJUNITREPORTVERSION_REQ       := 2.1.0
 PROTOCGENDOCVERSION_HAVE       := $(shell protoc-gen-doc --version | sed s/.*"version "// | sed 's/ .*//')
 PROTOCGENDOCVERSION_REQ        := 1.5.1
 BUFVERSION_HAVE                := $(shell buf --version)
-BUFVERSION_REQ                 := 1.27.1
+BUFVERSION_REQ                 := 1.45.0
 OPAVERSION_HAVE                := $(shell opa version | grep "Version:" | grep -v "Go" | sed 's/.*Version: //')
-OPAVERSION_REQ                 := 0.49.0
-GOVERSION_REQ                  := 1.21.13
+OPAVERSION_REQ                 := 0.69.0
+GOVERSION_REQ                  := 1.23.2
 GOVERSION_HAVE                 := $(shell go version | sed 's/.*version go//' | sed 's/ .*//')
 MOCKGENVERSION_HAVE            := $(shell mockgen -version | sed s/.*"v"// | sed 's/ .*//')
 MOCKGENVERSION_REQ             := 1.6.0
 # No version reported
 GOCOBERTURAVERSION_REQ         := 1.2.0
-PROTOCGENENTVERSION_REQ        := 0.3.0
-POSTGRES_VERSION               := 14.9
+PROTOCGENENTVERSION_REQ        := 0.6.0
+POSTGRES_VERSION               := 16.4
 
 dependency-check: ## check versions of installed tools against recommended versions
 	@(echo "$(GOVERSION_HAVE)" | grep "$(GOVERSION_REQ)" > /dev/null) || \
