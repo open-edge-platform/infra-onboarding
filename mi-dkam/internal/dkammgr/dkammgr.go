@@ -171,6 +171,13 @@ func GetScriptDir() string {
 
 func DownloadOS(ctx context.Context, osRes *osv1.OperatingSystemResource) error {
 	zlog.Info().Msgf("Inside DownloadOS...")
+
+	if osRes.GetOsProvider() != osv1.OsProviderKind_OS_PROVIDER_KIND_EIM {
+		zlog.Debug().Msgf("Skipping OS download for %s due to OS provider kind: %s",
+			osRes.GetResourceId(), osRes.GetOsProvider().String())
+		return nil
+	}
+
 	imageURL := osRes.GetImageUrl()
 	zlog.Info().Msgf("imageURL %s", imageURL)
 	targetDir := config.PVC
