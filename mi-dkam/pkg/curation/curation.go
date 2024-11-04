@@ -295,10 +295,10 @@ func CreateCloudCfgScript(pwd string, osRes *osv1.OperatingSystemResource) error
 	ntpServer := os.Getenv("NTP_SERVERS")
 
 	//Firewall configurations
-	// firewallReqAllow := os.Getenv("FIREWALL_REQ_ALLOW")
-	// zlog.Info().Msg(firewallReqAllow)
-	// firewallCfgAllow := os.Getenv("FIREWALL_CFG_ALLOW")
-	// zlog.Info().Msg(firewallCfgAllow)
+	firewallReqAllow := os.Getenv("FIREWALL_REQ_ALLOW")
+	zlog.Info().Msg(firewallReqAllow)
+	firewallCfgAllow := os.Getenv("FIREWALL_CFG_ALLOW")
+	zlog.Info().Msg(firewallCfgAllow)
 	caexists, err := PathExists("/etc/ssl/orch-ca-cert/ca.crt")
 	if err != nil {
 		zlog.MiSec().Info().Msgf("Error checking path %v", err)
@@ -439,6 +439,22 @@ func CreateCloudCfgScript(pwd string, osRes *osv1.OperatingSystemResource) error
 	} else {
 		zlog.MiSec().Info().Msg("Its not a internal deployment")
 	}
+	zlog.MiSec().Debug().Msgf("Starting modifying iptables Rules")
+
+	// Parse each rule map into a Rule struct
+	rules, err := ParseJSONUfwRules(firewallReqAllow)
+	if err != nil {
+		zlog.MiSec().MiErr(err).Msgf("Error while un-marshaling the Iptables req firewall Rules")
+	}
+	rules2, err := ParseJSONUfwRules(firewallCfgAllow)
+	if err != nil {
+		zlog.MiSec().MiErr(err).Msgf("Error while un-marshaling the Iptables cfg firewall Rules")
+	}
+	ipTablesCommands := make([]string, len(rules)+len(rules2))
+	for i, rule := range append(rules, rules2...) {
+		ipTablesCommands[i] = "    " + GenerateIptablesCommand(rule)
+	}
+	AddProxies(cfgFileName, ipTablesCommands, "#enabling firewall")
 	return nil
 }
 
@@ -916,6 +932,59 @@ func GenerateUFWCommand(rule Rule) string {
 			} else {
 				return fmt.Sprintf("echo Firewall rule not set %d", 0)
 			}
+		}
+	}
+}
+
+func GenerateIptablesCommand(rule Rule) string {
+	ipAddr := ""
+	const indent = "                "
+	if rule.SourceIp != "" {
+		ip := net.ParseIP(rule.SourceIp)
+		if ip == nil {
+			ipAddr = "$(dig +short " + rule.SourceIp + " | tail -n1)"
+		} else {
+			ipAddr = rule.SourceIp
+		}
+	}
+	portsList := strings.Split(rule.Ports, ",")
+	if rule.Protocol != "" {
+		if len(portsList) > 0 && portsList[0] != "" {
+			commands := []string{}
+			for _, port := range portsList {
+				port = strings.TrimSpace(port)
+				if ipAddr != "" {
+					commands = append(commands, fmt.Sprintf(indent+"iptables -A INPUT -p %s -s %s --dport %s -j ACCEPT", rule.Protocol, ipAddr, port))
+				} else {
+					commands = append(commands, fmt.Sprintf(indent+"iptables -A INPUT -p %s --dport %s -j ACCEPT", rule.Protocol, port))
+				}
+			}
+			return strings.Join(commands, "\n")
+		} else {
+			if ipAddr != "" {
+				return fmt.Sprintf(indent+"iptables -A INPUT -p %s -s %s -j ACCEPT", rule.Protocol, ipAddr)
+			}
+			return fmt.Sprintf(indent+"iptables -A INPUT -p %s -j ACCEPT", rule.Protocol)
+		}
+	} else {
+		if len(portsList) > 0 && portsList[0] != "" {
+			commands := []string{}
+			for _, port := range portsList {
+				port = strings.TrimSpace(port)
+				if ipAddr != "" {
+					commands = append(commands, fmt.Sprintf(indent+"iptables -A INPUT -p tcp -s %s --dport %s -j ACCEPT", ipAddr, port))
+					commands = append(commands, fmt.Sprintf(indent+"iptables -A INPUT -p udp -s %s --dport %s -j ACCEPT", ipAddr, port))
+				} else {
+					commands = append(commands, fmt.Sprintf(indent+"iptables -A INPUT -p tcp --dport %s -j ACCEPT", port))
+					commands = append(commands, fmt.Sprintf(indent+"iptables -A INPUT -p udp --dport %s -j ACCEPT", port))
+				}
+			}
+			return strings.Join(commands, "\n")
+		} else {
+			if ipAddr != "" {
+				return fmt.Sprintf(indent+"iptables -A INPUT -p tcp -s %s -j ACCEPT\n%siptables -A INPUT -p udp -s %s -j ACCEPT", ipAddr, indent, ipAddr)
+			}
+			return "echo Firewall rule not set"
 		}
 	}
 }
