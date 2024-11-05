@@ -31,9 +31,9 @@ BOOTX_LOC=$PWD/BOOTX64.efi
 RSA_KEY_SIZE=4096
 HASH_SIZE=512
 tinkerbell_owner=${load_balancer_ip:-localhost}
-http_proxy="${http_proxy:-}"
-https_proxy="${https_proxy:-}"
-no_proxy="${no_proxy:-}"
+en_http_proxy="${en_http_proxy:-}"
+en_https_proxy="${en_https_proxy:-}"
+en_no_proxy="${en_no_proxy:-}"
 #mac_address_current_device=$(cat /proc/cmdline | grep -o "instance_id=..:..:..:..:..:.. " | awk ' {split($0,a,"="); print a[2]} ')
 #
 mac_address_current_device="net_default_mac_user"
@@ -45,7 +45,7 @@ configfile net loadenv"
 
 EXTRA_TINK_OPTIONS="tinkerbell=http://$tinkerbell_owner syslog_host=$tinkerbell_owner packet_action=workflow console=ttyS1,11520 tink_worker_image=quay.io/tinkerbell/tink-worker:v0.8.0 grpc_authority=$tinkerbell_owner:42113 packet_base_url=http://$tinkerbell_owner:8080/workflow tinkerbell_tls=false instance_id=\${$mac_address_current_device} worker_id=\${$mac_address_current_device} packet_bootdev_mac=\${$mac_address_current_device} facility=sandbox"
 
-EXTRA_TINK_OPTIONS_PROXY="http_proxy=$http_proxy https_proxy=$https_proxy no_proxy=$no_proxy HTTP_PROXY=$http_proxy HTTPS_PROXY=$https_proxy NO_PROXY=$no_proxy"
+EXTRA_TINK_OPTIONS_PROXY="http_proxy=$en_http_proxy https_proxy=$en_https_proxy no_proxy=$en_no_proxy HTTP_PROXY=$en_http_proxy HTTPS_PROXY=$en_https_proxy NO_PROXY=$en_no_proxy"
 ######
 
 create_grub_image() {

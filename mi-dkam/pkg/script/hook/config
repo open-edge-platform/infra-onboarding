@@ -52,11 +52,11 @@ tink_server_svc="__tink_server_svc__"
 onboarding_manager_svc="__onboarding_manager_svc__"
 onboarding_stream_svc="__onboarding_stream_svc__"
 ## Organizationonal proxy config (default is intel)
-http_proxy="__http_proxy__"
-https_proxy="__https_proxy__"
-ftp_proxy="__ftp_proxy__"
-socks_proxy="__socks_proxy__"
-no_proxy="__no_proxy__"
+en_http_proxy="__http_proxy__"
+en_https_proxy="__https_proxy__"
+en_ftp_proxy="__ftp_proxy__"
+en_socks_proxy="__socks_proxy__"
+en_no_proxy="__no_proxy__"
 
 ####################################################################################
 ### Advanced configurations

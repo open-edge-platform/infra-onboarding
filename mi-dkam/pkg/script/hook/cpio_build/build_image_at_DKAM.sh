@@ -49,8 +49,9 @@ create_env_config() {
 	tink_server_svc="${tink_server_svc:-}"
 	onboarding_manager_svc="${onboarding_manager_svc:-}"
 	onboarding_stream_svc="${onboarding_stream_svc:-}"
-	http_proxy="${http_proxy:-}"
-	no_proxy="${no_proxy:-}"
+	en_http_proxy="${en_http_proxy:-}"
+	en_no_proxy="${en_no_proxy:-}"
+	
     if [ -n "$fdo_manufacturer_svc" ];
     then
 	{
@@ -78,12 +79,12 @@ create_env_config() {
     fi
 
     # Add proxy configs
-    if [ -n "$https_proxy" ];
+    if [ -n "$en_https_proxy" ];
     then
 	{
-	echo -e "http_proxy=$http_proxy" 
-	echo -e "https_proxy=$https_proxy" 
-	echo -e "no_proxy=$no_proxy" 
+	echo -e "http_proxy=$en_http_proxy" 
+	echo -e "https_proxy=$en_https_proxy" 
+	echo -e "no_proxy=$en_no_proxy" 
 	} >> "$LOCATION_OF_ENV_CONFIG"
     fi	
 }
@@ -120,6 +121,7 @@ get_cert(){
 	#Intel CA
 	echo "$mode"
 	if [ "$mode" == "dev" ]; then
+		#echo "no proxy is: ${no_proxy}"
 		echo "mode:"
 		echo "" >> "$IDP"/ca.pem
 		mkdir temp
