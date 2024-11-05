@@ -30,7 +30,7 @@ enable_tty0() {
     echo 'False' > /tty0_status_pass
     echo "Provide Username and password for the IDP" >> "$log_file"
 
-    setsid /bin/sh -c "echo 'Provide Username and password for the IDP' <> /dev/tty0 >&0 2>&1"
+	setsid /bin/sh -c "echo -e '\nProvide Username and password for the IDP' <> /dev/tty0 >&0 2>&1"
     setsid /bin/sh -c 'read -p "Username: " username <> /dev/tty0 >&0 2>&1 && [ ! -z "$username" ] && echo $username > /idp_username && echo "True" > /tty0_status_user'
     setsid /bin/sh -c 'read -s -p "Password: " password <> /dev/tty0 >&0 2>&1 && [ ! -z "$password" ] && echo $password > /idp_password  && echo "True" > /tty0_status_pass'
     setsid /bin/sh -c "echo -e '\nUsername, Password received: Processing' <> /dev/tty0 >&0 2>&1"
@@ -50,10 +50,9 @@ enable_tty0() {
 enable_ttyS0() {
     echo 'False' > /ttys0_status_user
     echo 'False' > /ttys0_status_pass
-    setsid -w /usr/sbin/getty -a root -L 115200 $tty vt100 &
-    echo "Provide Username and password for the IDP" >> "$log_file"
 
-    setsid /bin/sh -c "echo 'Provide Username and password for the IDP' <> /dev/ttyS0 >&0 2>&1"
+    echo "Provide Username and password for the IDP" >> "$log_file"
+	setsid /bin/sh -c "echo -e '\nProvide Username and password for the IDP' <> /dev/ttyS0 >&0 2>&1"
     setsid /bin/sh -c 'read -p "Username: " username <> /dev/ttyS0 >&0 2>&1 && [ ! -z "$username" ] && echo $username > /idp_username && echo "True" > /ttys0_status_user'
     setsid /bin/sh -c 'read -s -p "Password: " password <> /dev/ttyS0 >&0 2>&1 && [ ! -z "$password" ] && echo $password > /idp_password  && echo "True" > /ttys0_status_pass'
     setsid /bin/sh -c "echo -e '\nUsername, Password received: Processing' <> /dev/ttyS0 >&0 2>&1"
@@ -77,7 +76,7 @@ enable_ttyS1() {
     echo 'False' > /ttys1_status_user
     echo 'False' > /ttys1_status_pass
     echo "Provide Username and password for the IDP" >> "$log_file"
-    setsid /bin/sh -c "echo 'Provide Username and password for the IDP' <> /dev/ttyS1 >&0 2>&1"
+	setsid /bin/sh -c "echo -e '\nProvide Username and password for the IDP' <> /dev/ttyS1 >&0 2>&1"
     setsid /bin/sh -c 'read -p "Username: " username <> /dev/ttyS1 >&0 2>&1 && [ ! -z "$username" ] && echo $username > /idp_username && echo "True" > /ttys1_status_user'
     setsid /bin/sh -c 'read -s -p "Password: " password <> /dev/ttyS1 >&0 2>&1 && [ ! -z "$password" ] && echo $password > /idp_password  && echo "True" > /ttys1_status_pass'
     setsid /bin/sh -c "echo -e '\nUsername, Password received: Processing' <> /dev/ttyS1 >&0 2>&1"

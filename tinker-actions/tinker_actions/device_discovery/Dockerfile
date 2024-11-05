@@ -10,8 +10,8 @@
 # or implied warranties, other than those that are expressly stated in the License. #
 #####################################################################################
 
-# Start from the official Alpine image
-FROM alpine:3.19
+# Start from the getty:v1.0.0 as base
+FROM linuxkit/getty:v1.0.0
 
 # Install dmidecode
 RUN apk update && apk add --no-cache dmidecode util-linux ca-certificates curl jq
