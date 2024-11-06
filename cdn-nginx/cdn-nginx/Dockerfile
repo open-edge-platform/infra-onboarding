@@ -17,7 +17,7 @@ RUN apk --no-cache add \
     apk --no-cache -U upgrade && \
     update-ca-certificates
 
-RUN apk add bash \
+RUN apk --no-cache add bash \
       nginx \
       php php-fpm php-opcache \
       php-gd php-zlib php-curl
