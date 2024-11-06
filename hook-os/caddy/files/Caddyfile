@@ -122,6 +122,15 @@ localhost.internal:8082 {
             tls_server_name {$tink_stack_svc}
         }
     }
+    reverse_proxy /repository/* {$release_svc}:443 {
+        header_up Authorization "Bearer {$release_token}"
+        header_up Host {upstream_hostport}
+
+        transport http {
+            tls
+            tls_server_name {$release_svc}
+        }
+    }
 }
 
 # GRPC Proxy server for tink server
