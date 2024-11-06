@@ -9,7 +9,7 @@
 # This software and the related documents are provided as is, with no express       #
 # or implied warranties, other than those that are expressly stated in the License. #
 #####################################################################################
-FROM golang:1.21-alpine as dcopy
+FROM golang:1.23.2-alpine3.20 as dcopy
 RUN apk add --no-cache git ca-certificates gcc linux-headers musl-dev
 WORKDIR /app
 COPY . .
@@ -19,7 +19,7 @@ RUN --mount=type=cache,sharing=locked,id=gomod,target=/go/pkg/mod/cache \
     CGO_ENABLED=1 GOOS=linux go build -a -ldflags "-linkmode external -extldflags '-static' -s -w" -o dcopy
 
 # Final stage
-FROM alpine:3.14
+FROM alpine:3.20.3
 RUN apk add --no-cache lsblk
 COPY --from=dcopy /app /
 CMD ["/dcopy"]

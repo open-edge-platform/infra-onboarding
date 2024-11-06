@@ -1,4 +1,4 @@
-FROM debian:12
+FROM debian:12.7
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update

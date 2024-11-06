@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: LicenseRef-Intel
 
 # Use an official Ubuntu base image
-FROM fluent/fluent-bit:3.0.0 AS fluent-bit-uos
+FROM fluent/fluent-bit:3.1.10 AS fluent-bit-uos
 
 COPY --from=busybox:stable-uclibc /bin/sh /bin/sh
 COPY --from=busybox:stable-uclibc /bin/cat /bin/cat

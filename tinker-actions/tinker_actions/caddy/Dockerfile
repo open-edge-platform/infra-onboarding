@@ -10,7 +10,7 @@
 # or implied warranties, other than those that are expressly stated in the License. #
 #####################################################################################
 
-FROM caddy:latest
+FROM caddy:2.8.4-alpine
 
 # Copy self signed certificate and key
 COPY "caddy-key.pem" "/etc/caddy/caddy-key.pem"

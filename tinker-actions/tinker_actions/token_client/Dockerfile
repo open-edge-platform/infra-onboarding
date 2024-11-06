@@ -9,7 +9,7 @@
 # This software and the related documents are provided as is, with no express       #
 # or implied warranties, other than those that are expressly stated in the License. #
 #####################################################################################
-FROM alpine:3.14
+FROM alpine:3.20.3
 
 RUN apk add ca-certificates curl jq
 

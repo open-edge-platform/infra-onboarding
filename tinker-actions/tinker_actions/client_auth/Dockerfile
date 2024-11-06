@@ -9,7 +9,7 @@
 # This software and the related documents are provided as is, with no express       #
 # or implied warranties, other than those that are expressly stated in the License. #
 #####################################################################################
-FROM linuxkit/getty:5d86a2ce2d890c14ab66b13638dcadf74f29218b
+FROM linuxkit/getty:v1.0.0
 
 RUN apk add --no-cache util-linux ca-certificates curl jq
 

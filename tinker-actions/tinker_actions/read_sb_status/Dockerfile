@@ -1,4 +1,4 @@
-FROM golang:1.15-alpine as readsbstat
+FROM golang:1.23.2-alpine3.20 as readsbstat
 
 COPY . /go/src/github.com/tinkerbell/hub/actions/read_sb_status
 WORKDIR /go/src/github.com/tinkerbell/hub/actions/read_sb_status
@@ -8,7 +8,7 @@ ENV GO111MODULE=on
 RUN go build -o main .
 
 # Build the final image
-FROM alpine:3.19
+FROM alpine:3.20.3
 
 COPY --from=readsbstat /go/src/github.com/tinkerbell/hub/actions/read_sb_status/run_sb.sh .
 COPY --from=readsbstat /go/src/github.com/tinkerbell/hub/actions/read_sb_status/main .

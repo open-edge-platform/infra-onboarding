@@ -9,7 +9,7 @@
 # This software and the related documents are provided as is, with no express       #
 # or implied warranties, other than those that are expressly stated in the License. #
 #####################################################################################
-FROM debian:12
+FROM debian:12.7
 
 RUN apt update
 RUN apt install -y parted grub-common udev grub-pc-bin grub-efi-amd64-bin dosfstools wget iproute2
