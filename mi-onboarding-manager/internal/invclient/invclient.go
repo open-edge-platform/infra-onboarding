@@ -336,6 +336,7 @@ func (c *OnboardingInventoryClient) GetHostBmcNic(ctx context.Context, host *com
 
 func (c *OnboardingInventoryClient) GetHostResourceByUUID(
 	ctx context.Context,
+	tenantID string,
 	uuid string,
 ) (*computev1.HostResource, error) {
 	_, err := uuid_lib.Parse(uuid)
@@ -348,7 +349,8 @@ func (c *OnboardingInventoryClient) GetHostResourceByUUID(
 		Resource: &inv_v1.Resource{
 			Resource: &inv_v1.Resource_Host{},
 		},
-		Filter: fmt.Sprintf("%s = %q", computev1.HostResourceFieldUuid, uuid),
+		Filter: fmt.Sprintf("(%s = %q) AND (%s = %q)", computev1.HostResourceFieldTenantId, tenantID,
+			computev1.HostResourceFieldUuid, uuid),
 	}
 
 	return c.listAndReturnHost(ctx, filter)
@@ -713,6 +715,7 @@ func (c *OnboardingInventoryClient) listAndReturnProvider(
 
 func GetProviderResourceByName(
 	ctx context.Context,
+	tenantID string,
 	c *OnboardingInventoryClient,
 	name string,
 ) (*provider_v1.ProviderResource, error) {
@@ -725,7 +728,8 @@ func GetProviderResourceByName(
 
 	filter := &inv_v1.ResourceFilter{
 		Resource: &inv_v1.Resource{Resource: &inv_v1.Resource_Provider{}},
-		Filter:   fmt.Sprintf("%s = %q", provider_v1.ProviderResourceFieldName, name),
+		Filter: fmt.Sprintf("(%s = %q) AND (%s = %q)", provider_v1.ProviderResourceFieldTenantId, tenantID,
+			provider_v1.ProviderResourceFieldName, name),
 	}
 	return c.listAndReturnProvider(ctx, filter)
 }
@@ -746,10 +750,11 @@ type LicenseProviderConfig struct {
 
 func (c *OnboardingInventoryClient) GetProviderConfig(
 	ctx context.Context,
+	tenantID string,
 	name string,
 ) (*ProviderConfig, error) {
 	// Get the provider resource by name
-	provider, err := GetProviderResourceByName(ctx, c, name)
+	provider, err := GetProviderResourceByName(ctx, tenantID, c, name)
 	if err != nil {
 		return nil, err
 	}
@@ -766,10 +771,11 @@ func (c *OnboardingInventoryClient) GetProviderConfig(
 
 func (c *OnboardingInventoryClient) GetLicenseProviderConfig(
 	ctx context.Context,
+	tenantID string,
 	name string,
 ) (*LicenseProviderConfig, error) {
 	// Get the provider resource by name
-	provider, err := GetProviderResourceByName(ctx, c, name)
+	provider, err := GetProviderResourceByName(ctx, tenantID, c, name)
 	if err != nil {
 		return nil, err
 	}

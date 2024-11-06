@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/validator"
+	"google.golang.org/grpc/codes"
 
 	"github.com/spf13/cobra"
 
@@ -17,6 +18,8 @@ import (
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/compute/v1"
 	inventoryv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/inventory/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/os/v1"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/errors"
+	inv_tenant "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/tenant"
 )
 
 var (
@@ -552,6 +555,14 @@ func getByuuID(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command,
 		ctx, cancel = context.WithTimeout(ctx, timeDuration)
 		defer cancel()
 
+		tenantID, present := inv_tenant.GetTenantIDFromContext(ctx)
+		if !present {
+			// This should never happen! Interceptor should either fail or set it!
+			err := inv_errors.Errorfc(codes.Internal, "Tenant ID is not present in context")
+			return err
+		}
+		zlog.Debug().Msgf("CreateNodes: tenantID=%s", tenantID)
+
 		client, err := invclient.NewOnboardingInventoryClientWithOptions(
 			invclient.WithInventoryAddress(dialer.Addr),
 		)
@@ -560,7 +571,7 @@ func getByuuID(ctx context.Context, dialer *grpcDialer) func(cmd *cobra.Command,
 		}
 		defer client.Close()
 
-		host, err := client.GetHostResourceByUUID(ctx, uuID)
+		host, err := client.GetHostResourceByUUID(ctx, tenantID, uuID)
 		if err != nil {
 			return err
 		}

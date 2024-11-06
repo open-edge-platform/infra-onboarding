@@ -14,13 +14,15 @@ import (
 )
 
 func UpdateHostStatusByHostGUID(ctx context.Context,
+	tenantID string,
 	invClient *invclient.OnboardingInventoryClient,
 	hostUUID string, statusDetails string,
 	onboardingStatus inv_status.ResourceStatus,
 ) error {
 	zlog.Info().Msgf("UpdateHostStatusByHostGUID")
+
 	/* Check if any host with the UUID exists or not */
-	hostResc, err := invClient.GetHostResourceByUUID(ctx, hostUUID)
+	hostResc, err := invClient.GetHostResourceByUUID(ctx, tenantID, hostUUID)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("Node Doesn't Exist")
 		return err
@@ -35,7 +37,7 @@ func UpdateHostStatusByHostGUID(ctx context.Context,
 	zlog.Debug().Msgf("Update host resc (%v) status", hostResc.ResourceId)
 	zlog.Debug().Msgf("Update Host (%v) onboarding status: %v", hostResc.ResourceId, onboardingStatus)
 
-	if err = invClient.SetHostOnboardingStatus(ctx, hostResc.GetTenantId(),
+	if err = invClient.SetHostOnboardingStatus(ctx, tenantID,
 		hostResc.GetResourceId(), onboardingStatus); err != nil {
 		zlog.MiSec().MiError("Failed to update host resource info").Msg("UpdateHostStatusByHostGUID")
 		return err

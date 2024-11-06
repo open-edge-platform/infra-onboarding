@@ -518,7 +518,7 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 	host.OnboardingStatusIndicator = om_status.OnboardingStatusDone.StatusIndicator
 	host.OnboardingStatusTimestamp = uint64(time.Now().Unix()) // #nosec G115
 
-	hostInv, err := s.invClient.GetHostResourceByUUID(ctx, host.Uuid)
+	hostInv, err := s.invClient.GetHostResourceByUUID(ctx, tenantID, host.Uuid)
 
 	switch {
 	case inv_errors.IsNotFound(err):
@@ -581,7 +581,7 @@ func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.NodeReque
 	 *       multiple host resource based on the pdctl command input
 	 */
 	/* Check if any node with the serial num exists or not */
-	hostresget, err := s.invClient.GetHostResourceByUUID(ctx, hostresdata[0].Uuid)
+	hostresget, err := s.invClient.GetHostResourceByUUID(ctx, tenantID, hostresdata[0].Uuid)
 
 	switch {
 	case inv_errors.IsNotFound(err):
@@ -622,10 +622,19 @@ func (s *NodeArtifactService) GetNodes(ctx context.Context, req *pb.NodeRequest)
 		}
 	}
 
+	tenantID, present := inv_tenant.GetTenantIDFromContext(ctx)
+	if !present {
+		// This should never happen! Interceptor should either fail or set it!
+		err := inv_errors.Errorfc(codes.Unauthenticated, "Tenant ID is not present in context")
+		zlog.MiSec().MiErr(err).Msg("Request GetNodes is not authenticated")
+		return nil, err
+	}
+	zlog.Debug().Msgf("GetNodes: tenantID=%s", tenantID)
+
 	guid := req.Payload[0].Hwdata[0].Uuid
 
 	/* Check if any node with the serial num exists or not */
-	hostresget, err := s.invClient.GetHostResourceByUUID(ctx, guid)
+	hostresget, err := s.invClient.GetHostResourceByUUID(ctx, tenantID, guid)
 	var tempErr error
 	switch {
 	case inv_errors.IsNotFound(err):
@@ -676,7 +685,7 @@ func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeReque
 	/* TODO: Need to change it either to single host resource creation or
 	 *       multiple host resource based on the pdctl command input
 	 */
-	hostInv, err := s.invClient.GetHostResourceByUUID(ctx, host[0].Uuid)
+	hostInv, err := s.invClient.GetHostResourceByUUID(ctx, tenantID, host[0].Uuid)
 	switch {
 	case inv_errors.IsNotFound(err):
 		zlog.MiSec().MiErr(err).Msgf("Update op : Node Doesn't Exist for GUID %s,tID=%s\n", host[0].Uuid, tenantID)
@@ -729,7 +738,7 @@ func (s *NodeArtifactService) startZeroTouch(ctx context.Context, tenantID, host
 	}
 
 	// TODO : Passing default provider name while trying to provision, need to change according to provider name and compare.
-	pconf, err := s.invClient.GetProviderConfig(ctx, utils.DefaultProviderName)
+	pconf, err := s.invClient.GetProviderConfig(ctx, tenantID, utils.DefaultProviderName)
 	if err != nil {
 		zlog.Err(err).Msgf("Failed to get provider configuration")
 		return nil

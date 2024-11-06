@@ -16,6 +16,7 @@ import (
 	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/compute/v1"
+	providerv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/provider/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/auth"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/flags"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/policy/rbac"
@@ -29,6 +30,7 @@ import (
 
 const (
 	tenant1   = "11111111-1111-1111-1111-111111111111"
+	tenant2   = "22222222-2222-2222-2222-222222222222"
 	rbacRules = "../../../../rego/authz.rego"
 )
 
@@ -1148,6 +1150,8 @@ func TestNodeArtifactService_GetNodes_Case1(t *testing.T) {
 		Payload: payloads,
 	}
 	ctx := createIncomingContextWithENJWT(t)
+	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
+
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1233,6 +1237,7 @@ func TestNodeArtifactService_GetNodes_Case2(t *testing.T) {
 		Payload: payloads,
 	}
 	ctx := createIncomingContextWithENJWT(t)
+	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1369,6 +1374,75 @@ func TestNodeArtifactService_GetNodes_Case3(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNodeArtifactService_GetNodes_MultiTenant(t *testing.T) {
+
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
+
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+
+	dao := inv_testing.NewInvResourceDAOOrFail(t)
+
+	host1 := dao.CreateHost(t, tenant1)
+	hwdata1 := &pb.HwData{
+		Uuid: host1.Uuid,
+	}
+	hwdatas1 := []*pb.HwData{hwdata1}
+	payload1 := pb.NodeData{Hwdata: hwdatas1}
+	payloads1 := []*pb.NodeData{&payload1}
+	mockRequest1 := &pb.NodeRequest{
+		Payload: payloads1,
+	}
+
+	host2 := dao.CreateHost(t, tenant2)
+	hwdata2 := &pb.HwData{
+		Uuid: host2.Uuid,
+	}
+	hwdatas2 := []*pb.HwData{hwdata2}
+	payload2 := pb.NodeData{Hwdata: hwdatas2}
+	payloads2 := []*pb.NodeData{&payload2}
+	mockRequest2 := &pb.NodeRequest{
+		Payload: payloads2,
+	}
+
+	ctx1 := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx1 = tenant.AddTenantIDToContext(ctx1, tenant1)
+
+	ctx2 := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx2 = tenant.AddTenantIDToContext(ctx2, tenant2)
+
+	s := &NodeArtifactService{
+		invClient:   om_testing.InvClient,
+		authEnabled: true,
+		rbac:        rbacServer,
+	}
+
+	t.Run("GetNode_Valid_Tenant1", func(t *testing.T) {
+		nodes, err := s.GetNodes(ctx1, mockRequest1)
+		require.NoError(t, err)
+		require.NotNil(t, nodes)
+	})
+
+	t.Run("GetNode_Invalid_Tenant1", func(t *testing.T) {
+		nodes, _ := s.GetNodes(ctx2, mockRequest1)
+		require.Nil(t, nodes)
+	})
+
+	t.Run("GetNode_Valid_Tenant2", func(t *testing.T) {
+		nodes, err := s.GetNodes(ctx2, mockRequest2)
+		require.NoError(t, err)
+		require.NotNil(t, nodes)
+	})
+
+	t.Run("GetNode_Invalid_Tenant2", func(t *testing.T) {
+		nodes, _ := s.GetNodes(ctx1, mockRequest2)
+		require.Nil(t, nodes)
+	})
 }
 
 func TestNodeArtifactService_UpdateNodes_Case1(t *testing.T) {
@@ -2400,6 +2474,34 @@ func TestNodeArtifactService_startZeroTouch_Case4(t *testing.T) {
 	}
 }
 
+func TestNodeArtifactService_startZeroTouch_MultiTenant(t *testing.T) {
+
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+
+	dao := inv_testing.NewInvResourceDAOOrFail(t)
+
+	// Create two providers with the same name but with different tenants
+	dao.CreateProvider(t, tenant1, utils.DefaultProviderName,
+		inv_testing.ProviderKind(providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL))
+	dao.CreateProvider(t, tenant2, utils.DefaultProviderName,
+		inv_testing.ProviderKind(providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL))
+
+	host := dao.CreateHost(t, tenant1)
+
+	s := &NodeArtifactService{
+		invClient:    om_testing.InvClient,
+		invClientAPI: om_testing.InvClient,
+	}
+
+	t.Run("Start ZeroTouch with multi-tenant provider creation", func(t *testing.T) {
+		err := s.startZeroTouch(context.Background(), host.TenantId, host.ResourceId)
+		require.NoError(t, err)
+	})
+}
+
 func TestNodeArtifactService_GetNodes_Case4(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
@@ -2433,6 +2535,7 @@ func TestNodeArtifactService_GetNodes_Case4(t *testing.T) {
 		Payload: payloads1,
 	}
 	ctx := createIncomingContextWithENJWT(t)
+	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
 		fields  fields

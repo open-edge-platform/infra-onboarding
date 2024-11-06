@@ -264,7 +264,7 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 
 func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance *computev1.InstanceResource) error {
 	// TODO : Passing default provider name while trying to provision, need to change according to provider name and compare.
-	licenseProviderConfig, err := ir.invClient.GetLicenseProviderConfig(ctx, utils.LicensingProvider)
+	licenseProviderConfig, err := ir.invClient.GetLicenseProviderConfig(ctx, instance.GetTenantId(), utils.LicensingProvider)
 	if err != nil {
 		zlogInst.Err(err).Msgf("Failed to get provider configuration")
 		return err

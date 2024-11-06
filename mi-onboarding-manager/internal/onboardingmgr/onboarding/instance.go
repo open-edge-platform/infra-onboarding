@@ -16,12 +16,13 @@ import (
 )
 
 func UpdateInstanceStatusByGUID(ctx context.Context,
+	tenantID string,
 	invClient *invclient.OnboardingInventoryClient,
 	hostUUID string, provisioningStatus inv_status.ResourceStatus,
 ) error {
 	zlog.Info().Msg("UpdateInstanceStatusByGUID")
 
-	hostResc, err := invClient.GetHostResourceByUUID(ctx, hostUUID)
+	hostResc, err := invClient.GetHostResourceByUUID(ctx, tenantID, hostUUID)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msg("Node Doesn't Exist")
 		return err
@@ -41,7 +42,7 @@ func UpdateInstanceStatusByGUID(ctx context.Context,
 	zlog.Debug().Msgf("Update Instance resc (%v) status", instanceResc.ResourceId)
 	zlog.Debug().Msgf("Update Instance (%v) provisioning status: %v", instanceResc.ResourceId, provisioningStatus)
 
-	if err = invClient.SetInstanceProvisioningStatus(ctx, instanceResc.GetTenantId(),
+	if err = invClient.SetInstanceProvisioningStatus(ctx, tenantID,
 		instanceResc.GetResourceId(), provisioningStatus); err != nil {
 		zlog.MiSec().MiErr(err).Msgf("Failed to update status of Instance %v", instanceResc.ResourceId)
 		return err

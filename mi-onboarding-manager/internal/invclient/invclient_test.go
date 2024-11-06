@@ -208,7 +208,7 @@ func TestOnboardingInventoryClient_UpdateHostResource(t *testing.T) {
 			}
 
 			if !t.Failed() && tt.valid {
-				hostInv, err := invClient.GetHostResourceByUUID(ctx, host.Uuid)
+				hostInv, err := invClient.GetHostResourceByUUID(ctx, host.GetTenantId(), host.Uuid)
 				require.NoError(t, err)
 				require.NotNil(t, hostInv)
 			}
@@ -272,7 +272,7 @@ func TestOnboardingInventoryClient_GetHostResources(t *testing.T) {
 				}
 			}
 			if !t.Failed() && tt.valid {
-				hostInv, err := invClient.GetHostResourceByUUID(ctx, host.Uuid)
+				hostInv, err := invClient.GetHostResourceByUUID(ctx, host.GetTenantId(), host.Uuid)
 				require.NoError(t, err)
 				require.NotNil(t, hostInv)
 			}
@@ -379,7 +379,7 @@ func TestOnboardingInventoryClient_GetHostResourceByResourceID(t *testing.T) {
 	t.Run("Invalid Resource Id", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		hostInv, err := invClient.GetHostResourceByResourceID(ctx, tenant1, "12345")
+		hostInv, err := invClient.GetHostResourceByResourceID(ctx, host.GetTenantId(), "12345")
 		require.Error(t, err)
 		require.Nil(t, hostInv)
 	})
@@ -528,7 +528,7 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 
 			invClient.SetHostOnboardingStatus(ctx, tt.args.tenantID, tt.args.hostID, tt.args.onboardingStatus)
 			if !t.Failed() && tt.valid {
-				hostInv, err := invClient.GetHostResourceByUUID(ctx, host.Uuid)
+				hostInv, err := invClient.GetHostResourceByUUID(ctx, host.GetTenantId(), host.Uuid)
 				require.NoError(t, err)
 				require.NotNil(t, hostInv)
 
@@ -537,6 +537,24 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestOnboardingInventoryClient_GetHostResourceByUUID_MultiTenant(t *testing.T) {
+	CreateOnboardingClientForTesting(t)
+	invClient := OnboardingTestClient
+	host := inv_testing.CreateHost(t, nil, nil)
+
+	t.Run("Valid_TenantId", func(t *testing.T) {
+		hostInv, err := invClient.GetHostResourceByUUID(context.Background(), host.GetTenantId(), host.Uuid)
+		require.NoError(t, err)
+		require.NotNil(t, hostInv)
+	})
+
+	t.Run("Invalid_TenantId", func(t *testing.T) {
+		hostInv, err := invClient.GetHostResourceByUUID(context.Background(), tenant1, host.Uuid)
+		require.Error(t, err)
+		require.Nil(t, hostInv)
+	})
 }
 
 func TestOnboardingInventoryClient_DeleteHostResource(t *testing.T) {
@@ -641,7 +659,7 @@ func TestOnboardingInventoryClient_SetHostStatus(t *testing.T) {
 
 			// only get/delete if valid test and hasn't failed otherwise may segfault
 			if !t.Failed() && tt.valid {
-				hostInv, err := invClient.GetHostResourceByUUID(ctx, host.Uuid)
+				hostInv, err := invClient.GetHostResourceByUUID(ctx, host.GetTenantId(), host.Uuid)
 				require.NoError(t, err)
 				require.NotNil(t, hostInv)
 
@@ -708,7 +726,7 @@ func TestOnboardingInventoryClient_SetHostStatusDetail(t *testing.T) {
 
 			// only get/delete if valid test and hasn't failed otherwise may segfault
 			if !t.Failed() && tt.valid {
-				hostInv, err := invClient.GetHostResourceByUUID(ctx, host.Uuid)
+				hostInv, err := invClient.GetHostResourceByUUID(ctx, host.GetTenantId(), host.Uuid)
 				require.NoError(t, err)
 				require.NotNil(t, hostInv)
 
@@ -1249,7 +1267,7 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 
 			// only get/delete if valid test and hasn't failed otherwise may segfault
 			if !t.Failed() && tt.valid {
-				hostInv, hostErr := OnboardingTestClient.GetHostResourceByUUID(ctx, host.Uuid)
+				hostInv, hostErr := OnboardingTestClient.GetHostResourceByUUID(ctx, host.GetTenantId(), host.Uuid)
 				require.NoError(t, hostErr)
 				require.NotNil(t, hostInv)
 
@@ -1325,7 +1343,7 @@ func TestOnboardingInventoryClient_SetInstanceStatus(t *testing.T) {
 
 			// only get/delete if valid test and hasn't failed otherwise may segfault
 			if !t.Failed() && tt.valid {
-				hostInv, err := invClient.GetHostResourceByUUID(ctx, host.Uuid)
+				hostInv, err := invClient.GetHostResourceByUUID(ctx, host.GetTenantId(), host.Uuid)
 				require.NoError(t, err)
 				require.NotNil(t, hostInv)
 
@@ -1803,9 +1821,10 @@ func TestOnboardingInventoryClient_listAndReturnProvider(t *testing.T) {
 
 func TestGetProviderResourceByName(t *testing.T) {
 	type args struct {
-		ctx  context.Context
-		c    *OnboardingInventoryClient
-		name string
+		ctx      context.Context
+		tenantID string
+		c        *OnboardingInventoryClient
+		name     string
 	}
 	tests := []struct {
 		name    string
@@ -1815,16 +1834,17 @@ func TestGetProviderResourceByName(t *testing.T) {
 		{
 			name: "Empty provider name",
 			args: args{
-				ctx:  context.Background(),
-				c:    &OnboardingInventoryClient{},
-				name: "",
+				ctx:      context.Background(),
+				tenantID: tenant1,
+				c:        &OnboardingInventoryClient{},
+				name:     "",
 			},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := GetProviderResourceByName(tt.args.ctx, tt.args.c, tt.args.name)
+			_, err := GetProviderResourceByName(tt.args.ctx, tt.args.tenantID, tt.args.c, tt.args.name)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetProviderResourceByName() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1833,12 +1853,31 @@ func TestGetProviderResourceByName(t *testing.T) {
 	}
 }
 
+func TestGetProviderResourceByName_MultiTenant(t *testing.T) {
+	CreateOnboardingClientForTesting(t)
+	invClient := OnboardingTestClient
+	provider := inv_testing.CreateProvider(t, "Test Provider")
+
+	t.Run("Valid_TenantId", func(t *testing.T) {
+		providerInv, err := GetProviderResourceByName(context.Background(), provider.GetTenantId(), invClient, provider.GetName())
+		require.NoError(t, err)
+		require.NotNil(t, providerInv)
+	})
+
+	t.Run("Invalid_TenantId", func(t *testing.T) {
+		providerInv, err := GetProviderResourceByName(context.Background(), tenant1, invClient, provider.GetName())
+		require.Error(t, err)
+		require.Nil(t, providerInv)
+	})
+}
+
 func TestOnboardingInventoryClient_GetLicenseProviderConfig(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
 	type args struct {
-		ctx  context.Context
-		name string
+		ctx      context.Context
+		tenantID string
+		name     string
 	}
 	inv_testing.CreateProvider(t, "dummyprovider")
 	tests := []struct {
@@ -1849,23 +1888,25 @@ func TestOnboardingInventoryClient_GetLicenseProviderConfig(t *testing.T) {
 		{
 			name: "GettingLicenseProver_SuccessfulResponse",
 			args: args{
-				ctx:  context.Background(),
-				name: "dummyprovider",
+				ctx:      context.Background(),
+				tenantID: tenant1,
+				name:     "dummyprovider",
 			},
 			wantErr: true,
 		},
 		{
 			name: "Empty Provider",
 			args: args{
-				ctx:  context.Background(),
-				name: "",
+				ctx:      context.Background(),
+				tenantID: tenant1,
+				name:     "",
 			},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := invClient.GetLicenseProviderConfig(tt.args.ctx, tt.args.name)
+			_, err := invClient.GetLicenseProviderConfig(tt.args.ctx, tt.args.tenantID, tt.args.name)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.GetProviderConfig() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1878,8 +1919,9 @@ func TestOnboardingInventoryClient_GetProviderConfig(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
 	type args struct {
-		ctx  context.Context
-		name string
+		ctx      context.Context
+		tenantID string
+		name     string
 	}
 	tests := []struct {
 		name    string
@@ -1889,15 +1931,16 @@ func TestOnboardingInventoryClient_GetProviderConfig(t *testing.T) {
 		{
 			name: "Empty Provider",
 			args: args{
-				ctx:  context.Background(),
-				name: "",
+				ctx:      context.Background(),
+				tenantID: tenant1,
+				name:     "",
 			},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := invClient.GetProviderConfig(tt.args.ctx, tt.args.name)
+			_, err := invClient.GetProviderConfig(tt.args.ctx, tt.args.tenantID, tt.args.name)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.GetProviderConfig() error = %v, wantErr %v", err, tt.wantErr)
 				return
