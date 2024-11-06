@@ -90,6 +90,8 @@ else
         rootfs_part=$(blkid | grep -i rootfs | grep -i ext4 |  awk -F: '{print $1}')
         efiboot_part=$(blkid | grep -i uefi | grep -i vfat |  awk -F: '{print $1}')
 
+        echo "Partitions detected root:$rootfs_part efi:$efiboot_part"
+
         # Take biggest partition as rootfs if ext4 partion not detected
         if [ -z "$rootfs_part" ]; then
                 if echo "$efiboot_part" | grep -q "nvme"; then
@@ -117,6 +119,7 @@ else
         #If the Number of Disks detected=1 on the system split the disk with two partitons
         #one partition for OS, Other partition for LVM
         if [ "$count" -eq 1 ]; then
+                echo "Single Disk"
                 NEW_PARTITION_SIZE="100%"
                 RESIZE_SIZE="100GB"
                 sgdisk -e "/dev/${os_disk}"
@@ -128,10 +131,12 @@ else
                 partprobe "/dev/${os_disk}"
         #if more than 1 disk detected expand the rootfs partition to MAX
         else
+                echo "Multiple Disks"
                 sgdisk -e "/dev/${os_disk}"
-                e2fsck -f "$rootfs_part"
+                e2fsck -f -y "$rootfs_part"
                 growpart "/dev/${os_disk}" "${part_number}"
 		partprobe "/dev/${os_disk}"
+                sgdisk -e "/dev/${os_disk}"
                 resize2fs "$rootfs_part"
 		partprobe "/dev/${os_disk}"
         fi
