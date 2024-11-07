@@ -12,23 +12,45 @@
 #####################################################################################
 
 #####################################################################################
+####
+####
+# COMPLETE_FDE_DMVERITY set to true if we need to encrypt all partitions
+COMPLETE_FDE_DMVERITY=false
+
+####
+####
+#####################################################################################
 # Patition information
-boot_partition=1
-rootfs_partition=2
-tiber_persistent_partition=3
+if $COMPLETE_FDE_DMVERITY;
+then
+    boot_partition=1
+    rootfs_partition=2
+    tiber_persistent_partition=3
 
 
-#efi_partition=15
+    #efi_partition=15
 
-root_hashmap_a_partition=4
-root_hashmap_b_partition=5
-rootfs_b_partition=6
-roothash_partition=7
+    root_hashmap_a_partition=4
+    root_hashmap_b_partition=5
+    rootfs_b_partition=6
+    roothash_partition=7
 
-swap_partition=8
-tep_partition=9
-reserved_partition=10
-singlehdd_lvm_partition=11
+    swap_partition=8
+    tep_partition=9
+    reserved_partition=10
+    singlehdd_lvm_partition=11
+else
+    boot_partition=1
+    rootfs_partition=2
+    tiber_persistent_partition=3
+
+    rootfs_b_partition=4
+
+    swap_partition=5
+    tep_partition=6
+    reserved_partition=7
+    singlehdd_lvm_partition=8
+fi
 
 # DEST_DISK set from the template.yaml file as an environment variable.
 
@@ -188,80 +210,7 @@ is_single_hdd() {
     fi
 
 }
-#####################################################################################
-make_partition_single_hdd() {
 
-    #if there were any problems when the ubuntu was streamed.
-    # printf 'Fix\n' | parted ---pretend-input-tty -l
-
-    #ram_size
-    ram_size=$(free -g | grep -i mem | awk '{ print $2 }' )
-
-    #
-    # limit swap size to sqrt of ramsize link https://help.ubuntu.com/community/SwapFaq
-    #
-    # this is to reconcile the requirement where we have a upper limit of 100GB for
-    # all partitions apart from lvm we cant risk exceeding the swap size.
-    swap_size=$(echo "$ram_size" | awk '{printf ("%.0f\n", sqrt($1))}')
-
-    total_size_disk=$(parted -s ${DEST_DISK} p | grep -i ${DEST_DISK} | awk '{ print $3 }' | sed  's/GB//g' )
-
-    # Size of OS with all other partitions are capped to 100GB
-    #
-    if [[ $total_size_disk -gt 100 ]];
-    then
-	total_size_disk=100
-	#Bare minimum needed to encrypt rootfs is 3GB
-	reserved_size=3
-	reserved_end=$total_size_disk
-    fi
-
-    #####
-
-    reserved_start=$(( $total_size_disk - $reserved_size ))
-    tep_start=$(( $reserved_start - $tep_size ))
-    swap_start=$(( $tep_start - $swap_size ))
-    boot_start=$(( $swap_start - $boot_size ))
-    rootfs_end=$boot_start
-
-    #####
-
-    #####
-    # logging needed to understand the block splits
-    echo "DEST_DISK  ${DEST_DISK}"
-    echo "rootfs_partition  $rootfs_partition       rootfs_end        ${rootfs_end}GB"
-    echo "boot_start         ${boot_start}GB        swap_start        ${swap_start}GB"
-    echo "swap_start         ${swap_start}GB        tep_start         ${tep_start}GB"
-    echo "tep_start          ${tep_start}GB         reserved_start    ${reserved_start}GB"
-    echo "reserved_start     ${reserved_start}GB    reserved_end      ${reserved_end}GB"
-    echo "reserved_start     ${reserved_end}GB    total_size_disk   ${total_size_disk}GB"
-    #####
-
-    parted -s ${DEST_DISK} \
-	   resizepart $rootfs_partition "${rootfs_end}GB" \
-	   mkpart primary ext4 "${boot_start}GB" "${swap_start}GB" \
-	   mkpart primary linux-swap "${swap_start}GB" "${tep_start}GB" \
-	   mkpart primary ext4 "${tep_start}GB"  "${reserved_start}GB" \
-	   mkpart primary ext4 "${reserved_start}GB" "${reserved_end}GB" \
-	   mkpart primary ext4 "${reserved_end}GB" 100%
-
-    check_return_value $? "Failed to create paritions"
-
-    suffix=$(fix_partition_suffix)
-
-    #/boot is now kept in a different partition
-    mkfs -t ext4 -L boot -F "${DEST_DISK}${suffix}${boot_partition}"
-    check_return_value $? "Failed to mkfs boot"
-
-    #swap space creation
-    # mkswap "${DEST_DISK}${suffix}${swap_partition}"
-    # check_return_value $? "Failed to mkswap"
-
-    #TEP and reserved are not formated currently.
-    #reserved
-    mkfs -t ext4 -L reserved -F "${DEST_DISK}${suffix}${reserved_partition}"
-    check_return_value $? "Failed to mkfs boot"
-}
 #####################################################################################
 make_partition() {
 
@@ -294,23 +243,34 @@ make_partition() {
 
     total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 | awk '{ print int($3)*1024}')
 
-    # For single HDD reduce the size to 100 and fit everything inside it 
+    # For single HDD reduce the size to 100 and fit everything inside it
     if [ $single_hdd -eq 0 ];
     then
-	total_size_disk=$(( 100 * 1024 ))	
+	total_size_disk=$(( 100 * 1024 ))
     fi
-    
+
     #####
-    reserved_start=$(( $total_size_disk - $reserved_size ))
-    tep_start=$(( $reserved_start - $tep_size ))
-    swap_start=$(( $tep_start - $swap_size ))
+    if $COMPLETE_FDE_DMVERITY;
+    then
+	reserved_start=$(( $total_size_disk - $reserved_size ))
+	tep_start=$(( $reserved_start - $tep_size ))
+	swap_start=$(( $tep_start - $swap_size ))
 
-    roothash_start=$(( $swap_start - $rootfs_roothash_size ))
-    rootfs_b_start=$(( $roothash_start - $rootfs_size ))
-    root_hashmap_b_start=$(( $rootfs_b_start - $rootfs_hashmap_size ))
-    root_hashmap_a_start=$(( $root_hashmap_b_start - $rootfs_hashmap_size ))
+	roothash_start=$(( $swap_start - $rootfs_roothash_size ))
+	rootfs_b_start=$(( $roothash_start - $rootfs_size ))
+	root_hashmap_b_start=$(( $rootfs_b_start - $rootfs_hashmap_size ))
+	root_hashmap_a_start=$(( $root_hashmap_b_start - $rootfs_hashmap_size ))
 
-    tiber_persistent_end=$root_hashmap_a_start
+	tiber_persistent_end=$root_hashmap_a_start
+    else
+	reserved_start=$(( $total_size_disk - $reserved_size ))
+	tep_start=$(( $reserved_start - $tep_size ))
+	swap_start=$(( $tep_start - $swap_size ))
+
+	rootfs_b_start=$(( $swap_start - $rootfs_size ))
+
+	tiber_persistent_end=$rootfs_b_start
+    fi
     #####
 
     #####
@@ -326,17 +286,30 @@ make_partition() {
     echo "reserved_start      ${reserved_start}MB        total_size_disk      ${total_size_disk}MB"
     #####
 
-    parted -s ${DEST_DISK} \
-	   resizepart $tiber_persistent_partition "${tiber_persistent_end}MB" \
-	   mkpart hashmap_a ext4 "${root_hashmap_a_start}MB" "${root_hashmap_b_start}MB" \
-	   mkpart hashmap_b ext4 "${root_hashmap_b_start}MB" "${rootfs_b_start}MB" \
-	   mkpart rootfs_b ext4 "${rootfs_b_start}MB" "${roothash_start}MB" \
-	   mkpart roothash ext4 "${roothash_start}MB" "${swap_start}MB" \
-	   mkpart swap linux-swap "${swap_start}MB" "${tep_start}MB" \
-	   mkpart tep ext4 "${tep_start}MB"  "${reserved_start}MB" \
-	   mkpart reserved ext4 "${reserved_start}MB"  "${total_size_disk}MB"
+    if $COMPLETE_FDE_DMVERITY;
+    then
+	parted -s ${DEST_DISK} \
+	       resizepart $tiber_persistent_partition "${tiber_persistent_end}MB" \
+	       mkpart hashmap_a ext4 "${root_hashmap_a_start}MB" "${root_hashmap_b_start}MB" \
+	       mkpart hashmap_b ext4 "${root_hashmap_b_start}MB" "${rootfs_b_start}MB" \
+	       mkpart rootfs_b ext4 "${rootfs_b_start}MB" "${roothash_start}MB" \
+	       mkpart roothash ext4 "${roothash_start}MB" "${swap_start}MB" \
+	       mkpart swap linux-swap "${swap_start}MB" "${tep_start}MB" \
+	       mkpart tep ext4 "${tep_start}MB"  "${reserved_start}MB" \
+	       mkpart reserved ext4 "${reserved_start}MB"  "${total_size_disk}MB"
 
-    check_return_value $? "Failed to create paritions"
+	check_return_value $? "Failed to create paritions"
+    else
+	parted -s ${DEST_DISK} \
+	       resizepart $tiber_persistent_partition "${tiber_persistent_end}MB" \
+	       mkpart rootfs_b ext4 "${rootfs_b_start}MB" "${swap_start}MB" \
+	       mkpart swap linux-swap "${swap_start}MB" "${tep_start}MB" \
+	       mkpart tep ext4 "${tep_start}MB"  "${reserved_start}MB" \
+	       mkpart reserved ext4 "${reserved_start}MB"  "${total_size_disk}MB"
+
+	check_return_value $? "Failed to create paritions"
+    fi
+
 
     if [ $single_hdd -eq 0 ];
     then
@@ -345,7 +318,7 @@ make_partition() {
 
 	check_return_value $? "Failed to create lvm parition"
     fi
-    
+
 
     suffix=$(fix_partition_suffix)
 
@@ -354,30 +327,36 @@ make_partition() {
     mkfs -t ext4 -L reserved -F "${DEST_DISK}${suffix}${reserved_partition}"
     check_return_value $? "Failed to mkfs reserved"
 
-    #roothash partition
-    mkfs -t ext4 -L roothash -F "${DEST_DISK}${suffix}${roothash_partition}"
-    check_return_value $? "Failed to mkfs roothash part"
+    if $COMPLETE_FDE_DMVERITY;
+    then
+	#roothash partition
+	mkfs -t ext4 -L roothash -F "${DEST_DISK}${suffix}${roothash_partition}"
+	check_return_value $? "Failed to mkfs roothash part"
 
-    # rootfs for a/B updated
-    mkfs -t ext4 -L root_b -F "${DEST_DISK}${suffix}${rootfs_b_partition}"
-    check_return_value $? "Failed to mkfs rootfs part"
+	# rootfs for a/B updated
+	mkfs -t ext4 -L root_b -F "${DEST_DISK}${suffix}${rootfs_b_partition}"
+	check_return_value $? "Failed to mkfs rootfs part"
+    fi
 }
 
 #####################################################################################
 save_rootfs_on_ram(){
-    suffix=$(fix_partition_suffix)
-    mkdir rfs
-    mount "${DEST_DISK}${suffix}${rootfs_partition}" rfs
-    check_return_value $? "Failed to mount rootfs"
+    if $COMPLETE_FDE_DMVERITY;
+    then
+	suffix=$(fix_partition_suffix)
+	mkdir rfs
+	mount "${DEST_DISK}${suffix}${rootfs_partition}" rfs
+	check_return_value $? "Failed to mount rootfs"
 
-    mkdir rfs_backup
-    # mkfs -t ext4 -L reserved -F "${DEST_DISK}${suffix}${reserved_partition}"
-    mount "${DEST_DISK}${suffix}${reserved_partition}" rfs_backup
-    check_return_value $? "Failed to mount reserved"
+	mkdir rfs_backup
+	# mkfs -t ext4 -L reserved -F "${DEST_DISK}${suffix}${reserved_partition}"
+	mount "${DEST_DISK}${suffix}${reserved_partition}" rfs_backup
+	check_return_value $? "Failed to mount reserved"
 
-    cp -rp rfs/* rfs_backup
-    umount rfs
-    umount rfs_backup
+	cp -rp rfs/* rfs_backup
+	umount rfs
+	umount rfs_backup
+    fi
 }
 
 #####################################################################################
@@ -392,16 +371,6 @@ create_single_hdd_lvmg() {
 	vgcreate lvmvg "/dev/mapper/lvmvg_crypt"
 	check_return_value $? "Failed to create a lvmvg group"
 	echo "vgcreate is completed"
-
-	# block_dev_actual_partition_uuid=$(blkid "${DEST_DISK}${suffix}${singlehdd_lvm_partition}" -s UUID -o value)
-	# echo -e "lvmvg_crypt UUID=${block_dev_actual_partition_uuid} none luks,discard,initramfs,keyscript=/etc/initramfs-tools/tpm2-cryptsetup" >> /mnt/etc/crypttab
-
-	# mkdir -p /mnt/media/lvmvg
-
-	# fstab_block_dev="/dev/mapper/lvmvg_crypt /media/lvmvg ext4 discard,errors=remount-ro       0 1"
-
-
-	# mount "/dev/mapper/lvmvg_crypt" /mnt/media/lvmvg
     fi
 
 }
@@ -603,14 +572,14 @@ luks_format_verity_part() {
 
     mkfs.ext4 -F /dev/mapper/ver_roothash
     check_return_value $? "Failed to make mkfs ext4 on ver_roothash"
-    
+
     ##############
     #rootfs b part
     luksformat_helper $luks_key "${DEST_DISK}${suffix}${rootfs_b_partition}" "rootfs_b_crypt"
 
     mkfs.ext4 -F /dev/mapper/rootfs_b_crypt
     check_return_value $? "Failed to make mkfs ext4 on rootfs_b_crypt"
-    ##############    
+    ##############
 }
 
 #####################################################################################
@@ -634,33 +603,35 @@ luksformat_helper(){
 #####################################################################################
 enable_luks(){
     suffix=$(fix_partition_suffix)
-    
+
     tpm2_getrandom 32 | xxd -p -c999 | tr -d '\n' > $luks_key
     check_return_value $? "Failed to get random number"
-    # cat $luks_key
 
     # luks format rootfs
-    luksformat_helper $luks_key "${DEST_DISK}${suffix}${rootfs_partition}" "rootfs_crypt"
+    if $COMPLETE_FDE_DMVERITY;
+    then
+	luksformat_helper $luks_key "${DEST_DISK}${suffix}${rootfs_partition}" "rootfs_crypt"
 
-    mkfs.ext4 -F /dev/mapper/rootfs_crypt
-    check_return_value $? "Failed to make mkfs ext4 on rootfs"
+	mkfs.ext4 -F /dev/mapper/rootfs_crypt
+	check_return_value $? "Failed to make mkfs ext4 on rootfs"
 
-    mkdir -p rfs
-    mount /dev/mapper/rootfs_crypt rfs
-    check_return_value $? "Failed to mount the luks crypt for rootfs"
+	mkdir -p rfs
+	mount /dev/mapper/rootfs_crypt rfs
+	check_return_value $? "Failed to mount the luks crypt for rootfs"
 
-    mkdir -p rfs_backup
-    mount "${DEST_DISK}${suffix}${reserved_partition}" rfs_backup
-    check_return_value $? "Failed to mount rootfs backup"
-    
-    cp -rp rfs_backup/* rfs
-    check_return_value $? "Failed to copy the rootfs back"
+	mkdir -p rfs_backup
+	mount "${DEST_DISK}${suffix}${reserved_partition}" rfs_backup
+	check_return_value $? "Failed to mount rootfs backup"
 
-    rm -rf rfs_backup/*
-    check_return_value $? "Failed to cleanup rfs backup"
-    
-    umount rfs
-    umount rfs_backup
+	cp -rp rfs_backup/* rfs
+	check_return_value $? "Failed to copy the rootfs back"
+
+	rm -rf rfs_backup/*
+	check_return_value $? "Failed to cleanup rfs backup"
+
+	umount rfs
+	umount rfs_backup
+    fi
 
     ### setup swap luks
     luksformat_helper $luks_key "${DEST_DISK}${suffix}${swap_partition}" "swap_crypt"
@@ -672,54 +643,67 @@ enable_luks(){
     ### setup swap luks completed
 
     ###luks for rootfs hash
-    luks_format_verity_part $luks_key
-    
+    if $COMPLETE_FDE_DMVERITY;
+    then
+	luks_format_verity_part $luks_key
+    fi
+
     ###luks for tiber_persistent_partition
-    mkdir -p ti_backup
-    mkdir -p ti
-    mount "${DEST_DISK}${suffix}${tiber_persistent_partition}" ti
-    check_return_value $? "Failed to mount tiber persistent for backup"
+    if $COMPLETE_FDE_DMVERITY;
+    then
+	mkdir -p ti_backup
+	mkdir -p ti
+	mount "${DEST_DISK}${suffix}${tiber_persistent_partition}" ti
+	check_return_value $? "Failed to mount tiber persistent for backup"
 
-    mount "${DEST_DISK}${suffix}${reserved_partition}" ti_backup
-    check_return_value $? "Failed to mount ti_backup"
-    
-    cp -rp ti/* ti_backup
-    umount ti
-    
-    luksformat_helper $luks_key "${DEST_DISK}${suffix}${tiber_persistent_partition}" "tiber_persistent"
+	mount "${DEST_DISK}${suffix}${reserved_partition}" ti_backup
+	check_return_value $? "Failed to mount ti_backup"
 
-    mkfs.ext4 -F /dev/mapper/tiber_persistent
-    check_return_value $? "Failed to make mkfs ext4 on rootfs"
+	cp -rp ti/* ti_backup
+	umount ti
 
-    mount /dev/mapper/tiber_persistent ti
-    check_return_value $? "Failed to mount tiber persistent"
+	luksformat_helper $luks_key "${DEST_DISK}${suffix}${tiber_persistent_partition}" "tiber_persistent"
 
-    cp -rp ti_backup/* ti
-    check_return_value $? "Failed to copy the tiber persistent partition back"
+	mkfs.ext4 -F /dev/mapper/tiber_persistent
+	check_return_value $? "Failed to make mkfs ext4 on rootfs"
 
-    umount ti
-    umount ti_backup
+	mount /dev/mapper/tiber_persistent ti
+	check_return_value $? "Failed to mount tiber persistent"
+
+	cp -rp ti_backup/* ti
+	check_return_value $? "Failed to copy the tiber persistent partition back"
+
+	umount ti
+	umount ti_backup
+    fi
     ####
 
     #cleanup copied backup of rfs
-    cleanup_rfs_backup &
-    
-    # mounts needed to make the chroot work
-    mount /dev/mapper/rootfs_crypt /mnt
-    check_return_value $? "Failed to mount rootfs"
-        
+    if $COMPLETE_FDE_DMVERITY;
+    then
+	cleanup_rfs_backup &
+
+	# mounts needed to make the chroot work
+	mount /dev/mapper/rootfs_crypt /mnt
+	check_return_value $? "Failed to mount rootfs"
+    else
+	# mounts needed to make the chroot work
+	mount "${DEST_DISK}${suffix}${rootfs_partition}" /mnt
+	check_return_value $? "Failed to mount rootfs"
+    fi
+
     mount "${DEST_DISK}${suffix}${boot_partition}" /mnt/boot/efi
     check_return_value $? "Failed to mount /boot/efi"
-    
+
     mount --bind /dev /mnt/dev
     check_return_value $? "Failed to bind /dev for chroot"
-    
+
     mount --bind /dev/pts /mnt/dev/pts
     check_return_value $? "Failed to bind /dev/pts for chroot"
-    
+
     mount --bind /proc /mnt/proc
     check_return_value $? "Failed to bind /proc for chroot"
-    
+
     mount --bind /sys /mnt/sys
     check_return_value $? "Failed to bind /sys for chroot"
 
@@ -733,19 +717,24 @@ enable_luks(){
     # rm /mnt/etc/resolv.conf
     # touch /mnt/etc/resolv.conf
     # mount --bind /etc/resolv.conf /mnt/etc/resolv.conf
-    
+
+    # mount /dev/mapper/rootfs_b_crypt rfs
+    # cp -rp rfs_backup/* rfs
+    # umount rfs
+    # umount rfs_backup
+
     chroot /mnt /bin/bash <<EOT
 
     #inside installed ubuntu
 
     #setup tpm
-    tpm2-initramfs-tool seal --data $(cat /luks_key) --pcrs 14
+    tpm2-initramfs-tool seal --data $(cat /luks_key) --pcrs 15
     if [ $? -ne 0 ]
     then
 	echo "tpm2-initramfs-tools failed"
 	exit 1
     fi
-    
+
     rm -rf /luks_key
 
 EOT
@@ -759,24 +748,24 @@ EOT
     do
 	umount $mounted_dir
     done
-    # umount /mnt/sys
-    # umount /mnt/proc      
-    # umount /mnt/dev/pts    
-    # umount /mnt/dev
-    # umount /mnt/boot/efi
-    # umount /mnt/boot
-    # umount /mnt
 
 
-    mkdir /temp
-    
-    mount /dev/mapper/ver_roothash /temp
-    check_return_value $? "Failed to mount rootfs"
-    
-    veritysetup format /dev/mapper/rootfs_crypt /dev/mapper/root_a_ver_hash_map | grep Root | cut -f2 > /temp/part_a_roothash
-    check_return_value $? "Failed to do veritysetup"
-    umount /temp
-    rm -rf /temp
+    if $COMPLETE_FDE_DMVERITY;
+    then
+	mkdir /temp
+
+	mount /dev/mapper/ver_roothash /temp
+	check_return_value $? "Failed to mount rootfs"
+
+	veritysetup format /dev/mapper/rootfs_crypt /dev/mapper/root_a_ver_hash_map | grep Root | cut -f2 > /temp/part_a_roothash
+	check_return_value $? "Failed to do veritysetup"
+
+	# veritysetup format /dev/mapper/rootfs_b_crypt /dev/mapper/root_b_ver_hash_map | grep Root | cut -f2 > /temp/part_b_roothash
+	# check_return_value $? "Failed to do veritysetup"
+
+	umount /temp
+	rm -rf /temp
+    fi
 }
 
 
@@ -787,17 +776,12 @@ EOT
 #####################################################################################
 tiber_main() {
 
-    echo "Tiber OS detected" 
+    echo "Tiber OS detected"
     get_dest_disk
 
     is_single_hdd
 
-    # if [ $single_hdd -eq 0 ];
-    # then
-    # 	make_partition_single_hdd
-    # else
-	make_partition
-    # fi
+    make_partition
 
     save_rootfs_on_ram
 
