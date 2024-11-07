@@ -26,6 +26,9 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"crypto/sha256"
+        "encoding/hex"
+        "bytes"
 
 	"github.com/dustin/go-humanize"
 	"github.com/klauspost/compress/zstd"
@@ -70,6 +73,32 @@ func Write(sourceImage, destinationDevice string, compressed bool) error {
 		return err
 	}
 	defer resp.Body.Close()
+
+        // if SHA256 env variable provided as input,compare the expected SHA256 with img url SHA256
+        expectedSHA256 := os.Getenv("SHA256")
+        if len(expectedSHA256) !=0 {
+                fmt.Printf("INSIDE THE SHA FUNCTION ---\n")
+                // Verify expected SHA256 with sourceImage downloaded SHA256
+                bodyBytes, err := ioutil.ReadAll(resp.Body)
+                if err != nil {
+                        log.Fatal(err)
+                }
+                hash := sha256.Sum256(bodyBytes)
+                actualSHA256 := hex.EncodeToString(hash[:])
+
+                // convert the checksum to hexa
+                //actualSHA256 := hex.EncodeToString(checksum)
+                // compare the actualSHA256 with expectedSHA256
+                // if matches write the image to disk,else discard
+                if actualSHA256 != expectedSHA256 {
+                        fmt.Printf("Mismatch SHA256 for actualSHA256 & expectedSHA256 ---\n")
+                        log.Infof("expectedSHA256 : [%s] ", expectedSHA256)
+                        log.Infof("actualSHA256 : [%s] ", actualSHA256)
+                        log.Fatal("SHA256 MISMATCH")
+                }
+                fmt.Printf(" SHA256 MATCHED ---\n")
+                resp.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
+        }
 
 	if resp.StatusCode > 300 {
 		// Customise response for the 404 to make degugging simpler
