@@ -191,68 +191,39 @@ func DownloadTiberOSImage(ctx context.Context, osRes *osv1.OperatingSystemResour
 		rsArtifactName = osRes.GetImageUrl()
 		tag = "latest"
 	}
-	url := config.RSProxyTiberOSManifest + rsArtifactName + "/manifests/" + tag
+	url := config.RSProxyTiberOSManifest + rsArtifactName
 	zlog.MiSec().Info().Msg(url)
-	res := GetReleaseServerResponse(url)
-	zlog.MiSec().Info().Msgf("response %v", res)
-	zlog.MiSec().Info().Msgf("response %v", res.Layers)
-	if res.Layers != nil {
-		// Iterate through layers and print digest and title
 
-		for _, layer := range res.Layers {
-			zlog.MiSec().Info().Msgf("Layer Digest:%s", layer.Digest)
-			digest := layer.Digest
-			title, exists := layer.Annotations["org.opencontainers.image.title"]
-			if exists {
-				zlog.MiSec().Info().Msgf("Image Title:%s", title)
-				title := title
-				// Create an HTTP GET request with the specified URL
-				file_url := config.RSProxyTiberOSManifest + rsArtifactName + "/blobs/" + digest
-				req, httperr := http.NewRequestWithContext(ctx, "GET", file_url, nil)
-				if httperr != nil {
-					//zlog.MiSec().Fatal().Err(httperr).Msgf("Error creating request: %v\n", httperr)
-					zlog.MiSec().Info().Msg("Failed create GET request to release server.")
-					return httperr
+	req, httperr := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if httperr != nil {
+		zlog.MiSec().Error().Err(httperr).Msgf("Failed create GET request to release server:%v", httperr)
+		return httperr
 
-				}
+	}
 
-				// Perform the HTTP GET request
-				resp, clienterr := client.Do(req)
-				if clienterr != nil {
-					//zlog.MiSec().Fatal().Err(clienterr).Msgf("Error performing request: %v\n", clienterr)
-					zlog.MiSec().Info().Msg("Failed to connect to release server to download hookOS.")
-					return clienterr
+	// Perform the HTTP GET request
+	resp, clienterr := client.Do(req)
+	if clienterr != nil {
+		zlog.MiSec().Error().Err(clienterr).Msgf("Failed to connect to release server to download hookOS:%v", clienterr)
+		return clienterr
 
-				}
-				defer resp.Body.Close()
+	}
+	defer resp.Body.Close()
 
-				if strings.HasSuffix(title, ".raw.xz") {
-					// Replace everything before the ".raw.xz" with the new prefix
-					tiberOSimageFileName = title
-					title = config.TiberOSImage
-				}
+	filePath := config.DownloadPath + "/" + config.TiberOSImage
 
-				zlog.MiSec().Info().Msgf("Downloading %s", title)
-				filePath := config.DownloadPath + "/" + title
+	file, fileerr := os.Create(filePath)
+	if fileerr != nil {
+		//zlog.MiSec().Fatal().Err(fileerr).Msgf("Error while creating release manifest file.")
+		zlog.MiSec().Error().Err(fileerr).Msgf("Failed to create file:%v", fileerr)
+		return fileerr
+	}
+	defer file.Close()
 
-				file, fileerr := os.Create(filePath)
-				if fileerr != nil {
-					//zlog.MiSec().Fatal().Err(fileerr).Msgf("Error while creating release manifest file.")
-					zlog.MiSec().Info().Msg("Failed to create file")
-					return fileerr
-				}
-				defer file.Close()
-
-				// Copy the response body to the local file
-				_, copyErr := io.Copy(file, resp.Body)
-				if copyErr != nil {
-					zlog.MiSec().Error().Err(copyErr).Msgf("Error while coping content ")
-				}
-
-			} else {
-				zlog.MiSec().Info().Msg("Image Title not found")
-			}
-		}
+	// Copy the response body to the local file
+	_, copyErr := io.Copy(file, resp.Body)
+	if copyErr != nil {
+		zlog.MiSec().Error().Err(copyErr).Msgf("Error while coping content ")
 	}
 
 	zlog.MiSec().Info().Msg("Tiber OS Image downloaded")
@@ -272,7 +243,7 @@ func DownloadTiberOSImage(ctx context.Context, osRes *osv1.OperatingSystemResour
 		zlog.MiSec().Error().Err(err).Msgf("Checksum verification failed! Expected checksum:%s and Computed checksum:%s", osRes.GetSha256(), computedChecksum)
 	}
 
-	copyErr := CopyFile(
+	copyErr = CopyFile(
 		config.DownloadPath+"/"+config.TiberOSImage,
 		util.GetOSImageLocation(osRes, targetDir),
 	)
