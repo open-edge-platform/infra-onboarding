@@ -17,14 +17,11 @@
 read_sb_status=./tinker_actions/read_sb_status/
 store_alpine=./tinker_actions/store_alpine/
 fdo_action_build=./tinker_actions/fdo_action_build/
-create_partition=./tinker_actions/create_partition
 efibootset=./tinker_actions/efibootset
 fde_setup=./tinker_actions/fde
 creds_copy=./tinker_actions/creds_copy
-client_auth=./tinker_actions/client_auth
 caddy_proxy=./tinker_actions/caddy
 fluentbit=./tinker_actions/fluentbit
-token_client=./tinker_actions/token_client
 image2disk=./tinker_actions/image2disk/v1
 cexec=./tinker_actions/cexec/v1
 writefile=./tinker_actions/writefile/v1
@@ -68,15 +65,6 @@ efibootset_setup() {
     popd
 }
 
-create_partition_setup() {
-
-    pushd $create_partition
-
-    bash -e build.sh
-
-    popd
-}
-
 fde_setup_action() {
 
     pushd $fde_setup
@@ -88,15 +76,6 @@ fde_setup_action() {
 
 build_credscopy() {
     pushd $creds_copy
-
-    bash -e build.sh
-
-    popd
-}
-
-client_auth_setup() {
-
-    pushd $client_auth
 
     bash -e build.sh
 
@@ -121,15 +100,6 @@ fluentbit_setup() {
     popd
 }
 
-tokenclient_setup() {
-
-    pushd $token_client
-
-    bash -e build.sh
-
-    popd
-}
-
 image2disk_setup() {
 
     pushd $image2disk
@@ -145,7 +115,7 @@ cexec_setup() {
 
     bash build.sh
 
-    popd    
+    popd
 }
 
 writefile_setup() {
@@ -211,14 +181,11 @@ main() {
     efibootset_setup
 
     store_alpine_setup
-    create_partition_setup
     fde_setup_action
     build_credscopy
 
-    client_auth_setup
     caddyproxy_setup
     fluentbit_setup
-    tokenclient_setup
     image2disk_setup
     cexec_setup
     writefile_setup

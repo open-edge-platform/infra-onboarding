@@ -34,13 +34,10 @@ ACTION_ARRAY := \
 	efibootset \
 	fdoclient_action \
 	store_alpine \
-	create_partition \
 	fde \
 	cred_copy \
-	client_auth \
 	caddy_proxy \
 	fluentbit \
-	token_client \
 	image2disk \
 	cexec \
 	writefile \
