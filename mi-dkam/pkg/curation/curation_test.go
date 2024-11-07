@@ -226,11 +226,18 @@ func Test_GetCuratedScript(t *testing.T) {
 	dir := config.PVC
 	os.MkdirAll(dir, 0755)
 	os.MkdirAll(config.DownloadPath, 0755)
+	os.Setenv("ORCH_CLUSTER", "kind.internal")
+	defer os.Unsetenv("ORCH_CLUSTER")
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
 # Add your installation commands here
 `
+	os.Setenv("EN_HTTP_PROXY", "proxy")
+	os.Setenv("EN_HTTPS_PROXY", "proxy")
+	os.Setenv("EN_NO_PROXY", "proxy")
+	os.Setenv("EN_FTP_PROXY", "proxy")
+	os.Setenv("EN_SOCKS_PROXY", "proxy")
 	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
@@ -258,6 +265,11 @@ func Test_GetCuratedScript(t *testing.T) {
 		os.Remove(pwd + "/data/profile/installer.sh")
 		os.Remove(dir + "/profile.sh")
 		os.Remove(config.DownloadPath + "/profile.sh")
+		os.Unsetenv("EN_HTTP_PROXY")
+		os.Unsetenv("EN_HTTPS_PROXY")
+		os.Unsetenv("EN_NO_PROXY")
+		os.Unsetenv("EN_FTP_PROXY")
+		os.Unsetenv("EN_SOCKS_PROXY")
 	}()
 }
 
@@ -271,6 +283,12 @@ func Test_GetCuratedScript_Case(t *testing.T) {
         install_intel_CAcertificates
 # Add your installation commands here
 `
+	os.Setenv("MODE", "dev")
+	os.Setenv("EN_HTTP_PROXY", "proxy")
+	os.Setenv("EN_HTTPS_PROXY", "proxy")
+	os.Setenv("EN_NO_PROXY", "proxy")
+	os.Setenv("EN_FTP_PROXY", "proxy")
+	os.Setenv("EN_SOCKS_PROXY", "proxy")
 	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
@@ -285,10 +303,87 @@ func Test_GetCuratedScript_Case(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("Error creating file:", err2)
 	}
+	os.Setenv("ORCH_CLUSTER", "kind.internal")
+	defer os.Unsetenv("ORCH_CLUSTER")
 	osr := &osv1.OperatingSystemResource{
 		ProfileName: "profile",
-		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
+		OsType:      osv1.OsType_OS_TYPE_IMMUTABLE,
 	}
+	os.Setenv("FIREWALL_REQ_ALLOW", `[
+    {
+        "sourceIp": "192.168.1.1",
+        "ports": "80",
+        "ipVer": "",
+        "protocol": "tcp"
+    },
+    {
+        "sourceIp": "192.168.1.1",
+        "ports": "53,123,161",
+        "ipVer": "",
+        "protocol": "udp"
+    },
+    {
+        "sourceIp": "example.com",
+        "ports": "443",
+        "ipVer": "",
+        "protocol": "tcp"
+    },
+    {
+        "sourceIp": "",
+        "ports": "22",
+        "ipVer": "",
+        "protocol": "tcp"
+    },
+    {
+        "sourceIp": "",
+        "ports": "53,123",
+        "ipVer": "",
+        "protocol": "udp"
+    },
+    {
+        "sourceIp": "192.168.1.1",
+        "ports": "8080",
+        "ipVer": "",
+        "protocol": ""
+    },
+    {
+        "sourceIp": "",
+        "ports": "80,443",
+        "ipVer": "",
+        "protocol": ""
+    },
+    {
+        "sourceIp": "",
+        "ports": "",
+        "ipVer": "",
+        "protocol": ""
+    },
+    {
+        "sourceIp": "example.com",
+        "ports": "80,443",
+        "ipVer": "",
+        "protocol": ""
+    },
+	{
+        "sourceIp": "192.168.1.1",
+        "ports": "",
+        "ipVer": "",
+        "protocol": "tcp"
+    },
+    {
+        "sourceIp": "",
+        "ports": "",
+        "ipVer": "",
+        "protocol": "udp"
+    },
+	{
+        "sourceIp": "192.168.1.1",
+        "ports": "",
+        "ipVer": "",
+        "protocol": ""
+    }
+]
+`)
 	err = CurateScript(osr)
 
 	assert.NoError(t, err)
@@ -298,6 +393,14 @@ func Test_GetCuratedScript_Case(t *testing.T) {
 		os.Remove(dir + "/profile.sh")
 		os.Remove(dir + "/profile/installer.sh")
 		os.Remove(config.DownloadPath + "/profile.sh")
+		os.RemoveAll(config.PVC)
+		os.Unsetenv("EN_HTTP_PROXY")
+		os.Unsetenv("EN_HTTPS_PROXY")
+		os.Unsetenv("EN_NO_PROXY")
+		os.Unsetenv("EN_FTP_PROXY")
+		os.Unsetenv("EN_SOCKS_PROXY")
+		os.Unsetenv("MODE")
+		os.Unsetenv("FIREWALL_REQ_ALLOW")
 	}()
 }
 
@@ -325,6 +428,8 @@ func Test_GetCuratedScript_Case1(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("Error creating file:", err2)
 	}
+	os.Setenv("ORCH_CLUSTER", "kind.internal")
+	defer os.Unsetenv("ORCH_CLUSTER")
 	osr := &osv1.OperatingSystemResource{
 		ProfileName: "profile",
 		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
@@ -365,6 +470,8 @@ func Test_GetCuratedScript_Case2(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("Error creating file:", err2)
 	}
+	os.Setenv("ORCH_CLUSTER", "kind.internal")
+	defer os.Unsetenv("ORCH_CLUSTER")
 	osr := &osv1.OperatingSystemResource{
 		ProfileName: "profile",
 		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
@@ -379,6 +486,7 @@ func Test_GetCuratedScript_Case2(t *testing.T) {
 		os.Remove(dir + "/profile.sh")
 		os.Remove(dir + "/profile/installer.sh")
 		os.Remove(config.DownloadPath + "/profile.sh")
+
 	}()
 }
 
@@ -414,6 +522,8 @@ func Test_GetCuratedScript_Case3(t *testing.T) {
 	src := strings.Replace(originalDir, "curation", "script/latest-dev.yaml", -1)
 	CopyFile(src, res)
 	os.Setenv("NETIP", "static")
+	os.Setenv("ORCH_CLUSTER", "kind.internal")
+	defer os.Unsetenv("ORCH_CLUSTER")
 	osr := &osv1.OperatingSystemResource{
 		ProfileName: "profile",
 		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
@@ -468,6 +578,8 @@ func Test_GetCuratedScript_Case4(t *testing.T) {
 	os.MkdirAll(direc, 0755)
 	os.Create(direc + "latest-dev.yaml")
 	CopyFile(src, direc+"latest-dev.yaml")
+	os.Setenv("ORCH_CLUSTER", "kind.internal")
+	defer os.Unsetenv("ORCH_CLUSTER")
 	osr := &osv1.OperatingSystemResource{
 		ProfileName: "profile",
 		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
@@ -651,6 +763,7 @@ func TestCreateOverlayScript(t *testing.T) {
         install_intel_CAcertificates
 # Add your installation commands here
 `
+	os.Setenv("MODE", "prod")
 	err := os.WriteFile(dataDir+"/installer.sh", []byte(dummyData), 0755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
@@ -709,6 +822,7 @@ func TestCreateOverlayScript(t *testing.T) {
 		os.Remove(originalDir + "/data/default/installer.sh")
 		os.Remove(config.DownloadPath + "/default.sh")
 		CopyFile(dst, srcs)
+		os.Unsetenv("MODE")
 	}()
 }
 
@@ -1227,6 +1341,8 @@ func TestAddFirewallRules(t *testing.T) {
 }
 
 func TestGetCuratedScript(t *testing.T) {
+	os.Setenv("ORCH_CLUSTER", "kind.internal")
+	defer os.Unsetenv("ORCH_CLUSTER")
 	cdr, _ := os.Getwd()
 	err1 := os.MkdirAll(cdr+"/dummy/dummy1/dummy2/dummy3", 0755)
 	assert.NoError(t, err1)
@@ -1366,4 +1482,39 @@ func TestPathExists(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCreateCloudCfgScript(t *testing.T) {
+	type args struct {
+		pwd   string
+		osRes *osv1.OperatingSystemResource
+	}
+	os.Setenv("SOCKS_PROXY", "proxy")
+	os.Setenv("MODE", "dev")
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test case",
+			args: args{
+				pwd:   "",
+				osRes: &osv1.OperatingSystemResource{},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := CreateCloudCfgScript(tt.args.pwd, tt.args.osRes); (err != nil) != tt.wantErr {
+				t.Errorf("CreateCloudCfgScript() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+	wd, _ := os.Getwd()
+	defer func() {
+		os.Unsetenv("SOCKS_PROXY")
+		os.RemoveAll(wd + "/data")
+	}()
 }

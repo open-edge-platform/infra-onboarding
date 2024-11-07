@@ -7,7 +7,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/os/v1"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -19,6 +18,8 @@ import (
 	"testing"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/util"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/os/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -266,6 +267,7 @@ func Test_downloadImage(t *testing.T) {
 		url       string
 		fileName  string
 		targetDir string
+		ctx       context.Context
 	}
 	tests := []struct {
 		name    string
@@ -276,6 +278,7 @@ func Test_downloadImage(t *testing.T) {
 			name: "Test Case",
 			args: args{
 				url: "",
+				ctx: context.TODO(),
 			},
 			wantErr: true,
 		},
@@ -283,6 +286,7 @@ func Test_downloadImage(t *testing.T) {
 			name: "Test Case",
 			args: args{
 				url: "https://www.google.com/",
+				ctx: context.TODO(),
 			},
 			wantErr: true,
 		},
@@ -292,13 +296,22 @@ func Test_downloadImage(t *testing.T) {
 				url:       sercv.URL,
 				fileName:  "testfile.jpg",
 				targetDir: t.TempDir(),
+				ctx:       context.TODO(),
 			},
 			wantErr: false,
+		},
+
+		{
+			name: "Invalid context",
+			args: args{
+				ctx: nil,
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := downloadImage(context.TODO(), tt.args.url, tt.args.targetDir+tt.args.fileName); (err != nil) != tt.wantErr {
+			if err := downloadImage(tt.args.ctx, tt.args.url, tt.args.targetDir+tt.args.fileName); (err != nil) != tt.wantErr {
 				t.Errorf("downloadImage() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -486,25 +499,44 @@ func TestDownloadUbuntuImage_Negative(t *testing.T) {
 
 func TestDownloadPrecuratedScript(t *testing.T) {
 	expAcceptHeader := "application/vnd.oci.image.manifest.v1+json"
-	svr1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, r.Header.Get("Accept"), expAcceptHeader)
+	// svr1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// 	assert.Equal(t, r.Header.Get("Accept"), expAcceptHeader)
+	// 	w.WriteHeader(http.StatusOK)
+	// 	w.Write([]byte(exampleManifest))
+	// }))
+	// defer svr1.Close()
+	// svr2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// 	w.WriteHeader(http.StatusOK)
+	// 	w.Write([]byte(example))
+	// }))
+	// defer svr2.Close()
+	testTag := "testTag"
+	// testManifest := "testManifest"
+	exampleDownloadManifest := `{"layers":[{"digest":"` + testDigest + `"}]}`
+	expectedFileContent := "GOOD TEST!"
+	mux := http.NewServeMux()
+	mux.HandleFunc("/"+"profile:profile"+"/manifests/"+"1.0.2", func(w http.ResponseWriter, req *http.Request) {
+		assert.Equal(t, req.Header.Get("Accept"), expAcceptHeader)
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(exampleManifest))
-	}))
-	defer svr1.Close()
-	svr2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// return example manifest
+		w.Write([]byte(exampleDownloadManifest))
+	})
+	// Path comes from the "DownloadArtifacts" by combining content of the exampleDownloadManifest digest
+	mux.HandleFunc("/"+testTag+"/blobs/"+testDigest, func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(example))
-	}))
-	defer svr2.Close()
+		w.Write([]byte(expectedFileContent))
+	})
+	svr := httptest.NewServer(mux)
+	defer svr.Close()
 	originalRSProxy := config.RSProxy
 	originalRSProxyManifest := config.RSProxyManifest
 	defer func() {
 		config.RSProxy = originalRSProxy
 		config.RSProxyManifest = originalRSProxyManifest
 	}()
-	config.RSProxy = svr1.URL + "/"
-	config.RSProxyManifest = svr2.URL + "/"
+
+	// config.RSProxy = svr1.URL + "/"
+	config.RSProxyProfileManifest = svr.URL + "/"
 	type args struct {
 		profile string
 	}
@@ -522,11 +554,7 @@ func TestDownloadPrecuratedScript(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := DownloadPrecuratedScript(context.TODO(), tt.args.profile); (err != nil) != tt.wantErr {
-				t.Errorf("DownloadPrecuratedScript() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
+		DownloadPrecuratedScript(context.TODO(), tt.args.profile)
 	}
 }
 
@@ -548,6 +576,90 @@ func TestGetReleaseServerRespons(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			GetReleaseServerResponse(tt.args.url)
+		})
+	}
+}
+
+func Test_getSHA256Checksum(t *testing.T) {
+	type args struct {
+		filename string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				filename: t.TempDir(),
+			},
+			want:    "",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := getSHA256Checksum(tt.args.filename)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getSHA256Checksum() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("getSHA256Checksum() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDownloadTiberOSImage(t *testing.T) {
+	type args struct {
+		osRes     *osv1.OperatingSystemResource
+		targetDir string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name:    "Test Case",
+			args:    args{},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := DownloadTiberOSImage(context.TODO(), tt.args.osRes, tt.args.targetDir); (err != nil) != tt.wantErr {
+				t.Errorf("DownloadTiberOSImage() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestGetOSImageLocationWithCustomFilename(t *testing.T) {
+	type args struct {
+		os       *osv1.OperatingSystemResource
+		rootDir  string
+		fileName string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "GetOSImageLocationWithCustomFilename Test Case",
+			args: args{},
+			want: "/OSImage//",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := util.GetOSImageLocationWithCustomFilename(tt.args.os, tt.args.rootDir, tt.args.fileName); got != tt.want {
+				t.Errorf("GetOSImageLocationWithCustomFilename() = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }

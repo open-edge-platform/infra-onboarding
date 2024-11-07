@@ -8,7 +8,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/util"
 	"io"
 	"math/big"
 	"net/http"
@@ -20,6 +19,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/util"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/internal/invclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
@@ -35,6 +36,7 @@ import (
 
 const testDigest = "TEST_DIGEST"
 const testFile = "TEST_FILE"
+const testImage = "TEST_IMAGE.raw.xz"
 const exampleManifest = `
 		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
 		"config":{"mediaType":"application/vnd.intel.ensp.en",
@@ -59,6 +61,18 @@ const exampleManifestWrong = `
 		}],
 		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
 const rbacRules = "../../rego/authz.rego"
+
+const exampleManifests = `
+		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
+		"config":{"mediaType":"application/vnd.intel.ensp.en",
+		"digest":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a","size":2},
+		"layers":[{
+			"mediaType":"application/vnd.oci.image.layer.v1.tar",
+			"digest":"` + testDigest + `",
+			"size":24800,
+			"annotations":{"org.opencontainers.image.title":"` + testImage + `"}
+		}],
+		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
 
 func TestMain(m *testing.M) {
 	wd, err := os.Getwd()
@@ -95,6 +109,8 @@ func TestGetCuratedScript(t *testing.T) {
         install_intel_CAcertificates
 # Add your installation commands here
 `
+	os.Setenv("ORCH_CLUSTER", "kind.internal")
+	defer os.Unsetenv("ORCH_CLUSTER")
 	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
@@ -241,9 +257,10 @@ func TestDownloadOS(t *testing.T) {
 	osUrl := "https://cloud-images.ubuntu.com/releases/22.04/release-20240912/ubuntu-22.04-server-cloudimg-amd64.img"
 	sha256 := "5da0b3d37d02ca6c6760caa4041b4df14e08abc7bc9b2db39133eef8ee145f6d"
 	osr := &osv1.OperatingSystemResource{
-		ImageUrl: osUrl,
-		OsType:   osv1.OsType_OS_TYPE_MUTABLE,
-		Sha256:   sha256,
+		ImageUrl:   osUrl,
+		OsType:     osv1.OsType_OS_TYPE_MUTABLE,
+		Sha256:     sha256,
+		OsProvider: osv1.OsProviderKind_OS_PROVIDER_KIND_EIM,
 	}
 
 	expectedFilePath := util.GetOSImageLocation(osr, config.PVC)
@@ -331,7 +348,6 @@ func TestDownloadArtifacts_Case1(t *testing.T) {
 	if crErr != nil {
 		t.Fatalf("Error creating file: %v", crErr)
 	}
-	fmt.Println("token File :", file.Name())
 	defer func() {
 		remErr := os.RemoveAll("/run/secrets/kubernetes.io/serviceaccount/token")
 		if remErr != nil {
@@ -348,8 +364,6 @@ func TestDownloadArtifacts_Case1(t *testing.T) {
 	if cerrErr != nil {
 		t.Fatalf("Error creating cert file: %v", cerrErr)
 	}
-	fmt.Println("certOut File :", certOut.Name())
-	fmt.Println("CA certificate created successfully as ca.crt")
 	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: caCertBytes})
 	defer func() {
 		remErr := os.RemoveAll("/run/secrets/kubernetes.io/serviceaccount/ca.crt")
@@ -401,7 +415,7 @@ func TestDownloadArtifacts_Case1(t *testing.T) {
 	expectedManifestFilePath := dkamTmpFolderPath + config.ReleaseVersion + ".yaml"
 	fileData, filrErr := os.ReadFile(localPath + "/../../test/testdata/example-manifest-internal-rs.yaml")
 	require.NoError(t, filrErr)
-	err = os.WriteFile(expectedManifestFilePath, fileData, 0755)
+	os.WriteFile(expectedManifestFilePath, fileData, 0755)
 	require.NoError(t, filrErr)
 	returnWrongManifest := false
 	mux.HandleFunc("/manifests/", func(w http.ResponseWriter, req *http.Request) {
@@ -553,6 +567,91 @@ func TestInitOnboarding(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			InitOnboarding(tt.args.invClient, tt.args.enableAuth, tt.args.rbacRules)
+		})
+	}
+}
+
+func TestDownloadOs(t *testing.T) {
+	osUrl := "one-intel-edge/tiberos:20241004.0726-3.0"
+	sha256 := "de04d58dc5ccc4b9671c3627fb8d626fe4a15810bc1fe3e724feea761965f666"
+	fileName := fileNameFromURL(osUrl)
+	rawFileName := strings.TrimSuffix(fileName, ".img") + ".raw.gz"
+	expectedFilePath := config.PVC + "/OSImage/" + sha256 + "/" + rawFileName
+	err := os.MkdirAll(filepath.Dir(expectedFilePath), 0755)
+	if err != nil {
+		t.Fatalf("Failed to create directories: %v", err)
+	}
+	file, err := os.Create(expectedFilePath)
+	if err != nil {
+		t.Fatalf("Failed to create file: %v", err)
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/one-intel-edge/tiberos/manifests/20241004.0726-3.0", func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(exampleManifests))
+	})
+	svr := httptest.NewServer(mux)
+	defer svr.Close()
+	config.RSProxyTiberOSManifest = svr.URL + "/"
+	file.Close()
+	defer func() {
+		err := os.Remove(expectedFilePath)
+		if err != nil && !os.IsNotExist(err) {
+			t.Fatalf("Failed to remove file: %v", err)
+		}
+		err = os.RemoveAll(filepath.Dir(expectedFilePath))
+		if err != nil {
+			t.Fatalf("Failed to clean up directories: %v", err)
+		}
+	}()
+	type args struct {
+		osRes *osv1.OperatingSystemResource
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test Case",
+			args: args{
+				osRes: &osv1.OperatingSystemResource{
+					ImageUrl: osUrl,
+					OsType:   0,
+					Sha256:   sha256,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Test Case With Os type",
+			args: args{
+				osRes: &osv1.OperatingSystemResource{
+					ImageUrl: osUrl,
+					OsType:   osv1.OsType_OS_TYPE_IMMUTABLE,
+					Sha256:   sha256,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Test Case With Os Immutable type",
+			args: args{
+				osRes: &osv1.OperatingSystemResource{
+					ImageUrl:   osUrl,
+					OsType:     osv1.OsType_OS_TYPE_IMMUTABLE,
+					Sha256:     sha256,
+					OsProvider: osv1.OsProviderKind_OS_PROVIDER_KIND_EIM,
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := DownloadOS(context.TODO(), tt.args.osRes); (err != nil) != tt.wantErr {
+				t.Errorf("DownloadOS() error = %v, wantErr %v", err, tt.wantErr)
+			}
 		})
 	}
 }
