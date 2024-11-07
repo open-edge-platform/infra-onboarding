@@ -29,3 +29,9 @@ go.work
 
 # Ignore Snyk reports
 artifacts
+
+# Ignore outdated script files
+internal/onboardingmgr/scripts/onboardingstartupms.sh
+internal/onboardingmgr/scripts/installer23WW37.5_1506.sh
+internal/onboardingmgr/azur_iot_edge_installer/azure_dps_installer.sh
+internal/onboardingmgr/azur_iot_edge_installer/log.sh

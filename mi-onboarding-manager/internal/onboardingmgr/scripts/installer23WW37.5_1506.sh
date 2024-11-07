@@ -1,6 +1,7 @@
+#!/bin/bash
 # Copyright (C) 2023 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
-#!/bin/bash
+
 ################################################################
 #
 # This script will Setup the Intel Proxies, setup the apt
@@ -10,7 +11,7 @@
 # usage: sudo ./installer.sh
 #
 # source: Configurable BKC Service
-
+# shellcheck disable=all
 set -e
 
 current_workspace="$PWD"
@@ -27,20 +28,25 @@ echo 'set enable-bracketed-paste off' >> /etc/inputrc;
 echo 'sys_olvtelemetry ALL=(ALL) NOPASSWD: /usr/sbin/biosdecode, /usr/sbin/dmidecode, /usr/sbin/ownership, /usr/sbin/vpddecode' > /etc/sudoers.d/user-sudo;
 echo 'user ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers.d/user-sudo;
 chmod 440 /etc/sudoers.d/user-sudo;
-echo 'http_proxy=http://proxy-dmz.intel.com:911' >> /etc/environment;
-echo 'https_proxy=http://proxy-dmz.intel.com:912' >> /etc/environment;
-echo 'ftp_proxy=http://proxy-dmz.intel.com:911' >> /etc/environment;
-echo 'socks_server=http://proxy-dmz.intel.com:1080' >> /etc/environment;
-echo 'no_proxy=localhost,*.intel.com,intel.com,127.0.0.1' >> /etc/environment;
+{
+  echo 'http_proxy=http://proxy-dmz.intel.com:911'
+  echo 'https_proxy=http://proxy-dmz.intel.com:912'
+  echo 'ftp_proxy=http://proxy-dmz.intel.com:911'
+  echo 'socks_server=http://proxy-dmz.intel.com:1080'
+  echo 'no_proxy=localhost,*.intel.com,intel.com,127.0.0.1' ;
+} > /etc/environment
 sed -i 's/#  AutomaticLoginEnable =/AutomaticLoginEnable =/g' /etc/gdm3/custom.conf;
 sed -i 's/#  AutomaticLogin = user1/AutomaticLogin = user/g' /etc/gdm3/custom.conf;
 echo 'kernel.printk = 7 4 1 7' > /etc/sysctl.d/99-kernel-printk.conf;
 echo 'kernel.dmesg_restrict = 0' >> /etc/sysctl.d/99-kernel-printk.conf;
-. /etc/environment;
+./etc/environment;
 export http_proxy https_proxy ftp_proxy socks_server no_proxy;
 apt list --installed > /opt/Bom-list.txt;
-echo 'BUILD_TIME='$(date +%Y%m%d-%H%M) > /opt/jenkins-build-timestamp;
-echo 'PLATFORM=RPL-P' >> /opt/jenkins-build-timestamp;
+{
+  echo 'BUILD_TIME='$(date +%Y%m%d-%H%M) 
+  echo 'PLATFORM=RPL-P'
+} > /opt/jenkins-build-timestamp;
+
 echo -e 'ADL KERNEL=5.15.96-lts-230421t211918z
 RPL KERNEL=5.19-intel' >> /opt/jenkins-build-timestamp;
 echo -e 'RPL EDGE KERNEL=5.19.0-mainline-tracking-eb-230725t100749z
@@ -101,7 +107,7 @@ for item in "${package_list[@]}";
 do
     echo "Installing $item"
     #sudo apt-get install $item -y >> package_install.log 2>&1
-    sudo apt-get install $item -y
+    sudo apt-get install "$item" -y
 done
 echo "$(date): Packages Successfully Installed...................."
 
@@ -112,7 +118,7 @@ else
   echo "Symbolic link already exists"
 fi
 
-sudo usermod -aG docker $USER
+sudo usermod -aG docker "$USER"
 sudo systemctl restart docker
 sudo systemctl daemon-reload
 sudo chmod 666 /var/run/docker.sock
@@ -130,15 +136,15 @@ IFS=',' read -ra kernel_overlays_list <<< "$kernel_overlays"
 
 # Download & Install the Kernel
 for item in "${kernel_overlays_list[@]}"; do
-    a=(${item//// })
+    a=("${item//// }")
     echo "$(date): Downloading ${a[-1]}"
-    wget -c --tries=3 --read-timeout=60 $item -q
+    wget -c --tries=3 --read-timeout=60 "$item" -q
     if [ $? -eq 0 ]; then
     	echo "Download successful!"
 	echo "$(date): Installing ${a[-1]}"
-    	sudo dpkg -i $(echo "$item" | rev | cut -d'/' -f1 | rev)
+    	sudo dpkg -i "$(echo "$item" | rev | cut -d'/' -f1 | rev)"
     	echo "$(date): Installed ${a[-1]}"
-    	sudo rm $(echo "$item" | rev | cut -d'/' -f1 | rev)
+    	sudo rm "$(echo "$item" | rev | cut -d'/' -f1 | rev)"
     else
     	echo "Download failed. Exit status: $?"
 	exit 1
@@ -150,7 +156,7 @@ echo "All Kernel debs are installed..."
 #Replace default Boot kernel with Kernel version
 kernel_version_string=$(echo "${kernel_overlays_list[0]}" | rev | cut -d'/' -f2 | rev)
 kernel_version=$(echo "$kernel_version_string" | sed 's/linux-//g')
-sudo sed -i 's/GRUB_DEFAULT=.*/GRUB_DEFAULT="Advanced options for Ubuntu>Ubuntu, with Linux '$kernel_version'"/' /etc/default/grub
+sudo sed -i 's/GRUB_DEFAULT=.*/GRUB_DEFAULT="Advanced options for Ubuntu>Ubuntu, with Linux '"$kernel_version"'"/' /etc/default/grub
 sudo sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX="i915.enable_guc=7 i915.force_probe=* udmabuf.list_limit=8192 console=tty0 console=ttyS0,115200n8"/' /etc/default/grub
 #Update GRUB
 sudo update-grub
@@ -161,13 +167,13 @@ disk_partitioning() {
 ##################################################################
 ##............. Externding Disk Partitioning size.................
 echo "$(date): Extentending DISK size & Mounting Partition................"
-drive=$(lsblk -no pkname $(findmnt -n / | awk '{ print $2 }'))
-echo -e "n\n\n\n\nw" | sudo fdisk /dev/$drive
-new_partition=$(lsblk -npo name /dev/$drive | tail -n1)
+drive=$(lsblk -no pkname "$(findmnt -n / | awk '{ print $2 }')")
+echo -e "n\n\n\n\nw" | sudo fdisk /dev/"$drive"
+new_partition=$(lsblk -npo name /dev/"$drive" | tail -n1)
 trimmed_partition=${new_partition#*/}
-sudo mkfs.ext4 /$trimmed_partition
+sudo mkfs.ext4 /"$trimmed_partition"
 sudo mkdir -p /residues
-sudo mount /$trimmed_partition /residues
+sudo mount /"$trimmed_partition" /residues
 echo "/$trimmed_partition     /residues       auto    defaults  0  1" | sudo tee -a /etc/fstab
 echo "$(date): Mounting Successfully Done................"
 }
@@ -181,5 +187,5 @@ KernelUpdate 2>&1 | tee -a "$current_workspace/cbkc_output.log"
 ProxySetUp 2>&1 | tee -a "$current_workspace/cbkc_output.log"
 
 echo "Rebooting Device now" | tee -a "$current_workspace/cbkc_output.log"
-echo "Installation done" > $current_workspace/.base_pkg_install_done
+echo "Installation done" > "$current_workspace"/.base_pkg_install_done
 sudo reboot

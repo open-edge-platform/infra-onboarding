@@ -19,13 +19,14 @@
 # either expressly, by implication, inducement, estoppel or otherwise. Any license under
 # such intellectual property rights must be express and approved by Intel in writing.
 #########################################################################################
+# shellcheck disable=all
 SETUP_LOG_FILENAME="onboarding_logs.txt"
 image_type=$1
 ms_install=$2
 job_name=""
 namespace="tink-system"
 
-MS_INSTALL="false"
+# MS_INSTALL="false"
 FILE=env_variable.txt
 TINKER_CLIENT_IMG=""
 
@@ -38,7 +39,7 @@ if [ "$image_type" == "bkc" ]; then
 	#TODO:will remove the hardcoded URL once we have the interface with inventory namanger 
 	bkc_link="https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu-base/20230911-1844/default/ubuntu-22.04-desktop-amd64+intel-iot-37-custom.img.bz2"
 
-	cd ${current_dir}
+	cd "${current_dir}" || exit
 	if [ -z $bkc_link ]; then
 		echo "bkc_link from DKAM is empty Please check" >/dev/null
 
@@ -49,7 +50,7 @@ if [ "$image_type" == "bkc" ]; then
 	bkc_raw_gz=${filename_bz2%.*}.raw.gz
 
 	# No checksum based checking of new file. BKC release image names are alwys unique.
-	Before going for download check for the image present under /opt/hook, if yes do not download it.
+	# Before going for download check for the image present under /opt/hook, if yes do not download it.
 	if [ -e "/opt/hook/$bkc_raw_gz" ]; then
 		to_download_yes=false
 	else
@@ -88,7 +89,7 @@ elif [ "$image_type" == "focal" ]; then
 
 	#if MS instalation set do below changes
 	#TODO:This will be changed once we have interfce with Inventory manager
-	if [ $ms_install = "ms" ]; then
+	if [ "$ms_install" = "ms" ]; then
 	    #Download the kernel pkgs to install on Focal image to suporting the ethernet drivers 
 
 	     if [ ! -f /opt/hook/linux-image-5.15.96-lts.deb ] || [ ! -f /opt/hook/linux-headers-5.15.96-lts.deb ]; then
@@ -145,11 +146,11 @@ if [ "$image_type" == "bkc" ]; then
 
     script_name=${base_pkg_script_url##*/}
 
-    if [ -f $script_name ]; then
-       rm $script_name
+    if [ -f "$script_name" ]; then
+       rm "$script_name"
     fi
     wget --no-proxy $base_pkg_script_url
-    sudo cp $script_name /opt/hook/base_installer.sh
+    sudo cp "$script_name" /opt/hook/base_installer.sh
     #copy edge_node_installer.sh to /opt/hook directory for downloding it on to the edge node
     sudo cp edge_node_installer.sh /opt/hook
     #copy docker-compose files for the agnets to /opt/hook/ directory for downloding it on to the edge node
@@ -164,8 +165,8 @@ else
 fi
 
 disk_dev=$disk #"/dev/nvme0n1"
-npart=$(echo $disk_dev | grep '.*[0-9]$')
-if [ $npart ]; then
+npart=$(echo "$disk_dev" | grep '.*[0-9]$')
+if [ "$npart" ]; then
 	export ROOTFS_PARTITION="p$ROOTFS_PART_NO"
 else
 	export ROOTFS_PARTITION="$ROOTFS_PART_NO"
@@ -189,12 +190,14 @@ fi
 
 if [ ! -f /opt/hook/agent_node_env.txt ]; then
     #export port numbers and host_ip for the aganets to start on edge node
-    echo "export MGR_HOST=$host_ip" >>agent_node_env.txt
-    echo "export NO_PROXY=$host_ip" >>agent_node_env.txt
-    echo "export INVMGR_PORT=31846"  >>agent_node_env.txt
-    echo "export UPDATEMGR_PORT=31845" >>agent_node_env.txt
-    echo "export UPDATEMGR_HOST=$host_ip" >>agent_node_env.txt
-    echo "export AGENT_HARDWARE_ID=$AGENT_HARDWARE_ID" >>agent_node_env.txt
+	{
+		echo "export MGR_HOST=$host_ip" 
+		echo "export NO_PROXY=$host_ip" 
+		echo "export INVMGR_PORT=31846"
+		echo "export UPDATEMGR_PORT=31845"
+		echo "export UPDATEMGR_HOST=$host_ip"
+		echo "export AGENT_HARDWARE_ID=$AGENT_HARDWARE_ID"
+	} > agent_node_env.txt
     sudo cp agent_node_env.txt /opt/hook/
     rm agent_node_env.txt
 fi

@@ -46,9 +46,9 @@ pipeline {
                     }
                     steps {
                         script {
-                            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            // catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                 rbheStaticCodeScan()
-                            }
+                            // }
                         }
                     }
                 }
@@ -62,6 +62,14 @@ pipeline {
                         }
                     }
                 }*/
+		stage('Shellcheck') {
+		    when {
+			changeRequest()
+		    }
+		    steps {
+			shellcheck()
+		    }
+		}    
             }
         }
         stage('Setup') {

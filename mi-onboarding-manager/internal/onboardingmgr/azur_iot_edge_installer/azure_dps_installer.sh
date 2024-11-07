@@ -12,9 +12,10 @@
 # This software and the related documents are provided as is, with no express
 # or implied warranties, other than those that are expressly stated in the
 # License.
-
-ABS_SCRIPT_PATH="$(dirname $(realpath "${BASH_SOURCE:-$0}"))"
-source ${ABS_SCRIPT_PATH}/log.sh
+# shellcheck disable=all
+ABS_SCRIPT_PATH="$(dirname "$(realpath "${BASH_SOURCE:-$0}")")"
+#shellcheck source=logs.sh
+source "${ABS_SCRIPT_PATH}"/log.sh
 
 #Install Base Pakges Required to start the Iot_Edge_Installer
 sudo apt install make -y
@@ -32,7 +33,7 @@ while getopts ":h:e:" options ; do
         ;;
     :)
         if [ "${OPTARG}" == "h" ] ; then
-            usage $0
+            usage "$0"
         else
             log_fatal "-${OPTARG} requires an argument value or is unknown"
         fi
@@ -49,7 +50,8 @@ if [ ! -f "${env_file}" ] ; then
 fi
 
 log_info "Sourcing ${env_file}"
-source ${env_file}
+# shellcheck source=/dev/null
+source "${env_file}"
 
 # Verify configuration values
 if [ -z "${ID_SCOPE}" ] ; then
@@ -70,7 +72,7 @@ log_info "Configuring apt repository to install edge-config-tool"
 prod_list=$(curl -f -sSL https://packages.microsoft.com/config/ubuntu/20.04/prod.list)
 check_error "Failed to retrieve prod.list"
 
-echo ${prod_list} | tee /etc/apt/sources.list.d/microsoft-prod.list
+echo "${prod_list}" | tee /etc/apt/sources.list.d/microsoft-prod.list
 check_error "Failed to write microsoft-prod.list file"
 
 msft_asc=$(curl -f -sSL https://packages.microsoft.com/keys/microsoft.asc)
@@ -87,13 +89,13 @@ log_info "Installing edge-config-tool"
 apt install -y edge-config-tool
 check_error "Failed to install edge-config-tool"
 
-cd /usr/local/microsoft/edge-config-tool/
+cd /usr/local/microsoft/edge-config-tool/ || exit
 check_error "Failed to go to /usr/local/microsoft/edge-config-tool/ directory"
 
 log_info "Installing Azure IoT Edge"
 ./azure-iot-edge-installer.sh \
-    -s ${ID_SCOPE} \
-    -r ${REGISTRATION_ID} \
-    -k ${SYMMETRIC_KEY}
+    -s "${ID_SCOPE}" \
+    -r "${REGISTRATION_ID}" \
+    -k "${SYMMETRIC_KEY}"
 check_error "Failed to install Azure IoT Edge"
-touch $pwd/.azure_dps_setp_done
+touch "$(pwd)"/.azure_dps_setp_done

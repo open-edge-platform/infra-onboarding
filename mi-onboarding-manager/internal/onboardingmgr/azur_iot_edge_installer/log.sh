@@ -16,7 +16,7 @@
 ##
 ## Logging utilities for bash
 ##
-
+# shellcheck disable=all
 NO_COLOR=0
 RED='\033[0;31m'
 YELLOW="\033[1;33m"
@@ -67,6 +67,6 @@ function check_error() {
 function check_error_cb() {
     if [ $? -ne 0 ] ; then
         $1
-        log_fatal $2
+        log_fatal "$2"
     fi
 }
