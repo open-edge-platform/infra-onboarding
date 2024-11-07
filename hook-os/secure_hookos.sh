@@ -122,6 +122,11 @@ sign_all_components() {
     mkdir -p $STORE_ALPINE_SECUREBOOT/hook_sign_temp
 
     tar -xvf $STORE_ALPINE_SECUREBOOT/hook_x86_64.tar.gz -C $STORE_ALPINE_SECUREBOOT/hook_sign_temp
+    if [ "$HOOK_KERNEL" == "6.6" ]; then
+        mv $STORE_ALPINE_SECUREBOOT/hook_sign_temp/initramfs-latest-lts-x86_64 $STORE_ALPINE_SECUREBOOT/hook_sign_temp/initramfs-x86_64
+        mv $STORE_ALPINE_SECUREBOOT/hook_sign_temp/vmlinuz-latest-lts-x86_64 $STORE_ALPINE_SECUREBOOT/hook_sign_temp/vmlinuz-x86_64
+    fi
+
 
     ######## repack initramfs to zstd format ##################
     mv $STORE_ALPINE_SECUREBOOT/hook_sign_temp/initramfs-x86_64 $STORE_ALPINE_SECUREBOOT/hook_sign_temp/initramfs-x86_64.gz

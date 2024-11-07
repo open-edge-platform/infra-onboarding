@@ -12,9 +12,6 @@
 # - HOOK_CONTAINER_EMBEDDED_IMAGE: ${HOOK_CONTAINER_EMBEDDED_IMAGE}
 # - Other variables are not replaced: for example this is a literal dollarsign-SOMETHING: $SOMETHING and with braces: ${SOMETHING}
 
-# SPDX-FileCopyrightText: (C) 2024 Intel Corporation
-# SPDX-License-Identifier: LicenseRef-Intel
-
 kernel:
   image: "${HOOK_KERNEL_IMAGE}"
   cmdline: "this_is_not_used=at_all_in_hook command_line_is_determined_by=ipxe"
@@ -66,28 +63,6 @@ onboot:
     runtime:
       mkdir:
         - /var/lib/dhcpcd
-
-  - name: device-discovery
-    image: device-discovery:latest
-    capabilities:
-      - all
-    net: host
-    binds:
-      - /dev:/dev
-      - /etc/resolv.conf:/etc/resolv.conf
-      - /etc/idp/server_cert.pem:/usr/local/share/ca-certificates/IDP_keyclock.crt
-      - /var:/var:rshared,rbind
-      - /etc/hook/env_config:/etc/hook/env_config
-      - /proc/cmdline:/host_proc_cmdline
-      - /etc/idp/ca.pem:/usr/local/share/ca-certificates/ca.crt
-    rootfsPropagation: shared
-    env:
-      - KEYCLOAK_URL=update_idp_url
-      - onboarding_manager_svc=update_onboarding_manager_svc
-      - onboarding_stream_svc=update_onboarding_stream_svc
-      - OBM_PORT=443
-      - EXTRA_HOSTS=update_extra_hosts
-      - INSECURE=true
 
 services:
   - name: rngd
@@ -190,13 +165,6 @@ services:
       minor: 1
       mode: "0666"
 
-  - name: fluent-bit
-    image: fluentbit:latest
-    binds.add:
-      - /etc/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
-      - /var/log:/var/log
-    rootfsPropagation: shared
-
   - name: hook-docker
     image: "${HOOK_CONTAINER_DOCKER_IMAGE}"
     capabilities:
@@ -215,7 +183,6 @@ services:
       - /var/run/docker:/var/run
       - /var/run/images:/var/lib/docker
       - /var/run/worker:/worker
-      - /dev/shm:/dev/shm
     runtime:
       mkdir:
         - /var/run/images
@@ -241,30 +208,7 @@ services:
     runtime:
       mkdir:
         - /var/run/docker
-
-  - name: caddy
-    image: caddy_proxy:latest
-    capabilities:
-      - all
-    binds.add:
-      - /etc/resolv.conf:/etc/resolv.conf
-      - /etc/idp/ca.pem:/usr/local/share/ca-certificates/ensp-orchestrator-ca.crt
-      - /etc/caddy/Caddyfile:/etc/caddy/Caddyfile
-      - /dev/shm/idp_access_token:/dev/shm/idp_access_token
-      - /dev/shm/release_token:/dev/shm/release_token
-      - /etc/hook/env_config:/etc/hook/env_config
-
-    # Intended docker variables to be populated from environment
-    env:
-      - tink_stack_svc=update_tink_stack_svc
-      - tink_server_svc=update_tink_server_svc
-      - release_svc=update_release_svc
-      - logging_svc=update_logging_svc
-      - fdo_manufacturer_svc=update_manufacturer_svc
-      - fdo_owner_svc=update_owner_svc
-      - oci_release_svc=update_oci_release_svc
-      - EXTRA_HOSTS=update_extra_hosts
-
+  
   - name: dhcpcd-daemon
     image: linuxkit/dhcpcd:v1.0.0
     command: [ "/etc/ip/dhcp.sh", "false" ] # 2nd paramter is one-shot true/false: true for onboot, false for services
@@ -299,15 +243,6 @@ files:
       export PS1='HookOS ${HOOK_VERSION}:\w\$ '
       # only print WARNING or higher kernel messages to console
       echo 4 > /proc/sys/kernel/printk
-
-    mode: "0644"
-
-  - path: etc/idp/ca.pem
-    source: files/idp/ca.pem
-    mode: "0644"
-
-  - path: etc/idp/server_cert.pem
-    source: files/idp/server_cert.pem
     mode: "0644"
 
   - path: etc/motd
@@ -316,11 +251,11 @@ files:
     contents: |
       Welcome to HookOS! Your Tinkerbell operating system installation environment.
 
-      ¦¦   ¦¦                   ¦¦       ¦¦¦¦¦¦  ¦¦¦¦¦¦¦
-      ¦¦   ¦¦  ¦¦¦¦¦¦   ¦¦¦¦¦¦  ¦¦  ¦¦  ¦¦    ¦¦ ¦¦
-      ¦¦¦¦¦¦¦ ¦¦    ¦¦ ¦¦    ¦¦ ¦¦¦¦¦   ¦¦    ¦¦ ¦¦¦¦¦¦¦
-      ¦¦   ¦¦ ¦¦    ¦¦ ¦¦    ¦¦ ¦¦  ¦¦  ¦¦    ¦¦      ¦¦
-      ¦¦   ¦¦  ¦¦¦¦¦¦   ¦¦¦¦¦¦  ¦¦   ¦¦  ¦¦¦¦¦¦  ¦¦¦¦¦¦¦
+      ██   ██                   ██       ██████  ███████
+      ██   ██  ██████   ██████  ██  ██  ██    ██ ██
+      ███████ ██    ██ ██    ██ █████   ██    ██ ███████
+      ██   ██ ██    ██ ██    ██ ██  ██  ██    ██      ██
+      ██   ██  ██████   ██████  ██   ██  ██████  ███████
 
       - Hook flavor ${HOOK_KERNEL_ID} version ${HOOK_VERSION} / Kernel version ${HOOK_KERNEL_VERSION}
       - Use `docker` commands to access the tink worker/agent container and workflow action containers.
@@ -376,19 +311,6 @@ files:
       ttyUSB0
       ttyUSB1
       ttyUSB2
-
-  - path: /etc/fluent-bit/fluent-bit.conf
-    source: "files/fluent-bit/fluent-bit.conf"
-    mode: "0644"
-
-  - path: etc/caddy/Caddyfile
-    source: "files/caddy/Caddyfile"
-    mode: "0644"
-
-  - path: etc/hook/env_config
-    contents: ""
-    mode: "0644"
-
 
 #SSH_SERVER  - path: root/.ssh/authorized_keys
 #SSH_SERVER    source: ~/.ssh/id_rsa.pub

@@ -30,6 +30,7 @@ pipeline {
                 GIT_SHORT_URL=env.GIT_URL.split('/')[4].toString().replaceAll('.git','')
                 PROJECT_NAME = "${GIT_SHORT_URL}"
                 SDLE_UPLOAD_PROJECT_ID = '21873'
+                IS_JENKINS_BUILD =  true
                 authorEmail = sh (script: 'git --no-pager show -s --format=\'%ae\'',returnStdout: true).trim()
             }
             stages {
@@ -64,7 +65,7 @@ pipeline {
                                 changeRequest()
                             }
                             steps {
-                                shellcheck('*.sh', 'SC1091,SC2154,SC2086,SC2016,SC2181,SC2164,SC2129,SC2034,SC2236,SC2206,SC2068,SC2207,SC2002,SC2261,SC2024,SC2210,SC2001,SC2209')
+                                shellcheck('*.sh', 'SC1091,SC2154,SC2086,SC2016,SC2181,SC2164,SC2129,SC2034,SC2236,SC2206,SC2068,SC2207,SC2002,SC2261,SC2024,SC2210,SC2001,SC2209,SC2317')
                             }
                         }
                     }

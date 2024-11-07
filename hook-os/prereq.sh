@@ -5,7 +5,8 @@
 
 #set -x
 source ./config
-kernel_version="5.10.85-i225-igc-xz-dm"
+
+kernel_version="5.10.228-e0637f99-dm-xz"
 
 if [ ! -n "$harbor_url_tinker_actions" ]; then
 
@@ -57,5 +58,5 @@ if [ $? -ne 0 ]; then
     exit 0
 fi
 
-docker image tag $kernel_url/hook-kernel:$kernel_version quay.io/tinkerbell/hook-kernel:5.10.85-298651addd526baaf516da71f76997a3e7c8459d
+docker image tag $kernel_url/hook-kernel:$kernel_version quay.io/tinkerbell/hook-kernel:5.10.228-e0637f99
 docker image rm $kernel_url/hook-kernel:$kernel_version
