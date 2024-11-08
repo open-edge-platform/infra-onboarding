@@ -301,6 +301,12 @@ func (s *NodeArtifactService) getHostResource(req *pb.OnboardStreamRequest) (*co
 			zlog.Info().Msgf("Node exists for serial number %v", req.Serialnum)
 
 			if hostResource.Uuid == "" {
+				hostResource.Uuid = req.Uuid
+				errUpdate := s.invClient.UpdateHostResource(context.Background(), hostResource.GetTenantId(), hostResource)
+				if errUpdate != nil {
+					zlog.Error().Err(errUpdate).Msgf("failed to updated the host resource uuid: %v", errUpdate)
+					return nil, inv_errors.Errorfc(codes.Internal, "failed to updated the host resource uuid")
+				}
 				zlog.Info().Msgf("Proceeding with registration for Serial Number %v with no UUID in inventory", req.Serialnum)
 				return hostResource, nil
 			}

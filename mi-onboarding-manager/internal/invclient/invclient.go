@@ -369,6 +369,7 @@ func (c *OnboardingInventoryClient) UpdateHostResource(ctx context.Context, tena
 		computev1.HostResourceFieldBmcPassword,
 		computev1.HostResourceFieldPxeMac,
 		computev1.HostResourceFieldHostname,
+		computev1.HostResourceFieldUuid,
 		// other host fields are updated by Host Resource Manager
 	})
 }
