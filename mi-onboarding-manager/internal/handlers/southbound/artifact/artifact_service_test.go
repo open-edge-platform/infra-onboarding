@@ -6,20 +6,25 @@ package artifact
 import (
 	"context"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/env"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
 	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/testing"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
+	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/status"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/compute/v1"
 	providerv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/provider/v1"
+	statusv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/status/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/auth"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/flags"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/policy/rbac"
+	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/status"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/tenant"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/testing"
 	"github.com/stretchr/testify/mock"
@@ -656,6 +661,24 @@ func TestNodeArtifactService_DeleteNodes_Case1(t *testing.T) {
 			want:    nil,
 			wantErr: true,
 		},
+		{
+			name: "Invalid Ctx ",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{},
+				enableAuth: false,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: func() context.Context {
+					ctx, cancel := context.WithCancel(context.Background())
+					cancel()
+					return ctx
+				}(),
+				req: &pb.NodeRequest{},
+			},
+			want:    nil,
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -1184,6 +1207,24 @@ func TestNodeArtifactService_GetNodes_Case1(t *testing.T) {
 			},
 			args: args{
 				ctx: context.TODO(),
+				req: nil,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "Invalid Ctx",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{},
+				enableAuth: false,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: func() context.Context {
+					ctx, cancel := context.WithCancel(context.Background())
+					cancel()
+					return ctx
+				}(),
 				req: nil,
 			},
 			want:    nil,
@@ -3183,6 +3224,14 @@ func TestNodeArtifactService_handleOnboardedState(t *testing.T) {
 		rbac                                     *rbac.Policy
 		authEnabled                              bool
 	}
+	currAuthServiceFactory := auth.AuthServiceFactory
+	currFlagDisableCredentialsManagement := *flags.FlagDisableCredentialsManagement
+	defer func() {
+		auth.AuthServiceFactory = currAuthServiceFactory
+		*flags.FlagDisableCredentialsManagement = currFlagDisableCredentialsManagement
+	}()
+	*flags.FlagDisableCredentialsManagement = false
+	auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(false, false, true)
 	var art MockNodeArtifactServiceNB_OnboardNodeStreamServer
 	art.On("Send", mock.Anything).Return(errors.New("err"))
 	var art1 MockNodeArtifactServiceNB_OnboardNodeStreamServer
@@ -3202,7 +3251,7 @@ func TestNodeArtifactService_handleOnboardedState(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "negative",
+			name: "negative for send onboard stream",
 			fields: fields{
 				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
 				invClient:                                &invclient.OnboardingInventoryClient{},
@@ -3216,7 +3265,21 @@ func TestNodeArtifactService_handleOnboardedState(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		// TODO: Add test cases.
+		{
+			name: "negative",
+			fields: fields{
+				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
+				invClient:                                om_testing.InvClient,
+				invClientAPI:                             &invclient.OnboardingInventoryClient{},
+				rbac:                                     &rbac.Policy{},
+				authEnabled:                              false,
+			},
+			args: args{
+				stream:  &art1,
+				hostInv: &computev1.HostResource{},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3304,6 +3367,8 @@ func TestNodeArtifactServiceOnboardNodeStream(t *testing.T) {
 	os.Setenv("ONBOARDING_CREDENTIALS_SECRET_NAME", "env")
 	var art MockNodeArtifactServiceNB_OnboardNodeStreamServer
 	art.On("Recv").Return(&pb.OnboardStreamRequest{}, errors.New("err"))
+	var mockErr MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	mockErr.On("Recv").Return(&pb.OnboardStreamRequest{}, io.EOF)
 	var art1 MockNodeArtifactServiceNB_OnboardNodeStreamServer
 	currAuthServiceFactory := auth.AuthServiceFactory
 	currFlagDisableCredentialsManagement := *flags.FlagDisableCredentialsManagement
@@ -3351,6 +3416,20 @@ func TestNodeArtifactServiceOnboardNodeStream(t *testing.T) {
 			},
 			args: args{
 				stream: &art,
+			},
+			wantErr: true,
+		},
+		{
+			name: "OnboardNodeStream Negative Test Case With EOF",
+			fields: fields{
+				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
+				invClient:                                &invclient.OnboardingInventoryClient{},
+				invClientAPI:                             &invclient.OnboardingInventoryClient{},
+				rbac:                                     &rbac.Policy{},
+				authEnabled:                              false,
+			},
+			args: args{
+				stream: &mockErr,
 			},
 			wantErr: true,
 		},
@@ -3625,6 +3704,50 @@ func TestNodeArtifactService_getHostResourcetest(t *testing.T) {
 					t.Logf("Expected result to be nil when there is an error, but got: %+v\n", got)
 				}
 			}
+		})
+	}
+}
+
+func TestHostRegistrationSerialNumFailedWithDetails(t *testing.T) {
+	type args struct {
+		detail string
+	}
+	tests := []struct {
+		name string
+		args args
+		want inv_status.ResourceStatus
+	}{
+		{
+			name: "Test Case",
+			args: args{},
+			want: inv_status.ResourceStatus{
+				Status:          "Host Registration Failed due to mismatch of Serial Number, Correct Serial Number is: ",
+				StatusIndicator: statusv1.StatusIndication_STATUS_INDICATION_ERROR,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := om_status.HostRegistrationSerialNumFailedWithDetails(tt.args.detail); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("HostRegistrationSerialNumFailedWithDetails() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMustEnsureRequired(t *testing.T) {
+	os.Setenv("TINKER_VERSION", "value")
+	defer os.Unsetenv("TINKER_VERSION")
+	tests := []struct {
+		name string
+	}{
+		{
+			name: "Positive Test Case",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			env.MustEnsureRequired()
 		})
 	}
 }

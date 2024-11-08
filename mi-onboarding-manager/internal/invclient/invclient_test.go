@@ -1923,11 +1923,20 @@ func TestOnboardingInventoryClient_GetProviderConfig(t *testing.T) {
 		tenantID string
 		name     string
 	}
+	inv_testing.CreateProvider(t, "dummyprovider")
 	tests := []struct {
 		name    string
 		args    args
 		wantErr bool
 	}{
+		{
+			name: "GetProviderConfig_SuccessfulResponse",
+			args: args{
+				ctx:  context.Background(),
+				name: "dummyprovider",
+			},
+			wantErr: true,
+		},
 		{
 			name: "Empty Provider",
 			args: args{
