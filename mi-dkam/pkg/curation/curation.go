@@ -120,7 +120,7 @@ func GetArtifactsVersion() ([]AgentsVersion, string, error) {
 
 	if len(tinkeractionList) != 0 {
 		for _, image := range tinkeractionList {
-			if image.Image == "one-intel-edge/edge-node/tinker-actions/client_auth" {
+			if image.Image == "one-intel-edge/edge-node/tinker-actions/device-discovery" {
 				zlog.MiSec().Info().Msgf("Tinker action:%s", image.Version)
 				tinkerAction = image.Version
 			}
