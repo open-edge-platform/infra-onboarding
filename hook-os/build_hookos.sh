@@ -17,6 +17,12 @@ source ./config
 source ./secure_hookos.sh
 
 export HOOK_KERNEL=${HOOK_KERNEL:-5.10}
+
+if [ "$HOOK_KERNEL" == "5.10" ]; then
+    #Current validated kernel_point_version is 228
+    export KERNEL_POINT_RELEASE_CONFIG=228
+fi
+
 BASE_DIR=$PWD
 STORE_ALPINE_SECUREBOOT=$PWD/alpine_image_secureboot/
 STORE_ALPINE=$PWD/alpine_image/
@@ -119,7 +125,7 @@ build_hook() {
 
     # copy fluent-bit related files
     copy_fluent_bit_files
-    echo "starting to build kernel....................................................."
+    echo "starting to build kernel...................................................."
 
     if [ "$HOOK_KERNEL" == "6.6" ]; then
         if docker image inspect quay.io/tinkerbell/hook-kernel:6.6.52-2f1e89d8 >/dev/null 2>&1; then
