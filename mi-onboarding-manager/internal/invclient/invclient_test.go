@@ -994,8 +994,9 @@ func TestOnboardingInventoryClient_CreateOSResource(t *testing.T) {
 				ctx:      context.Background(),
 				tenantID: tenant1,
 				os: &osv1.OperatingSystemResource{
-					OsType:   osv1.OsType_OS_TYPE_IMMUTABLE,
-					TenantId: tenant1,
+					OsType:     osv1.OsType_OS_TYPE_IMMUTABLE,
+					TenantId:   tenant1,
+					OsProvider: osv1.OsProviderKind_OS_PROVIDER_KIND_EIM,
 				},
 			},
 			wantErr: false,

@@ -24,7 +24,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go v0.5.1
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.11.0
-	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.5.0
+	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.7.1
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1
 	sigs.k8s.io/controller-runtime v0.17.0
 )
@@ -61,7 +61,7 @@ require (
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
-	github.com/go-resty/resty/v2 v2.7.0 // indirect
+	github.com/go-resty/resty/v2 v2.11.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
