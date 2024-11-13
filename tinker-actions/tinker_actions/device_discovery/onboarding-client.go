@@ -68,7 +68,7 @@ func grpcStreamClient(ctx context.Context, address string, port int, mac string,
 	}
 	defer conn.Close()
 
-	cli := pb.NewNodeArtifactServiceNBClient(conn)
+	cli := pb.NewNonInteractiveOnboardingServiceClient(conn)
 
 	// Establish a stream with the server
 	stream, err := cli.OnboardNodeStream(ctx)
