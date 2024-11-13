@@ -146,6 +146,91 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 }
 
+func TestReconcileInstanceNonEIM(t *testing.T) {
+	currK8sClientFactory := tinkerbell.K8sClientFactory
+	currFlagEnableDeviceInitialization := *flags.FlagDisableCredentialsManagement
+	defer func() {
+		tinkerbell.K8sClientFactory = currK8sClientFactory
+		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
+	}()
+
+	*common.FlagEnableDeviceInitialization = false
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, true)
+	
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+
+	instanceReconciler := NewInstanceReconciler(om_testing.InvClient, true)
+	require.NotNil(t, instanceReconciler)
+
+	instanceController := rec_v2.NewController[ReconcilerID](instanceReconciler.Reconcile, rec_v2.WithParallelism(1))
+	// do not Stop() to avoid races, should be safe in tests
+
+	host := inv_testing.CreateHost(t, nil, nil)
+	osRes := inv_testing.CreateOsWithOpts(t, true, func(osr *osv1.OperatingSystemResource) {
+		osr.ProfileName = inv_testing.GenerateRandomProfileName()
+		osr.Sha256 = inv_testing.GenerateRandomSha256()
+		osr.OsType = osv1.OsType_OS_TYPE_MUTABLE
+		osr.OsProvider = osv1.OsProviderKind_OS_PROVIDER_KIND_LENOVO
+	})
+	_ = createProviderWithArgs(t, true, osRes.ResourceId, "itep_licensing", providerv1.ProviderKind_PROVIDER_KIND_LICENSING) // Creating license Provider profile which would be fetched by the reconciler.
+
+	instance := inv_testing.CreateInstance(t, host, osRes) // Instance should not be assigned to the Provider.
+	instanceID := instance.GetResourceId()
+
+	runReconcilationFunc := func() {
+		select {
+		case ev, ok := <-om_testing.InvClient.Watcher:
+			require.True(t, ok, "No events received")
+			expectedKind, err := util.GetResourceKindFromResourceID(ev.Event.ResourceId)
+			require.NoError(t, err)
+			if expectedKind == inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE {
+				err = instanceController.Reconcile(NewReconcilerID(instance.GetTenantId(), ev.Event.ResourceId))
+				assert.NoError(t, err, "Reconciliation failed")
+			}
+		case <-time.After(1 * time.Second):
+			t.Fatalf("No events received within timeout")
+		}
+		time.Sleep(1 * time.Second)
+	}
+
+	runReconcilationFunc()
+	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
+		computev1.InstanceState_INSTANCE_STATE_RUNNING,
+		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
+		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+
+	// getting rid of the Host event
+	<-om_testing.InvClient.Watcher
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// provision
+	fmk := fieldmaskpb.FieldMask{Paths: []string{computev1.InstanceResourceFieldDesiredState}}
+	res := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Instance{
+			Instance: &computev1.InstanceResource{
+				ResourceId:   instanceID,
+				DesiredState: computev1.InstanceState_INSTANCE_STATE_RUNNING,
+			},
+		},
+	}
+	_, err := inv_testing.TestClients[inv_testing.APIClient].Update(ctx, instanceID, &fmk, res)
+	require.NoError(t, err)
+
+	runReconcilationFunc()
+
+	// Instance should not move into the RUNNING state as OS provisioning should be skipped
+	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
+		computev1.InstanceState_INSTANCE_STATE_RUNNING,
+		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
+		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+
+}
+
 func TestReconcileInstance(t *testing.T) {
 	currK8sClientFactory := tinkerbell.K8sClientFactory
 	currFlagEnableDeviceInitialization := *flags.FlagDisableCredentialsManagement

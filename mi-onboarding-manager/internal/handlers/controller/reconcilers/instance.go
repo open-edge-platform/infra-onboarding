@@ -270,6 +270,18 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 		return err
 	}
 
+	if instance.GetDesiredOs() == nil {
+		zlogInst.Debug().Msgf("No desired OS specified for instance %s, skipping provisioning.",
+			instance.GetResourceId())
+		return nil
+	}
+
+	if instance.GetDesiredOs().GetOsProvider() != osv1.OsProviderKind_OS_PROVIDER_KIND_EIM {
+		zlogInst.Info().Msgf("Skipping OS provisioning for %s due to OS provider kind: %s",
+			instance.GetResourceId(), instance.GetDesiredOs().GetOsProvider().String())
+		return nil
+	}
+
 	deviceInfo, err := convertInstanceToDeviceInfo(instance, *licenseProviderConfig)
 	if err != nil {
 		return err
