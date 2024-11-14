@@ -43,5 +43,8 @@ COPY --from=builder --chown=nobody:nobody /go/src/github.com/intel-innersource/f
 
 COPY --from=builder  --chown=nobody:nobody /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/rego/authz.rego /rego/authz.rego
 
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:50054/healthz || exit 1
 
 ENTRYPOINT ["/onboardingmgr"]
