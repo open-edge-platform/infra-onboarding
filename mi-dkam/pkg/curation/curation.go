@@ -29,8 +29,6 @@ var fileServer string
 var registryService string
 var agentsList []AgentsVersion
 var distribution string
-var tinkeractionList []Image
-var tinkerAction string
 
 type AgentsVersion struct {
 	Package string `yaml:"package"`
@@ -81,7 +79,7 @@ type Image struct {
 
 var ypsUrl = config.LA_YPSURL
 
-func GetArtifactsVersion() ([]AgentsVersion, string, error) {
+func GetArtifactsVersion() ([]AgentsVersion, error) {
 	//Current dir
 	currentDir, err := os.Getwd()
 	if err != nil {
@@ -110,34 +108,20 @@ func GetArtifactsVersion() ([]AgentsVersion, string, error) {
 	configs, err := GetReleaseArtifactList(releaseFilePath)
 	if err != nil {
 		zlog.MiSec().Info().Msgf("Error checking path %v", err)
-		return []AgentsVersion{}, "", err
+		return []AgentsVersion{}, err
 	}
 	agentsList = []AgentsVersion{}
 	agentsList = append(agentsList, configs.BMA.Debs...)
-	tinkeractionList = []Image{}
-	tinkeractionList = configs.Provisioning.Images
-	distribution = configs.Metadata.DebianRepositories[0].Distribution
 
-	if len(tinkeractionList) != 0 {
-		for _, image := range tinkeractionList {
-			if image.Image == "one-intel-edge/edge-node/tinker-actions/device-discovery" {
-				zlog.MiSec().Info().Msgf("Tinker action:%s", image.Version)
-				tinkerAction = image.Version
-			}
-		}
-	}
+	distribution = configs.Metadata.DebianRepositories[0].Distribution
 
 	zlog.MiSec().Info().Msgf("Agents List' %s", agentsList)
 	if len(agentsList) == 0 {
 		zlog.MiSec().Info().Msg("Failed to get the agent list")
-		return []AgentsVersion{}, "", err
+		return []AgentsVersion{}, err
 	}
-	zlog.MiSec().Info().Msgf("tinkerAction version' %s", tinkerAction)
-	if len(tinkerAction) == 0 {
-		zlog.MiSec().Info().Msg("Failed to get the Tinker action version")
-		return []AgentsVersion{}, "", err
-	}
-	return agentsList, tinkerAction, nil
+
+	return agentsList, nil
 }
 
 func CurateScript(osRes *osv1.OperatingSystemResource) error {
@@ -149,17 +133,13 @@ func CurateScript(osRes *osv1.OperatingSystemResource) error {
 		zlog.MiSec().Info().Msg("Error getting current working directory:")
 
 	}
-	agentsList, tinkerAction, err := GetArtifactsVersion()
+	agentsList, err := GetArtifactsVersion()
 	zlog.MiSec().Info().Msgf("Agents List' %s", agentsList)
 	if len(agentsList) == 0 {
 		zlog.MiSec().Info().Msg("Failed to get the agent list")
 		return err
 	}
-	zlog.MiSec().Info().Msgf("tinkerAction version' %s", tinkerAction)
-	if len(tinkerAction) == 0 {
-		zlog.MiSec().Info().Msg("Failed to get the Tinker action version")
-		return err
-	}
+
 	if osRes.GetOsType() == osv1.OsType_OS_TYPE_IMMUTABLE {
 		createErr := CreateCloudCfgScript(currentDir, osRes)
 		if createErr != nil {
