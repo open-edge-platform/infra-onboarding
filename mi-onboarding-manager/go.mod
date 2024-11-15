@@ -26,6 +26,7 @@ require (
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.12.5
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.7.2
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1
+	gotest.tools v2.2.0+incompatible
 	sigs.k8s.io/controller-runtime v0.17.0
 )
 
@@ -51,6 +52,7 @@ require (
 	github.com/eko/gocache/lib/v4 v4.1.5 // indirect
 	github.com/eko/gocache/store/go_cache/v4 v4.2.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
+	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.8.0 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.3 // indirect

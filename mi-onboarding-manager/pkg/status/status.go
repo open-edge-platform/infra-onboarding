@@ -50,6 +50,16 @@ func ModernHostStatusDeletingWithDetails(detail string) inv_status.ResourceStatu
 	return inv_status.New(LegacyHostStatusDeletingWithDetails(detail), statusv1.StatusIndication_STATUS_INDICATION_IN_PROGRESS)
 }
 
+func NewStatusWithDetails(baseStatus inv_status.ResourceStatus, details string) inv_status.ResourceStatus {
+	if details == "" {
+		return baseStatus
+	}
+	return inv_status.ResourceStatus{
+		Status:          fmt.Sprintf("%s: %s", baseStatus.Status, details),
+		StatusIndicator: baseStatus.StatusIndicator,
+	}
+}
+
 func NewHostRegistrationUUIDFailed() inv_status.ResourceStatus {
 	return inv_status.New("Host Registration Failed due to mismatch of UUID, Reported UUID is",
 		statusv1.StatusIndication_STATUS_INDICATION_ERROR)

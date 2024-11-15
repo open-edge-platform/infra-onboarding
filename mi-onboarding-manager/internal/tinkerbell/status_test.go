@@ -42,7 +42,7 @@ func TestWorkflowActionToStatusDetail(t *testing.T) {
 	for _, wf := range workflows {
 		t.Run(wf.Name, func(t *testing.T) {
 			for _, action := range wf.Tasks[0].Actions {
-				_, exists := workflowStepToStatusDetail[action.Name]
+				_, exists := WorkflowStepToStatusDetail[action.Name]
 				assert.True(t, exists)
 				if !exists {
 					t.Errorf("No status detail for action %q", action.Name)
@@ -135,7 +135,7 @@ func TestGenerateStatusDetailFromWorkflowState(t *testing.T) {
 					},
 				}},
 			},
-			want: fmt.Sprintf("1/1: %s", workflowStepToStatusDetail[ActionReboot]),
+			want: fmt.Sprintf("1/1: %s", WorkflowStepToStatusDetail[ActionReboot]),
 		},
 		{
 			name: "Multiple actions - workflow not completed 0",
@@ -157,7 +157,7 @@ func TestGenerateStatusDetailFromWorkflowState(t *testing.T) {
 					},
 				}},
 			},
-			want: fmt.Sprintf("1/2: %s", workflowStepToStatusDetail[ActionAddAptProxy]),
+			want: fmt.Sprintf("1/2: %s", WorkflowStepToStatusDetail[ActionAddAptProxy]),
 		},
 		{
 			name: "Multiple actions - workflow not completed 1",
@@ -183,7 +183,7 @@ func TestGenerateStatusDetailFromWorkflowState(t *testing.T) {
 					},
 				}},
 			},
-			want: fmt.Sprintf("3/3: %s", workflowStepToStatusDetail[ActionReboot]),
+			want: fmt.Sprintf("3/3: %s", WorkflowStepToStatusDetail[ActionReboot]),
 		},
 		{
 			name: "Multiple actions - workflow not completed 2",
@@ -209,7 +209,7 @@ func TestGenerateStatusDetailFromWorkflowState(t *testing.T) {
 					},
 				}},
 			},
-			want: fmt.Sprintf("3/3: %s", workflowStepToStatusDetail[ActionReboot]),
+			want: fmt.Sprintf("3/3: %s", WorkflowStepToStatusDetail[ActionReboot]),
 		},
 		{
 			name: "Multiple actions - workflow not completed 3",
@@ -235,7 +235,7 @@ func TestGenerateStatusDetailFromWorkflowState(t *testing.T) {
 					},
 				}},
 			},
-			want: fmt.Sprintf("3/3: %s", workflowStepToStatusDetail[ActionReboot]),
+			want: fmt.Sprintf("3/3: %s", WorkflowStepToStatusDetail[ActionReboot]),
 		},
 		{
 			name: "Unknown action",
@@ -261,7 +261,7 @@ func TestGenerateStatusDetailFromWorkflowState(t *testing.T) {
 					},
 				}},
 			},
-			want: fmt.Sprintf("3/3: %s", workflowStepToStatusDetail[ActionReboot]),
+			want: fmt.Sprintf("3/3: %s", WorkflowStepToStatusDetail[ActionReboot]),
 		},
 		{
 			name: "Failed action",
@@ -284,7 +284,7 @@ func TestGenerateStatusDetailFromWorkflowState(t *testing.T) {
 					},
 				}},
 			},
-			want: fmt.Sprintf("2/2: %s failed: some message", workflowStepToStatusDetail[ActionAddAptProxy]),
+			want: fmt.Sprintf("2/2: %s failed: some message", WorkflowStepToStatusDetail[ActionAddAptProxy]),
 		},
 		{
 			name: "First action failed",
@@ -305,7 +305,7 @@ func TestGenerateStatusDetailFromWorkflowState(t *testing.T) {
 					},
 				}},
 			},
-			want: fmt.Sprintf("1/2: %s failed", workflowStepToStatusDetail[ActionFdeEncryption]),
+			want: fmt.Sprintf("1/2: %s failed", WorkflowStepToStatusDetail[ActionFdeEncryption]),
 		},
 		{
 			name: "Failed action empty message",
@@ -327,7 +327,7 @@ func TestGenerateStatusDetailFromWorkflowState(t *testing.T) {
 					},
 				}},
 			},
-			want: fmt.Sprintf("2/2: %s failed", workflowStepToStatusDetail[ActionAddAptProxy]),
+			want: fmt.Sprintf("2/2: %s failed", WorkflowStepToStatusDetail[ActionAddAptProxy]),
 		},
 		{
 			name: "Timed out action",
@@ -350,12 +350,37 @@ func TestGenerateStatusDetailFromWorkflowState(t *testing.T) {
 					},
 				}},
 			},
-			want: fmt.Sprintf("2/2: %s timeout", workflowStepToStatusDetail[ActionAddAptProxy]),
+			want: fmt.Sprintf("2/2: %s timeout", WorkflowStepToStatusDetail[ActionAddAptProxy]),
 		},
+	}
+	for action, detail := range WorkflowStepToStatusDetail {
+		tests = append(tests, struct {
+			name string
+			args args
+			want string
+		}{
+			name: fmt.Sprintf("SingleAction_%s_Success", action),
+			args: args{
+				workflow: &tink.Workflow{Status: tink.WorkflowStatus{
+					Tasks: []tink.Task{
+						{
+							Actions: []tink.Action{
+								{
+									Name:   action,
+									Status: tink.WorkflowStateSuccess,
+								},
+							},
+						},
+					},
+				}},
+			},
+			want: fmt.Sprintf("1/1: %s", detail),
+		})
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, GenerateStatusDetailFromWorkflowState(tt.args.workflow), "GenerateStatusDetailFromWorkflowState(%v)", tt.args.workflow)
+			assert.Equalf(t, tt.want, GenerateStatusDetailFromWorkflowState(tt.args.workflow),
+				"GenerateStatusDetailFromWorkflowState(%v)", tt.args.workflow)
 		})
 	}
 }

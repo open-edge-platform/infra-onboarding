@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -26,16 +27,20 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/tinkerbell"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/compute/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/os/v1"
+	statusv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/status/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/flags"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/status"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
+	"gotest.tools/assert"
 	kubeErr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func Test_checkTO2StatusCompleted(t *testing.T) {
@@ -1300,4 +1305,168 @@ func Test_getWorkflow(t *testing.T) {
 			}
 		})
 	}
+}
+
+func setupTestWithFlag(enableDeviceInitialization bool) {
+	common.FlagEnableDeviceInitialization = &enableDeviceInitialization
+}
+
+func Test_handleWorkflowStatus_Case4(t *testing.T) {
+	type args struct {
+		instance                    *computev1.InstanceResource
+		workflow                    *tink.Workflow
+		onSuccessProvisioningStatus inv_status.ResourceStatus
+		onFailureProvisioningStatus inv_status.ResourceStatus
+	}
+	currK8sClientFactory := tinkerbell.K8sClientFactory
+	currFlagEnableDeviceInitialization := *flags.FlagDisableCredentialsManagement
+	defer func() {
+		tinkerbell.K8sClientFactory = currK8sClientFactory
+		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
+	}()
+	setupTestWithFlag(false)
+	scheme := runtime.NewScheme()
+	_ = tink.AddToScheme(scheme)
+
+	tinkerbell.K8sClientFactory = func() (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+			&tink.Hardware{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-084d9b08",
+					Namespace: env.K8sNamespace,
+				},
+				Spec: tink.HardwareSpec{
+					Metadata: &tink.HardwareMetadata{
+						Instance: &tink.MetadataInstance{
+							OperatingSystem: &tink.MetadataInstanceOperatingSystem{
+								OsSlug: "os-12345678",
+							},
+						},
+					},
+				},
+			},
+		).Build(), nil
+	}
+
+	tests := []struct {
+		name                       string
+		args                       args
+		expectedProvisioningStatus string
+		wantErr                    bool
+	}{
+		{
+			name: "HandleSuccessfulWorkflowStatus",
+			args: args{
+				instance: &computev1.InstanceResource{
+					Host: &computev1.HostResource{
+						ResourceId: "host-084d9b08",
+						Uuid:       "084d9b08",
+					},
+					ProvisioningStatus: "Provisioning In Progress",
+				},
+				workflow: &tink.Workflow{
+					Status: tink.WorkflowStatus{
+						State: tink.WorkflowStateSuccess,
+					},
+				},
+				onSuccessProvisioningStatus: inv_status.New("Provisioned", statusv1.StatusIndication_STATUS_INDICATION_IDLE),
+				onFailureProvisioningStatus: inv_status.New("Provisioning Failed", statusv1.StatusIndication_STATUS_INDICATION_ERROR),
+			},
+			expectedProvisioningStatus: "Provisioned",
+			wantErr:                    false,
+		},
+		{
+			name: "HandleFailedWorkflowStatus",
+			args: args{
+				instance: &computev1.InstanceResource{
+					Host: &computev1.HostResource{
+						ResourceId: "host-084d9b08",
+						Uuid:       "084d9b08",
+					},
+					ProvisioningStatus: "Provisioning In Progress",
+				},
+				workflow: &tink.Workflow{
+					Status: tink.WorkflowStatus{
+						State: tink.WorkflowStateFailed,
+					},
+				},
+				onSuccessProvisioningStatus: inv_status.New("Provisioned", statusv1.StatusIndication_STATUS_INDICATION_IDLE),
+				onFailureProvisioningStatus: inv_status.New("Provisioning Failed", statusv1.StatusIndication_STATUS_INDICATION_ERROR),
+			},
+			expectedProvisioningStatus: "Provisioning Failed",
+			wantErr:                    true,
+		},
+		{
+			name: "HandleInProgressWorkflowStatus",
+			args: args{
+				instance: &computev1.InstanceResource{
+					Host: &computev1.HostResource{
+						ResourceId: "host-084d9b08",
+						Uuid:       "084d9b08",
+					},
+					ProvisioningStatus: "Provisioning In Progress",
+				},
+				workflow: &tink.Workflow{
+					Status: tink.WorkflowStatus{
+						State: tink.WorkflowStateRunning,
+					},
+				},
+				onSuccessProvisioningStatus: inv_status.New("Provisioned", statusv1.StatusIndication_STATUS_INDICATION_IDLE),
+				onFailureProvisioningStatus: inv_status.New("Provisioning Failed", statusv1.StatusIndication_STATUS_INDICATION_ERROR),
+			},
+			expectedProvisioningStatus: "Provisioning In Progress",
+			wantErr:                    true,
+		},
+	}
+	for action, detail := range tinkerbell.WorkflowStepToStatusDetail {
+		tests = append(tests, struct {
+			name                       string
+			args                       args
+			expectedProvisioningStatus string
+			wantErr                    bool
+		}{
+			name: fmt.Sprintf("SingleAction_%s_Success", action),
+			args: args{
+				instance: &computev1.InstanceResource{
+					Host: &computev1.HostResource{
+						ResourceId: "host-084d9b08",
+						Uuid:       uuid.NewString(),
+					},
+					ProvisioningStatus: "Provisioning In Progress",
+				},
+				workflow: &tink.Workflow{
+					Status: tink.WorkflowStatus{
+						Tasks: []tink.Task{
+							{
+								Actions: []tink.Action{
+									{
+										Name:   action,
+										Status: tink.WorkflowStateSuccess,
+									},
+								},
+							},
+						},
+					},
+				},
+				onSuccessProvisioningStatus: inv_status.New("Provisioned", statusv1.StatusIndication_STATUS_INDICATION_IDLE),
+				onFailureProvisioningStatus: inv_status.New("Provisioning Failed", statusv1.StatusIndication_STATUS_INDICATION_ERROR),
+			},
+			expectedProvisioningStatus: "Provisioning In Progress: 1/1: " + detail,
+			wantErr:                    true,
+		})
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := handleWorkflowStatus(tt.args.instance, tt.args.workflow, tt.args.onSuccessProvisioningStatus,
+				tt.args.onFailureProvisioningStatus)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("handleWorkflowStatus() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			assert.Equal(t, tt.expectedProvisioningStatus, tt.args.instance.ProvisioningStatus)
+
+		})
+	}
+	defer func() {
+		*common.FlagEnableDeviceInitialization = true
+	}()
 }

@@ -588,10 +588,8 @@ func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.W
 ) error {
 	intermediateWorkflowState := tinkerbell.GenerateStatusDetailFromWorkflowState(workflow)
 
-	zlog.Debug().Msgf("Workflow %s status for host %s is %s. Workflow state: %q", workflow.Name,
-		instance.GetHost().GetUuid(),
-		workflow.Status.State,
-		intermediateWorkflowState)
+	zlog.Debug().Msgf("Workflow %s status for host %s is %s. Workflow state: %q", workflow.Name, instance.GetHost().GetUuid(),
+		workflow.Status.State, intermediateWorkflowState)
 
 	k8sCli, err := tinkerbell.K8sClientFactory()
 	if err != nil {
@@ -603,7 +601,7 @@ func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.W
 		// success, proceed further
 		util.PopulateInstanceStatusAndCurrentState(
 			instance, computev1.InstanceState_INSTANCE_STATE_RUNNING,
-			onSuccessProvisioningStatus)
+			om_status.NewStatusWithDetails(onSuccessProvisioningStatus, intermediateWorkflowState))
 
 		// Retrieve the Tinkerbell hardware resource to get the OS resource ID
 		hardwareName := tinkerbell.GetTinkHardwareName(instance.GetHost().GetUuid())
@@ -622,17 +620,17 @@ func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.W
 		}
 		return nil
 	case tink.WorkflowStateFailed, tink.WorkflowStateTimeout:
-		// indicates unrecoverable error, we should update current_state = ERROR
+		ProvisioningStatusFailed := om_status.NewStatusWithDetails(onFailureProvisioningStatus,
+			intermediateWorkflowState)
 		util.PopulateInstanceStatusAndCurrentState(instance, computev1.InstanceState_INSTANCE_STATE_ERROR,
-			onFailureProvisioningStatus)
-		return inv_errors.Errorfc(codes.Aborted, "")
+			ProvisioningStatusFailed)
+		return inv_errors.Errorfc(codes.Aborted, "Workflow failed or timed out")
 	case "", tink.WorkflowStateRunning, tink.WorkflowStatePending:
-		// not started yet or in progress
-		/* TODO: extend the modern status to add detailed intermediateWorkflowState in below ticket
-		https://jira.devtools.intel.com/browse/NEX-11962 */
+		ProvisioningStatusInProgress := om_status.NewStatusWithDetails(om_status.ProvisioningStatusInProgress,
+			intermediateWorkflowState)
 		util.PopulateInstanceStatusAndCurrentState(
-			instance, computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-			om_status.ProvisioningStatusInProgress)
+			instance, computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED, ProvisioningStatusInProgress)
+
 		return inv_errors.Errorfr(inv_errors.Reason_OPERATION_IN_PROGRESS, "")
 	default:
 		zlog.MiSec().MiError("Unknown workflow state %s", workflow.Status.State)

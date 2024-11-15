@@ -9,7 +9,7 @@ import (
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 )
 
-var workflowStepToStatusDetail = map[string]string{
+var WorkflowStepToStatusDetail = map[string]string{
 	ActionEraseNonRemovableDisk:      "Erase Non Removable Disk",
 	ActionSecureBootStatusFlagRead:   "Verifying Secure Boot settings match",
 	ActionStreamUbuntuImage:          "Streaming OS image",
@@ -97,7 +97,7 @@ func prepareStatusDetails(totalActions int, actions []tink.Action) string {
 			continue
 		}
 
-		statusDetail, ok := workflowStepToStatusDetail[action.Name]
+		statusDetail, ok := WorkflowStepToStatusDetail[action.Name]
 		if !ok {
 			// it should never happen, but we set a raw action name just in case
 			statusDetail = action.Name
