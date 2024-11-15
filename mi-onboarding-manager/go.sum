@@ -716,10 +716,8 @@ github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go v0.5.1 h1:A9LQB3dRZu1hhsol+C+EilQLoTIvay/6fK5HbGKFhgE=
 github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go v0.5.1/go.mod h1:fRN1YcRCnh3rRTFFi2OqmWkJfW5PZsYFYjcp5GYtvsI=
-github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.11.0 h1:fMlG3jwdWmv6ksojI9kgCxvLBdnWfphznMsnzlLXinU=
-github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.11.0/go.mod h1:EZFfvzMedWmNln6aliImEsqHLF0TxV6rjv8ebrgnAJo=
-github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.7.1-0.20241108221445-b8d19d6f3f81 h1:uhUXT+a3mxUGTTXSg8YBjvnEINfbrg3JlmzEriTl7oQ=
-github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.7.1-0.20241108221445-b8d19d6f3f81/go.mod h1:C9Khlf0tnPWaLq6lUXoCVtjinAI8uC/Z826CaBrQ4SM=
+github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.12.5 h1:F/5Dt92B4u/lnDGpsIZq5K7Q9cGCdO0Z1C/BDVPXueo=
+github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.12.5/go.mod h1:Dh22gmUBnW5GK63vfvAzA8ZA7EIJ3KMLTE4gO+BANhw=
 github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.7.1 h1:7o+TymFBuzNQfawSE0wJw58oAZzzZLZD6dnbxdDm2EQ=
 github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.7.1/go.mod h1:C9Khlf0tnPWaLq6lUXoCVtjinAI8uC/Z826CaBrQ4SM=
 github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=
