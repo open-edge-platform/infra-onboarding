@@ -51,12 +51,12 @@ func ModernHostStatusDeletingWithDetails(detail string) inv_status.ResourceStatu
 }
 
 func NewHostRegistrationUUIDFailed() inv_status.ResourceStatus {
-	return inv_status.New("Host Registration Failed due to mismatch of UUID, Correct UUID is",
+	return inv_status.New("Host Registration Failed due to mismatch of UUID, Reported UUID is",
 		statusv1.StatusIndication_STATUS_INDICATION_ERROR)
 }
 
 func NewHostRegistrationSerialNumFailed() inv_status.ResourceStatus {
-	return inv_status.New("Host Registration Failed due to mismatch of Serial Number, Correct Serial Number is",
+	return inv_status.New("Host Registration Failed due to mismatch of Serial Number, Reported Serial Number is",
 		statusv1.StatusIndication_STATUS_INDICATION_ERROR)
 }
 

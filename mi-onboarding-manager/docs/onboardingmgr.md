@@ -24,6 +24,7 @@
     - [OnboardStreamResponse.NodeState](#onboardingmgr-OnboardStreamResponse-NodeState)
   
     - [NodeArtifactServiceNB](#onboardingmgr-NodeArtifactServiceNB)
+    - [NonInteractiveOnboardingService](#onboardingmgr-NonInteractiveOnboardingService)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -364,6 +365,15 @@ Artifact &amp; Node Endpoints towards Inventory Manager
 | GetNodes | [NodeRequest](#onboardingmgr-NodeRequest) | [NodeResponse](#onboardingmgr-NodeResponse) |  |
 | UpdateNodes | [NodeRequest](#onboardingmgr-NodeRequest) | [NodeResponse](#onboardingmgr-NodeResponse) |  |
 | DeleteNodes | [NodeRequest](#onboardingmgr-NodeRequest) | [NodeResponse](#onboardingmgr-NodeResponse) |  |
+
+
+<a name="onboardingmgr-NonInteractiveOnboardingService"></a>
+
+### NonInteractiveOnboardingService
+
+
+| Method Name | Request Type | Response Type | Description |
+| ----------- | ------------ | ------------- | ------------|
 | OnboardNodeStream | [OnboardStreamRequest](#onboardingmgr-OnboardStreamRequest) stream | [OnboardStreamResponse](#onboardingmgr-OnboardStreamResponse) stream | OnboardNodeStream establishes a bidirectional stream between the EN and the OM It allows EN to send stream requests and receive responses |
 
  

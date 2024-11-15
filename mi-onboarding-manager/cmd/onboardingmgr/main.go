@@ -30,12 +30,17 @@ import (
 
 const envNameOnboardingCredentialsSecretName = "ONBOARDING_CREDENTIALS_SECRET_NAME"
 
+const (
+	ServerAddressNio = "serverAddressNio"
+)
+
 var (
 	name = "MiOnboardingRM"
 	zlog = logging.GetLogger(name + "Main")
 
 	dkamAddr         = flag.String("dkamaddr", "localhost:5581", "DKAM server address to connect to")
 	serverAddress    = flag.String(flags.ServerAddress, "0.0.0.0:50054", flags.ServerAddressDescription)
+	serverAddressNio = flag.String(ServerAddressNio, "0.0.0.0:50055", "grpc server address for nio")
 	inventoryAddress = flag.String(client.InventoryAddress, "localhost:50051", client.InventoryAddressDescription)
 	oamServerAddress = flag.String(oam.OamServerAddress, "", oam.OamServerAddressDescription)
 	enableTracing    = flag.Bool(tracing.EnableTracing, false, tracing.EnableTracingDescription)
@@ -90,7 +95,7 @@ func setupOamServerAndSetReady(enableTracing bool, oamServerAddress string) {
 	}
 }
 
-//nolint:cyclop // it's a main, complexity is 11
+//nolint:funlen,cyclop // it's a main, complexity is 11
 func main() {
 	// Print a summary of the build
 	printSummary()
@@ -150,6 +155,7 @@ func main() {
 		zlog.MiSec().Fatal().Err(err).Msgf("Unable to start onboarding controller")
 	}
 
+	// SB handler for IO.
 	sbHandler, err := southbound.NewSBHandler(invClient, southbound.SBHandlerConfig{
 		ServerAddress:    *serverAddress,
 		EnableTracing:    *enableTracing,
@@ -161,7 +167,23 @@ func main() {
 		zlog.MiSec().Fatal().Err(err).Msgf("Unable to create southbound handler")
 	}
 
+	// start SB IO handler.
 	err = sbHandler.Start()
+	if err != nil {
+		zlog.MiSec().Fatal().Err(err).Msgf("Unable to start southbound handler")
+	}
+
+	// SB handler for NIO.
+	sbnioHandler, err := southbound.NewSBNioHandler(invClient, southbound.SBHandlerNioConfig{
+		ServerAddressNio: *serverAddressNio,
+		EnableTracing:    *enableTracing,
+		InventoryAddress: *inventoryAddress,
+	})
+	if err != nil {
+		zlog.MiSec().Fatal().Err(err).Msgf("Unable to create southbound handler")
+	}
+	// start SB NIO handler.
+	err = sbnioHandler.Start()
 	if err != nil {
 		zlog.MiSec().Fatal().Err(err).Msgf("Unable to start southbound handler")
 	}

@@ -58,18 +58,28 @@ var (
 	}
 )
 
+type InventoryClientService struct {
+	invClient    *invclient.OnboardingInventoryClient
+	invClientAPI *invclient.OnboardingInventoryClient
+}
+
 type (
 	NodeArtifactService struct {
 		pb.UnimplementedNodeArtifactServiceNBServer
-		invClient *invclient.OnboardingInventoryClient
-		// TODO: remove this later https://jira.devtools.intel.com/browse/LPIO-1829
-		invClientAPI *invclient.OnboardingInventoryClient
-		rbac         *rbac.Policy
-		authEnabled  bool
+		InventoryClientService
+		rbac        *rbac.Policy
+		authEnabled bool
 	}
 )
 
-// NewArtifactService is a constructor function.
+type (
+	NonInteractiveOnboardingService struct {
+		pb.UnimplementedNonInteractiveOnboardingServiceServer
+		InventoryClientService
+	}
+)
+
+// NewArtifactService to start the gRPC server - IO.
 func NewArtifactService(invClient *invclient.OnboardingInventoryClient, inventoryAdr string, enableTracing bool,
 	enableAuth bool, rbacRules string,
 ) (*NodeArtifactService, error) {
@@ -104,10 +114,43 @@ func NewArtifactService(invClient *invclient.OnboardingInventoryClient, inventor
 	}
 
 	return &NodeArtifactService{
-		invClient:    invClient,
-		invClientAPI: invClientAPI,
-		rbac:         rbacPolicy,
-		authEnabled:  enableAuth,
+		InventoryClientService: InventoryClientService{
+			invClient:    invClient,
+			invClientAPI: invClientAPI,
+		},
+		rbac:        rbacPolicy,
+		authEnabled: enableAuth,
+	}, nil
+}
+
+// NewNonInteractiveOnboardingService to start the gRPC server - NIO.
+func NewNonInteractiveOnboardingService(invClient *invclient.OnboardingInventoryClient, inventoryAdr string,
+	enableTracing bool,
+) (*NonInteractiveOnboardingService, error) {
+	if invClient == nil {
+		return nil, inv_errors.Errorf("invClient is nil in NonInteractiveOnboardingService")
+	}
+
+	var invClientAPI *invclient.OnboardingInventoryClient
+	var err error
+	if inventoryAdr == "" {
+		zlog.Warn().Msg("Unable to start onboarding inventory API server client, empty inventory address")
+	} else {
+		// TODO: remove this later https://jira.devtools.intel.com/browse/LPIO-1829
+		invClientAPI, err = invclient.NewOnboardingInventoryClientWithOptions(
+			invclient.WithInventoryAddress(inventoryAdr),
+			invclient.WithEnableTracing(enableTracing),
+			invclient.WithClientKind(inventoryv1.ClientKind_CLIENT_KIND_API),
+		)
+		if err != nil {
+			return nil, inv_errors.Errorf("Unable to start onboarding inventory API server client %v", err)
+		}
+	}
+	return &NonInteractiveOnboardingService{
+		InventoryClientService: InventoryClientService{
+			invClient:    invClient,
+			invClientAPI: invClientAPI,
+		},
 	}, nil
 }
 
@@ -137,7 +180,7 @@ func CopyNodeReqToNodeData(payload []*pb.NodeData, tenantID string) ([]*computev
 }
 
 // sendStreamErrorResponse to send an error response on the stream.
-func sendStreamErrorResponse(stream pb.NodeArtifactServiceNB_OnboardNodeStreamServer,
+func sendStreamErrorResponse(stream pb.NonInteractiveOnboardingService_OnboardNodeStreamServer,
 	code codes.Code, message string,
 ) error {
 	response := &pb.OnboardStreamResponse{
@@ -151,7 +194,7 @@ func sendStreamErrorResponse(stream pb.NodeArtifactServiceNB_OnboardNodeStreamSe
 }
 
 // sendOnboardStreamResponse send a response on the stream.
-func sendOnboardStreamResponse(stream pb.NodeArtifactServiceNB_OnboardNodeStreamServer,
+func sendOnboardStreamResponse(stream pb.NonInteractiveOnboardingService_OnboardNodeStreamServer,
 	response *pb.OnboardStreamResponse,
 ) error {
 	if err := stream.Send(response); err != nil {
@@ -162,7 +205,7 @@ func sendOnboardStreamResponse(stream pb.NodeArtifactServiceNB_OnboardNodeStream
 }
 
 // receiveFromStream receive a message from the stream.
-func (s *NodeArtifactService) receiveFromStream(stream pb.NodeArtifactServiceNB_OnboardNodeStreamServer) (
+func (s *NonInteractiveOnboardingService) receiveFromStream(stream pb.NonInteractiveOnboardingService_OnboardNodeStreamServer) (
 	*pb.OnboardStreamRequest, error,
 ) {
 	zlog.Info().Msgf("OnboardNodeStream started: receiveFromStream")
@@ -179,7 +222,7 @@ func (s *NodeArtifactService) receiveFromStream(stream pb.NodeArtifactServiceNB_
 }
 
 // handleRegisteredState  processes the REGISTERED state.
-func (s *NodeArtifactService) handleRegisteredState(stream pb.NodeArtifactServiceNB_OnboardNodeStreamServer,
+func (s *NonInteractiveOnboardingService) handleRegisteredState(stream pb.NonInteractiveOnboardingService_OnboardNodeStreamServer,
 	hostInv *computev1.HostResource, req *pb.OnboardStreamRequest,
 ) error {
 	response := &pb.OnboardStreamResponse{
@@ -205,7 +248,7 @@ func (s *NodeArtifactService) handleRegisteredState(stream pb.NodeArtifactServic
 }
 
 // handleRegisteredState processes the ONBOARDED state.
-func (s *NodeArtifactService) handleOnboardedState(stream pb.NodeArtifactServiceNB_OnboardNodeStreamServer,
+func (s *NonInteractiveOnboardingService) handleOnboardedState(stream pb.NonInteractiveOnboardingService_OnboardNodeStreamServer,
 	hostInv *computev1.HostResource,
 ) error {
 	clientID, clientSecret, err := utils.FetchClientSecret(context.Background(), hostInv.GetTenantId(), hostInv.Uuid)
@@ -238,7 +281,9 @@ func (s *NodeArtifactService) handleOnboardedState(stream pb.NodeArtifactService
 }
 
 // handleDefaultState processes the UNSPECIFIED state.
-func (s *NodeArtifactService) handleDefaultState(stream pb.NodeArtifactServiceNB_OnboardNodeStreamServer) error {
+func (s *NonInteractiveOnboardingService) handleDefaultState(
+	stream pb.NonInteractiveOnboardingService_OnboardNodeStreamServer,
+) error {
 	return sendOnboardStreamResponse(stream, &pb.OnboardStreamResponse{
 		Status: &google_rpc.Status{
 			Code:    int32(codes.FailedPrecondition),
@@ -249,7 +294,7 @@ func (s *NodeArtifactService) handleDefaultState(stream pb.NodeArtifactServiceNB
 }
 
 //nolint:cyclop,funlen // reason: function is long due to necessary logic; cyclomatic complexity is high due to necessary handling
-func (s *NodeArtifactService) getHostResource(req *pb.OnboardStreamRequest) (*computev1.HostResource, error) {
+func (s *NonInteractiveOnboardingService) getHostResource(req *pb.OnboardStreamRequest) (*computev1.HostResource, error) {
 	var hostResource *computev1.HostResource
 	var serialNumberMatch, uuidMatch bool
 	var hostResourceByUUID, hostResourceBySN *computev1.HostResource
@@ -379,7 +424,9 @@ func (s *NodeArtifactService) getHostResource(req *pb.OnboardStreamRequest) (*co
 }
 
 //nolint:funlen,cyclop // reason: function is long due to necessary logic; cyclomatic complexity is high due to necessary handling
-func (s *NodeArtifactService) OnboardNodeStream(stream pb.NodeArtifactServiceNB_OnboardNodeStreamServer) error {
+func (s *NonInteractiveOnboardingService) OnboardNodeStream(
+	stream pb.NonInteractiveOnboardingService_OnboardNodeStreamServer,
+) error {
 	zlog.Info().Msgf("OnboardNodeStream started")
 
 	var hostInv *computev1.HostResource
@@ -727,7 +774,7 @@ func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeReque
 	return &pb.NodeResponse{Payload: req.Payload}, nil
 }
 
-func (s *NodeArtifactService) startZeroTouch(ctx context.Context, tenantID, hostResID string) error {
+func (s *InventoryClientService) startZeroTouch(ctx context.Context, tenantID, hostResID string) error {
 	zlog.Info().Msgf("Starting zero touch for host ID %s  tenant ID %s...", hostResID, tenantID)
 
 	host, err := s.invClient.GetHostResourceByResourceID(ctx, tenantID, hostResID)
@@ -754,7 +801,7 @@ func (s *NodeArtifactService) startZeroTouch(ctx context.Context, tenantID, host
 	return s.checkNCreateInstance(ctx, tenantID, *pconf, host)
 }
 
-func (s *NodeArtifactService) checkNCreateInstance(ctx context.Context, tenantID string,
+func (s *InventoryClientService) checkNCreateInstance(ctx context.Context, tenantID string,
 	pconf invclient.ProviderConfig, host *computev1.HostResource,
 ) error {
 	if pconf.AutoProvision {

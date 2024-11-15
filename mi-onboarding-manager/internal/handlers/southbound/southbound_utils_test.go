@@ -216,3 +216,54 @@ func TestNewSBHandler(t *testing.T) {
 		})
 	}
 }
+
+func TestNewSBNioHandler(t *testing.T) {
+	type args struct {
+		invClient *invclient.OnboardingInventoryClient
+		config    southbound.SBHandlerNioConfig
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *southbound.SBNioHandler
+		wantErr bool
+	}{
+		{
+			name: "NewSB handler-Success",
+			args: args{
+				invClient: &invclient.OnboardingInventoryClient{},
+			},
+			want:    &southbound.SBNioHandler{},
+			wantErr: false,
+		},
+		{
+			name: "NewSB handler-failure",
+			args: args{
+				config: southbound.SBHandlerNioConfig{
+					ServerAddressNio: "abc",
+				},
+				invClient: &invclient.OnboardingInventoryClient{},
+			},
+			want:    &southbound.SBNioHandler{},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := southbound.NewSBNioHandler(tt.args.invClient, tt.args.config)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewSBNioHandler() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewSBNioHandler() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSBNioHandler_Start(t *testing.T) {
+	sbNioHandler, _ := southbound.NewSBNioHandler(om_testing.InvClient, southbound.SBHandlerNioConfig{})
+	sbNioHandler.Start()
+}

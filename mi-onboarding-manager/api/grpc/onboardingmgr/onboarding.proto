@@ -24,12 +24,13 @@ service NodeArtifactServiceNB {
   rpc UpdateNodes(NodeRequest) returns (NodeResponse) {}
 
   rpc DeleteNodes(NodeRequest) returns (NodeResponse) {}
+}
 
+service NonInteractiveOnboardingService {
   // OnboardNodeStream establishes a bidirectional stream between the EN and the OM
   // It allows EN to send stream requests and receive responses
   rpc OnboardNodeStream(stream OnboardStreamRequest) returns (stream OnboardStreamResponse) {}
 }
-
 message ArtifactRequest {
   repeated ArtifactData payload = 1; // Payload data represented as an array or list
 }

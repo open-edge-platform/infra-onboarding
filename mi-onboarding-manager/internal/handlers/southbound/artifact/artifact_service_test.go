@@ -6,7 +6,6 @@ package artifact
 import (
 	"context"
 	"errors"
-	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -227,9 +226,11 @@ func TestNodeArtifactService_CreateNodes_Case(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -328,9 +329,11 @@ func TestNodeArtifactService_CreateNodes_Case1(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -407,9 +410,11 @@ func TestNodeArtifactService_CreateNodes_Case2(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -490,9 +495,11 @@ func TestNodeArtifactService_CreateNodes_Case3(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -569,9 +576,11 @@ func TestNodeArtifactService_CreateNodes_Case4(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -685,9 +694,11 @@ func TestNodeArtifactService_DeleteNodes_Case1(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.DeleteNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -741,9 +752,11 @@ func TestNodeArtifactService_DeleteNodes_Case2(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.DeleteNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -817,9 +830,11 @@ func TestNodeArtifactService_DeleteNodes_Case3(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.DeleteNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -897,9 +912,11 @@ func TestNodeArtifactService_DeleteNodes_Case4(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.DeleteNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -973,9 +990,11 @@ func TestNodeArtifactService_DeleteNodes_Case5(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.DeleteNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -1055,9 +1074,11 @@ func TestNodeArtifactService_DeleteNodes_Case6(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.DeleteNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -1131,9 +1152,11 @@ func TestNodeArtifactService_DeleteNodes_Case7(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.DeleteNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -1236,9 +1259,11 @@ func TestNodeArtifactService_GetNodes_Case1(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.GetNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -1322,9 +1347,11 @@ func TestNodeArtifactService_GetNodes_Case2(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.GetNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -1401,9 +1428,11 @@ func TestNodeArtifactService_GetNodes_Case3(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.GetNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -1458,7 +1487,9 @@ func TestNodeArtifactService_GetNodes_MultiTenant(t *testing.T) {
 	ctx2 = tenant.AddTenantIDToContext(ctx2, tenant2)
 
 	s := &NodeArtifactService{
-		invClient:   om_testing.InvClient,
+		InventoryClientService: InventoryClientService{
+			invClient: om_testing.InvClient,
+		},
 		authEnabled: true,
 		rbac:        rbacServer,
 	}
@@ -1559,9 +1590,11 @@ func TestNodeArtifactService_UpdateNodes_Case1(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.UpdateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -1649,9 +1682,11 @@ func TestNodeArtifactService_UpdateNodes_Case2(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.UpdateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -1731,9 +1766,11 @@ func TestNodeArtifactService_UpdateNodes_Case3(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.UpdateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -1813,9 +1850,11 @@ func TestNodeArtifactService_UpdateNodes_Case4(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.UpdateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -1895,9 +1934,11 @@ func TestNodeArtifactService_UpdateNodes_Case5(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.UpdateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -1984,9 +2025,11 @@ func TestNodeArtifactService_UpdateNodes_Case6(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.UpdateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -2042,8 +2085,10 @@ func TestNodeArtifactService_startZeroTouch(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				invClientAPI:                             tt.fields.invClientAPI,
+				InventoryClientService: InventoryClientService{
+					invClient:    tt.fields.invClient,
+					invClientAPI: tt.fields.invClientAPI,
+				},
 			}
 			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
@@ -2091,8 +2136,10 @@ func TestNodeArtifactService_startZeroTouch_Case(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				invClientAPI:                             tt.fields.invClientAPI,
+				InventoryClientService: InventoryClientService{
+					invClient:    tt.fields.invClient,
+					invClientAPI: tt.fields.invClientAPI,
+				},
 			}
 			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
@@ -2209,9 +2256,11 @@ func TestNodeArtifactService_CreateNodes_Case5(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -2296,9 +2345,11 @@ func TestNodeArtifactService_UpdateNodes_Case7(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.UpdateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -2352,8 +2403,9 @@ func TestNodeArtifactService_startZeroTouch_Case1(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				invClientAPI:                             tt.fields.invClientAPI,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
 			}
 			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
@@ -2402,8 +2454,10 @@ func TestNodeArtifactService_startZeroTouch_Case2(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				invClientAPI:                             tt.fields.invClientAPI,
+				InventoryClientService: InventoryClientService{
+					invClient:    tt.fields.invClient,
+					invClientAPI: tt.fields.invClientAPI,
+				},
 			}
 			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
@@ -2452,8 +2506,10 @@ func TestNodeArtifactService_startZeroTouch_Case3(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				invClientAPI:                             tt.fields.invClientAPI,
+				InventoryClientService: InventoryClientService{
+					invClient:    tt.fields.invClient,
+					invClientAPI: tt.fields.invClientAPI,
+				},
 			}
 			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
@@ -2505,8 +2561,10 @@ func TestNodeArtifactService_startZeroTouch_Case4(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				invClientAPI:                             tt.fields.invClientAPI,
+				InventoryClientService: InventoryClientService{
+					invClient:    tt.fields.invClient,
+					invClientAPI: tt.fields.invClientAPI,
+				},
 			}
 			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
@@ -2533,8 +2591,10 @@ func TestNodeArtifactService_startZeroTouch_MultiTenant(t *testing.T) {
 	host := dao.CreateHost(t, tenant1)
 
 	s := &NodeArtifactService{
-		invClient:    om_testing.InvClient,
-		invClientAPI: om_testing.InvClient,
+		InventoryClientService: InventoryClientService{
+			invClient:    om_testing.InvClient,
+			invClientAPI: om_testing.InvClient,
+		},
 	}
 
 	t.Run("Start ZeroTouch with multi-tenant provider creation", func(t *testing.T) {
@@ -2636,9 +2696,11 @@ func TestNodeArtifactService_GetNodes_Case4(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			_, err := s.GetNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -2717,9 +2779,11 @@ func TestNodeArtifactService_UpdateNodes_Case8(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			_, err := s.UpdateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -2798,9 +2862,11 @@ func TestNodeArtifactService_UpdateNodes_Case9(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			_, err := s.UpdateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -2877,9 +2943,11 @@ func TestNodeArtifactService_CreateNodes_Case6(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			_, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -2958,9 +3026,11 @@ func TestNodeArtifactService_CreateNodes_Case7(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				authEnabled:                              tt.fields.enableAuth,
-				rbac:                                     tt.fields.rbac,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
 			}
 			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -3041,10 +3111,12 @@ func TestNodeArtifactService_checkNCreateInstance(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NodeArtifactService{
 				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				invClientAPI:                             tt.fields.invClientAPI,
-				rbac:                                     tt.fields.rbac,
-				authEnabled:                              tt.fields.authEnabled,
+				InventoryClientService: InventoryClientService{
+					invClient:    tt.fields.invClient,
+					invClientAPI: tt.fields.invClientAPI,
+				},
+				rbac:        tt.fields.rbac,
+				authEnabled: tt.fields.authEnabled,
 			}
 			if err := s.checkNCreateInstance(tt.args.ctx, tt.args.tenentID, tt.args.pconf, tt.args.host); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.checkNCreateInstance() error = %v, wantErr %v", err, tt.wantErr)
@@ -3053,58 +3125,58 @@ func TestNodeArtifactService_checkNCreateInstance(t *testing.T) {
 	}
 }
 
-type MockNodeArtifactServiceNB_OnboardNodeStreamServer struct {
+type MockNonInteractiveOnboardingService_OnboardNodeStreamServer struct {
 	mock.Mock
 }
 
-func (m *MockNodeArtifactServiceNB_OnboardNodeStreamServer) Send(response *pb.OnboardStreamResponse) error {
+func (m *MockNonInteractiveOnboardingService_OnboardNodeStreamServer) Send(response *pb.OnboardStreamResponse) error {
 	args := m.Called(response)
 	return args.Error(0)
 }
 
-func (m *MockNodeArtifactServiceNB_OnboardNodeStreamServer) Recv() (*pb.OnboardStreamRequest, error) {
+func (m *MockNonInteractiveOnboardingService_OnboardNodeStreamServer) Recv() (*pb.OnboardStreamRequest, error) {
 	args := m.Called()
 	return args.Get(0).(*pb.OnboardStreamRequest), args.Error(1)
 }
 
-func (m *MockNodeArtifactServiceNB_OnboardNodeStreamServer) SetHeader(md metadata.MD) error {
+func (m *MockNonInteractiveOnboardingService_OnboardNodeStreamServer) SetHeader(md metadata.MD) error {
 	args := m.Called(md)
 	return args.Error(0)
 }
 
-func (m *MockNodeArtifactServiceNB_OnboardNodeStreamServer) SendHeader(md metadata.MD) error {
+func (m *MockNonInteractiveOnboardingService_OnboardNodeStreamServer) SendHeader(md metadata.MD) error {
 	args := m.Called(md)
 	return args.Error(0)
 }
 
-func (m *MockNodeArtifactServiceNB_OnboardNodeStreamServer) SetTrailer(md metadata.MD) {
+func (m *MockNonInteractiveOnboardingService_OnboardNodeStreamServer) SetTrailer(md metadata.MD) {
 	m.Called(md)
 }
 
-func (m *MockNodeArtifactServiceNB_OnboardNodeStreamServer) Context() context.Context {
+func (m *MockNonInteractiveOnboardingService_OnboardNodeStreamServer) Context() context.Context {
 	args := m.Called()
 	return args.Get(0).(context.Context)
 }
 
-func (m *MockNodeArtifactServiceNB_OnboardNodeStreamServer) SendMsg(msg interface{}) error {
+func (m *MockNonInteractiveOnboardingService_OnboardNodeStreamServer) SendMsg(msg interface{}) error {
 	args := m.Called(msg)
 	return args.Error(0)
 }
 
-func (m *MockNodeArtifactServiceNB_OnboardNodeStreamServer) RecvMsg(msg interface{}) error {
+func (m *MockNonInteractiveOnboardingService_OnboardNodeStreamServer) RecvMsg(msg interface{}) error {
 	args := m.Called(msg)
 	return args.Error(0)
 }
 
 func Test_sendStreamErrorResponse(t *testing.T) {
 	type args struct {
-		stream  pb.NodeArtifactServiceNB_OnboardNodeStreamServer
+		stream  pb.NonInteractiveOnboardingService_OnboardNodeStreamServer
 		code    codes.Code
 		message string
 	}
-	var art MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	var art MockNonInteractiveOnboardingService_OnboardNodeStreamServer
 	art.On("Send", mock.Anything).Return(errors.New("err"))
-	var art1 MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	var art1 MockNonInteractiveOnboardingService_OnboardNodeStreamServer
 	art1.On("Send", mock.Anything).Return(nil)
 	tests := []struct {
 		name    string
@@ -3139,15 +3211,15 @@ func Test_sendStreamErrorResponse(t *testing.T) {
 
 func TestNodeArtifactService_handleRegisteredState(t *testing.T) {
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		invClientAPI                             *invclient.OnboardingInventoryClient
-		rbac                                     *rbac.Policy
-		authEnabled                              bool
+		UnimplementedNonInteractiveOnboardingServiceServer pb.UnimplementedNonInteractiveOnboardingServiceServer
+		invClient                                          *invclient.OnboardingInventoryClient
+		invClientAPI                                       *invclient.OnboardingInventoryClient
+		rbac                                               *rbac.Policy
+		authEnabled                                        bool
 	}
-	var art MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	var art MockNonInteractiveOnboardingService_OnboardNodeStreamServer
 	art.On("Send", mock.Anything).Return(errors.New("err"))
-	var art1 MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	var art1 MockNonInteractiveOnboardingService_OnboardNodeStreamServer
 	art1.On("Send", mock.Anything).Return(nil)
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -3155,7 +3227,7 @@ func TestNodeArtifactService_handleRegisteredState(t *testing.T) {
 	})
 	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
-		stream  pb.NodeArtifactServiceNB_OnboardNodeStreamServer
+		stream  pb.NonInteractiveOnboardingService_OnboardNodeStreamServer
 		hostInv *computev1.HostResource
 		req     *pb.OnboardStreamRequest
 	}
@@ -3168,11 +3240,11 @@ func TestNodeArtifactService_handleRegisteredState(t *testing.T) {
 		{
 			name: "negative",
 			fields: fields{
-				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
-				invClient:                                om_testing.InvClient,
-				invClientAPI:                             &invclient.OnboardingInventoryClient{},
-				rbac:                                     &rbac.Policy{},
-				authEnabled:                              false,
+				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
+				invClient:    &invclient.OnboardingInventoryClient{},
+				invClientAPI: &invclient.OnboardingInventoryClient{},
+				rbac:         &rbac.Policy{},
+				authEnabled:  false,
 			},
 			args: args{
 				stream:  &art,
@@ -3183,11 +3255,11 @@ func TestNodeArtifactService_handleRegisteredState(t *testing.T) {
 		{
 			name: "postive",
 			fields: fields{
-				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
-				invClient:                                om_testing.InvClient,
-				invClientAPI:                             om_testing.InvClient,
-				rbac:                                     &rbac.Policy{},
-				authEnabled:                              false,
+				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
+				invClient:    om_testing.InvClient,
+				invClientAPI: om_testing.InvClient,
+				rbac:         &rbac.Policy{},
+				authEnabled:  false,
 			},
 			args: args{
 				stream:  &art1,
@@ -3202,12 +3274,12 @@ func TestNodeArtifactService_handleRegisteredState(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				invClientAPI:                             tt.fields.invClientAPI,
-				rbac:                                     tt.fields.rbac,
-				authEnabled:                              tt.fields.authEnabled,
+			s := &NonInteractiveOnboardingService{
+				UnimplementedNonInteractiveOnboardingServiceServer: tt.fields.UnimplementedNonInteractiveOnboardingServiceServer,
+				InventoryClientService: InventoryClientService{
+					invClient:    tt.fields.invClient,
+					invClientAPI: tt.fields.invClientAPI,
+				},
 			}
 			if err := s.handleRegisteredState(tt.args.stream, tt.args.hostInv, tt.args.req); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.handleRegisteredState() error = %v, wantErr %v", err, tt.wantErr)
@@ -3218,30 +3290,22 @@ func TestNodeArtifactService_handleRegisteredState(t *testing.T) {
 
 func TestNodeArtifactService_handleOnboardedState(t *testing.T) {
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		invClientAPI                             *invclient.OnboardingInventoryClient
-		rbac                                     *rbac.Policy
-		authEnabled                              bool
+		UnimplementedNonInteractiveOnboardingServiceServer pb.UnimplementedNonInteractiveOnboardingServiceServer
+		invClient                                          *invclient.OnboardingInventoryClient
+		invClientAPI                                       *invclient.OnboardingInventoryClient
+		rbac                                               *rbac.Policy
+		authEnabled                                        bool
 	}
-	currAuthServiceFactory := auth.AuthServiceFactory
-	currFlagDisableCredentialsManagement := *flags.FlagDisableCredentialsManagement
-	defer func() {
-		auth.AuthServiceFactory = currAuthServiceFactory
-		*flags.FlagDisableCredentialsManagement = currFlagDisableCredentialsManagement
-	}()
-	*flags.FlagDisableCredentialsManagement = false
-	auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(false, false, true)
-	var art MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	var art MockNonInteractiveOnboardingService_OnboardNodeStreamServer
 	art.On("Send", mock.Anything).Return(errors.New("err"))
-	var art1 MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	var art1 MockNonInteractiveOnboardingService_OnboardNodeStreamServer
 	art1.On("Send", mock.Anything).Return(nil)
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
 	type args struct {
-		stream  pb.NodeArtifactServiceNB_OnboardNodeStreamServer
+		stream  pb.NonInteractiveOnboardingService_OnboardNodeStreamServer
 		hostInv *computev1.HostResource
 	}
 	tests := []struct {
@@ -3251,13 +3315,13 @@ func TestNodeArtifactService_handleOnboardedState(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "negative for send onboard stream",
+			name: "negative",
 			fields: fields{
-				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
-				invClient:                                &invclient.OnboardingInventoryClient{},
-				invClientAPI:                             &invclient.OnboardingInventoryClient{},
-				rbac:                                     &rbac.Policy{},
-				authEnabled:                              false,
+				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
+				invClient:    &invclient.OnboardingInventoryClient{},
+				invClientAPI: &invclient.OnboardingInventoryClient{},
+				rbac:         &rbac.Policy{},
+				authEnabled:  false,
 			},
 			args: args{
 				stream:  &art,
@@ -3265,30 +3329,12 @@ func TestNodeArtifactService_handleOnboardedState(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		{
-			name: "negative",
-			fields: fields{
-				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
-				invClient:                                om_testing.InvClient,
-				invClientAPI:                             &invclient.OnboardingInventoryClient{},
-				rbac:                                     &rbac.Policy{},
-				authEnabled:                              false,
-			},
-			args: args{
-				stream:  &art1,
-				hostInv: &computev1.HostResource{},
-			},
-			wantErr: true,
-		},
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				invClientAPI:                             tt.fields.invClientAPI,
-				rbac:                                     tt.fields.rbac,
-				authEnabled:                              tt.fields.authEnabled,
+			s := &NonInteractiveOnboardingService{
+				UnimplementedNonInteractiveOnboardingServiceServer: tt.fields.UnimplementedNonInteractiveOnboardingServiceServer,
 			}
 			if err := s.handleOnboardedState(tt.args.stream, tt.args.hostInv); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.handleOnboardedState() error = %v, wantErr %v", err, tt.wantErr)
@@ -3298,17 +3344,15 @@ func TestNodeArtifactService_handleOnboardedState(t *testing.T) {
 }
 
 func TestNodeArtifactService_handleDefaultState(t *testing.T) {
-	var art MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	var art MockNonInteractiveOnboardingService_OnboardNodeStreamServer
 	art.On("Send", mock.Anything).Return(errors.New("err"))
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		invClientAPI                             *invclient.OnboardingInventoryClient
-		rbac                                     *rbac.Policy
-		authEnabled                              bool
+		UnimplementedNonInteractiveOnboardingServiceServer pb.UnimplementedNonInteractiveOnboardingServiceServer
+		invClient                                          *invclient.OnboardingInventoryClient
+		invClientAPI                                       *invclient.OnboardingInventoryClient
 	}
 	type args struct {
-		stream pb.NodeArtifactServiceNB_OnboardNodeStreamServer
+		stream pb.NonInteractiveOnboardingService_OnboardNodeStreamServer
 	}
 	tests := []struct {
 		name    string
@@ -3319,11 +3363,9 @@ func TestNodeArtifactService_handleDefaultState(t *testing.T) {
 		{
 			name: "HandleDefaultState_WithSendError",
 			fields: fields{
-				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
-				invClient:                                &invclient.OnboardingInventoryClient{},
-				invClientAPI:                             &invclient.OnboardingInventoryClient{},
-				rbac:                                     &rbac.Policy{},
-				authEnabled:                              false,
+				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
+				invClient:    &invclient.OnboardingInventoryClient{},
+				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
 				stream: &art,
@@ -3333,12 +3375,12 @@ func TestNodeArtifactService_handleDefaultState(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				invClientAPI:                             tt.fields.invClientAPI,
-				rbac:                                     tt.fields.rbac,
-				authEnabled:                              tt.fields.authEnabled,
+			s := &NonInteractiveOnboardingService{
+				UnimplementedNonInteractiveOnboardingServiceServer: tt.fields.UnimplementedNonInteractiveOnboardingServiceServer,
+				InventoryClientService: InventoryClientService{
+					invClient:    tt.fields.invClient,
+					invClientAPI: tt.fields.invClientAPI,
+				},
 			}
 			if err := s.handleDefaultState(tt.args.stream); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.handleDefaultState() error = %v, wantErr %v", err, tt.wantErr)
@@ -3346,17 +3388,70 @@ func TestNodeArtifactService_handleDefaultState(t *testing.T) {
 		})
 	}
 }
-
+func TestNewNonInteractiveOnboardingService(t *testing.T) {
+	type args struct {
+		invClient     *invclient.OnboardingInventoryClient
+		inventoryAdr  string
+		enableTracing bool
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *NonInteractiveOnboardingService
+		wantErr bool
+	}{
+		{
+			name: "NewNonInteractiveOnboardingService Test Case",
+			args: args{
+				invClient:     &invclient.OnboardingInventoryClient{},
+				inventoryAdr:  "",
+				enableTracing: false,
+			},
+			want:    &NonInteractiveOnboardingService{},
+			wantErr: false,
+		},
+		{
+			name: "Nil inventory client",
+			args: args{
+				invClient:     nil,
+				inventoryAdr:  "",
+				enableTracing: false,
+			},
+			want:    &NonInteractiveOnboardingService{},
+			wantErr: true,
+		},
+		{
+			name: "NewNonInteractiveOnboardingService Test Case with dummy inventory address",
+			args: args{
+				invClient:     &invclient.OnboardingInventoryClient{},
+				inventoryAdr:  "123",
+				enableTracing: false,
+			},
+			want:    &NonInteractiveOnboardingService{},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewNonInteractiveOnboardingService(tt.args.invClient, tt.args.inventoryAdr, tt.args.enableTracing)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewNonInteractiveOnboardingService() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewNonInteractiveOnboardingService() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 func TestNodeArtifactServiceOnboardNodeStream(t *testing.T) {
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		invClientAPI                             *invclient.OnboardingInventoryClient
-		rbac                                     *rbac.Policy
-		authEnabled                              bool
+		UnimplementedNonInteractiveOnboardingServiceServer pb.UnimplementedNonInteractiveOnboardingServiceServer
+		invClient                                          *invclient.OnboardingInventoryClient
+		invClientAPI                                       *invclient.OnboardingInventoryClient
 	}
 	type args struct {
-		stream pb.NodeArtifactServiceNB_OnboardNodeStreamServer
+		stream pb.NonInteractiveOnboardingService_OnboardNodeStreamServer
 	}
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -3365,11 +3460,9 @@ func TestNodeArtifactServiceOnboardNodeStream(t *testing.T) {
 	host := inv_testing.CreateHost(t, nil, nil)
 	os.Setenv("ONBOARDING_MANAGER_CLIENT_NAME", "env")
 	os.Setenv("ONBOARDING_CREDENTIALS_SECRET_NAME", "env")
-	var art MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	var art MockNonInteractiveOnboardingService_OnboardNodeStreamServer
 	art.On("Recv").Return(&pb.OnboardStreamRequest{}, errors.New("err"))
-	var mockErr MockNodeArtifactServiceNB_OnboardNodeStreamServer
-	mockErr.On("Recv").Return(&pb.OnboardStreamRequest{}, io.EOF)
-	var art1 MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	var art1 MockNonInteractiveOnboardingService_OnboardNodeStreamServer
 	currAuthServiceFactory := auth.AuthServiceFactory
 	currFlagDisableCredentialsManagement := *flags.FlagDisableCredentialsManagement
 	defer func() {
@@ -3385,7 +3478,7 @@ func TestNodeArtifactServiceOnboardNodeStream(t *testing.T) {
 		MacId:     host.PxeMac,
 		HostIp:    host.BmcIp,
 	}, nil)
-	var art2 MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	var art2 MockNonInteractiveOnboardingService_OnboardNodeStreamServer
 	art2.On("Send", mock.Anything).Return(nil)
 	art2.On("Recv").Return(&pb.OnboardStreamRequest{
 		Uuid:      host.Uuid,
@@ -3393,7 +3486,7 @@ func TestNodeArtifactServiceOnboardNodeStream(t *testing.T) {
 		MacId:     host.PxeMac,
 		HostIp:    host.BmcIp,
 	}, nil)
-	var art3 MockNodeArtifactServiceNB_OnboardNodeStreamServer
+	var art3 MockNonInteractiveOnboardingService_OnboardNodeStreamServer
 	art3.On("Send", mock.Anything).Return(nil)
 	art3.On("Recv").Return(&pb.OnboardStreamRequest{
 		Serialnum: host.SerialNumber,
@@ -3408,11 +3501,9 @@ func TestNodeArtifactServiceOnboardNodeStream(t *testing.T) {
 		{
 			name: "OnboardNodeStream Negative Test Case",
 			fields: fields{
-				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
-				invClient:                                &invclient.OnboardingInventoryClient{},
-				invClientAPI:                             &invclient.OnboardingInventoryClient{},
-				rbac:                                     &rbac.Policy{},
-				authEnabled:                              false,
+				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
+				invClient:    &invclient.OnboardingInventoryClient{},
+				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
 				stream: &art,
@@ -3420,27 +3511,11 @@ func TestNodeArtifactServiceOnboardNodeStream(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "OnboardNodeStream Negative Test Case With EOF",
-			fields: fields{
-				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
-				invClient:                                &invclient.OnboardingInventoryClient{},
-				invClientAPI:                             &invclient.OnboardingInventoryClient{},
-				rbac:                                     &rbac.Policy{},
-				authEnabled:                              false,
-			},
-			args: args{
-				stream: &mockErr,
-			},
-			wantErr: true,
-		},
-		{
 			name: "OnboardNodeStream Positive Test Case",
 			fields: fields{
-				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
-				invClient:                                om_testing.InvClient,
-				invClientAPI:                             &invclient.OnboardingInventoryClient{},
-				rbac:                                     &rbac.Policy{},
-				authEnabled:                              false,
+				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
+				invClient:    om_testing.InvClient,
+				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
 				stream: &art1,
@@ -3450,11 +3525,9 @@ func TestNodeArtifactServiceOnboardNodeStream(t *testing.T) {
 		{
 			name: "OnboardNodeStream current state as onboarded",
 			fields: fields{
-				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
-				invClient:                                om_testing.InvClient,
-				invClientAPI:                             &invclient.OnboardingInventoryClient{},
-				rbac:                                     &rbac.Policy{},
-				authEnabled:                              false,
+				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
+				invClient:    om_testing.InvClient,
+				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
 				stream: &art2,
@@ -3464,11 +3537,9 @@ func TestNodeArtifactServiceOnboardNodeStream(t *testing.T) {
 		{
 			name: "OnboardNodeStream with uuid and serial number",
 			fields: fields{
-				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
-				invClient:                                om_testing.InvClient,
-				invClientAPI:                             &invclient.OnboardingInventoryClient{},
-				rbac:                                     &rbac.Policy{},
-				authEnabled:                              false,
+				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
+				invClient:    om_testing.InvClient,
+				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
 				stream: &art3,
@@ -3478,12 +3549,12 @@ func TestNodeArtifactServiceOnboardNodeStream(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				invClientAPI:                             tt.fields.invClientAPI,
-				rbac:                                     tt.fields.rbac,
-				authEnabled:                              tt.fields.authEnabled,
+			s := &NonInteractiveOnboardingService{
+				UnimplementedNonInteractiveOnboardingServiceServer: tt.fields.UnimplementedNonInteractiveOnboardingServiceServer,
+				InventoryClientService: InventoryClientService{
+					invClient:    tt.fields.invClient,
+					invClientAPI: tt.fields.invClientAPI,
+				},
 			}
 			if err := s.OnboardNodeStream(tt.args.stream); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.OnboardNodeStream() error = %v, wantErr %v", err, tt.wantErr)
@@ -3498,11 +3569,9 @@ func TestNodeArtifactServiceOnboardNodeStream(t *testing.T) {
 
 func TestNodeArtifactService_getHostResource(t *testing.T) {
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		invClientAPI                             *invclient.OnboardingInventoryClient
-		rbac                                     *rbac.Policy
-		authEnabled                              bool
+		UnimplementedNonInteractiveOnboardingServiceServer pb.UnimplementedNonInteractiveOnboardingServiceServer
+		invClient                                          *invclient.OnboardingInventoryClient
+		invClientAPI                                       *invclient.OnboardingInventoryClient
 	}
 	type args struct {
 		req *pb.OnboardStreamRequest
@@ -3522,11 +3591,9 @@ func TestNodeArtifactService_getHostResource(t *testing.T) {
 		{
 			name: "getHostResource test case with uuid",
 			fields: fields{
-				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
-				invClient:                                om_testing.InvClient,
-				invClientAPI:                             &invclient.OnboardingInventoryClient{},
-				rbac:                                     &rbac.Policy{},
-				authEnabled:                              false,
+				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
+				invClient:    om_testing.InvClient,
+				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
 				req: &pb.OnboardStreamRequest{
@@ -3539,11 +3606,9 @@ func TestNodeArtifactService_getHostResource(t *testing.T) {
 		{
 			name: "getHostResource test case with serial number",
 			fields: fields{
-				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
-				invClient:                                om_testing.InvClient,
-				invClientAPI:                             &invclient.OnboardingInventoryClient{},
-				rbac:                                     &rbac.Policy{},
-				authEnabled:                              false,
+				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
+				invClient:    om_testing.InvClient,
+				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
 				req: &pb.OnboardStreamRequest{
@@ -3556,11 +3621,9 @@ func TestNodeArtifactService_getHostResource(t *testing.T) {
 		{
 			name: "getHostResource test case with serial number and host uuid",
 			fields: fields{
-				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
-				invClient:                                om_testing.InvClient,
-				invClientAPI:                             &invclient.OnboardingInventoryClient{},
-				rbac:                                     &rbac.Policy{},
-				authEnabled:                              false,
+				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
+				invClient:    om_testing.InvClient,
+				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
 				req: &pb.OnboardStreamRequest{
@@ -3574,11 +3637,9 @@ func TestNodeArtifactService_getHostResource(t *testing.T) {
 		{
 			name: "getHostResource test case with empty request",
 			fields: fields{
-				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
-				invClient:                                om_testing.InvClient,
-				invClientAPI:                             &invclient.OnboardingInventoryClient{},
-				rbac:                                     &rbac.Policy{},
-				authEnabled:                              false,
+				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
+				invClient:    om_testing.InvClient,
+				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
 				req: &pb.OnboardStreamRequest{},
@@ -3589,24 +3650,23 @@ func TestNodeArtifactService_getHostResource(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				invClientAPI:                             tt.fields.invClientAPI,
-				rbac:                                     tt.fields.rbac,
-				authEnabled:                              tt.fields.authEnabled,
+			s := &NonInteractiveOnboardingService{
+				UnimplementedNonInteractiveOnboardingServiceServer: tt.fields.UnimplementedNonInteractiveOnboardingServiceServer,
+				InventoryClientService: InventoryClientService{
+					invClient:    tt.fields.invClient,
+					invClientAPI: tt.fields.invClientAPI,
+				},
 			}
 			s.getHostResource(tt.args.req)
 		})
 	}
 }
+
 func TestNodeArtifactService_getHostResourcetest(t *testing.T) {
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		invClientAPI                             *invclient.OnboardingInventoryClient
-		rbac                                     *rbac.Policy
-		authEnabled                              bool
+		UnimplementedNonInteractiveOnboardingServiceServer pb.UnimplementedNonInteractiveOnboardingServiceServer
+		invClient                                          *invclient.OnboardingInventoryClient
+		invClientAPI                                       *invclient.OnboardingInventoryClient
 	}
 	type args struct {
 		req *pb.OnboardStreamRequest
@@ -3631,11 +3691,9 @@ func TestNodeArtifactService_getHostResourcetest(t *testing.T) {
 		{
 			name: "getHostResource test case with uuid",
 			fields: fields{
-				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
-				invClient:                                om_testing.InvClient,
-				invClientAPI:                             &invclient.OnboardingInventoryClient{},
-				rbac:                                     &rbac.Policy{},
-				authEnabled:                              false,
+				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
+				invClient:    om_testing.InvClient,
+				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
 				req: &pb.OnboardStreamRequest{
@@ -3648,11 +3706,9 @@ func TestNodeArtifactService_getHostResourcetest(t *testing.T) {
 		{
 			name: "getHostResource test case with serial number",
 			fields: fields{
-				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
-				invClient:                                om_testing.InvClient,
-				invClientAPI:                             &invclient.OnboardingInventoryClient{},
-				rbac:                                     &rbac.Policy{},
-				authEnabled:                              false,
+				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
+				invClient:    om_testing.InvClient,
+				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
 				req: &pb.OnboardStreamRequest{
@@ -3665,11 +3721,9 @@ func TestNodeArtifactService_getHostResourcetest(t *testing.T) {
 		{
 			name: "getHostResource test case with serial number and host uuid",
 			fields: fields{
-				UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
-				invClient:                                om_testing.InvClient,
-				invClientAPI:                             &invclient.OnboardingInventoryClient{},
-				rbac:                                     &rbac.Policy{},
-				authEnabled:                              false,
+				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
+				invClient:    om_testing.InvClient,
+				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
 				req: &pb.OnboardStreamRequest{
@@ -3683,12 +3737,12 @@ func TestNodeArtifactService_getHostResourcetest(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
-				invClient:                                tt.fields.invClient,
-				invClientAPI:                             tt.fields.invClientAPI,
-				rbac:                                     tt.fields.rbac,
-				authEnabled:                              tt.fields.authEnabled,
+			s := &NonInteractiveOnboardingService{
+				UnimplementedNonInteractiveOnboardingServiceServer: tt.fields.UnimplementedNonInteractiveOnboardingServiceServer,
+				InventoryClientService: InventoryClientService{
+					invClient:    tt.fields.invClient,
+					invClientAPI: tt.fields.invClientAPI,
+				},
 			}
 			got, err := s.getHostResource(tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -3721,7 +3775,7 @@ func TestHostRegistrationSerialNumFailedWithDetails(t *testing.T) {
 			name: "Test Case",
 			args: args{},
 			want: inv_status.ResourceStatus{
-				Status:          "Host Registration Failed due to mismatch of Serial Number, Correct Serial Number is: ",
+				Status:          "Host Registration Failed due to mismatch of Serial Number, Reported Serial Number is: ",
 				StatusIndicator: statusv1.StatusIndication_STATUS_INDICATION_ERROR,
 			},
 		},

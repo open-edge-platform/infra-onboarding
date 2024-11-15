@@ -7,6 +7,7 @@ import (
 	"net"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/handlers/southbound/artifact"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
@@ -27,6 +28,21 @@ type SBHandlerConfig struct {
 	EnableTracing    bool
 	EnableAuth       bool
 	RBAC             string
+}
+
+// Nio config.
+type SBHandlerNioConfig struct {
+	ServerAddressNio string
+	InventoryAddress string
+	EnableTracing    bool
+}
+
+// Nio Handler.
+type SBNioHandler struct {
+	invClient *invclient.OnboardingInventoryClient
+	cfg       SBHandlerNioConfig
+	lis       net.Listener
+	server    *grpc.Server
 }
 
 type SBHandler struct {
@@ -57,6 +73,7 @@ func NewSBHandlerWithListener(listener net.Listener,
 	}
 }
 
+// Start IO server.
 func (sbh *SBHandler) Start() error {
 	nodeArtifactService, err := artifact.NewArtifactService(sbh.invClient,
 		sbh.cfg.InventoryAddress, sbh.cfg.EnableTracing, sbh.cfg.EnableAuth, sbh.cfg.RBAC)
@@ -70,7 +87,9 @@ func (sbh *SBHandler) Start() error {
 	sbh.server = grpc.NewServer(srvOpts...)
 	pb.RegisterNodeArtifactServiceNBServer(sbh.server, nodeArtifactService)
 
-	// Run go routine to start the gRPC server
+	// Register reflection service on gRPC server.
+	reflection.Register(sbh.server)
+	// Run go routine to start the gRPC server.
 	go func() {
 		if err := sbh.server.Serve(sbh.lis); err != nil {
 			zlog.MiSec().Fatal().Err(err).Msgf("Error listening with TCP: %s", sbh.lis.Addr().String())
@@ -84,4 +103,53 @@ func (sbh *SBHandler) Start() error {
 func (sbh *SBHandler) Stop() {
 	sbh.server.Stop()
 	zlog.MiSec().Info().Msgf("SB handler stopped")
+}
+
+func NewSBNioHandler(invClient *invclient.OnboardingInventoryClient,
+	config SBHandlerNioConfig,
+) (*SBNioHandler, error) {
+	lis, err := net.Listen("tcp", config.ServerAddressNio)
+	if err != nil {
+		return nil, err
+	}
+	return NewSBNioHandlerWithListener(lis, invClient, config), nil
+}
+
+func NewSBNioHandlerWithListener(listener net.Listener,
+	invClient *invclient.OnboardingInventoryClient,
+	config SBHandlerNioConfig,
+) *SBNioHandler {
+	return &SBNioHandler{
+		invClient: invClient,
+		cfg:       config,
+		lis:       listener,
+	}
+}
+
+// start SB Nio server.
+func (sbhnio *SBNioHandler) Start() error {
+	nodeArtifactService, err := artifact.NewNonInteractiveOnboardingService(sbhnio.invClient,
+		sbhnio.cfg.InventoryAddress, sbhnio.cfg.EnableTracing)
+	if err != nil {
+		return err
+	}
+	var srvOpts []grpc.ServerOption
+	sbhnio.server = grpc.NewServer(srvOpts...)
+	pb.RegisterNonInteractiveOnboardingServiceServer(sbhnio.server, nodeArtifactService)
+	// Register reflection service on gRPC server.
+	reflection.Register(sbhnio.server)
+	// Run go routine to start the gRPC server.
+	go func() {
+		if err := sbhnio.server.Serve(sbhnio.lis); err != nil {
+			zlog.MiSec().Fatal().Err(err).Msgf("Error listening with TCP: %s", sbhnio.lis.Addr().String())
+		}
+	}()
+
+	zlog.MiSec().Info().Msgf("SB NIO handler started")
+	return nil
+}
+
+func (sbhnio *SBNioHandler) Stop() {
+	sbhnio.server.Stop()
+	zlog.MiSec().Info().Msgf("SB NIO handler stopped")
 }
