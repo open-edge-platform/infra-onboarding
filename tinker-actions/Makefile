@@ -69,22 +69,38 @@ build:
 	./setup_actions.sh
 	@echo "---END MAKEFILE Build---"
 
+define docker_push_with_retry
+sh -c ' \
+retry=0; \
+max_retries=5; \
+while [ $$retry -lt $$max_retries ]; do \
+	echo "Tagging and pushing ${1}:${2} (attempt $$((retry+1)))"; \
+	docker tag ${1}:latest ${DOCKER_TAG}/${1}:${2}; \
+	if docker push ${DOCKER_TAG}/${1}:${2}; then \
+		echo "Successfully pushed ${1}:${2}"; \
+		break; \
+	else \
+		echo "Failed to push ${1}:${2}, retrying..."; \
+		retry=$$((retry+1)); \
+		sleep 5; \
+	fi; \
+done; \
+if [ $$retry -eq $$max_retries ]; then \
+	echo "Failed to push ${1}:${2} after $$max_retries attempts"; \
+	exit 1; \
+fi'
+endef
+
 docker-push:
 	@$(foreach action,$(ACTION_ARRAY), \
-	       echo "Tagging and pushing ${action}:${BRANCH_NAME}"; \
-		   docker tag ${action}:latest ${DOCKER_TAG}/${action}:${BRANCH_NAME}; \
-		   docker push ${DOCKER_TAG}/${action}:${BRANCH_NAME}; \
-		   echo "Tagging and pushing ${action}:${VERSION}"; \
-		   docker tag ${action}:latest ${DOCKER_TAG}/${action}:${VERSION}; \
-		   docker push ${DOCKER_TAG}/${action}:${VERSION}; \
+	       $(call docker_push_with_retry,${action},${BRANCH_NAME}); \
+		   $(call docker_push_with_retry,${action},${VERSION}); \
 		   echo ""; \
        )
 
 docker-dev-push:
 	@$(foreach action,$(ACTION_ARRAY), \
-	       echo "Tagging and pushing ${action}:${BRANCH_NAME}"; \
-		   docker tag ${action}:latest ${DOCKER_TAG}/${action}:${BRANCH_NAME}; \
-		   docker push ${DOCKER_TAG}/${action}:${BRANCH_NAME}; \
+	       $(call docker_push_with_retry,${action},${BRANCH_NAME}); \
 		   echo ""; \
        )
 
