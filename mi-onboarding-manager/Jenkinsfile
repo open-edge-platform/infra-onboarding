@@ -52,16 +52,6 @@ pipeline {
                         }
                     }
                 }
-                /*stage('Trivy config scan') {
-                    when {
-                        changeRequest()
-                    }
-                    steps {
-                        script {
-                            trivyConfigScan()
-                        }
-                    }
-                }*/
 		stage('Shellcheck') {
 		    when {
 			changeRequest()

@@ -165,9 +165,12 @@ db-start: ## Start the local postgres database. See: db-stop
 		docker run --name inv-db --rm $(DOCKER_NETWORKING_FLAGS) -e POSTGRES_PASSWORD=$$PGPASSWORD -e POSTGRES_DB=$$PGDATABASE -e POSTGRES_USER=$$PGUSER -d postgres:$(POSTGRES_VERSION); \
 	fi
 
-db-stop: ## Stop the local postgres database. See: db-start
+db-stop: ## Stop the local postgres database and remove the Docker image. See: db-start
 	@if [ -n "`docker ps -aq -f name=^inv-db`" ]; then \
 		docker container kill inv-db; \
+	fi
+	@if [ -n "`docker images -q postgres:$(POSTGRES_VERSION)`" ]; then \
+		docker rmi postgres:$(POSTGRES_VERSION); \
 	fi
 
 db-shell: ## Run the postgres shell connected to a local database. See: db-start
