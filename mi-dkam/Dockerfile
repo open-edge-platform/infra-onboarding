@@ -65,4 +65,8 @@ RUN chmod +x pkg/script/hook/secure_hookos.sh
 RUN chmod +x pkg/script/hook/cpio_build/build_image_at_DKAM.sh
 USER appuser
 
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:5581/healthz || exit 1
+
 ENTRYPOINT ["dkammgr"]
