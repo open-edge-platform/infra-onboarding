@@ -5,6 +5,8 @@ package util
 
 import (
 	"fmt"
+	"path/filepath"
+
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/errors"
 
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/os/v1"
@@ -29,9 +31,10 @@ func GetOSImageLocation(os *osv1.OperatingSystemResource, rootDir string) string
 	//}
 
 	fileName := os.GetProfileName()
+
 	switch os.GetOsType() {
 	case osv1.OsType_OS_TYPE_IMMUTABLE:
-		fileName += ".raw.xz" // We (EIM) control TiberOS extensions so it will always be .raw.xz
+		fileName += GetFileExtensionFromOSImageURL(os)
 	case osv1.OsType_OS_TYPE_MUTABLE:
 		fileName += ".raw.gz"
 	default:
@@ -73,4 +76,13 @@ func GetInstallerLocation(os *osv1.OperatingSystemResource, rootDir string) (str
 	}
 
 	return installerPath, nil
+}
+
+func GetFileExtensionFromOSImageURL(os *osv1.OperatingSystemResource) string {
+
+	extension := filepath.Ext(os.GetImageUrl())
+	extension = ".raw" + extension
+
+	return extension
+
 }

@@ -177,21 +177,8 @@ func DownloadMicroOS(targetDir string, scriptPath string) (bool, error) {
 // DownloadTiberOSImage downloads OS image from the Release Service,
 // verifies the SHA256 checksum and copies the OS image to targetDir.
 func DownloadTiberOSImage(ctx context.Context, osRes *osv1.OperatingSystemResource, targetDir string) error {
-	var tag string
 
-	rsArtifactName := ""
-	if strings.Contains(osRes.GetImageUrl(), ":") {
-		zlog.MiSec().Info().Msg(osRes.GetImageUrl())
-		splittedImageUrl := strings.Split(osRes.GetImageUrl(), ":")
-		rsArtifactName = splittedImageUrl[0]
-		zlog.MiSec().Info().Msg(rsArtifactName)
-		tag = splittedImageUrl[1]
-		zlog.MiSec().Info().Msg(tag)
-	} else {
-		rsArtifactName = osRes.GetImageUrl()
-		tag = "latest"
-	}
-	url := config.RSProxyTiberOSManifest + rsArtifactName
+	url := config.RSProxyTiberOSManifest + osRes.GetImageUrl()
 	zlog.MiSec().Info().Msg(url)
 
 	req, httperr := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -210,11 +197,10 @@ func DownloadTiberOSImage(ctx context.Context, osRes *osv1.OperatingSystemResour
 	}
 	defer resp.Body.Close()
 
-	filePath := config.DownloadPath + "/" + config.TiberOSImage
+	tmpOsImageFilePath := config.DownloadPath + "/" + osRes.GetProfileName() + util.GetFileExtensionFromOSImageURL(osRes)
 
-	file, fileerr := os.Create(filePath)
+	file, fileerr := os.Create(tmpOsImageFilePath)
 	if fileerr != nil {
-		//zlog.MiSec().Fatal().Err(fileerr).Msgf("Error while creating release manifest file.")
 		zlog.MiSec().Error().Err(fileerr).Msgf("Failed to create file:%v", fileerr)
 		return fileerr
 	}
@@ -226,10 +212,10 @@ func DownloadTiberOSImage(ctx context.Context, osRes *osv1.OperatingSystemResour
 		zlog.MiSec().Error().Err(copyErr).Msgf("Error while coping content ")
 	}
 
-	zlog.MiSec().Info().Msg("Tiber OS Image downloaded")
+	zlog.MiSec().Info().Msgf("Tiber OS Image downloaded from %s", url)
 
 	zlog.Info().Msg("Calculating SHA256 checksum of downloaded image...")
-	computedChecksum, err := getSHA256Checksum(config.DownloadPath + "/" + config.TiberOSImage)
+	computedChecksum, err := getSHA256Checksum(tmpOsImageFilePath)
 	if err != nil {
 		zlog.MiSec().Error().Err(err).Msgf("Error calculating MD5 checksum:%v", err)
 	}
@@ -244,7 +230,7 @@ func DownloadTiberOSImage(ctx context.Context, osRes *osv1.OperatingSystemResour
 	}
 
 	copyErr = CopyFile(
-		config.DownloadPath+"/"+config.TiberOSImage,
+		tmpOsImageFilePath,
 		util.GetOSImageLocation(osRes, targetDir),
 	)
 	if copyErr != nil {
