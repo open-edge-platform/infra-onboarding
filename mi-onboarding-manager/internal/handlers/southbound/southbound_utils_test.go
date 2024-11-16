@@ -217,6 +217,33 @@ func TestNewSBHandler(t *testing.T) {
 	}
 }
 
+func FuzzNewSBHandler(f *testing.F) {
+	f.Add("127.0.0.1:9090", true, true, "admin")
+	f.Add("localhost:8080", false, false, "user")
+	f.Fuzz(func(t *testing.T, inventoryAddress string, enableTracing, enableAuth bool, rbac string) {
+		invClient := &invclient.OnboardingInventoryClient{}
+		config := southbound.SBHandlerConfig{
+			ServerAddress:    "",
+			InventoryAddress: inventoryAddress,
+			EnableTracing:    enableTracing,
+			EnableAuth:       enableAuth,
+			RBAC:             rbac,
+		}
+
+		handler, err := southbound.NewSBHandler(invClient, config)
+		if err != nil {
+			t.Logf("Expected error: %v", err)
+		} else {
+			if handler == nil {
+				t.Errorf("Expected non-nil handler, got nil")
+			} else {
+				t.Logf("Handler created successfully: %+v", handler)
+			}
+		}
+
+	})
+}
+
 func TestNewSBNioHandler(t *testing.T) {
 	type args struct {
 		invClient *invclient.OnboardingInventoryClient

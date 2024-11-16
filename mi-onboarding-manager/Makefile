@@ -50,6 +50,7 @@ BASE_BRANCH ?= main
 APIPKG_DIR  := pkg/api
 BUILD_DIR   := build
 SECRETS_DIR := /var/run/secrets
+SCRIPTS_DIR := ./ci_scripts
 
 # Tools versions
 GOLINTVERSION_HAVE        := $(shell golangci-lint version | sed 's/.*version //' | sed 's/ .*//')
@@ -212,3 +213,10 @@ help: ## Print help for each target
 	@echo
 	@grep '^[[:alnum:]_-]*:.* ##' $(MAKEFILE_LIST) \
     | sort | awk 'BEGIN {FS=":.* ## "}; {printf "%-25s %s\n", $$1, $$2};'
+
+fuzztest:
+	$(MAKE) db-stop
+	$(MAKE) db-start
+	$(SCRIPTS_DIR)/fuzz_test.sh "internal/handlers/southbound/southbound_utils_test.go" "internal/handlers/controller/reconcilers/instance_test.go" "internal/handlers/southbound/artifact/artifact_service_test.go"
+	$(MAKE) db-stop
+

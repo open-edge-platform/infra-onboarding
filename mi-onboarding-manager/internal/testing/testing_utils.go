@@ -6,6 +6,7 @@ package testing
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -24,10 +25,13 @@ var (
 	clientName inv_testing.ClientType = "TestOnboardingInventoryClient"
 	zlog                              = logging.GetLogger("Onboarding-Manager-Testing")
 	InvClient  *invclient.OnboardingInventoryClient
+	mu         sync.Mutex
 )
 
 // CreateInventoryOnboardingClientForTesting is an helper function to create a new client.
 func CreateInventoryOnboardingClientForTesting() {
+	mu.Lock()
+	defer mu.Unlock()
 	resourceKinds := []inv_v1.ResourceKind{
 		inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE,
 		inv_v1.ResourceKind_RESOURCE_KIND_HOST,
@@ -46,6 +50,8 @@ func CreateInventoryOnboardingClientForTesting() {
 }
 
 func DeleteInventoryOnboardingClientForTesting() {
+	mu.Lock()
+	defer mu.Unlock()
 	InvClient.Close()
 	time.Sleep(1 * time.Second)
 	delete(inv_testing.TestClients, clientName)

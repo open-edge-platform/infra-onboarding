@@ -6,6 +6,9 @@ package reconcilers
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
+	"fmt"
 	"os"
 	"reflect"
 	"strings"
@@ -39,6 +42,19 @@ import (
 )
 
 const tenantID = "11111111-1111-1111-1111-111111111111"
+
+func getMD5Hash(text string) string {
+	hasher := md5.New()
+	hasher.Write([]byte(text))
+	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+func getFirstNChars(hash string, n int) string {
+	if len(hash) < n {
+		return hash
+	}
+	return hash[:n]
+}
 
 // FIXME: remove and use Inventory helper once RepoURL is made configurable in the Inv library
 func createOsWithArgs(tb testing.TB, doCleanup bool,
@@ -156,7 +172,7 @@ func TestReconcileInstanceNonEIM(t *testing.T) {
 
 	*common.FlagEnableDeviceInitialization = false
 	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, true)
-	
+
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
@@ -632,4 +648,42 @@ func Test_convertInstanceToDeviceInfo(t *testing.T) {
 			}
 		})
 	}
+}
+
+func FuzzTestReconcile(f *testing.F) {
+	// Add initial seed data
+	f.Add("0809039")
+
+	f.Fuzz(func(t *testing.T, resourceID string) {
+
+		om_testing.CreateInventoryOnboardingClientForTesting()
+		t.Cleanup(func() {
+			fmt.Println("Deleting Inventory Onboarding Client for Testing")
+			om_testing.DeleteInventoryOnboardingClientForTesting()
+		})
+
+		// Log the resourceID being tested
+		fmt.Printf("Testing with resourceID: %s", resourceID)
+
+		if resourceID == "" {
+			t.Skip("Skipping test because resourceID is empty")
+			return
+		}
+		rID := "host-" + getFirstNChars(getMD5Hash(resourceID), 8)
+		testRequest := rec_v2.Request[ReconcilerID]{}
+
+		//ir := &reconcilers.InstanceReconciler{
+		ir := NewInstanceReconciler(om_testing.InvClient, true)
+		//}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		request := rec_v2.Request[ReconcilerID]{ID: NewReconcilerID(tenantID, rID)}
+		got := ir.Reconcile(ctx, request)
+		if reflect.DeepEqual(got, testRequest.Ack()) {
+			t.Errorf("Fuzz Test InstanceReconciler.Reconcile() = %v", got)
+		}
+
+	})
 }

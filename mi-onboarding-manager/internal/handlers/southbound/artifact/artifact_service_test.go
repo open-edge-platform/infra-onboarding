@@ -5,12 +5,16 @@ package artifact
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
+	"sync"
 	"testing"
 
+	u_uuid "github.com/google/uuid"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/env"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/utils"
@@ -37,6 +41,33 @@ const (
 	tenant2   = "22222222-2222-2222-2222-222222222222"
 	rbacRules = "../../../../rego/authz.rego"
 )
+
+var mutex sync.Mutex
+
+/*const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+func generateRandomString(length int) string {
+	seed := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(seed)
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[r.Intn(len(charset))]
+	}
+	return string(b)
+}*/
+
+func getMD5Hash(text string) string {
+	hasher := md5.New()
+	hasher.Write([]byte(text))
+	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+func getFirstNChars(hash string, n int) string {
+	if len(hash) < n {
+		return hash
+	}
+	return hash[:n]
+}
 
 func TestMain(m *testing.M) {
 	wd, err := os.Getwd()
@@ -3804,4 +3835,93 @@ func TestMustEnsureRequired(t *testing.T) {
 			env.MustEnsureRequired()
 		})
 	}
+}
+
+// FUZZ test cases
+func FuzzCreateNodes(f *testing.F) {
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	f.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	mutex.Lock()
+	dao := inv_testing.NewInvResourceDAOOrFail(f)
+	host := dao.CreateHostNoCleanup(f, tenant1)
+
+	f.Add("node1", "platform1", "9fa0a788-f9f8-434a-8620-bbed2a12b0ad")
+	mutex.Unlock()
+	f.Fuzz(func(t *testing.T, hwId string, platformType string, uuid string) {
+		mutex.Lock()
+		defer mutex.Unlock()
+		if hwId == "" || platformType == "" || uuid == "" {
+			t.Skip("Skipping test because resourceID is empty")
+			return
+		}
+
+		ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+		ctx = tenant.AddTenantIDToContext(ctx, tenant1)
+
+		rbacServer, err := rbac.New(rbacRules)
+		if err != nil {
+			t.Errorf("Error at the RBAC rules %v", err)
+		}
+
+		s := &NodeArtifactService{
+			UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
+			InventoryClientService: InventoryClientService{
+				invClient:    om_testing.InvClient,
+				invClientAPI: om_testing.InvClient,
+			},
+			rbac:        rbacServer,
+			authEnabled: true,
+		}
+
+		hwdata := &pb.HwData{
+			HwId:         getFirstNChars(getMD5Hash(hwId), 6),
+			PlatformType: getFirstNChars(getMD5Hash(platformType), 10),
+			Uuid:         host.GetUuid(),
+		}
+		hwdatas := []*pb.HwData{hwdata}
+		payload1 := pb.NodeData{Hwdata: hwdatas}
+		payloads := []*pb.NodeData{&payload1}
+		mockRequest := &pb.NodeRequest{
+			Payload: payloads,
+		}
+
+		_, err = s.CreateNodes(ctx, mockRequest)
+		if err != nil {
+			t.Errorf("CreateNodes returned an error: %v", err)
+		}
+
+	})
+
+}
+
+func FuzzOnboardNodeStream(f *testing.F) {
+
+	f.Add("hostip")
+	f.Fuzz(func(t *testing.T, ip string) {
+		resp := &pb.OnboardStreamRequest{
+			Uuid:      u_uuid.New().String(),
+			Serialnum: getFirstNChars(getMD5Hash(ip), 8),
+			MacId:     "",
+			HostIp:    getFirstNChars(getMD5Hash(ip), 6),
+		}
+
+		var art MockNonInteractiveOnboardingService_OnboardNodeStreamServer
+		art.On("Send", mock.Anything).Return(nil)
+		art.On("Recv").Return(resp, nil)
+
+		service := &NonInteractiveOnboardingService{
+			UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
+			InventoryClientService: InventoryClientService{
+				invClient:    &invclient.OnboardingInventoryClient{},
+				invClientAPI: &invclient.OnboardingInventoryClient{},
+			},
+		}
+
+		err := service.OnboardNodeStream(&art)
+		if err != nil {
+			t.Errorf("Error at OnboardNodeStram %v", err)
+		}
+	})
 }

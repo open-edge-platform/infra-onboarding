@@ -127,6 +127,14 @@ pipeline {
             }
         }
 
+        stage('Fuzz Test') {
+            steps {
+                sh '''
+                make fuzztest
+                '''
+            }
+        } 
+
         stage('Validate clean repo') {
             steps {
                 sh '''
@@ -249,6 +257,7 @@ pipeline {
         stage('Artifact') {
             steps {
                 artifactUpload()
+		artifactUpload(['*.log'])
             }
         }
     }
