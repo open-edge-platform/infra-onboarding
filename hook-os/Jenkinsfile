@@ -119,6 +119,8 @@ pipeline {
                         echo 'no_proxy=localhost,*.intel.com,*intel.com,192.168.0.0/16,172.16.0.0/12,127.0.0.0/8,10.0.0.0/8,/var/run/docker.sock,.internal' >> config
                         echo 'keycloak_url=keycloak.validation.maestro.intel.com' >> config
                         echo 'harbor_url_tinker_actions=amr-registry.caas.intel.com/one-intel-edge/edge-node/tinker-actions' >> config
+                        echo "" >> client_auth/files/ca.pem
+                        echo "" >> client_auth/files/server_cert.pem
                         """
                         def tag = ''
                         if (params.buildHookOs) {
