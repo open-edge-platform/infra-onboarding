@@ -18,7 +18,7 @@ PROJECT_NAME := dkammgr
 BINARY_NAME  := dkammgr
 
 OUT_DIR  := $(PWD)/build
-
+SCRIPTS_DIR := ./ci_scripts
 # Code versions, tags, and so on
 VERSION       := $(shell cat VERSION)
 VERSION_MAJOR := $(shell cut -c 1 VERSION)
@@ -77,3 +77,9 @@ clean: ## delete all build artifacts
 
 clean-all: clean ## delete all built artifacts and downloaded tools
 	rm -rf $(VENV_NAME) vendor || true
+	
+fuzztest: ${OUT_DIR}
+	$(MAKE) db-stop
+	$(MAKE) db-start
+	$(SCRIPTS_DIR)/fuzz_test.sh "internal/handlers/controller/reconcilers/os_test.go"
+	$(MAKE) db-stop

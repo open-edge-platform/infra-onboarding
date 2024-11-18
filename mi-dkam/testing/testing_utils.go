@@ -5,6 +5,7 @@
 package testing
 
 import (
+	"sync"
 	"time"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/internal/invclient"
@@ -17,10 +18,13 @@ var (
 	clientName = inv_testing.ClientType("TestDKAMInventoryClient")
 	zlog       = logging.GetLogger("DKAM-Manager-Testing")
 	InvClient  *invclient.DKAMInventoryClient
+	mu         sync.Mutex
 )
 
 // CreateInventoryDKAMClientForTesting is an helper function to create a new client.
 func CreateInventoryDKAMClientForTesting() {
+	mu.Lock()
+	defer mu.Unlock()
 	resourceKinds := []inv_v1.ResourceKind{
 		inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE,
 		inv_v1.ResourceKind_RESOURCE_KIND_HOST,

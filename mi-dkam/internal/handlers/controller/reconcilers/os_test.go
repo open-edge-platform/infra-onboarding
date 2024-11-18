@@ -8,6 +8,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
+
 	"reflect"
 	"strings"
 	"testing"
@@ -18,6 +20,10 @@ import (
 	dkam_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/testing"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/os/v1"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/testing"
+)
+
+const (
+	tenant1 = "11111111-1111-1111-1111-111111111111"
 )
 
 func TestMain(m *testing.M) {
@@ -307,4 +313,43 @@ func TestOsReconcilerReconcile_DownloadOs_Err(t *testing.T) {
 			osr.Reconcile(tt.args.ctx, tt.args.request)
 		})
 	}
+}
+
+//Fuzz test
+
+func FuzzReconcileOs(f *testing.F) {
+	f.Add("ec426b10")
+
+	f.Fuzz(func(t *testing.T, id string) {
+
+		dkam_testing.CreateInventoryDKAMClientForTesting()
+		t.Cleanup(func() {
+			dkam_testing.DeleteInventoryDKAMClientForTesting()
+		})
+
+		if id == "" || len(id) < 5 {
+			t.Skip("Skip as osname or Id is empty")
+			return
+		}
+
+		id = "os-" + id
+
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+
+		// mutex.Lock()
+		osre := inv_testing.CreateOsWithArgs(t, "", "profile:profile", osv1.SecurityFeature_SECURITY_FEATURE_NONE, osv1.OsType_OS_TYPE_MUTABLE)
+		//   mutex.Unlock()
+
+		request := rec_v2.Request[ReconcilerID]{
+			ID: ReconcilerID(WrapReconcilerID(tenant1, id)),
+		}
+		osr := &OsReconciler{
+			invClient:     dkam_testing.InvClient,
+			enableTracing: false,
+		}
+
+		osr.reconcileOs(ctx, request, osre)
+
+	})
 }
