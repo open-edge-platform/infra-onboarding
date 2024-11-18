@@ -50,6 +50,9 @@ ACTION_ARRAY := \
 # Create the virtualenv with python tools installed
 VENV_NAME = venv_midkammgr
 
+# CI SCRIPTS
+SCRIPTS_DIR=./ci_scripts
+
 $(VENV_NAME): requirements.txt
 	echo "Creating virtualenv $@"
 	python3 -m venv $@;\
@@ -141,3 +144,6 @@ help:
         | sort \
         | egrep -v -e '^[^[:alnum:]]' -e '^$@$$' \
         | xargs -I _ sh -c 'printf "%-20s " _; make _ -nB | (grep -i "^# Help:" || echo "") | tail -1 | sed "s/^# Help: //g"'
+
+fuzztest:
+	$(SCRIPTS_DIR)/fuzz_test.sh "tinker_actions/device_discovery/device-discovery_test.go"

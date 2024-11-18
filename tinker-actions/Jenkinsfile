@@ -55,7 +55,7 @@ pipeline {
                     steps {
                         shellcheck('*.sh', 'SC2154,SC2086,SC2016,SC2181,SC2207,SC2004,SC1091,SC3046,SC2059,SC2269,SC2050,SC2164,SC2002,SC1091,SC2128,SC2178,SC2059,SC3037,SC2003,SC2112,SC3043,SC2155,SC2046,SC2148,SC2034,SC2001,SC2105,SC2046,SC2166,SC2124,SC2006,SC2068,SC2124,SC2129,SC2143,SC2236')
                     }
-                }
+                }              
                 /*stage('Trivy config scan') {
                     when {
                         anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
@@ -117,6 +117,13 @@ pipeline {
                 '''
             }
         }			
+        stage('Fuzz Test') {
+            steps {
+                sh '''
+                make fuzztest
+                '''
+            }
+        }           
         // stage('Test Code') {
             // steps {
                 // echo "Test the code"
@@ -228,7 +235,13 @@ pipeline {
                     }
                 }
             }
-        }
+        }       
+        stage('Artifact') {
+            steps {
+                artifactUpload()
+                artifactUpload(['*.log'])
+            }
+        }        
     }
     post {
         always {
