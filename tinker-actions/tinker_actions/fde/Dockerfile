@@ -9,7 +9,7 @@
 # This software and the related documents are provided as is, with no express       #
 # or implied warranties, other than those that are expressly stated in the License. #
 #####################################################################################
-FROM debian:12.7
+FROM debian:12.8
 
 RUN apt-get update
 RUN apt-get install -y parted cryptsetup-bin tpm2-tools xxd
