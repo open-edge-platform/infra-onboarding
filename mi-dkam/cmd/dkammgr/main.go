@@ -82,7 +82,7 @@ func main() {
 		}
 	}
 
-	if err := GetArtifacts(); err != nil {
+	if err := GetArtifacts(context.Background()); err != nil {
 		zlog.MiSec().Fatal().Err(err).Msg("Failed to get artifacts")
 	}
 
@@ -151,10 +151,10 @@ func setupOamServerAndSetReady(enableTracing bool, oamServerAddress string) {
 	}
 }
 
-func GetArtifacts() error {
+func GetArtifacts(ctx context.Context) error {
 	zlog.MiSec().Info().Msg("Get all artifacts...")
 	// Download release manifest.yaml file.
-	artifactsErr := dkammgr.DownloadArtifacts()
+	artifactsErr := dkammgr.DownloadArtifacts(ctx)
 	if artifactsErr != nil {
 		zlog.MiSec().Fatal().Err(artifactsErr).Msgf("Error downloading file %v", artifactsErr)
 		return artifactsErr

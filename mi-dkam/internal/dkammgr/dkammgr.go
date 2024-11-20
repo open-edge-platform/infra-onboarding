@@ -22,29 +22,24 @@ import (
 )
 
 var zlog = logging.GetLogger("DKAM-Mgr")
-var tag = config.Tag
 var file string
 
-func DownloadArtifacts() error {
+func DownloadArtifacts(ctx context.Context) error {
 	MODE := GetMODE()
-	targetDir := config.DownloadPath
 	manifestTag := os.Getenv("MANIFEST_TAG")
 	//MODE := "dev"
 	zlog.MiSec().Info().Msgf("Mode of deployment: %s", MODE)
 	zlog.MiSec().Info().Msgf("Manifest Tag: %s", manifestTag)
 
-	if MODE == "preint" {
-		tag = config.Tag
-	}
 	zlog.MiSec().Info().Msg("Download artifacts")
 
-	err := download.DownloadArtifacts(targetDir, tag, manifestTag)
+	err := download.DownloadArtifacts(ctx, manifestTag)
 	if err != nil {
 		zlog.MiSec().Info().Msgf("Failed to download manifest file: %v", err)
 		return err
 	}
 
-	downloaded, downloadErr := download.DownloadMicroOS(targetDir, GetScriptDir())
+	downloaded, downloadErr := download.DownloadMicroOS(ctx, GetScriptDir())
 
 	if downloadErr != nil {
 		zlog.MiSec().Info().Msgf("Failed to download MicroOS %v", downloadErr)
@@ -237,17 +232,16 @@ func AccessConfigs() string {
 	AuthServer := config.AuthServer
 	ReleaseVersion := config.ReleaseVersion
 	PVC := config.PVC
-	Tag := config.Tag
 	PreintTag := config.PreintTag
 	Artifact := config.Artifact
 	ImageUrl := config.ImageUrl
 	ImageFileName := config.ImageFileName
-	RSProxy := config.RSProxy
-	RSProxyManifest := config.RSProxyManifest
+	RSProxy := config.HookOSRepo
+	RSProxyManifest := config.ENManifestRepo
 	OrchCACertificateFile := config.OrchCACertificateFile
 	BootsCaCertificateFile := config.BootsCaCertificateFile
 
-	return ServerAddress + "\n" + ServerAddressDescription + "\n" + Port + "\n" + Ubuntuversion + "\n" + Arch + "\n" + Release + "\n" + ProdHarbor + "\n" + DevHarbor + "\n" + AuthServer + "\n" + ReleaseVersion + "\n" + PVC + "\n" + Tag + "\n" + PreintTag + "\n" + Artifact + "\n" + ImageUrl + "\n" + ImageFileName + "\n" + RSProxy + "\n" + RSProxyManifest + "\n" + OrchCACertificateFile + "\n" + BootsCaCertificateFile
+	return ServerAddress + "\n" + ServerAddressDescription + "\n" + Port + "\n" + Ubuntuversion + "\n" + Arch + "\n" + Release + "\n" + ProdHarbor + "\n" + DevHarbor + "\n" + AuthServer + "\n" + ReleaseVersion + "\n" + PVC + "\n" + PreintTag + "\n" + Artifact + "\n" + ImageUrl + "\n" + ImageFileName + "\n" + RSProxy + "\n" + RSProxyManifest + "\n" + OrchCACertificateFile + "\n" + BootsCaCertificateFile
 }
 
 func InitOnboarding(invClient *invclient.DKAMInventoryClient, enableAuth bool, rbacRules string) {

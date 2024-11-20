@@ -17,7 +17,6 @@ const (
 	ReleaseVersion         = "latest-dev"
 	PVC                    = "/data"
 	DownloadPath           = "/tmp"
-	Tag                    = "manifest"
 	PreintTag              = "pre-int/manifest"
 	Artifact               = "one-intel-edge/edgenode/en/manifest"
 	ImageUrl               = "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
@@ -31,8 +30,8 @@ const (
 
 // As variable to allow changes in tests
 var (
-	RSProxyManifest        = "http://rs-proxy.rs-proxy.svc.cluster.local:8081/v2/one-intel-edge/edge-node/en/"
-	RSProxy                = "http://rs-proxy.rs-proxy.svc.cluster.local:8081/v2/one-intel-edge/edge-node/file/provisioning-hook-os/"
-	RSProxyProfileManifest = "http://rs-proxy.rs-proxy.svc.cluster.local:8081/v2/one-intel-edge/edge-node/file/profile-scripts/"
+	ENManifestRepo         = "one-intel-edge/edge-node/en/manifest"
+	HookOSRepo             = "one-intel-edge/edge-node/file/provisioning-hook-os"
+	ProfileScriptRepo      = "one-intel-edge/edge-node/file/profile-scripts/"
 	RSProxyTiberOSManifest = "http://rs-proxy-files.rs-proxy.svc.cluster.local:8081/"
 )

@@ -6,7 +6,6 @@ package download
 import (
 	"context"
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,6 +18,7 @@ import (
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/util"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/os/v1"
+	as "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/artifactservice"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/errors"
 
 	"gopkg.in/yaml.v2"
@@ -64,7 +64,6 @@ type File struct {
 }
 
 var version string
-var tiberOSimageFileName string
 
 type Data struct {
 	Provisioning struct {
@@ -72,9 +71,9 @@ type Data struct {
 	} `yaml:"provisioning"`
 }
 
-func DownloadMicroOS(targetDir string, scriptPath string) (bool, error) {
-	zlog.Info().Msgf("Inside Download and sign artifact... %s", targetDir)
-	yamlFile := filepath.Join(targetDir, "tmp", config.ReleaseVersion+".yaml")
+func DownloadMicroOS(ctx context.Context, scriptPath string) (bool, error) {
+	zlog.Info().Msgf("Inside Download and sign artifact... %s", config.DownloadPath)
+	yamlFile := filepath.Join(config.DownloadPath, "tmp", config.ReleaseVersion+".yaml")
 	exists, err := PathExists(yamlFile)
 	if err != nil {
 		zlog.MiSec().Info().Msgf("Error checking path %v", err)
@@ -106,7 +105,7 @@ func DownloadMicroOS(targetDir string, scriptPath string) (bool, error) {
 	}
 
 	for _, file := range data.Provisioning.Files {
-		if file.Path == "one-intel-edge/edge-node/file/provisioning-hook-os" {
+		if file.Path == config.HookOSRepo {
 			zlog.MiSec().Info().Msgf("Version for hook os:%s", file.Version)
 			version = file.Version
 		}
@@ -114,59 +113,26 @@ func DownloadMicroOS(targetDir string, scriptPath string) (bool, error) {
 
 	zlog.MiSec().Info().Msgf("Hook OS version %s", version)
 
-	url := config.RSProxy + "manifests/" + version
-	zlog.MiSec().Info().Msgf("URL is %s", url)
-	res := GetReleaseServerResponse(url)
-	if res.Layers != nil {
-		// Iterate through layers and print digest and title
+	repo := config.HookOSRepo
+	zlog.MiSec().Info().Msgf("Hook OS repo URL is %s", repo)
+	artifacts, err := as.DownloadArtifacts(ctx, repo, version)
+	if err != nil {
+		invErr := inv_errors.Errorf("Error downloading HookOS for tag %s", version)
+		zlog.Err(invErr).Msg("")
+	}
 
-		for _, layer := range res.Layers {
-			zlog.MiSec().Info().Msgf("Layer Digest:%s", layer.Digest)
-			digest := layer.Digest
-			title, exists := layer.Annotations["org.opencontainers.image.title"]
-			if exists {
-				zlog.MiSec().Info().Msgf("Image Title:%s", title)
-				title := title
-				// Create an HTTP GET request with the specified URL
-				file_url := config.RSProxy + "blobs/" + digest
-				req, httperr := http.NewRequest("GET", file_url, nil)
-				if httperr != nil {
-					//zlog.MiSec().Fatal().Err(httperr).Msgf("Error creating request: %v\n", httperr)
-					zlog.MiSec().Info().Msg("Failed create GET request to release server.")
-					return false, httperr
+	if artifacts != nil && len(*artifacts) > 0 {
+		for _, artifact := range *artifacts {
+			zlog.MiSec().Info().Msgf("Downloading artifact %s", artifact.Name)
+			filePath := config.DownloadPath + "/" + artifact.Name
 
-				}
-
-				// Perform the HTTP GET request
-				resp, clienterr := client.Do(req)
-				if clienterr != nil {
-					//zlog.MiSec().Fatal().Err(clienterr).Msgf("Error performing request: %v\n", clienterr)
-					zlog.MiSec().Info().Msg("Failed to connect to release server to download hookOS.")
-					return false, clienterr
-
-				}
-				defer resp.Body.Close()
-				zlog.MiSec().Info().Msgf("Downloading %s", title)
-				filePath := targetDir + "/" + title
-
-				file, fileerr := os.Create(filePath)
-				if fileerr != nil {
-					//zlog.MiSec().Fatal().Err(fileerr).Msgf("Error while creating release manifest file.")
-					zlog.MiSec().Info().Msg("Failed to create file")
-					return false, fileerr
-				}
-				defer file.Close()
-
-				// Copy the response body to the local file
-				_, copyErr := io.Copy(file, resp.Body)
-				if copyErr != nil {
-					zlog.MiSec().Error().Err(copyErr).Msgf("Error while coping content ")
-				}
-
-			} else {
-				zlog.MiSec().Info().Msg("Image Title not found")
+			err = CreateFile(filePath, &artifact)
+			if err != nil {
+				zlog.MiSec().Error().Err(err).Msg("Error writing to file")
+				return false, err
 			}
 		}
+
 	}
 
 	zlog.MiSec().Info().Msg("File downloaded")
@@ -199,10 +165,10 @@ func DownloadTiberOSImage(ctx context.Context, osRes *osv1.OperatingSystemResour
 
 	tmpOsImageFilePath := config.DownloadPath + "/" + osRes.GetProfileName() + util.GetFileExtensionFromOSImageURL(osRes)
 
-	file, fileerr := os.Create(tmpOsImageFilePath)
-	if fileerr != nil {
-		zlog.MiSec().Error().Err(fileerr).Msgf("Failed to create file:%v", fileerr)
-		return fileerr
+	file, fileErr := os.Create(tmpOsImageFilePath)
+	if fileErr != nil {
+		zlog.MiSec().Error().Err(fileErr).Msgf("Failed to create file:%v", fileErr)
+		return fileErr
 	}
 	defer file.Close()
 
@@ -244,50 +210,34 @@ func DownloadTiberOSImage(ctx context.Context, osRes *osv1.OperatingSystemResour
 func DownloadPrecuratedScript(ctx context.Context, profile string) error {
 	// FIXME: hardcode profile script version for now, will be addressed in https://jira.devtools.intel.com/browse/NEX-11556
 	profileScriptVersion := "1.0.2"
-	rsProxyURL := config.RSProxyProfileManifest + profile + "/manifests/" + profileScriptVersion
-	zlog.MiSec().Info().Msgf("Manifest download URL is:%s", rsProxyURL)
-	res := GetReleaseServerResponse(rsProxyURL)
-	if res.Layers != nil {
-		// Access the digest value
-		digest := res.Layers[0].Digest
-		zlog.MiSec().Info().Msgf("Digest: %s", digest)
-
-		file_url := config.RSProxyProfileManifest + profile + "/blobs/" + digest
-
-		req2, geterr2 := http.NewRequestWithContext(ctx, "GET", file_url, nil)
-		if geterr2 != nil {
-			zlog.MiSec().Error().Err(geterr2).Msgf("Error while making 2nd get request: %v\n", geterr2)
-
-		}
-		resp2, err2 := client.Do(req2)
-		if err2 != nil {
-			zlog.MiSec().Error().Err(err2).Msgf("Client Error: %v\n", err2)
-		}
-		defer resp2.Body.Close()
+	repo := config.ProfileScriptRepo + profile
+	zlog.MiSec().Info().Msgf("Profile script repo URL is:%s", repo)
+	artifacts, err := as.DownloadArtifacts(ctx, repo, profileScriptVersion)
+	if err != nil {
+		invErr := inv_errors.Errorf("Error downloading profile script for tag %s", profileScriptVersion)
+		zlog.Err(invErr).Msg("")
+	}
+	if artifacts != nil && len(*artifacts) > 0 {
+		artifact := (*artifacts)[0]
+		zlog.MiSec().Info().Msgf("Downloading artifact %s", artifact.Name)
 		filePath := config.DownloadPath + "/" + profile + ".sh"
 
-		//Create or open the local file for writing
-		file, fileerr := os.Create(filePath)
-		if fileerr != nil {
-			zlog.MiSec().Error().Err(fileerr).Msgf("Error while creating precurated script.")
-			return fileerr
+		err = CreateFile(filePath, &artifact)
+		if err != nil {
+			zlog.MiSec().Error().Err(err).Msg("Error writing to file")
+			return err
 		}
-		defer file.Close()
 
-		// Copy the response body to the local file
-		_, copyErr := io.Copy(file, resp2.Body)
-		if copyErr != nil {
-			zlog.MiSec().Error().Err(copyErr).Msgf("Error while coping content ")
-		}
 	}
+
 	zlog.MiSec().Info().Msg("Precurated script downloaded")
 	return nil
 
 }
 
-func DownloadArtifacts(targetDir string, tag string, manifestTag string) error {
+func DownloadArtifacts(ctx context.Context, manifestTag string) error {
 
-	outDir := filepath.Join(targetDir, "tmp")
+	outDir := filepath.Join(config.DownloadPath, "tmp")
 	// 0. cleanup
 	os.RemoveAll(outDir)
 
@@ -299,79 +249,45 @@ func DownloadArtifacts(targetDir string, tag string, manifestTag string) error {
 	zlog.MiSec().Info().Msg("tmp folder created successfully")
 	zlog.MiSec().Info().Msgf("Tag is:%s", manifestTag)
 
-	url := config.RSProxyManifest + tag + "/manifests/" + manifestTag
-	zlog.MiSec().Info().Msgf("Manifest download URL is:%s", url)
-	res := GetReleaseServerResponse(url)
-	if res.Layers != nil {
-		// Access the digest value
-		digest := res.Layers[0].Digest
-		zlog.MiSec().Info().Msgf("Digest: %s", digest)
-
-		file_url := config.RSProxyManifest + tag + "/blobs/" + digest
-
-		req2, geterr2 := http.NewRequest("GET", file_url, nil)
-		if geterr2 != nil {
-			zlog.MiSec().Error().Err(geterr2).Msgf("Error while making 2nd get request: %v\n", geterr2)
-
-		}
-		resp2, err2 := client.Do(req2)
-		if err2 != nil {
-			zlog.MiSec().Error().Err(err2).Msgf("Client Error: %v\n", err2)
-		}
-		defer resp2.Body.Close()
+	repo := config.ENManifestRepo
+	zlog.MiSec().Info().Msgf("Manifest repo URL is:%s", repo)
+	artifacts, err := as.DownloadArtifacts(ctx, repo, manifestTag)
+	if err != nil {
+		invErr := inv_errors.Errorf("Error downloading EN Manifest file for tag %s", manifestTag)
+		zlog.Err(invErr).Msg("")
+	}
+	if artifacts != nil && len(*artifacts) > 0 {
+		artifact := (*artifacts)[0]
+		zlog.MiSec().Info().Msgf("Downloading artifact %s", artifact.Name)
 		filePath := outDir + "/" + config.ReleaseVersion + ".yaml"
 
-		//Create or open the local file for writing
-		file, fileerr := os.Create(filePath)
-		if fileerr != nil {
-			zlog.MiSec().Error().Err(fileerr).Msgf("Error while creating release manifest file.")
-			return fileerr
+		err = CreateFile(filePath, &artifact)
+		if err != nil {
+			zlog.MiSec().Error().Err(err).Msg("Error writing to file")
+			return err
 		}
-		defer file.Close()
 
-		// Copy the response body to the local file
-		_, copyErr := io.Copy(file, resp2.Body)
-		if copyErr != nil {
-			zlog.MiSec().Error().Err(copyErr).Msgf("Error while coping content ")
-		}
 	}
 	zlog.MiSec().Info().Msg("File downloaded")
 	return nil
 
 }
 
-func GetReleaseServerResponse(url string) Response {
-	var res Response
-	req, err := http.NewRequest("GET", url, nil)
+func CreateFile(filePath string, artifact *as.Artifact) error {
+
+	file, fileErr := os.Create(filePath)
+	if fileErr != nil {
+		zlog.MiSec().Error().Err(fileErr).Msgf("Error while creating file %v", fileErr)
+		return fileErr
+	}
+	defer file.Close()
+
+	_, err := file.Write(artifact.Data)
 	if err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error making get request: %v\n", err)
-
+		zlog.MiSec().Error().Err(err).Msgf("Error writing to file:%v", err)
+		return err
 	}
-	req.Header.Add("Accept", "application/vnd.oci.image.manifest.v1+json")
-
-	response, clienterr := client.Do(req)
-	if clienterr != nil {
-		zlog.MiSec().Info().Msgf("Client Error: %v\n", clienterr)
-	}
-	if response != nil {
-		defer response.Body.Close()
-
-		// response details
-		zlog.MiSec().Info().Msgf("Response Body:%s", response.Body)
-
-		body, readerr := io.ReadAll(response.Body)
-		if readerr != nil {
-			panic(readerr)
-		}
-
-		//unmarshal the JSON response
-		marshalerr := json.Unmarshal([]byte(body), &res)
-		if marshalerr != nil {
-			zlog.MiSec().Error().Err(marshalerr).Msgf("Error while json unmarshelling: %v\n", marshalerr)
-
-		}
-	}
-	return res
+	return nil
 }
 
 // Ensure that pigz and qemu-img are installed

@@ -94,7 +94,7 @@ func TestDownloadArtifacts(t *testing.T) {
 
 	// Create a UploadBaseImageRequest
 
-	err := DownloadArtifacts()
+	err := DownloadArtifacts(context.Background())
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -306,7 +306,7 @@ func TestDownloadArtifacts_Case(t *testing.T) {
 
 	// Create a UploadBaseImageRequest
 	os.Setenv("MODE", "preint")
-	err := DownloadArtifacts()
+	err := DownloadArtifacts(context.Background())
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -400,7 +400,7 @@ func TestDownloadArtifacts_Case1(t *testing.T) {
 	})
 	svr := httptest.NewServer(mux)
 	defer svr.Close()
-	config.RSProxyManifest = svr.URL + "/"
+	config.ENManifestRepo = svr.URL + "/"
 	os.Setenv("MANIFEST_TAG", "testManifest")
 	_, filename, _, _ := runtime.Caller(0)
 	localPath := pa.Dir(filename)
@@ -433,8 +433,8 @@ func TestDownloadArtifacts_Case1(t *testing.T) {
 	os.MkdirAll(dkamHookFolderPath, 0755)
 	sver := httptest.NewServer(mux)
 	defer sver.Close()
-	config.RSProxy = sver.URL + "/"
-	DownloadErr := DownloadArtifacts()
+	config.ENManifestRepo = sver.URL + "/"
+	DownloadErr := DownloadArtifacts(context.Background())
 	if DownloadErr != nil {
 		t.Errorf("Unexpected error: %v", DownloadErr)
 	}

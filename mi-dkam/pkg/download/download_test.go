@@ -68,22 +68,6 @@ const example = `#!/bin/bash
 		echo "This is a example script."
 		`
 
-func TestGetReleaseServerResponse(t *testing.T) {
-	expAcceptHeader := "application/vnd.oci.image.manifest.v1+json"
-	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Assert expected header
-		assert.Equal(t, r.Header.Get("Accept"), expAcceptHeader)
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(exampleManifest))
-	}))
-	defer svr.Close()
-
-	// TODO: make proper expectation
-	res := GetReleaseServerResponse(svr.URL)
-	assert.Equal(t, 2, res.SchemaVersion)
-	assert.Equal(t, "TEST_DIGEST", res.Layers[0].Digest)
-}
-
 func TestDownloadUbuntuImage(t *testing.T) {
 	randBytes := make([]byte, 20)
 	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -174,8 +158,9 @@ func TestDownloadArtifacts(t *testing.T) {
 	defer svr.Close()
 
 	// Override the RSProxyManifest with test HTTP server
-	config.RSProxyManifest = svr.URL + "/"
-	err = DownloadArtifacts(config.PVC, testTag, testManifest)
+	config.ENManifestRepo = svr.URL + "/"
+	// err = DownloadArtifacts(config.PVC, testTag, testManifest)
+	err = DownloadArtifacts(context.Background(), testTag)
 	assert.NoError(t, err)
 
 	// // Assert file is created with expected content
@@ -229,12 +214,12 @@ func TestDownloadMicroOS(t *testing.T) {
 	defer svr.Close()
 
 	// Override the RSProxy with test HTTP server
-	config.RSProxy = svr.URL + "/"
+	config.HookOSRepo = svr.URL + "/"
 	dir := config.PVC
 	os.MkdirAll(dir, 0755)
 	// Test: No tmpFolderPath/hook dir
 	t.Run("Fail", func(t *testing.T) {
-		_, err = DownloadMicroOS(config.PVC, src)
+		_, err = DownloadMicroOS(context.Background(), src)
 		require.NoError(t, err)
 		// assert.Contains(t, err.Error(), "no such file or directory")
 	})
@@ -245,14 +230,14 @@ func TestDownloadMicroOS(t *testing.T) {
 	// Test: empty manifest
 	t.Run("NoAnnotationLayer", func(t *testing.T) {
 		returnWrongManifest = true
-		_, err = DownloadMicroOS(config.PVC, src)
+		_, err = DownloadMicroOS(context.Background(), src)
 		require.NoError(t, err)
 	})
 
 	// Test: successful, create tmpFolderPath/hook dir
 	t.Run("Success", func(t *testing.T) {
 		returnWrongManifest = false
-		_, err = DownloadMicroOS(config.PVC, src)
+		_, err = DownloadMicroOS(context.Background(), src)
 		require.NoError(t, err)
 	})
 }
@@ -356,9 +341,9 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 	})
 	svr := httptest.NewServer(mux)
 	defer svr.Close()
-	config.RSProxy = svr.URL + "/"
+	config.HookOSRepo = svr.URL + "/"
 	t.Run("Fail", func(t *testing.T) {
-		_, err = DownloadMicroOS(config.PVC, src)
+		_, err = DownloadMicroOS(context.Background(), src)
 		// require.Error(t, err)
 		// assert.Contains(t, err.Error(), "no such file or directory")
 	})
@@ -369,7 +354,7 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 	// Test: empty manifest
 	t.Run("NoAnnotationLayer", func(t *testing.T) {
 		returnWrongManifest = true
-		_, err = DownloadMicroOS(config.PVC, src)
+		_, err = DownloadMicroOS(context.Background(), src)
 		// require.NoError(t, err)
 	})
 
@@ -410,7 +395,7 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 			return
 		}
 		returnWrongManifest = true
-		_, err = DownloadMicroOS(config.PVC, dummy)
+		_, err = DownloadMicroOS(context.Background(), dummy)
 		defer func() {
 			os.RemoveAll(existingDir)
 		}()
@@ -528,15 +513,15 @@ func TestDownloadPrecuratedScript(t *testing.T) {
 	})
 	svr := httptest.NewServer(mux)
 	defer svr.Close()
-	originalRSProxy := config.RSProxy
-	originalRSProxyManifest := config.RSProxyManifest
+	originalRSProxy := config.HookOSRepo
+	originalRSProxyManifest := config.ENManifestRepo
 	defer func() {
-		config.RSProxy = originalRSProxy
-		config.RSProxyManifest = originalRSProxyManifest
+		config.HookOSRepo = originalRSProxy
+		config.ENManifestRepo = originalRSProxyManifest
 	}()
 
-	// config.RSProxy = svr1.URL + "/"
-	config.RSProxyProfileManifest = svr.URL + "/"
+	// config.HookOSRepo = svr1.URL + "/"
+	config.ENManifestRepo = svr.URL + "/"
 	type args struct {
 		profile string
 	}
@@ -555,28 +540,6 @@ func TestDownloadPrecuratedScript(t *testing.T) {
 	}
 	for _, tt := range tests {
 		DownloadPrecuratedScript(context.TODO(), tt.args.profile)
-	}
-}
-
-func TestGetReleaseServerRespons(t *testing.T) {
-	type args struct {
-		url string
-	}
-	tests := []struct {
-		name string
-		args args
-		want Response
-	}{
-		{
-			name: "Empty url",
-			args: args{},
-			want: Response{},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			GetReleaseServerResponse(tt.args.url)
-		})
 	}
 }
 
