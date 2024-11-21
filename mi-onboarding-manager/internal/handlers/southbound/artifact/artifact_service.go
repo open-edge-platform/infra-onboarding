@@ -531,7 +531,7 @@ func (s *NonInteractiveOnboardingService) OnboardNodeStream(
 	}
 }
 
-//nolint:cyclop // May effect the functionality now, need to simplify this in future
+//nolint:funlen,cyclop // reason: function is long due to necessary logic; cyclomatic complexity is high due to necessary handling
 func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
 	zlog.Info().Msgf("CreateNodes")
 	if s.authEnabled {
@@ -571,25 +571,45 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 	host.OnboardingStatusIndicator = om_status.OnboardingStatusDone.StatusIndicator
 	host.OnboardingStatusTimestamp = uint64(time.Now().Unix()) // #nosec G115
 
-	hostInv, err := s.invClient.GetHostResourceByUUID(ctx, tenantID, host.Uuid)
+	var hostInv *computev1.HostResource
+	hostInv, err = s.invClient.GetHostResourceByUUID(ctx, tenantID, host.Uuid)
 
 	switch {
 	case inv_errors.IsNotFound(err):
-		zlog.Info().Msgf("Create op : Node Doesn't Exist for GUID %s and tID=%s\n", host.Uuid, tenantID)
-
+		zlog.Info().Msgf("Create op : Node Doesn't Exist for GUID %s and tID=%s\n",
+			host.Uuid, tenantID)
 	case err == nil:
-		zlog.Debug().Msgf("Create op : Node and its Host Resource Already Exist for GUID %s, tID=%s \n", host.Uuid, tenantID)
+		zlog.Debug().Msgf("Create op : Node and its Host Resource Already Exist for GUID %s, tID=%s \n",
+			host.Uuid, tenantID)
+		// UUID found and check for the serial number matches
+		if hostInv.SerialNumber != host.SerialNumber {
+			zlog.Info().Msgf("Serial number mismatch for GUID %s, updating host resource", host.Uuid)
+			// Update the host resource with the correct serial number
+			hostInv.SerialNumber = host.SerialNumber
+			hostInv.BmcIp = host.BmcIp
+			hostInv.PxeMac = host.PxeMac
+			hostInv.CurrentState = computev1.HostState_HOST_STATE_ONBOARDED
+			hostInv.OnboardingStatus = om_status.OnboardingStatusDone.Status
+			hostInv.OnboardingStatusIndicator = om_status.OnboardingStatusDone.StatusIndicator
+			host.OnboardingStatusTimestamp = uint64(time.Now().Unix()) // #nosec G115
+			hostInv.RegistrationStatus = om_status.HostRegistrationUnknown.Status
+			hostInv.RegistrationStatusIndicator = om_status.HostRegistrationUnknown.StatusIndicator
+			hostInv.RegistrationStatusTimestamp = uint64(time.Now().Unix()) // #nosec G115
+			if updateErr := s.invClient.UpdateHostResource(ctx, tenantID, hostInv); updateErr != nil {
+				zlog.MiSec().MiErr(updateErr).Msgf("Failed to update Host resource: %v tID=%s", hostInv, tenantID)
+				return nil, updateErr
+			}
+		}
 		if ztErr := s.startZeroTouch(ctx, tenantID, hostInv.ResourceId); ztErr != nil {
 			zlog.MiSec().MiErr(ztErr).Msgf("startZeroTouch error: %v", ztErr)
 			return nil, ztErr
 		}
 		return &pb.NodeResponse{Payload: req.Payload}, nil
-
 	case err != nil:
 		zlog.MiSec().MiErr(err).Msgf("Create op :Failed CreateNodes() for GUID %s tID=%s \n", host.Uuid, tenantID)
 		return nil, err
 	}
-
+	// UUID not found, create a new host
 	hostResID, err = s.invClient.CreateHostResource(ctx, tenantID, host)
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("Cannot create Host resource: %v tID=%s", host, tenantID)

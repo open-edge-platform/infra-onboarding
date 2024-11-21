@@ -32,6 +32,7 @@ var (
 	OnboardingStatusFailed         = inv_status.New("Onboarding Failed", statusv1.StatusIndication_STATUS_INDICATION_ERROR)
 	AuthorizationStatusInvalidated = inv_status.New("Invalidated", statusv1.StatusIndication_STATUS_INDICATION_IDLE)
 
+	HostRegistrationUnknown  = inv_status.New("Unknown", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED)
 	HostRegistrationDone     = inv_status.New("Host is Registered", statusv1.StatusIndication_STATUS_INDICATION_IDLE)
 	HostRegistrationInFailed = inv_status.New("Host Registration Failed", statusv1.StatusIndication_STATUS_INDICATION_ERROR)
 

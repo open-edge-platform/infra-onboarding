@@ -624,6 +624,78 @@ func TestNodeArtifactService_CreateNodes_Case4(t *testing.T) {
 		})
 	}
 }
+func TestNodeArtifactService_CreateNodes_Case_Success(t *testing.T) {
+	type fields struct {
+		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
+		invClient                                *invclient.OnboardingInventoryClient
+		enableAuth                               bool
+		rbac                                     *rbac.Policy
+	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
+	type args struct {
+		ctx context.Context
+		req *pb.NodeRequest
+	}
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
+	dao := inv_testing.NewInvResourceDAOOrFail(t)
+	host := dao.CreateHost(t, tenant1)
+	hwdata1 := &pb.HwData{Uuid: host.GetUuid(), Serialnum: "ABCDEFG"}
+	hwdatas1 := []*pb.HwData{hwdata1}
+	payload1 := pb.NodeData{Hwdata: hwdatas1}
+	payloads1 := []*pb.NodeData{&payload1}
+	mockRequest1 := &pb.NodeRequest{
+		Payload: payloads1,
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *pb.NodeResponse
+		wantErr bool
+	}{
+		{
+			name: "Success Test case for CreateNodes serial number miss match",
+			fields: fields{
+				invClient:  om_testing.InvClient,
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: ctx,
+				req: mockRequest1,
+			},
+			want:    &pb.NodeResponse{Payload: payloads1},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &NodeArtifactService{
+				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
+			}
+			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NodeArtifactService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NodeArtifactService.CreateNodes() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 func TestNodeArtifactService_DeleteNodes_Case1(t *testing.T) {
 	type fields struct {
