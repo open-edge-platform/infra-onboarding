@@ -3,8 +3,6 @@
 echo ==== iPXE boot success, chainloading Micro-OS ====
 
 set tink_url <TINK_STACK_URL>
-echo Sleeping for 3s
-sleep 3
 
 # initiate index for retry loop of DHCP
 set idx:int32 0
@@ -14,7 +12,8 @@ set retry_limit:int32 5
 :registerwithnetwork
 echo 
 echo => Registering with Network
-ifconf --timeout=-1 && goto networkconfig || iseq ${idx} ${retry_limit} && goto ifconferror || inc idx && echo Unable to obtain the IP address && echo RETRY NO ${idx} && goto registerwithnetwork
+#if the NIC port enabled and up configure it
+ifstat net${idx} && isset ({net${idx}/link}) && ifconf --timeout=-1 && goto networkconfig || iseq ${idx} ${retry_limit} && goto ifconferror || inc idx && echo Unable to obtain the IP address && echo RETRY NO ${idx} && goto registerwithnetwork
 
 # display network settings before chainloading
 :networkconfig
@@ -29,8 +28,8 @@ route
 echo 
 echo => Chainloading to CDN-NGINX
 echo 
-echo sleeping for 5s
-sleep 5
+echo sleeping for 1s
+sleep 1
 set idx:int32 0
 set retry_limit:int32 5
 :chainloop

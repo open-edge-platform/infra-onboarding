@@ -136,7 +136,9 @@ build_ipxe_efi() {
 	sed -i 's|//#define\tCONSOLE_FRAMEBUFFER|#define\tCONSOLE_FRAMEBUFFER|g' "$IPXE_DIR"/src/config/console.h && \
 	sed -Ei "s/^#undef([ \t]*DOWNLOAD_PROTO_(HTTPS|FTP|SLAM|NFS)[ \t]*)/#define\1/" "$IPXE_DIR"/src/config/general.h && \
 	sed -Ei "s/^\/\/#undef([ \t]*SANBOOT_PROTO_(ISCSI|AOE|IB_SRP|FCP|HTTP)[ \t]*)/#define\1/" "$IPXE_DIR"/src/config/general.h && \
-	sed -Ei "s/^\/\/(#define[ \t]*(NSLOOKUP|TIME|DIGEST|LOTEST|VLAN|REBOOT|POWEROFF|IMAGE_TRUST|PCI|PARAM|NEIGHBOUR|PING|CONSOLE|IPSTAT|PROFSTAT|NTP|CERT)_CMD)/\1/" "$IPXE_DIR"/src/config/general.h
+	sed -Ei "s/^\/\/(#define[ \t]*(NSLOOKUP|TIME|DIGEST|LOTEST|VLAN|REBOOT|POWEROFF|IMAGE_TRUST|PCI|PARAM|NEIGHBOUR|PING|CONSOLE|IPSTAT|PROFSTAT|NTP|CERT)_CMD)/\1/" "$IPXE_DIR"/src/config/general.h && \
+	sed -i 's/#define LINK_WAIT_TIMEOUT ( 15 \* TICKS_PER_SEC )/#define LINK_WAIT_TIMEOUT ( 5 \* TICKS_PER_SEC )/' "$IPXE_DIR"/src/usr/ifmgmt.c 
+
 
 	if [ ! -f "$SERVER_CERT_DIR"/Full_server.crt ] || [ ! -f "$SERVER_CERT_DIR"/ca.crt ] || [ ! -f chain.ipxe ]; then
 		echo "======== Seems like the certificates and/or chain script are missing. Check again ========="
