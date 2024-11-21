@@ -570,10 +570,11 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 	host.OnboardingStatus = om_status.OnboardingStatusDone.Status
 	host.OnboardingStatusIndicator = om_status.OnboardingStatusDone.StatusIndicator
 	host.OnboardingStatusTimestamp = uint64(time.Now().Unix()) // #nosec G115
-
+	// Print the Host onboarded time for Instrumentation
+	zlog.Debug().Msgf("Instrumentation Info: Host Onboarded Successfully on %d\n",
+		host.OnboardingStatusTimestamp)
 	var hostInv *computev1.HostResource
 	hostInv, err = s.invClient.GetHostResourceByUUID(ctx, tenantID, host.Uuid)
-
 	switch {
 	case inv_errors.IsNotFound(err):
 		zlog.Info().Msgf("Create op : Node Doesn't Exist for GUID %s and tID=%s\n",
