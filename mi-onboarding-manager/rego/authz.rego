@@ -38,5 +38,5 @@ hasReadAccess {
     some role in input["realm_access/roles"] # iteration
     # We expect:
     # - with MT: [PROJECT_UUID]_en-agent-rw or [PROJECT_UUID]_en-ob
-    regex.match("^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}_en-agent-rw)|([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}_en-om)$", role)
+    regex.match("^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}_en-agent-rw)|([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}_en-ob)$", role)
 }
