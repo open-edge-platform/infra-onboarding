@@ -224,6 +224,7 @@ func Test_GetCuratedScript(t *testing.T) {
 	os.Setenv("NETIP", "static")
 	pwd, _ := os.Getwd()
 	dir := config.PVC
+	config.ScriptPath = strings.Replace(pwd, "curation", "script", -1)
 	os.MkdirAll(dir, 0755)
 	os.MkdirAll(config.DownloadPath, 0755)
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
@@ -276,6 +277,8 @@ func Test_GetCuratedScript(t *testing.T) {
 func Test_GetCuratedScript_Case(t *testing.T) {
 	os.Setenv("MODE", "prod")
 	dir := config.PVC
+	pwd, _ := os.Getwd()
+	config.ScriptPath = strings.Replace(pwd, "curation", "script", -1)
 	os.MkdirAll(dir, 0755)
 	os.MkdirAll(config.DownloadPath, 0755)
 	dummyData := `#!/bin/bash
@@ -409,6 +412,8 @@ func Test_GetCuratedScript_Case1(t *testing.T) {
 	dir := config.PVC
 	os.MkdirAll(dir, 0755)
 	os.MkdirAll(config.DownloadPath, 0755)
+	pwd, _ := os.Getwd()
+	config.ScriptPath = strings.Replace(pwd, "curation", "script", -1)
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
@@ -451,6 +456,8 @@ func Test_GetCuratedScript_Case2(t *testing.T) {
 	dir := config.PVC
 	os.MkdirAll(dir, 0755)
 	os.MkdirAll(config.DownloadPath, 0755)
+	pwd, _ := os.Getwd()
+	config.ScriptPath = strings.Replace(pwd, "curation", "script", -1)
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
@@ -494,6 +501,8 @@ func Test_GetCuratedScript_Case3(t *testing.T) {
 	dir := config.PVC
 	os.MkdirAll(dir, 0755)
 	os.MkdirAll(config.DownloadPath, 0755)
+	pwd, _ := os.Getwd()
+	config.ScriptPath = strings.Replace(pwd, "curation", "script", -1)
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
@@ -546,6 +555,8 @@ func Test_GetCuratedScript_Case4(t *testing.T) {
 	dir := config.PVC
 	os.MkdirAll(dir, 0755)
 	os.MkdirAll(config.DownloadPath, 0755)
+	pwd, _ := os.Getwd()
+	config.ScriptPath = strings.Replace(pwd, "curation", "script", -1)
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
@@ -670,6 +681,8 @@ func Test_copyFile(t *testing.T) {
 }
 
 func TestGetReleaseArtifactList(t *testing.T) {
+	pwd, _ := os.Getwd()
+	config.ScriptPath = strings.Replace(pwd, "curation", "script", -1)
 	type args struct {
 		filePath string
 	}
@@ -754,6 +767,7 @@ func TestCreateOverlayScript(t *testing.T) {
 	originalDir, _ := os.Getwd()
 	os.MkdirAll(config.DownloadPath, 0755)
 	src := strings.Replace(originalDir, "curation", "script", -1)
+	config.ScriptPath = src
 	dir := src + "/Installer"
 	os.MkdirAll(dir, 0755)
 	dataDir := config.PVC
@@ -808,7 +822,7 @@ func TestCreateOverlayScript(t *testing.T) {
 				ProfileName: tt.args.profile,
 				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 			}
-			if err := CreateOverlayScript(tt.args.pwd, osr); (err != nil) != tt.wantErr {
+			if err := CreateOverlayScript(osr); (err != nil) != tt.wantErr {
 				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -843,6 +857,7 @@ func TestCreateOverlayScript_Case(t *testing.T) {
 	)
 	originalDir, _ := os.Getwd()
 	src := strings.Replace(originalDir, "curation", "script", -1)
+	config.ScriptPath = src
 	dir := src + "/Installer"
 	os.MkdirAll(dir, 0755)
 	os.MkdirAll(config.DownloadPath, 0755)
@@ -897,7 +912,7 @@ func TestCreateOverlayScript_Case(t *testing.T) {
 				ProfileName: tt.args.profile,
 				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 			}
-			if err := CreateOverlayScript(tt.args.pwd, osr); (err != nil) != tt.wantErr {
+			if err := CreateOverlayScript(osr); (err != nil) != tt.wantErr {
 				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -936,6 +951,7 @@ func TestCreateOverlayScript_Case1(t *testing.T) {
 
 	originalDir, _ := os.Getwd()
 	src := strings.Replace(originalDir, "curation", "script", -1)
+	config.ScriptPath = src
 	dir := src + "/Installer"
 	os.MkdirAll(dir, 0755)
 	os.MkdirAll(config.DownloadPath, 0755)
@@ -990,7 +1006,7 @@ func TestCreateOverlayScript_Case1(t *testing.T) {
 				ProfileName: tt.args.profile,
 				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 			}
-			if err := CreateOverlayScript(tt.args.pwd, osr); (err != nil) != tt.wantErr {
+			if err := CreateOverlayScript(osr); (err != nil) != tt.wantErr {
 				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1013,6 +1029,7 @@ func TestCreateOverlayScript_Case2(t *testing.T) {
 	os.MkdirAll(config.DownloadPath, 0755)
 	originalDir, _ := os.Getwd()
 	src := strings.Replace(originalDir, "curation", "script", -1)
+	config.ScriptPath = src
 	dir := src + "/Installer"
 	os.MkdirAll(dir, 0755)
 	dataDir := config.PVC
@@ -1066,7 +1083,7 @@ func TestCreateOverlayScript_Case2(t *testing.T) {
 				ProfileName: tt.args.profile,
 				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 			}
-			if err := CreateOverlayScript(tt.args.pwd, osr); (err != nil) != tt.wantErr {
+			if err := CreateOverlayScript(osr); (err != nil) != tt.wantErr {
 				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1103,6 +1120,7 @@ func TestCreateOverlayScript_Case4(t *testing.T) {
 
 	originalDir, _ := os.Getwd()
 	src := strings.Replace(originalDir, "curation", "script", -1)
+	config.ScriptPath = src
 	dir := src + "/Installer"
 	os.MkdirAll(dir, 0755)
 	dataDir := config.PVC
@@ -1157,7 +1175,7 @@ func TestCreateOverlayScript_Case4(t *testing.T) {
 				ProfileName: tt.args.profile,
 				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 			}
-			if err := CreateOverlayScript(tt.args.pwd, osr); (err != nil) != tt.wantErr {
+			if err := CreateOverlayScript(osr); (err != nil) != tt.wantErr {
 				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1179,6 +1197,7 @@ func TestCreateOverlayScript_Case4(t *testing.T) {
 func TestCreateOverlayScript_Case3(t *testing.T) {
 	originalDir, _ := os.Getwd()
 	src := strings.Replace(originalDir, "curation", "script", -1)
+	config.ScriptPath = src
 	dir := src + "/Installer"
 	os.MkdirAll(dir, 0755)
 	dataDir := config.PVC
@@ -1248,7 +1267,7 @@ func TestCreateOverlayScript_Case3(t *testing.T) {
 				ProfileName: tt.args.profile,
 				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 			}
-			if err := CreateOverlayScript(tt.args.pwd, osr); (err != nil) != tt.wantErr {
+			if err := CreateOverlayScript(osr); (err != nil) != tt.wantErr {
 				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1344,6 +1363,7 @@ func TestGetCuratedScript(t *testing.T) {
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
 	defer os.Unsetenv("ORCH_CLUSTER")
 	cdr, _ := os.Getwd()
+	config.ScriptPath = strings.Replace(cdr, "curation", "script", -1)
 	err1 := os.MkdirAll(cdr+"/dummy/dummy1/dummy2/dummy3", 0755)
 	assert.NoError(t, err1)
 	err2 := os.Chdir(cdr + "/dummy/dummy1/dummy2/dummy3")
@@ -1365,7 +1385,7 @@ func TestGetCuratedScript(t *testing.T) {
 				profile: "",
 				sha256:  "",
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -1385,6 +1405,7 @@ func TestCreateOverlayScript_Err(t *testing.T) {
 	originalDir, _ := os.Getwd()
 	os.MkdirAll(config.DownloadPath, 0755)
 	src := strings.Replace(originalDir, "curation", "script", -1)
+	config.ScriptPath = src
 	dir := src + "/Installer"
 	os.MkdirAll(dir, 0755)
 	dataDir := config.PVC
@@ -1434,7 +1455,7 @@ func TestCreateOverlayScript_Err(t *testing.T) {
 				ProfileName: tt.args.profile,
 				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 			}
-			if err := CreateOverlayScript(tt.args.pwd, osr); (err != nil) != tt.wantErr {
+			if err := CreateOverlayScript(osr); (err != nil) != tt.wantErr {
 				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1485,6 +1506,8 @@ func TestPathExists(t *testing.T) {
 }
 
 func TestCreateCloudCfgScript(t *testing.T) {
+	originalDir, _ := os.Getwd()
+	config.ScriptPath = strings.Replace(originalDir, "curation", "script", -1)
 	type args struct {
 		pwd   string
 		osRes *osv1.OperatingSystemResource
@@ -1507,7 +1530,7 @@ func TestCreateCloudCfgScript(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := CreateCloudCfgScript(tt.args.pwd, tt.args.osRes); (err != nil) != tt.wantErr {
+			if err := CreateCloudCfgScript(tt.args.osRes); (err != nil) != tt.wantErr {
 				t.Errorf("CreateCloudCfgScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

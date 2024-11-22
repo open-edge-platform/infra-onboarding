@@ -39,7 +39,7 @@ func DownloadArtifacts(ctx context.Context) error {
 		return err
 	}
 
-	downloaded, downloadErr := download.DownloadMicroOS(ctx, GetScriptDir())
+	downloaded, downloadErr := download.DownloadMicroOS(ctx)
 
 	if downloadErr != nil {
 		zlog.MiSec().Info().Msgf("Failed to download MicroOS %v", downloadErr)
@@ -106,10 +106,8 @@ func GetServerUrl() string {
 }
 
 func SignMicroOS() (bool, error) {
-	//MODE := GetMODE()
-	scriptPath := GetScriptDir()
-	targetDir := config.DownloadPath
-	signed, err := signing.SignHookOS(scriptPath, targetDir)
+
+	signed, err := signing.SignHookOS()
 	if err != nil {
 		zlog.MiSec().Info().Msgf("Failed to sign MicroOS %v", err)
 		return false, err
@@ -122,10 +120,8 @@ func SignMicroOS() (bool, error) {
 }
 
 func BuildSignIpxe() (bool, error) {
-	scriptPath := GetScriptDir()
-	targetDir := config.DownloadPath
 	dnsName := GetServerUrl()
-	signed, err := signing.BuildSignIpxe(targetDir, scriptPath, dnsName)
+	signed, err := signing.BuildSignIpxe(dnsName)
 	if err != nil {
 		zlog.MiSec().Info().Msgf("Failed to build and sign iPXE %v", err)
 		return false, err

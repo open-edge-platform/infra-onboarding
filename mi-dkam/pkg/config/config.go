@@ -30,6 +30,7 @@ const (
 
 // As variable to allow changes in tests
 var (
+	ScriptPath             = "/home/appuser/pkg/script"
 	ENManifestRepo         = "one-intel-edge/edge-node/en/manifest"
 	HookOSRepo             = "one-intel-edge/edge-node/file/provisioning-hook-os"
 	ProfileScriptRepo      = "one-intel-edge/edge-node/file/profile-scripts/"

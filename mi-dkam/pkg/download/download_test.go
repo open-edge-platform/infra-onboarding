@@ -14,7 +14,6 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"testing"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
@@ -176,8 +175,7 @@ func TestDownloadMicroOS(t *testing.T) {
 	localPath := path.Dir(filename)
 
 	expectedFileContent := "GOOD TEST!"
-	originalDir, _ := os.Getwd()
-	src := strings.Replace(originalDir, "curation", "script", -1)
+
 	// Create temporary folder and expected files and folder required by the DownloadMicroOS function
 	tmpFolderPath, err := os.MkdirTemp("/tmp", "test_download_microOS")
 	require.NoError(t, err)
@@ -219,7 +217,7 @@ func TestDownloadMicroOS(t *testing.T) {
 	os.MkdirAll(dir, 0755)
 	// Test: No tmpFolderPath/hook dir
 	t.Run("Fail", func(t *testing.T) {
-		_, err = DownloadMicroOS(context.Background(), src)
+		_, err = DownloadMicroOS(context.Background())
 		require.NoError(t, err)
 		// assert.Contains(t, err.Error(), "no such file or directory")
 	})
@@ -230,14 +228,14 @@ func TestDownloadMicroOS(t *testing.T) {
 	// Test: empty manifest
 	t.Run("NoAnnotationLayer", func(t *testing.T) {
 		returnWrongManifest = true
-		_, err = DownloadMicroOS(context.Background(), src)
+		_, err = DownloadMicroOS(context.Background())
 		require.NoError(t, err)
 	})
 
 	// Test: successful, create tmpFolderPath/hook dir
 	t.Run("Success", func(t *testing.T) {
 		returnWrongManifest = false
-		_, err = DownloadMicroOS(context.Background(), src)
+		_, err = DownloadMicroOS(context.Background())
 		require.NoError(t, err)
 	})
 }
@@ -311,8 +309,6 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 	_, filename, _, _ := runtime.Caller(0)
 	localPath := path.Dir(filename)
 	expectedFileContent := "GOOD TEST!"
-	originalDir, _ := os.Getwd()
-	src := strings.Replace(originalDir, "curation", "script", -1)
 	tmpFolderPath, err := os.MkdirTemp("/tmp", "test_download_microOS")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpFolderPath)
@@ -343,7 +339,7 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 	defer svr.Close()
 	config.HookOSRepo = svr.URL + "/"
 	t.Run("Fail", func(t *testing.T) {
-		_, err = DownloadMicroOS(context.Background(), src)
+		_, err = DownloadMicroOS(context.Background())
 		// require.Error(t, err)
 		// assert.Contains(t, err.Error(), "no such file or directory")
 	})
@@ -354,7 +350,7 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 	// Test: empty manifest
 	t.Run("NoAnnotationLayer", func(t *testing.T) {
 		returnWrongManifest = true
-		_, err = DownloadMicroOS(context.Background(), src)
+		_, err = DownloadMicroOS(context.Background())
 		// require.NoError(t, err)
 	})
 
@@ -368,7 +364,6 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 			return
 		}
 
-		dummy := originalDir + "dummy.yaml"
 		data := Data{
 			Provisioning: struct {
 				Files []File `yaml:"files"`
@@ -395,11 +390,7 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 			return
 		}
 		returnWrongManifest = true
-		_, err = DownloadMicroOS(context.Background(), dummy)
-		defer func() {
-			os.RemoveAll(existingDir)
-		}()
-		// require.NoError(t, err)
+
 	})
 }
 

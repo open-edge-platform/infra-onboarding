@@ -80,16 +80,8 @@ type Image struct {
 var ypsUrl = config.LA_YPSURL
 
 func GetArtifactsVersion() ([]AgentsVersion, error) {
-	//Current dir
-	currentDir, err := os.Getwd()
-	if err != nil {
-		zlog.MiSec().Info().Msg("Error getting current working directory:")
 
-	}
-	zlog.MiSec().Info().Msgf("Current working directory: %s", currentDir)
-	parentDir := filepath.Dir(filepath.Dir(currentDir))
-
-	scriptDir := filepath.Join(parentDir, "pkg", "script")
+	scriptDir := config.ScriptPath
 	yamlFile := filepath.Join(config.DownloadPath, "tmp", config.ReleaseVersion+".yaml")
 	exists, err := PathExists(yamlFile)
 	if err != nil {
@@ -128,11 +120,7 @@ func CurateScript(osRes *osv1.OperatingSystemResource) error {
 	fileServer = os.Getenv("FILE_SERVER")
 	registryService = os.Getenv("REGISTRY_SERVICE")
 	//Current dir
-	currentDir, err := os.Getwd()
-	if err != nil {
-		zlog.MiSec().Info().Msg("Error getting current working directory:")
 
-	}
 	agentsList, err := GetArtifactsVersion()
 	zlog.MiSec().Info().Msgf("Agents List' %s", agentsList)
 	if len(agentsList) == 0 {
@@ -141,13 +129,13 @@ func CurateScript(osRes *osv1.OperatingSystemResource) error {
 	}
 
 	if osRes.GetOsType() == osv1.OsType_OS_TYPE_IMMUTABLE {
-		createErr := CreateCloudCfgScript(currentDir, osRes)
+		createErr := CreateCloudCfgScript(osRes)
 		if createErr != nil {
 			zlog.MiSec().Info().Msgf("Error checking path %v", createErr)
 			return createErr
 		}
 	} else {
-		createErr := CreateOverlayScript(currentDir, osRes)
+		createErr := CreateOverlayScript(osRes)
 		if createErr != nil {
 			zlog.MiSec().Info().Msgf("Error checking path %v", createErr)
 			return createErr
@@ -199,12 +187,11 @@ func GetReleaseArtifactList(filePath string) (Config, error) {
 	return configs, nil
 }
 
-func CreateCloudCfgScript(pwd string, osRes *osv1.OperatingSystemResource) error {
+func CreateCloudCfgScript(osRes *osv1.OperatingSystemResource) error {
 	MODE := os.Getenv("MODE")
 	zlog.MiSec().Info().Msgf("MODE: %s", MODE)
 
-	parentDir := filepath.Dir(filepath.Dir(pwd))
-	scriptDir := filepath.Join(parentDir, "pkg", "script")
+	scriptDir := config.ScriptPath
 	cfgFilePath := filepath.Join(scriptDir, "Installer.cfg")
 	cfgFileName := ""
 	// Copy the file
@@ -438,13 +425,12 @@ func CreateCloudCfgScript(pwd string, osRes *osv1.OperatingSystemResource) error
 	return nil
 }
 
-func CreateOverlayScript(pwd string, osRes *osv1.OperatingSystemResource) error {
+func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
 	MODE := os.Getenv("MODE")
 	zlog.MiSec().Info().Msgf("MODE: %s", MODE)
 
-	parentDir := filepath.Dir(filepath.Dir(pwd))
 	beginString := "true >/etc/environment"
-	scriptDir := filepath.Join(parentDir, "pkg", "script")
+	scriptDir := config.ScriptPath
 	zlog.MiSec().Info().Msg(scriptDir)
 	installerPath := filepath.Join(scriptDir, "Installer")
 	scriptFileName := ""

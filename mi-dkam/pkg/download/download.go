@@ -71,7 +71,7 @@ type Data struct {
 	} `yaml:"provisioning"`
 }
 
-func DownloadMicroOS(ctx context.Context, scriptPath string) (bool, error) {
+func DownloadMicroOS(ctx context.Context) (bool, error) {
 	zlog.Info().Msgf("Inside Download and sign artifact... %s", config.DownloadPath)
 	yamlFile := filepath.Join(config.DownloadPath, "tmp", config.ReleaseVersion+".yaml")
 	exists, err := PathExists(yamlFile)
@@ -84,7 +84,7 @@ func DownloadMicroOS(ctx context.Context, scriptPath string) (bool, error) {
 		releaseFilePath = yamlFile
 	} else {
 		zlog.MiSec().Info().Msg("Path not exists:")
-		releaseFilePath = filepath.Join(scriptPath, config.ReleaseVersion+".yaml")
+		releaseFilePath = filepath.Join(config.ScriptPath, config.ReleaseVersion+".yaml")
 	}
 
 	file, err := os.Open(releaseFilePath)

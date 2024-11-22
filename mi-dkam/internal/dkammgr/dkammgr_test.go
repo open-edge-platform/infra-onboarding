@@ -104,6 +104,14 @@ func TestGetCuratedScript(t *testing.T) {
 	dir := config.PVC
 	os.MkdirAll(dir, 0755)
 	os.MkdirAll(config.DownloadPath, 0755)
+	currentDir, err := os.Getwd()
+	if err != nil {
+		zlog.MiSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
+		return
+	}
+	zlog.MiSec().Info().Msgf("Current dir %s", currentDir)
+	parentDir := filepath.Join(currentDir, "..", "..")
+	config.ScriptPath = parentDir + "/pkg/script"
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
@@ -111,7 +119,7 @@ func TestGetCuratedScript(t *testing.T) {
 `
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
 	defer os.Unsetenv("ORCH_CLUSTER")
-	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
+	err = os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
@@ -222,6 +230,14 @@ func TestGetScriptDir(t *testing.T) {
 }
 
 func TestSignMicroOS(t *testing.T) {
+	currentDir, err := os.Getwd()
+	if err != nil {
+		zlog.MiSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
+		return
+	}
+	zlog.MiSec().Info().Msgf("Current dir %s", currentDir)
+	parentDir := filepath.Join(currentDir, "..", "..")
+	config.ScriptPath = parentDir + "/pkg/script"
 
 	// Call the function you want to test
 	result, err := SignMicroOS()
@@ -238,6 +254,14 @@ func TestSignMicroOS(t *testing.T) {
 }
 
 func TestBuildSignIpxe1(t *testing.T) {
+	currentDir, err := os.Getwd()
+	if err != nil {
+		zlog.MiSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
+		return
+	}
+	zlog.MiSec().Info().Msgf("Current dir %s", currentDir)
+	parentDir := filepath.Join(currentDir, "..", "..")
+	config.ScriptPath = parentDir + "/pkg/script"
 
 	// Call the function you want to test
 	result, err := BuildSignIpxe()

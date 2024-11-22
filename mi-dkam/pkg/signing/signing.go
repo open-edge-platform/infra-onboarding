@@ -18,11 +18,11 @@ import (
 
 var zlog = logging.GetLogger("MIDKAMAuth")
 
-func SignHookOS(scriptPath string, targetDir string) (bool, error) {
+func SignHookOS() (bool, error) {
 
-	zlog.MiSec().Info().Msgf("Script dir %s", scriptPath)
-	hookDir := scriptPath + "/hook"
-	buildScriptPath := targetDir + "/hook"
+	zlog.MiSec().Info().Msgf("Script dir %s", config.ScriptPath)
+	hookDir := config.ScriptPath + "/hook"
+	buildScriptPath := config.DownloadPath + "/hook"
 	zlog.MiSec().Info().Msgf("Hook OS dir %s", buildScriptPath)
 	mkErr := os.MkdirAll(buildScriptPath, 0755) // 0755 sets read, write, and execute permissions for owner, and read and execute permissions for others
 	if mkErr != nil {
@@ -157,7 +157,7 @@ func SignHookOS(scriptPath string, targetDir string) (bool, error) {
 	}
 	zlog.Info().Msgf("Script output: %s", string(output))
 
-	errch := os.Chdir(scriptPath)
+	errch := os.Chdir(config.ScriptPath)
 	if errch != nil {
 		zlog.MiSec().Fatal().Err(errch).Msgf("Error changing working directory: %v\n", errch)
 		return false, errch
@@ -211,7 +211,7 @@ func copyDir(src, dst string) error {
 		return nil
 	})
 }
-func BuildSignIpxe(targetDir string, scriptPath string, dnsName string) (bool, error) {
+func BuildSignIpxe(dnsName string) (bool, error) {
 
 	zlog.MiSec().Info().Msgf("CDN boot DNS name %s", dnsName)
 	parsedURL, parseerr := url.Parse(dnsName)
@@ -226,8 +226,8 @@ func BuildSignIpxe(targetDir string, scriptPath string, dnsName string) (bool, e
 	zlog.MiSec().Info().Msgf("Domain: %s", host)
 
 	tinkUrlString := "<TINK_STACK_URL>"
-	chainPath := scriptPath + "/" + "chain.ipxe"
-	targetChainPath := targetDir + "/" + "chain.ipxe"
+	chainPath := config.ScriptPath + "/" + "chain.ipxe"
+	targetChainPath := config.DownloadPath + "/" + "chain.ipxe"
 	// Copy the file
 	cpErr := copyFile(chainPath, targetChainPath)
 	if cpErr != nil {
@@ -256,12 +256,12 @@ func BuildSignIpxe(targetDir string, scriptPath string, dnsName string) (bool, e
 		zlog.Info().Msg("Search string not found in the file.")
 	}
 
-	errcpio := os.Chdir(scriptPath)
+	errcpio := os.Chdir(config.ScriptPath)
 	if errcpio != nil {
 		zlog.MiSec().Fatal().Err(errcpio).Msgf("Error changing working directory: %v\n", errcpio)
 		return false, errcpio
 	}
-	cmd := exec.Command("bash", "./build_sign_ipxe.sh", targetDir)
+	cmd := exec.Command("bash", "./build_sign_ipxe.sh", config.DownloadPath)
 	zlog.Info().Msgf("signCmd: %s", cmd)
 	output, err := cmd.CombinedOutput()
 	if err != nil {

@@ -171,7 +171,7 @@ func BuildBinaries() error {
 		return pxeErr
 	}
 	if signedIPXE {
-		zlog.MiSec().Info().Msg("Signed MicroOS and moved to PVC")
+		zlog.MiSec().Info().Msg("Signed IPXE and moved to PVC")
 	}
 
 	// Download and sign MicroOS.
