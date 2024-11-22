@@ -121,8 +121,6 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 		return fmt.Errorf("%s", resp.Status)
 	}
 
-	var out io.Reader
-
 	fileOut, err := os.OpenFile(destinationDevice, os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
@@ -131,12 +129,15 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 
 	progressRW := NewProgress(fileOut, resp.Body)
 
-	if !compressed {
-		// Without compression send raw output
-		out = progressRW
-	} else {
+	// Create a SHA-256 hash writer
+	hash := sha256.New()
+	hashWriter := io.TeeReader(resp.Body, hash)
+
+	var out io.Reader = hashWriter
+
+	if compressed {
 		// Find compression algorithm based upon extension
-		decompressor, err := findDecompressor(sourceImage, progressRW)
+		decompressor, err := findDecompressor(sourceImage, hashWriter)
 		if err != nil {
 			return err
 		}
@@ -160,10 +161,7 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 		}
 	}()
 
-	// Create a SHA-256 hash writer
-	hash := sha256.New()
-	multiWriter := io.MultiWriter(progressRW, hash)
-	count, err := io.Copy(multiWriter , out)
+	count, err := io.Copy(fileOut, out)
 	// EOF and ErrUnexpectedEOF can be ignored.
 	if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
 		ticker.Stop()
@@ -190,8 +188,8 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 	log.Info(fmt.Sprintf("SHA-256 hash of the downloaded file: %s", actualSHA256))
 
 	expectedSHA256 := os.Getenv("SHA256")
-	// if SHA256 env variable provided as input,compare the expected SHA256 with img_url SHA256
-	if len(expectedSHA256) !=0 && actualSHA256 != expectedSHA256 {
+	// if SHA256 env variable provided as input, compare the expected SHA256 with img_url SHA256
+	if len(expectedSHA256) != 0 && actualSHA256 != expectedSHA256 {
 		fmt.Printf("-----Mismatch SHA256 for actualSHA256 & expectedSHA256 ---\n")
 		log.Info("expectedSHA256 : [%s] ", expectedSHA256)
 		log.Info("actualSHA256 : [%s] ", actualSHA256)
