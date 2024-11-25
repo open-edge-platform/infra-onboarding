@@ -15,8 +15,6 @@
 
 #relative paths of folders
 read_sb_status=./tinker_actions/read_sb_status/
-store_alpine=./tinker_actions/store_alpine/
-fdo_action_build=./tinker_actions/fdo_action_build/
 efibootset=./tinker_actions/efibootset
 fde_setup=./tinker_actions/fde
 creds_copy=./tinker_actions/creds_copy
@@ -33,23 +31,6 @@ tiberos_partition=./tinker_actions/tiberos_partition
 
 read_sb_status_setup() {
     pushd $read_sb_status
-
-    bash -e build.sh
-
-    popd
-}
-
-fdo_docker_setup() {
-    pushd $fdo_action_build
-
-    bash -e build_fdo_client_action.sh
-
-    popd
-}
-
-store_alpine_setup() {
-
-    pushd $store_alpine
 
     bash -e build.sh
 
@@ -177,10 +158,8 @@ main() {
     apt install -y build-essential
 
     read_sb_status_setup
-    fdo_docker_setup
     efibootset_setup
 
-    store_alpine_setup
     fde_setup_action
     build_credscopy
 

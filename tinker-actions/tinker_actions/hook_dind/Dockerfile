@@ -126,5 +126,8 @@ COPY dockerd-entrypoint.sh /usr/local/bin/
 VOLUME /var/lib/docker
 EXPOSE 2375 2376
 
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:50054/healthz || exit 1
 ENTRYPOINT ["dockerd-entrypoint.sh"]
 CMD []

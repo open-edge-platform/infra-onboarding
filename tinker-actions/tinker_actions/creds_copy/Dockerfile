@@ -22,4 +22,8 @@ RUN --mount=type=cache,sharing=locked,id=gomod,target=/go/pkg/mod/cache \
 FROM alpine:3.20.3
 RUN apk add --no-cache lsblk
 COPY --from=dcopy /app /
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:50054/healthz || exit 1
+
 CMD ["/dcopy"]

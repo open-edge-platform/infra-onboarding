@@ -11,12 +11,15 @@
 #####################################################################################
 FROM alpine:3.20.3
 
-RUN apk update
+RUN apk update && apk --no-cache add lsblk sgdisk parted e2fsprogs-extra cloud-utils-growpart 
 
-RUN apk --no-cache add lsblk sgdisk parted e2fsprogs-extra cloud-utils-growpart 
 
 COPY kernel_upgrade.sh /
 
 RUN chmod +x kernel_upgrade.sh 
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:50054/healthz || exit 1
 
 CMD ["sh", "/kernel_upgrade.sh"]

@@ -32,8 +32,6 @@ DOCKER_TAG              := ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}
 ACTION_ARRAY := \
 	securebootflag \
 	efibootset \
-	fdoclient_action \
-	store_alpine \
 	fde \
 	cred_copy \
 	caddy_proxy \
