@@ -85,9 +85,9 @@ func TestMain(m *testing.M) {
 	os.Exit(run)
 }
 
-func createIncomingContextWithENJWT(t *testing.T) context.Context {
+func createIncomingContextWithENJWT(t *testing.T, tenantID string) context.Context {
 	t.Helper()
-	_, jwtToken, err := inv_testing.CreateENJWT(t)
+	_, jwtToken, err := inv_testing.CreateENJWT(t, tenantID)
 	require.NoError(t, err)
 	return rbac.AddJWTToTheIncomingContext(context.Background(), jwtToken)
 }
@@ -214,7 +214,7 @@ func TestNodeArtifactService_CreateNodes_Case(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
 	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
@@ -288,7 +288,9 @@ func TestNodeArtifactService_CreateNodes_Case1(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	ctx, cancel := inv_testing.CreateContextWithJWT(t)
+
+	tenantID := u_uuid.NewString()
+	ctx, cancel := inv_testing.CreateContextWithJWT(t, tenantID)
 	defer cancel()
 	tests := []struct {
 		name    string
@@ -398,7 +400,8 @@ func TestNodeArtifactService_CreateNodes_Case2(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	ctx, cancel := inv_testing.CreateContextWithJWT(t)
+	tenantID := u_uuid.NewString()
+	ctx, cancel := inv_testing.CreateContextWithJWT(t, tenantID)
 	defer cancel()
 	tests := []struct {
 		name    string
@@ -479,7 +482,7 @@ func TestNodeArtifactService_CreateNodes_Case3(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
 	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -564,7 +567,8 @@ func TestNodeArtifactService_CreateNodes_Case4(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	ctx, cancel := inv_testing.CreateContextWithJWT(t)
+	tenantID := u_uuid.NewString()
+	ctx, cancel := inv_testing.CreateContextWithJWT(t, tenantID)
 	defer cancel()
 	tests := []struct {
 		name    string
@@ -641,7 +645,7 @@ func TestNodeArtifactService_CreateNodes_Case_Success(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
 	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	dao := inv_testing.NewInvResourceDAOOrFail(t)
 	host := dao.CreateHost(t, tenant1)
@@ -722,7 +726,7 @@ func TestNodeArtifactService_DeleteNodes_Case1(t *testing.T) {
 	hwdatas1 := []*pb.HwData{hwdata1}
 	payload1 := pb.NodeData{Hwdata: hwdatas1}
 	payloads1 := []*pb.NodeData{&payload1}
-	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
 	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
@@ -890,7 +894,8 @@ func TestNodeArtifactService_DeleteNodes_Case3(t *testing.T) {
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
-	ctx, cancel := inv_testing.CreateContextWithJWT(t)
+	tenantID := u_uuid.NewString()
+	ctx, cancel := inv_testing.CreateContextWithJWT(t, tenantID)
 	defer cancel()
 	tests := []struct {
 		name    string
@@ -972,7 +977,7 @@ func TestNodeArtifactService_DeleteNodes_Case4(t *testing.T) {
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
-	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
 	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
@@ -1050,7 +1055,8 @@ func TestNodeArtifactService_DeleteNodes_Case5(t *testing.T) {
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
-	ctx, cancel := inv_testing.CreateContextWithJWT(t)
+	tenantID := u_uuid.NewString()
+	ctx, cancel := inv_testing.CreateContextWithJWT(t, tenantID)
 	defer cancel()
 	tests := []struct {
 		name    string
@@ -1132,7 +1138,7 @@ func TestNodeArtifactService_DeleteNodes_Case6(t *testing.T) {
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
-	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
 	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
@@ -1212,7 +1218,8 @@ func TestNodeArtifactService_DeleteNodes_Case7(t *testing.T) {
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
-	ctx, cancel := inv_testing.CreateContextWithJWT(t)
+	tenantID := u_uuid.NewString()
+	ctx, cancel := inv_testing.CreateContextWithJWT(t, tenantID)
 	defer cancel()
 	tests := []struct {
 		name    string
@@ -1298,7 +1305,7 @@ func TestNodeArtifactService_GetNodes_Case1(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	ctx := createIncomingContextWithENJWT(t)
+	ctx := createIncomingContextWithENJWT(t, tenant1)
 	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 
 	tests := []struct {
@@ -1405,7 +1412,7 @@ func TestNodeArtifactService_GetNodes_Case2(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	ctx := createIncomingContextWithENJWT(t)
+	ctx := createIncomingContextWithENJWT(t, tenant1)
 	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
@@ -1488,7 +1495,8 @@ func TestNodeArtifactService_GetNodes_Case3(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	ctx, cancel := inv_testing.CreateContextWithJWT(t)
+	tenantID := u_uuid.NewString()
+	ctx, cancel := inv_testing.CreateContextWithJWT(t, tenantID)
 	defer cancel()
 	tests := []struct {
 		name    string
@@ -1583,10 +1591,10 @@ func TestNodeArtifactService_GetNodes_MultiTenant(t *testing.T) {
 		Payload: payloads2,
 	}
 
-	ctx1 := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx1 := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
 	ctx1 = tenant.AddTenantIDToContext(ctx1, tenant1)
 
-	ctx2 := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx2 := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant2)
 	ctx2 = tenant.AddTenantIDToContext(ctx2, tenant2)
 
 	s := &NodeArtifactService{
@@ -1648,7 +1656,7 @@ func TestNodeArtifactService_UpdateNodes_Case1(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
 	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
@@ -1740,7 +1748,7 @@ func TestNodeArtifactService_UpdateNodes_Case2(t *testing.T) {
 		Payload: payloads,
 	}
 
-	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
 	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
@@ -1826,7 +1834,8 @@ func TestNodeArtifactService_UpdateNodes_Case3(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	ctx, cancel := inv_testing.CreateContextWithJWT(t)
+	tenantID := u_uuid.NewString()
+	ctx, cancel := inv_testing.CreateContextWithJWT(t, tenantID)
 	defer cancel()
 	tests := []struct {
 		name    string
@@ -1910,7 +1919,8 @@ func TestNodeArtifactService_UpdateNodes_Case4(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	ctx, cancel := inv_testing.CreateContextWithJWT(t)
+	tenantID := u_uuid.NewString()
+	ctx, cancel := inv_testing.CreateContextWithJWT(t, tenantID)
 	defer cancel()
 	tests := []struct {
 		name    string
@@ -1994,7 +2004,8 @@ func TestNodeArtifactService_UpdateNodes_Case5(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	ctx, cancel := inv_testing.CreateContextWithJWT(t)
+	tenantID := u_uuid.NewString()
+	ctx, cancel := inv_testing.CreateContextWithJWT(t, tenantID)
 	defer cancel()
 	tests := []struct {
 		name    string
@@ -2083,7 +2094,7 @@ func TestNodeArtifactService_UpdateNodes_Case6(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
 	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
@@ -2316,7 +2327,7 @@ func TestNodeArtifactService_CreateNodes_Case5(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
 	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
@@ -2405,7 +2416,7 @@ func TestNodeArtifactService_UpdateNodes_Case7(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
 	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
@@ -2738,7 +2749,7 @@ func TestNodeArtifactService_GetNodes_Case4(t *testing.T) {
 	mockRequest1 := &pb.NodeRequest{
 		Payload: payloads1,
 	}
-	ctx := createIncomingContextWithENJWT(t)
+	ctx := createIncomingContextWithENJWT(t, tenant1)
 	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
@@ -2838,7 +2849,8 @@ func TestNodeArtifactService_UpdateNodes_Case8(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	ctx := createIncomingContextWithENJWT(t)
+	tenantID := u_uuid.NewString()
+	ctx := createIncomingContextWithENJWT(t, tenantID)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -2921,7 +2933,8 @@ func TestNodeArtifactService_UpdateNodes_Case9(t *testing.T) {
 	mockRequest := &pb.NodeRequest{
 		Payload: payloads,
 	}
-	ctx := createIncomingContextWithENJWT(t)
+	tenantID := u_uuid.NewString()
+	ctx := createIncomingContextWithENJWT(t, tenantID)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -3004,7 +3017,8 @@ func TestNodeArtifactService_CreateNodes_Case6(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	ctx := createIncomingContextWithENJWT(t)
+	tenantID := u_uuid.NewString()
+	ctx := createIncomingContextWithENJWT(t, tenantID)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -3086,7 +3100,7 @@ func TestNodeArtifactService_CreateNodes_Case7(t *testing.T) {
 		Payload: payloads,
 	}
 
-	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
 	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
 		name    string
@@ -3167,7 +3181,8 @@ func TestNodeArtifactService_checkNCreateInstance(t *testing.T) {
 		tenentID string
 		host     *computev1.HostResource
 	}
-	ctx := createIncomingContextWithENJWT(t)
+	tenantID := u_uuid.NewString()
+	ctx := createIncomingContextWithENJWT(t, tenantID)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -3933,7 +3948,7 @@ func FuzzCreateNodes(f *testing.F) {
 			return
 		}
 
-		ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background())
+		ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
 		ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 
 		rbacServer, err := rbac.New(rbacRules)
