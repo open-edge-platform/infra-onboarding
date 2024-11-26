@@ -123,7 +123,29 @@ pipeline {
                 make fuzztest
                 '''
             }
-        }           
+            post {
+                always {
+                    script {
+                        sh '''
+                        mkdir -p fuzz_artifacts
+                        find . -name "fuzz_*.log" -exec cp {} fuzz_artifacts/ \\;
+                        
+                        for log_file in fuzz_artifacts/fuzz_*.log; do
+                            if [ -f "$log_file" ]; then
+                                echo "---- $log_file ----"
+                                cat "$log_file"
+                                echo "---- End of $log_file ----"
+                            else
+                                echo "No log files found."
+                            fi
+                        done
+                        '''
+                        
+                        archiveArtifacts artifacts: "fuzz_artifacts/**", allowEmptyArchive: true
+                    } 
+                }
+            }   
+        }       
         // stage('Test Code') {
             // steps {
                 // echo "Test the code"
@@ -239,7 +261,6 @@ pipeline {
         stage('Artifact') {
             steps {
                 artifactUpload()
-                artifactUpload(['*.log'])
             }
         }        
     }
