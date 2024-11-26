@@ -255,32 +255,7 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 							env.ENPassWord, env.ENUserName, env.ENUserName),
 					},
 				},
-				{
-					Name:    ActionCreateCustomerIDDirectory,
-					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "mkdir -p /etc/intel_edge_node/customer_id/",
-					},
-				},
 
-				{
-					Name:    ActionCustomerID,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/intel_edge_node/customer_id/customer_id",
-						"CONTENTS":  deviceInfo.CustomerID,
-						"UID":       "0",
-						"GID":       "0",
-						"MODE":      "0755",
-						"DIRMODE":   "0755",
-					},
-				},
 				{
 					Name:    ActionTenantID,
 					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
@@ -289,20 +264,6 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/intel_edge_node/tenantId",
 						"CONTENTS":  fmt.Sprintf("TENANT_ID=%s", deviceInfo.TenantID),
-						"UID":       "0",
-						"GID":       "0",
-						"MODE":      "0755",
-						"DIRMODE":   "0755",
-					},
-				},
-				{
-					Name:    ActionENProductKey,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/intel_edge_node/customer_id/en_product_key_ids",
-						"CONTENTS":  deviceInfo.ENProductKeyIDs,
 						"UID":       "0",
 						"GID":       "0",
 						"MODE":      "0755",
