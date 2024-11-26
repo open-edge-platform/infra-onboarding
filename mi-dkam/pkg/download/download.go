@@ -157,11 +157,22 @@ func DownloadTiberOSImage(ctx context.Context, osRes *osv1.OperatingSystemResour
 	// Perform the HTTP GET request
 	resp, clienterr := client.Do(req)
 	if clienterr != nil {
-		zlog.MiSec().Error().Err(clienterr).Msgf("Failed to connect to release server to download hookOS:%v", clienterr)
+		zlog.MiSec().Error().Err(clienterr).Msgf("Error making request to Release server:%v", clienterr)
 		return clienterr
 
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		zlog.MiSec().Error().Err(clienterr).Msgf("Error: received non-200 status code:%v", resp.StatusCode)
+		return clienterr
+	}
+
+	_, err := io.ReadAll(resp.Body)
+	if err != nil {
+		zlog.MiSec().Error().Err(err).Msgf("Error reading response body:%v", err)
+		return err
+	}
 
 	tmpOsImageFilePath := config.DownloadPath + "/" + osRes.GetProfileName() + util.GetFileExtensionFromOSImageURL(osRes)
 
