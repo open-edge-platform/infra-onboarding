@@ -3410,6 +3410,7 @@ func TestNodeArtifactService_handleOnboardedState(t *testing.T) {
 	type args struct {
 		stream  pb.NonInteractiveOnboardingService_OnboardNodeStreamServer
 		hostInv *computev1.HostResource
+		req     *pb.OnboardStreamRequest
 	}
 	tests := []struct {
 		name    string
@@ -3429,6 +3430,9 @@ func TestNodeArtifactService_handleOnboardedState(t *testing.T) {
 			args: args{
 				stream:  &art,
 				hostInv: &computev1.HostResource{},
+				req: &pb.OnboardStreamRequest{
+					Uuid: "f9f8-434a-8620-bbed2a12b0ad",
+				},
 			},
 			wantErr: true,
 		},
@@ -3439,7 +3443,7 @@ func TestNodeArtifactService_handleOnboardedState(t *testing.T) {
 			s := &NonInteractiveOnboardingService{
 				UnimplementedNonInteractiveOnboardingServiceServer: tt.fields.UnimplementedNonInteractiveOnboardingServiceServer,
 			}
-			if err := s.handleOnboardedState(tt.args.stream, tt.args.hostInv); (err != nil) != tt.wantErr {
+			if err := s.handleOnboardedState(tt.args.stream, tt.args.hostInv, tt.args.req); (err != nil) != tt.wantErr {
 				t.Errorf("NodeArtifactService.handleOnboardedState() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

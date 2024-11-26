@@ -249,7 +249,7 @@ func (s *NonInteractiveOnboardingService) handleRegisteredState(stream pb.NonInt
 
 // handleRegisteredState processes the ONBOARDED state.
 func (s *NonInteractiveOnboardingService) handleOnboardedState(stream pb.NonInteractiveOnboardingService_OnboardNodeStreamServer,
-	hostInv *computev1.HostResource,
+	hostInv *computev1.HostResource, req *pb.OnboardStreamRequest,
 ) error {
 	clientID, clientSecret, err := utils.FetchClientSecret(context.Background(), hostInv.GetTenantId(), hostInv.Uuid)
 	if err != nil {
@@ -267,9 +267,10 @@ func (s *NonInteractiveOnboardingService) handleOnboardedState(stream pb.NonInte
 		zlog.Error().Err(err).Msg("Failed to send response client Id and secret on the stream")
 		return err
 	}
+
 	// make the current state to ONBOARDED and onboarding status to ONBOARDED
 	errUpdatehostStatus := s.invClient.UpdateHostCurrentStateNOnboardStatus(context.Background(),
-		hostInv.GetTenantId(), hostInv.ResourceId, computev1.HostState_HOST_STATE_ONBOARDED,
+		hostInv.GetTenantId(), hostInv.ResourceId, req.HostIp, req.MacId, computev1.HostState_HOST_STATE_ONBOARDED,
 		inv_status.New(om_status.OnboardingStatusDone.Status,
 			om_status.OnboardingStatusDone.StatusIndicator))
 	if errUpdatehostStatus != nil {
@@ -515,7 +516,7 @@ func (s *NonInteractiveOnboardingService) OnboardNodeStream(
 				communicates with Keycloak to create EN secrets, sends a SUCCESS response
 				with the client_id and client_secret, and then returns nil, closing the stream
 			*/
-			if err := s.handleOnboardedState(stream, hostInv); err != nil {
+			if err := s.handleOnboardedState(stream, hostInv, req); err != nil {
 				return err
 			}
 			startZeroTouchAfterClose = true
@@ -586,17 +587,15 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 		if hostInv.SerialNumber != host.SerialNumber {
 			zlog.Info().Msgf("Serial number mismatch for GUID %s, updating host resource", host.Uuid)
 			// Update the host resource with the correct serial number
+			// and all required fields host registration and onboarding status for serial id mismatch
 			hostInv.SerialNumber = host.SerialNumber
 			hostInv.BmcIp = host.BmcIp
 			hostInv.PxeMac = host.PxeMac
 			hostInv.CurrentState = computev1.HostState_HOST_STATE_ONBOARDED
-			hostInv.OnboardingStatus = om_status.OnboardingStatusDone.Status
-			hostInv.OnboardingStatusIndicator = om_status.OnboardingStatusDone.StatusIndicator
-			host.OnboardingStatusTimestamp = uint64(time.Now().Unix()) // #nosec G115
-			hostInv.RegistrationStatus = om_status.HostRegistrationUnknown.Status
-			hostInv.RegistrationStatusIndicator = om_status.HostRegistrationUnknown.StatusIndicator
-			hostInv.RegistrationStatusTimestamp = uint64(time.Now().Unix()) // #nosec G115
-			if updateErr := s.invClient.UpdateHostResource(ctx, tenantID, hostInv); updateErr != nil {
+			if updateErr := s.invClient.UpdateHostResourceStatus(ctx, hostInv.GetTenantId(), hostInv.ResourceId, hostInv,
+				inv_status.New(om_status.OnboardingStatusDone.Status, om_status.OnboardingStatusDone.StatusIndicator),
+				inv_status.New(om_status.HostRegistrationUnknown.Status,
+					om_status.HostRegistrationUnknown.StatusIndicator)); updateErr != nil {
 				zlog.MiSec().MiErr(updateErr).Msgf("Failed to update Host resource: %v tID=%s", hostInv, tenantID)
 				return nil, updateErr
 			}

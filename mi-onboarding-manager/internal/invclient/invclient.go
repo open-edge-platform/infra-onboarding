@@ -817,11 +817,13 @@ func (c *OnboardingInventoryClient) UpdateHostRegState(ctx context.Context, tena
 }
 
 func (c *OnboardingInventoryClient) UpdateHostCurrentStateNOnboardStatus(ctx context.Context, tenantID string, resourceID string,
-	hostCurrentState computev1.HostState, onboardingStatus inv_status.ResourceStatus,
+	hostIP string, macid string, hostCurrentState computev1.HostState, onboardingStatus inv_status.ResourceStatus,
 ) error {
 	updateHost := &computev1.HostResource{
 		ResourceId:                resourceID,
 		CurrentState:              hostCurrentState,
+		BmcIp:                     hostIP,
+		PxeMac:                    macid,
 		OnboardingStatus:          onboardingStatus.Status,
 		OnboardingStatusIndicator: onboardingStatus.StatusIndicator,
 		OnboardingStatusTimestamp: uint64(time.Now().Unix()), // #nosec G115
@@ -829,6 +831,8 @@ func (c *OnboardingInventoryClient) UpdateHostCurrentStateNOnboardStatus(ctx con
 
 	return c.UpdateInvResourceFields(ctx, tenantID, updateHost, []string{
 		computev1.HostResourceFieldCurrentState,
+		computev1.HostResourceFieldBmcIp,
+		computev1.HostResourceFieldPxeMac,
 		computev1.HostResourceFieldOnboardingStatus,
 		computev1.HostResourceFieldOnboardingStatusIndicator,
 		computev1.HostResourceFieldOnboardingStatusTimestamp,
@@ -862,4 +866,37 @@ func (c *OnboardingInventoryClient) GetHostResource(
 	}
 
 	return c.listAndReturnHost(ctx, filter)
+}
+
+// UpdateHostStatus : update host required fields ,onboarding and registration status.
+func (c *OnboardingInventoryClient) UpdateHostResourceStatus(ctx context.Context, tenantID string, resourceID string,
+	host *computev1.HostResource, onboardingStatus inv_status.ResourceStatus,
+	registrationStatus inv_status.ResourceStatus,
+) error {
+	h := &computev1.HostResource{
+		ResourceId:                  resourceID,
+		SerialNumber:                host.SerialNumber,
+		BmcIp:                       host.BmcIp,
+		PxeMac:                      host.PxeMac,
+		CurrentState:                host.CurrentState,
+		OnboardingStatus:            onboardingStatus.Status,
+		OnboardingStatusIndicator:   onboardingStatus.StatusIndicator,
+		OnboardingStatusTimestamp:   uint64(time.Now().Unix()), // #nosec G115
+		RegistrationStatus:          registrationStatus.Status,
+		RegistrationStatusIndicator: registrationStatus.StatusIndicator,
+		RegistrationStatusTimestamp: uint64(time.Now().Unix()), // #nosec G115
+	}
+
+	return c.UpdateInvResourceFields(ctx, tenantID, h, []string{
+		computev1.HostResourceFieldSerialNumber,
+		computev1.HostResourceFieldBmcIp,
+		computev1.HostResourceFieldPxeMac,
+		computev1.HostResourceFieldCurrentState,
+		computev1.HostResourceFieldOnboardingStatus,
+		computev1.HostResourceFieldOnboardingStatusIndicator,
+		computev1.HostResourceFieldOnboardingStatusTimestamp,
+		computev1.HostResourceFieldRegistrationStatus,
+		computev1.HostResourceFieldRegistrationStatusIndicator,
+		computev1.HostResourceFieldRegistrationStatusTimestamp,
+	})
 }
