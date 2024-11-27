@@ -152,8 +152,6 @@ func grpcMaestroOnboardNodeJWT(ctx context.Context, address string, port int, ma
 	tokenString := strings.TrimSpace(string(jwtToken))
 
 	target := fmt.Sprintf("%s:%d", address, port)
-	fmt.Println("address", target)
-	fmt.Println("token", tokenString)
 	conn, err := grpc.DialContext(
 		ctx,
 		target,
@@ -287,8 +285,7 @@ func grpcClient(ctx context.Context, obsSVC string, obmSVC string, obmPort int, 
 		if err != nil {
 			log.Fatalf("Error: %v\n", err)
 		}
-		fmt.Printf("IDP Access Token: %s\n", idpAccessToken)
-		fmt.Printf("Release Token: %s\n", releaseToken)
+
 		// Write access_token to idp_access_token file
 		if err := saveToFile(accessTokenFile, idpAccessToken); err != nil {
 			log.Fatalf("failed to save access token to file: %v", err)
@@ -340,7 +337,6 @@ func main() {
 		log.Fatalf("Error parsing kernel arguments: %v\n", err)
 	}
 	// Use cfg as needed, for example, printing the parsed configuration
-	fmt.Printf("Parsed Config: %+v\n", cfg)
 	macAddr := cfg.workerID
 
 	// Convert string to bool
@@ -371,21 +367,15 @@ func main() {
 	serialNumber, err := getSerialNumber()
 	if err != nil {
 		log.Fatalf("Error getting serial number: %v\n", err)
-	} else {
-		fmt.Printf("Serial Number: %s\n", serialNumber)
 	}
 
 	uuid, err := getUUID()
 	if err != nil {
 		log.Fatalf("Error getting UUID: %v\n", err)
-	} else {
-		fmt.Printf("UUID: %s\n", uuid)
 	}
 	ipAddress, err := getIPAddress(macAddr)
 	if err != nil {
 		log.Fatal("Error getting IP address: ", err)
-	} else {
-		fmt.Printf("IP Address for MAC %s: %s\n", macAddr, ipAddress)
 	}
 	// logic to detect serial, uuid, and ip based on mac ends here
 
