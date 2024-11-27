@@ -13,15 +13,15 @@ set retry_limit:int32 5
 echo 
 echo => Registering with Network
 #if the NIC port enabled and up configure it
-ifstat net${idx} && isset ({net${idx}/link}) && ifconf --timeout=-1 && goto networkconfig || iseq ${idx} ${retry_limit} && goto ifconferror || inc idx && echo Unable to obtain the IP address && echo RETRY NO ${idx} && goto registerwithnetwork
+ifstat net${idx} && isset ({net${idx}/link}) && time ifconf --timeout=-1 && goto networkconfig || iseq ${idx} ${retry_limit} && goto ifconferror || inc idx && echo Unable to obtain the IP address && echo RETRY NO ${idx} && goto registerwithnetwork
 
 # display network settings before chainloading
 :networkconfig
+echo "Network Configuration Done"
 echo 
 echo "Network Configuration"
 ifstat
 route
-
 
 # chainload tink
 :chainload
