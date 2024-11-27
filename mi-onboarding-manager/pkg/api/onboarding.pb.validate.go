@@ -1017,9 +1017,27 @@ func (m *HwData) validate(all bool) error {
 
 	// no validation rules for HwId
 
-	// no validation rules for MacId
+	if !_HwData_MacId_Pattern.MatchString(m.GetMacId()) {
+		err := HwDataValidationError{
+			field:  "MacId",
+			reason: "value does not match regex pattern \"^([0-9a-fA-F]{2}([-:])){5}[0-9a-fA-F]{2}$\"",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for SutIp
+	if !_HwData_SutIp_Pattern.MatchString(m.GetSutIp()) {
+		err := HwDataValidationError{
+			field:  "SutIp",
+			reason: "value does not match regex pattern \"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$\"",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if all {
 		switch v := interface{}(m.GetCusParams()).(type) {
@@ -1054,9 +1072,28 @@ func (m *HwData) validate(all bool) error {
 
 	// no validation rules for PlatformType
 
-	// no validation rules for Serialnum
+	if !_HwData_Serialnum_Pattern.MatchString(m.GetSerialnum()) {
+		err := HwDataValidationError{
+			field:  "Serialnum",
+			reason: "value does not match regex pattern \"^[A-Za-z0-9]{5,20}$\"",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for Uuid
+	if err := m._validateUuid(m.GetUuid()); err != nil {
+		err = HwDataValidationError{
+			field:  "Uuid",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	// no validation rules for BmcIp
 
@@ -1068,6 +1105,14 @@ func (m *HwData) validate(all bool) error {
 
 	if len(errors) > 0 {
 		return HwDataMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *HwData) _validateUuid(uuid string) error {
+	if matched := _onboarding_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
 	}
 
 	return nil
@@ -1142,6 +1187,12 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = HwDataValidationError{}
+
+var _HwData_MacId_Pattern = regexp.MustCompile("^([0-9a-fA-F]{2}([-:])){5}[0-9a-fA-F]{2}$")
+
+var _HwData_SutIp_Pattern = regexp.MustCompile("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$")
+
+var _HwData_Serialnum_Pattern = regexp.MustCompile("^[A-Za-z0-9]{5,20}$")
 
 // Validate checks the field values on Proxy with the rules defined in the
 // proto definition for this message. If any rules are violated, the first

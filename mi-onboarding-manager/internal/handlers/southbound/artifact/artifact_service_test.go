@@ -6,11 +6,15 @@ package artifact
 import (
 	"context"
 	"crypto/md5"
+	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"sync"
 	"testing"
 
@@ -203,7 +207,17 @@ func TestNodeArtifactService_CreateNodes_Case(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+
+	macId := generateValidMacID()
+	sutIp := "192.168.1.1"
+	serialnum := "ABCDEHI"
+
+	hwdata := &pb.HwData{
+		Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+		MacId:     macId,
+		SutIp:     sutIp,
+		Serialnum: serialnum,
+	}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
@@ -213,7 +227,7 @@ func TestNodeArtifactService_CreateNodes_Case(t *testing.T) {
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
-	})
+})
 	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
 	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
@@ -288,7 +302,6 @@ func TestNodeArtifactService_CreateNodes_Case1(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-
 	tenantID := u_uuid.NewString()
 	ctx, cancel := inv_testing.CreateContextWithJWT(t, tenantID)
 	defer cancel()
@@ -393,7 +406,16 @@ func TestNodeArtifactService_CreateNodes_Case2(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+	macId := generateValidMacID()
+	sutIp := "192.168.1.1"
+	serialnum := "ABCDEHI"
+
+	hwdata := &pb.HwData{
+		Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+		MacId:     macId,
+		SutIp:     sutIp,
+		Serialnum: serialnum,
+	}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
@@ -475,7 +497,16 @@ func TestNodeArtifactService_CreateNodes_Case3(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+	macId := generateValidMacID()
+	sutIp := "192.168.1.1"
+	serialnum := "ABCDEHI"
+
+	hwdata := &pb.HwData{
+		Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+		MacId:     macId,
+		SutIp:     sutIp,
+		Serialnum: serialnum,
+	}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
@@ -560,7 +591,16 @@ func TestNodeArtifactService_CreateNodes_Case4(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+	macId := generateValidMacID()
+	sutIp := "192.168.1.1"
+	serialnum := "ABCDEHI"
+
+	hwdata := &pb.HwData{
+		Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+		MacId:     macId,
+		SutIp:     sutIp,
+		Serialnum: serialnum,
+	}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
@@ -649,7 +689,7 @@ func TestNodeArtifactService_CreateNodes_Case_Success(t *testing.T) {
 	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	dao := inv_testing.NewInvResourceDAOOrFail(t)
 	host := dao.CreateHost(t, tenant1)
-	hwdata1 := &pb.HwData{Uuid: host.GetUuid(), Serialnum: "ABCDEFG"}
+	hwdata1 := &pb.HwData{Uuid: host.GetUuid(), Serialnum: "ABCDEFG", MacId: generateValidMacID(), SutIp: "192.168.1.1"}
 	hwdatas1 := []*pb.HwData{hwdata1}
 	payload1 := pb.NodeData{Hwdata: hwdatas1}
 	payloads1 := []*pb.NodeData{&payload1}
@@ -890,7 +930,17 @@ func TestNodeArtifactService_DeleteNodes_Case3(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+	// hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+	macId := generateValidMacID()
+	sutIp := "192.168.1.1"
+	serialnum := "ABCDEHI"
+
+	hwdata := &pb.HwData{
+		Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+		MacId:     macId,
+		SutIp:     sutIp,
+		Serialnum: serialnum,
+	}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
@@ -2316,7 +2366,16 @@ func TestNodeArtifactService_CreateNodes_Case5(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+	macId := generateValidMacID()
+	sutIp := "192.168.1.1"
+	serialnum := "ABCDEHI"
+
+	hwdata := &pb.HwData{
+		Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+		MacId:     macId,
+		SutIp:     sutIp,
+		Serialnum: serialnum,
+	}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
@@ -3092,7 +3151,16 @@ func TestNodeArtifactService_CreateNodes_Case7(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0ad"}
+	macId := generateValidMacID()
+	sutIp := "192.168.1.1"
+	serialnum := "ABCDEHI"
+
+	hwdata := &pb.HwData{
+		Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+		MacId:     macId,
+		SutIp:     sutIp,
+		Serialnum: serialnum,
+	}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
@@ -3854,7 +3922,7 @@ func TestNodeArtifactService_getHostResourcetest(t *testing.T) {
 				},
 			},
 			want:    host3,
-			wantErr: false,
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -3938,14 +4006,26 @@ func FuzzCreateNodes(f *testing.F) {
 	dao := inv_testing.NewInvResourceDAOOrFail(f)
 	host := dao.CreateHostNoCleanup(f, tenant1)
 
-	f.Add("node1", "platform1", "9fa0a788-f9f8-434a-8620-bbed2a12b0ad")
+	f.Add("node1", "platform1", "9fa0a788-f9f8-434a-8620-bbed2a12b0ad", "00:1A:2B:3C:4D:5E", "ABCDEFGH", "192.168.1.1")
 	mutex.Unlock()
-	f.Fuzz(func(t *testing.T, hwId string, platformType string, uuid string) {
+	f.Fuzz(func(t *testing.T, hwId string, platformType string, uuid string, macId string, serialNum string, sutIp string) {
 		mutex.Lock()
 		defer mutex.Unlock()
-		if hwId == "" || platformType == "" || uuid == "" {
-			t.Skip("Skipping test because resourceID is empty")
+		if hwId == "" || platformType == "" || uuid == "" || macId == "" || serialNum == "" || sutIp == "" {
+			t.Skip("Skipping test because one of the required fields is empty")
 			return
+		}
+
+		if !isValidMacID(macId) {
+			macId = generateValidMacID()
+		}
+
+		if !isValidserialNum(serialNum) {
+			serialNum = generateValidSerialNum()
+		}
+
+		if !isValidsutIp(sutIp) {
+			sutIp = generateValidSutIp()
 		}
 
 		ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
@@ -3968,8 +4048,11 @@ func FuzzCreateNodes(f *testing.F) {
 
 		hwdata := &pb.HwData{
 			HwId:         getFirstNChars(getMD5Hash(hwId), 6),
+			MacId:        macId,
 			PlatformType: getFirstNChars(getMD5Hash(platformType), 10),
 			Uuid:         host.GetUuid(),
+			Serialnum:    serialNum,
+			SutIp:        sutIp,
 		}
 		hwdatas := []*pb.HwData{hwdata}
 		payload1 := pb.NodeData{Hwdata: hwdatas}
@@ -3984,7 +4067,56 @@ func FuzzCreateNodes(f *testing.F) {
 		}
 
 	})
+}
 
+// isValidMacID checks if the given string is a valid MAC ID
+func isValidMacID(mac string) bool {
+	re := regexp.MustCompile(`^([0-9a-fA-F]{2}([-:])){5}[0-9a-fA-F]{2}$`)
+	return re.MatchString(mac)
+}
+
+func isValidserialNum(serialNum string) bool {
+	re := regexp.MustCompile(`[A-Za-z0-9]{5,20}$`)
+	return re.MatchString(serialNum)
+}
+
+func isValidsutIp(sutIp string) bool {
+	re := regexp.MustCompile(`^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$`)
+	return re.MatchString(sutIp)
+}
+
+// generateValidMacID generates a valid MAC ID
+func generateValidMacID() string {
+	mac := make([]byte, 6)
+	rand.Read(mac)
+	return fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5])
+}
+
+func generateValidSerialNum() string {
+	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+	const length = 8
+
+	serialNum := make([]byte, length)
+	for i := range serialNum {
+		n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		serialNum[i] = charset[n.Int64()]
+	}
+	return string(serialNum)
+}
+
+func generateValidSutIp() string {
+	generateOctet := func() int {
+		n, _ := rand.Int(rand.Reader, big.NewInt(256))
+		return int(n.Int64())
+	}
+
+	// Generate 4 octets and format them as a valid IP address
+	return fmt.Sprintf("%d.%d.%d.%d",
+		generateOctet(),
+		generateOctet(),
+		generateOctet(),
+		generateOctet(),
+	)
 }
 
 func FuzzOnboardNodeStream(f *testing.F) {

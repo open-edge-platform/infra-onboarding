@@ -108,13 +108,13 @@ message NodeData {
 
 message HwData {
   string hw_id = 1; // HW ID of Node
-  string mac_id = 2; // Mac ID of Node
-  string sut_ip = 3; // sutip
+  string mac_id = 2 [(validate.rules).string.pattern = "^([0-9a-fA-F]{2}([-:])){5}[0-9a-fA-F]{2}$"]; // Mac ID of Node
+  string sut_ip = 3 [(validate.rules).string.pattern = "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"]; // sutip
   CustomerParams cus_params = 4; // Azure Specific Parameters
   string disk_partition = 5; // Disk Partition Details
   string platform_type = 6; // Device platform type
-  string serialnum = 7;
-  string uuid = 8;
+  string serialnum = 7 [(validate.rules).string.pattern = "^[A-Za-z0-9]{5,20}$"];
+  string uuid = 8 [(validate.rules).string.uuid = true];
   string bmc_ip = 9;
   bool bmc_interface = 10;
   string host_nic_dev_name = 11;

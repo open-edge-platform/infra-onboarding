@@ -156,7 +156,6 @@ func NewNonInteractiveOnboardingService(invClient *invclient.OnboardingInventory
 
 func CopyNodeReqToNodeData(payload []*pb.NodeData, tenantID string) ([]*computev1.HostResource, error) {
 	zlog.Info().Msgf("CopyNodeReqToNodeData")
-
 	zlog.Debug().Msgf("Parsing NodeData of length=%d", len(payload))
 	hosts := make([]*computev1.HostResource, 0)
 	for _, s := range payload {
@@ -535,6 +534,11 @@ func (s *NonInteractiveOnboardingService) OnboardNodeStream(
 //nolint:funlen,cyclop // reason: function is long due to necessary logic; cyclomatic complexity is high due to necessary handling
 func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
 	zlog.Info().Msgf("CreateNodes")
+	if validationErr := req.Validate(); validationErr != nil {
+		zlog.MiSec().MiErr(validationErr).Msgf("Request does not match the expected regex pattern %v", validationErr)
+		return nil, validationErr
+	}
+
 	if s.authEnabled {
 		// checking if JWT contains write permission
 		if !s.rbac.IsRequestAuthorized(ctx, rbac.CreateKey) {
