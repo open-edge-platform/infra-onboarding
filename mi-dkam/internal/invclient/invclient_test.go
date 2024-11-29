@@ -786,3 +786,52 @@ func TestDKAMInventoryClient_listAndReturnHost(t *testing.T) {
 		})
 	}
 }
+
+func TestDKAMInventoryClient_ListAllResources(t *testing.T) {
+	var s inv_v1.ResourceKind
+	CreateDkamClientForTesting(t)
+	invClient := DkamTestClient
+	type fields struct {
+		Client  client.TenantAwareInventoryClient
+		Watcher chan *client.WatchEvents
+	}
+	type args struct {
+		ctx   context.Context
+		kinds []inv_v1.ResourceKind
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    []*inv_v1.Resource
+		wantErr bool
+	}{
+		{
+			name: "Test case",
+			fields: fields{
+				Client: invClient.Client,
+			},
+			args: args{
+				ctx:   context.Background(),
+				kinds: []inv_v1.ResourceKind{s},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &DKAMInventoryClient{
+				Client:  tt.fields.Client,
+				Watcher: tt.fields.Watcher,
+			}
+			got, err := c.ListAllResources(tt.args.ctx, tt.args.kinds)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("DKAMInventoryClient.ListAllResources() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("DKAMInventoryClient.ListAllResources() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

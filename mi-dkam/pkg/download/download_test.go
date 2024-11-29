@@ -19,6 +19,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/util"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/api/os/v1"
+	as "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/artifactservice"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -613,6 +614,31 @@ func TestGetOSImageLocationWithCustomFilename(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := util.GetOSImageLocationWithCustomFilename(tt.args.os, tt.args.rootDir, tt.args.fileName); got != tt.want {
 				t.Errorf("GetOSImageLocationWithCustomFilename() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCreateFile(t *testing.T) {
+	type args struct {
+		filePath string
+		artifact *as.Artifact
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "negative test case",
+			args: args{},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := CreateFile(tt.args.filePath, tt.args.artifact); (err != nil) != tt.wantErr {
+				t.Errorf("CreateFile() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

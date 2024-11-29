@@ -362,6 +362,7 @@ func TestDKAMController_reconcileAll(t *testing.T) {
 	t.Cleanup(func() {
 		dkam_testing.DeleteInventoryDKAMClientForTesting()
 	})
+	inv_testing.CreateOs(t)
 	type fields struct {
 		invClient *invclient.DKAMInventoryClient
 	}
@@ -385,6 +386,16 @@ func TestDKAMController_reconcileAll(t *testing.T) {
 					cancel()
 					return ctx
 				}(),
+			},
+			wantErr: true,
+		},
+		{
+			name: "reconcile test case",
+			fields: fields{
+				invClient: dkam_testing.InvClient,
+			},
+			args: args{
+				ctx: context.Background(),
 			},
 			wantErr: true,
 		},

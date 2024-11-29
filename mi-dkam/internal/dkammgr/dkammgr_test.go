@@ -147,6 +147,10 @@ func TestGetCuratedScript(t *testing.T) {
 		os.Remove(dir + "/profile.sh")
 		os.Remove(config.DownloadPath + "/profile.sh")
 	}()
+	t.Run("empty os type", func(t *testing.T) {
+		err := GetCuratedScript(context.TODO(), &osv1.OperatingSystemResource{})
+		assert.Error(t, err)
+	})
 }
 
 func TestServerUrl(t *testing.T) {
@@ -596,7 +600,7 @@ func TestInitOnboarding(t *testing.T) {
 }
 
 func TestDownloadOs(t *testing.T) {
-	osUrl := "one-intel-edge/tiberos:20241004.0726-3.0"
+	osUrl := "repository/TiberOS/TiberOS-RT/tiber-readonly-rt-1.0.20241117.1004.raw.gz"
 	sha256 := "de04d58dc5ccc4b9671c3627fb8d626fe4a15810bc1fe3e724feea761965f666"
 	fileName := fileNameFromURL(osUrl)
 	rawFileName := strings.TrimSuffix(fileName, ".img") + ".raw.gz"
@@ -609,8 +613,19 @@ func TestDownloadOs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create file: %v", err)
 	}
+
+	path := config.DownloadPath + "/profile.raw.gz"
+	err = os.MkdirAll(filepath.Dir(path), 0755)
+	if err != nil {
+		t.Fatalf("Failed to create directories: %v", err)
+	}
+	osfile, oserr := os.Create(path)
+	if oserr != nil {
+		t.Fatalf("Failed to create file: %v", oserr)
+	}
+	osfile.Close()
 	mux := http.NewServeMux()
-	mux.HandleFunc("/one-intel-edge/tiberos/manifests/20241004.0726-3.0", func(w http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("/repository/TiberOS/TiberOS-RT/tiber-readonly-rt-1.0.20241117.1004.raw.gz", func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(exampleManifests))
 	})
@@ -626,6 +641,10 @@ func TestDownloadOs(t *testing.T) {
 		err = os.RemoveAll(filepath.Dir(expectedFilePath))
 		if err != nil {
 			t.Fatalf("Failed to clean up directories: %v", err)
+		}
+		err = os.Remove(path)
+		if err != nil && !os.IsNotExist(err) {
+			t.Fatalf("Failed to remove file: %v", err)
 		}
 	}()
 	type args struct {
@@ -662,10 +681,24 @@ func TestDownloadOs(t *testing.T) {
 			name: "Test Case With Os Immutable type",
 			args: args{
 				osRes: &osv1.OperatingSystemResource{
-					ImageUrl:   osUrl,
-					OsType:     osv1.OsType_OS_TYPE_IMMUTABLE,
-					Sha256:     sha256,
-					OsProvider: osv1.OsProviderKind_OS_PROVIDER_KIND_EIM,
+					ProfileName: "profile",
+					ImageUrl:    osUrl,
+					OsType:      osv1.OsType_OS_TYPE_IMMUTABLE,
+					Sha256:      sha256,
+					OsProvider:  osv1.OsProviderKind_OS_PROVIDER_KIND_EIM,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Test Case With dummy url",
+			args: args{
+				osRes: &osv1.OperatingSystemResource{
+					ProfileName: "profile",
+					ImageUrl:    "osUrl",
+					OsType:      osv1.OsType_OS_TYPE_IMMUTABLE,
+					Sha256:      sha256,
+					OsProvider:  osv1.OsProviderKind_OS_PROVIDER_KIND_EIM,
 				},
 			},
 			wantErr: false,
@@ -678,4 +711,5 @@ func TestDownloadOs(t *testing.T) {
 			}
 		})
 	}
+	
 }
