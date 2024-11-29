@@ -43,6 +43,14 @@ fi
 export access_token=$(cat /dev/shm/idp_access_token)
 export release_token=$(cat /dev/shm/release_token)
 
+if [ ! -s "/dev/shm/project_id" ];
+then
+    echo "Project ID file is empty, exiting.."
+    exit 1
+fi
+
+export project_id=$(cat /dev/shm/project_id)
+
 source /etc/hook/env_config
 
 #update hosts if they were provided

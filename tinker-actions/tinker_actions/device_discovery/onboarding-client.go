@@ -129,6 +129,17 @@ func grpcStreamClient(ctx context.Context, address string, port int, mac string,
 			case pb.OnboardStreamResponse_ONBOARDED:
 				clientID := resp.ClientId
 				clientSecret := resp.ClientSecret
+				projectID := resp.ProjectId
+
+				// Ensure the Project ID is not empty
+				if projectID == "" {
+					return "", "", fmt.Errorf("received empty Project ID"), fallback
+				}
+
+				// Save the Project ID to a file
+				if err := saveToFile(projectIDPath, projectID); err != nil {
+					return "", "", fmt.Errorf("failed to save Project ID to file: %v", err), fallback
+				}
 
 				// Ensure both clientID and clientSecret are not empty
 				if clientID == "" || clientSecret == "" {

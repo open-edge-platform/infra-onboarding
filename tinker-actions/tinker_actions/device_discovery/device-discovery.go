@@ -48,6 +48,7 @@ const (
 	clientSecretPath        = clientCredentialsFolder + "/client_secret"
 	kernelArgsFilePath      = "/host_proc_cmdline"
 	caCertPath              = "/usr/local/share/ca-certificates/ca.crt"
+	projectIDPath           = clientCredentialsFolder + "/project_id"
 )
 
 func updateHosts(extraHosts string) error {
@@ -191,10 +192,21 @@ func grpcMaestroOnboardNodeJWT(ctx context.Context, address string, port int, ma
 		Payload: []*pb_om.NodeData{nodeData},
 	}
 	// Call the gRPC endpoint with the NodeRequest
-	if _, err := cli.CreateNodes(ctx, nodeRequest); err != nil {
+	var nodeResponse *pb_om.NodeResponse
+	nodeResponse, err = cli.CreateNodes(ctx, nodeRequest)
+	if err != nil {
 		return fmt.Errorf("could not call gRPC endpoint for server %s: %v", target, err)
 	}
 
+	// Check if the ProjectId field is empty
+	if nodeResponse.ProjectId == "" {
+		return fmt.Errorf("received empty Project ID")
+	}
+
+	// Save the Project ID to a file
+	if err := saveToFile(projectIDPath, nodeResponse.ProjectId); err != nil {
+		return fmt.Errorf("failed to save Project ID to file: %v", err)
+	}
 	return nil
 }
 
