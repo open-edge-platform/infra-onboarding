@@ -92,7 +92,8 @@ func (ir *InstanceReconciler) Reconcile(ctx context.Context,
 	}
 
 	if instance.DesiredState == instance.CurrentState {
-		zlogInst.Debug().Msgf("Instance (%s) reconciliation skipped", resourceID)
+		zlogInst.Debug().Msgf("Instance (%s) reconciliation skipped - states current (%s) desired (%s)",
+			resourceID, instance.CurrentState, instance.DesiredState)
 		return request.Ack()
 	}
 
@@ -271,7 +272,7 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 	}
 
 	if instance.GetDesiredOs() == nil {
-		zlogInst.Debug().Msgf("No desired OS specified for instance %s, skipping provisioning.",
+		zlogInst.Warn().Msgf("No desired OS specified for instance %s, skipping provisioning.",
 			instance.GetResourceId())
 		return nil
 	}
@@ -284,6 +285,8 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 
 	deviceInfo, err := convertInstanceToDeviceInfo(instance, *licenseProviderConfig)
 	if err != nil {
+		zlogInst.MiSec().Err(err).Msgf("Failed convertInstanceToDeviceInfo - Instance %s with Host UUID %s",
+			instance.GetResourceId(), instance.GetHost().GetUuid())
 		return err
 	}
 
@@ -300,27 +303,37 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 		}
 		// should be safe to not return an error
 		// if the inventory client fails, this will be eventually fixed in the next reconciliation cycle
+		zlogInst.MiSec().Err(err).Msgf("Updating Host and Instance status - Instance %s with Host UUID %s",
+			instance.GetResourceId(), instance.GetHost().GetUuid())
 		ir.updateHostInstanceStatusAndCurrentState(ctx, oldInstance, instance)
 	}()
 
 	// 1. Check status of DI workflow and initiate if it's not running
 	if err := onbworkflowclient.CheckStatusOrRunDIWorkflow(ctx, deviceInfo, instance); err != nil {
+		zlogInst.MiSec().Err(err).Msgf("Failed CheckStatusOrRunDIWorkflow - Instance %s with Host UUID %s",
+			instance.GetResourceId(), instance.GetHost().GetUuid())
 		return err
 	}
 
 	// 2. Run FDO actions
 	if err := onbworkflowclient.RunFDOActions(ctx, instance.GetTenantId(), &deviceInfo); err != nil {
+		zlogInst.MiSec().Err(err).Msgf("Failed RunFDOActions - Instance %s with Host UUID %s",
+			instance.GetResourceId(), instance.GetHost().GetUuid())
 		return err
 	}
 
 	// 3. Check status of Reboot workflow and initiate if it's not running
 	if err := onbworkflowclient.CheckStatusOrRunRebootWorkflow(ctx, deviceInfo, instance); err != nil {
+		zlogInst.MiSec().Err(err).Msgf("Failed CheckStatusOrRunRebootWorkflow - Instance %s with Host UUID %s",
+			instance.GetResourceId(), instance.GetHost().GetUuid())
 		return err
 	}
 
 	// 4. Check status of Prod Workflow and initiate if it's not running.
 	//    NOTE that Prod workflow will only start if TO2 process is completed.
 	if err := onbworkflowclient.CheckStatusOrRunProdWorkflow(ctx, deviceInfo, instance); err != nil {
+		zlogInst.MiSec().Err(err).Msgf("Failed CheckStatusOrRunProdWorkflow - Instance %s with Host UUID %s",
+			instance.GetResourceId(), instance.GetHost().GetUuid())
 		return err
 	}
 
