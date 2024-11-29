@@ -81,6 +81,7 @@ message NodeRequest {
 
 message NodeResponse {
   repeated NodeData payload = 1; // Payload data
+  string project_id = 2; // The project_id associated with the node, identifying the project to which the node belongs
 }
 
 message NodeData {
@@ -167,4 +168,5 @@ message OnboardStreamResponse {
   NodeState node_state = 2; // The current state of the device as stored in EIM Inventory
   string client_id = 3; // The client_id provided to the node upon successful onboarding
   string client_secret = 4; // The client_secret provided to the node upon successful onboarding
+  string project_id = 5; // The project_id associated with the node, identifying the project to which the node belongs
 }

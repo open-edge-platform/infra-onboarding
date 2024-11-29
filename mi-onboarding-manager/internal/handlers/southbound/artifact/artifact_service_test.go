@@ -227,7 +227,7 @@ func TestNodeArtifactService_CreateNodes_Case(t *testing.T) {
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
-})
+	})
 	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
 	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	tests := []struct {
@@ -537,7 +537,7 @@ func TestNodeArtifactService_CreateNodes_Case3(t *testing.T) {
 				ctx: ctx,
 				req: mockRequest,
 			},
-			want:    &pb.NodeResponse{Payload: payloads},
+			want:    &pb.NodeResponse{Payload: payloads, ProjectId: tenant1},
 			wantErr: false,
 		},
 		{
@@ -714,7 +714,7 @@ func TestNodeArtifactService_CreateNodes_Case_Success(t *testing.T) {
 				ctx: ctx,
 				req: mockRequest1,
 			},
-			want:    &pb.NodeResponse{Payload: payloads1},
+			want:    &pb.NodeResponse{Payload: payloads1, ProjectId: tenant1},
 			wantErr: false,
 		},
 	}

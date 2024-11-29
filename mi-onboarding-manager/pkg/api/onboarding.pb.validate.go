@@ -756,6 +756,8 @@ func (m *NodeResponse) validate(all bool) error {
 
 	}
 
+	// no validation rules for ProjectId
+
 	if len(errors) > 0 {
 		return NodeResponseMultiError(errors)
 	}
@@ -1731,6 +1733,8 @@ func (m *OnboardStreamResponse) validate(all bool) error {
 	// no validation rules for ClientId
 
 	// no validation rules for ClientSecret
+
+	// no validation rules for ProjectId
 
 	if len(errors) > 0 {
 		return OnboardStreamResponseMultiError(errors)

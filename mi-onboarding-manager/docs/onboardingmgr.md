@@ -194,6 +194,7 @@ Node App Artifact ID to be stored here.This ID is retured to GetArtifacts{id} |
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | payload | [NodeData](#onboardingmgr-NodeData) | repeated | Payload data |
+| project_id | [string](#string) |  | The project_id associated with the node, identifying the project to which the node belongs |
 
 
 
@@ -231,6 +232,7 @@ over the bidirectional stream
 | node_state | [OnboardStreamResponse.NodeState](#onboardingmgr-OnboardStreamResponse-NodeState) |  | The current state of the device as stored in EIM Inventory |
 | client_id | [string](#string) |  | The client_id provided to the node upon successful onboarding |
 | client_secret | [string](#string) |  | The client_secret provided to the node upon successful onboarding |
+| project_id | [string](#string) |  | The project_id associated with the node, identifying the project to which the node belongs |
 
 
 

@@ -227,6 +227,7 @@ func (s *NonInteractiveOnboardingService) handleRegisteredState(stream pb.NonInt
 	response := &pb.OnboardStreamResponse{
 		Status:    &google_rpc.Status{Code: int32(codes.OK)},
 		NodeState: pb.OnboardStreamResponse_REGISTERED,
+		ProjectId: hostInv.GetTenantId(),
 	}
 	if err := sendOnboardStreamResponse(stream, response); err != nil {
 		return err
@@ -262,6 +263,7 @@ func (s *NonInteractiveOnboardingService) handleOnboardedState(stream pb.NonInte
 		Status:       &google_rpc.Status{Code: int32(codes.OK)},
 		ClientId:     clientID,
 		ClientSecret: clientSecret,
+		ProjectId:    hostInv.GetTenantId(),
 	}); err != nil {
 		zlog.Error().Err(err).Msg("Failed to send response client Id and secret on the stream")
 		return err
@@ -608,7 +610,7 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 			zlog.MiSec().MiErr(ztErr).Msgf("startZeroTouch error: %v", ztErr)
 			return nil, ztErr
 		}
-		return &pb.NodeResponse{Payload: req.Payload}, nil
+		return &pb.NodeResponse{Payload: req.Payload, ProjectId: hostInv.GetTenantId()}, nil
 	case err != nil:
 		zlog.MiSec().MiErr(err).Msgf("Create op :Failed CreateNodes() for GUID %s tID=%s \n", host.Uuid, tenantID)
 		return nil, err
@@ -626,7 +628,7 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 		return nil, err
 	}
 
-	return &pb.NodeResponse{Payload: req.Payload}, nil
+	return &pb.NodeResponse{Payload: req.Payload, ProjectId: hostInv.GetTenantId()}, nil
 }
 
 func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
