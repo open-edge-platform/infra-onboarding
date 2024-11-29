@@ -43,7 +43,8 @@ func (hr *HostReconciler) Reconcile(ctx context.Context,
 	}
 	resourceID := request.ID.GetResourceID()
 	tenantID := request.ID.GetTenantID()
-	zlogHost.Info().Msgf("Reconciling Host resourceID %s and tenantID %s", resourceID, tenantID)
+	zlogHost.Info().Msgf("Reconciling Host")
+	zlogHost.Debug().Msgf("Reconciling Host resourceID %s and tenantID %s", resourceID, tenantID)
 
 	host, err := hr.invClient.GetHostResourceByResourceID(ctx, tenantID, resourceID)
 	if directive := HandleInventoryError(err, request); directive != nil {
@@ -52,8 +53,7 @@ func (hr *HostReconciler) Reconcile(ctx context.Context,
 
 	// Forbid Host provisioning with defined Provider. Such Host should be reconciled within Provider-specific RM.
 	if host.GetProvider() != nil {
-		zlogHost.Info().Msgf("Host %s should be reconciled within other vendor-specific RM (%s)",
-			host.GetResourceId(), host.GetProvider().GetName())
+		zlogHost.Info().Msgf("Host should be reconciled within other vendor-specific RM (%s)", host.GetProvider().GetName())
 		return request.Ack()
 	}
 
@@ -96,8 +96,8 @@ func (hr *HostReconciler) reconcileHost(
 
 func (hr *HostReconciler) checkIfInstanceIsAssociated(ctx context.Context, host *computev1.HostResource) error {
 	if host.GetInstance() != nil {
-		reconcErr := inv_errors.Errorf("Instance %s is still assigned to host %s, waiting for Instance to be deleted first",
-			host.GetInstance().GetResourceId(), host.GetResourceId())
+		reconcErr := inv_errors.Errorf("Instance is still assigned to host, waiting for Instance to be deleted first")
+		zlogHost.Debug().Err(reconcErr).Msgf("Instance %s  host %s", host.GetInstance().GetResourceId(), host.GetResourceId())
 		zlogHost.Warn().Err(reconcErr).Msg("")
 
 		details := fmt.Sprintf("waiting on %s deletion", host.GetInstance().GetResourceId())
@@ -118,7 +118,7 @@ func (hr *HostReconciler) deleteHost(
 	ctx context.Context,
 	host *computev1.HostResource,
 ) error {
-	zlogHost.Info().Msgf("Deleting host ID %s (set current status Deleted)\n", host.GetResourceId())
+	zlogHost.Debug().Msgf("Deleting host ID %s (set current status Deleted)\n", host.GetResourceId())
 
 	// if a host has still relationship with Instance, do not proceed with deletion.
 	if err := hr.checkIfInstanceIsAssociated(ctx, host); err != nil {
@@ -141,29 +141,28 @@ func (hr *HostReconciler) deleteHost(
 	// following functions are only modifying current state
 	// we continue to delete other host objects in case of not found errors
 	if err := hr.deleteHostNicByHost(ctx, host); err != nil {
-		zlogHost.MiSec().MiError("Failed to delete host nic resource of Host (%s)", host.GetResourceId()).Msg("deleteHost")
+		zlogHost.MiSec().MiError("Failed to delete host nic resource of Host").Msg("deleteHost")
 		return err
 	}
 
 	if err := hr.deleteHostStorageByHost(ctx, host); err != nil {
-		zlogHost.MiSec().MiError("Failed to delete host storage resource of Host (%s)",
-			host.GetResourceId()).Msg("deleteHost")
+		zlogHost.MiSec().MiError("Failed to delete host storage resource of Host").Msg("deleteHost")
 		return err
 	}
 
 	if err := hr.deleteHostUsbByHost(ctx, host); err != nil {
-		zlogHost.MiSec().MiError("Failed to delete host usb resource of Host (%s)", host.GetResourceId()).Msg("deleteHost")
+		zlogHost.MiSec().MiError("Failed to delete host usb resource of Host").Msg("deleteHost")
 		return err
 	}
 
 	if err := hr.deleteHostGpuByHost(ctx, host); err != nil {
-		zlogHost.MiSec().MiError("Failed to delete host gpu resource of Host (%s)", host.GetResourceId()).Msg("deleteHost")
+		zlogHost.MiSec().MiError("Failed to delete host gpu resource of Host").Msg("deleteHost")
 		return err
 	}
 
 	err := hr.invClient.DeleteHostResource(ctx, host.GetTenantId(), host.GetResourceId())
 	if err != nil {
-		zlogHost.MiSec().MiError("Failed to delete Host %s", host.GetResourceId()).Msg("deleteHost")
+		zlogHost.MiSec().MiError("Failed to delete Host").Msg("deleteHost")
 		// inventory error will be handled by upper layer
 		return err
 	}

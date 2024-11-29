@@ -256,7 +256,7 @@ func (s *NonInteractiveOnboardingService) handleOnboardedState(stream pb.NonInte
 		zlog.Error().Err(err).Msg("Failed to fetch client id and secret from keycloak")
 		return err
 	}
-	zlog.Info().Msgf("Host Desired state : %v\n, client ID: %v\n client secret: %v\n",
+	zlog.Debug().Msgf("Host Desired state : %v\n, client ID: %v\n client secret: %v\n",
 		hostInv.DesiredState, clientID, clientSecret)
 	if err := sendOnboardStreamResponse(stream, &pb.OnboardStreamResponse{
 		NodeState:    pb.OnboardStreamResponse_ONBOARDED,
@@ -307,19 +307,21 @@ func (s *NonInteractiveOnboardingService) getHostResource(req *pb.OnboardStreamR
 		hostResourceByUUID, errUUID = s.invClient.GetHostResource(context.Background(), computev1.HostResourceFieldUuid, req.Uuid)
 		if errUUID != nil {
 			if inv_errors.IsNotFound(errUUID) {
-				zlog.Error().Err(errUUID).Msgf("Node doesn't exist for UUID: %v", req.Uuid)
+				zlog.Debug().Msgf("Node doesn't exist for UUID: %v", req.Uuid)
+				zlog.Error().Err(errUUID).Msgf("Node doesn't exist for UUID")
 			} else {
-				zlog.Error().Err(errUUID).Msgf("Error retrieving host resource by UUID: %v", req.Uuid)
+				zlog.Debug().Msgf("Error retrieving host resource by UUID: %v", req.Uuid)
+				zlog.Error().Err(errUUID).Msgf("Error retrieving host resource by UUID")
 				return nil, inv_errors.Errorfc(codes.Internal, "Error retrieving host resource by UUID")
 			}
 		} else {
 			uuidMatch = true
 			hostResource = hostResourceByUUID
-			zlog.Info().Msgf("Node exists for UUID %v", req.Uuid)
+			zlog.Debug().Msgf("Node exists for UUID %v", req.Uuid)
 
 			// Check the associated serial number
 			if hostResource.SerialNumber == "" {
-				zlog.Info().Msgf("Proceeding with registration for UUID %v with no Serial Number in inventory", req.Uuid)
+				zlog.Debug().Msgf("Proceeding with registration for UUID %v with no Serial Number in inventory", req.Uuid)
 				return hostResource, nil
 			}
 		}
@@ -335,9 +337,11 @@ func (s *NonInteractiveOnboardingService) getHostResource(req *pb.OnboardStreamR
 		)
 		if errSN != nil {
 			if inv_errors.IsNotFound(errSN) {
-				zlog.Error().Err(errSN).Msgf("Node doesn't exist for serial number: %v", req.Serialnum)
+				zlog.Debug().Msgf("Node doesn't exist for serial number: %v", req.Serialnum)
+				zlog.Error().Err(errSN).Msgf("Node doesn't exist for serial number")
 			} else {
-				zlog.Error().Err(errSN).Msgf("Error retrieving host resource by serial number: %v", req.Serialnum)
+				zlog.Debug().Msgf("Error retrieving host resource by serial number: %v", req.Serialnum)
+				zlog.Error().Err(errSN).Msgf("Error retrieving host resource by serial number")
 				return nil, inv_errors.Errorfc(codes.Internal, "Error retrieving host resource by serial number")
 			}
 		} else {
@@ -345,7 +349,7 @@ func (s *NonInteractiveOnboardingService) getHostResource(req *pb.OnboardStreamR
 			if hostResource == nil {
 				hostResource = hostResourceBySN
 			}
-			zlog.Info().Msgf("Node exists for serial number %v", req.Serialnum)
+			zlog.Debug().Msgf("Node exists for serial number %v", req.Serialnum)
 
 			if hostResource.Uuid == "" {
 				hostResource.Uuid = req.Uuid
@@ -354,7 +358,7 @@ func (s *NonInteractiveOnboardingService) getHostResource(req *pb.OnboardStreamR
 					zlog.Error().Err(errUpdate).Msgf("failed to updated the host resource uuid: %v", errUpdate)
 					return nil, inv_errors.Errorfc(codes.Internal, "failed to updated the host resource uuid")
 				}
-				zlog.Info().Msgf("Proceeding with registration for Serial Number %v with no UUID in inventory", req.Serialnum)
+				zlog.Debug().Msgf("Proceeding with registration for Serial Number %v with no UUID in inventory", req.Serialnum)
 				return hostResource, nil
 			}
 		}
@@ -365,13 +369,13 @@ func (s *NonInteractiveOnboardingService) getHostResource(req *pb.OnboardStreamR
 		// Ensure both resources are not nil
 		if hostResourceByUUID != nil && hostResourceBySN != nil {
 			if hostResourceByUUID.ResourceId != hostResourceBySN.ResourceId {
-				zlog.Warn().Msgf("Mismatch: UUID %v and Serial Number %v refer to different resources", req.Uuid, req.Serialnum)
+				zlog.Debug().Msgf("Mismatch: UUID %v and Serial Number %v refer to different resources", req.Uuid, req.Serialnum)
 				return nil, inv_errors.Errorfc(codes.InvalidArgument, "UUID and Serial Number refer to different resources")
 			}
 			// Set hostResource to one of them (either works)
 			hostResource = hostResourceByUUID // or hostResourceBySN, both are the same in this case
 		} else {
-			zlog.Warn().Msg("One of the resources is nil while checking for UUID and Serial Number match")
+			zlog.Debug().Msg("One of the resources is nil while checking for UUID and Serial Number match")
 			return nil, inv_errors.Errorfc(codes.Internal, "Error: One of the host resources is nil")
 		}
 	}
@@ -391,7 +395,8 @@ func (s *NonInteractiveOnboardingService) getHostResource(req *pb.OnboardStreamR
 			detail = req.Uuid
 			status = om_status.HostRegistrationUUIDFailedWithDetails(detail)
 			errorType = computev1.HostResourceFieldUuid
-			zlog.Error().Msgf("Node doesn't exist for UUID: %v", detail)
+			zlog.Debug().Msgf("Node doesn't exist for UUID: %v", detail)
+			zlog.Error().Msgf("Node doesn't exist for UUID")
 		}
 
 		// Update host details if hostResource is not nil
@@ -407,7 +412,7 @@ func (s *NonInteractiveOnboardingService) getHostResource(req *pb.OnboardStreamR
 	}
 
 	if uuidMatch && serialNumberMatch {
-		zlog.Info().Msgf("Both UUID and Serial Number match: %v", hostResource)
+		zlog.Debug().Msgf("Both UUID and Serial Number match: %v", hostResource)
 		return hostResource, nil // Return the matched host resource
 	}
 
@@ -416,9 +421,7 @@ func (s *NonInteractiveOnboardingService) getHostResource(req *pb.OnboardStreamR
 		zlog.Info().Msg("Device not found for provided UUID and Serial Number")
 		return nil, inv_errors.Errorfc(
 			codes.NotFound,
-			"Device not found for both UUID: %v and Serial Number: %v",
-			req.Uuid,
-			req.Serialnum,
+			"Device not found for both UUID and Serial Number",
 		)
 	}
 
@@ -485,14 +488,14 @@ func (s *NonInteractiveOnboardingService) OnboardNodeStream(
 		// the OM sends a FAILED_PRECONDITION
 		if hostInv.CurrentState == computev1.HostState_HOST_STATE_ONBOARDED ||
 			hostInv.CurrentState == computev1.HostState_HOST_STATE_ERROR {
-			zlog.Info().Msgf("Node already exists for UUID %v and node current state %v",
+			zlog.Debug().Msgf("Node already exists for UUID %v and node current state %v",
 				req.Uuid, hostInv.CurrentState)
 			// Send a failure response indicating the node is already onboarded or provisioned.
 			return sendStreamErrorResponse(stream, codes.FailedPrecondition,
 				fmt.Sprintf("Node is already %s", hostInv.CurrentState.String()))
 		}
 
-		zlog.Info().Msgf("Node %v exists in inventory. Desired state: %v, Current state: %v",
+		zlog.Debug().Msgf("Node %v exists in inventory. Desired state: %v, Current state: %v",
 			hostInv.Uuid, hostInv.DesiredState, hostInv.CurrentState)
 
 		// 3. If the DesiredState is not REGISTERED, or ONBOARDED,
@@ -584,14 +587,14 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 	hostInv, err = s.invClient.GetHostResourceByUUID(ctx, tenantID, host.Uuid)
 	switch {
 	case inv_errors.IsNotFound(err):
-		zlog.Info().Msgf("Create op : Node Doesn't Exist for GUID %s and tID=%s\n",
+		zlog.Debug().Msgf("Create op : Node Doesn't Exist for GUID %s and tID=%s\n",
 			host.Uuid, tenantID)
 	case err == nil:
 		zlog.Debug().Msgf("Create op : Node and its Host Resource Already Exist for GUID %s, tID=%s \n",
 			host.Uuid, tenantID)
 		// UUID found and check for the serial number matches
 		if hostInv.SerialNumber != host.SerialNumber {
-			zlog.Info().Msgf("Serial number mismatch for GUID %s, updating host resource", host.Uuid)
+			zlog.Debug().Msgf("Serial number mismatch for GUID %s, updating host resource", host.Uuid)
 			// Update the host resource with the correct serial number
 			// and all required fields host registration and onboarding status for serial id mismatch
 			hostInv.SerialNumber = host.SerialNumber
@@ -612,7 +615,8 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 		}
 		return &pb.NodeResponse{Payload: req.Payload, ProjectId: hostInv.GetTenantId()}, nil
 	case err != nil:
-		zlog.MiSec().MiErr(err).Msgf("Create op :Failed CreateNodes() for GUID %s tID=%s \n", host.Uuid, tenantID)
+		zlog.Debug().Msgf("Create op :Failed CreateNodes() for GUID %s tID=%s \n", host.Uuid, tenantID)
+		zlog.MiSec().MiErr(err).Msgf("Create op :Failed CreateNodes()\n")
 		return nil, err
 	}
 	// UUID not found, create a new host
@@ -664,7 +668,8 @@ func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.NodeReque
 
 	switch {
 	case inv_errors.IsNotFound(err):
-		zlog.MiSec().MiErr(err).Msgf("Delete op : Node Doesn't Exist for GUID %s ,tID=%s\n", hostresdata[0].Uuid, tenantID)
+		zlog.Debug().Msgf("Delete op : Node Doesn't Exist for GUID %s ,tID=%s\n", hostresdata[0].Uuid, tenantID)
+		zlog.MiSec().MiErr(err).Msgf("Delete op : Node Doesn't Exist for GUID, tID\n")
 		return &pb.NodeResponse{Payload: req.Payload}, nil
 
 	case err == nil:
@@ -672,7 +677,8 @@ func (s *NodeArtifactService) DeleteNodes(ctx context.Context, req *pb.NodeReque
 			hostresdata[0].Uuid, tenantID)
 
 	case err != nil:
-		zlog.MiSec().MiErr(err).Msgf("Delete op : Failed DeleteNodes() for GUID %s,tID=%s\n", hostresdata[0].Uuid, tenantID)
+		zlog.Debug().Msgf("Delete op : Failed DeleteNodes() for GUID %s,tID=%s\n", hostresdata[0].Uuid, tenantID)
+		zlog.MiSec().MiErr(err).Msgf("Delete op : Failed DeleteNodes() for GUID,tID\n")
 		return nil, err
 	}
 
@@ -717,14 +723,16 @@ func (s *NodeArtifactService) GetNodes(ctx context.Context, req *pb.NodeRequest)
 	var tempErr error
 	switch {
 	case inv_errors.IsNotFound(err):
-		zlog.MiSec().MiErr(err).Msgf("Get op : Node Doesn't Exist for GUID %s\n", guid)
+		zlog.Debug().Msgf("Get op : Node Doesn't Exist for GUID %s\n", guid)
+		zlog.MiSec().MiErr(err).Msgf("Get op : Node Doesn't Exist for GUID\n")
 		return nil, tempErr
 
 	case err == nil:
 		zlog.Debug().Msgf("Get op : Node and its Host Resource Already Exist for GUID %s \n", guid)
 
 	case err != nil:
-		zlog.MiSec().MiErr(err).Msgf("Get op : Failed CreateNodes() for GUID %s\n", guid)
+		zlog.Debug().Msgf("Get op : Failed CreateNodes() for GUID %s\n", guid)
+		zlog.MiSec().MiErr(err).Msgf("Get op : Failed CreateNodes() for GUID\n")
 		return nil, err
 	}
 
@@ -767,14 +775,16 @@ func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeReque
 	hostInv, err := s.invClient.GetHostResourceByUUID(ctx, tenantID, host[0].Uuid)
 	switch {
 	case inv_errors.IsNotFound(err):
-		zlog.MiSec().MiErr(err).Msgf("Update op : Node Doesn't Exist for GUID %s,tID=%s\n", host[0].Uuid, tenantID)
+		zlog.Debug().Msgf("Update op : Node Doesn't Exist for GUID %s,tID=%s\n", host[0].Uuid, tenantID)
+		zlog.MiSec().MiErr(err).Msgf("Update op : Node Doesn't Exist for GUID,tID\n")
 		return nil, err
 
 	case err == nil:
 		zlog.Debug().Msgf("Update op : Node and its Host Resource Already Exist for GUID %s ,tID=%s\n", host[0].Uuid, tenantID)
 
 	case err != nil:
-		zlog.MiSec().MiErr(err).Msgf("Update op : Failed CreateNodes() for GUID %s,tID=%s\n", host[0].Uuid, tenantID)
+		zlog.Debug().Msgf("Update op : Failed CreateNodes() for GUID %s,tID=%s\n", host[0].Uuid, tenantID)
+		zlog.MiSec().MiErr(err).Msgf("Update op : Failed CreateNodes() for GUID,tID\n")
 		return nil, err
 	}
 
@@ -801,7 +811,8 @@ func (s *NodeArtifactService) UpdateNodes(ctx context.Context, req *pb.NodeReque
 }
 
 func (s *InventoryClientService) startZeroTouch(ctx context.Context, tenantID, hostResID string) error {
-	zlog.Info().Msgf("Starting zero touch for host ID %s  tenant ID %s...", hostResID, tenantID)
+	zlog.Debug().Msgf("Starting zero touch for host ID %s  tenant ID %s...", hostResID, tenantID)
+	zlog.Info().Msgf("Starting zero touch for host")
 
 	host, err := s.invClient.GetHostResourceByResourceID(ctx, tenantID, hostResID)
 	if err != nil {
@@ -847,13 +858,15 @@ func (s *InventoryClientService) checkNCreateInstance(ctx context.Context, tenan
 		}
 		osRes, err := s.invClientAPI.GetOSResourceByResourceID(ctx, tenantID, pconf.DefaultOs)
 		if err != nil {
-			zlog.Err(err).Msgf("Failed to GetOSResourceByResourceID for host resource (uuid=%s)", hostResID)
+			zlog.Debug().Msgf("Failed to GetOSResourceByResourceID for host resource (uuid=%s)", hostResID)
+			zlog.Err(err).Msgf("Failed to GetOSResourceByResourceID for host resource")
 			return err
 		}
 		instance.SecurityFeature = osRes.GetSecurityFeature()
 
 		if _, err := s.invClientAPI.CreateInstanceResource(ctx, tenantID, instance); err != nil {
-			zlog.Err(err).Msgf("Failed to CreateInstanceResource for host resource (uuid=%s),tID=%s", hostResID, tenantID)
+			zlog.Debug().Msgf("Failed to CreateInstanceResource for host resource (uuid=%s),tID=%s", hostResID, tenantID)
+			zlog.Err(err).Msgf("Failed to CreateInstanceResource for host resource uuid,tID")
 			return err
 		}
 	}

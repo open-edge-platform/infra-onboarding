@@ -193,7 +193,7 @@ func (obc *OnboardingController) reconcileResource(tenantID, resourceID string) 
 	}
 
 	if err = controller.Reconcile(reconcilers.NewReconcilerID(tenantID, resourceID)); err != nil {
-		zlog.Err(err).Msgf("Error while reconciling resource ID %s", resourceID)
+		zlog.Err(err).Msgf("Error while reconciling resource")
 		return err
 	}
 	return nil

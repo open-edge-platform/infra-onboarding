@@ -240,7 +240,6 @@ func FuzzNewSBHandler(f *testing.F) {
 				t.Logf("Handler created successfully: %+v", handler)
 			}
 		}
-
 	})
 }
 

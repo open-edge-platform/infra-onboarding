@@ -668,6 +668,7 @@ func TestNodeArtifactService_CreateNodes_Case4(t *testing.T) {
 		})
 	}
 }
+
 func TestNodeArtifactService_CreateNodes_Case_Success(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
@@ -1608,7 +1609,6 @@ func TestNodeArtifactService_GetNodes_Case3(t *testing.T) {
 }
 
 func TestNodeArtifactService_GetNodes_MultiTenant(t *testing.T) {
-
 	rbacServer, err := rbac.New(rbacRules)
 	require.NoError(t, err)
 
@@ -2747,7 +2747,6 @@ func TestNodeArtifactService_startZeroTouch_Case4(t *testing.T) {
 }
 
 func TestNodeArtifactService_startZeroTouch_MultiTenant(t *testing.T) {
-
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
@@ -3578,6 +3577,7 @@ func TestNodeArtifactService_handleDefaultState(t *testing.T) {
 		})
 	}
 }
+
 func TestNewNonInteractiveOnboardingService(t *testing.T) {
 	type args struct {
 		invClient     *invclient.OnboardingInventoryClient
@@ -3634,6 +3634,7 @@ func TestNewNonInteractiveOnboardingService(t *testing.T) {
 		})
 	}
 }
+
 func TestNodeArtifactServiceOnboardNodeStream(t *testing.T) {
 	type fields struct {
 		UnimplementedNonInteractiveOnboardingServiceServer pb.UnimplementedNonInteractiveOnboardingServiceServer
@@ -3869,7 +3870,7 @@ func TestNodeArtifactService_getHostResourcetest(t *testing.T) {
 	host1 := inv_testing.CreateHostWithArgs(t, "host-1", "44414747-3031-3052-b030-453347474122", "", "", nil, nil, true)
 	host2 := inv_testing.CreateHostWithArgs(t, "host-2", "", "ABCDEFG", "", nil, nil, true)
 	host3 := inv_testing.CreateHostWithArgs(t, "host-3", "44414747-3031-3052-b030-453347474166", "ABCDEHI", "", nil, nil, true)
-	//host4 := inv_testing.CreateHostWithArgs(t, "host-4", "", "", "", nil, nil, true)
+	// host4 := inv_testing.CreateHostWithArgs(t, "host-4", "", "", "", nil, nil, true)
 
 	tests := []struct {
 		name    string
@@ -4065,7 +4066,6 @@ func FuzzCreateNodes(f *testing.F) {
 		if err != nil {
 			t.Errorf("CreateNodes returned an error: %v", err)
 		}
-
 	})
 }
 
@@ -4120,7 +4120,6 @@ func generateValidSutIp() string {
 }
 
 func FuzzOnboardNodeStream(f *testing.F) {
-
 	f.Add("hostip")
 	f.Fuzz(func(t *testing.T, ip string) {
 		resp := &pb.OnboardStreamRequest{

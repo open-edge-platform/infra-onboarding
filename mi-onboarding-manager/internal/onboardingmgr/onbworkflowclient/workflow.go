@@ -118,7 +118,7 @@ func CheckStatusOrRunProdWorkflow(ctx context.Context,
 	deviceInfo utils.DeviceInfo,
 	instance *computev1.InstanceResource,
 ) error {
-	zlog.Info().Msgf("Checking status of Prod workflow for host %s", deviceInfo.GUID)
+	zlog.Debug().Msgf("Checking status of Prod workflow for host %s", deviceInfo.GUID)
 
 	kubeClient, err := tinkerbell.K8sClientFactory()
 	if err != nil {
@@ -157,7 +157,7 @@ func CheckStatusOrRunProdWorkflow(ctx context.Context,
 func runProdWorkflow(
 	ctx context.Context, k8sCli client.Client, deviceInfo utils.DeviceInfo, instance *computev1.InstanceResource,
 ) error {
-	zlog.Info().Msgf("Creating prod workflow for host %s", deviceInfo.GUID)
+	zlog.Debug().Msgf("Creating prod workflow for host %s", deviceInfo.GUID)
 
 	if *common.FlagEnableDeviceInitialization {
 		zlog.Debug().Msgf("Checking TO2 status completed for host %s", deviceInfo.GUID)
@@ -462,7 +462,7 @@ func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName string)
 func runDIWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils.DeviceInfo,
 	instance *computev1.InstanceResource,
 ) error {
-	zlog.Info().Msgf("Creating DI workflow for host %s", deviceInfo.GUID)
+	zlog.Debug().Msgf("Creating DI workflow for host %s", deviceInfo.GUID)
 
 	if err := tinkerbell.CreateHardwareIfNotExists(ctx, k8sCli, env.K8sNamespace, deviceInfo,
 		instance.GetDesiredOs().ResourceId); err != nil {
@@ -494,7 +494,7 @@ func runDIWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils.D
 }
 
 func runRebootWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo utils.DeviceInfo) error {
-	zlog.Info().Msgf("Creating Reboot workflow for host %s", deviceInfo.GUID)
+	zlog.Debug().Msgf("Creating Reboot workflow for host %s", deviceInfo.GUID)
 
 	rebootTemplate, err := tinkerbell.GenerateTemplateForNodeReboot(env.K8sNamespace, deviceInfo)
 	if err != nil {
@@ -521,11 +521,11 @@ func runRebootWorkflow(ctx context.Context, k8sCli client.Client, deviceInfo uti
 }
 
 func uploadFDOVoucherScript(ctx context.Context, deviceInfo utils.DeviceInfo) (string, error) {
-	zlog.Info().Msgf("Uploading FDO voucher script for host %s", deviceInfo.GUID)
+	zlog.Debug().Msgf("Uploading FDO voucher script for host %s", deviceInfo.GUID)
 
 	fdoGUID, err := fdoclient.DoVoucherExtension(ctx, deviceInfo)
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("Failed to upload FDO voucher extensions for host %s", deviceInfo.GUID)
+		zlog.MiSec().MiErr(err).Msgf("Failed to upload FDO voucher extensions for host")
 		return "", err
 	}
 

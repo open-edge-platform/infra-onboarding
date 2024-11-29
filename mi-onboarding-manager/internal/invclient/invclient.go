@@ -327,8 +327,8 @@ func (c *OnboardingInventoryClient) GetHostBmcNic(ctx context.Context, host *com
 	}
 
 	if len(hostNics) > 1 {
-		zlog.Warn().Msgf("More than one BMC interface found for host %s, using the first NIC from the list.",
-			host.GetResourceId())
+		zlog.Debug().Msgf("host ID %s", host.GetResourceId())
+		zlog.Warn().Msgf("More than one BMC interface found for host, using the first NIC from the list.")
 	}
 
 	return hostNics[0], nil
@@ -564,7 +564,7 @@ func (c *OnboardingInventoryClient) DeleteResource(ctx context.Context, tenantID
 		return nil
 	}
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("Failed to delete resource: resourceID=%s", resourceID)
+		zlog.MiSec().MiErr(err).Msgf("Failed to delete resource: resourceID")
 		return err
 	}
 	return err
@@ -684,7 +684,7 @@ func (c *OnboardingInventoryClient) DeleteIPAddress(ctx context.Context, tenantI
 		return nil
 	}
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("Failed delete IPAddress resource %s", resourceID)
+		zlog.MiSec().MiErr(err).Msgf("Failed delete IPAddress resource")
 		return err
 	}
 

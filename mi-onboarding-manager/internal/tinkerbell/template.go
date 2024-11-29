@@ -83,7 +83,8 @@ func GenerateTemplateForDI(k8sNamespace string, deviceInfo utils.DeviceInfo) (*t
 	if err != nil {
 		// failed to marshal template data
 		zlog.MiSec().MiErr(err).Msg("")
-		return nil, inv_errors.Errorf("Failed to generate DI template resources for host %s", deviceInfo.GUID)
+		zlog.Debug().Msgf("Failed to generate DI template resources for host %s", deviceInfo.GUID)
+		return nil, inv_errors.Errorf("Failed to generate DI template resources for host")
 	}
 	tmpl := NewTemplate(string(tmplData), tmplName, k8sNamespace)
 

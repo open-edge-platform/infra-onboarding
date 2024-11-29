@@ -107,7 +107,8 @@ func FetchClientSecret(ctx context.Context, tenantID, uuid string) (string, stri
 	if err != nil {
 		zlog.MiSec().MiErr(err).Msgf("")
 		// some other error that may need retry
-		return "", "", inv_errors.Errorf("Failed to check if EN credentials for host %s exist.", uuid)
+		zlog.Debug().Msgf("Failed to check if EN credentials for host %s exist.", uuid)
+		return "", "", inv_errors.Errorf("Failed to check if EN credentials for host exist.")
 	}
 
 	zlog.Debug().Msgf("EN credentials for host %s already exists.", uuid)

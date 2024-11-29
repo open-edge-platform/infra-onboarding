@@ -63,7 +63,8 @@ func (ir *InstanceReconciler) Reconcile(ctx context.Context,
 	}
 	resourceID := request.ID.GetResourceID()
 	tenantID := request.ID.GetTenantID()
-	zlogInst.Info().Msgf("Reconciling Instance resourceID (%s) and tenantID (%s)", resourceID, tenantID)
+	zlogInst.Info().Msgf("Reconciling Instance")
+	zlogInst.Debug().Msgf("Reconciling Instance resourceID (%s) and tenantID (%s)", resourceID, tenantID)
 
 	instance, err := ir.invClient.GetInstanceResourceByResourceID(ctx, tenantID, resourceID)
 	if directive := HandleInventoryError(err, request); directive != nil {
@@ -79,15 +80,14 @@ func (ir *InstanceReconciler) Reconcile(ctx context.Context,
 		// ATM I (Tomasz) believe that a user should delete via UI and re-configure host again,
 		// once the issue is fixed (e.g., wrong BIOS settings, etc.)
 		zlogInst.Warn().Msgf(
-			"Current state of Instance %s is ERROR. Reconciliation won't happen until the Instance is re-created.",
-			instance.GetResourceId())
+			"Current state of Instance is ERROR. Reconciliation won't happen until the Instance is re-created.")
 		return request.Ack()
 	}
 
 	// Forbid Instance provisioning with defined Provider. Such Instance should be reconciled within Provider-specific RM.
 	if instance.GetProvider() != nil {
-		zlogInst.Info().Msgf("Instance %s should be reconciled within other vendor-specific RM (%s)",
-			instance.GetResourceId(), instance.GetProvider().GetName())
+		zlogInst.Info().Msgf("Instance should be reconciled within other vendor-specific RM (%s)",
+			instance.GetProvider().GetName())
 		return request.Ack()
 	}
 
@@ -106,13 +106,14 @@ func (ir *InstanceReconciler) updateHostInstanceStatusAndCurrentState(
 	newInstance *computev1.InstanceResource,
 ) {
 	newHost := newInstance.GetHost()
-	zlogInst.Debug().Msgf("Updating Host %s onboarding status: %q", newHost.GetUuid(), newHost.GetOnboardingStatus())
+	zlogInst.Debug().Msgf("Updating Host %s resourceID %s onboarding status: %q",
+		newHost.GetUuid(), newHost.GetResourceId(), newHost.GetOnboardingStatus())
 
 	if !util.IsSameHostStatus(oldInstance.GetHost(), newHost) {
 		if err := ir.invClient.SetHostOnboardingStatus(
 			ctx, newHost.GetTenantId(), newHost.GetResourceId(),
 			inv_status.New(newHost.GetOnboardingStatus(), newHost.GetOnboardingStatusIndicator())); err != nil {
-			zlogInst.MiSec().MiErr(err).Msgf("Failed to update host %s status", newHost.GetResourceId())
+			zlogInst.MiSec().MiErr(err).Msgf("Failed to update host status")
 		}
 	}
 
@@ -129,7 +130,7 @@ func (ir *InstanceReconciler) updateHostInstanceStatusAndCurrentState(
 			inv_status.New(newInstance.GetProvisioningStatus(), newInstance.GetProvisioningStatusIndicator()),
 			newInstance.GetCurrentOs(),
 		); err != nil {
-			zlogInst.MiSec().MiErr(err).Msgf("Failed to update instance %s status", newInstance.GetResourceId())
+			zlogInst.MiSec().MiErr(err).Msgf("Failed to update instance status")
 		}
 	}
 }
@@ -139,9 +140,7 @@ func (ir *InstanceReconciler) reconcileInstance(
 	request rec_v2.Request[ReconcilerID],
 	instance *computev1.InstanceResource,
 ) rec_v2.Directive[ReconcilerID] {
-	instanceID := instance.GetResourceId()
-
-	zlogInst.Info().Msgf("Reconciling Instance with ID %s, with Current state: %v, Desired state: %v",
+	zlogInst.Debug().Msgf("Reconciling Instance with ID %s, with Current state: %v, Desired state: %v",
 		instance.GetResourceId(), instance.GetCurrentState(), instance.GetDesiredState())
 
 	if instance.GetDesiredState() == computev1.InstanceState_INSTANCE_STATE_RUNNING {
@@ -160,7 +159,7 @@ func (ir *InstanceReconciler) reconcileInstance(
 	}
 
 	if instance.GetDesiredState() == computev1.InstanceState_INSTANCE_STATE_DELETED {
-		zlogInst.MiSec().Info().Msgf("Deleting instance ID %s (set current status to Deleted)", instanceID)
+		zlogInst.MiSec().Info().Msgf("Deleting instance (set current status to Deleted)")
 
 		if err := ir.cleanupProvisioningResources(ctx, instance); err != nil {
 			if directive := HandleProvisioningError(err, request); directive != nil {
@@ -278,7 +277,7 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 	}
 
 	if instance.GetDesiredOs().GetOsProvider() != osv1.OsProviderKind_OS_PROVIDER_KIND_EIM {
-		zlogInst.Info().Msgf("Skipping OS provisioning for %s due to OS provider kind: %s",
+		zlogInst.Debug().Msgf("Skipping OS provisioning for %s due to OS provider kind: %s",
 			instance.GetResourceId(), instance.GetDesiredOs().GetOsProvider().String())
 		return nil
 	}
@@ -347,7 +346,7 @@ func (ir *InstanceReconciler) cleanupProvisioningResources(
 	ctx context.Context,
 	instance *computev1.InstanceResource,
 ) error {
-	zlogInst.Info().Msgf("Cleaning up all provisioning resources for host %s", instance.GetHost().GetUuid())
+	zlogInst.Debug().Msgf("Cleaning up all provisioning resources for host %s", instance.GetHost().GetUuid())
 
 	if err := onbworkflowclient.DeleteProdWorkflowResourcesIfExist(
 		ctx, instance.GetHost().GetUuid(), env.ImgType); err != nil {

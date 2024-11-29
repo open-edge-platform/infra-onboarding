@@ -108,7 +108,7 @@ func CreateHardwareIfNotExists(ctx context.Context, k8sCli client.Client, k8sNam
 }
 
 func DeleteHardwareForHostIfExist(ctx context.Context, k8sNamespace, hostUUID string) error {
-	zlog.Info().Msgf("Deleting DI workflow resources for host %s", hostUUID)
+	zlog.Debug().Msgf("Deleting DI workflow resources for host %s", hostUUID)
 
 	kubeClient, err := K8sClientFactory()
 	if err != nil {
@@ -128,7 +128,8 @@ func DeleteHardwareForHostIfExist(ctx context.Context, k8sNamespace, hostUUID st
 
 	if err = kubeClient.Delete(ctx, hw); err != nil && !errors.IsNotFound(err) {
 		zlog.MiSec().MiErr(err).Msg("")
-		return inv_errors.Errorf("Failed to delete Tink hardware resources for host %s", hostUUID)
+		zlog.Debug().Msgf("Failed to delete Tink hardware resources for host %s", hostUUID)
+		return inv_errors.Errorf("Failed to delete Tink hardware resources for host")
 	}
 
 	return nil

@@ -244,7 +244,6 @@ func TestReconcileInstanceNonEIM(t *testing.T) {
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
-
 }
 
 func TestReconcileInstance(t *testing.T) {
@@ -655,7 +654,6 @@ func FuzzTestReconcile(f *testing.F) {
 	f.Add("0809039")
 
 	f.Fuzz(func(t *testing.T, resourceID string) {
-
 		om_testing.CreateInventoryOnboardingClientForTesting()
 		t.Cleanup(func() {
 			fmt.Println("Deleting Inventory Onboarding Client for Testing")
@@ -672,7 +670,7 @@ func FuzzTestReconcile(f *testing.F) {
 		rID := "host-" + getFirstNChars(getMD5Hash(resourceID), 8)
 		testRequest := rec_v2.Request[ReconcilerID]{}
 
-		//ir := &reconcilers.InstanceReconciler{
+		// ir := &reconcilers.InstanceReconciler{
 		ir := NewInstanceReconciler(om_testing.InvClient, true)
 		//}
 
@@ -684,6 +682,5 @@ func FuzzTestReconcile(f *testing.F) {
 		if reflect.DeepEqual(got, testRequest.Ack()) {
 			t.Errorf("Fuzz Test InstanceReconciler.Reconcile() = %v", got)
 		}
-
 	})
 }

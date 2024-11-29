@@ -1463,7 +1463,6 @@ func Test_handleWorkflowStatus_Case4(t *testing.T) {
 				t.Errorf("handleWorkflowStatus() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			assert.Equal(t, tt.expectedProvisioningStatus, tt.args.instance.ProvisioningStatus)
-
 		})
 	}
 	defer func() {
