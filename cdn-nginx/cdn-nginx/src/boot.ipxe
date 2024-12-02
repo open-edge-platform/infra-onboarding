@@ -5,6 +5,7 @@ echo "Starting Hook OS Download"
 show unixtime
 set arch x86_64
 set bootdevmac ${mac}
+set bootdevip ${ip}
 set download-url DOWNLOAD_URL
 set grpc_authority GRPC_AUTHORITY
 set tink_worker_image TINK_WORKER_IMAGE
@@ -17,7 +18,7 @@ set retry_limit:int32 5
 :kernelloop
 kernel --timeout=-1 ${download-url}/vmlinuz-${arch} \
 tink_worker_image=${tink_worker_image} grpc_authority=${grpc_authority} tinkerbell_tls=false worker_id=${bootdevmac} \
-device_discovery_enabled=${device_discovery_enabled} device_discovery_image=${device_discovery_image} onboarding_manager_address=${onboarding_manager_address} \
+IP=${bootdevip} \
 ADDITIONAL_KERNEL_ARGS \
 modules=loop,squashfs,sd-mod,usb-storage intel_iommu=on iommu=pt initrd=initramfs-${arch} console=tty0 console=ttyS1,115200 && goto initboot || iseq ${idx} ${retry_limit} && goto error || inc idx && echo Unable to load ${download-url}/vmlinuz-${arch} && echo RETRY NO ${idx} && goto kernelloop
 :initboot
