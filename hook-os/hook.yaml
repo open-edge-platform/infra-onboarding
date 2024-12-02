@@ -193,7 +193,7 @@ services:
   - name: fluent-bit
     image: fluentbit:latest
     binds.add:
-      - /etc/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+      - /etc/fluent-bit/fluent-bit.yaml:/fluent-bit/etc/fluent-bit.yaml
       - /var/log:/var/log
     rootfsPropagation: shared
 
@@ -252,6 +252,7 @@ services:
       - /etc/caddy/Caddyfile:/etc/caddy/Caddyfile
       - /dev/shm/idp_access_token:/dev/shm/idp_access_token
       - /dev/shm/release_token:/dev/shm/release_token
+      - /dev/shm/project_id:/dev/shm/project_id
       - /etc/hook/env_config:/etc/hook/env_config
 
     # Intended docker variables to be populated from environment
@@ -377,8 +378,8 @@ files:
       ttyUSB1
       ttyUSB2
 
-  - path: /etc/fluent-bit/fluent-bit.conf
-    source: "files/fluent-bit/fluent-bit.conf"
+  - path: /etc/fluent-bit/fluent-bit.yaml
+    source: "files/fluent-bit/fluent-bit.yaml"
     mode: "0644"
 
   - path: etc/caddy/Caddyfile

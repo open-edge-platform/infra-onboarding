@@ -102,6 +102,9 @@ localhost:24224 {
         header_up Authorization "Bearer {$access_token}"
         header_up Host {upstream_hostport}
 
+        # add projectId for proper multi-tenancy handling
+        header_up X-Scope-OrgID {$project_id}
+
         transport http {
             tls
             tls_server_name {$logging_svc}
