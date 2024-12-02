@@ -98,8 +98,6 @@ get_caddy_conf() {
     $SED_CMD -i "s|update_onboarding_stream_svc|$onboarding_stream_svc|g" linuxkit-templates/hook.template.yaml
     $SED_CMD -i "s|update_release_svc|$release_svc|g" linuxkit-templates/hook.template.yaml
     $SED_CMD -i "s|update_oci_release_svc|$oci_release_svc|g" linuxkit-templates/hook.template.yaml
-    $SED_CMD -i "s|update_manufacturer_svc|$fdo_manufacturer_svc|g" linuxkit-templates/hook.template.yaml
-    $SED_CMD -i "s|update_owner_svc|$fdo_owner_svc|g" linuxkit-templates/hook.template.yaml
     $SED_CMD -i "s|update_logging_svc|$logging_svc|g" linuxkit-templates/hook.template.yaml
 
 }

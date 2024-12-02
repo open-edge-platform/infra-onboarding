@@ -58,59 +58,6 @@ localhost:7443 {
     }
 }
 
-# Proxy server for FDO manufacturer service
-localhost.internal:8081 {
-    tls /etc/caddy/caddy-cert.pem /etc/caddy/caddy-key.pem
-
-    respond /health "Caddy healthy!!" 200
-
-    reverse_proxy /fdo/101/msg/10 {$fdo_manufacturer_svc}:443 {
-	header_up Authorization "Bearer {$access_token}"
-        header_up Host {upstream_hostport}
-
-        transport http {
-            tls
-            tls_server_name {$fdo_manufacturer_svc}
-        }
-    }
-
-    reverse_proxy {$fdo_manufacturer_svc}:443 {
-        header_up Host {upstream_hostport}
-
-        transport http {
-            tls
-            tls_server_name {$fdo_manufacturer_svc}
-        }
-    }
-}
-
-# Proxy server for FDO owner service
-localhost.internal:8082 {
-    tls /etc/caddy/caddy-cert.pem /etc/caddy/caddy-key.pem
-
-    respond /health "Caddy healthy!!" 200
-
-
-    reverse_proxy /fdo/101/msg/60 {$fdo_owner_svc}:443 {
-        header_up Authorization "Bearer {$access_token}"
-        header_up Host {upstream_hostport}
-
-        transport http {
-            tls
-            tls_server_name {$fdo_owner_svc}
-        }
-    }
-
-    reverse_proxy {$fdo_owner_svc}:443 {
-        header_up Host {upstream_hostport}
-
-        transport http {
-            tls
-            tls_server_name {$fdo_owner_svc}
-        }
-    }
-}
-
 # Proxy server(HTTP) to route tink stack routes 
 :80 {
     reverse_proxy /tink-stack/* {$tink_stack_svc}:443 {
@@ -135,6 +82,7 @@ localhost.internal:8082 {
 
 # GRPC Proxy server for tink server
 :42113 {
+    bind 127.0.0.1
     reverse_proxy {$tink_server_svc}:443 {
         header_up Authorization "Bearer {$access_token}"
         header_up Host {upstream_hostport}
@@ -148,7 +96,7 @@ localhost.internal:8082 {
 
 # Server to route fluent-bit logs to Loki/Grafana
 localhost:24224 {
-    bind 127.0.0.1 
+    bind 127.0.0.1
     tls /etc/caddy/caddy-cert.pem /etc/caddy/caddy-key.pem
     reverse_proxy {$logging_svc}:443 {
         header_up Authorization "Bearer {$access_token}"

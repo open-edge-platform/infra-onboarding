@@ -46,8 +46,6 @@ harbor_url_tinker_actions=""
 extra_hosts=""
 
 #NGINX runtime configs
-fdo_manufacturer_svc=""
-fdo_owner_svc=""
 release_svc=""
 oci_release_svc=""
 logging_svc=""
