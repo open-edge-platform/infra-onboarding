@@ -350,7 +350,7 @@ func main() {
 	}
 	// Use cfg as needed, for example, printing the parsed configuration
 	macAddr := cfg.workerID
-
+	ipAddress := cfg.ip
 	// Convert string to bool
 	debug, err := strconv.ParseBool(cfg.debug)
 	if err != nil {
@@ -375,7 +375,7 @@ func main() {
 		log.Println("No extra hosts provided, skipping update.")
 	}
 
-	// logic to detect serial, uuid, and ip based on mac starts here
+	// logic to detect serial and uuid starts here
 	serialNumber, err := getSerialNumber()
 	if err != nil {
 		log.Fatalf("Error getting serial number: %v\n", err)
@@ -385,11 +385,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error getting UUID: %v\n", err)
 	}
-	ipAddress, err := getIPAddress(macAddr)
-	if err != nil {
-		log.Fatal("Error getting IP address: ", err)
-	}
-	// logic to detect serial, uuid, and ip based on mac ends here
+	// logic to detect serial and uuid ends here
 
 	deviceDiscovery(debug, timeout, envVars["onboarding_stream_svc"], envVars["onboarding_manager_svc"], obmPort, envVars["KEYCLOAK_URL"], macAddr, uuid, serialNumber, ipAddress, caCertPath)
 }
