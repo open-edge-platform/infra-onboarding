@@ -92,6 +92,19 @@ func (ir *InstanceReconciler) Reconcile(ctx context.Context,
 	}
 
 	if instance.DesiredState == instance.CurrentState {
+		// HRM may already update the state to RUNNING before provisioning is done (see NEX-15924).
+		// In such case, we let reconciler complete the provisioning process and clean up resources.
+		// TODO (NEX-16077): a clean solution should be to update provisioning status and clean resources
+		//  based on events from Tinkerbell CRDs.
+		if instance.GetCurrentState() == computev1.InstanceState_INSTANCE_STATE_RUNNING &&
+			instance.GetProvisioningStatusIndicator() != om_status.ProvisioningStatusDone.StatusIndicator &&
+			instance.GetProvisioningStatus() != om_status.ProvisioningStatusDone.Status {
+			zlogInst.Info().Msgf("Instance (%s) is in RUNNING state but provisioning status is not done."+
+				" Forcing reconciliation to finish provisioning.",
+				resourceID)
+			return ir.reconcileInstance(ctx, request, instance)
+		}
+
 		zlogInst.Debug().Msgf("Instance (%s) reconciliation skipped - states current (%s) desired (%s)",
 			resourceID, instance.CurrentState, instance.DesiredState)
 		return request.Ack()
