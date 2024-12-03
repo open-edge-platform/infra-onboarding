@@ -93,6 +93,25 @@ install_dependencies() {
         echo -e "\e[32m[install git python3-pip]\e[0m"
         sudo apt-get install -y curl wget unzip apparmor iptables lvm2 cryptsetup lxc mosquitto tpm2-abrmd tpm2-tools software-properties-common python3-venv git jq libpq5 python3-pip ca-certificates gnupg dmidecode
 
+        # IMPORTANT: These hardcoded uid/gid must be aligned to that in TiberOS specified in
+        # https://github.com/intel-innersource/os.linux.tiberos.tiberlinuxos/blob/main/SPECS/cluster-agent/cluster-agent.conf.
+        # If additional new users or groups need to be created by DKAM, they MUST be added after the users and group created below to
+        # avoid those users or groups being assigned to IDs that are reserved. A list of the reserved UID and GID values are below:
+        #
+        #|----------|------------|--------------|
+        #|   Name   | User/Group | Reserverd ID |
+        #|----------|------------|--------------|
+        #|bm-agents |    Group   |      500     |
+        #|prometheus|    User    |      501     |
+        #|fluent-bit|    User    |      502     |
+        #|----------|------------|--------------|
+
+        groupadd -f bm-agents -g 500 --system
+        id -u prometheus &>/dev/null || useradd prometheus -u 501 --system -g bm-agents
+        id -u fluent-bit &>/dev/null || useradd fluent-bit -u 502 --system -g bm-agents -G adm
+        id -u node-agent &>/dev/null || useradd node-agent --system -g bm-agents
+        id -u platform-update-agent &>/dev/null || useradd platform-update-agent --system -g bm-agents
+
         if ! command -v yq_linux_amd64 &> /dev/null; then
             echo "Download yq and install on provisioning host."
             version="v4.42.1"
@@ -119,6 +138,8 @@ install_dependencies() {
             mv yq_linux_amd64.tar.gz $tmpyq
             tar -xzvf $tmpyq/yq_linux_amd64.tar.gz -C "$tmpyq"
             sudo mv "$tmpyq"/yq_linux_amd64 /usr/local/bin/yq_linux_amd64
+	    #Set correct GID to the bare metal agent group instead of 127
+	    sudo chown platform-update-agent:bm-agents /usr/local/bin/yq_linux_amd64
         fi
         if [ ! -L /usr/local/bin/yq ]; then
             sudo ln -s yq_linux_amd64 /usr/local/bin/yq
@@ -260,25 +281,6 @@ install_node_agent(){
         tar -zxf oras_${ORAS_VERSION}_*.tar.gz -C oras-install/
         sudo mv oras-install/oras /usr/local/bin/
         rm -rf oras_${ORAS_VERSION}_*.tar.gz oras-install/
-
-        # IMPORTANT: These hardcoded uid/gid must be aligned to that in TiberOS specified in
-        # https://github.com/intel-innersource/os.linux.tiberos.tiberlinuxos/blob/main/SPECS/cluster-agent/cluster-agent.conf.
-        # If additional new users or groups need to be created by DKAM, they MUST be added after the users and group created below to
-        # avoid those users or groups being assigned to IDs that are reserved. A list of the reserved UID and GID values are below:
-        #
-        #|----------|------------|--------------|
-        #|   Name   | User/Group | Reserverd ID |
-        #|----------|------------|--------------|
-        #|bm-agents |    Group   |      500     |
-        #|prometheus|    User    |      501     |
-        #|fluent-bit|    User    |      502     |
-        #|----------|------------|--------------|
-
-        groupadd -f bm-agents -g 500 --system
-        id -u prometheus &>/dev/null || useradd prometheus -u 501 --system -g bm-agents
-        id -u fluent-bit &>/dev/null || useradd fluent-bit -u 502 --system -g bm-agents -G adm
-        id -u node-agent &>/dev/null || useradd node-agent --system -g bm-agents
-        id -u platform-update-agent &>/dev/null || useradd platform-update-agent --system -g bm-agents
 
         USERNAME="etcd"
 
