@@ -1231,7 +1231,7 @@ func Test_formatDuration(t *testing.T) {
 		{
 			name: "Success",
 			args: args{},
-			want: "00:00:00",
+			want: "00",
 		},
 	}
 	utils.Init("")

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
@@ -39,14 +40,12 @@ const (
 )
 
 var (
-	clientName        = "Workflow"
-	zlog              = logging.GetLogger(clientName)
-	actionStatusMap   = make(map[string]string)
-	actionStartTimes  = make(map[string]time.Time)
-	actionRunTimes    = make(map[string]time.Time)
-	actionDurations   = make(map[string]time.Duration)
-	workflowStartTime time.Time
-	rebootEndTime     time.Time
+	clientName            = "Workflow"
+	zlog                  = logging.GetLogger(clientName)
+	actionStatusMap       = make(map[string]string)
+	actionStartTimes      = make(map[string]time.Time)
+	actionRuning          = make(map[string]float64)
+	actionSuccessDuration = make(map[string]int64)
 )
 
 //nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
@@ -359,12 +358,10 @@ func CheckStatusOrRunRebootWorkflow(
 }
 
 func formatDuration(d time.Duration) string {
-	hours := d / time.Hour
 	remainingDuration := d % time.Hour // Remainder after subtracting hours
-	minutes := remainingDuration / time.Minute
-	remainingDuration %= time.Minute // Remainder after subtracting minutes
+	remainingDuration %= time.Minute   // Remainder after subtracting minutes
 	seconds := remainingDuration / time.Second
-	return fmt.Sprintf("%02d:%02d:%02d", hours, minutes, seconds)
+	return fmt.Sprintf("%02d", seconds)
 }
 
 //nolint:cyclop // May effect the functionality, need to simplify this in future
@@ -390,68 +387,58 @@ func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName string)
 			if len(task.Actions) > 0 {
 				// Check if the task has actions to iterate over
 				for _, action := range task.Actions {
-					lastStatus, existsFlag := actionStatusMap[action.Name]
-					// store first pending status for each action
-					if !existsFlag || lastStatus != string(action.Status) {
-						actionStatusMap[action.Name] = string(action.Status)
-						//nolint:exhaustive //TODO WorkflowStateFailed and WorkflowStateTimeout will be handled in future
-						switch action.Status {
-						case tink.WorkflowStatePending:
-							if _, exists := actionStartTimes[action.Name]; !exists {
-								// Calculate the duration for action
-								actionStartTimes[action.Name] = time.Now()
-							}
-						case tink.WorkflowStateRunning:
-							if startTime, hasStartTime := actionStartTimes[action.Name]; hasStartTime {
-								// Calculate the duration for running action
-								duration := time.Since(startTime)
-								formattedDuration := formatDuration(duration)
-								zlog.Debug().Msgf("Instrumentation Info for workflow %s: action name %s"+
-									"time duration from pending to running %s",
-									workflowName, action.Name, formattedDuration)
-								actionRunTimes[action.Name] = time.Now()
-								if workflowStartTime.IsZero() {
-									// first tinker action execution set for one time.
-									// when moves from "pending" to "running"
-									workflowStartTime = time.Now()
-								}
-							}
-						case tink.WorkflowStateSuccess:
-							if startTime, hasStartTime := actionRunTimes[action.Name]; hasStartTime {
-								// Calculate the duration for action.
-								duration := time.Since(startTime)
-								// Record the duration for this action.
-								actionDurations[action.Name] = duration
-								// Format the duration for logging
-								formattedActionDuration := formatDuration(duration)
-								// Log the individual action duration.
-								zlog.Debug().Msgf("Instrumentation Info for workflow %s: action name %s"+
-									"time duration %s running to success",
-									workflowName, action.Name, formattedActionDuration)
-								// Remove the start time from the map as it's no longer needed.
-								delete(actionStartTimes, action.Name)
-							}
-							// reboot endTime is set when the "reboot" action reaches "success"
-							if action.Name == tinkerbell.ActionReboot {
-								rebootEndTime = time.Now()
-								zlog.Debug().Msgf("Instrumentation Info for workflow %s: Last action name %s, end time %s",
-									workflowName, action.Name, rebootEndTime)
-							}
+					actionStatusMap[workflowName+action.Name] = string(action.Status)
+					switch action.Status {
+					case tink.WorkflowStatePending:
+						if _, ok := actionStartTimes[workflowName+action.Name]; !ok &&
+							action.Name == "secure-boot-status-flag-read" {
+							actionStartTimes[workflowName+action.Name] = time.Now()
+						}
+					case tink.WorkflowStateRunning:
+						if _, ok := actionRuning[workflowName+action.Name]; !ok && action.Name == "secure-boot-status-flag-read" {
+							actionRuning[workflowName+action.Name] = time.Since(actionStartTimes[workflowName+action.Name]).
+								Seconds()
+						}
+					case tink.WorkflowStateSuccess:
+						actionSuccessDuration[workflowName+action.Name] = action.Seconds
+					default:
+						zlog.Debug().Msgf("workflow %s for action %s status %s", workflowName, action.Name, string(action.Status))
+						for actionName := range actionStatusMap {
+							delete(actionStartTimes, actionName)
+							delete(actionRuning, actionName)
+							delete(actionSuccessDuration, actionName)
+							delete(actionStatusMap, actionName)
 						}
 					}
 				}
-			} else {
-				zlog.Debug().Msgf("Instrumentation Info for workflow %s: No action found in the workflow.", workflowName)
 			}
 		}
-		for actionName, actionStatus := range actionStatusMap {
-			if actionName == tinkerbell.ActionReboot {
-				if actionStatus == string(tink.WorkflowStateSuccess) {
-					totalTinkerExecutionTime := rebootEndTime.Sub(workflowStartTime)
-					formattedTotalDuration := formatDuration(totalTinkerExecutionTime)
-					zlog.Debug().Msgf("Instrumentation Info: time duration for all tinker action execution for workflow %s: %s",
-						workflowName, formattedTotalDuration)
+	}
+
+	for actionName, actionStatus := range actionStatusMap {
+		if actionName == workflowName+tinkerbell.ActionReboot {
+			if actionStatus == string(tink.WorkflowStateSuccess) {
+				// Total Time for all tinker actions
+				var totalDuration int64
+				for actionN, actionSuccessTime := range actionSuccessDuration {
+					if actionN == workflowName+"secure-boot-status-flag-read" {
+						msg := fmt.Sprintf(
+							"Instrumentation Info for workflow %s: action name %s pending to running time %.2f", workflowName,
+							"secure-boot-status-flag-read", actionRuning[workflowName+"secure-boot-status-flag-read"])
+						zlog.Debug().Msg(msg)
+						delete(actionStartTimes, actionN)
+						delete(actionRuning, actionN)
+					}
+					if strings.Contains(actionN, workflowName) {
+						totalDuration += actionSuccessTime
+						zlog.Debug().Msgf("Instrumentation Info for workflow %s actionName %s time for running to success %d",
+							workflowName, strings.Split(actionN, workflowName)[1], actionSuccessTime)
+						delete(actionSuccessDuration, actionN)
+						delete(actionStatusMap, actionN)
+					}
 				}
+				zlog.Debug().Msgf("Instrumentation Info for workflow %s: Total Time for all TinkerActions %d",
+					workflowName, totalDuration)
 			}
 		}
 	}
