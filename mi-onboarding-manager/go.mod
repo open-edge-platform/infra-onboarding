@@ -24,7 +24,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go v0.5.1
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service v1.13.0
-	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.8.0
+	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.9.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1
 	gotest.tools v2.2.0+incompatible
 	sigs.k8s.io/controller-runtime v0.17.0
