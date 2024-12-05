@@ -359,14 +359,7 @@ Artifact &amp; Node Endpoints towards Inventory Manager
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| CreateArtifacts | [ArtifactRequest](#onboardingmgr-ArtifactRequest) | [ArtifactResponse](#onboardingmgr-ArtifactResponse) |  |
-| GetArtifacts | [ArtifactRequest](#onboardingmgr-ArtifactRequest) | [ArtifactResponse](#onboardingmgr-ArtifactResponse) |  |
-| UpdateArtifactsById | [ArtifactRequest](#onboardingmgr-ArtifactRequest) | [ArtifactResponse](#onboardingmgr-ArtifactResponse) |  |
-| DeleteArtifacts | [ArtifactRequest](#onboardingmgr-ArtifactRequest) | [ArtifactResponse](#onboardingmgr-ArtifactResponse) |  |
 | CreateNodes | [NodeRequest](#onboardingmgr-NodeRequest) | [NodeResponse](#onboardingmgr-NodeResponse) |  |
-| GetNodes | [NodeRequest](#onboardingmgr-NodeRequest) | [NodeResponse](#onboardingmgr-NodeResponse) |  |
-| UpdateNodes | [NodeRequest](#onboardingmgr-NodeRequest) | [NodeResponse](#onboardingmgr-NodeResponse) |  |
-| DeleteNodes | [NodeRequest](#onboardingmgr-NodeRequest) | [NodeResponse](#onboardingmgr-NodeResponse) |  |
 
 
 <a name="onboardingmgr-NonInteractiveOnboardingService"></a>

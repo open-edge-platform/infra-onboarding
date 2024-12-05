@@ -9,21 +9,7 @@ option go_package = "github.com/intel-innersource/frameworks.edge.one-intel-edge
 
 //Artifact & Node Endpoints towards Inventory Manager
 service NodeArtifactServiceNB {
-  rpc CreateArtifacts(ArtifactRequest) returns (ArtifactResponse) {}
-
-  rpc GetArtifacts(ArtifactRequest) returns (ArtifactResponse) {}
-
-  rpc UpdateArtifactsById(ArtifactRequest) returns (ArtifactResponse) {}
-
-  rpc DeleteArtifacts(ArtifactRequest) returns (ArtifactResponse) {}
-
   rpc CreateNodes(NodeRequest) returns (NodeResponse) {}
-
-  rpc GetNodes(NodeRequest) returns (NodeResponse) {}
-
-  rpc UpdateNodes(NodeRequest) returns (NodeResponse) {}
-
-  rpc DeleteNodes(NodeRequest) returns (NodeResponse) {}
 }
 
 service NonInteractiveOnboardingService {

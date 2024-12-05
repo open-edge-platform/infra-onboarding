@@ -22,14 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type NodeArtifactServiceNBClient interface {
-	CreateArtifacts(ctx context.Context, in *ArtifactRequest, opts ...grpc.CallOption) (*ArtifactResponse, error)
-	GetArtifacts(ctx context.Context, in *ArtifactRequest, opts ...grpc.CallOption) (*ArtifactResponse, error)
-	UpdateArtifactsById(ctx context.Context, in *ArtifactRequest, opts ...grpc.CallOption) (*ArtifactResponse, error)
-	DeleteArtifacts(ctx context.Context, in *ArtifactRequest, opts ...grpc.CallOption) (*ArtifactResponse, error)
 	CreateNodes(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error)
-	GetNodes(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error)
-	UpdateNodes(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error)
-	DeleteNodes(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error)
 }
 
 type nodeArtifactServiceNBClient struct {
@@ -38,42 +31,6 @@ type nodeArtifactServiceNBClient struct {
 
 func NewNodeArtifactServiceNBClient(cc grpc.ClientConnInterface) NodeArtifactServiceNBClient {
 	return &nodeArtifactServiceNBClient{cc}
-}
-
-func (c *nodeArtifactServiceNBClient) CreateArtifacts(ctx context.Context, in *ArtifactRequest, opts ...grpc.CallOption) (*ArtifactResponse, error) {
-	out := new(ArtifactResponse)
-	err := c.cc.Invoke(ctx, "/onboardingmgr.NodeArtifactServiceNB/CreateArtifacts", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *nodeArtifactServiceNBClient) GetArtifacts(ctx context.Context, in *ArtifactRequest, opts ...grpc.CallOption) (*ArtifactResponse, error) {
-	out := new(ArtifactResponse)
-	err := c.cc.Invoke(ctx, "/onboardingmgr.NodeArtifactServiceNB/GetArtifacts", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *nodeArtifactServiceNBClient) UpdateArtifactsById(ctx context.Context, in *ArtifactRequest, opts ...grpc.CallOption) (*ArtifactResponse, error) {
-	out := new(ArtifactResponse)
-	err := c.cc.Invoke(ctx, "/onboardingmgr.NodeArtifactServiceNB/UpdateArtifactsById", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *nodeArtifactServiceNBClient) DeleteArtifacts(ctx context.Context, in *ArtifactRequest, opts ...grpc.CallOption) (*ArtifactResponse, error) {
-	out := new(ArtifactResponse)
-	err := c.cc.Invoke(ctx, "/onboardingmgr.NodeArtifactServiceNB/DeleteArtifacts", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *nodeArtifactServiceNBClient) CreateNodes(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error) {
@@ -85,74 +42,19 @@ func (c *nodeArtifactServiceNBClient) CreateNodes(ctx context.Context, in *NodeR
 	return out, nil
 }
 
-func (c *nodeArtifactServiceNBClient) GetNodes(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error) {
-	out := new(NodeResponse)
-	err := c.cc.Invoke(ctx, "/onboardingmgr.NodeArtifactServiceNB/GetNodes", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *nodeArtifactServiceNBClient) UpdateNodes(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error) {
-	out := new(NodeResponse)
-	err := c.cc.Invoke(ctx, "/onboardingmgr.NodeArtifactServiceNB/UpdateNodes", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *nodeArtifactServiceNBClient) DeleteNodes(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error) {
-	out := new(NodeResponse)
-	err := c.cc.Invoke(ctx, "/onboardingmgr.NodeArtifactServiceNB/DeleteNodes", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // NodeArtifactServiceNBServer is the server API for NodeArtifactServiceNB service.
 // All implementations should embed UnimplementedNodeArtifactServiceNBServer
 // for forward compatibility
 type NodeArtifactServiceNBServer interface {
-	CreateArtifacts(context.Context, *ArtifactRequest) (*ArtifactResponse, error)
-	GetArtifacts(context.Context, *ArtifactRequest) (*ArtifactResponse, error)
-	UpdateArtifactsById(context.Context, *ArtifactRequest) (*ArtifactResponse, error)
-	DeleteArtifacts(context.Context, *ArtifactRequest) (*ArtifactResponse, error)
 	CreateNodes(context.Context, *NodeRequest) (*NodeResponse, error)
-	GetNodes(context.Context, *NodeRequest) (*NodeResponse, error)
-	UpdateNodes(context.Context, *NodeRequest) (*NodeResponse, error)
-	DeleteNodes(context.Context, *NodeRequest) (*NodeResponse, error)
 }
 
 // UnimplementedNodeArtifactServiceNBServer should be embedded to have forward compatible implementations.
 type UnimplementedNodeArtifactServiceNBServer struct {
 }
 
-func (UnimplementedNodeArtifactServiceNBServer) CreateArtifacts(context.Context, *ArtifactRequest) (*ArtifactResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateArtifacts not implemented")
-}
-func (UnimplementedNodeArtifactServiceNBServer) GetArtifacts(context.Context, *ArtifactRequest) (*ArtifactResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetArtifacts not implemented")
-}
-func (UnimplementedNodeArtifactServiceNBServer) UpdateArtifactsById(context.Context, *ArtifactRequest) (*ArtifactResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateArtifactsById not implemented")
-}
-func (UnimplementedNodeArtifactServiceNBServer) DeleteArtifacts(context.Context, *ArtifactRequest) (*ArtifactResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteArtifacts not implemented")
-}
 func (UnimplementedNodeArtifactServiceNBServer) CreateNodes(context.Context, *NodeRequest) (*NodeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateNodes not implemented")
-}
-func (UnimplementedNodeArtifactServiceNBServer) GetNodes(context.Context, *NodeRequest) (*NodeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetNodes not implemented")
-}
-func (UnimplementedNodeArtifactServiceNBServer) UpdateNodes(context.Context, *NodeRequest) (*NodeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateNodes not implemented")
-}
-func (UnimplementedNodeArtifactServiceNBServer) DeleteNodes(context.Context, *NodeRequest) (*NodeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteNodes not implemented")
 }
 
 // UnsafeNodeArtifactServiceNBServer may be embedded to opt out of forward compatibility for this service.
@@ -164,78 +66,6 @@ type UnsafeNodeArtifactServiceNBServer interface {
 
 func RegisterNodeArtifactServiceNBServer(s grpc.ServiceRegistrar, srv NodeArtifactServiceNBServer) {
 	s.RegisterService(&NodeArtifactServiceNB_ServiceDesc, srv)
-}
-
-func _NodeArtifactServiceNB_CreateArtifacts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ArtifactRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NodeArtifactServiceNBServer).CreateArtifacts(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/onboardingmgr.NodeArtifactServiceNB/CreateArtifacts",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NodeArtifactServiceNBServer).CreateArtifacts(ctx, req.(*ArtifactRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _NodeArtifactServiceNB_GetArtifacts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ArtifactRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NodeArtifactServiceNBServer).GetArtifacts(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/onboardingmgr.NodeArtifactServiceNB/GetArtifacts",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NodeArtifactServiceNBServer).GetArtifacts(ctx, req.(*ArtifactRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _NodeArtifactServiceNB_UpdateArtifactsById_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ArtifactRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NodeArtifactServiceNBServer).UpdateArtifactsById(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/onboardingmgr.NodeArtifactServiceNB/UpdateArtifactsById",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NodeArtifactServiceNBServer).UpdateArtifactsById(ctx, req.(*ArtifactRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _NodeArtifactServiceNB_DeleteArtifacts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ArtifactRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NodeArtifactServiceNBServer).DeleteArtifacts(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/onboardingmgr.NodeArtifactServiceNB/DeleteArtifacts",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NodeArtifactServiceNBServer).DeleteArtifacts(ctx, req.(*ArtifactRequest))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _NodeArtifactServiceNB_CreateNodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -256,60 +86,6 @@ func _NodeArtifactServiceNB_CreateNodes_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
-func _NodeArtifactServiceNB_GetNodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(NodeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NodeArtifactServiceNBServer).GetNodes(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/onboardingmgr.NodeArtifactServiceNB/GetNodes",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NodeArtifactServiceNBServer).GetNodes(ctx, req.(*NodeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _NodeArtifactServiceNB_UpdateNodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(NodeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NodeArtifactServiceNBServer).UpdateNodes(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/onboardingmgr.NodeArtifactServiceNB/UpdateNodes",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NodeArtifactServiceNBServer).UpdateNodes(ctx, req.(*NodeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _NodeArtifactServiceNB_DeleteNodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(NodeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NodeArtifactServiceNBServer).DeleteNodes(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/onboardingmgr.NodeArtifactServiceNB/DeleteNodes",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NodeArtifactServiceNBServer).DeleteNodes(ctx, req.(*NodeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // NodeArtifactServiceNB_ServiceDesc is the grpc.ServiceDesc for NodeArtifactServiceNB service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -318,36 +94,8 @@ var NodeArtifactServiceNB_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*NodeArtifactServiceNBServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "CreateArtifacts",
-			Handler:    _NodeArtifactServiceNB_CreateArtifacts_Handler,
-		},
-		{
-			MethodName: "GetArtifacts",
-			Handler:    _NodeArtifactServiceNB_GetArtifacts_Handler,
-		},
-		{
-			MethodName: "UpdateArtifactsById",
-			Handler:    _NodeArtifactServiceNB_UpdateArtifactsById_Handler,
-		},
-		{
-			MethodName: "DeleteArtifacts",
-			Handler:    _NodeArtifactServiceNB_DeleteArtifacts_Handler,
-		},
-		{
 			MethodName: "CreateNodes",
 			Handler:    _NodeArtifactServiceNB_CreateNodes_Handler,
-		},
-		{
-			MethodName: "GetNodes",
-			Handler:    _NodeArtifactServiceNB_GetNodes_Handler,
-		},
-		{
-			MethodName: "UpdateNodes",
-			Handler:    _NodeArtifactServiceNB_UpdateNodes_Handler,
-		},
-		{
-			MethodName: "DeleteNodes",
-			Handler:    _NodeArtifactServiceNB_DeleteNodes_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
