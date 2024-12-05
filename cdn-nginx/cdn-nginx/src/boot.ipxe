@@ -27,10 +27,9 @@ set retry_limit:int32 5
 :initloop
 initrd --timeout=-1 ${download-url}/initramfs-${arch} && goto bootfinal || iseq ${idx} ${retry_limit} && goto error || inc idx && echo Unable to load ${download-url}/initramfs-${arch} && echo RETRY NO ${idx} && goto initloop
 :bootfinal
-boot
-
 show unixtime
 echo "Download Hook OS Successful"
+boot
 
 :error
 echo Could not load resources. Please make sure that the files are reachable and network speed is appropriate.
