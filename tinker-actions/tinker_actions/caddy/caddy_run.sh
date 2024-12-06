@@ -12,6 +12,7 @@
 # or implied warranties, other than those that are expressly stated in the License. #
 #####################################################################################
 
+#set -x
 
 TIMEOUT=600  # 10 minutes in seconds
 INTERVAL=3  # Check every 3 seconds
@@ -67,4 +68,15 @@ export no_proxy=$no_proxy
 update-ca-certificates
 echo "Added ca certificates to trust pool"
 
-/usr/bin/caddy run --environ --config /etc/caddy/Caddyfile
+# Define the log level based on the environment variable
+IS_CADDY_DEBUG=$(cat /proc/cmdline | grep -o 'DEBUG=[^ ]*' | awk -F= '{print $2}')
+if [ "$IS_CADDY_DEBUG" = "false" ]; then
+    LOG_LEVEL="ERROR"
+else
+    LOG_LEVEL="DEBUG"
+fi
+cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile2
+# Replace the log level in the Caddyfile
+sed -i "s/level .*/level $LOG_LEVEL/" /etc/caddy/Caddyfile2
+
+/usr/bin/caddy run --environ --config /etc/caddy/Caddyfile2
