@@ -150,7 +150,7 @@ else
     else
 	echo "Faild to update swap partition in /etc/fstab for the disk $disk"
 	exit 1
-    fi
+    fi	
     #unmount the partitions
     for mount in $(mount | grep '/mnt' | awk '{print $3}' | sort -nr); do
         umount "$mount"
@@ -174,7 +174,7 @@ do
     #skip for rootfs disk
     if echo "$disk_name" | grep -q "$os_disk"; then
         continue;
-    else
+    else 
         if [ -z "$final_disk_list" ]; then
 	    final_disk_list="$disk_name"
 	else
@@ -189,13 +189,13 @@ else
     #create the swap size as half of RAM size
     swap_size=$((ram_size/2))
     #cap the swap_size to 128GB
-    if [ "$(echo "$swap_size > 128" | bc)" -eq 1 ]; then
+    if [ "$swap_size" -gt 128 ]; then
         swap_size=128
     fi
 fi
 
 #make sure swap size should not exceed the total disk size
-if [ "$(echo "$swap_size >= $disk_size" | bc)" -eq 1 ]; then
+if [ "$swap_size" -ge "$disk_size" ]; then
     echo "Looks the Disk size is very Minimal and can't proceed with partition!!!!"
     exit 1
 fi
@@ -225,10 +225,10 @@ if [ "$blk_disk_count" -eq 1 ]; then
 
     #create the secondary rootfs partitions for A/B day2 upgrades
     data_part_end=$(parted -m $disk unit GB print | grep "^$data_part_number" | cut -d: -f3 | sed 's/GB//')
-    secondary_rootfs_disk_end=$(echo "$data_part_end + $secondary_rootfs_disk_size" | bc )
+    secondary_rootfs_disk_end=$((data_part_end+secondary_rootfs_disk_size))
     parted "${disk}" --script mkpart primary ext4 "${data_part_end}GB" "${secondary_rootfs_disk_end}GB"
     parted "${disk}" --script name ${secondary_rootfs_disk_num} rootfs2
-    echo y | mkfs.ext4 "${disk}${secondary_rootfs_disk}"
+    echo y | mkfs.ext4 "${disk}${secondary_rootfs_disk}" 
     partprobe "${disk}"
     if [ $? -ne 0 ]; then
         echo "rootfs2 partition for the disk ${disk} failed"
@@ -238,12 +238,12 @@ if [ "$blk_disk_count" -eq 1 ]; then
     fi
 else
     #more than one disk detected expand the tiber_persistent partition to max-swap  partition
-
-    #get the last partition end point
+    
+    #get the last partition end point 
     data_part_end=$(parted -m $disk unit GB print | grep "^$data_part_number" | cut -d: -f3 | sed 's/GB//')
-
-    #add data_part_end secondary_rootfs disk size and swap_size to get toatl size in use
-    total_size_inuse=$(echo "$data_part_end + $swap_size + $secondary_rootfs_disk_size" | bc)
+ 
+    #add data_part_end secondary_rootfs disk size and swap_size to get toatl size in use 
+    total_size_inuse=$(echo "$data_part_end + $swap_size + $secondary_rootfs_disk_size" | bc)   
     #calculate the size for expanding the data partition
     data_part_end_size=$(echo "$disk_size - $total_size_inuse" | bc)
 
@@ -260,7 +260,7 @@ else
 
     #create the secondary rootfs partitions for A/B day2 upgrades
     data_part_end=$(parted -m $disk unit GB print | grep "^$data_part_number" | cut -d: -f3 | sed 's/GB//')
-    secondary_rootfs_disk_end=$(echo "$data_part_end + $secondary_rootfs_disk_size" | bc)
+    secondary_rootfs_disk_end=$((data_part_end+secondary_rootfs_disk_size))
     parted "${disk}" --script mkpart primary ext4 "${data_part_end}GB" "${secondary_rootfs_disk_end}GB"
     parted "${disk}" --script name ${secondary_rootfs_disk_num} rootfs2
     echo y | mkfs.ext4 "${disk}${secondary_rootfs_disk}"
@@ -274,8 +274,8 @@ else
 fi
 
 #get the end size of the last partition from the  disk
-last_partition_end=$(parted -ms $disk  print | tail -n 1 | awk -F: '{print $3}' | sed 's/GB//g')
-swap_partition_size_end=$(echo "$last_partition_end + $swap_size" | bc )
+last_partition_end=$(parted -ms $disk  print | tail -n 1 | awk -F: '{print $3}' | sed 's/[^0-9]*//g')
+swap_partition_size_end=$((last_partition_end+swap_size))
 
 #create SWAP
 create_swap_partition "${disk}" "${last_partition_end}" "${swap_partition_size_end}" "${data_part_number}"
@@ -288,16 +288,16 @@ if [ "$blk_disk_count" -eq 1 ]; then
     #create LVM partition
     blk_disk_count=1
     lvm_partition_size="100%"
-    swap_partition_size_end=$(parted -ms $disk  print | tail -n 1 | awk -F: '{print $3}' | sed 's/GB//g')
+    swap_partition_size_end=$(parted -ms $disk  print | tail -n 1 | awk -F: '{print $3}' | sed 's/[^0-9]*//g')
     parted "${disk}" --script mkpart primary ext4 "${swap_partition_size_end}GB" $lvm_partition_size
     partprobe "${disk}"
 
-    create_lvm_partition "${blk_disk_count}" "${disk}"
+    create_lvm_partition "${blk_disk_count}" "${disk}" 
 
 #if more than 1 disk ditected then create the LVM partition on secondary disks
 else
     echo "found more than 1 disk for LVM creation"
-    create_lvm_partition  "${blk_disk_count}" "${final_disk_list}"
+    create_lvm_partition  "${blk_disk_count}" "${final_disk_list}" 
 fi
 }
 
@@ -331,4 +331,4 @@ total_disk_size=$(parted -m "/dev/$os_disk" unit GB print | grep "^/dev" | cut -
 
 #partition the disk with swap and LVM
 
-partition_disk "$ram_size" "$total_disk_size"
+partition_disk "$ram_size" "$total_disk_size"  
