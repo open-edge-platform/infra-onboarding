@@ -46,7 +46,7 @@ func FuzzTestDeviceDiscoveryEnv(f *testing.F) {
 			t.Error("Expected error to be returned.")
 		}
 
-		_, err = parseKernelArguments(kernelArgsFilePath)
+		cfg, err := parseKernelArguments(kernelArgsFilePath)
 		if err != nil {
 			t.Logf("Error parsing kernel arguments: %v\n", err)
 		} else {
@@ -66,6 +66,14 @@ func FuzzTestDeviceDiscoveryEnv(f *testing.F) {
 		} else {
 			t.Error("Expected error to be returned.")
 		}
+
+		_, err = getIPAddress(cfg.workerID)
+		if err != nil {
+			t.Logf("Error getting Ip address: %v\n", err)
+		} else {
+			t.Error("Expected error to be returned")
+		}
+
 	})
 
 }

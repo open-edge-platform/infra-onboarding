@@ -21,7 +21,6 @@ type tinkConfig struct {
 	workerID string
 	debug    string
 	timeout  string
-	ip       string
 }
 
 // parseCmdLine will parse the command line and return either a config or an error.
@@ -40,8 +39,6 @@ func parseCmdLine(cmdLines []string) (tinkConfig, error) {
 			cfg.debug = cmdLine[1]
 		case "TIMEOUT":
 			cfg.timeout = cmdLine[1]
-		case "IP":
-			cfg.ip = cmdLine[1]
 		}
 	}
 	return cfg, nil
