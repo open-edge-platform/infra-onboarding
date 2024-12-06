@@ -15,10 +15,11 @@ run_dhcp_client() {
 	if [ -n "$vlan_id" ]; then
 		al="eth*.*"
 	fi
-
+	mac=$(sed -E 's/.*worker_id=([^[:space:]]*).*/\1/' /proc/cmdline)
+	interface=$(ip link | grep -B 1 "$mac" | awk -F': ' 'NR==1 {print $2}')
 	if [ "$one_shot" = "true" ]; then
 		# always return true for the one shot dhcp call so it doesn't block Hook from starting up.
-		/sbin/dhcpcd --nobackground -f /dhcpcd.conf --allowinterfaces "${al}" -1 || true
+		/sbin/dhcpcd -t 300 -f /dhcpcd.conf --allowinterfaces "${interface}" -1 || true
 		# use busybox's ntpd to set the time after getting an IP address; don't fail
 		echo 'sleep 1 second before calling ntpd' && sleep 1
 		/usr/sbin/ntpd -n -q -dd -p pool.ntp.org || true
