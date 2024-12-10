@@ -6,6 +6,7 @@ package southbound
 import (
 	"net"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/invclient"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/logging"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/metrics"
 	inv_tenant "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/tenant"
 )
 
@@ -26,6 +28,8 @@ type SBHandlerConfig struct {
 	ServerAddress    string
 	InventoryAddress string
 	EnableTracing    bool
+	EnableMetrics    bool
+	MetricsAddress   string
 	EnableAuth       bool
 	RBAC             string
 }
@@ -83,12 +87,24 @@ func (sbh *SBHandler) Start() error {
 	var srvOpts []grpc.ServerOption
 	var unaryInter []grpc.UnaryServerInterceptor
 	unaryInter = append(unaryInter, inv_tenant.GetExtractTenantIDInterceptor(inv_tenant.GetOnboardingRoles()))
+	srvMetrics := metrics.GetServerMetricsWithLatency()
+	cliMetrics := metrics.GetClientMetricsWithLatency()
+	if sbh.cfg.EnableMetrics {
+		zlog.Info().Msgf("Metrics exporter Enable with address %s", sbh.cfg.MetricsAddress)
+		unaryInter = append(unaryInter, srvMetrics.UnaryServerInterceptor())
+	}
 	srvOpts = append(srvOpts, grpc.ChainUnaryInterceptor(unaryInter...))
 	sbh.server = grpc.NewServer(srvOpts...)
 	pb.RegisterNodeArtifactServiceNBServer(sbh.server, nodeArtifactService)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(sbh.server)
+	if sbh.cfg.EnableMetrics {
+		// Register metrics
+		srvMetrics.InitializeMetrics(sbh.server)
+		metrics.StartMetricsExporter([]prometheus.Collector{cliMetrics, srvMetrics},
+			metrics.WithListenAddress(sbh.cfg.MetricsAddress))
+	}
 	// Run go routine to start the gRPC server.
 	go func() {
 		if err := sbh.server.Serve(sbh.lis); err != nil {

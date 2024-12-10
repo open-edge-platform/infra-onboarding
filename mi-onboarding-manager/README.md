@@ -679,6 +679,14 @@ sequenceDiagram
 3. Integration with CDN boots.
 4. Need to test by deploying onboarding manager & inventory service.
 
+### Metrics
+For the Southbound API, grpc metrics are made available, when switched on and the port specified. They are typicaly scraped by promethus and will be present in strandard observavbilitiy console.
+For test or investigation purposes, turn on the metrics at a suitable port, and forward the metrics to localhost and the query the inbuilt metrics server.
+
+```nohup kubectl port-forward service/mi-onboarding-manager -n maestro-iaas-system 8081:8081 --address 0.0.0.0  &
+curl -s 127.0.0.1:8081/metrics   | grep grpc_server_msg.*CreateNodes
+```
+
 ### Command to run unit test cases for onboarding package from onboardingmgr
 Path - frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/onboardingmgr/onboarding
 

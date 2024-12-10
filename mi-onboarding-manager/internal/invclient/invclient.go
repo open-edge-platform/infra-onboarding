@@ -58,6 +58,7 @@ type OnboardingInventoryClient struct {
 type Options struct {
 	InventoryAddress string
 	EnableTracing    bool
+	EnableMetrics    bool
 	ClientKind       inv_v1.ClientKind
 }
 
@@ -74,6 +75,13 @@ func WithInventoryAddress(invAddr string) Option {
 func WithEnableTracing(enableTracing bool) Option {
 	return func(options *Options) {
 		options.EnableTracing = enableTracing
+	}
+}
+
+// WithEnableMetrics enables client-side gRPC metrics.
+func WithEnableMetrics(enableMetrics bool) Option {
+	return func(options *Options) {
+		options.EnableMetrics = enableMetrics
 	}
 }
 
@@ -116,6 +124,7 @@ func NewOnboardingInventoryClientWithOptions(opts ...Option) (*OnboardingInvento
 		},
 		Wg:            &wg,
 		EnableTracing: options.EnableTracing,
+		EnableMetrics: options.EnableMetrics,
 	}
 
 	invClient, err := client.NewTenantAwareInventoryClient(ctx, cfg)

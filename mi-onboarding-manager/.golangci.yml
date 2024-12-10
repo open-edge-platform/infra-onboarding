@@ -165,6 +165,7 @@ linters-settings:
           - sigs.k8s.io/controller-runtime/pkg/log
           - sigs.k8s.io/controller-runtime/pkg/log/zap
           - github.com/stretchr/testify
+          - github.com/prometheus/client_golang/prometheus
         deny:
       Test:
         files:

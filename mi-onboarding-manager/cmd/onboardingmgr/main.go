@@ -22,6 +22,7 @@ import (
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/flags"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/logging"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/metrics"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/oam"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/policy/rbac"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/secretprovider"
@@ -44,6 +45,8 @@ var (
 	inventoryAddress = flag.String(client.InventoryAddress, "localhost:50051", client.InventoryAddressDescription)
 	oamServerAddress = flag.String(oam.OamServerAddress, "", oam.OamServerAddressDescription)
 	enableTracing    = flag.Bool(tracing.EnableTracing, false, tracing.EnableTracingDescription)
+	enableMetrics    = flag.Bool(metrics.EnableMetrics, false, metrics.EnableMetricsDescription)
+	metricsAddress   = flag.String(metrics.MetricsAddress, "0.0.0.0:8081", metrics.MetricsAddressDescription)
 	traceURL         = flag.String(tracing.TraceURL, "", tracing.TraceURLDescription)
 	enableAuth       = flag.Bool(rbac.EnableAuth, true, rbac.EnableAuthDescription)
 	rbacRules        = flag.String(rbac.RbacRules, "/rego/authz.rego", rbac.RbacRulesDescription)
@@ -124,6 +127,7 @@ func main() {
 	invClient, err := invclient.NewOnboardingInventoryClientWithOptions(
 		invclient.WithInventoryAddress(*inventoryAddress),
 		invclient.WithEnableTracing(*enableTracing),
+		invclient.WithEnableMetrics(*enableMetrics),
 	)
 	if err != nil {
 		zlog.MiSec().Fatal().Err(err).Msgf("Unable to start onboarding inventory client")
@@ -159,6 +163,8 @@ func main() {
 	sbHandler, err := southbound.NewSBHandler(invClient, southbound.SBHandlerConfig{
 		ServerAddress:    *serverAddress,
 		EnableTracing:    *enableTracing,
+		EnableMetrics:    *enableMetrics,
+		MetricsAddress:   *metricsAddress,
 		InventoryAddress: *inventoryAddress,
 		EnableAuth:       *enableAuth,
 		RBAC:             *rbacRules,
