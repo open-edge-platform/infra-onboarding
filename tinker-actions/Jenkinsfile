@@ -267,7 +267,6 @@ pipeline {
     post {
         always {
             jcpSummaryReport()
-            intelLogstashSend failBuild: false, verbose: true
             cleanWs()
         }
         failure {

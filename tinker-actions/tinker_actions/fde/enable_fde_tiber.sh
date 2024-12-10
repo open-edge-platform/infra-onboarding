@@ -15,8 +15,13 @@
 ####
 ####
 # COMPLETE_FDE_DMVERITY set to true if we need to encrypt all partitions
-COMPLETE_FDE_DMVERITY=false
+COMPLETE_FDE_DMVERITY=true
 
+# Test flag for enabling DM-verity on B part aswell.
+TEST_ENABLE_DM_ON_ROOTFSB=false
+
+# Test flag for only partition
+TEST_ON_ONLY_ONE_PART=false
 ####
 ####
 #####################################################################################
@@ -26,7 +31,6 @@ then
     boot_partition=1
     rootfs_partition=2
     tiber_persistent_partition=3
-
 
     #efi_partition=15
 
@@ -241,7 +245,7 @@ make_partition() {
 
     swap_size=$(( $swap_size * 1024 ))
 
-    total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 | awk '{ print int($3)*1024}')
+    total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
 
     # For single HDD reduce the size to 100 and fit everything inside it
     if [ $single_hdd -eq 0 ];
@@ -354,6 +358,7 @@ save_rootfs_on_ram(){
 	check_return_value $? "Failed to mount reserved"
 
 	cp -rp rfs/* rfs_backup
+	sync
 	umount rfs
 	umount rfs_backup
     fi
@@ -583,6 +588,21 @@ luks_format_verity_part() {
 }
 
 #####################################################################################
+update_luks_uuid() {
+
+    suffix=$(fix_partition_suffix)
+
+    mkdir -p /boot_efi_mount
+    mount "$DEST_DISK${suffix}${boot_partition}" /boot_efi_mount
+    rootfs_a_UUID=$( grep -a -h -o "boot_uuid=.* " /boot_efi_mount/EFI/Linux/* | cut -c 11-46 | head -1)
+    umount /boot_efi_mount
+
+    echo "YES" | cryptsetup luksUUID "$DEST_DISK${suffix}${rootfs_partition}" --uuid $rootfs_a_UUID
+    check_return_value $? "Failed to set the UUID for the rootfs a partition(part2)"
+
+}
+
+#####################################################################################
 luksformat_helper(){
     luks_key=$1
     partition=$2
@@ -631,6 +651,7 @@ enable_luks(){
 
 	umount rfs
 	umount rfs_backup
+
     fi
 
     ### setup swap luks
@@ -660,6 +681,7 @@ enable_luks(){
 	check_return_value $? "Failed to mount ti_backup"
 
 	cp -rp ti/* ti_backup
+	sync
 	umount ti
 
 	luksformat_helper $luks_key "${DEST_DISK}${suffix}${tiber_persistent_partition}" "tiber_persistent"
@@ -673,6 +695,7 @@ enable_luks(){
 	cp -rp ti_backup/* ti
 	check_return_value $? "Failed to copy the tiber persistent partition back"
 
+	sync
 	umount ti
 	umount ti_backup
     fi
@@ -681,7 +704,9 @@ enable_luks(){
     #cleanup copied backup of rfs
     if $COMPLETE_FDE_DMVERITY;
     then
+	###############################################
 	cleanup_rfs_backup &
+	###############################################
 
 	# mounts needed to make the chroot work
 	mount /dev/mapper/rootfs_crypt /mnt
@@ -711,21 +736,24 @@ enable_luks(){
     cp $luks_key /mnt/luks_key
 
     create_single_hdd_lvmg
-    partition_other_devices
+    if ! $TEST_ON_ONLY_ONE_PART;
+    then
+	partition_other_devices
+    fi
 
     # Was added in ubuntu to solve some issue with resolv
     # rm /mnt/etc/resolv.conf
     # touch /mnt/etc/resolv.conf
     # mount --bind /etc/resolv.conf /mnt/etc/resolv.conf
 
-    # mount /dev/mapper/rootfs_b_crypt rfs
-    # cp -rp rfs_backup/* rfs
-    # umount rfs
-    # umount rfs_backup
+    # updated the rootfs part uuid
+    update_luks_uuid
 
     chroot /mnt /bin/bash <<EOT
 
-    #inside installed ubuntu
+    #inside installed tiber OS
+
+    export TPM2TOOLS_TCTI="device:/dev/tpmrm0"
 
     #setup tpm
     tpm2-initramfs-tool seal --data $(cat /luks_key) --pcrs 15
@@ -749,6 +777,21 @@ EOT
 	umount $mounted_dir
     done
 
+    #############################
+    #test for B part
+
+    if $TEST_ENABLE_DM_ON_ROOTFSB;
+    then
+	mkdir -p rfs
+	mkdir -p rfs_backup
+	mount /dev/mapper/rootfs_b_crypt rfs
+	mount /dev/mapper/rootfs_crypt rfs_backup
+	cp -rp rfs_backup/* rfs
+	sync
+	umount rfs
+	umount rfs_backup
+    fi
+    #############################
 
     if $COMPLETE_FDE_DMVERITY;
     then
@@ -760,8 +803,11 @@ EOT
 	veritysetup format /dev/mapper/rootfs_crypt /dev/mapper/root_a_ver_hash_map | grep Root | cut -f2 > /temp/part_a_roothash
 	check_return_value $? "Failed to do veritysetup"
 
-	# veritysetup format /dev/mapper/rootfs_b_crypt /dev/mapper/root_b_ver_hash_map | grep Root | cut -f2 > /temp/part_b_roothash
-	# check_return_value $? "Failed to do veritysetup"
+	if $TEST_ENABLE_DM_ON_ROOTFSB;
+	then
+	    veritysetup format /dev/mapper/rootfs_b_crypt /dev/mapper/root_b_ver_hash_map | grep Root | cut -f2 > /temp/part_b_roothash
+	    check_return_value $? "Failed to do veritysetup"
+	fi
 
 	umount /temp
 	rm -rf /temp
