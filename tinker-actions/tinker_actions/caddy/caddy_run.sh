@@ -79,4 +79,4 @@ cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile2
 # Replace the log level in the Caddyfile
 sed -i "s/level .*/level $LOG_LEVEL/" /etc/caddy/Caddyfile2
 
-/usr/bin/caddy run --environ --config /etc/caddy/Caddyfile2
+/usr/bin/caddy run --config /etc/caddy/Caddyfile2
