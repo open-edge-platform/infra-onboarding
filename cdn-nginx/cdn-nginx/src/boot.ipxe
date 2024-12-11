@@ -1,0 +1,37 @@
+#!ipxe
+
+echo Loading the Tinkerbell Hook iPXE script...
+echo "Starting Hook OS Download"
+show unixtime
+set arch x86_64
+set bootdevmac ${mac}
+set bootdevip ${ip}
+set download-url DOWNLOAD_URL
+set grpc_authority GRPC_AUTHORITY
+set tink_worker_image TINK_WORKER_IMAGE
+set device_discovery_enabled DEVICE_DISCOVERY_ENABLED
+set device_discovery_image DEVICE_DISCOVERY_IMAGE
+set onboarding_manager_address ONBOARDING_MANAGER_ADDRESS
+:kernelboot
+set idx:int32 0
+set retry_limit:int32 5
+:kernelloop
+kernel --timeout=-1 ${download-url}/vmlinuz-${arch} \
+tink_worker_image=${tink_worker_image} grpc_authority=${grpc_authority} tinkerbell_tls=false worker_id=${bootdevmac} \
+IP=${bootdevip} \
+ADDITIONAL_KERNEL_ARGS \
+modules=loop,squashfs,sd-mod,usb-storage intel_iommu=on iommu=pt initrd=initramfs-${arch} console=tty0 console=ttyS1,115200 && goto initboot || iseq ${idx} ${retry_limit} && goto error || inc idx && echo Unable to load ${download-url}/vmlinuz-${arch} && echo RETRY NO ${idx} && goto kernelloop
+:initboot
+set idx:int32 0
+set retry_limit:int32 5
+:initloop
+initrd --timeout=-1 ${download-url}/initramfs-${arch} && goto bootfinal || iseq ${idx} ${retry_limit} && goto error || inc idx && echo Unable to load ${download-url}/initramfs-${arch} && echo RETRY NO ${idx} && goto initloop
+:bootfinal
+show unixtime
+echo "Download Hook OS Successful"
+boot
+
+:error
+echo Could not load resources. Please make sure that the files are reachable and network speed is appropriate.
+echo Retry with UEFI HTTP Boot again
+shell
