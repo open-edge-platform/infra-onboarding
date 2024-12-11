@@ -741,6 +741,7 @@ func TestNodeArtifactService_CreateNodes_Case_Success(t *testing.T) {
 		})
 	}
 }
+
 func TestNodeArtifactService_startZeroTouch(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
@@ -1219,6 +1220,7 @@ func TestNodeArtifactService_startZeroTouch_MultiTenant(t *testing.T) {
 		require.NoError(t, err)
 	})
 }
+
 func TestNodeArtifactService_CreateNodes_Case6(t *testing.T) {
 	type fields struct {
 		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer

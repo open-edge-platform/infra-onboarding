@@ -196,7 +196,7 @@ func tinkActionCredcopyImage(tinkerImageVersion string) string {
 	return fmt.Sprintf("%s:%s", defaultTinkActionCredcopyImage, iv)
 }
 
-//nolint:funlen // May effect the functionality, need to simplify this in future
+//nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
 func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enableDI bool) ([]byte, error) {
 	// #nosec G115
 	securityFeatureTypeVar := osv1.SecurityFeature(deviceInfo.SecurityFeature)
@@ -318,6 +318,12 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 				},
 
 				{
+					Name:    ActionFdeEncryption,
+					Image:   tinkActionFdeImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutAvg560,
+				},
+
+				{
 					Name:    ActionEfibootset,
 					Image:   tinkActionEfibootImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg560,
@@ -416,6 +422,32 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 		// Insert the new actions after the "stream-tiberos-image" action
 		wf.Tasks[0].Actions = append(wf.Tasks[0].Actions[:streamTiberOSImage+1],
 			append(directoryActions, wf.Tasks[0].Actions[streamTiberOSImage+1:]...)...)
+	}
+
+	// FDE removal if security feature flag is not set for FDE
+	// #nosec G115
+	if osv1.SecurityFeature(deviceInfo.SecurityFeature) ==
+		osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION {
+		for i, task := range wf.Tasks {
+			for j, action := range task.Actions {
+				if action.Name == ActionTiberOSPartition {
+					// Remove the action from the slice
+					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
+					break
+				}
+			}
+		}
+	} else if osv1.SecurityFeature(deviceInfo.SecurityFeature) ==
+		osv1.SecurityFeature_SECURITY_FEATURE_NONE {
+		for i, task := range wf.Tasks {
+			for j, action := range task.Actions {
+				if action.Name == ActionFdeEncryption {
+					// Remove the action from the slice
+					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
+					break
+				}
+			}
+		}
 	}
 
 	// Creat the User credentials only for dev mode and remove the action for production mode
