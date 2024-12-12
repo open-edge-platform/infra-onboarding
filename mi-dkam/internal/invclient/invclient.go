@@ -43,6 +43,7 @@ type DKAMInventoryClient struct {
 type Options struct {
 	InventoryAddress string
 	EnableTracing    bool
+	EnableMetrics    bool
 	ClientKind       inv_v1.ClientKind
 }
 
@@ -59,6 +60,12 @@ func WithInventoryAddress(invAddr string) Option {
 func WithEnableTracing(enableTracing bool) Option {
 	return func(options *Options) {
 		options.EnableTracing = enableTracing
+	}
+}
+
+func WithEnableMetrics(enableMetrics bool) Option {
+	return func(options *Options) {
+		options.EnableMetrics = enableMetrics
 	}
 }
 
@@ -99,6 +106,7 @@ func NewDKAMInventoryClientWithOptions(opts ...Option) (*DKAMInventoryClient, er
 		},
 		Wg:            &wg,
 		EnableTracing: options.EnableTracing,
+		EnableMetrics: options.EnableMetrics,
 	}
 
 	invClient, err := client.NewTenantAwareInventoryClient(ctx, cfg)

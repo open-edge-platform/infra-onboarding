@@ -14,6 +14,7 @@ import (
 	"syscall"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/internal/dkammgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/internal/handlers/controller"
@@ -21,6 +22,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/client"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/logging"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/metrics"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/oam"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/policy/rbac"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2/pkg/tracing"
@@ -38,6 +40,8 @@ var (
 	traceURL         = flag.String(tracing.TraceURL, "", tracing.TraceURLDescription)
 	enableAuth       = flag.Bool(rbac.EnableAuth, true, rbac.EnableAuthDescription)
 	rbacRules        = flag.String(rbac.RbacRules, "/rego/authz.rego", rbac.RbacRulesDescription)
+	enableMetrics    = flag.Bool(metrics.EnableMetrics, false, metrics.EnableMetricsDescription)
+	metricsAddress   = flag.String(metrics.MetricsAddress, metrics.MetricsAddressDefault, metrics.MetricsAddressDescription)
 	readyChan        = make(chan bool, 1)
 	termChan         = make(chan bool, 1)
 	sigChan          = make(chan os.Signal, 1)
@@ -82,6 +86,10 @@ func main() {
 		}
 	}
 
+	if *enableMetrics {
+		startMetricsServer()
+	}
+
 	if err := GetArtifacts(context.Background()); err != nil {
 		zlog.MiSec().Fatal().Err(err).Msg("Failed to get artifacts")
 	}
@@ -96,6 +104,7 @@ func main() {
 	invClient, err := invclient.NewDKAMInventoryClientWithOptions(
 		invclient.WithInventoryAddress(*inventoryAddress),
 		invclient.WithEnableTracing(*enableTracing),
+		invclient.WithEnableMetrics(*enableMetrics),
 	)
 	if err != nil {
 		zlog.MiSec().Fatal().Err(err).Msgf("Unable to start onboarding inventory client")
@@ -135,6 +144,11 @@ func setupTracing(traceURL string) func(context.Context) error {
 		zlog.Info().Msg("Tracing disabled")
 	}
 	return cleanup
+}
+
+func startMetricsServer() {
+	metrics.StartMetricsExporter([]prometheus.Collector{metrics.GetClientMetricsWithLatency()},
+		metrics.WithListenAddress(*metricsAddress))
 }
 
 func setupOamServerAndSetReady(enableTracing bool, oamServerAddress string) {
