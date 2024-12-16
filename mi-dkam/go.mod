@@ -17,8 +17,9 @@ require (
 require (
 	github.com/google/uuid v1.6.0
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go v0.5.1
-	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.9.2-0.20241206101820-1293bbd811d9
+	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.10.0
 	github.com/pkg/errors v0.9.1
+	github.com/prometheus/client_golang v1.20.4
 
 )
 
@@ -76,7 +77,6 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/prometheus/client_golang v1.20.4 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
