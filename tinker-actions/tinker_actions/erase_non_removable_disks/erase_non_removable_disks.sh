@@ -30,6 +30,6 @@ fi
 
 lsblk_output=$(lsblk --output NAME,SIZE,TYPE,RM -bldn)
 echo "$lsblk_output" | awk '{if ($2 != 0 && $3 == "disk" && $4 != 1) print $1}' | while read -r disk; do
-    dd if=/dev/zero of="/dev/$disk" bs=4k count=100
+    dd if=/dev/zero of="/dev/$disk" bs=100MB count=20
 done
 partprobe
