@@ -108,6 +108,28 @@ pipeline:
             key: "source"
             value: "edgenode_provisioning"
 
+    - name: tail
+      path: /var/log/*bootkit.*log
+      read_from_head: true
+      tag: uOS_bootkitLogs
+      processors:
+        logs:
+          - name: opentelemetry_envelope
+          - name: content_modifier
+            context: attributes
+            action: upsert
+            key: "FileType"
+            value: "uOS_bootkitLogs"
+          - name: content_modifier
+            action: upsert
+            key: "hostGuid"
+            value: "${EDGENODE_UUID}"
+          - name: content_modifier
+            context: attributes
+            action: upsert
+            key: "source"
+            value: "edgenode_provisioning"
+
     - name: syslog
       mode: udp
       listen: 0.0.0.0

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -72,15 +73,16 @@ func main() {
 // TODO(jacobweinstock): clean up func run().
 // 1. read /proc/cmdline
 // 2. parse and populate tinkConfig from contents of /proc/cmdline
-// 3. do validation/sanitization on tinkConfig
-// 4. setup docker client
-// 4. configure any registry auth
-// 5. pull tink-worker image
-// 6. remove any existing tink-worker container
-// 7. setup tink-worker container config
-// 8. create tink-worker container
-// 9. start tink-worker container
-// 10. check that the tink-worker container is running
+// 3. parse, populate and print boot statistics from contents of /proc/cmdline
+// 4. do validation/sanitization on tinkConfig
+// 5. setup docker client
+// 6. configure any registry auth
+// 7. pull tink-worker image
+// 8. remove any existing tink-worker container
+// 9. setup tink-worker container config
+// 10. create tink-worker container
+// 11. start tink-worker container
+// 12. check that the tink-worker container is running
 
 func run(ctx context.Context, log logr.Logger) error {
 	content, err := os.ReadFile("/proc/cmdline")
@@ -88,6 +90,10 @@ func run(ctx context.Context, log logr.Logger) error {
 		return err
 	}
 	cmdLines := strings.Split(string(content), " ")
+
+	// parse and report boot statistics
+	reportBootStatistics(cmdLines, log)
+
 	cfg := parseCmdLine(cmdLines)
 	// Generate the path to the tink-worker
 	var imageName string
@@ -206,10 +212,10 @@ func run(ctx context.Context, log logr.Logger) error {
 				Target: "/var/run/docker.sock",
 			},
 		},
-        /* add restart if caddy endpoint if yet not available */
-	    RestartPolicy: container.RestartPolicy{
-		    	        Name: "unless-stopped",
-	    },
+		/* add restart if caddy endpoint if yet not available */
+		RestartPolicy: container.RestartPolicy{
+			Name: "unless-stopped",
+		},
 
 		NetworkMode: "host",
 		Privileged:  true,
@@ -299,6 +305,40 @@ func parseCmdLine(cmdLines []string) (cfg tinkWorkerConfig) {
 		}
 	}
 	return cfg
+}
+
+func reportBootStatistics(cmdLines []string, log logr.Logger) {
+	bootKitStartTimestamp := uint32(time.Now().Unix())
+	log.Info("Reporting boot KPI", "s_bootkit_start", bootKitStartTimestamp)
+
+	parseHexToUint32 := func(hexStr string) (uint32, error) {
+		hexStr = strings.Trim(hexStr, "\n")
+		if len(hexStr) > 2 && hexStr[:2] == "0x" {
+			hexStr = hexStr[2:]
+		}
+
+		value, err := strconv.ParseUint(hexStr, 16, 32)
+		if err != nil {
+			return 0, fmt.Errorf("failed to convert %s to uint32", hexStr)
+		}
+		return uint32(value), nil
+	}
+
+	for i := range cmdLines {
+		cmdLine := strings.SplitN(cmdLines[i], "=", 2)
+		if len(cmdLine) == 0 {
+			continue
+		}
+		bootTracepoint := cmdLine[0]
+		if strings.HasPrefix(bootTracepoint, "s_") {
+			bootTracepointValue, err := parseHexToUint32(cmdLine[1])
+			if err != nil {
+				log.Error(err, "Failed to print boot statistics %s", bootTracepoint)
+			}
+
+			log.Info("Reporting boot KPI", bootTracepoint, bootTracepointValue)
+		}
+	}
 }
 
 // defaultLogger is a zerolog logr implementation.
