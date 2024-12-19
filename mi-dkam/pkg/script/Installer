@@ -856,6 +856,19 @@ creat_lvm_partition(){
         else
             for disk in "${lvm_disks[@]}"
             do
+		#before creating the partition clear the disk content
+		# this will make sure luks crypto will be deleted if FDE was performed previously
+		dd if=/dev/zero of="/dev/$disk" bs=100MB count=20
+
+	 	#Before start the LVM,clear the previously created LVM if exist
+        	for lvname in $(lvs --noheadings -o lv_name lvmvg)
+        	do
+			if [ -n "$lvname" ]; then 
+			    umount -f /dev/lvmvg/${lvname}
+                	    lvremove /dev/lvmvg/${lvname} -y
+			fi
+        	done
+
                 parted -s "/dev/$disk" mklabel gpt mkpart primary 0% 100%
                 partprobe
 		sync
@@ -929,6 +942,7 @@ install_lvm_on_disk(){
     if grep -q "install_lvm_on_disk done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping install_lvm_on_disk"
     else
+	
         echo "lvm setup for secondary disk"
         #check if FDE enabled , if not enabled  do the LVM for the secondary disk
         if [ ! -L /dev/mapper/rootfs_crypt ]; then
@@ -946,12 +960,14 @@ install_lvm_on_disk(){
                 fi
             done
 
-            rootfs=$(df /boot/efi | awk 'NR==2 {print $1}')
+            rootfs=$(df / | awk 'NR==2 {print $1}')
             if [[ "$rootfs" == *"nvme"* ]]; then
                 os_disk=$(echo "$rootfs" | grep -oE 'nvme[0-9]+n[0-9]+' | head -n 1)
+		part_num=$(echo "$rootfs" | awk 'NR==1 {print $1}' | awk -F'p' '{print $2}')
             fi
             if [[ "$rootfs" == *"sd"* ]]; then
                  os_disk=$(echo "$rootfs" | grep -oE 'sd[a-z]+' | head -n 1)
+		 part_num=$(echo "$rootfs" | awk 'NR==1 {print $1}' | sed 's/[^0-9]*//g')
             fi
 
             num_disks=${#final_disk_list[@]}
@@ -977,6 +993,12 @@ install_lvm_on_disk(){
                 done
                 #disk with no rootfs and can be used for the LVM creation
                 creat_lvm_partition "$num_disks" "${lvm_disks[@]}"
+		#check if rootfs size increased max or not, if not increase it
+		rootfs_size=$(df / | awk 'NR==2 {gsub("%", "", $5); print $5}')
+		if [ "$rootfs_size" -ge 20 ]; then
+			growpart "/dev/${os_disk}" "$part_num"
+			resize2fs "/dev/${os_disk}$part_num"
+		fi
             else
                 echo "No valid disk found on the system for LVM creation"
                 exit 1
