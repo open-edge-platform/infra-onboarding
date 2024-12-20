@@ -40,8 +40,6 @@ func SignHookOS() (bool, error) {
 		return false, errp
 	}
 
-	fileServer := os.Getenv("FILE_SERVER")
-	//harborServer := config.DevHarbor
 	ReleaseService := os.Getenv("REGISTRY_SERVICE")
 	dnsName := os.Getenv("DNS_NAME")
 	zlog.MiSec().Info().Msgf("CDN boot DNS name %s", dnsName)
@@ -72,7 +70,7 @@ func SignHookOS() (bool, error) {
 	//////////// FQDNS ********************************
 	fdo_manufacturer_svc := os.Getenv("FDO_MANUFACTURE_SVC")
 	fdo_owner_svc := os.Getenv("FDO_OWNER_SVC")
-	release_svc := fileServer
+	release_svc := os.Getenv("CDN_SVC")
 	tink_stack_svc := host
 	releaseSVC := os.Getenv("RELEASE_SVC")
 	tink_server_svc := os.Getenv("TINKER_SVC")

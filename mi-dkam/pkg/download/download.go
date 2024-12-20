@@ -47,15 +47,6 @@ type Response struct {
 	} `json:"layers"`
 }
 
-var client = &http.Client{
-	Transport: &http.Transport{
-		Proxy:             http.ProxyFromEnvironment,
-		ForceAttemptHTTP2: false,
-		MaxIdleConns:      10,
-		IdleConnTimeout:   30,
-	},
-}
-
 type File struct {
 	Description string `yaml:"description"`
 	Server      string `yaml:"server"`
@@ -138,88 +129,6 @@ func DownloadMicroOS(ctx context.Context) (bool, error) {
 	zlog.MiSec().Info().Msg("File downloaded")
 	return true, nil
 
-}
-
-func sanitizeFilename(name string) string {
-	return strings.ReplaceAll(filepath.Base(name), "..", "")
-}
-
-// DownloadTiberOSImage downloads OS image from the Release Service,
-// verifies the SHA256 checksum and copies the OS image to targetDir.
-func DownloadTiberOSImage(ctx context.Context, osRes *osv1.OperatingSystemResource, targetDir string) error {
-	tmpOsImageFilePath := filepath.Join(config.DownloadPath, sanitizeFilename(osRes.GetProfileName()+util.GetFileExtensionFromOSImageURL(osRes)))
-	url := config.RSProxyTiberOSManifest + osRes.GetImageUrl()
-	zlog.MiSec().Info().Msg(url)
-
-	for attempt := 1; attempt <= 3; attempt++ {
-		req, httperr := http.NewRequestWithContext(ctx, "GET", url, nil)
-		if httperr != nil {
-			zlog.MiSec().Error().Err(httperr).Msgf("Failed create GET request to release server:%v", httperr)
-			return httperr
-
-		}
-
-		// Perform the HTTP GET request
-		resp, clienterr := client.Do(req)
-		if clienterr != nil {
-			zlog.MiSec().Error().Err(clienterr).Msgf("Error making request to Release server:%v", clienterr)
-			return clienterr
-
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			zlog.MiSec().Error().Err(clienterr).Msgf("Error: received non-200 status code:%v", resp.StatusCode)
-			return clienterr
-		}
-
-		content, err := io.ReadAll(resp.Body)
-		if err != nil {
-			zlog.MiSec().Error().Err(err).Msgf("Error reading response body:%v", err)
-			return err
-		}
-
-		file, fileErr := os.Create(tmpOsImageFilePath)
-		if fileErr != nil {
-			zlog.MiSec().Error().Err(fileErr).Msgf("Failed to create file:%v", fileErr)
-			return fileErr
-		}
-		defer file.Close()
-
-		writeErr := os.WriteFile(tmpOsImageFilePath, content, 0644)
-		if writeErr != nil {
-			zlog.MiSec().Error().Err(writeErr).Msgf("Error while writting content ")
-			continue
-		}
-
-		zlog.Info().Msg("Calculating SHA256 checksum of downloaded image...")
-		computedChecksum, err := getSHA256Checksum(tmpOsImageFilePath)
-		if err != nil {
-			zlog.MiSec().Error().Err(err).Msgf("Error calculating MD5 checksum:%v", err)
-		}
-
-		zlog.MiSec().Info().Msgf("Expected checksum: %s\n", osRes.GetSha256())
-		zlog.MiSec().Info().Msgf("Computed checksum: %s\n", computedChecksum)
-
-		if osRes.GetSha256() == computedChecksum {
-			zlog.MiSec().Info().Msgf("Checksum verification succeeded!")
-		} else {
-			zlog.MiSec().Error().Err(err).Msgf("Checksum verification failed! Expected checksum:%s and Computed checksum:%s", osRes.GetSha256(), computedChecksum)
-			continue
-		}
-		break
-	}
-
-	copyErr := CopyFile(
-		tmpOsImageFilePath,
-		util.GetOSImageLocation(osRes, targetDir),
-	)
-	if copyErr != nil {
-		zlog.MiSec().Error().Err(copyErr).Msgf("Failed to copy file to PV:%v", copyErr)
-
-	}
-
-	return nil
 }
 
 func DownloadPrecuratedScript(ctx context.Context, profile string) error {

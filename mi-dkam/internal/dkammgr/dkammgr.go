@@ -168,41 +168,29 @@ func DownloadOS(ctx context.Context, osRes *osv1.OperatingSystemResource) error 
 			osRes.GetResourceId(), osRes.GetOsProvider().String())
 		return nil
 	}
+	if osRes.GetOsType() == osv1.OsType_OS_TYPE_IMMUTABLE {
+		zlog.Debug().Msgf("Skipping OS download for OS type: %s", osRes.GetOsType())
+		return nil
+
+	}
 
 	imageURL := osRes.GetImageUrl()
 	zlog.Info().Msgf("imageURL %s", imageURL)
 	targetDir := config.PVC
-	if osRes.GetOsType() == osv1.OsType_OS_TYPE_IMMUTABLE && osRes.GetOsType() != osv1.OsType_OS_TYPE_UNSPECIFIED {
-		zlog.Info().Msgf("Inside Download Tiber OS")
 
-		file = util.GetOSImageLocation(osRes, targetDir)
-		// Check if the compressed raw image file already exists
-		if _, err := os.Stat(file); os.IsNotExist(err) {
-			// Download the image
-			if err := download.DownloadTiberOSImage(ctx, osRes, targetDir); err != nil {
-				zlog.MiSec().Error().Err(err).Msgf("Error downloading image:%v", err)
-				return err
-			}
+	zlog.Info().Msgf("Download Ubuntu OS")
 
-		} else {
-			zlog.MiSec().Info().Msgf("Compressed raw image file already exists: %s", file)
+	file = util.GetOSImageLocation(osRes, targetDir)
+	// Check if the compressed raw image file already exists
+	if _, err := os.Stat(file); os.IsNotExist(err) {
+		// Download the image
+		if err := download.DownloadUbuntuImage(ctx, osRes, targetDir); err != nil {
+			zlog.MiSec().Error().Err(err).Msgf("Error downloading image:%v", err)
+			return err
 		}
 
 	} else {
-		zlog.Info().Msgf("Inside Download Ubuntu OS")
-
-		file = util.GetOSImageLocation(osRes, targetDir)
-		// Check if the compressed raw image file already exists
-		if _, err := os.Stat(file); os.IsNotExist(err) {
-			// Download the image
-			if err := download.DownloadUbuntuImage(ctx, osRes, targetDir); err != nil {
-				zlog.MiSec().Error().Err(err).Msgf("Error downloading image:%v", err)
-				return err
-			}
-
-		} else {
-			zlog.MiSec().Info().Msgf("Compressed raw image file already exists: %s", file)
-		}
+		zlog.MiSec().Info().Msgf("Compressed raw image file already exists: %s", file)
 	}
 
 	zlog.MiSec().Info().Msg("OS Image downloaded and move to PVC")

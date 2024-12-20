@@ -568,31 +568,6 @@ func Test_getSHA256Checksum(t *testing.T) {
 	}
 }
 
-func TestDownloadTiberOSImage(t *testing.T) {
-	type args struct {
-		osRes     *osv1.OperatingSystemResource
-		targetDir string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name:    "Test Case",
-			args:    args{},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := DownloadTiberOSImage(context.TODO(), tt.args.osRes, tt.args.targetDir); (err != nil) != tt.wantErr {
-				t.Errorf("DownloadTiberOSImage() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestGetOSImageLocationWithCustomFilename(t *testing.T) {
 	type args struct {
 		os       *osv1.OperatingSystemResource
@@ -630,8 +605,8 @@ func TestCreateFile(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "negative test case",
-			args: args{},
+			name:    "negative test case",
+			args:    args{},
 			wantErr: true,
 		},
 	}
