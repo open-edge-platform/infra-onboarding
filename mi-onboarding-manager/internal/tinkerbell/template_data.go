@@ -296,7 +296,7 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 						"CHROOT":              "y",
 						"SCRIPT_URL":          deviceInfo.InstallerScriptURL,
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE": fmt.Sprintf("wget -P /etc/cloud/cloud.cfg.d %s;"+
+						"CMD_LINE": fmt.Sprintf("curl -o /etc/cloud/cloud.cfg.d/installer.cfg %s;"+
 							"chmod +x /etc/cloud/cloud.cfg.d/installer.cfg",
 							deviceInfo.InstallerScriptURL),
 					},

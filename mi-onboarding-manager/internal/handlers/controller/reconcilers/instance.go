@@ -229,10 +229,21 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		instance.GetResourceId(), desiredOs)
 
 	localHostIP := instance.GetHost().GetBmcIp()
-	proxyURL := fmt.Sprintf(TinkStackURLTemplate, localHostIP)
+	var proxyURL string
+	tinkURL := fmt.Sprintf(TinkStackURLTemplate, localHostIP)
 
 	// OS and Installer location returned to EN points to a local server that proxies requests to Provisioning Nginx
+	if desiredOs.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE {
+		zlogInst.Debug().Msgf("Ubuntu Image Pulling from DKAM PV")
+		proxyURL = tinkURL
+	} else {
+		// Tiber OS can be pulled drirectly from Release Server or CDN Server
+		zlogInst.Debug().Msgf("TiberOS Image Pulling from CDN/RS Servers")
+		proxyURL = fmt.Sprintf("http://%s/", localHostIP)
+	}
 	osLocationURL := dkam_util.GetOSImageLocation(instance.GetDesiredOs(), proxyURL)
+	proxyURL = tinkURL
+	// Installer script or Cloud init file download
 	installerScriptURL, err := dkam_util.GetInstallerLocation(instance.GetDesiredOs(), proxyURL)
 	if err != nil {
 		return utils.DeviceInfo{}, err
