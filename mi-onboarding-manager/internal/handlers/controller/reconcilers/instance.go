@@ -72,6 +72,24 @@ func (ir *InstanceReconciler) Reconcile(ctx context.Context,
 	}
 
 	// the only allowed path from the ERROR state is DELETED
+	if directive := ir.handleErrorState(instance, request); directive != nil {
+		return directive
+	}
+
+	// Forbid Instance provisioning with defined Provider. Such Instance should be reconciled within Provider-specific RM.
+	if directive := ir.handleProviderSpecificRM(instance, request); directive != nil {
+		return directive
+	}
+
+	if directive := ir.handleMatchingStates(ctx, instance, request, resourceID); directive != nil {
+		return directive
+	}
+
+	return ir.reconcileInstance(ctx, request, instance)
+}
+
+func (ir *InstanceReconciler) handleErrorState(instance *computev1.InstanceResource, request rec_v2.Request[ReconcilerID],
+) rec_v2.Directive[ReconcilerID] {
 	if instance.CurrentState == computev1.InstanceState_INSTANCE_STATE_ERROR &&
 		instance.DesiredState != computev1.InstanceState_INSTANCE_STATE_DELETED {
 		// current_state set to ERROR by previous reconciliation cycles
@@ -83,14 +101,22 @@ func (ir *InstanceReconciler) Reconcile(ctx context.Context,
 			"Current state of Instance is ERROR. Reconciliation won't happen until the Instance is re-created.")
 		return request.Ack()
 	}
+	return nil
+}
 
-	// Forbid Instance provisioning with defined Provider. Such Instance should be reconciled within Provider-specific RM.
-	if instance.GetProvider() != nil {
+func (ir *InstanceReconciler) handleProviderSpecificRM(instance *computev1.InstanceResource, request rec_v2.Request[ReconcilerID],
+) rec_v2.Directive[ReconcilerID] {
+	if instance.GetHost() != nil && instance.GetHost().GetProvider() != nil {
 		zlogInst.Info().Msgf("Instance should be reconciled within other vendor-specific RM (%s)",
-			instance.GetProvider().GetName())
+			instance.GetHost().GetProvider().GetName())
 		return request.Ack()
 	}
+	return nil
+}
 
+func (ir *InstanceReconciler) handleMatchingStates(ctx context.Context, instance *computev1.InstanceResource,
+	request rec_v2.Request[ReconcilerID], resourceID string,
+) rec_v2.Directive[ReconcilerID] {
 	if instance.DesiredState == instance.CurrentState {
 		// HRM may already update the state to RUNNING before provisioning is done (see NEX-15924).
 		// In such case, we let reconciler complete the provisioning process and clean up resources.
@@ -109,8 +135,7 @@ func (ir *InstanceReconciler) Reconcile(ctx context.Context,
 			resourceID, instance.CurrentState, instance.DesiredState)
 		return request.Ack()
 	}
-
-	return ir.reconcileInstance(ctx, request, instance)
+	return nil
 }
 
 func (ir *InstanceReconciler) updateHostInstanceStatusAndCurrentState(
