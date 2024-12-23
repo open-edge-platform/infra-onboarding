@@ -277,6 +277,8 @@ func (s *NonInteractiveOnboardingService) handleOnboardedState(stream pb.NonInte
 		zlog.Error().Err(errUpdatehostStatus).Msg("Failed to update host current status to ONBOARDED")
 		return errUpdatehostStatus
 	}
+	OnboardingStatusTimestamp := uint64(time.Now().Unix()) // #nosec G115
+	zlog.Debug().Msgf("Instrumentation Info: Host Onboarded Successfully on %d\n", OnboardingStatusTimestamp)
 	// closes the stream after sending the final response
 	return nil
 }
