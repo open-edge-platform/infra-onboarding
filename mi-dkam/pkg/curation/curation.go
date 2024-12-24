@@ -241,15 +241,6 @@ func CreateCloudCfgScript(osRes *osv1.OperatingSystemResource) error {
 	orchRelease := os.Getenv("ORCH_RELEASE")
 	orchAptSrcPort := os.Getenv("ORCH_APT_PORT")
 	orchImgRegProxyPort := os.Getenv("ORCH_IMG_PORT")
-	//orchLicenseHost := os.Getenv("ORCH_LICENSE_HOST")
-	//orchLicensePort := os.Getenv("ORCH_LICENSE_PORT")
-
-	// if MODE == "dev" {
-	// 	ypsUrl = os.Getenv("YPS_URL")
-	// }
-	enforcement := os.Getenv("ENFORCEMENT")
-	zlog.MiSec().Info().Msgf("License Agent YPS URL %s", ypsUrl)
-	zlog.MiSec().Info().Msgf("enforcement %s", enforcement)
 
 	//Proxies
 	httpProxy := os.Getenv("EN_HTTP_PROXY")
@@ -294,8 +285,6 @@ func CreateCloudCfgScript(osRes *osv1.OperatingSystemResource) error {
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PLATFORM_OBS_METRICS_PORT__", orchPlatformObsMetricsPort)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_TELEMETRY_HOST__", orchTelemetryHost)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_TELEMETRY_PORT__", orchTelemetryPort)
-	// modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_LICENSE_HOST__", orchLicenseHost)
-	// modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_LICENSE_PORT__", orchLicensePort)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__KEYCLOAK__", strings.Split(orchKeycloak, ":")[0])
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__RELEASE_FQDN__", strings.Split(orchRelease, ":")[0])
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__KEYCLOAK_URL__", orchKeycloak)
@@ -306,8 +295,7 @@ func CreateCloudCfgScript(osRes *osv1.OperatingSystemResource) error {
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__NTP_SERVERS__", ntpServer)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__CA_CERT__", string(caContentUpdated))
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__APT_SRC__", string(distribution))
-	//modifiedScript = strings.ReplaceAll(modifiedScript, "__LICENSE_URL__", string(ypsUrl))
-	//modifiedScript = strings.ReplaceAll(modifiedScript, "__ENFORCEMENT__", string(enforcement))
+
 	// Loop through the agentsList
 
 	// Save the modified script to the specified output path
@@ -516,15 +504,6 @@ func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
 	orchRelease := os.Getenv("ORCH_RELEASE")
 	orchAptSrcPort := os.Getenv("ORCH_APT_PORT")
 	orchImgRegProxyPort := os.Getenv("ORCH_IMG_PORT")
-	orchLicenseHost := os.Getenv("ORCH_LICENSE_HOST")
-	orchLicensePort := os.Getenv("ORCH_LICENSE_PORT")
-
-	if MODE == "dev" {
-		ypsUrl = os.Getenv("YPS_URL")
-	}
-	enforcement := os.Getenv("ENFORCEMENT")
-	zlog.MiSec().Info().Msgf("License Agent YPS URL %s", ypsUrl)
-	zlog.MiSec().Info().Msgf("enforcement %s", enforcement)
 
 	//Proxies
 	httpProxy := os.Getenv("EN_HTTP_PROXY")
@@ -610,8 +589,6 @@ func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PLATFORM_OBS_METRICS_PORT__", orchPlatformObsMetricsPort)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_TELEMETRY_HOST__", orchTelemetryHost)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_TELEMETRY_PORT__", orchTelemetryPort)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_LICENSE_HOST__", orchLicenseHost)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_LICENSE_PORT__", orchLicensePort)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__KEYCLOAK__", strings.Split(orchKeycloak, ":")[0])
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__RELEASE_FQDN__", strings.Split(orchRelease, ":")[0])
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__KEYCLOAK_URL__", orchKeycloak)
@@ -628,8 +605,7 @@ func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__DOCKER_KEY__", string(dockerContent))
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__CADDY_KEY__", string(caddyContent))
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__APT_SRC__", string(distribution))
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__LICENSE_URL__", string(ypsUrl))
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ENFORCEMENT__", string(enforcement))
+
 	// Loop through the agentsList
 	for _, agent := range agentsList {
 		// Access the fields of each struct
