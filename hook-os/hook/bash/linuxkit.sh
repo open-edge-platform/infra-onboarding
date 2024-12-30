@@ -50,7 +50,7 @@ function linuxkit_build() {
 	fi
 
 	# Build the containers in this repo used in the LinuxKit YAML;
-	build_all_hook_linuxkit_containers # sets HOOK_CONTAINER_IP_IMAGE, HOOK_CONTAINER_BOOTKIT_IMAGE, HOOK_CONTAINER_DOCKER_IMAGE, HOOK_CONTAINER_MDEV_IMAGE, HOOK_CONTAINER_CONTAINERD_IMAGE
+	build_all_hook_linuxkit_containers # sets HOOK_CONTAINER_BOOTKIT_IMAGE, HOOK_CONTAINER_DOCKER_IMAGE, HOOK_CONTAINER_MDEV_IMAGE, HOOK_CONTAINER_CONTAINERD_IMAGE
 
 	# Template the linuxkit configuration file.
 	# - You'd think linuxkit would take --build-args or something by now, but no.
@@ -64,14 +64,13 @@ function linuxkit_build() {
 	# shellcheck disable=SC2016 # I'm using single quotes to avoid shell expansion, envsubst wants the dollar signs.
 	cat "linuxkit-templates/${kernel_info['TEMPLATE']}.template.yaml" |
 		HOOK_KERNEL_IMAGE="${kernel_oci_image}" HOOK_KERNEL_ID="${inventory_id}" HOOK_KERNEL_VERSION="${kernel_oci_version}" \
-			HOOK_CONTAINER_IP_IMAGE="${HOOK_CONTAINER_IP_IMAGE}" \
 			HOOK_CONTAINER_BOOTKIT_IMAGE="${HOOK_CONTAINER_BOOTKIT_IMAGE}" \
 			HOOK_CONTAINER_DOCKER_IMAGE="${HOOK_CONTAINER_DOCKER_IMAGE}" \
 			HOOK_CONTAINER_MDEV_IMAGE="${HOOK_CONTAINER_MDEV_IMAGE}" \
 			HOOK_CONTAINER_CONTAINERD_IMAGE="${HOOK_CONTAINER_CONTAINERD_IMAGE}" \
 			HOOK_CONTAINER_RUNC_IMAGE="${HOOK_CONTAINER_RUNC_IMAGE}" \
 			HOOK_CONTAINER_EMBEDDED_IMAGE="${HOOK_CONTAINER_EMBEDDED_IMAGE}" \
-			envsubst '$HOOK_VERSION $HOOK_KERNEL_IMAGE $HOOK_KERNEL_ID $HOOK_KERNEL_VERSION $HOOK_CONTAINER_IP_IMAGE $HOOK_CONTAINER_BOOTKIT_IMAGE $HOOK_CONTAINER_DOCKER_IMAGE $HOOK_CONTAINER_MDEV_IMAGE $HOOK_CONTAINER_CONTAINERD_IMAGE $HOOK_CONTAINER_RUNC_IMAGE $HOOK_CONTAINER_EMBEDDED_IMAGE' \
+			envsubst '$HOOK_VERSION $HOOK_KERNEL_IMAGE $HOOK_KERNEL_ID $HOOK_KERNEL_VERSION $HOOK_CONTAINER_BOOTKIT_IMAGE $HOOK_CONTAINER_DOCKER_IMAGE $HOOK_CONTAINER_MDEV_IMAGE $HOOK_CONTAINER_CONTAINERD_IMAGE $HOOK_CONTAINER_RUNC_IMAGE $HOOK_CONTAINER_EMBEDDED_IMAGE' \
 			> "hook.${inventory_id}.yaml"
 
 	declare -g linuxkit_bin=""
@@ -83,6 +82,26 @@ function linuxkit_build() {
 	declare lk_cache_dir="${CACHE_DIR}/linuxkit"
 	mkdir -p "${lk_cache_dir}"
 
+	# if LINUXKIT_ISO is set, build an ISO with the kernel and initramfs
+	if [[ -n "${LINUXKIT_ISO}" ]]; then
+		declare lk_iso_output_dir="out"
+		mkdir -p "${lk_iso_output_dir}"
+
+		declare -a lk_iso_args=(
+			"--docker"
+			"--arch" "${kernel_info['DOCKER_ARCH']}"
+			"--format" "iso-efi-initrd"
+			"--name" "hook-${OUTPUT_ID}"
+			"--cache" "${lk_cache_dir}"
+			"--dir" "${lk_iso_output_dir}"
+			"hook.${inventory_id}.yaml" # the linuxkit configuration file
+		)
+
+		log info "Building Hook ISO with kernel ${inventory_id} using linuxkit: ${lk_iso_args[*]}"
+		"${linuxkit_bin}" build "${lk_iso_args[@]}"
+		return 0
+	fi
+	
 	declare -a lk_args=(
 		"--docker"
 		"--arch" "${kernel_info['DOCKER_ARCH']}"
