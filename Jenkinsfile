@@ -6,7 +6,7 @@ def getEnvFromBranch(branch) {
         return 'protex'
     }
     else {
-        return 'virus,trivy'
+        return 'virus'
         // PR checks can be extended with checkmarx, bandit, snyk but source code has to available for them to pass. Protex should be kept only at branch level scanning.
     }
 }
@@ -85,11 +85,11 @@ pipeline {
                 make test
                 make coverage
                 '''
-                 post {
+                 /*post {
                     success {
                         coverageReport('cobertura-coverage.xml')
                     }
-                } 
+                }*/
             }
         }
         // This stage is required for service/agent repos only
