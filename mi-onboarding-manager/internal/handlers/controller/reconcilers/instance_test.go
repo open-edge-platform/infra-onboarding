@@ -91,7 +91,7 @@ func createProviderWithArgs(tb testing.TB, doCleanup bool,
 	tb.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	str := "{\"defaultOs\":\"osID\",\"autoProvision\":true,\"customerID\":\"170312\",\"enProductKeyIDs\":\"a6d7cf35-049a-4959-88b0-3bcb91beb857\"}"
+	str := "{\"defaultOs\":\"osID\",\"autoProvision\":true}"
 	str = strings.Replace(str, "osID", resourceId, 1)
 	provider = &providerv1.ProviderResource{
 		ProviderKind:   providerKind,
@@ -191,8 +191,6 @@ func TestReconcileInstanceNonEIM(t *testing.T) {
 		osr.OsType = osv1.OsType_OS_TYPE_MUTABLE
 		osr.OsProvider = osv1.OsProviderKind_OS_PROVIDER_KIND_LENOVO
 	})
-	_ = createProviderWithArgs(t, true, osRes.ResourceId, "itep_licensing", providerv1.ProviderKind_PROVIDER_KIND_LICENSING) // Creating license Provider profile which would be fetched by the reconciler.
-
 	instance := inv_testing.CreateInstance(t, host, osRes) // Instance should not be assigned to the Provider.
 	instanceID := instance.GetResourceId()
 
@@ -271,9 +269,8 @@ func TestReconcileInstance(t *testing.T) {
 
 	host := inv_testing.CreateHost(t, nil, nil)
 	osRes := createOsWithArgs(t, true)
-	_ = createProviderWithArgs(t, true, osRes.ResourceId, "itep_licensing", providerv1.ProviderKind_PROVIDER_KIND_LICENSING) // Creating license Provider profile which would be fetched by the reconciler.
-	_ = createProviderWithArgs(t, true, osRes.ResourceId, "fm_onboarding", providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL)  // Creating Provider profile which would be fetched by the reconciler.
-	instance := inv_testing.CreateInstanceNoCleanup(t, host, osRes)                                                          // Instance should not be assigned to the Provider.
+	_ = createProviderWithArgs(t, true, osRes.ResourceId, "fm_onboarding", providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL) // Creating Provider profile which would be fetched by the reconciler.
+	instance := inv_testing.CreateInstanceNoCleanup(t, host, osRes)                                                         // Instance should not be assigned to the Provider.
 	instanceID := instance.GetResourceId()
 
 	runReconcilationFunc := func() {
@@ -573,8 +570,7 @@ func TestInstanceReconciler_reconcileInstance(t *testing.T) {
 
 func Test_convertInstanceToDeviceInfo(t *testing.T) {
 	type args struct {
-		instance        *computev1.InstanceResource
-		licenseProvider invclient.LicenseProviderConfig
+		instance *computev1.InstanceResource
 	}
 	tests := []struct {
 		name    string
@@ -640,7 +636,7 @@ func Test_convertInstanceToDeviceInfo(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			env.ImgType = utils.ImgTypeBkc
-			_, err := convertInstanceToDeviceInfo(tt.args.instance, tt.args.licenseProvider)
+			_, err := convertInstanceToDeviceInfo(tt.args.instance)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
 				return

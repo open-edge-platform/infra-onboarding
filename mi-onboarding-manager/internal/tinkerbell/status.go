@@ -31,7 +31,6 @@ var WorkflowStepToStatusDetail = map[string]string{
 	ActionEfibootset:                 "Setting boot option",
 	ActionFdeEncryption:              "Setting FDE encryption",
 	ActionReboot:                     "Rebooting",
-	ActionCustomerID:                 "Setting customer ID",
 	ActionCopyENSecrets:              "Copying EN secrets",
 	ActionStoringAlpine:              "Storing Alpine",
 	ActionRunFDO:                     "Running FDO",
@@ -44,10 +43,8 @@ var WorkflowStepToStatusDetail = map[string]string{
 	ActionWriteClientSecret:          "Saving client secret",
 	ActionWriteHostname:              "Setting hostname",
 	ActionWriteEtcHosts:              "Adding entries to /etc/hosts",
-	ActionCreateCustomerIDDirectory:  "Creating directory in EN for customer ID and product keys",
 	ActionSystemdNetworkOptimize:     "Applying optimized Systemd network settings",
 	ActionDisableSnapdOptimize:       "Disabling Snapd service for optimization",
-	ActionENProductKey:               "Setting node product keys",
 	ActionKernelupgrade:              "Setting kernel-upgrade",
 }
 

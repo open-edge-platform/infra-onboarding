@@ -60,7 +60,7 @@ func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (
 
 	case utils.ImgTypeFocalMs:
 		tmplData, err = NewTemplateDataProdMS(tmplName, deviceInfo.Rootfspart, deviceInfo.InstallerScriptURL,
-			deviceInfo.OSImageURL, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.HwMacID, tinkerVersion, deviceInfo.CustomerID)
+			deviceInfo.OSImageURL, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.HwMacID, tinkerVersion)
 		if err != nil {
 			return nil, err
 		}

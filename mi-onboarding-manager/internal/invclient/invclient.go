@@ -746,16 +746,8 @@ func GetProviderResourceByName(
 
 //nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
 type ProviderConfig struct {
-	DefaultOs       string `json:"defaultOs"`
-	AutoProvision   bool   `json:"autoProvision"`
-	CustomerID      string `json:"customerID"`
-	ENProductKeyIDs string `json:"enProductKeyIDs"`
-}
-
-//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
-type LicenseProviderConfig struct {
-	CustomerID      string `json:"customerID"`
-	ENProductKeyIDs string `json:"enProductKeyIDs"`
+	DefaultOs     string `json:"defaultOs"`
+	AutoProvision bool   `json:"autoProvision"`
 }
 
 func (c *OnboardingInventoryClient) GetProviderConfig(
@@ -770,27 +762,6 @@ func (c *OnboardingInventoryClient) GetProviderConfig(
 	}
 
 	var pconf ProviderConfig
-	// Unmarshal provider config JSON into pconf
-	if err := json.Unmarshal([]byte(provider.Config), &pconf); err != nil {
-		zlog.MiErr(err).Msgf("failed to unmarshal ProviderConfig")
-		return nil, inv_errors.Wrap(err)
-	}
-
-	return &pconf, nil
-}
-
-func (c *OnboardingInventoryClient) GetLicenseProviderConfig(
-	ctx context.Context,
-	tenantID string,
-	name string,
-) (*LicenseProviderConfig, error) {
-	// Get the provider resource by name
-	provider, err := GetProviderResourceByName(ctx, tenantID, c, name)
-	if err != nil {
-		return nil, err
-	}
-
-	var pconf LicenseProviderConfig
 	// Unmarshal provider config JSON into pconf
 	if err := json.Unmarshal([]byte(provider.Config), &pconf); err != nil {
 		zlog.MiErr(err).Msgf("failed to unmarshal ProviderConfig")

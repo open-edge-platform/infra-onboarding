@@ -12,7 +12,6 @@ const (
 	ImgTypeFocalMs      = "prod_focal-ms"
 	ImgTypeTiberOs      = "prod_tiber-os"
 	DefaultProviderName = "fm_onboarding"
-	LicensingProvider   = "itep_licensing"
 )
 
 type (
@@ -52,12 +51,6 @@ type (
 		TinkerVersion string
 		// Hostname a host name set in the OS
 		Hostname string
-		// CustomerID stores a unique identifier of a customer. Used for license check.
-		CustomerID string
-		// ENProductKeyIDs contains a comma-separated list of product key identifiers.
-		// These keys are used to uniquely reference specific products or line items.
-		// within a customer's entitlement.
-		ENProductKeyIDs string
 		// sha256 is used by EN to validate the SHA256 of OS image authenticity.
 		OsImageSHA256 string
 		// OS type differentiate bw Ubuntu Canonical and Tiber OS for now

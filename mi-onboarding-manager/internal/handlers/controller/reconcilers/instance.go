@@ -238,7 +238,6 @@ func (ir *InstanceReconciler) reconcileInstance(
 }
 
 func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
-	licenseProvider invclient.LicenseProviderConfig,
 ) (utils.DeviceInfo, error) {
 	host := instance.GetHost() // eager-loaded
 
@@ -290,8 +289,6 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		InstallerScriptURL: installerScriptURL,
 		TinkerVersion:      tinkerVersion,
 		ClientImgName:      ClientImgName,
-		CustomerID:         licenseProvider.CustomerID,
-		ENProductKeyIDs:    licenseProvider.ENProductKeyIDs,
 		OsType:             desiredOs.GetOsType().String(),
 	}
 
@@ -312,13 +309,6 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 }
 
 func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance *computev1.InstanceResource) error {
-	// TODO : Passing default provider name while trying to provision, need to change according to provider name and compare.
-	licenseProviderConfig, err := ir.invClient.GetLicenseProviderConfig(ctx, instance.GetTenantId(), utils.LicensingProvider)
-	if err != nil {
-		zlogInst.Err(err).Msgf("Failed to get provider configuration")
-		return err
-	}
-
 	if instance.GetDesiredOs() == nil {
 		zlogInst.Warn().Msgf("No desired OS specified for instance %s, skipping provisioning.",
 			instance.GetResourceId())
@@ -331,7 +321,7 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 		return nil
 	}
 
-	deviceInfo, err := convertInstanceToDeviceInfo(instance, *licenseProviderConfig)
+	deviceInfo, err := convertInstanceToDeviceInfo(instance)
 	if err != nil {
 		zlogInst.MiSec().Err(err).Msgf("Failed convertInstanceToDeviceInfo - Instance %s with Host UUID %s",
 			instance.GetResourceId(), instance.GetHost().GetUuid())

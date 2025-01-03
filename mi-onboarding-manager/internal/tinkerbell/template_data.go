@@ -49,12 +49,9 @@ const (
 	ActionWriteClientSecret          = "write-client-secret"
 	ActionWriteHostname              = "write-hostname"
 	ActionWriteEtcHosts              = "Write-Hosts-etc"
-	ActionCreateCustomerIDDirectory  = "Customer-ID-Directory"
-	ActionCustomerID                 = "write-customer-id"
 	ActionTenantID                   = "tenant-id"
 	ActionSystemdNetworkOptimize     = "systemd-network-online-optimize"
 	ActionDisableSnapdOptimize       = "systemd-snapd-disable-optimize"
-	ActionENProductKey               = "write-en-product-key"
 	ActionTiberOSPartition           = "tiber-os-partition"
 	ActionCloudinitDsidentity        = "cloud-init-ds-identity"
 )
@@ -765,33 +762,6 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 						"CMD_LINE":            "systemctl enable update-netplan.service",
 					},
 				},
-
-				{
-					Name:    ActionCreateCustomerIDDirectory,
-					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "mkdir -p /etc/intel_edge_node/customer_id/",
-					},
-				},
-
-				{
-					Name:    ActionCustomerID,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/intel_edge_node/customer_id/customer_id",
-						"CONTENTS":  deviceInfo.CustomerID,
-						"UID":       "0",
-						"GID":       "0",
-						"MODE":      "0755",
-						"DIRMODE":   "0755",
-					},
-				},
 				{
 					Name:    ActionTenantID,
 					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
@@ -800,20 +770,6 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/etc/intel_edge_node/tenantId",
 						"CONTENTS":  fmt.Sprintf("TENANT_ID=%s", deviceInfo.TenantID),
-						"UID":       "0",
-						"GID":       "0",
-						"MODE":      "0755",
-						"DIRMODE":   "0755",
-					},
-				},
-				{
-					Name:    ActionENProductKey,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/intel_edge_node/customer_id/en_product_key_ids",
-						"CONTENTS":  deviceInfo.ENProductKeyIDs,
 						"UID":       "0",
 						"GID":       "0",
 						"MODE":      "0755",
@@ -987,7 +943,7 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 }
 
 //nolint:funlen // May effect the functionality, need to simplify this in future
-func NewTemplateDataProdMS(name, rootPart, _, hostIP, clientIP, gateway, mac, tinkerVersion, customerID string) ([]byte, error) {
+func NewTemplateDataProdMS(name, rootPart, _, hostIP, clientIP, gateway, mac, tinkerVersion string) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -1325,19 +1281,6 @@ done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )`,
 						"GID":     "0",
 						"MODE":    "0644",
 						"DIRMODE": "0755",
-					},
-				},
-				{
-					Name:    ActionCustomerID,
-					Image:   tinkActionCexecImage(tinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE": fmt.Sprintf(
-							"echo 'export EN_CUSTOMER_ID=%s' >> /root/.bashrc",
-							customerID),
 					},
 				},
 				{
