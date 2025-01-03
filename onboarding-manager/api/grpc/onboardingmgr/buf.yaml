@@ -1,0 +1,10 @@
+---
+# SPDX-FileCopyrightText: (C) 2024 Intel Corporation
+# SPDX-License-Identifier: LicenseRef-Intel
+
+# buf.yaml
+# docs: https://docs.buf.build/configuration/v1/buf-yaml
+version: v1
+deps:
+  - buf.build/googleapis/googleapis
+  - buf.build/envoyproxy/protoc-gen-validate
