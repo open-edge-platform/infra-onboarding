@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: (C) 2022 Intel Corporation
+# SPDX-License-Identifier: LicenseRef-Intel
+
+# OpenAPI validator
+openapi-spec-validator~=0.5.7
+
+# YAML linter
+yamllint~=1.29.0
+
+# license checking
+python-debian==0.1.44
+reuse~=1.0.0
