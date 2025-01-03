@@ -1,0 +1,48 @@
+#!ipxe
+
+echo ==== iPXE boot success, chainloading Micro-OS ====
+
+set tink_url <TINK_STACK_URL>
+
+# initiate index for retry loop of DHCP
+set idx:int32 0
+set retry_limit:int32 5
+
+# get DHCP address, w/ infinite timeout
+:registerwithnetwork
+echo 
+echo => Registering with Network
+#if the NIC port enabled and up configure it
+ifstat net${idx} && isset ({net${idx}/link}) && time ifconf --timeout=-1 && goto networkconfig || iseq ${idx} ${retry_limit} && goto ifconferror || inc idx && echo Unable to obtain the IP address && echo RETRY NO ${idx} && goto registerwithnetwork
+
+# display network settings before chainloading
+:networkconfig
+echo "Network Configuration Done"
+echo 
+echo "Network Configuration"
+ifstat
+route
+
+# chainload tink
+:chainload
+echo 
+echo => Chainloading to CDN-NGINX
+echo 
+echo sleeping for 1s
+sleep 1
+set idx:int32 0
+set retry_limit:int32 5
+:chainloop
+chain ${tink_url}/boot.ipxe || iseq ${idx} ${retry_limit} && goto chainloaderror || inc idx && echo Unable to reach the cloud instance to proceed with the next step && echo RETRY NO ${idx} && sleep 3 && goto chainloop
+
+:ifconferror
+echo 
+echo Error: Unable to obtain the IP address, even after multiple attempts. Please ensure your edge node is reachable from your DHCP server.
+echo Retry with UEFI HTTP Boot again.
+shell
+
+:chainloaderror
+echo 
+echo Error: Unable to reach the cloud instance to proceed with the next step.
+echo Retry with UEFI HTTP Boot again.
+shell
