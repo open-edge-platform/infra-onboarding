@@ -1,0 +1,11 @@
+---
+# SPDX-FileCopyrightText: (C) 2024 Intel Corporation
+# SPDX-License-Identifier: LicenseRef-Intel
+
+# buf.work.yaml
+# docs: https://docs.buf.build/configuration/v1/buf-work-yaml
+# Only defines one directory, but required so that buf.yaml deps list will work
+
+version: v1
+directories:
+  - api/grpc/onboardingmgr

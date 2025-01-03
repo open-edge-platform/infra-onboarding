@@ -1,0 +1,158 @@
+syntax = "proto3";
+
+package onboardingmgr;
+
+import "google/rpc/status.proto";
+import "validate/validate.proto";
+
+option go_package = "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/tree/main/api/grpc/onboardingmgr;onboardingmgr";
+
+//Artifact & Node Endpoints towards Inventory Manager
+service NodeArtifactServiceNB {
+  rpc CreateNodes(NodeRequest) returns (NodeResponse) {}
+}
+
+service NonInteractiveOnboardingService {
+  // OnboardNodeStream establishes a bidirectional stream between the EN and the OM
+  // It allows EN to send stream requests and receive responses
+  rpc OnboardNodeStream(stream OnboardStreamRequest) returns (stream OnboardStreamResponse) {}
+}
+message ArtifactRequest {
+  repeated ArtifactData payload = 1; // Payload data represented as an array or list
+}
+
+message ArtifactResponse {
+  repeated ArtifactData payload = 1; // Payload data {will be same as request for CREATE/DELETE}.
+}
+
+message ArtifactData {
+  string name = 1; // Name of the artifact
+  string version = 2; // Version of the artifact
+  string platform = 3; // Platform of the artifact
+  enum ArtifactCategory {
+    DEFAULT = 0; // Setting default artifact type getting all artifact
+    BIOS = 1; // BIOS Artifact
+    OS = 2; // OS Artifact
+    APPLICATION = 3; // Application Artifact
+    IMAGE = 4; // Container image Artifact
+    PLATFORM = 5; // Type of platform of the artifact
+  }
+  ArtifactCategory category = 4; // Category of the artifact ex:BIOS,OS etc.,
+  string description = 5; // Description of the artifact
+  Supplier details = 6; // Supplier details
+  string package_url = 7; // URL of the package
+  string author = 8; // Author of package
+  bool state = 9; // state
+  string license = 10; // License information
+  string vendor = 11; // vendor details
+  string manufacturer = 12; // manufacter details
+  string release_data = 13; // Release data
+  string artifact_id = 14; // Artifact ID generated while creating an artifact. This can be zero if not available during CreateArtifact Call or Batch actions like DeleteAll.
+  enum Response {
+    SUCCESS = 0; // Success
+    FAILURE = 1; // Failure
+  }
+  Response result = 15;
+}
+
+message Supplier {
+  string name = 1; // Name of supplier
+  string url = 2; // URL of supplier
+  string contact = 3; // Contact details of supplier
+}
+
+message NodeRequest {
+  repeated NodeData payload = 1; // Payload data
+}
+
+message NodeResponse {
+  repeated NodeData payload = 1; // Payload data
+  string project_id = 2; // The project_id associated with the node, identifying the project to which the node belongs
+}
+
+message NodeData {
+  string hw_id = 1; // HW Node ID
+  string platform_type = 2; // Platform details of the node //EHL,ADL/RPL/etc.,
+  string fw_artifact_id = 3; // Node FW Artifact ID to be stored here.This ID is retured to GetArtifacts{id}
+  string os_artifact_id = 4; // Node OS Artifact ID to be stored here.This ID is retured to GetArtifacts{id}
+  // TODO: a new member for Image artifact has to be added here, for now, app_artifact_id is used for image artifact
+  string app_artifact_id = 5; // Node App Artifact ID to be stored here.This ID is retured to GetArtifacts{id}
+  string plat_artifact_id = 6; // Node Platform Artifact ID to be stored here.This ID is retured to GetArtifacts{id}
+  string device_type = 7; // Node can be physical or virtual or container. If ID is not given, then all nodes FW artifacts wil be returned
+  string device_info_agent = 8; // Inventory Agent update SBOM & HBOM details during bootup.
+  string device_status = 9; // Only Inventory Agent Update READY Status to Inventory Manager. Other status by Admin or other managers UNCLAIMED,CLAIMED,READY,MAINTENANCE,ERROR,DECOMMISSIONED
+  string update_status = 10; // Update Manager Update the Node update status.
+  string update_available = 11; // Update manager updates if update is available.
+  string onboarding_status = 12; // Onboarding Status
+  string node_id = 13; // Generated Node ID. This field can be left empty for Create or DeleteAll
+  enum Response {
+    SUCCESS = 0; // Success
+    FAILURE = 1; // Failure
+  }
+  Response result = 14; //Result
+  repeated HwData hwdata = 15;
+}
+
+message HwData {
+  string hw_id = 1; // HW ID of Node
+  string mac_id = 2 [(validate.rules).string.pattern = "^([0-9a-fA-F]{2}([-:])){5}[0-9a-fA-F]{2}$"]; // Mac ID of Node
+  string sut_ip = 3 [(validate.rules).string.pattern = "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"]; // sutip
+  CustomerParams cus_params = 4; // Azure Specific Parameters
+  string disk_partition = 5; // Disk Partition Details
+  string platform_type = 6; // Device platform type
+  string serialnum = 7 [(validate.rules).string.pattern = "^[A-Za-z0-9]{5,20}$"];
+  string uuid = 8 [(validate.rules).string.uuid = true];
+  string bmc_ip = 9;
+  bool bmc_interface = 10;
+  string host_nic_dev_name = 11;
+  uint32 SecurityFeature = 12;
+}
+
+message Proxy {
+  string http_proxy = 1; // http proxy
+  string https_proxy = 2; // http proxy
+  string no_proxy = 3; // http proxy
+  string socks_proxy = 4; // socks proxy
+  string rsync_proxy = 5; // rsync proxy
+}
+
+message Ports {
+  string inv_mgr_port = 1; // inventory manager port
+  string up_mgr_port = 2; // update manager port
+  string oob_mgr_port = 3; // oob manager port
+  string tele_mgr_port = 4; // Telemetry manager port
+}
+
+message CustomerParams {
+  string dps_scope_id = 5; // DPS Scope ID
+  string dps_registration_id = 6; // DPS registration ID
+  string dps_enrollment_sym_key = 7; // DPS Enrollment Symetric Key
+}
+
+// OnboardStreamRequest represents a request sent from EN to the OM
+message OnboardStreamRequest {
+  // The UUID of the EN being onboarded
+  string uuid = 1 [(validate.rules).string.uuid = true];
+  // The serial number of the EN
+  string serialnum = 2 [(validate.rules).string.pattern = "^[A-Za-z0-9]{5,20}$"];
+  // The MAC ID of the EN
+  string mac_id = 3 [(validate.rules).string.pattern = "^([0-9a-fA-F]{2}([-:])){5}[0-9a-fA-F]{2}$"];
+  // The IP (IPv4 pattern) of the EN
+  string host_ip = 4 [(validate.rules).string.pattern = "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"];
+}
+
+// OnboardStreamResponse represents a response sent from the OM to a EN
+// over the bidirectional stream
+message OnboardStreamResponse {
+  // NodeState represents state of the device as stored in EIM Inventory
+  enum NodeState {
+    UNSPECIFIED = 0; // Node state is unspecified or unknown
+    REGISTERED = 1; // Allow to retry, Node is registered but not yet onboarded
+    ONBOARDED = 2; // Node successfully onboarded
+  }
+  google.rpc.Status status = 1; // The status of the onboarding request
+  NodeState node_state = 2; // The current state of the device as stored in EIM Inventory
+  string client_id = 3; // The client_id provided to the node upon successful onboarding
+  string client_secret = 4; // The client_secret provided to the node upon successful onboarding
+  string project_id = 5; // The project_id associated with the node, identifying the project to which the node belongs
+}
