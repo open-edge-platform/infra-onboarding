@@ -17,7 +17,9 @@ CURRENT_GID := $(shell id -g)
 PROJECT_NAME := dkammgr
 BINARY_NAME  := dkammgr
 
-OUT_DIR  := $(PWD)/build
+DB_CONTAINER_NAME := $(PROJECT_NAME)-db
+
+BUILD_DIR  := $(PWD)/build
 SCRIPTS_DIR := ./ci_scripts
 # Code versions, tags, and so on
 VERSION       := $(shell cat VERSION)
@@ -25,8 +27,6 @@ VERSION_MAJOR := $(shell cut -c 1 VERSION)
 IMG_NAME      := ${PROJECT_NAME}
 IMG_VERSION   ?= main
 GIT_COMMIT    ?= $(shell git rev-parse HEAD)
-
-SH_FILES 	:= $(shell find . -type f \( -name '*.sh' \) -print )
 
 # Create the virtualenv with python tools installed
 VENV_NAME = venv_midkammgr
@@ -47,38 +47,36 @@ $(VENV_NAME): requirements.txt
 #### Development Targets ####
 build: go-build ## Build local binaries
 
+## TODO: add hadolint and yamlint
 lint: go-lint license shellcheck
 
-shellcheck: ## lint shell scripts with shellcheck
-	shellcheck --version
-	shellcheck -x -S style $(SH_FILES)
-
-test: go-test
+test: go-test fuzztest
 
 #### Sub-targets ####
 
-$(OUT_DIR):
-	mkdir -p $(OUT_DIR)
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
 
-go-build: $(OUT_DIR) ## build resource manager binary
-	$(GOCMD) build $(GOEXTRAFLAGS) -o $(OUT_DIR)/$(BINARY_NAME) cmd/$(BINARY_NAME)/main.go
+go-build: $(BUILD_DIR) ## build resource manager binary
+	$(GOCMD) build $(GOEXTRAFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) cmd/$(BINARY_NAME)/main.go
 
-go-test: ${OUT_DIR}
+go-test: $(BUILD_DIR)
 	$(MAKE) db-stop
 	$(MAKE) db-start
-	go test --race -coverprofile ${OUT_DIR}/cover.out -coverpkg=$$(go list ./... | grep -v "pkg/api/dkammgr/v1" | grep -v "cmd" | grep -v "testing" | tr '\n' ,)  -covermode atomic ./...
-	gocover-cobertura < ${OUT_DIR}/cover.out > ${OUT_DIR}/coverage.xml
-	go tool cover -html=${OUT_DIR}/cover.out -o ${OUT_DIR}/coverage.html
-	go tool cover -func ${OUT_DIR}/cover.out -o ${OUT_DIR}/function_coverage.log
+	$(GOCMD) test -race -v -p 1 -coverpkg=$$(go list ./... | grep -v "pkg/api/dkammgr/v1" | grep -v "cmd" | grep -v "testing" | tr '\n' ,) -coverprofile ${BUILD_DIR}/coverage.out -covermode atomic ./... | tee \
+		>(go-junit-report -set-exit-code > ${BUILD_DIR}/report.xml)
+	gocover-cobertura < ${BUILD_DIR}/coverage.out > ${BUILD_DIR}/coverage.xml
+	$(GOCMD) tool cover -html=${BUILD_DIR}/coverage.out -o ${BUILD_DIR}/coverage.html
+	$(GOCMD) tool cover -func ${BUILD_DIR}/coverage.out -o ${BUILD_DIR}/function_coverage.log
 	$(MAKE) db-stop
 
 clean: ## delete all build artifacts
-	rm -rf $(OUT_DIR) pkg/api/* || true
+	rm -rf $(BUILD_DIR) pkg/api/* || true
 
 clean-all: clean ## delete all built artifacts and downloaded tools
 	rm -rf $(VENV_NAME) vendor || true
 	
-fuzztest: ${OUT_DIR}
+fuzztest: $(BUILD_DIR)
 	$(MAKE) db-stop
 	$(MAKE) db-start
 	$(SCRIPTS_DIR)/fuzz_test.sh "internal/handlers/controller/reconcilers/os_test.go"

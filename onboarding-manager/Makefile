@@ -31,6 +31,9 @@ DOCKER_LABEL_REPO_URL   ?= $(shell git remote get-url $(shell git remote | head 
 DOCKER_LABEL_VERSION    ?= ${IMG_VERSION}
 DOCKER_LABEL_REVISION   ?= ${GIT_COMMIT}
 DOCKER_LABEL_BUILD_DATE ?= $(shell date -u "+%Y-%m-%dT%H:%M:%SZ")
+
+DB_CONTAINER_NAME 		:= $(PROJECT_NAME)-db
+
 # Docker networking flags for the database container.
 # The problem is as follows: On a local MacOS machine we want to expose the port
 # of the DB to the native host to enable smooth tooling and unit tests. During
@@ -96,11 +99,13 @@ endif
 
 ##### CI Targets #####
 
+lint: ${BUILD_DIR} generate-ci lint-ci
+
 all: 
 	@# Help: Runs build, lint, test stage
 	build lint test
 
-go-build:
+go-build: ${BUILD_DIR}
 	--mount=type=cache,target=/root/.cache/go-build \
     $(GOCMD) build $(GOEXTRAFLAGS) -ldflags="-X 'main.RepoURL=${DOCKER_LABEL_REPO_URL}' -X 'main.Version=${DOCKER_LABEL_VERSION}' \
 	-X 'main.Revision=${DOCKER_LABEL_REVISION}' -X 'main.BuildDate=${DOCKER_LABEL_BUILD_DATE}'" \
@@ -125,8 +130,6 @@ docker-push: docker-build ## tag and push Docker image
 
 generate-ci: buf-gen
 
-#lint-ci: license go-lint
-
 lint-ci: license go-lint buf-lint hadolint
 
 ${BUILD_DIR}:
@@ -147,7 +150,7 @@ buf-lint: ## Lint and format protobuf files
 	buf format -d --exit-code
 	# TODO: buf lint and breaking disabled for now
 	#buf lint
-	#buf breaking --against 'https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service.git#branch=${BASE_BRANCH}'
+	#buf breaking --against 'https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding.git#branch=${BASE_BRANCH},subdir=onboarding-manager'
 
 buf-gen: ## compile protoc files into code
 	buf --version ;\
@@ -161,14 +164,14 @@ go-lint: ## lint code
 	golangci-lint run --config .golangci.yml
 
 db-start: ## Start the local postgres database. See: db-stop
-	if [ -z "`docker ps -aq -f name=^inv-db`" ]; then \
+	if [ -z "`docker ps -aq -f name=^$(DB_CONTAINER_NAME)`" ]; then \
 		echo POSTGRES_PASSWORD=$$PGPASSWORD -e POSTGRES_DB=$$PGDATABASE -e POSTGRES_USER=$$PGUSER -d postgres:$(POSTGRES_VERSION); \
-		docker run --name inv-db --rm $(DOCKER_NETWORKING_FLAGS) -e POSTGRES_PASSWORD=$$PGPASSWORD -e POSTGRES_DB=$$PGDATABASE -e POSTGRES_USER=$$PGUSER -d postgres:$(POSTGRES_VERSION); \
+		docker run --name $(DB_CONTAINER_NAME) --rm $(DOCKER_NETWORKING_FLAGS) -e POSTGRES_PASSWORD=$$PGPASSWORD -e POSTGRES_DB=$$PGDATABASE -e POSTGRES_USER=$$PGUSER -d postgres:$(POSTGRES_VERSION); \
 	fi
 
 db-stop: ## Stop the local postgres database and remove the Docker image. See: db-start
-	@if [ -n "`docker ps -aq -f name=^inv-db`" ]; then \
-		docker container kill inv-db; \
+	@if [ -n "`docker ps -aq -f name=^$(DB_CONTAINER_NAME)`" ]; then \
+		docker container kill $(DB_CONTAINER_NAME); \
 	fi
 	@if [ -n "`docker images -q postgres:$(POSTGRES_VERSION)`" ]; then \
 		docker rmi postgres:$(POSTGRES_VERSION); \
@@ -187,7 +190,7 @@ test: ${BUILD_DIR} ${SECRETS_DIR} ## run tests, generate output
 	$(MAKE) db-stop
 	$(MAKE) db-start
 	$(GOCMD) test -race -v -p 1 -coverpkg=$$(go list ./... | grep -v 'api/grpc/onboardingmgr' | grep -v 'pkg/api' | grep -v 'internal/onboardingmgr/onboarding/onboardingmocks' | grep -v 'internal/testing' | grep -v 'cmd/onboardingmgr' | tr '\n' ,) -coverprofile=${BUILD_DIR}/coverage.out -covermode atomic ./... | tee \
-		>(go-junit-report -set-exit-code > ${BUILD_DIR}/junit_report.xml)
+		>(go-junit-report -set-exit-code > ${BUILD_DIR}/report.xml)
 	gocover-cobertura < ${BUILD_DIR}/coverage.out > ${BUILD_DIR}/coverage.xml
 	$(GOCMD) tool cover -html=${BUILD_DIR}/coverage.out -o ${BUILD_DIR}/coverage.html
 	$(GOCMD) tool cover -func ${BUILD_DIR}/coverage.out -o ${BUILD_DIR}/function_coverage.log
@@ -220,3 +223,5 @@ fuzztest:
 	$(SCRIPTS_DIR)/fuzz_test.sh "internal/handlers/southbound/southbound_utils_test.go" "internal/handlers/controller/reconcilers/instance_test.go" "internal/handlers/southbound/artifact/artifact_service_test.go"
 	$(MAKE) db-stop
 
+dependency-check:
+	echo "No dependency check step"

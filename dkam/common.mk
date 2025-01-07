@@ -51,6 +51,8 @@ DOCKER_LABEL_VERSION    ?= $(IMG_VERSION)
 DOCKER_LABEL_REVISION   ?= $(GIT_COMMIT)
 DOCKER_LABEL_BUILD_DATE ?= $(shell date -u "+%Y-%m-%dT%H:%M:%SZ")
 
+DB_CONTAINER_NAME 		?= inv-db
+
 # Docker networking flags for the database container.
 # The problem is as follows: On a local MacOS machine we want to expose the port
 # of the DB to the native host to enable smooth tooling and unit tests. During
@@ -88,8 +90,8 @@ PGUSER     := admin
 PGPASSWORD := pass
 
 db-start: ## Start the local postgres database. See: db-stop
-	if [ -z "`docker ps -aq -f name=^inv-db`" ]; then \
-    docker run --name inv-db --rm $(DOCKER_NETWORKING_FLAGS) \
+	if [ -z "`docker ps -aq -f name=^$(DB_CONTAINER_NAME)`" ]; then \
+    docker run --name $(DB_CONTAINER_NAME) --rm $(DOCKER_NETWORKING_FLAGS) \
       -e POSTGRES_DB=$(PGDATABASE) \
       -e POSTGRES_USER=$(PGUSER) \
       -e POSTGRES_PASSWORD=$(PGPASSWORD) \
@@ -97,8 +99,8 @@ db-start: ## Start the local postgres database. See: db-stop
   fi
 
 db-stop: ## Stop the local postgres database. See: db-start
-	@if [ -n "`docker ps -aq -f name=^inv-db`" ]; then \
-    docker container kill inv-db; \
+	@if [ -n "`docker ps -aq -f name=^$(DB_CONTAINER_NAME)`" ]; then \
+    docker container kill $(DB_CONTAINER_NAME); \
   fi
 
 db-shell: ## Run the postgres shell connected to a local database. See: db-start
@@ -126,8 +128,8 @@ endif
 # https://github.com/slimm609/checksec.sh
 # checks various security properties on executoables, such as RELRO, STACK CANARY, NX, PIE, etc.
 checksec: go-build ## Check security properties on executables
-	checksec --output=json --file=$(OUT_DIR)/$(BINARY_NAME)
-	checksec --fortify-file=$(OUT_DIR)/$(BINARY_NAME)
+	checksec --output=json --file=$(BUILD_DIR)/$(BINARY_NAME)
+	checksec --fortify-file=$(BUILD_DIR)/$(BINARY_NAME)
 
 #### Python venv Target ####
 VENV_NAME	:= venv_$(PROJECT_NAME)
@@ -173,8 +175,9 @@ hadolint: ## Check Dockerfile with Hadolint
 # https://github.com/koalaman/shellcheck
 SH_FILES := $(shell find . -type f \( -name '*.sh' \) -print )
 shellcheck: ## lint shell scripts with shellcheck TODO: fix issues and add SH_FILES
+	echo $(SH_FILES)
 	shellcheck --version
-	shellcheck -x -S style $(SCRIPTS_DIR)
+	shellcheck -x -S style $(SH_FILES)
 
 # https://pypi.org/project/reuse/
 license: $(VENV_NAME) ## Check licensing with the reuse tool
