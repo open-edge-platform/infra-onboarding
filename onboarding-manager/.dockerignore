@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: (C) 2024 Intel Corporation
+# SPDX-License-Identifier: LicenseRef-Intel
+
+*.license
+*.md
+*.yaml
+*.yml
+.git
+.github
+.idea
+.reuse
+.gitignore
+.golangci.yml
+Jenkinsfile
+LICENSES
+api
+test
+venv_*

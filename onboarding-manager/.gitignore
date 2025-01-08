@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: (C) 2024 Intel Corporation
+# SPDX-License-Identifier: LicenseRef-Intel
+
+*.swp
+venv*
+build/*
+**/_output
+**/build-tools
+.idea
+.vscode
+.DS_Store
+vendor
+.tmp-earthly-out/
+internal/onboardingmgr/azure_env/azure-credentials.env*
+## From https://github.com/github/gitignore/blob/main/Go.gitignore
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Go workspace file
+go.work
+
+# Ignore Snyk reports
+artifacts
+
+# Ignore outdated script files
+internal/onboardingmgr/scripts/onboardingstartupms.sh
+internal/onboardingmgr/scripts/installer23WW37.5_1506.sh
+internal/onboardingmgr/azur_iot_edge_installer/azure_dps_installer.sh
+internal/onboardingmgr/azur_iot_edge_installer/log.sh
