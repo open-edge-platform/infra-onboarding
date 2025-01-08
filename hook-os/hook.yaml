@@ -67,6 +67,7 @@ onboot:
     net: host
     binds:
       - /dev:/dev
+      - /dev/ttyS0:/dev/ttyS0 
       - /etc/resolv.conf:/etc/resolv.conf
       - /etc/idp/server_cert.pem:/usr/local/share/ca-certificates/IDP_keyclock.crt
       - /var:/var:rshared,rbind
