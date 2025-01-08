@@ -60,6 +60,8 @@ localhost:7443 {
 
 # Proxy server(HTTP) to route tink stack routes 
 :80 {
+    bind 127.0.0.1
+
     reverse_proxy /tink-stack/* {$tink_stack_svc}:443 {
         header_up Authorization "Bearer {$access_token}"
         header_up Host {upstream_hostport}

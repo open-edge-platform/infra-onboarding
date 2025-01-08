@@ -132,7 +132,7 @@ pipeline:
 
     - name: syslog
       mode: udp
-      listen: 0.0.0.0
+      listen: 127.0.0.1
       port: 5140
       parser: syslog-rfc3164
       tag: uOS_logs

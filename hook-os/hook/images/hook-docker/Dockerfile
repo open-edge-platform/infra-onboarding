@@ -4,7 +4,7 @@ WORKDIR /src
 RUN CGO_ENABLED=0 go build -a -ldflags '-s -w -extldflags "-static"' -o /hook-docker
 
 #use custom docker
-FROM docker:26.1.0-dind
+FROM hook_dind:latest
 RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
 RUN apk add --no-cache kexec-tools binutils && rm -rf /var/cache/apk/*
 # Won't use docker-buildx nor docker-compose
