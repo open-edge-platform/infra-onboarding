@@ -30,4 +30,4 @@ COPY --from=image2disk /src/image2disk /usr/bin/image2disk
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:50054/healthz || exit 1
-ENTRYPOINT ["/usr/bin/image2disk"]
+ENTRYPOINT ["sh", "-c", "nsenter -t 1 -n /usr/bin/image2disk"]

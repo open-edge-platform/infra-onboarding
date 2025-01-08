@@ -29,4 +29,4 @@ COPY --from=cexec /src/cexec /usr/bin/cexec
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:50054/healthz || exit 1
 
-ENTRYPOINT ["/usr/bin/cexec"]
+ENTRYPOINT ["sh", "-c", "nsenter -t 1 -n /usr/bin/cexec"]

@@ -130,9 +130,9 @@ if [ "$#" -eq 0 ] || [ "${1#-}" != "$1" ]; then
 		# TLS disabled (-e DOCKER_TLS_CERTDIR='') or missing certs
 		set -- dockerd \
 			--host="$dockerSocket" \
-			--host=tcp://0.0.0.0:2375 \
+			--host=tcp://127.0.0.1:2375 \
 			"$@"
-		DOCKERD_ROOTLESS_ROOTLESSKIT_FLAGS="${DOCKERD_ROOTLESS_ROOTLESSKIT_FLAGS:-} -p 0.0.0.0:2375:2375/tcp"
+		DOCKERD_ROOTLESS_ROOTLESSKIT_FLAGS="${DOCKERD_ROOTLESS_ROOTLESSKIT_FLAGS:-} -p 127.0.0.1:2375:2375/tcp"
 	fi
 fi
 
