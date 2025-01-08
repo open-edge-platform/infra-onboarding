@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2023 Intel Corporation
 //
 // SPDX-License-Identifier: LicenseRef-Intel
-module github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service
+module github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam
 
 go 1.23.2
 
@@ -17,7 +17,7 @@ require (
 require (
 	github.com/google/uuid v1.6.0
 	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go v0.5.1
-	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.10.0
+	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2 v2.0.0-20241227144745-26a1ee7caf1c
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.20.4
 
