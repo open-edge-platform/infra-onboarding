@@ -11,14 +11,14 @@ ARG VERSION
 ARG REVISION
 ARG BUILD_DATE
 
-COPY Makefile requirements.txt VERSION go.mod go.sum /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/
-COPY cmd/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/cmd/
-COPY internal/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/internal/
-COPY pkg/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/
-COPY rego/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/rego/
-COPY vendor/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/vendor/
+COPY Makefile requirements.txt VERSION go.mod go.sum /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/
+COPY cmd/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/cmd/
+COPY internal/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/
+COPY pkg/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/pkg/
+COPY rego/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/rego/
+COPY vendor/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/vendor/
 
-WORKDIR /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service
+WORKDIR /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager
 
 
 RUN CGO_ENABLED=0 DOCKER_LABEL_REPO_URL=${REPO_URL} DOCKER_LABEL_VERSION=${VERSION} DOCKER_LABEL_REVISION=${REVISION} DOCKER_LABEL_BUILD_DATE=${BUILD_DATE} make ${MAKE_TARGET}
@@ -39,9 +39,9 @@ LABEL org.opencontainers.image.version=${VERSION} \
       org.opencontainers.image.revision=${REVISION} \
       org.opencontainers.image.created=${BUILD_DATE}
 
-COPY --from=builder --chown=nobody:nobody /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/build/onboardingmgr /onboardingmgr
+COPY --from=builder --chown=nobody:nobody /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/build/onboardingmgr /onboardingmgr
 
-COPY --from=builder  --chown=nobody:nobody /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/rego/authz.rego /rego/authz.rego
+COPY --from=builder  --chown=nobody:nobody /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/rego/authz.rego /rego/authz.rego
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
