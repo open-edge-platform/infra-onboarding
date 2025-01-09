@@ -643,6 +643,8 @@ github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:
 github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go v0.5.1 h1:A9LQB3dRZu1hhsol+C+EilQLoTIvay/6fK5HbGKFhgE=
 github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go v0.5.1/go.mod h1:fRN1YcRCnh3rRTFFi2OqmWkJfW5PZsYFYjcp5GYtvsI=
+github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2 v2.0.0-20241227144745-26a1ee7caf1c h1:J9HQ6vqhLr4uuLAEaM9f3fls7FmEmeYhFPNx+UHil1I=
+github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2 v2.0.0-20241227144745-26a1ee7caf1c/go.mod h1:Y5mc8tsmigxoU9LVPUBFA88FGg4yj7FaKAwKuusYHok=
 github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.10.0 h1:E41hKdReU84idLYVxXmV6+/AWYTOHrVI/wupRf+ESRg=
 github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.services.inventory/v2 v2.10.0/go.mod h1:C9Khlf0tnPWaLq6lUXoCVtjinAI8uC/Z826CaBrQ4SM=
 github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=

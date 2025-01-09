@@ -13,14 +13,14 @@ ARG VERSION
 ARG REVISION
 ARG BUILD_DATE
 
-COPY Makefile common.mk requirements.txt VERSION go.mod go.sum /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/
-COPY cmd/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/cmd/
-COPY internal/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/internal/
-COPY pkg/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg/
-COPY rego/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/rego/
-COPY vendor/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/vendor/
+COPY Makefile common.mk requirements.txt VERSION go.mod go.sum /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/
+COPY cmd/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/cmd/
+COPY internal/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/
+COPY pkg/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/
+COPY rego/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/rego/
+COPY vendor/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/vendor/
 
-WORKDIR /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service
+WORKDIR /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam
 
 RUN CGO_ENABLED=0 TOOL_VERSION_CHECK=0 \
   DOCKER_LABEL_REPO_URL=${REPO_URL} \
@@ -55,9 +55,9 @@ LABEL org.opencontainers.image.version=${VERSION} \
 
 WORKDIR /home/$USERNAME
 
-COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/build/dkammgr /usr/local/bin/dkammgr
-COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/pkg /home/$USERNAME/pkg
-COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service/rego/authz.rego /rego/authz.rego
+COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/build/dkammgr /usr/local/bin/dkammgr
+COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg /home/$USERNAME/pkg
+COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/rego/authz.rego /rego/authz.rego
 
 RUN chown -R $USERNAME:$USERNAME /home/$USERNAME
 RUN chmod +x pkg/script/build_sign_ipxe.sh
