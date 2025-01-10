@@ -21,7 +21,7 @@ def getDockerTags(prefix) {
     // Sanitize in case of no tags
     git_tags = git_tags.findAll { it != '' && it != null }
     git_tags = git_tags.findAll { it.contains(prefix) }
-    git_tags = git_tags.findAll { it.replaceAll(prefix, '') }
+    git_tags = git_tags.collect { it.replaceAll(prefix, '') }
     git_tags = git_tags.collect { it.replaceAll('v', '') }
     // Build the target branch
     git_tags << env.GIT_BRANCH
@@ -364,7 +364,7 @@ pipeline {
                                         dir("${PROJECT_FOLDER}") {
                                             def envVars = envVarsMap[PROJECT_FOLDER].collect { key, value -> "${key}=${value}" }
                                             withEnv(envVars) {
-                                                dockerBuild("${PROJECT_FOLDER}")
+                                                dockerBuild("${PROJECT_FOLDER}-")
                                             }
                                         }
                                     }
@@ -395,7 +395,7 @@ pipeline {
                                         dir("${PROJECT_FOLDER}") {
                                             def envVars = envVarsMap[PROJECT_FOLDER].collect { key, value -> "${key}=${value}" }
                                             withEnv(envVars) {
-                                                dockerPush("${PROJECT_FOLDER}")
+                                                dockerPush("${PROJECT_FOLDER}-")
                                             }
                                         }
                                     }
