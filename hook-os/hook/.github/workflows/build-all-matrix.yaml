@@ -1,0 +1,298 @@
+name: All Kernels and Hooks
+on:
+  #schedule:
+  #  # every day at 5am UTC
+  #  - cron: '0 5 * * *'
+  workflow_dispatch:
+  pull_request:
+  push:
+
+env: # Global environment, passed to all jobs & all steps
+  # Default to quay.io, which is also the default for the CLI. 
+  # Allow to use ghcr.io as an alternative, change & uncomment below:
+  REGISTRY: "quay.io" # or ghcr.io, determines which will be logged-in to
+  #HOOK_KERNEL_OCI_BASE: "ghcr.io/${{ github.repository_owner }}/tinkerbell/kernel-"
+  #HOOK_LK_CONTAINERS_OCI_BASE: "ghcr.io/${{ github.repository_owner }}/tinkerbell/linuxkit-"
+  
+  # Apart from the quay/ghcr coordinates above (used for both pulling & pushing), we might also want to
+  # log in to DockerHub (with a read-only token) so we aren't hit by rate limits when pulling the linuxkit pkgs.
+  # To do so, set the secret DOCKERHUB_USERNAME and DOCKERHUB_PASSWORD in the repo secrets, and set the below to yes.
+  LOGIN_TO_DOCKERHUB: "yes"
+  
+  HOOK_VERSION: "0.10.0-build-${{github.run_number}}" # Use a forced Hook version
+  
+  # Which flavors to build? space separated list, must match one of the TAG='s in flavors (this is used by matrix_prep job in gha-matrix command)
+  CI_TAGS: "standard armbian-sbc armbian-uefi lts" # 'dev' is not included
+  
+  # GHA runner configuration. See bash/json-matrix.sh for more details.
+  CI_RUNNER_LK_CONTAINERS_ARM64: "ARM64" # Use a self-hosted runner with the "ARM64" tag for the ARM64 builds of LK containers
+  CI_RUNNER_LK_CONTAINERS_AMD64: "X64" # Use a self-hosted runner with the "X86" tag for the AMD64 builds of LK containers
+  CI_RUNNER_LK_ARM64: "ARM64" # Use a self-hosted runner with the "ARM64" tag for the ARM64 linuxkit builds
+  CI_RUNNER_LK_AMD64: "X64" # Use a self-hosted runner with the "X86" tag for the AMD64 linuxkit builds
+  CI_RUNNER_KERNEL_AMD64: "X64" # Use a self-hosted runner with the "X86" tag for the AMD64 kernel builds
+  CI_RUNNER_KERNEL_ARM64: "ARM64" # Use a self-hosted runner with the "ARM64" tag for the ARM64 kernel builds
+
+
+jobs:
+  
+  matrix_prep:
+    name: "Prepare matrix JSON"
+    runs-on: ubuntu-latest
+    outputs:
+      created: ${{ steps.date_prep.outputs.created }} # refer to as ${{needs.prepare.outputs.created}}
+      kernels_json: ${{ steps.prepare-matrix.outputs.kernels_json }}
+      lkcontainers_json: ${{ steps.prepare-matrix.outputs.lkcontainers_json }}
+      lk_hooks_json: ${{ steps.prepare-matrix.outputs.lk_hooks_json }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Prepare release ID (current date) # This only used for the GitHub Release; not included in any way in the build process.
+        id: date_prep
+        run: echo "created=$(date -u +'%Y%m%d-%H%M')" >> "${GITHUB_OUTPUT}"
+
+      - name: Run the matrix JSON preparation bash script
+        id: prepare-matrix
+        run: bash build.sh gha-matrix # This sets the output "kernels_json" & "lkcontainers_json" & "lk_hooks_json" internally
+  
+  build-linuxkit-containers:
+    needs: [ matrix_prep ]
+    runs-on: "${{ matrix.runner }}" # the runner to use is determined by the 'gha-matrix' code
+    strategy:
+      fail-fast: true
+      matrix:
+        include: ${{ fromJSON(needs.matrix_prep.outputs.lkcontainers_json) }}
+    name: "LinuxKit containers for ${{ matrix.docker_arch }}"
+    steps:
+      - name: Checkout build repo
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker Login to quay.io
+        if: ${{ env.REGISTRY == 'quay.io' && github.ref == 'refs/heads/main' }}
+        uses: docker/login-action@v3
+        with: { registry: "quay.io", username: "${{ secrets.QUAY_USERNAME }}", password: "${{ secrets.QUAY_PASSWORD }}" }
+
+      - name: Docker Login to GitHub Container Registry
+        if: ${{ env.REGISTRY == 'ghcr.io' }}
+        uses: docker/login-action@v3
+        with: { registry: "ghcr.io", username: "${{ github.repository_owner }}", password: "${{ secrets.GITHUB_TOKEN }}" }
+
+      - name: Build and Push LinuxKit containers for ${{matrix.docker_arch}}
+        env:
+          DOCKER_ARCH: "${{ matrix.docker_arch }}"
+          DO_PUSH: "${{ github.ref == 'refs/heads/main' && 'yes' || 'no' }}"
+        run: bash build.sh linuxkit-containers
+  
+  build-kernels:
+    needs: [ matrix_prep ] # depend on the previous job...
+    runs-on: "${{ matrix.runner }}" # the runner to use is determined by the 'gha-matrix' code
+    strategy:
+      fail-fast: false # let other jobs try to complete if one fails, kernels might take long, and they'd be skipped on the next run
+      matrix:
+        include: ${{ fromJSON(needs.matrix_prep.outputs.kernels_json) }}
+    name: "Kernel ${{ matrix.kernel }}"
+    steps:
+      - name: Checkout build repo
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx # nb: no need for qemu here, kernels are cross-compiled, instead of the compilation being emulated
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker Login to quay.io
+        if: ${{ env.REGISTRY == 'quay.io' && github.ref == 'refs/heads/main' }}
+        uses: docker/login-action@v3
+        with: { registry: "quay.io", username: "${{ secrets.QUAY_USERNAME }}", password: "${{ secrets.QUAY_PASSWORD }}" }
+
+      - name: Docker Login to GitHub Container Registry
+        if: ${{ env.REGISTRY == 'ghcr.io' }}
+        uses: docker/login-action@v3
+        with: { registry: "ghcr.io", username: "${{ github.repository_owner }}", password: "${{ secrets.GITHUB_TOKEN }}" }
+
+      - name: Build and push Kernel ${{matrix.kernel}} (${{ matrix.arch }})
+        env:
+          DO_PUSH: "${{ github.ref == 'refs/heads/main' && 'yes' || 'no' }}"
+        run: bash build.sh build-kernel "${{ matrix.kernel }}"
+
+  build-hook-ensemble:
+    needs: [ matrix_prep, build-linuxkit-containers, build-kernels ] # depend on the previous job...
+    runs-on: "${{ matrix.runner }}" # the runner to use is determined by the 'gha-matrix' code
+    strategy:
+      fail-fast: false # let other jobs try to complete if one fails
+      matrix:
+        include: ${{ fromJSON(needs.matrix_prep.outputs.lk_hooks_json) }}
+    name: "Hook ${{ matrix.kernel }}"
+    steps:
+      - name: Checkout build repo
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx # nb: no need for qemu here, kernels are cross-compiled, instead of the compilation being emulated
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker Login to DockerHub # read-only token, required to be able to pull all the linuxkit pkgs without getting rate limited.
+        if: ${{ env.LOGIN_TO_DOCKERHUB == 'yes' && github.ref == 'refs/heads/main' }}
+        uses: docker/login-action@v3
+        with: { registry: "docker.io", username: "${{ secrets.DOCKERHUB_USERNAME }}", password: "${{ secrets.DOCKERHUB_PASSWORD }}" }
+
+      - name: Docker Login to quay.io
+        if: ${{ env.REGISTRY == 'quay.io' && github.ref == 'refs/heads/main' }}
+        uses: docker/login-action@v3
+        with: { registry: "quay.io", username: "${{ secrets.QUAY_USERNAME }}", password: "${{ secrets.QUAY_PASSWORD }}" }
+
+      - name: Docker Login to GitHub Container Registry
+        if: ${{ env.REGISTRY == 'ghcr.io' }}
+        uses: docker/login-action@v3
+        with: { registry: "ghcr.io", username: "${{ github.repository_owner }}", password: "${{ secrets.GITHUB_TOKEN }}" }
+
+      - name: GitHub Actions Cache for 'cache' dir
+        uses: actions/cache@v4
+        if: ${{ matrix.gha_cache == 'yes' }} # effectively always yes: see gha_cache in bash/json-matrix.sh around line 84
+        with:
+          path: cache
+          key: "lk-cache-${{ matrix.docker_arch }}-${{ matrix.kernel }}-${{ hashFiles('linuxkit-templates/*') }}-${{ hashFiles('bash/**/*.sh') }}"
+          restore-keys: |
+            lk-cache-${{ matrix.docker_arch }}-${{ matrix.kernel }}
+            lk-cache-${{ matrix.docker_arch }}
+          save-always: true # always save the cache, even if build fails
+
+      - name: "Build Hook with Kernel ${{matrix.kernel}} (${{ matrix.arch }}) - cache: ${{matrix.gha_cache}}"
+        env:
+          DO_BUILD_LK_CONTAINERS: "yes" # already built them; this is only for hook/linuxkit.
+        run: bash build.sh build "${{ matrix.kernel }}"
+
+      - name: "Build Hook ISO with Kernel ${{matrix.kernel}} (${{ matrix.arch }}) - cache: ${{matrix.gha_cache}}"
+        if: ${{ matrix.kernel == 'hook-latest-lts-amd64' || matrix.kernel == 'hook-default-amd64' || matrix.kernel == 'hook-latest-lts-arm64' || matrix.kernel == 'hook-default-arm64' }}
+        env:
+          DO_BUILD_LK_CONTAINERS: "no" # already built them; this is only for hook/linuxkit.
+        run: bash build.sh build "${{ matrix.kernel }}" LINUXKIT_ISO=yes
+
+      - name: Upload deb as artifact ${{ matrix.arch.name }} ${{ matrix.distro }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: "hook-tarball-${{ matrix.kernel }}"
+          path: |
+            out/*.tar.gz
+            out/*.iso
+
+  release-latest:
+    name: Publish all Hooks to GitHub Releases
+    needs: [ matrix_prep, build-hook-ensemble ]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download built Hook artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "hook-tarball-*"
+          merge-multiple: true
+
+      - name: Figure Out Commit Short ID
+        id: commitid
+        run: |
+          echo ::set-output name=short::$(git rev-parse --short HEAD)
+
+      - name: Delete Tag
+        run: |
+          git tag -d latest || echo "no local tag to delete"
+          git push origin :latest -f || echo "no remote tag to delete"
+
+      - name: Generate Release Notes
+        run: |
+          generated_release_notes=$(gh api 'repos/{owner}/{repo}/releases/generate-notes' -F tag_name=latest --jq .body)
+          cat >>"$GITHUB_ENV" <<-EOF
+          	RELEASE_NOTES<<RELEASE_NOTES_EOF
+          	# :warning: :rotating_light: :boom: Note!!! :boom: :rotating_light: :warning:
+
+          	The uploaded files will be updated on the next merge to main, as such download them before use to avoid surprises.
+
+          	---
+          	Commit: ${{steps.commitid.outputs.short}}
+          	---
+
+          	$generated_release_notes
+          	RELEASE_NOTES_EOF
+          EOF
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Update Tag
+        uses: rickstaa/action-create-tag@v1
+        with:
+          tag: latest
+          message: "Latest development build"
+
+      - name: Generate checksum
+        uses: jmgilman/actions-generate-checksum@v1
+        with:
+          method: sha512
+          patterns: |
+            *.tar.gz
+            *.iso
+
+      - name: Update latest release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Hook Latest Development Build
+          body: ${{env.RELEASE_NOTES}}
+          files: |
+            *.tar.gz
+            *.iso
+            checksum.txt
+          prerelease: true
+          tag_name: latest
+
+  release-tag:
+    name: Publish all Hooks to GitHub Releases for a tag
+    needs: [ matrix_prep, build-hook-ensemble ]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download built Hook artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "hook-tarball-*"
+          merge-multiple: true
+
+      - name: Generate Release Notes
+        run: |
+          generated_release_notes=$(gh api 'repos/{owner}/{repo}/releases/generate-notes' -F tag_name=${{github.ref}} --jq .body)
+          cat >>"$GITHUB_ENV" <<-EOF
+          	RELEASE_NOTES<<RELEASE_NOTES_EOF
+          	$generated_release_notes
+          	RELEASE_NOTES_EOF
+          EOF
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Generate checksum
+        uses: jmgilman/actions-generate-checksum@v1
+        with:
+          method: sha512
+          patterns: |
+            *.tar.gz
+            *.iso
+
+      - name: Update tag release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{github.ref}}
+          body: ${{env.RELEASE_NOTES}}
+          files: |
+            *.tar.gz
+            *.iso
+            checksum.txt
+          prerelease: true
+          tag_name: ${{github.ref}}  

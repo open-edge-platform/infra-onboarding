@@ -1,0 +1,5 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+
+Files: Jenkinsfile Makefile README.md placeholder.txt .github/* client_auth/* VERSION TINKER_ACTIONS_VERSION *.sh config grub_template.cfg patch.p requirements.txt *.md hook/*
+Copyright: 2023 Intel Corporation
+License: LicenseRef-Intel

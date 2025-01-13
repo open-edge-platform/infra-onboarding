@@ -1,0 +1,216 @@
+// SPDX-FileCopyrightText: (C) 2022 Intel Corporation
+// SPDX-License-Identifier: LicenseRef-Intel
+// Imported groovy libraries:
+// 1cicd: ["intel-innersource/applications.devops.jenkins.jenkins-common-pipelines"]
+
+def branchPattern = /(main|release-[0-9].[0-9]|release-[0-9][0-9].[0-9][0-9]|release-[0-9][0-9].[0-9]|release-[0-9].[0-9][0-9])/
+
+def getEnvFromBranch(branch) {
+    if (branch ==~ /main/) {
+        return 'protex,checkmarx'
+    }
+    else {
+        return 'virus,hadolint'
+        // PR checks can be extended with checkmarx, bandit, snyk but source code has to available for them to pass. Protex should be kept only at branch level scanning.
+    }
+}
+
+pipeline {
+    agent {
+        docker {
+            label 'oie_spot_executor'
+            image 'amr-registry.caas.intel.com/one-intel-edge/rrp-devops/oie_ci_testing:latest'
+            alwaysPull true
+        }
+    }
+    parameters {
+        booleanParam(name: 'buildHookOs', defaultValue: false, description: 'Build just hook-os')
+        string(name: 'version', defaultValue: '', description: 'Tinker action version from parent repository')
+    }
+    environment {
+        GIT_SHORT_URL=env.GIT_URL.split('/')[4].toString().replaceAll('.git','')
+        PROJECT_NAME = "${GIT_SHORT_URL}"
+        SDLE_UPLOAD_PROJECT_ID = '21873'
+        IS_JENKINS_BUILD =  true
+        authorEmail = sh (script: 'git --no-pager show -s --format=\'%ae\'',returnStdout: true).trim()
+    }        
+    stages {
+        stage('Scan Source') {
+            parallel {
+                stage('Scan Virus, Checkmarx, Protex, Trivy'){
+                    environment {
+                        SCANNERS            = getEnvFromBranch(env.BRANCH_NAME)
+                        PROTEX_PROJECT_NAME = "${GIT_SHORT_URL}"
+                    }
+                    when {
+                        anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; changeRequest();}
+                    }
+                    steps {
+                        script {
+                            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                rbheStaticCodeScan()
+                            }
+                        }
+                    }
+                }
+                stage('Shellcheck') {
+                    when {
+                        changeRequest()
+                    }
+                    steps {
+                        shellcheck('*.sh', 'SC1091,SC2154,SC2086,SC2016,SC2181,SC2164,SC2129,SC2034,SC2236,SC2206,SC2068,SC2207,SC2002,SC2261,SC2024,SC2210,SC2001,SC2209,SC2317')
+                    }
+                }
+            }
+        }
+        stage('Setup') {
+            steps {
+                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
+                {
+                    netrcPatch()
+                }
+            }
+        }
+        stage('Version Check') {
+            when {
+                expression { params.buildHookOs == false }
+            }
+                steps {
+                    echo "Check if its a valid code version"
+                    sh '''
+                    /opt/ci/version-check.sh
+                    '''
+                }
+        }
+        stage('Lint Code') {
+            when {
+                changeRequest()
+            }
+            steps {
+                sh '''
+                echo "Linting the code"
+                make lint-ci
+                '''
+            }
+        }
+        stage('Build-Hookos') {
+            steps {
+                script {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'sys_oie_devops_github_api',
+                        usernameVariable: 'GITHUB_USER',
+                        passwordVariable: 'GITHUB_TOKEN',
+                    ),
+                ]) {
+                }
+                sh """
+                    echo 'http_proxy=http://proxy-dmz.intel.com:911' >> config
+                echo 'https_proxy=http://proxy-dmz.intel.com:911' >> config
+                echo 'ftp_proxy=http://proxy-dmz.intel.com:911' >> config
+                echo 'socks_proxy=socks://proxy-dmz.intel.com:1080' >> config
+                echo 'no_proxy=localhost,*.intel.com,*intel.com,192.168.0.0/16,172.16.0.0/12,127.0.0.0/8,10.0.0.0/8,/var/run/docker.sock,.internal' >> config
+                echo 'keycloak_url=keycloak.validation.maestro.intel.com' >> config
+                echo 'harbor_url_tinker_actions=amr-registry.caas.intel.com/one-intel-edge/edge-node/tinker-actions' >> config
+                echo "" >> client_auth/files/ca.pem
+                echo "" >> client_auth/files/server_cert.pem
+                """
+                def tag = ''
+                if (params.buildHookOs) {
+                    tag = params.version
+                } else {
+                    tag = sh(script: 'cat TINKER_ACTIONS_VERSION', returnStdout: true).trim()
+                }
+                // pull other required images
+                sh """
+                eval \$(ssh-agent) > /dev/null
+                make build
+                    tar -zcvf grub_source.tar.gz grub_source
+                """
+                stash name: "alpine_image", includes: "alpine_image/hook_x86_64.tar.gz"
+                stash name: "grub_source", includes: "grub_source.tar.gz"
+                }
+            }
+        }
+        stage ('Scan Containers') {
+            when {
+                changeRequest()
+            }
+            environment {
+                SCANNERS = 'trivy'
+            }
+            steps {
+                script {
+                    scanContainers()
+                }
+            }
+        }
+        stage('Push to OCI registry') {
+            when {
+                anyOf { branch 'main'; branch 'release*' }
+            }
+            steps {
+                    withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'intel-harbor-credentials',
+                                usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
+                        {
+                        unstash 'alpine_image'
+                        unstash 'grub_source'
+                    sh '''
+                    /opt/ci/push-oci-package.sh -f 'alpine_image/hook_x86_64.tar.gz grub_source.tar.gz'
+                    '''
+                }
+            }
+        }
+        stage('Version Tag') {
+            when {
+                expression { env.BRANCH_NAME == 'main' || env.BRANCH_NAME.startsWith('release') && params.buildHookOs == false }
+            }
+            steps {
+                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
+                    {
+                    echo "Generate tag if SemVer"
+                    netrcPatch()
+                    sh '''
+                    # Tag the version
+                    /opt/ci/version-tag.sh
+                    '''
+                }
+            }
+        }
+        stage('Version dev') {
+            when {
+                expression { env.BRANCH_NAME == 'main' || env.BRANCH_NAME.startsWith('release') && params.buildHookOs == false }
+            }
+            steps {
+                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
+                {
+                    versionDev()
+                }
+            }
+        }
+        stage('Auto approve') {
+            when {
+                changeRequest()
+            }
+            steps {
+                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_devops_approve_github_api', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+                    script {
+                        autoApproveAndMergePR()
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            jcpSummaryReport()
+            intelLogstashSend failBuild: false, verbose: true
+            cleanWs()
+        }
+        failure {
+            script {
+                emailFailure()
+            }
+        }
+    }
+}
