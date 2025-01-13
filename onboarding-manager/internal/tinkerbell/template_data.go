@@ -232,6 +232,7 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 						"COMPRESSED": "true",
 						"SHA256":     deviceInfo.OsImageSHA256,
 					},
+					Pid: "host",
 				},
 
 				{
@@ -297,6 +298,7 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 							"chmod +x /etc/cloud/cloud.cfg.d/installer.cfg",
 							deviceInfo.InstallerScriptURL),
 					},
+					Pid: "host",
 				},
 
 				{
@@ -507,6 +509,7 @@ func NewTemplateDataProdBKC(name string, deviceInfo utils.DeviceInfo, enableDI b
 						"IMG_URL":    deviceInfo.OSImageURL,
 						"COMPRESSED": "true",
 					},
+					Pid: "host",
 				},
 
 				{
@@ -615,6 +618,7 @@ func NewTemplateDataProdBKC(name string, deviceInfo utils.DeviceInfo, enableDI b
 							"wget -P /home/postinstall/Setup %s; chmod 755 /home/postinstall/Setup/installer.sh",
 							deviceInfo.InstallerScriptURL),
 					},
+					Pid: "host",
 				},
 				{
 					Name:    ActionInstallScript,
