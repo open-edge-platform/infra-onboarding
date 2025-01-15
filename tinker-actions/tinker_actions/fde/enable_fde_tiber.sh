@@ -83,49 +83,6 @@ luks_key=$PWD/luks_key
 PCR_LIST=15
 
 #####################################################################################
-tpm2_pcrextend='#!/bin/sh
-
-tpm2_pcrextend '$PCR_LIST':sha256=ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-echo "PCR '$PCR_LIST' extend completed"
-'
-
-tpm2_cryptsetup='#!/bin/sh
-
-[ "$CRYPTTAB_TRIED" -lt "2" ] && exec tpm2-initramfs-tool unseal --pcrs '$PCR_LIST'
-
-/usr/bin/askpass "Passphrase for $CRYPTTAB_SOURCE ($CRYPTTAB_NAME): "
-'
-
-tpm2_initramfs_tool='#!/bin/sh
-PREREQ=""
-prereqs()
-{
-   echo "$PREREQ"
-}
-
-case $1 in
-prereqs)
-   prereqs
-   exit 0
-   ;;
-esac
-
-. /usr/share/initramfs-tools/hook-functions
-
-copy_exec /usr/lib/x86_64-linux-gnu/libtss2-tcti-device.so.0
-copy_exec /usr/bin/tpm2-initramfs-tool
-copy_exec /usr/bin/tpm2_pcrextend
-copy_exec /usr/lib/cryptsetup/askpass /usr/bin
-
-copy_exec /etc/initramfs-tools/tpm2-cryptsetup
-'
-
-#####################################################################################
-fstab_rootfs_partition=" / ext4 discard,errors=remount-ro       0 1"
-fstab_boot_partition=" /boot ext4 discard,errors=remount-ro       0 1"
-fstab_efi_partition="LABEL=UEFI      /boot/efi       vfat    umask=0077      0 1"
-
-#####################################################################################
 fix_partition_suffix() {
     part_variable=''
     ret=$(grep -i "nvme" <<< "$DEST_DISK")
@@ -216,6 +173,18 @@ is_single_hdd() {
 }
 
 #####################################################################################
+# pass value to parted via sector number insted of start size in MB.
+
+convert_mb_to_sectors() {
+    local size_in_mb=$1
+    local end_sector=$2
+    local sectors=$(( size_in_mb * 2048 - end_sector ))
+    echo $sectors
+}
+
+#####################################################################################
+
+#####################################################################################
 make_partition() {
 
     #if there were any problems when the ubuntu was streamed.
@@ -277,6 +246,9 @@ make_partition() {
     fi
     #####
 
+    #save this size of tiber persistent before partition
+    suffix=$(fix_partition_suffix)
+    export tiber_persistent_dd_count=$(fdisk -l ${DEST_DISK} | grep "${DEST_DISK}${suffix}${tiber_persistent_partition}" | awk '{print int( ($4/2048/4) + 0.999999) }')
     #####
     # logging needed to understand the block splits
     echo "DEST_DISK ${DEST_DISK}"
@@ -290,17 +262,35 @@ make_partition() {
     echo "reserved_start      ${reserved_start}MB        total_size_disk      ${total_size_disk}MB"
     #####
 
+    echo "sizes in sectors"
+    echo "rootfs_partition     $rootfs_partition         rootfs_end             $(convert_mb_to_sectors ${rootfs_end} 1)"
+    echo "root_hashmap_a_start $(convert_mb_to_sectors ${root_hashmap_a_start} 0) root_hashmap_b_start $(convert_mb_to_sectors ${root_hashmap_b_start} 1)"
+    echo "root_hashmap_b_start $(convert_mb_to_sectors ${root_hashmap_b_start} 0) rootfs_b_start       $(convert_mb_to_sectors ${rootfs_b_start} 1)"
+    echo "rootfs_b_start       $(convert_mb_to_sectors ${rootfs_b_start} 0)       roothash_start       $(convert_mb_to_sectors ${roothash_start} 1)"
+    echo "roothash_start       $(convert_mb_to_sectors ${roothash_start} 0)       swap_start           $(convert_mb_to_sectors ${swap_start} 1)"
+    echo "swap_start          $(convert_mb_to_sectors ${swap_start} 0)            tep_start            $(convert_mb_to_sectors ${tep_start} 1)"
+    echo "tep_start           $(convert_mb_to_sectors ${tep_start} 0)             reserved_start       $(convert_mb_to_sectors ${reserved_start} 1)"
+    echo "reserved_start      $(convert_mb_to_sectors ${reserved_start} 0)        total_size_disk      $(convert_mb_to_sectors ${total_size_disk} 1)"
+    #####
+
     if $COMPLETE_FDE_DMVERITY;
     then
+	#this cmd only resizes parition. if there is an error this should handle it.
+	printf 'Fix\n' | parted ---pretend-input-tty ${DEST_DISK} \
+	       resizepart $tiber_persistent_partition $(convert_mb_to_sectors "${tiber_persistent_end}" 1)s
+
+	check_return_value $? "Failed to resize tiber persistent paritions"
+
+	#this cmd only creates new partitions.
 	parted -s ${DEST_DISK} \
-	       resizepart $tiber_persistent_partition "${tiber_persistent_end}MB" \
-	       mkpart hashmap_a ext4 "${root_hashmap_a_start}MB" "${root_hashmap_b_start}MB" \
-	       mkpart hashmap_b ext4 "${root_hashmap_b_start}MB" "${rootfs_b_start}MB" \
-	       mkpart rootfs_b ext4 "${rootfs_b_start}MB" "${roothash_start}MB" \
-	       mkpart roothash ext4 "${roothash_start}MB" "${swap_start}MB" \
-	       mkpart swap linux-swap "${swap_start}MB" "${tep_start}MB" \
-	       mkpart tep ext4 "${tep_start}MB"  "${reserved_start}MB" \
-	       mkpart reserved ext4 "${reserved_start}MB"  "${total_size_disk}MB"
+	       mkpart hashmap_a ext4  $(convert_mb_to_sectors "${root_hashmap_a_start}" 0)s $(convert_mb_to_sectors "${root_hashmap_b_start}" 1)s \
+	       mkpart hashmap_b ext4  $(convert_mb_to_sectors "${root_hashmap_b_start}" 0)s $(convert_mb_to_sectors "${rootfs_b_start}" 1)s \
+	       mkpart rootfs_b ext4   $(convert_mb_to_sectors "${rootfs_b_start}" 0)s       $(convert_mb_to_sectors "${roothash_start}" 1)s \
+	       mkpart roothash ext4   $(convert_mb_to_sectors "${roothash_start}" 0)s       $(convert_mb_to_sectors "${swap_start}" 1)s \
+	       mkpart swap linux-swap $(convert_mb_to_sectors "${swap_start}" 0)s           $(convert_mb_to_sectors "${tep_start}" 1)s \
+	       mkpart tep ext4        $(convert_mb_to_sectors "${tep_start}" 0)s            $(convert_mb_to_sectors "${reserved_start}" 1)s \
+	       mkpart reserved ext4   $(convert_mb_to_sectors "${reserved_start}" 0)s       $(convert_mb_to_sectors "${total_size_disk}" 1)s
+
 
 	check_return_value $? "Failed to create paritions"
     else
@@ -318,7 +308,7 @@ make_partition() {
     if [ $single_hdd -eq 0 ];
     then
 	parted -s ${DEST_DISK} \
-	       mkpart lvm ext4 "${total_size_disk}MB" 100%
+	       mkpart lvm ext4 $(convert_mb_to_sectors "${total_size_disk}" 0)s 100%
 
 	check_return_value $? "Failed to create lvm parition"
     fi
@@ -348,19 +338,13 @@ save_rootfs_on_ram(){
     if $COMPLETE_FDE_DMVERITY;
     then
 	suffix=$(fix_partition_suffix)
-	mkdir rfs
-	mount "${DEST_DISK}${suffix}${rootfs_partition}" rfs
-	check_return_value $? "Failed to mount rootfs"
+	export rootfs_dd_count=$(fdisk -l ${DEST_DISK} | grep "${DEST_DISK}${suffix}${rootfs_partition}" | awk '{print int( ($4/2048/4) + 0.999999) }')
 
-	mkdir rfs_backup
-	# mkfs -t ext4 -L reserved -F "${DEST_DISK}${suffix}${reserved_partition}"
-	mount "${DEST_DISK}${suffix}${reserved_partition}" rfs_backup
-	check_return_value $? "Failed to mount reserved"
-
-	cp -rp rfs/* rfs_backup
+	#############
+	#save using dd
+	dd if="${DEST_DISK}${suffix}${rootfs_partition}" of="${DEST_DISK}${suffix}${reserved_partition}" bs=4M count=$rootfs_dd_count status=progress
 	sync
-	umount rfs
-	umount rfs_backup
+	#############
     fi
 }
 
@@ -559,7 +543,7 @@ partition_other_devices() {
 #####################################################################################
 cleanup_rfs_backup() {
     # running this as part of another process to speed up the FDE
-    dd if=/dev/zero of=${DEST_DISK}${suffix}${reserved_partition} bs=100MB count=20
+    dd if=/dev/zero of=${DEST_DISK}${suffix}${reserved_partition} bs=100MB count=1
 }
 
 #####################################################################################
@@ -636,21 +620,25 @@ enable_luks(){
 	check_return_value $? "Failed to make mkfs ext4 on rootfs"
 
 	mkdir -p rfs
-	mount /dev/mapper/rootfs_crypt rfs
-	check_return_value $? "Failed to mount the luks crypt for rootfs"
 
 	mkdir -p rfs_backup
-	mount "${DEST_DISK}${suffix}${reserved_partition}" rfs_backup
-	check_return_value $? "Failed to mount rootfs backup"
 
-	cp -rp rfs_backup/* rfs
-	check_return_value $? "Failed to copy the rootfs back"
+	###############
 
-	rm -rf rfs_backup/*
-	check_return_value $? "Failed to cleanup rfs backup"
+	# Get the total number of blocks
+	total_blocks=$(dumpe2fs -h /dev/mapper/rootfs_crypt | grep 'Block count' | awk '{print $3}')
 
-	umount rfs
-	umount rfs_backup
+	# Resize the filesystem
+	e2fsck -fy  "${DEST_DISK}${suffix}${reserved_partition}"
+	check_return_value $? "Failed to check fs on reserved partition"
+
+	resize2fs -f "${DEST_DISK}${suffix}${reserved_partition}" $total_blocks
+	check_return_value $? "Failed to resize2fs reserved for rootfs"
+
+	#backup using dd
+	dd if="${DEST_DISK}${suffix}${reserved_partition}" of=/dev/mapper/rootfs_crypt bs=4M count=$rootfs_dd_count status=progress
+	sync
+	###############
 
     fi
 
@@ -672,32 +660,35 @@ enable_luks(){
     ###luks for tiber_persistent_partition
     if $COMPLETE_FDE_DMVERITY;
     then
-	mkdir -p ti_backup
-	mkdir -p ti
-	mount "${DEST_DISK}${suffix}${tiber_persistent_partition}" ti
-	check_return_value $? "Failed to mount tiber persistent for backup"
 
-	mount "${DEST_DISK}${suffix}${reserved_partition}" ti_backup
-	check_return_value $? "Failed to mount ti_backup"
-
-	cp -rp ti/* ti_backup
+	echo "$tiber_persistent_dd_count tiber_persistent_dd_count"
+	##############	
+	#save using dd
+	dd if="${DEST_DISK}${suffix}${tiber_persistent_partition}" of="${DEST_DISK}${suffix}${reserved_partition}" bs=4M status=progress conv=sparse count=$tiber_persistent_dd_count
 	sync
-	umount ti
+	##############
 
 	luksformat_helper $luks_key "${DEST_DISK}${suffix}${tiber_persistent_partition}" "tiber_persistent"
 
 	mkfs.ext4 -F /dev/mapper/tiber_persistent
 	check_return_value $? "Failed to make mkfs ext4 on rootfs"
 
-	mount /dev/mapper/tiber_persistent ti
-	check_return_value $? "Failed to mount tiber persistent"
+	###############
+	# Get the total number of blocks
+	total_blocks=$(dumpe2fs -h /dev/mapper/tiber_persistent | grep 'Block count' | awk '{print $3}')
 
-	cp -rp ti_backup/* ti
-	check_return_value $? "Failed to copy the tiber persistent partition back"
-
+	#backup using dd
+	dd if="${DEST_DISK}${suffix}${reserved_partition}" of=/dev/mapper/tiber_persistent bs=4M status=progress conv=sparse count=$tiber_persistent_dd_count
 	sync
-	umount ti
-	umount ti_backup
+	###############
+
+	# Resize the filesystem on tiber persistent because we cant increase a size beyond the phy blocks
+	e2fsck -fy  /dev/mapper/tiber_persistent
+	check_return_value $? "Failed to check fs on reserved for tiber persistent"
+
+	resize2fs -f /dev/mapper/tiber_persistent $total_blocks
+	check_return_value $? "Failed to resize2fs reserved for rootfs"
+
     fi
     ####
 
@@ -741,11 +732,6 @@ enable_luks(){
 	partition_other_devices
     fi
 
-    # Was added in ubuntu to solve some issue with resolv
-    # rm /mnt/etc/resolv.conf
-    # touch /mnt/etc/resolv.conf
-    # mount --bind /etc/resolv.conf /mnt/etc/resolv.conf
-
     # updated the rootfs part uuid
     update_luks_uuid
 
@@ -765,6 +751,66 @@ enable_luks(){
 
     rm -rf /luks_key
 
+    # selinux relabel all the files that were touched till now by provisioning
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /etc/hosts
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts  /var/lp/pua
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /etc/intel_manageability.conf_bak
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /etc/intel_manageability.conf
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /etc/dispatcher.environment
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /var/log/inbm-update-log.log
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /var/log/inbm-update-status.log
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /var/lib/dispatcher
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /etc/intel-manageability
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /var/cache/manageability
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /var/intel-manageability
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /var/lib/rancher
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /etc/kubernetes
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /etc/cni
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /etc/netplan
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /etc/rancher
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /etc/sysconfig
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /etc/cloud
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /etc/udev
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /etc/systemd
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /etc/ssh
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /etc/pki
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /etc/machine-id
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /etc/intel_edge_node
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /etc/hosts
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /etc/environment
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /etc/fstab
+    setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /opt
+
+
+    restorecon -R -v /
+    restorecon -R -v  /var/lp/pua
+    restorecon -R -v /etc/intel_manageability.conf_bak
+    restorecon -R -v /etc/intel_manageability.conf
+    restorecon -R -v /etc/dispatcher.environment
+    restorecon -R -v /var/log/inbm-update-log.log
+    restorecon -R -v /var/log/inbm-update-status.log
+    restorecon -R -v /var/lib/dispatcher
+    restorecon -R -v /etc/intel-manageability
+    restorecon -R -v /var/cache/manageability
+    restorecon -R -v /var/intel-manageability
+    restorecon -R -v /var/lib/rancher
+    restorecon -R -v /etc/kubernetes
+    restorecon -R -v /etc/cni
+    restorecon -R -v /etc/netplan
+    restorecon -R -v /etc/rancher
+    restorecon -R -v /etc/sysconfig
+    restorecon -R -v /etc/cloud
+    restorecon -R -v /etc/udev
+    restorecon -R -v /etc/systemd
+    restorecon -R -v /etc/ssh
+    restorecon -R -v /etc/pki
+    restorecon -R -v /etc/machine-id
+    restorecon -R -v /etc/intel_edge_node
+    restorecon -R -v /etc/hosts
+    restorecon -R -v /etc/environment
+    restorecon -R -v /etc/fstab
+    restorecon -R -v /opt
 EOT
 
 
@@ -776,20 +822,17 @@ EOT
     do
 	umount $mounted_dir
     done
+    echo "Completed all umounts"
 
     #############################
     #test for B part
 
     if $TEST_ENABLE_DM_ON_ROOTFSB;
     then
-	mkdir -p rfs
-	mkdir -p rfs_backup
-	mount /dev/mapper/rootfs_b_crypt rfs
-	mount /dev/mapper/rootfs_crypt rfs_backup
-	cp -rp rfs_backup/* rfs
+	#backup using dd
+	dd if=/dev/mapper/rootfs_crypt of=/dev/mapper/rootfs_b_crypt bs=4M count=$rootfs_dd_count status=progress
 	sync
-	umount rfs
-	umount rfs_backup
+	###############
     fi
     #############################
 
@@ -811,6 +854,7 @@ EOT
 
 	umount /temp
 	rm -rf /temp
+	echo "Completed veritysetup"
     fi
 }
 
