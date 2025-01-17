@@ -7,33 +7,35 @@ set tink_url <TINK_STACK_URL>
 # initiate index for retry loop of DHCP
 set idx:int32 0
 set retry_limit:int32 5
+set network_scan_start ${unixtime}
 
 # get DHCP address, w/ infinite timeout
 :registerwithnetwork
-echo 
+echo
 echo => Registering with Network
 #if the NIC port enabled and up configure it
 ifstat net${idx} && isset ({net${idx}/link}) && time ifconf --timeout=-1 && goto networkconfig || iseq ${idx} ${retry_limit} && goto ifconferror || inc idx && echo Unable to obtain the IP address && echo RETRY NO ${idx} && goto registerwithnetwork
 
 # display network settings before chainloading
 :networkconfig
+set network_scan_end ${unixtime}
 echo "Network Configuration Done"
-echo 
+echo
 echo "Network Configuration"
 ifstat
 route
 
 # chainload tink
 :chainload
-echo 
+
 echo => Chainloading to CDN-NGINX
-echo 
+echo
 echo sleeping for 1s
 sleep 1
 set idx:int32 0
 set retry_limit:int32 5
 :chainloop
-chain ${tink_url}/boot.ipxe || iseq ${idx} ${retry_limit} && goto chainloaderror || inc idx && echo Unable to reach the cloud instance to proceed with the next step && echo RETRY NO ${idx} && sleep 3 && goto chainloop
+chain ${tink_url}/boot.ipxe network_scan_start=${network_scan_start} network_scan_end=${network_scan_end} || iseq ${idx} ${retry_limit} && goto chainloaderror || inc idx && echo Unable to reach the cloud instance to proceed with the next step && echo RETRY NO ${idx} && sleep 3 && goto chainloop
 
 :ifconferror
 echo 
