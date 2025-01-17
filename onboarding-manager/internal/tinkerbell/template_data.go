@@ -54,6 +54,7 @@ const (
 	ActionDisableSnapdOptimize       = "systemd-snapd-disable-optimize"
 	ActionTiberOSPartition           = "tiber-os-partition"
 	ActionCloudinitDsidentity        = "cloud-init-ds-identity"
+	ActionSetSeliuxRelabel           = "set-selinux-relabel-policy"
 )
 
 const (
@@ -329,6 +330,18 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 				},
 
 				{
+					Name:    ActionSetSeliuxRelabel,
+					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutAvg200,
+					Environment: map[string]string{
+						"FS_TYPE":             "ext4",
+						"CHROOT":              "y",
+						"DEFAULT_INTERPRETER": "/bin/sh -c",
+						"CMD_LINE":            "setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /",
+					},
+				},
+
+				{
 					Name:    ActionReboot,
 					Image:   "public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest",
 					Timeout: timeOutMin90,
@@ -432,7 +445,10 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 				if action.Name == ActionTiberOSPartition {
 					// Remove the action from the slice
 					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
-					break
+				}
+				if action.Name == ActionSetSeliuxRelabel {
+					// Remove the action from the slice
+					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
 				}
 			}
 		}

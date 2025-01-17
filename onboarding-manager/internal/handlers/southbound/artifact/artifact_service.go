@@ -278,7 +278,7 @@ func (s *NonInteractiveOnboardingService) handleOnboardedState(stream pb.NonInte
 		return errUpdatehostStatus
 	}
 	OnboardingStatusTimestamp := uint64(time.Now().Unix()) // #nosec G115
-	zlog.Debug().Msgf("Instrumentation Info: Host Onboarded Successfully on %d\n", OnboardingStatusTimestamp)
+	zlog.Info().Msgf("Instrumentation Info: Host Onboarded Successfully on %d\n", OnboardingStatusTimestamp)
 	// closes the stream after sending the final response
 	return nil
 }
@@ -582,7 +582,7 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 	host.OnboardingStatusIndicator = om_status.OnboardingStatusDone.StatusIndicator
 	host.OnboardingStatusTimestamp = uint64(time.Now().Unix()) // #nosec G115
 	// Print the Host onboarded time for Instrumentation
-	zlog.Debug().Msgf("Instrumentation Info: Host Onboarded Successfully on %d\n",
+	zlog.Info().Msgf("Instrumentation Info: Host Onboarded Successfully on %d\n",
 		host.OnboardingStatusTimestamp)
 	var hostInv *computev1.HostResource
 	hostInv, err = s.invClient.GetHostResourceByUUID(ctx, tenantID, host.Uuid)

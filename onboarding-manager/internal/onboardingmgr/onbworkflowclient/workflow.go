@@ -425,19 +425,19 @@ func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName string)
 						msg := fmt.Sprintf(
 							"Instrumentation Info for workflow %s: action name %s pending to running time %.2f", workflowName,
 							"secure-boot-status-flag-read", actionRuning[workflowName+"secure-boot-status-flag-read"])
-						zlog.Debug().Msg(msg)
+						zlog.Info().Msg(msg)
 						delete(actionStartTimes, actionN)
 						delete(actionRuning, actionN)
 					}
 					if strings.Contains(actionN, workflowName) {
 						totalDuration += actionSuccessTime
-						zlog.Debug().Msgf("Instrumentation Info for workflow %s actionName %s time for running to success %d",
+						zlog.Info().Msgf("Instrumentation Info for workflow %s actionName %s time for running to success %d",
 							workflowName, strings.Split(actionN, workflowName)[1], actionSuccessTime)
 						delete(actionSuccessDuration, actionN)
 						delete(actionStatusMap, actionN)
 					}
 				}
-				zlog.Debug().Msgf("Instrumentation Info for workflow %s: Total Time for all TinkerActions %d",
+				zlog.Info().Msgf("Instrumentation Info for workflow %s: Total Time for all TinkerActions %d",
 					workflowName, totalDuration)
 			}
 		}
