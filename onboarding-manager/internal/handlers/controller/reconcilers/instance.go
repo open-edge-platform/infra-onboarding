@@ -252,7 +252,7 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 	zlogInst.Debug().Msgf("Converting Instance %s to device info. OS resource: %s",
 		instance.GetResourceId(), desiredOs)
 
-	localHostIP := instance.GetHost().GetBmcIp()
+	localHostIP := "127.0.0.1"
 	var proxyURL string
 	tinkURL := fmt.Sprintf(TinkStackURLTemplate, localHostIP)
 

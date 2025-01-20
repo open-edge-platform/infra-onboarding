@@ -54,6 +54,7 @@ const (
 	ActionDisableSnapdOptimize       = "systemd-snapd-disable-optimize"
 	ActionTiberOSPartition           = "tiber-os-partition"
 	ActionCloudinitDsidentity        = "cloud-init-ds-identity"
+	ActionSetSeliuxRelabel           = "set-selinux-relabel-policy"
 )
 
 const (
@@ -232,6 +233,7 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 						"COMPRESSED": "true",
 						"SHA256":     deviceInfo.OsImageSHA256,
 					},
+					Pid: "host",
 				},
 
 				{
@@ -297,6 +299,7 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 							"chmod +x /etc/cloud/cloud.cfg.d/installer.cfg",
 							deviceInfo.InstallerScriptURL),
 					},
+					Pid: "host",
 				},
 
 				{
@@ -324,6 +327,18 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 					Name:    ActionEfibootset,
 					Image:   tinkActionEfibootImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg560,
+				},
+
+				{
+					Name:    ActionSetSeliuxRelabel,
+					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutAvg200,
+					Environment: map[string]string{
+						"FS_TYPE":             "ext4",
+						"CHROOT":              "y",
+						"DEFAULT_INTERPRETER": "/bin/sh -c",
+						"CMD_LINE":            "setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /",
+					},
 				},
 
 				{
@@ -430,7 +445,10 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 				if action.Name == ActionTiberOSPartition {
 					// Remove the action from the slice
 					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
-					break
+				}
+				if action.Name == ActionSetSeliuxRelabel {
+					// Remove the action from the slice
+					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
 				}
 			}
 		}
@@ -507,6 +525,7 @@ func NewTemplateDataProdBKC(name string, deviceInfo utils.DeviceInfo, enableDI b
 						"IMG_URL":    deviceInfo.OSImageURL,
 						"COMPRESSED": "true",
 					},
+					Pid: "host",
 				},
 
 				{
@@ -615,6 +634,7 @@ func NewTemplateDataProdBKC(name string, deviceInfo utils.DeviceInfo, enableDI b
 							"wget -P /home/postinstall/Setup %s; chmod 755 /home/postinstall/Setup/installer.sh",
 							deviceInfo.InstallerScriptURL),
 					},
+					Pid: "host",
 				},
 				{
 					Name:    ActionInstallScript,

@@ -27,20 +27,6 @@ else
      exit 1
 fi
 
-if [ -s "/etc/intel_edge_node/customer_id/customer_id" ]; then
-    CUSTOMER_ID=$(cat /etc/intel_edge_node/customer_id/customer_id)
-else
-    echo "CUSTOMER ID does not exists"
-    exit 1
-fi
-
-if [ -s "/etc/intel_edge_node/customer_id/en_product_key_ids" ]; then
-    PRODUCT_KEY_ID=$(cat /etc/intel_edge_node/customer_id/en_product_key_ids)
-else
-    echo "Product key does not exists"
-    exit 1
-fi
-
 #Get the function name which is causing error
 get_trap_func_name(){
     line_number=$1
@@ -104,10 +90,10 @@ install_dependencies() {
         #|----------|------------|--------------|
 
         groupadd -f bm-agents -g 500 --system
-        id -u prometheus &>/dev/null || useradd prometheus -u 501 --system -g bm-agents
-        id -u fluent-bit &>/dev/null || useradd fluent-bit -u 502 --system -g bm-agents -G adm
-        id -u node-agent &>/dev/null || useradd node-agent --system -g bm-agents
-        id -u platform-update-agent &>/dev/null || useradd platform-update-agent --system -g bm-agents
+        id -u prometheus &>/dev/null || useradd prometheus -u 501 --system -g bm-agents -s /sbin/nologin
+        id -u fluent-bit &>/dev/null || useradd fluent-bit -u 502 --system -g bm-agents -G adm -s /sbin/nologin
+        id -u node-agent &>/dev/null || useradd node-agent --system -g bm-agents -s /sbin/nologin
+        id -u platform-update-agent &>/dev/null || useradd platform-update-agent --system -g bm-agents -s /sbin/nologin
 
         if ! command -v yq_linux_amd64 &> /dev/null; then
             echo "Download yq and install on provisioning host."
@@ -1019,7 +1005,6 @@ install_tpm_provision 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_inbc_program 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_platform_update_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_platform_telemetry_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_license_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_syslogrotate_ufw 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 disable_unattended_upgrade 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 #Delete the invalid ubuntu boot numbers created from previous installation from boot menu
