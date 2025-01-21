@@ -126,37 +126,6 @@ func TestGenerateTemplateForProd(t *testing.T) {
 	}
 }
 
-func TestGenerateTemplateForDI(t *testing.T) {
-	type args struct {
-		k8sNamespace string
-		deviceInfo   utils.DeviceInfo
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *tink.Template
-		wantErr bool
-	}{
-		{
-			name:    "Test Case",
-			want:    nil,
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := GenerateTemplateForDI(tt.args.k8sNamespace, tt.args.deviceInfo)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GenerateTemplateForDI() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GenerateTemplateForDI() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestCreateTemplateIfNotExists(t *testing.T) {
 	type args struct {
 		ctx      context.Context

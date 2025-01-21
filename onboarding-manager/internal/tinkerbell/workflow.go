@@ -80,7 +80,7 @@ func DeleteProdWorkflowResourcesIfExist(ctx context.Context, k8sNamespace, hostU
 
 	zlog.Debug().Msgf("Deleting prod template for host %s", hostUUID)
 
-	diTemplate := &tink.Template{
+	prodTemplate := &tink.Template{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Template",
 			APIVersion: "tinkerbell.org/v1alpha1",
@@ -91,7 +91,7 @@ func DeleteProdWorkflowResourcesIfExist(ctx context.Context, k8sNamespace, hostU
 		},
 	}
 
-	if err = kubeClient.Delete(ctx, diTemplate); err != nil && !errors.IsNotFound(err) {
+	if err = kubeClient.Delete(ctx, prodTemplate); err != nil && !errors.IsNotFound(err) {
 		zlog.MiSec().MiErr(err).Msg("")
 		zlog.Debug().Msgf("Failed to delete prod template resources for host %s", hostUUID)
 		return inv_errors.Errorf("Failed to delete prod template resources for host")
@@ -99,7 +99,7 @@ func DeleteProdWorkflowResourcesIfExist(ctx context.Context, k8sNamespace, hostU
 
 	zlog.Debug().Msgf("Deleting prod workflow for host %s", hostUUID)
 
-	diWorkflow := &tink.Workflow{
+	prodWorkflow := &tink.Workflow{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Workflow",
 			APIVersion: "tinkerbell.org/v1alpha1",
@@ -110,104 +110,10 @@ func DeleteProdWorkflowResourcesIfExist(ctx context.Context, k8sNamespace, hostU
 		},
 	}
 
-	if err = kubeClient.Delete(ctx, diWorkflow); err != nil && !errors.IsNotFound(err) {
+	if err = kubeClient.Delete(ctx, prodWorkflow); err != nil && !errors.IsNotFound(err) {
 		zlog.MiSec().MiErr(err).Msg("")
 		zlog.Debug().Msgf("Failed to delete prod workflow resources for host %s", hostUUID)
 		return inv_errors.Errorf("Failed to delete prod workflow resources for host")
-	}
-
-	return nil
-}
-
-func DeleteRebootWorkflowResourcesIfExist(ctx context.Context, k8sNamespace, hostUUID string) error {
-	zlog.Debug().Msgf("Deleting Reboot template for host %s", hostUUID)
-
-	kubeClient, err := K8sClientFactory()
-	if err != nil {
-		return err
-	}
-
-	rebootTemplate := &tink.Template{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Template",
-			APIVersion: "tinkerbell.org/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      GetRebootTemplateName(hostUUID),
-			Namespace: k8sNamespace,
-		},
-	}
-
-	if err = kubeClient.Delete(ctx, rebootTemplate); err != nil && !errors.IsNotFound(err) {
-		zlog.MiSec().MiErr(err).Msg("")
-		zlog.Debug().Msgf("Failed to delete Reboot template resources for host %s", hostUUID)
-		return inv_errors.Errorf("Failed to delete Reboot template resources for host")
-	}
-
-	zlog.Debug().Msgf("Deleting Reboot workflow for host %s", hostUUID)
-
-	diWorkflow := &tink.Workflow{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Workflow",
-			APIVersion: "tinkerbell.org/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      GetRebootWorkflowName(hostUUID),
-			Namespace: k8sNamespace,
-		},
-	}
-
-	if err = kubeClient.Delete(ctx, diWorkflow); err != nil && !errors.IsNotFound(err) {
-		zlog.MiSec().MiErr(err).Msg("")
-		zlog.Debug().Msgf("Failed to delete Reboot workflow resources for host %s", hostUUID)
-		return inv_errors.Errorf("Failed to delete Reboot workflow resources for host %s", hostUUID)
-	}
-
-	return nil
-}
-
-func DeleteDIWorkflowResourcesIfExist(ctx context.Context, k8sNamespace, hostUUID string) error {
-	zlog.Debug().Msgf("Deleting DI template for host %s", hostUUID)
-
-	kubeClient, err := K8sClientFactory()
-	if err != nil {
-		return err
-	}
-
-	diTemplate := &tink.Template{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Template",
-			APIVersion: "tinkerbell.org/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      GetDITemplateName(hostUUID),
-			Namespace: k8sNamespace,
-		},
-	}
-
-	if err = kubeClient.Delete(ctx, diTemplate); err != nil && !errors.IsNotFound(err) {
-		zlog.MiSec().MiErr(err).Msg("")
-		zlog.Debug().Msgf("Failed to delete DI template resources for host %s", hostUUID)
-		return inv_errors.Errorf("Failed to delete DI template resources for host")
-	}
-
-	zlog.Debug().Msgf("Deleting DI workflow for host %s", hostUUID)
-
-	diWorkflow := &tink.Workflow{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Workflow",
-			APIVersion: "tinkerbell.org/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      GetDIWorkflowName(hostUUID),
-			Namespace: k8sNamespace,
-		},
-	}
-
-	if err = kubeClient.Delete(ctx, diWorkflow); err != nil && !errors.IsNotFound(err) {
-		zlog.MiSec().MiErr(err).Msg("")
-		zlog.Debug().Msgf("Failed to delete DI workflow resources for host %s", hostUUID)
-		return inv_errors.Errorf("Failed to delete DI workflow resources for host")
 	}
 
 	return nil

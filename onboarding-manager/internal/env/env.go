@@ -18,20 +18,12 @@ const (
 	envImageType     = "IMAGE_TYPE"
 	envDiskType      = "DISK_PARTITION"
 	envProvisionerIP = "PD_IP"
-	envFdoMfgDNS     = "FDO_MFG_URL"
-	envFdoMfgPort    = "FDO_MFG_PORT"
-	envFdoOwnerDNS   = "FDO_OWNER_URL"
-	envFdoOwnerPort  = "FDO_OWNER_PORT"
 	envK8sNamespace  = "MI_K8S_NAMESPACE"
 	envDkamMode      = "EN_DKAMMODE"
 	envUserName      = "EN_USERNAME"
 	envPassWord      = "EN_PASSWORD"
 	envTinkerVersion = "TINKER_VERSION"
 
-	defaultOwnerURL     = "mi-fdo-owner"
-	defaultOwnerPort    = "58042"
-	defaultMfgURL       = "mi-fdo-mfg"
-	defaultMfgPort      = "58039"
 	defaultK8sNamespace = "maestro-iaas-system"
 )
 
@@ -47,10 +39,6 @@ var (
 	ENPassWord    = os.Getenv(envPassWord)
 
 	ImgType      = GetEnvWithDefault(envImageType, utils.ImgTypeJammy)
-	FdoMfgDNS    = GetEnvWithDefault(envFdoMfgDNS, defaultMfgURL)
-	FdoMfgPort   = GetEnvWithDefault(envFdoMfgPort, defaultMfgPort)
-	FdoOwnerDNS  = GetEnvWithDefault(envFdoOwnerDNS, defaultOwnerURL)
-	FdoOwnerPort = GetEnvWithDefault(envFdoOwnerPort, defaultOwnerPort)
 	K8sNamespace = GetEnvWithDefault(envK8sNamespace, defaultK8sNamespace)
 
 	TinkerActionVersion = os.Getenv(envTinkerVersion)

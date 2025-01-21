@@ -9,10 +9,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/common"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/onboardingmgr/utils"
 	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/testing"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/flags"
 	"github.com/stretchr/testify/mock"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	error_k8 "k8s.io/apimachinery/pkg/api/errors"
@@ -56,12 +54,9 @@ func TestNewHardware(t *testing.T) {
 
 func Test_newK8SClient(t *testing.T) {
 	currK8sClientFactory := K8sClientFactory
-	currFlagEnableDeviceInitialization := *flags.FlagDisableCredentialsManagement
 	defer func() {
 		K8sClientFactory = currK8sClientFactory
-		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
-	*common.FlagEnableDeviceInitialization = true
 	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
 	tests := []struct {
 		name    string
@@ -90,12 +85,9 @@ func Test_newK8SClient(t *testing.T) {
 
 func TestDeleteHardwareForHostIfExist(t *testing.T) {
 	currK8sClientFactory := K8sClientFactory
-	currFlagEnableDeviceInitialization := *flags.FlagDisableCredentialsManagement
 	defer func() {
 		K8sClientFactory = currK8sClientFactory
-		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
-	*common.FlagEnableDeviceInitialization = true
 	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
 	type args struct {
 		ctx          context.Context
@@ -252,29 +244,6 @@ func TestCreateHardwareIfNotExists(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := CreateHardwareIfNotExists(tt.args.ctx, tt.args.k8sCli, tt.args.k8sNamespace, tt.args.deviceInfo, tt.args.osResourceID); (err != nil) != tt.wantErr {
 				t.Errorf("CreateHardwareIfNotExists() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestGetDIWorkflowName(t *testing.T) {
-	type args struct {
-		uuid string
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			name: "TestGetDIWorkflowNameUUID",
-			want: "di-workflow-",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := GetDIWorkflowName(tt.args.uuid); got != tt.want {
-				t.Errorf("GetDIWorkflowName() = %v, want %v", got, tt.want)
 			}
 		})
 	}

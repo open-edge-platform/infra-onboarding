@@ -41,8 +41,6 @@ type (
 		GUID string
 		// SecurityFeature security flags for a host
 		SecurityFeature uint32
-		// FdoGUID UUID identifier of a host used by FDO (different from GUID)
-		FdoGUID string
 		// AuthClientID a client ID of a host used by authorization service (e.g., Keycloak)
 		AuthClientID string
 		// AuthClientSecret a client secret of a host used to by authorization service (e.g., Keycloak)

@@ -20,7 +20,6 @@ import (
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/status"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/tracing"
 	dkam_util "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/util"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/common"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/env"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/invclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/onboardingmgr/onbworkflowclient"
@@ -346,29 +345,7 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 		ir.updateHostInstanceStatusAndCurrentState(ctx, oldInstance, instance)
 	}()
 
-	// 1. Check status of DI workflow and initiate if it's not running
-	if err := onbworkflowclient.CheckStatusOrRunDIWorkflow(ctx, deviceInfo, instance); err != nil {
-		zlogInst.MiSec().Err(err).Msgf("Failed CheckStatusOrRunDIWorkflow - Instance %s with Host UUID %s",
-			instance.GetResourceId(), instance.GetHost().GetUuid())
-		return err
-	}
-
-	// 2. Run FDO actions
-	if err := onbworkflowclient.RunFDOActions(ctx, instance.GetTenantId(), &deviceInfo); err != nil {
-		zlogInst.MiSec().Err(err).Msgf("Failed RunFDOActions - Instance %s with Host UUID %s",
-			instance.GetResourceId(), instance.GetHost().GetUuid())
-		return err
-	}
-
-	// 3. Check status of Reboot workflow and initiate if it's not running
-	if err := onbworkflowclient.CheckStatusOrRunRebootWorkflow(ctx, deviceInfo, instance); err != nil {
-		zlogInst.MiSec().Err(err).Msgf("Failed CheckStatusOrRunRebootWorkflow - Instance %s with Host UUID %s",
-			instance.GetResourceId(), instance.GetHost().GetUuid())
-		return err
-	}
-
-	// 4. Check status of Prod Workflow and initiate if it's not running.
-	//    NOTE that Prod workflow will only start if TO2 process is completed.
+	// Check status of Prod Workflow and initiate if it's not running.
 	if err := onbworkflowclient.CheckStatusOrRunProdWorkflow(ctx, deviceInfo, instance); err != nil {
 		zlogInst.MiSec().Err(err).Msgf("Failed CheckStatusOrRunProdWorkflow - Instance %s with Host UUID %s",
 			instance.GetResourceId(), instance.GetHost().GetUuid())
@@ -390,15 +367,6 @@ func (ir *InstanceReconciler) cleanupProvisioningResources(
 	if err := onbworkflowclient.DeleteProdWorkflowResourcesIfExist(
 		ctx, instance.GetHost().GetUuid(), env.ImgType); err != nil {
 		return err
-	}
-
-	if *common.FlagEnableDeviceInitialization {
-		if err := onbworkflowclient.DeleteRebootWorkflowResourcesIfExist(ctx, instance.GetHost().GetUuid()); err != nil {
-			return err
-		}
-		if err := onbworkflowclient.DeleteDIWorkflowResourcesIfExist(ctx, instance.GetHost().GetUuid()); err != nil {
-			return err
-		}
 	}
 
 	return onbworkflowclient.DeleteTinkHardwareForHostIfExist(ctx, instance.GetHost().GetUuid())

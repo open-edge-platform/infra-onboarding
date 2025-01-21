@@ -14,29 +14,15 @@ import (
 )
 
 func TestWorkflowActionToStatusDetail(t *testing.T) {
-	diWorkflowData, err := NewDITemplateData("test-di", "10.10.1.1", "CLIENT-SDK-TPM",
-		"/dev/sda", "12345678", "")
+
+	prodBkcWorkflow, err := NewTemplateDataProdBKC("test-prod-bkc", utils.DeviceInfo{})
 	require.NoError(t, err)
 
-	prodBkcWorkflowWithDIData, err := NewTemplateDataProdBKC("test-prod-bkc-di", utils.DeviceInfo{}, true)
-	require.NoError(t, err)
-
-	prodBkcWorkflowWithoutDIData, err := NewTemplateDataProdBKC("test-prod-bkc", utils.DeviceInfo{}, false)
-	require.NoError(t, err)
-
-	diWorkflow, err := unmarshalWorkflow(diWorkflowData)
-	require.NoError(t, err)
-
-	prodBkcWorkflowWithDI, err := unmarshalWorkflow(prodBkcWorkflowWithDIData)
-	require.NoError(t, err)
-
-	prodBkcWorkflowWithoutDI, err := unmarshalWorkflow(prodBkcWorkflowWithoutDIData)
+	prodBkcWorkflowInstance, err := unmarshalWorkflow(prodBkcWorkflow)
 	require.NoError(t, err)
 
 	workflows := []*Workflow{
-		diWorkflow,
-		prodBkcWorkflowWithDI,
-		prodBkcWorkflowWithoutDI,
+		prodBkcWorkflowInstance,
 	}
 
 	for _, wf := range workflows {

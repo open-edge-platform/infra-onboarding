@@ -7,31 +7,22 @@ package onbworkflowclient
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
-	"net"
-	"net/http"
-	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/common"
+	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/compute/v1"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
+	statusv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/status/v1"
+	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/status"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/env"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/onboardingmgr/utils"
 	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/testing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/tinkerbell"
-	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/compute/v1"
-	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
-	statusv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/status/v1"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/flags"
-	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/status"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	"gotest.tools/assert"
 	kubeErr "k8s.io/apimachinery/pkg/api/errors"
@@ -42,272 +33,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
-
-func Test_checkTO2StatusCompleted(t *testing.T) {
-	type args struct {
-		in0        context.Context
-		deviceInfo utils.DeviceInfo
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    bool
-		wantErr bool
-	}{
-		{
-			name: "CheckTO2StatusCompleted_WhenContextIsBackground",
-			args: args{
-				in0: context.Background(),
-			},
-			want:    false,
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := checkTO2StatusCompleted(tt.args.in0, tt.args.deviceInfo)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("checkTO2StatusCompleted() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("checkTO2StatusCompleted() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_checkTO2StatusCompleted_Case(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v1/owner/state/id" {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{
-				"to2CompletedOn": "completed",
-				"to0Expiry": ""
-				}`))
-		} else {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("Not found"))
-		}
-	}))
-	defer server.Close()
-
-	type args struct {
-		in0        context.Context
-		deviceInfo utils.DeviceInfo
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    bool
-		wantErr bool
-	}{
-		{
-			name: "Success",
-			args: args{
-				in0: context.Background(),
-				deviceInfo: utils.DeviceInfo{
-					FdoGUID: "id",
-				},
-			},
-			want:    true,
-			wantErr: false,
-		},
-		{
-			name: "Failed",
-			args: args{
-				in0:        context.Background(),
-				deviceInfo: utils.DeviceInfo{
-					// empty fdoGUID to return error
-				},
-			},
-			want:    false,
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			env.FdoOwnerDNS = "127.0.0.1"
-			env.FdoOwnerPort = strings.Split(server.URL, ":")[2]
-			got, err := checkTO2StatusCompleted(tt.args.in0, tt.args.deviceInfo)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("checkTO2StatusCompleted() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("checkTO2StatusCompleted() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_checkTO2StatusCompleted_Case1(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v1/owner/state/id" {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{
-				"to2CompletedOn": "",
-				"to0Expiry": ""
-				}`))
-		} else {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("Not found"))
-		}
-	}))
-	defer server.Close()
-
-	type args struct {
-		in0        context.Context
-		deviceInfo utils.DeviceInfo
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    bool
-		wantErr bool
-	}{
-		{
-			name: "TO2StatusCompleted_WhenValidResponseReceived",
-			args: args{
-				in0: context.Background(),
-				deviceInfo: utils.DeviceInfo{
-					FdoGUID: "id",
-				},
-			},
-			want:    false,
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			env.FdoOwnerDNS = "127.0.0.1"
-			env.FdoOwnerPort = strings.Split(server.URL, ":")[2]
-			got, err := checkTO2StatusCompleted(tt.args.in0, tt.args.deviceInfo)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("checkTO2StatusCompleted() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("checkTO2StatusCompleted() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_checkTO2StatusCompleted_Case2(t *testing.T) {
-	listener, err := net.Listen("tcp", "localhost:58042")
-	if err != nil {
-		t.Fatalf("Error creating listener: %v", err)
-	}
-	defer listener.Close()
-	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v1/owner/state/id" {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(""))
-		} else {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("Not found"))
-		}
-	}))
-	server.Listener = listener
-	server.Start()
-	defer server.Close()
-	type args struct {
-		in0        context.Context
-		deviceInfo utils.DeviceInfo
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    bool
-		wantErr bool
-	}{
-		{
-			name: "TO2StatusCompleted_WhenLocalServerResponds",
-			args: args{
-				in0: context.Background(),
-				deviceInfo: utils.DeviceInfo{
-					FdoGUID: "id",
-				},
-			},
-			want:    false,
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			env.FdoOwnerDNS = "localhost"
-			env.FdoOwnerPort = "58042"
-			got, err := checkTO2StatusCompleted(tt.args.in0, tt.args.deviceInfo)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("checkTO2StatusCompleted() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("checkTO2StatusCompleted() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_checkTO2StatusCompleted_Case3(t *testing.T) {
-	listener, err := net.Listen("tcp", "localhost:58042")
-	if err != nil {
-		t.Fatalf("Error creating listener: %v", err)
-	}
-	defer listener.Close()
-	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v1/owner/state/id" {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{
-				"to2CompletedOn": "abc",
-				"to0Expiry": ""
-				}`))
-		} else {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("Not found"))
-		}
-	}))
-	server.Listener = listener
-	server.Start()
-	defer server.Close()
-	type args struct {
-		in0        context.Context
-		deviceInfo utils.DeviceInfo
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    bool
-		wantErr bool
-	}{
-		{
-			name: "TO2StatusCompleted_WhenCompletedOnValuePresent",
-			args: args{
-				in0: context.Background(),
-				deviceInfo: utils.DeviceInfo{
-					FdoGUID: "id",
-				},
-			},
-			want:    true,
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			env.FdoOwnerDNS = "localhost"
-			env.FdoOwnerPort = "58042"
-			got, err := checkTO2StatusCompleted(tt.args.in0, tt.args.deviceInfo)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("checkTO2StatusCompleted() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("checkTO2StatusCompleted() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
 
 func TestCheckStatusOrRunProdWorkflow(t *testing.T) {
 	type args struct {
@@ -338,120 +63,6 @@ func TestCheckStatusOrRunProdWorkflow(t *testing.T) {
 	}
 }
 
-func TestCheckStatusOrRunDIWorkflow(t *testing.T) {
-	type args struct {
-		ctx        context.Context
-		deviceInfo utils.DeviceInfo
-		instance   *computev1.InstanceResource
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Valid Instance",
-			args: args{
-				ctx:        context.Background(),
-				deviceInfo: utils.DeviceInfo{},
-				instance: &computev1.InstanceResource{
-					Host: &computev1.HostResource{
-						ResourceId: "host-084d9b08",
-					},
-				},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := CheckStatusOrRunDIWorkflow(tt.args.ctx, tt.args.deviceInfo, tt.args.instance); (err != nil) != tt.wantErr {
-				t.Errorf("CheckStatusOrRunDIWorkflow() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestCheckStatusOrRunDIWorkflow_Case1(t *testing.T) {
-	currK8sClientFactory := tinkerbell.K8sClientFactory
-	currFlagEnableDeviceInitialization := *flags.FlagDisableCredentialsManagement
-	defer func() {
-		tinkerbell.K8sClientFactory = currK8sClientFactory
-		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
-	}()
-	*common.FlagEnableDeviceInitialization = true
-	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
-	type args struct {
-		ctx        context.Context
-		deviceInfo utils.DeviceInfo
-		instance   *computev1.InstanceResource
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Valid K8sClientFactory",
-			args: args{
-				ctx:        context.Background(),
-				deviceInfo: utils.DeviceInfo{},
-				instance: &computev1.InstanceResource{
-					Host: &computev1.HostResource{
-						ResourceId: "host-084d9b08",
-					},
-				},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := CheckStatusOrRunDIWorkflow(tt.args.ctx, tt.args.deviceInfo, tt.args.instance); (err != nil) != tt.wantErr {
-				t.Errorf("CheckStatusOrRunDIWorkflow() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestCheckStatusOrRunDIWorkflow_Case(t *testing.T) {
-	*common.FlagEnableDeviceInitialization = false
-	type args struct {
-		ctx        context.Context
-		deviceInfo utils.DeviceInfo
-		instance   *computev1.InstanceResource
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Valid Instance",
-			args: args{
-				ctx:        context.Background(),
-				deviceInfo: utils.DeviceInfo{},
-				instance: &computev1.InstanceResource{
-					Host: &computev1.HostResource{
-						ResourceId: "host-084d9b08",
-					},
-				},
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := CheckStatusOrRunDIWorkflow(tt.args.ctx, tt.args.deviceInfo, tt.args.instance); (err != nil) != tt.wantErr {
-				t.Errorf("CheckStatusOrRunDIWorkflow() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-	defer func() {
-		*common.FlagEnableDeviceInitialization = true
-	}()
-}
-
 func TestDeleteTinkHardwareForHostIfExist(t *testing.T) {
 	type args struct {
 		ctx      context.Context
@@ -474,33 +85,6 @@ func TestDeleteTinkHardwareForHostIfExist(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := DeleteTinkHardwareForHostIfExist(tt.args.ctx, tt.args.hostUUID); (err != nil) != tt.wantErr {
 				t.Errorf("DeleteTinkHardwareForHostIfExist() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestDeleteDIWorkflowResourcesIfExist(t *testing.T) {
-	type args struct {
-		ctx      context.Context
-		hostUUID string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "DeleteDIWorkflowResourcesIfExistsTest",
-			args: args{
-				ctx: context.Background(),
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := DeleteDIWorkflowResourcesIfExist(tt.args.ctx, tt.args.hostUUID); (err != nil) != tt.wantErr {
-				t.Errorf("DeleteDIWorkflowResourcesIfExist() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -575,12 +159,9 @@ func Test_handleWorkflowStatus_Case(t *testing.T) {
 		onFailureOnboardingStatus inv_status.ResourceStatus
 	}
 	currK8sClientFactory := tinkerbell.K8sClientFactory
-	currFlagEnableDeviceInitialization := *flags.FlagDisableCredentialsManagement
 	defer func() {
 		tinkerbell.K8sClientFactory = currK8sClientFactory
-		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
-	*common.FlagEnableDeviceInitialization = false
 	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, true, false, false)
 	tests := []struct {
 		name    string
@@ -612,9 +193,6 @@ func Test_handleWorkflowStatus_Case(t *testing.T) {
 			}
 		})
 	}
-	defer func() {
-		*common.FlagEnableDeviceInitialization = true
-	}()
 }
 
 func Test_handleWorkflowStatus_Case1(t *testing.T) {
@@ -772,18 +350,8 @@ func (m MockClient) SubResource(subResource string) client.SubResourceClient {
 }
 
 func Test_runProdWorkflow(t *testing.T) {
-	resp := &ResponseData{
-		To2CompletedOn: "completed",
-		To0Expiry:      "",
-	}
-	jsonData, err := json.Marshal(resp)
-	require.NoError(t, err)
 	os.Setenv("ONBOARDING_MANAGER_CLIENT_NAME", "env")
 	os.Setenv("ONBOARDING_CREDENTIALS_SECRET_NAME", "env")
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
-		w.Write(jsonData)
-	}))
-	defer srv.Close()
 
 	type args struct {
 		ctx        context.Context
@@ -798,31 +366,9 @@ func Test_runProdWorkflow(t *testing.T) {
 		name    string
 		args    args
 		wantErr bool
-	}{
-		// {
-		// 	name: "TestRunProdWorkflow",
-		// 	args: args{
-		// 		ctx:    context.Background(),
-		// 		k8sCli: mockClient,
-		// 		deviceInfo: utils.DeviceInfo{
-		// 			GUID:   "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-		// 			FdoGUID: uuid.NewString(),
-		// 		},
-		// 	},
-		// 	wantErr: false,
-		// },
-		// {
-		// 	name: "TestRunProdWorkflow_ClientGetError",
-		// 	args: args{
-		// 		k8sCli: mockClient1,
-		// 	},
-		// 	wantErr: true,
-		// },
-	}
+	}{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			env.FdoOwnerDNS = "127.0.0.1"
-			env.FdoOwnerPort = strings.Split(srv.URL, ":")[2]
 			if err := runProdWorkflow(tt.args.ctx, tt.args.k8sCli, tt.args.deviceInfo, &computev1.InstanceResource{
 				Host:      &computev1.HostResource{},
 				DesiredOs: &osv1.OperatingSystemResource{},
@@ -834,350 +380,6 @@ func Test_runProdWorkflow(t *testing.T) {
 	defer func() {
 		os.Unsetenv("ONBOARDING_MANAGER_CLIENT_NAME")
 		os.Unsetenv("ONBOARDING_CREDENTIALS_SECRET_NAME")
-	}()
-}
-
-func Test_runDIWorkflow(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer srv.Close()
-
-	type args struct {
-		ctx        context.Context
-		k8sCli     client.Client
-		deviceInfo utils.DeviceInfo
-		instance   *computev1.InstanceResource
-	}
-	mockClient := &MockClient{}
-	mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	mockClient1 := &MockClient{}
-	mockClient1.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "TestRunDIWorkflow_SuccessfulRequest",
-			args: args{
-				ctx:        context.Background(),
-				k8sCli:     mockClient,
-				deviceInfo: utils.DeviceInfo{},
-				instance: &computev1.InstanceResource{
-					DesiredOs: &osv1.OperatingSystemResource{},
-				},
-			},
-		},
-		{
-			name: "TestRunDIWorkflow_ClientGetError",
-			args: args{
-				ctx:    context.Background(),
-				k8sCli: mockClient1,
-				instance: &computev1.InstanceResource{
-					DesiredOs: &osv1.OperatingSystemResource{},
-				},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			env.FdoOwnerDNS = srv.URL
-			if err := runDIWorkflow(tt.args.ctx, tt.args.k8sCli, tt.args.deviceInfo, tt.args.instance); (err != nil) != tt.wantErr {
-				t.Errorf("runDIWorkflow() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestRunFDOActions(t *testing.T) {
-	*common.FlagEnableDeviceInitialization = true
-	type args struct {
-		ctx        context.Context
-		tenantID   string
-		deviceInfo *utils.DeviceInfo
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "TestRunFDOActions_DeviceInfoEmpty",
-			args: args{
-				ctx:        context.Background(),
-				tenantID:   "11111111-1111-1111-1111-111111111111",
-				deviceInfo: &utils.DeviceInfo{},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			env.FdoOwnerDNS = "localhost"
-			env.FdoOwnerPort = "58042"
-			if err := RunFDOActions(tt.args.ctx, tt.args.tenantID, tt.args.deviceInfo); (err != nil) != tt.wantErr {
-				t.Errorf("RunFDOActions() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-	defer func() {
-		*common.FlagEnableDeviceInitialization = true
-	}()
-}
-
-func TestCheckStatusOrRunRebootWorkflow(t *testing.T) {
-	type args struct {
-		ctx        context.Context
-		deviceInfo utils.DeviceInfo
-		instance   *computev1.InstanceResource
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "TestCheckStatusOrRunRebootWorkflow_HostNotReady",
-			args: args{
-				ctx:      context.Background(),
-				instance: &computev1.InstanceResource{},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := CheckStatusOrRunRebootWorkflow(tt.args.ctx, tt.args.deviceInfo, tt.args.instance); (err != nil) != tt.wantErr {
-				t.Errorf("CheckStatusOrRunRebootWorkflow() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func Test_runRebootWorkflow(t *testing.T) {
-	mockClient := MockClient{}
-	mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	mockClient1 := MockClient{}
-	mockClient1.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
-	type args struct {
-		ctx        context.Context
-		k8sCli     client.Client
-		deviceInfo utils.DeviceInfo
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "SuccessfulRebootWorkflow",
-			args: args{
-				ctx:    context.Background(),
-				k8sCli: mockClient,
-			},
-		},
-		{
-			name: "FailedRebootWorkflow",
-			args: args{
-				ctx:    context.Background(),
-				k8sCli: mockClient1,
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := runRebootWorkflow(tt.args.ctx, tt.args.k8sCli, tt.args.deviceInfo); (err != nil) != tt.wantErr {
-				t.Errorf("runRebootWorkflow() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestDeleteRebootWorkflowResourcesIfExist(t *testing.T) {
-	type args struct {
-		ctx      context.Context
-		hostUUID string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "DeleteRebootWorkflowResources",
-			args: args{
-				ctx: context.Background(),
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := DeleteRebootWorkflowResourcesIfExist(tt.args.ctx, tt.args.hostUUID); (err != nil) != tt.wantErr {
-				t.Errorf("DeleteRebootWorkflowResourcesIfExist() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func Test_checkTO2StatusCompleted_Case4(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v1/owner/state/id" {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{
-				"to2CompletedOn": "completed",
-				"to0Expiry": 123
-				}`))
-		} else {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("Not found"))
-		}
-	}))
-	defer server.Close()
-
-	type args struct {
-		in0        context.Context
-		deviceInfo utils.DeviceInfo
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    bool
-		wantErr bool
-	}{
-		{
-			name: "Success",
-			args: args{
-				in0: context.Background(),
-				deviceInfo: utils.DeviceInfo{
-					FdoGUID: "id",
-				},
-			},
-			want:    true,
-			wantErr: true,
-		},
-		{
-			name: "Failed",
-			args: args{
-				in0:        context.Background(),
-				deviceInfo: utils.DeviceInfo{
-					// empty fdoGUID to return error
-				},
-			},
-			want:    false,
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			env.FdoOwnerDNS = "127.0.0.1"
-			env.FdoOwnerPort = strings.Split(server.URL, ":")[2]
-			_, err := checkTO2StatusCompleted(tt.args.in0, tt.args.deviceInfo)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("checkTO2StatusCompleted() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-}
-
-func Test_runProdWorkflow_Case(t *testing.T) {
-	common.FlagEnableDeviceInitialization = flag.Bool("enable", false,
-		"Enables ")
-	resp := &ResponseData{
-		To2CompletedOn: "completed",
-		To0Expiry:      "",
-	}
-	jsonData, err := json.Marshal(resp)
-	require.NoError(t, err)
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
-		w.Write(jsonData)
-	}))
-	defer srv.Close()
-
-	type args struct {
-		ctx        context.Context
-		k8sCli     client.Client
-		deviceInfo utils.DeviceInfo
-	}
-	mockClient := &MockClient{}
-	mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	mockClient1 := &MockClient{}
-	mockClient1.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
-			args: args{
-				ctx:    context.Background(),
-				k8sCli: mockClient,
-				deviceInfo: utils.DeviceInfo{
-					GUID:    uuid.NewString(),
-					FdoGUID: uuid.NewString(),
-				},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			env.FdoOwnerDNS = "127.0.0.1"
-			env.FdoOwnerPort = strings.Split(srv.URL, ":")[2]
-			if err := runProdWorkflow(tt.args.ctx, tt.args.k8sCli, tt.args.deviceInfo, &computev1.InstanceResource{
-				Host: &computev1.HostResource{},
-			}); (err != nil) != tt.wantErr {
-				t.Errorf("runProdWorkflow() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-	defer func() {
-		common.FlagEnableDeviceInitialization = flag.Bool("enab", true,
-			"Enables")
-	}()
-}
-
-func TestRunFDOActions_Case1(t *testing.T) {
-	common.FlagEnableDeviceInitialization = flag.Bool("enle", false,
-		"Enabl")
-	type args struct {
-		ctx        context.Context
-		tenantID   string
-		deviceInfo *utils.DeviceInfo
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
-			args: args{
-				ctx:        context.Background(),
-				tenantID:   "11111111-1111-1111-1111-111111111111",
-				deviceInfo: &utils.DeviceInfo{},
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			env.FdoOwnerDNS = "localhost"
-			env.FdoOwnerPort = "58042"
-			if err := RunFDOActions(tt.args.ctx, tt.args.tenantID, tt.args.deviceInfo); (err != nil) != tt.wantErr {
-				t.Errorf("RunFDOActions() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-	defer func() {
-		common.FlagEnableDeviceInitialization = flag.Bool("en", true,
-			"Ena")
 	}()
 }
 
@@ -1307,10 +509,6 @@ func Test_getWorkflow(t *testing.T) {
 	}
 }
 
-func setupTestWithFlag(enableDeviceInitialization bool) {
-	common.FlagEnableDeviceInitialization = &enableDeviceInitialization
-}
-
 func Test_handleWorkflowStatus_Case4(t *testing.T) {
 	type args struct {
 		instance                    *computev1.InstanceResource
@@ -1319,12 +517,9 @@ func Test_handleWorkflowStatus_Case4(t *testing.T) {
 		onFailureProvisioningStatus inv_status.ResourceStatus
 	}
 	currK8sClientFactory := tinkerbell.K8sClientFactory
-	currFlagEnableDeviceInitialization := *flags.FlagDisableCredentialsManagement
 	defer func() {
 		tinkerbell.K8sClientFactory = currK8sClientFactory
-		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
-	setupTestWithFlag(false)
 	scheme := runtime.NewScheme()
 	_ = tink.AddToScheme(scheme)
 
@@ -1465,7 +660,4 @@ func Test_handleWorkflowStatus_Case4(t *testing.T) {
 			assert.Equal(t, tt.expectedProvisioningStatus, tt.args.instance.ProvisioningStatus)
 		})
 	}
-	defer func() {
-		*common.FlagEnableDeviceInitialization = true
-	}()
 }

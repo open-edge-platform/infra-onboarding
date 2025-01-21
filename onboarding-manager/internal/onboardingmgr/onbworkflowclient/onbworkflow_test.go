@@ -8,24 +8,19 @@ import (
 	"context"
 	"testing"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/common"
+	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/compute/v1"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/onboardingmgr/onbworkflowclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/onboardingmgr/utils"
 	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/testing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/tinkerbell"
-	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/compute/v1"
-	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/flags"
 )
 
 func TestCheckStatusOrRunProdWorkflow(t *testing.T) {
 	currK8sClientFactory := tinkerbell.K8sClientFactory
-	currFlagEnableDeviceInitialization := *flags.FlagDisableCredentialsManagement
 	defer func() {
 		tinkerbell.K8sClientFactory = currK8sClientFactory
-		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
-	*common.FlagEnableDeviceInitialization = true
 	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, true, false, false)
 	type args struct {
 		ctx        context.Context
@@ -55,43 +50,6 @@ func TestCheckStatusOrRunProdWorkflow(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := onbworkflowclient.CheckStatusOrRunProdWorkflow(tt.args.ctx, tt.args.deviceInfo, tt.args.instance); (err != nil) != tt.wantErr {
 				t.Errorf("CheckStatusOrRunProdWorkflow() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestCheckStatusOrRunRebootWorkflow(t *testing.T) {
-	currK8sClientFactory := tinkerbell.K8sClientFactory
-	currFlagEnableDeviceInitialization := *flags.FlagDisableCredentialsManagement
-	defer func() {
-		tinkerbell.K8sClientFactory = currK8sClientFactory
-		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
-	}()
-	*common.FlagEnableDeviceInitialization = false
-	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
-	type args struct {
-		ctx        context.Context
-		deviceInfo utils.DeviceInfo
-		instance   *computev1.InstanceResource
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "HostStatusNotReady",
-			args: args{
-				ctx:      context.Background(),
-				instance: &computev1.InstanceResource{},
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := onbworkflowclient.CheckStatusOrRunRebootWorkflow(tt.args.ctx, tt.args.deviceInfo, tt.args.instance); (err != nil) != tt.wantErr {
-				t.Errorf("CheckStatusOrRunRebootWorkflow() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

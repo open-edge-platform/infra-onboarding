@@ -51,50 +51,6 @@ func unmarshalWorkflow(yamlContent []byte) (*Workflow, error) {
 	return &workflow, nil
 }
 
-func NewDITemplateData(name, ip, clientyp, disk, serial, tinkerversion string) ([]byte, error) {
-	wf := Workflow{
-		Version:       "0.1",
-		Name:          name,
-		GlobalTimeout: timeOutMax8000,
-		Tasks: []Task{{
-			Name:       "os-installation-di",
-			WorkerAddr: "{{.device_1}}",
-			Volumes: []string{
-				"/dev:/dev",
-				"/dev/console:/dev/console",
-				"/lib/firmware:/lib/firmware:ro",
-			},
-			Actions: []Action{
-				{
-					Name:    ActionStoringAlpine,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/store_alpine:" + tinkerversion,
-					Timeout: timeOutAvg560,
-					Environment: map[string]string{
-						"BLOCK_DEVICE": disk,
-						"PARTITION_SZ": "500MB",
-					},
-				},
-				{
-					Name:    ActionRunFDO,
-					Image:   "localhost:7443/one-intel-edge/edge-node/tinker-actions/fdoclient_action:" + tinkerversion,
-					Timeout: timeOutAvg560,
-					Environment: map[string]string{
-						"DATA_PARTITION_LBL": "CREDS",
-						"FDO_RUN_TYPE":       "di",
-						"FDO_MFGIP":          ip,
-						"FDO_MPORT":          "8081",
-						"DEVICE_SERIAL":      serial,
-						"TYPE":               clientyp,
-						"FDO_TLS":            "https",
-					},
-				},
-			},
-		}},
-	}
-
-	return marshalWorkflow(&wf)
-}
-
 func NewRebootTemplateData(name string) ([]byte, error) {
 	wf := Workflow{
 		Version:       "0.1",
