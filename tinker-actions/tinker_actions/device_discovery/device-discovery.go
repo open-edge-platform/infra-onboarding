@@ -27,7 +27,7 @@ import (
 	"syscall"
 	"time"
 
-	pb_om "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
+	pb_om "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/pkg/api"
 	"golang.org/x/oauth2"
 
 	"google.golang.org/grpc"

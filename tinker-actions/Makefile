@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: LicenseRef-Intel
 
 .DEFAULT_GOAL := help
-.PHONY: build test lint license help generate
+.PHONY: docker-build test lint license help generate
 
 ##### Variables #####
 
@@ -46,7 +46,7 @@ ACTION_ARRAY := \
 	tiberos_partition
 
 # Create the virtualenv with python tools installed
-VENV_NAME = venv_midkammgr
+VENV_NAME = venv_tinker_actions
 
 # CI SCRIPTS
 SCRIPTS_DIR=./ci_scripts
@@ -62,9 +62,9 @@ $(VENV_NAME): requirements.txt
 
 all: 
 	@# Help: Runs build, lint, test stage
-	build lint test 	
+	go-build lint test
 
-build:
+docker-build:
 	@# Help: Runs build stage
 	@echo "---MAKEFILE BUILD---"
 	./setup_actions.sh
