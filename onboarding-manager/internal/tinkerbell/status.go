@@ -33,7 +33,6 @@ var WorkflowStepToStatusDetail = map[string]string{
 	ActionReboot:                     "Rebooting",
 	ActionCopyENSecrets:              "Copying EN secrets",
 	ActionStoringAlpine:              "Storing Alpine",
-	ActionRunFDO:                     "Running FDO",
 	ActionAddEnvProxy:                "Configuring system proxy settings",
 	ActionAddAptProxy:                "Configuring APT proxy settings",
 	ActionAddDNSNamespace:            "Configuring DNS settings",

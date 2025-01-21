@@ -12,8 +12,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/common"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/env"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/onboardingmgr/utils"
 )
 
@@ -48,12 +46,12 @@ func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (
 	)
 	switch deviceInfo.ImgType {
 	case utils.ImgTypeBkc:
-		tmplData, err = NewTemplateDataProdBKC(tmplName, deviceInfo, *common.FlagEnableDeviceInitialization)
+		tmplData, err = NewTemplateDataProdBKC(tmplName, deviceInfo)
 		if err != nil {
 			return nil, err
 		}
 	case utils.ImgTypeTiberOs:
-		tmplData, err = NewTemplateDataProdTIBEROS(tmplName, deviceInfo, *common.FlagEnableDeviceInitialization)
+		tmplData, err = NewTemplateDataProdTIBEROS(tmplName, deviceInfo)
 		if err != nil {
 			return nil, err
 		}
@@ -65,29 +63,13 @@ func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (
 			return nil, err
 		}
 	default:
-		tmplData, err = NewTemplateDataProdTIBEROS(tmplName, deviceInfo, *common.FlagEnableDeviceInitialization)
+		tmplData, err = NewTemplateDataProdTIBEROS(tmplName, deviceInfo)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	tmpl := NewTemplate(string(tmplData), tmplName, k8sNamespace)
-	return tmpl, nil
-}
-
-func GenerateTemplateForDI(k8sNamespace string, deviceInfo utils.DeviceInfo) (*tink.Template, error) {
-	tmplName := GetDITemplateName(deviceInfo.GUID)
-	tinkerVersion := getTinkerImageVersion(deviceInfo.TinkerVersion)
-	tmplData, err := NewDITemplateData(tmplName, deviceInfo.HwIP, "CLIENT-SDK-TPM",
-		env.DiskType, deviceInfo.HwSerialID, tinkerVersion)
-	if err != nil {
-		// failed to marshal template data
-		zlog.MiSec().MiErr(err).Msg("")
-		zlog.Debug().Msgf("Failed to generate DI template resources for host %s", deviceInfo.GUID)
-		return nil, inv_errors.Errorf("Failed to generate DI template resources for host")
-	}
-	tmpl := NewTemplate(string(tmplData), tmplName, k8sNamespace)
-
 	return tmpl, nil
 }
 

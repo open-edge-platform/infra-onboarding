@@ -16,12 +16,6 @@ var (
 	zlog       = logging.GetLogger(clientName)
 )
 
-//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
-type ResponseData struct {
-	To2CompletedOn string `json:"to2CompletedOn"`
-	To0Expiry      string `json:"to0Expiry"`
-}
-
 func InitOnboarding(invClient *invclient.OnboardingInventoryClient, _ string, enableAuth bool, rbacRules string) {
 	if invClient == nil {
 		zlog.Debug().Msgf("Warning: invClient is nil")

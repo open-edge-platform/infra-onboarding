@@ -40,7 +40,6 @@ const (
 	ActionReboot                     = "reboot"
 	ActionCopyENSecrets              = "copy-ensp-node-secrets" //#nosec G101 -- ignore false positive.
 	ActionStoringAlpine              = "store-Alpine"
-	ActionRunFDO                     = "run-fdo"
 	ActionAddEnvProxy                = "add-env-proxy"
 	ActionAddAptProxy                = "add-apt-proxy"
 	ActionAddDNSNamespace            = "add-dns-namespace"
@@ -54,6 +53,7 @@ const (
 	ActionDisableSnapdOptimize       = "systemd-snapd-disable-optimize"
 	ActionTiberOSPartition           = "tiber-os-partition"
 	ActionCloudinitDsidentity        = "cloud-init-ds-identity"
+	ActionSetSeliuxRelabel           = "set-selinux-relabel-policy"
 )
 
 const (
@@ -185,16 +185,8 @@ func tinkActionTiberOSPartitionImage(tinkerImageVersion string) string {
 	return fmt.Sprintf("%s:%s", defaultTinkActionTiberOSPartitionImage, iv)
 }
 
-func tinkActionCredcopyImage(tinkerImageVersion string) string {
-	iv := getTinkerImageVersion(tinkerImageVersion)
-	if v := os.Getenv(envTinkActionCredcopyImage); v != "" {
-		return fmt.Sprintf("%s:%s", v, iv)
-	}
-	return fmt.Sprintf("%s:%s", defaultTinkActionCredcopyImage, iv)
-}
-
 //nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
-func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enableDI bool) ([]byte, error) {
+func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo) ([]byte, error) {
 	// #nosec G115
 	securityFeatureTypeVar := osv1.SecurityFeature(deviceInfo.SecurityFeature)
 	securityFeatureStr := securityFeatureTypeVar.String()
@@ -232,6 +224,7 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 						"COMPRESSED": "true",
 						"SHA256":     deviceInfo.OsImageSHA256,
 					},
+					Pid: "host",
 				},
 
 				{
@@ -297,6 +290,7 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 							"chmod +x /etc/cloud/cloud.cfg.d/installer.cfg",
 							deviceInfo.InstallerScriptURL),
 					},
+					Pid: "host",
 				},
 
 				{
@@ -327,6 +321,18 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 				},
 
 				{
+					Name:    ActionSetSeliuxRelabel,
+					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutAvg200,
+					Environment: map[string]string{
+						"FS_TYPE":             "ext4",
+						"CHROOT":              "y",
+						"DEFAULT_INTERPRETER": "/bin/sh -c",
+						"CMD_LINE":            "setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /",
+					},
+				},
+
+				{
 					Name:    ActionReboot,
 					Image:   "public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest",
 					Timeout: timeOutMin90,
@@ -337,89 +343,60 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 			},
 		}},
 	}
-	if !enableDI {
-		// Di not enable
-		directoryActions := []Action{
-			{
-				Name:    ActionCreateSecretsDirectory,
-				Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
-				Timeout: timeOutMin90,
-				Environment: map[string]string{
-					"FS_TYPE":             "ext4",
-					"CHROOT":              "y",
-					"DEFAULT_INTERPRETER": "/bin/sh -c",
-					"CMD_LINE":            "mkdir -p /etc/intel_edge_node/client-credentials/",
-				},
+	directoryActions := []Action{
+		{
+			Name:    ActionCreateSecretsDirectory,
+			Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
+			Timeout: timeOutMin90,
+			Environment: map[string]string{
+				"FS_TYPE":             "ext4",
+				"CHROOT":              "y",
+				"DEFAULT_INTERPRETER": "/bin/sh -c",
+				"CMD_LINE":            "mkdir -p /etc/intel_edge_node/client-credentials/",
 			},
-			{
-				Name:    ActionWriteClientID,
-				Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-				Timeout: timeOutMin90,
-				Environment: map[string]string{
-					"FS_TYPE":   "ext4",
-					"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_id",
-					"CONTENTS":  deviceInfo.AuthClientID,
-					"UID":       "0",
-					"GID":       "0",
-					"MODE":      "0755",
-					"DIRMODE":   "0755",
-				},
+		},
+		{
+			Name:    ActionWriteClientID,
+			Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+			Timeout: timeOutMin90,
+			Environment: map[string]string{
+				"FS_TYPE":   "ext4",
+				"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_id",
+				"CONTENTS":  deviceInfo.AuthClientID,
+				"UID":       "0",
+				"GID":       "0",
+				"MODE":      "0755",
+				"DIRMODE":   "0755",
 			},
-			{
-				Name:    ActionWriteClientSecret,
-				Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-				Timeout: timeOutMin90,
-				Environment: map[string]string{
-					"FS_TYPE":   "ext4",
-					"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_secret",
-					"CONTENTS":  deviceInfo.AuthClientSecret,
-					"UID":       "0",
-					"GID":       "0",
-					"MODE":      "0755",
-					"DIRMODE":   "0755",
-				},
+		},
+		{
+			Name:    ActionWriteClientSecret,
+			Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+			Timeout: timeOutMin90,
+			Environment: map[string]string{
+				"FS_TYPE":   "ext4",
+				"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_secret",
+				"CONTENTS":  deviceInfo.AuthClientSecret,
+				"UID":       "0",
+				"GID":       "0",
+				"MODE":      "0755",
+				"DIRMODE":   "0755",
 			},
-		}
-
-		// Find the index of the "add-dns-namespace" action
-		var writeHostnameIndex int
-		for i, action := range wf.Tasks[0].Actions {
-			if action.Name == ActionWriteHostname {
-				writeHostnameIndex = i
-				break
-			}
-		}
-
-		// Insert the new actions after the "write-hostname" action
-		wf.Tasks[0].Actions = append(wf.Tasks[0].Actions[:writeHostnameIndex+1],
-			append(directoryActions, wf.Tasks[0].Actions[writeHostnameIndex+1:]...)...)
-	} else {
-		// Di is enabled
-		directoryActions := []Action{
-			{
-				Name:    ActionCopyENSecrets,
-				Image:   tinkActionCredcopyImage(deviceInfo.TinkerVersion),
-				Timeout: timeOutMin90,
-				Environment: map[string]string{
-					"OS_DST_DIR": "/etc/intel_edge_node/client-credentials/",
-					"FS_TYPE":    "ext4",
-				},
-			},
-		}
-
-		// Find the index of the "stream-tiberos-image" action
-		var streamTiberOSImage int
-		for i, action := range wf.Tasks[0].Actions {
-			if action.Name == ActionStreamTiberOSImage {
-				streamTiberOSImage = i
-				break
-			}
-		}
-
-		// Insert the new actions after the "stream-tiberos-image" action
-		wf.Tasks[0].Actions = append(wf.Tasks[0].Actions[:streamTiberOSImage+1],
-			append(directoryActions, wf.Tasks[0].Actions[streamTiberOSImage+1:]...)...)
+		},
 	}
+
+	// Find the index of the "add-dns-namespace" action
+	var writeHostnameIndex int
+	for i, action := range wf.Tasks[0].Actions {
+		if action.Name == ActionWriteHostname {
+			writeHostnameIndex = i
+			break
+		}
+	}
+
+	// Insert the new actions after the "write-hostname" action
+	wf.Tasks[0].Actions = append(wf.Tasks[0].Actions[:writeHostnameIndex+1],
+		append(directoryActions, wf.Tasks[0].Actions[writeHostnameIndex+1:]...)...)
 
 	// FDE removal if security feature flag is not set for FDE
 	// #nosec G115
@@ -430,7 +407,10 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 				if action.Name == ActionTiberOSPartition {
 					// Remove the action from the slice
 					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
-					break
+				}
+				if action.Name == ActionSetSeliuxRelabel {
+					// Remove the action from the slice
+					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
 				}
 			}
 		}
@@ -463,7 +443,7 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo, enable
 }
 
 //nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
-func NewTemplateDataProdBKC(name string, deviceInfo utils.DeviceInfo, enableDI bool) ([]byte, error) {
+func NewTemplateDataProdBKC(name string, deviceInfo utils.DeviceInfo) ([]byte, error) {
 	// #nosec G115
 	securityFeatureTypeVar := osv1.SecurityFeature(deviceInfo.SecurityFeature)
 	securityFeatureStr := securityFeatureTypeVar.String()
@@ -507,6 +487,7 @@ func NewTemplateDataProdBKC(name string, deviceInfo utils.DeviceInfo, enableDI b
 						"IMG_URL":    deviceInfo.OSImageURL,
 						"COMPRESSED": "true",
 					},
+					Pid: "host",
 				},
 
 				{
@@ -615,6 +596,7 @@ func NewTemplateDataProdBKC(name string, deviceInfo utils.DeviceInfo, enableDI b
 							"wget -P /home/postinstall/Setup %s; chmod 755 /home/postinstall/Setup/installer.sh",
 							deviceInfo.InstallerScriptURL),
 					},
+					Pid: "host",
 				},
 				{
 					Name:    ActionInstallScript,
@@ -829,89 +811,60 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 		}},
 	}
 
-	if !enableDI {
-		// Di not enable
-		directoryActions := []Action{
-			{
-				Name:    ActionCreateSecretsDirectory,
-				Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
-				Timeout: timeOutMin90,
-				Environment: map[string]string{
-					"FS_TYPE":             "ext4",
-					"CHROOT":              "y",
-					"DEFAULT_INTERPRETER": "/bin/sh -c",
-					"CMD_LINE":            "mkdir -p /etc/intel_edge_node/client-credentials/",
-				},
+	directoryActions := []Action{
+		{
+			Name:    ActionCreateSecretsDirectory,
+			Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
+			Timeout: timeOutMin90,
+			Environment: map[string]string{
+				"FS_TYPE":             "ext4",
+				"CHROOT":              "y",
+				"DEFAULT_INTERPRETER": "/bin/sh -c",
+				"CMD_LINE":            "mkdir -p /etc/intel_edge_node/client-credentials/",
 			},
-			{
-				Name:    ActionWriteClientID,
-				Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-				Timeout: timeOutMin90,
-				Environment: map[string]string{
-					"FS_TYPE":   "ext4",
-					"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_id",
-					"CONTENTS":  deviceInfo.AuthClientID,
-					"UID":       "0",
-					"GID":       "0",
-					"MODE":      "0755",
-					"DIRMODE":   "0755",
-				},
+		},
+		{
+			Name:    ActionWriteClientID,
+			Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+			Timeout: timeOutMin90,
+			Environment: map[string]string{
+				"FS_TYPE":   "ext4",
+				"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_id",
+				"CONTENTS":  deviceInfo.AuthClientID,
+				"UID":       "0",
+				"GID":       "0",
+				"MODE":      "0755",
+				"DIRMODE":   "0755",
 			},
-			{
-				Name:    ActionWriteClientSecret,
-				Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-				Timeout: timeOutMin90,
-				Environment: map[string]string{
-					"FS_TYPE":   "ext4",
-					"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_secret",
-					"CONTENTS":  deviceInfo.AuthClientSecret,
-					"UID":       "0",
-					"GID":       "0",
-					"MODE":      "0755",
-					"DIRMODE":   "0755",
-				},
+		},
+		{
+			Name:    ActionWriteClientSecret,
+			Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+			Timeout: timeOutMin90,
+			Environment: map[string]string{
+				"FS_TYPE":   "ext4",
+				"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_secret",
+				"CONTENTS":  deviceInfo.AuthClientSecret,
+				"UID":       "0",
+				"GID":       "0",
+				"MODE":      "0755",
+				"DIRMODE":   "0755",
 			},
-		}
-
-		// Find the index of the "add-dns-namespace" action
-		var dnsNamespaceIndex int
-		for i, action := range wf.Tasks[0].Actions {
-			if action.Name == ActionAddDNSNamespace {
-				dnsNamespaceIndex = i
-				break
-			}
-		}
-
-		// Insert the new actions after the "add-dns-namespace" action
-		wf.Tasks[0].Actions = append(wf.Tasks[0].Actions[:dnsNamespaceIndex+1],
-			append(directoryActions, wf.Tasks[0].Actions[dnsNamespaceIndex+1:]...)...)
-	} else {
-		// Di is enabled
-		directoryActions := []Action{
-			{
-				Name:    ActionCopyENSecrets,
-				Image:   tinkActionCredcopyImage(deviceInfo.TinkerVersion),
-				Timeout: timeOutMin90,
-				Environment: map[string]string{
-					"OS_DST_DIR": "/etc/intel_edge_node/client-credentials/",
-					"FS_TYPE":    "ext4",
-				},
-			},
-		}
-
-		// Find the index of the "stream-ubuntu-image" action
-		var streamubuntuimage int
-		for i, action := range wf.Tasks[0].Actions {
-			if action.Name == ActionStreamUbuntuImage {
-				streamubuntuimage = i
-				break
-			}
-		}
-
-		// Insert the new actions after the "stream-ubuntu-image" action
-		wf.Tasks[0].Actions = append(wf.Tasks[0].Actions[:streamubuntuimage+1],
-			append(directoryActions, wf.Tasks[0].Actions[streamubuntuimage+1:]...)...)
+		},
 	}
+
+	// Find the index of the "add-dns-namespace" action
+	var dnsNamespaceIndex int
+	for i, action := range wf.Tasks[0].Actions {
+		if action.Name == ActionAddDNSNamespace {
+			dnsNamespaceIndex = i
+			break
+		}
+	}
+
+	// Insert the new actions after the "add-dns-namespace" action
+	wf.Tasks[0].Actions = append(wf.Tasks[0].Actions[:dnsNamespaceIndex+1],
+		append(directoryActions, wf.Tasks[0].Actions[dnsNamespaceIndex+1:]...)...)
 
 	// FDE removal if security feature flag is not set for FDE
 	// #nosec G115

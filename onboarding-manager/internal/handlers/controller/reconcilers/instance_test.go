@@ -30,10 +30,8 @@ import (
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
 	providerv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/provider/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/flags"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/testing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/util"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/common"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/env"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/invclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/onboardingmgr/utils"
@@ -164,13 +162,10 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 
 func TestReconcileInstanceNonEIM(t *testing.T) {
 	currK8sClientFactory := tinkerbell.K8sClientFactory
-	currFlagEnableDeviceInitialization := *flags.FlagDisableCredentialsManagement
 	defer func() {
 		tinkerbell.K8sClientFactory = currK8sClientFactory
-		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
 
-	*common.FlagEnableDeviceInitialization = false
 	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, true)
 
 	om_testing.CreateInventoryOnboardingClientForTesting()
@@ -246,14 +241,10 @@ func TestReconcileInstanceNonEIM(t *testing.T) {
 
 func TestReconcileInstance(t *testing.T) {
 	currK8sClientFactory := tinkerbell.K8sClientFactory
-	currFlagEnableDeviceInitialization := *flags.FlagDisableCredentialsManagement
 	defer func() {
 		tinkerbell.K8sClientFactory = currK8sClientFactory
-		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
 
-	// TODO: test with DI enabled, once FDO client is refactored
-	*common.FlagEnableDeviceInitialization = false
 	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, true)
 
 	om_testing.CreateInventoryOnboardingClientForTesting()

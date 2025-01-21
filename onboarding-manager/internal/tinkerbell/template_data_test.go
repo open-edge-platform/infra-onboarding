@@ -39,7 +39,6 @@ func TestNewTemplateDataProdBKC(t *testing.T) {
 			args: args{
 				name:       "TestWorkflow",
 				deviceInfo: utils.DeviceInfo{},
-				enableDI:   true,
 			},
 			want:    want,
 			wantErr: false,
@@ -47,7 +46,7 @@ func TestNewTemplateDataProdBKC(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewTemplateDataProdBKC(tt.args.name, tt.args.deviceInfo, tt.args.enableDI)
+			got, err := NewTemplateDataProdBKC(tt.args.name, tt.args.deviceInfo)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewTemplateDataProdBKC() error = %v, wantErr %v", err, tt.wantErr)
 				return

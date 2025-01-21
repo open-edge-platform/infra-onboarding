@@ -9,9 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/common"
 	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/testing"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/flags"
 	"github.com/stretchr/testify/mock"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	error "k8s.io/apimachinery/pkg/api/errors"
@@ -61,39 +59,6 @@ func TestNewWorkflow(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := NewWorkflow(tt.args.name, tt.args.ns, tt.args.mac, tt.args.hardwareRef, tt.args.templateRef); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewWorkflow() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestDeleteDIWorkflowResourcesIfExist(t *testing.T) {
-	currK8sClientFactory := K8sClientFactory
-	currFlagEnableDeviceInitialization := *flags.FlagDisableCredentialsManagement
-	defer func() {
-		K8sClientFactory = currK8sClientFactory
-		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
-	}()
-	*common.FlagEnableDeviceInitialization = true
-	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
-	type args struct {
-		ctx          context.Context
-		k8sNamespace string
-		hostUUID     string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name:    "Test delete DI workflow resources IfExists -NoError",
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := DeleteDIWorkflowResourcesIfExist(tt.args.ctx, tt.args.k8sNamespace, tt.args.hostUUID); (err != nil) != tt.wantErr {
-				t.Errorf("DeleteDIWorkflowResourcesIfExist() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -196,12 +161,9 @@ func TestDeleteProdWorkflowResourcesIfExist(t *testing.T) {
 
 func TestDeleteProdWorkflowResourcesIfExist_Case(t *testing.T) {
 	currK8sClientFactory := K8sClientFactory
-	currFlagEnableDeviceInitialization := *flags.FlagDisableCredentialsManagement
 	defer func() {
 		K8sClientFactory = currK8sClientFactory
-		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
 	}()
-	*common.FlagEnableDeviceInitialization = true
 	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
 	type args struct {
 		ctx          context.Context
@@ -226,70 +188,6 @@ func TestDeleteProdWorkflowResourcesIfExist_Case(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := DeleteProdWorkflowResourcesIfExist(tt.args.ctx, tt.args.k8sNamespace, tt.args.hostUUID, tt.args.imgType); (err != nil) != tt.wantErr {
 				t.Errorf("DeleteProdWorkflowResourcesIfExist() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestDeleteRebootWorkflowResourcesIfExist(t *testing.T) {
-	type args struct {
-		ctx          context.Context
-		k8sNamespace string
-		hostUUID     string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "TestDeleteRebootWorkflowResourcesIfExist_WithExistingResources",
-			args: args{
-				ctx: context.Background(),
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := DeleteRebootWorkflowResourcesIfExist(tt.args.ctx, tt.args.k8sNamespace, tt.args.hostUUID); (err != nil) != tt.wantErr {
-				t.Errorf("DeleteRebootWorkflowResourcesIfExist() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestDeleteRebootWorkflowResourcesIfExist_Case(t *testing.T) {
-	currK8sClientFactory := K8sClientFactory
-	currFlagEnableDeviceInitialization := *flags.FlagDisableCredentialsManagement
-	defer func() {
-		K8sClientFactory = currK8sClientFactory
-		*common.FlagEnableDeviceInitialization = currFlagEnableDeviceInitialization
-	}()
-	*common.FlagEnableDeviceInitialization = true
-	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
-	type args struct {
-		ctx          context.Context
-		k8sNamespace string
-		hostUUID     string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "TestDeleteRebootWorkflowResourcesIfExist_WithExistingResources",
-			args: args{
-				ctx: context.Background(),
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := DeleteRebootWorkflowResourcesIfExist(tt.args.ctx, tt.args.k8sNamespace, tt.args.hostUUID); (err != nil) != tt.wantErr {
-				t.Errorf("DeleteRebootWorkflowResourcesIfExist() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
