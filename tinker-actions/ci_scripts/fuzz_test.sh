@@ -4,6 +4,8 @@
 
 # Review each source code folder for fuzz tests and run them
 homeDir=$(pwd)
+buildDir="${homeDir}/build"
+mkdir -p "${buildDir}"
 anyTestFailed=0
 
 for testFile in "${@}"; do
@@ -15,7 +17,7 @@ for testFile in "${@}"; do
 			fuzzFileName="${homeDir}/${testFile}"
 			echo "running ${fuzzTest} test case"
 			cd "$(dirname "${fuzzFileName}")" || exit
-			logFile="${homeDir}/fuzz_${fuzzTest}.log"
+			logFile="${buildDir}/fuzz_${fuzzTest}.log"
 			go test -v -run "${fuzzTest}" -fuzz "${fuzzTest}" -fuzztime 1m > "${logFile}" 2>&1
 			exitStatus=$?
 			echo "Output written to ${logFile}"

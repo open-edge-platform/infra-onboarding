@@ -22,7 +22,7 @@ import (
 	"time"
 
 	// pb "stream-test/api"
-	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/pkg/api"
+	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/pkg/api"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

@@ -39,6 +39,11 @@ def dockerPush(prefix) {
     getDockerTags(prefix).each { sh """IMG_VERSION="$it" make docker-push""" }
 }
 
+def dockerDevPush(prefix) {
+    dockerCommon.login('amr-registry.caas.intel.com', 'sys_oie_devops_amr_harbour')
+    getDockerTags(prefix).each { sh """IMG_VERSION="$it" make docker-dev-push""" }
+}
+
 def envVarsMap = [:]
 
 pipeline {
@@ -118,7 +123,7 @@ pipeline {
                 axes {
                     axis {
                         name 'PROJECT_FOLDER'
-                        values "onboarding-manager", "dkam"
+                        values "onboarding-manager", "dkam", "tinker-actions"
                     }
                 }
                 stages {
@@ -239,6 +244,9 @@ pipeline {
                                 }
                             }
                             stage('Dep Version Check') {
+                                when {
+                                    expression { PROJECT_FOLDER != 'tinker-actions' }
+                                }
                                 steps {
                                     dir("${PROJECT_FOLDER}") {
                                         script {
@@ -254,6 +262,9 @@ pipeline {
                                 }
                             }
                             stage('Build Code') {
+                                when {
+                                    expression { PROJECT_FOLDER != 'tinker-actions' }
+                                }
                                 steps {
                                     dir("${PROJECT_FOLDER}") {
                                         script {
@@ -289,7 +300,10 @@ pipeline {
                             }
                             stage('Test Code') {
                                 when {
-                                    changeRequest()
+                                    allOf {
+                                        changeRequest()
+                                        expression { PROJECT_FOLDER != 'tinker-actions' }
+                                    }
                                 }
                                 steps {
                                     dir("${PROJECT_FOLDER}") {
@@ -315,6 +329,40 @@ pipeline {
                                         // TODO: apparently reports are overriding between different subfolders
                                         coverageReport("${PROJECT_FOLDER}/build/coverage-${PROJECT_FOLDER}.xml")
                                         junit "${PROJECT_FOLDER}/build/report-${PROJECT_FOLDER}.xml"
+                                    }
+                                }
+                            }
+                            stage('[Tinker Actions] Fuzz Test') {
+                                when {
+                                    expression { PROJECT_FOLDER == 'tinker-actions' }
+                                }
+                                steps {
+                                    dir("${PROJECT_FOLDER}") {
+                                        sh '''
+                                        make fuzztest
+                                        '''
+                                    }
+                                }
+                                post {
+                                    always {
+                                        script {
+                                            sh '''
+                                            mkdir -p fuzz_artifacts
+                                            find . -name "fuzz_*.log" -exec cp {} fuzz_artifacts/ \\;
+
+                                            for log_file in fuzz_artifacts/fuzz_*.log; do
+                                                if [ -f "$log_file" ]; then
+                                                    echo "---- $log_file ----"
+                                                    cat "$log_file"
+                                                    echo "---- End of $log_file ----"
+                                                else
+                                                    echo "No log files found."
+                                                fi
+                                            done
+                                            '''
+
+                                            archiveArtifacts artifacts: "fuzz_artifacts/**", allowEmptyArchive: true
+                                        }
                                     }
                                 }
                             }
@@ -396,6 +444,21 @@ pipeline {
                                             def envVars = envVarsMap[PROJECT_FOLDER].collect { key, value -> "${key}=${value}" }
                                             withEnv(envVars) {
                                                 dockerPush("${PROJECT_FOLDER}-")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            stage('[Tinker Actions] Push PR tagged Docker image') {
+                                when {
+                                    expression { PROJECT_FOLDER == 'tinker-actions' && changeRequest() && env.CHANGE_ID != null }
+                                }
+                                steps {
+                                    script {
+                                        dir("${PROJECT_FOLDER}") {
+                                            def envVars = envVarsMap[PROJECT_FOLDER].collect { key, value -> "${key}=${value}" }
+                                            withEnv(envVars) {
+                                                dockerDevPush("${PROJECT_FOLDER}-")
                                             }
                                         }
                                     }
