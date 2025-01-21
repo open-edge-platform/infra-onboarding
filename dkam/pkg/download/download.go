@@ -198,10 +198,9 @@ func DownloadArtifacts(ctx context.Context, manifestTag string) error {
 }
 
 func CreateFile(filePath string, artifact *as.Artifact) error {
-
 	file, fileErr := os.Create(filePath)
 	if fileErr != nil {
-		zlog.MiSec().Error().Err(fileErr).Msgf("Error while creating file %v", fileErr)
+		zlog.MiSec().Error().Err(fileErr).Msgf("Error while creating file %v", filePath)
 		return fileErr
 	}
 	defer file.Close()

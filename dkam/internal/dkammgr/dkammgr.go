@@ -4,21 +4,18 @@ import (
 	//import dependencies
 
 	"context"
-	"os"
-	"path/filepath"
-	"strings"
-
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/util"
+	"os"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/invclient"
 
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/policy/rbac"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/curation"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/download"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/signing"
-	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/policy/rbac"
 )
 
 var zlog = logging.GetLogger("DKAM-Mgr")
@@ -49,24 +46,6 @@ func DownloadArtifacts(ctx context.Context) error {
 		zlog.MiSec().Info().Msg("Downloaded successfully")
 	}
 
-	return nil
-}
-
-func RemoveDir(path string) error {
-	if _, err := os.Stat(path); err == nil {
-		// Directory exists, remove it
-		err := os.RemoveAll(path)
-		if err != nil {
-			zlog.MiSec().Info().Msg("Error removing directory")
-		}
-		zlog.MiSec().Info().Msg("Directory removed successfully")
-	} else if os.IsNotExist(err) {
-		// Directory does not exist, nothing to do
-		zlog.MiSec().Info().Msg("Directory does not exist")
-	} else {
-		// Some other error occurred
-		zlog.MiSec().Info().Msg("Error checking directory")
-	}
 	return nil
 }
 
@@ -136,30 +115,6 @@ func GetMODE() string {
 	return os.Getenv("MODE")
 }
 
-func GetScriptDir() string {
-	scriptPath := ""
-	currentDir, err := os.Getwd()
-	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
-		return err.Error()
-	}
-	zlog.MiSec().Info().Msgf("Current dir %s", currentDir)
-	// Navigate two levels up
-
-	path := filepath.Join(currentDir, "pkg", "script")
-	_, geterr := os.Stat(path)
-	if geterr == nil {
-		scriptPath = path
-	}
-	if os.IsNotExist(geterr) {
-		parentDir := filepath.Join(currentDir, "..", "..")
-		zlog.MiSec().Info().Msgf("Root dir %s", parentDir)
-		scriptPath = filepath.Join(parentDir, "pkg", "script")
-	}
-	zlog.MiSec().Info().Msgf("scriptPath dir %s", scriptPath)
-	return scriptPath
-}
-
 func DownloadOS(ctx context.Context, osRes *osv1.OperatingSystemResource) error {
 	zlog.Info().Msgf("Inside DownloadOS...")
 
@@ -196,36 +151,6 @@ func DownloadOS(ctx context.Context, osRes *osv1.OperatingSystemResource) error 
 	zlog.MiSec().Info().Msg("OS Image downloaded and move to PVC")
 	return nil
 
-}
-
-// Extract filename from URL
-func fileNameFromURL(url string) string {
-	parts := strings.Split(url, "/")
-	return parts[len(parts)-1]
-}
-
-func AccessConfigs() string {
-	ServerAddress := config.ServerAddress
-	ServerAddressDescription := config.ServerAddressDescription
-	Port := config.Port
-	Ubuntuversion := config.Ubuntuversion
-	Arch := config.Arch
-	Release := config.Release
-	ProdHarbor := config.ProdHarbor
-	DevHarbor := config.DevHarbor
-	AuthServer := config.AuthServer
-	ReleaseVersion := config.ReleaseVersion
-	PVC := config.PVC
-	PreintTag := config.PreintTag
-	Artifact := config.Artifact
-	ImageUrl := config.ImageUrl
-	ImageFileName := config.ImageFileName
-	RSProxy := config.HookOSRepo
-	RSProxyManifest := config.ENManifestRepo
-	OrchCACertificateFile := config.OrchCACertificateFile
-	BootsCaCertificateFile := config.BootsCaCertificateFile
-
-	return ServerAddress + "\n" + ServerAddressDescription + "\n" + Port + "\n" + Ubuntuversion + "\n" + Arch + "\n" + Release + "\n" + ProdHarbor + "\n" + DevHarbor + "\n" + AuthServer + "\n" + ReleaseVersion + "\n" + PVC + "\n" + PreintTag + "\n" + Artifact + "\n" + ImageUrl + "\n" + ImageFileName + "\n" + RSProxy + "\n" + RSProxyManifest + "\n" + OrchCACertificateFile + "\n" + BootsCaCertificateFile
 }
 
 func InitOnboarding(invClient *invclient.DKAMInventoryClient, enableAuth bool, rbacRules string) {

@@ -215,24 +215,6 @@ func TestGetMode(t *testing.T) {
 	}
 }
 
-func TestGetScriptDir(t *testing.T) {
-	currentDir, err := os.Getwd()
-	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
-		return
-	}
-	zlog.MiSec().Info().Msgf("Current dir %s", currentDir)
-	// Call the function you want to test
-	scriptPath := GetScriptDir()
-	parentDir := filepath.Join(currentDir, "..", "..")
-	expectedPath := filepath.Join(parentDir, "pkg", "script")
-
-	// Check if the actual path matches the expected path
-	if scriptPath != expectedPath {
-		t.Errorf("Expected script path: %s, got: %s", expectedPath, scriptPath)
-	}
-}
-
 func TestSignMicroOS(t *testing.T) {
 	currentDir, err := os.Getwd()
 	if err != nil {
@@ -317,21 +299,7 @@ func TestDownloadOS(t *testing.T) {
 	}
 }
 
-func TestAccessConfigs(t *testing.T) {
-	val := AccessConfigs()
-	if len(val) <= 0 {
-		t.Errorf("Unexpected error!")
-	}
-}
-
-func TestFileNameFromURL(t *testing.T) {
-	imageURL := "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
-	result := fileNameFromURL(imageURL)
-	assert.Equal(t, "jammy-server-cloudimg-amd64.img", result)
-}
-
 func TestDownloadArtifacts_Case(t *testing.T) {
-
 	// Create a UploadBaseImageRequest
 	os.Setenv("MODE", "preint")
 	err := DownloadArtifacts(context.Background())
@@ -504,62 +472,6 @@ func CopyFile(src, dst string) error {
 	return nil
 }
 
-func TestGetScriptDir_Case1(t *testing.T) {
-	currentDir, err := os.Getwd()
-	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
-		return
-	}
-	zlog.MiSec().Info().Msgf("Current dir %s", currentDir)
-	dir := currentDir + "/pkg/script"
-	os.MkdirAll(dir, 0755)
-	GetScriptDir()
-	defer func() {
-		os.Remove(dir)
-	}()
-}
-
-func TestRemoveDir(t *testing.T) {
-	type args struct {
-		path string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Remove Existing Directory",
-			args: args{
-				path: "testdir",
-			},
-			wantErr: false,
-		},
-		{
-			name: "Remove Non-Existent Directory",
-			args: args{
-				path: "nonexistentdir",
-			},
-			wantErr: false,
-		},
-	}
-	os.Mkdir("testdir", 0755)
-	os.Mkdir("protecteddir", 0000)
-	t.Cleanup(func() {
-		os.RemoveAll("testdir")
-		os.Chmod("protecteddir", 0755)
-		os.RemoveAll("protecteddir")
-	})
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := RemoveDir(tt.args.path); (err != nil) != tt.wantErr {
-				t.Errorf("RemoveDir() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestInitOnboarding(t *testing.T) {
 	type args struct {
 		invClient  *invclient.DKAMInventoryClient
@@ -602,7 +514,8 @@ func TestInitOnboarding(t *testing.T) {
 func TestDownloadOs(t *testing.T) {
 	osUrl := "repository/TiberOS/TiberOS-RT/tiber-readonly-rt-1.0.20241117.1004.raw.gz"
 	sha256 := "de04d58dc5ccc4b9671c3627fb8d626fe4a15810bc1fe3e724feea761965f666"
-	fileName := fileNameFromURL(osUrl)
+	parts := strings.Split(osUrl, "/")
+	fileName := parts[len(parts)-1]
 	rawFileName := strings.TrimSuffix(fileName, ".img") + ".raw.gz"
 	expectedFilePath := config.PVC + "/OSImage/" + sha256 + "/" + rawFileName
 	err := os.MkdirAll(filepath.Dir(expectedFilePath), 0755)
@@ -711,5 +624,5 @@ func TestDownloadOs(t *testing.T) {
 			}
 		})
 	}
-	
+
 }

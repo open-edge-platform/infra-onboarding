@@ -8,25 +8,26 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
 	"io"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/util"
 
+	"github.com/Masterminds/sprig/v3"
 	"gopkg.in/yaml.v2"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
 )
 
 var zlog = logging.GetLogger("MIDKAMAuth")
 
-var fileServer string
-var registryService string
 var agentsList []AgentsVersion
 var distribution string
 
@@ -77,8 +78,6 @@ type Image struct {
 	Version     string `yaml:"version"`
 }
 
-var ypsUrl = config.LA_YPSURL
-
 func GetArtifactsVersion() ([]AgentsVersion, error) {
 
 	scriptDir := config.ScriptPath
@@ -116,10 +115,99 @@ func GetArtifactsVersion() ([]AgentsVersion, error) {
 	return agentsList, nil
 }
 
+func getCaCert() (string, error) {
+	caPath := config.OrchCACertificateFile
+	caexists, err := PathExists(caPath)
+	if err != nil {
+		errMsg := "Failed to check if CA certificate path exists"
+		zlog.Error().Err(err).Msg(errMsg)
+		return "", inv_errors.Errorf(errMsg)
+	}
+
+	if !caexists {
+		zlog.Error().Msgf("Cannot find CA certificate under path %s", caPath)
+		return "", inv_errors.Errorf("Cannot find CA certificate under given path")
+	}
+
+	caContent, err := os.ReadFile(caPath)
+	if err != nil {
+		zlog.MiSec().Error().Err(err).Msg("")
+		return "", inv_errors.Errorf("Failed to read CA certificate file")
+	}
+
+	return string(caContent), nil
+}
+
+func getCustomFirewallRules() ([]string, error) {
+	// Parse each rule map into a Rule struct
+	rules, err := ParseJSONUfwRules(os.Getenv("FIREWALL_REQ_ALLOW"))
+	if err != nil {
+		return nil, err
+	}
+	rules2, err := ParseJSONUfwRules(os.Getenv("FIREWALL_CFG_ALLOW"))
+	if err != nil {
+		return nil, err
+	}
+	// TODO: refactor this code to generate UFW or iptables rules, depending on the input variable
+	ipTablesCommands := make([]string, 0)
+	for _, rule := range append(rules, rules2...) {
+		ipTablesCommands = append(ipTablesCommands, GenerateIptablesCommands(rule)...)
+	}
+
+	return ipTablesCommands, nil
+}
+
+func getScriptTemplateVariables() (map[string]interface{}, error) {
+	caCert, err := getCaCert()
+	if err != nil {
+		return nil, err
+	}
+
+	firewallRules, err := getCustomFirewallRules()
+	if err != nil {
+		return nil, err
+	}
+
+	templateVariables := map[string]interface{}{
+		"MODE": os.Getenv("MODE"),
+
+		"CA_CERT": caCert,
+
+		"ORCH_CLUSTER":                   os.Getenv("ORCH_CLUSTER"),
+		"ORCH_INFRA":                     os.Getenv("ORCH_INFRA"),
+		"ORCH_UPDATE":                    os.Getenv("ORCH_UPDATE"),
+		"ORCH_PLATFORM_OBS_HOST":         os.Getenv("ORCH_PLATFORM_OBS_HOST"),
+		"ORCH_PLATFORM_OBS_PORT":         os.Getenv("ORCH_PLATFORM_OBS_PORT"),
+		"ORCH_PLATFORM_OBS_METRICS_HOST": os.Getenv("ORCH_PLATFORM_OBS_METRICS_HOST"),
+		"ORCH_PLATFORM_OBS_METRICS_PORT": os.Getenv("ORCH_PLATFORM_OBS_METRICS_PORT"),
+		"ORCH_TELEMETRY_HOST":            os.Getenv("ORCH_TELEMETRY_HOST"),
+		"ORCH_TELEMETRY_PORT":            os.Getenv("ORCH_TELEMETRY_PORT"),
+		"KEYCLOAK_URL":                   os.Getenv("ORCH_KEYCLOAK"),
+		"RELEASE_TOKEN_URL":              os.Getenv("ORCH_RELEASE"),
+		"ORCH_APT_PORT":                  os.Getenv("ORCH_APT_PORT"),
+		"ORCH_IMG_PORT":                  os.Getenv("ORCH_IMG_PORT"),
+		"FILE_SERVER":                    os.Getenv("FILE_SERVER"),
+		"IMG_REGISTRY_URL":               os.Getenv("REGISTRY_SERVICE"),
+		"NTP_SERVERS":                    os.Getenv("NTP_SERVERS"),
+
+		"EN_HTTP_PROXY":  os.Getenv("EN_HTTP_PROXY"),
+		"EN_HTTPS_PROXY": os.Getenv("EN_HTTPS_PROXY"),
+		"EN_NO_PROXY":    os.Getenv("EN_NO_PROXY"),
+		"EN_FTP_PROXY":   os.Getenv("EN_FTP_PROXY"),
+		"EN_SOCKS_PROXY": os.Getenv("EN_SOCKS_PROXY"),
+
+		"EXTRA_HOSTS": strings.Split(os.Getenv("EXTRA_HOSTS"), ","),
+
+		"IPTABLES_RULES": firewallRules,
+	}
+	return templateVariables, nil
+}
+
 func CurateScript(osRes *osv1.OperatingSystemResource) error {
-	fileServer = os.Getenv("FILE_SERVER")
-	registryService = os.Getenv("REGISTRY_SERVICE")
-	//Current dir
+	installerScriptPath, err := util.GetInstallerLocation(osRes, config.PVC)
+	if err != nil {
+		return err
+	}
 
 	agentsList, err := GetArtifactsVersion()
 	zlog.MiSec().Info().Msgf("Agents List' %s", agentsList)
@@ -129,10 +217,22 @@ func CurateScript(osRes *osv1.OperatingSystemResource) error {
 	}
 
 	if osRes.GetOsType() == osv1.OsType_OS_TYPE_IMMUTABLE {
-		createErr := CreateCloudCfgScript(osRes)
+		templateVariables, err := getScriptTemplateVariables()
+		if err != nil {
+			zlog.MiSec().Error().Err(err).Msg("Failed to get template variables for curation")
+			return err
+		}
+
+		curatedScriptData, createErr := CurateScriptFromTemplate(config.ScriptPath, templateVariables)
 		if createErr != nil {
-			zlog.MiSec().Info().Msgf("Error checking path %v", createErr)
+			zlog.MiSec().Error().Msgf("Error checking path %v", createErr)
 			return createErr
+		}
+
+		writeErr := WriteFileToPath(installerScriptPath, []byte(curatedScriptData))
+		if writeErr != nil {
+			zlog.MiSec().Error().Err(writeErr).Msgf("Failed to write file to path %s", installerScriptPath)
+			return writeErr
 		}
 	} else {
 		createErr := CreateOverlayScript(osRes)
@@ -164,10 +264,8 @@ func GetReleaseArtifactList(filePath string) (Config, error) {
 
 	file, err := os.Open(filePath)
 	if err != nil {
-		if os.IsNotExist(err) {
-			zlog.MiSec().Info().Msg("File not present")
-			return configs, err
-		}
+		zlog.MiSec().Error().Err(err).Msgf("Error opening file: %v", err)
+		return Config{}, err
 	}
 	defer file.Close()
 
@@ -187,229 +285,55 @@ func GetReleaseArtifactList(filePath string) (Config, error) {
 	return configs, nil
 }
 
-func CreateCloudCfgScript(osRes *osv1.OperatingSystemResource) error {
-	MODE := os.Getenv("MODE")
-	zlog.MiSec().Info().Msgf("MODE: %s", MODE)
+// TODO: this function is intended to be generic, so in future we can use it to render Installer script for Ubuntu as well.
+func CurateScriptFromTemplate(scriptTemplatePath string, templateVariables map[string]interface{}) (string, error) {
+	cfgFilePath := filepath.Join(scriptTemplatePath, "Installer.cfg")
 
-	scriptDir := config.ScriptPath
-	cfgFilePath := filepath.Join(scriptDir, "Installer.cfg")
-	cfgFileName := ""
-	// Copy the file
-
-	exists, err := PathExists(config.PVC)
+	// Read the template of cloud-init script
+	tmplCloudInit, err := os.ReadFile(cfgFilePath)
 	if err != nil {
-		zlog.MiSec().Info().Msgf("Error checking path %v", err)
-	}
-	if exists {
-		zlog.MiSec().Info().Msg("Path exists:")
-
-		cfgFileName, err = util.GetInstallerLocation(osRes, config.PVC)
-		if err != nil {
-			return err
-		}
-
-		dir := filepath.Dir(cfgFileName)
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			zlog.MiSec().Info().Msgf("Error creating path %v", err)
-		}
-	} else {
-		zlog.MiSec().Info().Msg("Path does not exists")
+		zlog.MiSec().Error().Err(err).Msgf(
+			"Failed to read template of cloud-init script from path %v", scriptTemplatePath)
+		return "", err
 	}
 
-	cpErr := copyFile(cfgFilePath, cfgFileName)
-	if cpErr != nil {
-		zlog.MiSec().Error().Err(cpErr).Msgf("Error: %v", cpErr)
-	}
-
-	// Read the installer
-	content, err := os.ReadFile(cfgFileName)
+	// Parse and execute the template
+	// We use sprig to extend basic Go's text/template with more powerful keywords
+	// See: https://masterminds.github.io/sprig/
+	// This function will fail if any of keys is not provided
+	t, err := template.New("yaml").Option("missingkey=error").Funcs(sprig.TxtFuncMap()).Parse(string(tmplCloudInit))
 	if err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error %v", err)
+		invErr := inv_errors.Errorf("Failed to parse cloud-init template")
+		zlog.Error().Err(err).Msg(invErr.Error())
+		return "", invErr
 	}
 
-	//Get FQDN names for agents:
-	orchCluster := os.Getenv("ORCH_CLUSTER")
-	orchInfra := os.Getenv("ORCH_INFRA")
-	orchUpdate := os.Getenv("ORCH_UPDATE")
-	orchPlatformObsHost := os.Getenv("ORCH_PLATFORM_OBS_HOST")
-	orchPlatformObsPort := os.Getenv("ORCH_PLATFORM_OBS_PORT")
-	orchPlatformObsMetricsHost := os.Getenv("ORCH_PLATFORM_OBS_METRICS_HOST")
-	orchPlatformObsMetricsPort := os.Getenv("ORCH_PLATFORM_OBS_METRICS_PORT")
-	orchTelemetryHost := os.Getenv("ORCH_TELEMETRY_HOST")
-	orchTelemetryPort := os.Getenv("ORCH_TELEMETRY_PORT")
-	orchKeycloak := os.Getenv("ORCH_KEYCLOAK")
-	orchRelease := os.Getenv("ORCH_RELEASE")
-	orchAptSrcPort := os.Getenv("ORCH_APT_PORT")
-	orchImgRegProxyPort := os.Getenv("ORCH_IMG_PORT")
+	var rendered bytes.Buffer
+	if renderErr := t.Execute(&rendered, templateVariables); renderErr != nil {
+		invErr := inv_errors.Errorf("Failed to render cloud-init script")
+		zlog.Error().Err(renderErr).Msg(invErr.Error())
+		return "", invErr
+	}
 
-	//Proxies
-	httpProxy := os.Getenv("EN_HTTP_PROXY")
-	httpsProxy := os.Getenv("EN_HTTPS_PROXY")
-	noProxy := os.Getenv("EN_NO_PROXY")
-	ftpProxy := os.Getenv("EN_FTP_PROXY")
-	sockProxy := os.Getenv("EN_SOCKS_PROXY")
+	return rendered.String(), nil
+}
 
-	//NTP configurations
-	ntpServer := os.Getenv("NTP_SERVERS")
+func WriteFileToPath(filePath string, content []byte) error {
+	zlog.Debug().Msgf("Writing data to path %s", filePath)
 
-	//Firewall configurations
-	firewallReqAllow := os.Getenv("FIREWALL_REQ_ALLOW")
-	zlog.Info().Msg(firewallReqAllow)
-	firewallCfgAllow := os.Getenv("FIREWALL_CFG_ALLOW")
-	zlog.Info().Msg(firewallCfgAllow)
-	caexists, err := PathExists("/etc/ssl/orch-ca-cert/ca.crt")
+	err := os.MkdirAll(filepath.Dir(filePath), 0755)
 	if err != nil {
-		zlog.MiSec().Info().Msgf("Error checking path %v", err)
-		zlog.MiSec().Error().Err(err).Msgf("Error: %v", err)
+		zlog.MiSec().Error().Err(err).Msg("")
+		return inv_errors.Errorf("Failed to create sub-directories to save file")
 	}
 
-	var caContent []byte
-	if caexists {
-		caContent, err = os.ReadFile("/etc/ssl/orch-ca-cert/ca.crt")
-		if err != nil {
-			zlog.MiSec().Error().Msgf("Error: %v", err)
-		}
-	}
-
-	caContentUpdated := strings.ReplaceAll(string(caContent), "\n", "\n                 ")
-	// Substitute relevant data in the script
-	//modifiedScript := strings.ReplaceAll(string(content), "__SUBSTITUTE_PACKAGE_COMMANDS__", packages)
-	modifiedScript := strings.ReplaceAll(string(content), "__REGISTRY_URL__", registryService)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__FILE_SERVER__", fileServer)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_CLUSTER__", orchCluster)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_INFRA__", orchInfra)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_UPDATE__", orchUpdate)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PLATFORM_OBS_HOST__", orchPlatformObsHost)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PLATFORM_OBS_PORT__", orchPlatformObsPort)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PLATFORM_OBS_METRICS_HOST__", orchPlatformObsMetricsHost)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PLATFORM_OBS_METRICS_PORT__", orchPlatformObsMetricsPort)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_TELEMETRY_HOST__", orchTelemetryHost)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_TELEMETRY_PORT__", orchTelemetryPort)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__KEYCLOAK__", strings.Split(orchKeycloak, ":")[0])
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__RELEASE_FQDN__", strings.Split(orchRelease, ":")[0])
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__KEYCLOAK_URL__", orchKeycloak)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__RELEASE_TOKEN_URL__", orchRelease)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__IMG_REGISTRY_URL__", registryService)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_APT_PORT__", orchAptSrcPort)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_IMG_PORT__", orchImgRegProxyPort)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__NTP_SERVERS__", ntpServer)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__CA_CERT__", string(caContentUpdated))
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__APT_SRC__", string(distribution))
-
-	// Loop through the agentsList
-
-	// Save the modified script to the specified output path
-	err = os.WriteFile(cfgFileName, []byte(modifiedScript), 0644)
+	err = os.WriteFile(filePath, content, 0644)
 	if err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error: %v", err)
+		errMsg := "Failed save the data to output path"
+		zlog.Error().Err(err).Msg(errMsg)
+		return inv_errors.Errorf(errMsg)
 	}
 
-	//Extra hosts
-	extra_hosts := os.Getenv("EXTRA_HOSTS")
-
-	var newLines []string
-
-	proxies := map[string]string{
-		"http_proxy":   httpProxy,
-		"https_proxy":  httpsProxy,
-		"ftp_proxy":    ftpProxy,
-		"socks_server": sockProxy,
-		"no_proxy":     noProxy,
-	}
-
-	//Add proxies to the installer script for dev environment.
-	if len(proxies) > 0 {
-
-		for key, value := range proxies {
-			if value != "" {
-				newLines = append(newLines, fmt.Sprintf("                %s=\"%s\"", key, value))
-			}
-		}
-		if httpProxy != "" {
-			newLines = append(newLines, "                if ! grep -q \"http_proxy\" /etc/environment; then")
-			newLines = append(newLines, "                echo \"http_proxy=$http_proxy\" >> /etc/environment;")
-			newLines = append(newLines, "                fi")
-		}
-
-		if httpsProxy != "" {
-			newLines = append(newLines, "                if ! grep -q \"https_proxy\" /etc/environment; then")
-			newLines = append(newLines, "                echo \"https_proxy=$https_proxy\" >> /etc/environment;")
-			newLines = append(newLines, "                fi")
-		}
-
-		if ftpProxy != "" {
-			newLines = append(newLines, "                if ! grep -q \"ftp_proxy\" /etc/environment; then")
-			newLines = append(newLines, "                echo \"ftp_proxy=$ftp_proxy\" >> /etc/environment;")
-			newLines = append(newLines, "                fi")
-		}
-
-		if sockProxy != "" {
-			newLines = append(newLines, "                if ! grep -q \"socks_server\" /etc/environment; then")
-			newLines = append(newLines, "                echo \"socks_server=$socks_server\" >> /etc/environment;")
-			newLines = append(newLines, "                fi")
-		}
-
-		if noProxy != "" {
-			newLines = append(newLines, "                if ! grep -q \"no_proxy\" /etc/environment; then")
-			newLines = append(newLines, "                echo \"no_proxy=$no_proxy\" >> /etc/environment;")
-			newLines = append(newLines, "                fi")
-		}
-		newLines = append(newLines, "                echo \"Proxies added to /etc/environment.\" >> /var/log/startup.log")
-		newLines = append(newLines, "                . /etc/environment;")
-		newLines = append(newLines, "                export http_proxy https_proxy ftp_proxy socks_server no_proxy;")
-
-	}
-
-	AddProxies(cfgFileName, newLines, "echo \"Start the configurations\" >> /var/log/startup.log")
-	extra_hosts = strings.ReplaceAll(string(extra_hosts), ",", "\n                ")
-	var kindLines []string
-	//check if its a kind cluster
-	if strings.Contains(orchCluster, "kind.internal") {
-		zlog.MiSec().Info().Msg("Its a kind cluster")
-		kindLines = append(kindLines, fmt.Sprintf("                extra_hosts=\"%s\"", extra_hosts))
-		kindLines = append(kindLines, "                echo \"$extra_hosts\" | while IFS= read -r host; do")
-		kindLines = append(kindLines, "                IFS=' ' read -ra parts <<< \"$host\"")
-		kindLines = append(kindLines, "                ip=\"${parts[0]}\"")
-		kindLines = append(kindLines, "                hostname=\"${parts[1]}\"")
-		kindLines = append(kindLines, "                echo \"$ip $hostname\" >> /etc/hosts")
-		kindLines = append(kindLines, "                done")
-		kindLines = append(kindLines, "                echo \"extra hosts added.\" >> /var/log/startup.log")
-		AddProxies(cfgFileName, kindLines, "echo \"Start the configurations\" >> /var/log/startup.log")
-
-	} else {
-		zlog.MiSec().Info().Msg("Its not a kind cluster")
-	}
-	var caLines []string
-	if MODE == "dev" {
-		zlog.MiSec().Info().Msg("It is an internal deployment.")
-		caLines = append(caLines, "                echo \"update intel CA certificates\" >> /var/log/startup.log")
-		caLines = append(caLines, "                cd /etc/pki/ca-trust/source/anchors")
-		caLines = append(caLines, "                curl -o tmp.zip https://certificates.intel.com/repository/certificates/IntelSHA2RootChain-Base64.zip")
-		caLines = append(caLines, "                unzip tmp.zip")
-		caLines = append(caLines, "                update-ca-trust")
-		caLines = append(caLines, "                rm -f tmp.zip")
-		caLines = append(caLines, "                echo \"Intel CA updated.\" >> /var/log/startup.log")
-		AddProxies(cfgFileName, caLines, "update-ca-trust")
-
-	} else {
-		zlog.MiSec().Info().Msg("Its not a internal deployment")
-	}
-	zlog.MiSec().Debug().Msgf("Starting modifying iptables Rules")
-
-	// Parse each rule map into a Rule struct
-	rules, err := ParseJSONUfwRules(firewallReqAllow)
-	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("Error while un-marshaling the Iptables req firewall Rules")
-	}
-	rules2, err := ParseJSONUfwRules(firewallCfgAllow)
-	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("Error while un-marshaling the Iptables cfg firewall Rules")
-	}
-	ipTablesCommands := make([]string, len(rules)+len(rules2))
-	for i, rule := range append(rules, rules2...) {
-		ipTablesCommands[i] = "    " + GenerateIptablesCommand(rule)
-	}
-	AddProxies(cfgFileName, ipTablesCommands, "#enabling firewall")
 	return nil
 }
 
@@ -504,6 +428,9 @@ func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
 	orchRelease := os.Getenv("ORCH_RELEASE")
 	orchAptSrcPort := os.Getenv("ORCH_APT_PORT")
 	orchImgRegProxyPort := os.Getenv("ORCH_IMG_PORT")
+
+	fileServer := os.Getenv("FILE_SERVER")
+	registryService := os.Getenv("REGISTRY_SERVICE")
 
 	//Proxies
 	httpProxy := os.Getenv("EN_HTTP_PROXY")
@@ -878,9 +805,8 @@ func GenerateUFWCommand(rule Rule) string {
 	}
 }
 
-func GenerateIptablesCommand(rule Rule) string {
+func GenerateIptablesCommands(rule Rule) []string {
 	ipAddr := ""
-	const indent = "                "
 	if rule.SourceIp != "" {
 		ip := net.ParseIP(rule.SourceIp)
 		if ip == nil {
@@ -896,17 +822,17 @@ func GenerateIptablesCommand(rule Rule) string {
 			for _, port := range portsList {
 				port = strings.TrimSpace(port)
 				if ipAddr != "" {
-					commands = append(commands, fmt.Sprintf(indent+"iptables -A INPUT -p %s -s %s --dport %s -j ACCEPT", rule.Protocol, ipAddr, port))
+					commands = append(commands, fmt.Sprintf("iptables -A INPUT -p %s -s %s --dport %s -j ACCEPT", rule.Protocol, ipAddr, port))
 				} else {
-					commands = append(commands, fmt.Sprintf(indent+"iptables -A INPUT -p %s --dport %s -j ACCEPT", rule.Protocol, port))
+					commands = append(commands, fmt.Sprintf("iptables -A INPUT -p %s --dport %s -j ACCEPT", rule.Protocol, port))
 				}
 			}
-			return strings.Join(commands, "\n")
+			return commands
 		} else {
 			if ipAddr != "" {
-				return fmt.Sprintf(indent+"iptables -A INPUT -p %s -s %s -j ACCEPT", rule.Protocol, ipAddr)
+				return []string{fmt.Sprintf("iptables -A INPUT -p %s -s %s -j ACCEPT", rule.Protocol, ipAddr)}
 			}
-			return fmt.Sprintf(indent+"iptables -A INPUT -p %s -j ACCEPT", rule.Protocol)
+			return []string{fmt.Sprintf("iptables -A INPUT -p %s -j ACCEPT", rule.Protocol)}
 		}
 	} else {
 		if len(portsList) > 0 && portsList[0] != "" {
@@ -914,19 +840,19 @@ func GenerateIptablesCommand(rule Rule) string {
 			for _, port := range portsList {
 				port = strings.TrimSpace(port)
 				if ipAddr != "" {
-					commands = append(commands, fmt.Sprintf(indent+"iptables -A INPUT -p tcp -s %s --dport %s -j ACCEPT", ipAddr, port))
-					commands = append(commands, fmt.Sprintf(indent+"iptables -A INPUT -p udp -s %s --dport %s -j ACCEPT", ipAddr, port))
+					commands = append(commands, fmt.Sprintf("iptables -A INPUT -p tcp -s %s --dport %s -j ACCEPT", ipAddr, port))
+					commands = append(commands, fmt.Sprintf("iptables -A INPUT -p udp -s %s --dport %s -j ACCEPT", ipAddr, port))
 				} else {
-					commands = append(commands, fmt.Sprintf(indent+"iptables -A INPUT -p tcp --dport %s -j ACCEPT", port))
-					commands = append(commands, fmt.Sprintf(indent+"iptables -A INPUT -p udp --dport %s -j ACCEPT", port))
+					commands = append(commands, fmt.Sprintf("iptables -A INPUT -p tcp --dport %s -j ACCEPT", port))
+					commands = append(commands, fmt.Sprintf("iptables -A INPUT -p udp --dport %s -j ACCEPT", port))
 				}
 			}
-			return strings.Join(commands, "\n")
+			return commands
 		} else {
 			if ipAddr != "" {
-				return fmt.Sprintf(indent+"iptables -A INPUT -p tcp -s %s -j ACCEPT\n%siptables -A INPUT -p udp -s %s -j ACCEPT", ipAddr, indent, ipAddr)
+				return []string{fmt.Sprintf("iptables -A INPUT -p tcp -s %s -j ACCEPT && iptables -A INPUT -p udp -s %s -j ACCEPT", ipAddr, ipAddr)}
 			}
-			return "echo Firewall rule not set"
+			return []string{}
 		}
 	}
 }
@@ -977,6 +903,7 @@ func ParseJSONUfwRules(ufwRules string) ([]Rule, error) {
 	var rules []Rule
 	err := json.Unmarshal([]byte(ufwRules), &rules)
 	if err != nil {
+		zlog.MiSec().Error().Err(err).Msg("Failed to unmarshal firwall rules")
 		return nil, err
 	}
 	return rules, nil
