@@ -18,6 +18,26 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	currentDir string
+)
+
+func TestMain(m *testing.M) {
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(fmt.Sprintf("Error getting current directory: %v", err))
+	}
+	currentDir = wd
+	config.ScriptPath = strings.Replace(currentDir, "curation", "script", -1)
+	config.PVC, err = os.MkdirTemp(os.TempDir(), "test_pvc")
+
+	if err != nil {
+		panic(fmt.Sprintf("Error creating temp directory: %v", err))
+	}
+	run := m.Run()
+	os.Exit(run)
+}
+
 func Test_ParseJSONUfwRules(t *testing.T) {
 	tests := map[string]struct {
 		jsonUfw     string
@@ -222,10 +242,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 
 func Test_GetCuratedScript(t *testing.T) {
 	os.Setenv("NETIP", "static")
-	pwd, _ := os.Getwd()
-	dir := config.PVC
-	config.ScriptPath = strings.Replace(pwd, "curation", "script", -1)
-	os.MkdirAll(dir, 0755)
+
 	os.MkdirAll(config.DownloadPath, 0755)
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
 	defer os.Unsetenv("ORCH_CLUSTER")
@@ -239,75 +256,64 @@ func Test_GetCuratedScript(t *testing.T) {
 	os.Setenv("EN_NO_PROXY", "proxy")
 	os.Setenv("EN_FTP_PROXY", "proxy")
 	os.Setenv("EN_SOCKS_PROXY", "proxy")
-	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
-	if err != nil {
-		fmt.Println("Error creating file:", err)
-		os.Exit(1)
-	}
-	err1 := os.WriteFile(dir+"/profile.sh", []byte(dummyData), 0755)
-	if err1 != nil {
-		fmt.Println("Error creating file:", err1)
-		os.Exit(1)
-	}
-	err2 := os.WriteFile(config.DownloadPath+"/profile.sh", []byte(dummyData), 0755)
-	if err2 != nil {
-		fmt.Println("Error creating file:", err2)
-	}
-	osr := &osv1.OperatingSystemResource{
-		ProfileName: "profile",
-		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
-	}
-	err = CurateScript(osr)
-
-	assert.NoError(t, err)
 	defer func() {
 		os.Unsetenv("NETIP")
-		os.Remove(dir + "/installer.sh")
-		os.Remove(pwd + "/data/profile/installer.sh")
-		os.Remove(dir + "/profile.sh")
-		os.Remove(config.DownloadPath + "/profile.sh")
 		os.Unsetenv("EN_HTTP_PROXY")
 		os.Unsetenv("EN_HTTPS_PROXY")
 		os.Unsetenv("EN_NO_PROXY")
 		os.Unsetenv("EN_FTP_PROXY")
 		os.Unsetenv("EN_SOCKS_PROXY")
 	}()
+
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
+	require.NoError(t, err)
+	defer func() {
+		os.Remove(config.PVC + "/installer.sh")
+	}()
+	err = os.WriteFile(config.PVC+"/profile.sh", []byte(dummyData), 0755)
+	require.NoError(t, err)
+	defer func() {
+		os.Remove(config.PVC + "/profile.sh")
+	}()
+
+	err = os.WriteFile(config.DownloadPath+"/profile.sh", []byte(dummyData), 0755)
+	require.NoError(t, err)
+	defer func() {
+		os.Remove(config.DownloadPath + "/profile.sh")
+	}()
+
+	osr := &osv1.OperatingSystemResource{
+		ProfileName: "profile",
+		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
+	}
+	err = CurateScript(osr)
+	assert.NoError(t, err)
 }
 
 func Test_GetCuratedScript_Case(t *testing.T) {
-	os.Setenv("MODE", "prod")
-	dir := config.PVC
-	pwd, _ := os.Getwd()
-	config.ScriptPath = strings.Replace(pwd, "curation", "script", -1)
-	os.MkdirAll(dir, 0755)
+	config.OrchCACertificateFile = config.ScriptPath + "/Installer.cfg"
+
 	os.MkdirAll(config.DownloadPath, 0755)
-	dummyData := `#!/bin/bash
-	enable_netipplan
-        install_intel_CAcertificates
-# Add your installation commands here
-`
+
 	os.Setenv("MODE", "dev")
 	os.Setenv("EN_HTTP_PROXY", "proxy")
 	os.Setenv("EN_HTTPS_PROXY", "proxy")
 	os.Setenv("EN_NO_PROXY", "proxy")
 	os.Setenv("EN_FTP_PROXY", "proxy")
 	os.Setenv("EN_SOCKS_PROXY", "proxy")
-	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
-	if err != nil {
-		fmt.Println("Error creating file:", err)
-		os.Exit(1)
-	}
-	err1 := os.WriteFile(dir+"/profile.sh", []byte(dummyData), 0755)
-	if err1 != nil {
-		fmt.Println("Error creating file:", err1)
-		os.Exit(1)
-	}
-	err2 := os.WriteFile(config.DownloadPath+"/profile.sh", []byte(dummyData), 0755)
-	if err2 != nil {
-		fmt.Println("Error creating file:", err2)
-	}
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
-	defer os.Unsetenv("ORCH_CLUSTER")
+	defer func() {
+		os.Unsetenv("ORCH_CLUSTER")
+		os.Unsetenv("MODE")
+		os.Unsetenv("EN_HTTP_PROXY")
+		os.Unsetenv("EN_HTTPS_PROXY")
+		os.Unsetenv("EN_NO_PROXY")
+		os.Unsetenv("EN_FTP_PROXY")
+		os.Unsetenv("EN_SOCKS_PROXY")
+		os.Unsetenv("MODE")
+		os.Unsetenv("FIREWALL_REQ_ALLOW")
+	}()
+
 	osr := &osv1.OperatingSystemResource{
 		ProfileName: "profile",
 		OsType:      osv1.OsType_OS_TYPE_IMMUTABLE,
@@ -387,44 +393,25 @@ func Test_GetCuratedScript_Case(t *testing.T) {
     }
 ]
 `)
-	err = CurateScript(osr)
-
+	err := CurateScript(osr)
 	assert.NoError(t, err)
-	defer func() {
-		os.Unsetenv("MODE")
-		os.Remove(dir + "/installer.sh")
-		os.Remove(dir + "/profile.sh")
-		os.Remove(dir + "/profile/installer.sh")
-		os.Remove(config.DownloadPath + "/profile.sh")
-		os.RemoveAll(config.PVC)
-		os.Unsetenv("EN_HTTP_PROXY")
-		os.Unsetenv("EN_HTTPS_PROXY")
-		os.Unsetenv("EN_NO_PROXY")
-		os.Unsetenv("EN_FTP_PROXY")
-		os.Unsetenv("EN_SOCKS_PROXY")
-		os.Unsetenv("MODE")
-		os.Unsetenv("FIREWALL_REQ_ALLOW")
-	}()
 }
 
 func Test_GetCuratedScript_Case1(t *testing.T) {
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
-	dir := config.PVC
-	os.MkdirAll(dir, 0755)
 	os.MkdirAll(config.DownloadPath, 0755)
-	pwd, _ := os.Getwd()
-	config.ScriptPath = strings.Replace(pwd, "curation", "script", -1)
+
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
 # Add your installation commands here
 `
-	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	err1 := os.WriteFile(dir+"/profile.sh", []byte(dummyData), 0755)
+	err1 := os.WriteFile(config.PVC+"/profile.sh", []byte(dummyData), 0755)
 	if err1 != nil {
 		fmt.Println("Error creating file:", err1)
 		os.Exit(1)
@@ -444,31 +431,27 @@ func Test_GetCuratedScript_Case1(t *testing.T) {
 	assert.NoError(t, err)
 	defer func() {
 		os.Unsetenv("ORCH_CLUSTER")
-		os.Remove(dir + "/installer.sh")
-		os.Remove(dir + "/profile.sh")
-		os.Remove(dir + "/profile/installer.sh")
+		os.Remove(config.PVC + "/installer.sh")
+		os.Remove(config.PVC + "/profile.sh")
 		os.Remove(config.DownloadPath + "/profile.sh")
 	}()
 }
 
 func Test_GetCuratedScript_Case2(t *testing.T) {
 	os.Setenv("SOCKS_PROXY", "proxy")
-	dir := config.PVC
-	os.MkdirAll(dir, 0755)
 	os.MkdirAll(config.DownloadPath, 0755)
-	pwd, _ := os.Getwd()
-	config.ScriptPath = strings.Replace(pwd, "curation", "script", -1)
+
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
 # Add your installation commands here
 `
-	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	err1 := os.WriteFile(dir+"/profile.sh", []byte(dummyData), 0755)
+	err1 := os.WriteFile(config.PVC+"/profile.sh", []byte(dummyData), 0755)
 	if err1 != nil {
 		fmt.Println("Error creating file:", err1)
 		os.Exit(1)
@@ -489,31 +472,27 @@ func Test_GetCuratedScript_Case2(t *testing.T) {
 
 	defer func() {
 		os.Unsetenv("SOCKS_PROXY")
-		os.Remove(dir + "/installer.sh")
-		os.Remove(dir + "/profile.sh")
-		os.Remove(dir + "/profile/installer.sh")
+		os.Remove(config.PVC + "/installer.sh")
+		os.Remove(config.PVC + "/profile.sh")
+		os.Remove(config.PVC + "/profile/installer.sh")
 		os.Remove(config.DownloadPath + "/profile.sh")
-
 	}()
 }
 
 func Test_GetCuratedScript_Case3(t *testing.T) {
-	dir := config.PVC
-	os.MkdirAll(dir, 0755)
 	os.MkdirAll(config.DownloadPath, 0755)
-	pwd, _ := os.Getwd()
-	config.ScriptPath = strings.Replace(pwd, "curation", "script", -1)
+
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
 # Add your installation commands here
 `
-	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	err1 := os.WriteFile(dir+"/profile.sh", []byte(dummyData), 0755)
+	err1 := os.WriteFile(config.PVC+"/profile.sh", []byte(dummyData), 0755)
 	if err1 != nil {
 		fmt.Println("Error creating file:", err1)
 		os.Exit(1)
@@ -522,13 +501,13 @@ func Test_GetCuratedScript_Case3(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("Error creating file:", err2)
 	}
-	originalDir, _ := os.Getwd()
-	result := strings.Replace(originalDir, "curation", "script/tmp", -1)
+
+	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
 	res := filepath.Join(result, "latest-dev.yaml")
 	if err := os.MkdirAll(filepath.Dir(res), 0755); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
-	src := strings.Replace(originalDir, "curation", "script/latest-dev.yaml", -1)
+	src := strings.Replace(currentDir, "curation", "script/latest-dev.yaml", -1)
 	CopyFile(src, res)
 	os.Setenv("NETIP", "static")
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
@@ -544,30 +523,27 @@ func Test_GetCuratedScript_Case3(t *testing.T) {
 		os.Unsetenv("NETIP")
 		CopyFile(res, src)
 		os.Remove(res)
-		os.Remove(dir + "/installer.sh")
-		os.Remove(dir + "/profile.sh")
-		os.Remove(dir + "/profile/installer.sh")
+		os.Remove(config.PVC + "/installer.sh")
+		os.Remove(config.PVC + "/profile.sh")
+		os.Remove(config.PVC + "/profile/installer.sh")
 		os.Remove(config.DownloadPath + "/profile.sh")
 	}()
 }
 
 func Test_GetCuratedScript_Case4(t *testing.T) {
-	dir := config.PVC
-	os.MkdirAll(dir, 0755)
 	os.MkdirAll(config.DownloadPath, 0755)
-	pwd, _ := os.Getwd()
-	config.ScriptPath = strings.Replace(pwd, "curation", "script", -1)
+
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
 # Add your installation commands here
 `
-	err := os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	err1 := os.WriteFile(dir+"/profile.sh", []byte(dummyData), 0755)
+	err1 := os.WriteFile(config.PVC+"/profile.sh", []byte(dummyData), 0755)
 	if err1 != nil {
 		fmt.Println("Error creating file:", err1)
 		os.Exit(1)
@@ -576,16 +552,15 @@ func Test_GetCuratedScript_Case4(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("Error creating file:", err2)
 	}
-	originalDir, _ := os.Getwd()
-	result := strings.Replace(originalDir, "curation", "script/tmp", -1)
+	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
 	res := filepath.Join(result, "latest-dev.yaml")
 	if err := os.MkdirAll(filepath.Dir(res), 0755); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
-	src := strings.Replace(originalDir, "curation", "script/latest-dev.yaml", -1)
+	src := strings.Replace(currentDir, "curation", "script/latest-dev.yaml", -1)
 	CopyFile(src, res)
 	os.Setenv("NETIP", "static")
-	direc := dir + "/tmp/"
+	direc := config.PVC + "/tmp/"
 	os.MkdirAll(direc, 0755)
 	os.Create(direc + "latest-dev.yaml")
 	CopyFile(src, direc+"latest-dev.yaml")
@@ -602,10 +577,9 @@ func Test_GetCuratedScript_Case4(t *testing.T) {
 		os.Unsetenv("NETIP")
 		CopyFile(res, src)
 		os.Remove(res)
-		os.Remove(dir + "/installer.sh")
-		os.Remove(dir + "/profile.sh")
-		os.Remove(dir + "/profile/installer.sh")
-		os.Remove(dir + "/profile/installer.sh")
+		os.Remove(config.PVC + "/installer.sh")
+		os.Remove(config.PVC + "/profile.sh")
+		os.Remove(config.PVC + "/profile/installer.sh")
 		os.Remove(config.DownloadPath + "/profile.sh")
 	}()
 }
@@ -638,7 +612,7 @@ func Test_copyFile(t *testing.T) {
 		src string
 		dst string
 	}
-	wd, _ := os.Getwd()
+
 	tests := []struct {
 		name    string
 		args    args
@@ -654,7 +628,7 @@ func Test_copyFile(t *testing.T) {
 		{
 			name: "Test Case1",
 			args: args{
-				src: wd,
+				src: currentDir,
 				dst: "",
 			},
 			wantErr: true,
@@ -662,8 +636,8 @@ func Test_copyFile(t *testing.T) {
 		{
 			name: "Test Case 2",
 			args: args{
-				src: wd,
-				dst: wd + "dummy",
+				src: currentDir,
+				dst: currentDir + "dummy",
 			},
 			wantErr: true,
 		},
@@ -676,13 +650,11 @@ func Test_copyFile(t *testing.T) {
 		})
 	}
 	defer func() {
-		os.Remove(wd + "dummy")
+		os.Remove(currentDir + "dummy")
 	}()
 }
 
 func TestGetReleaseArtifactList(t *testing.T) {
-	pwd, _ := os.Getwd()
-	config.ScriptPath = strings.Replace(pwd, "curation", "script", -1)
 	type args struct {
 		filePath string
 	}
@@ -713,13 +685,12 @@ func TestGetReleaseArtifactList(t *testing.T) {
 }
 
 func TestGetReleaseArtifactList_NegativeCase(t *testing.T) {
-	originalDir, _ := os.Getwd()
-	result := strings.Replace(originalDir, "curation", "script/tmp", -1)
+	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
 	res := filepath.Join(result, "latest-dev.yaml")
 	if err := os.MkdirAll(filepath.Dir(res), 0755); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
-	src := strings.Replace(originalDir, "curation", "script/latest-dev.yaml", -1)
+	src := strings.Replace(currentDir, "curation", "script/latest-dev.yaml", -1)
 	CopyFile(src, res)
 	dummyData := `#!/bin/bash
 	enable_netipplan
@@ -764,26 +735,22 @@ func TestGetReleaseArtifactList_NegativeCase(t *testing.T) {
 }
 
 func TestCreateOverlayScript(t *testing.T) {
-	originalDir, _ := os.Getwd()
 	os.MkdirAll(config.DownloadPath, 0755)
-	src := strings.Replace(originalDir, "curation", "script", -1)
-	config.ScriptPath = src
-	dir := src + "/Installer"
+	dir := config.ScriptPath + "/Installer"
 	os.MkdirAll(dir, 0755)
-	dataDir := config.PVC
-	os.MkdirAll(dataDir, 0755)
+
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
 # Add your installation commands here
 `
 	os.Setenv("MODE", "prod")
-	err := os.WriteFile(dataDir+"/installer.sh", []byte(dummyData), 0755)
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	err1 := os.WriteFile(dataDir+"/default.sh", []byte(dummyData), 0755)
+	err1 := os.WriteFile(config.PVC+"/default.sh", []byte(dummyData), 0755)
 	if err1 != nil {
 		fmt.Println("Error creating file:", err1)
 		os.Exit(1)
@@ -792,12 +759,12 @@ func TestCreateOverlayScript(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("Error creating file:", err2)
 	}
-	result := strings.Replace(originalDir, "curation", "script/tmp", -1)
+	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
 	dst := filepath.Join(result, "Installer")
 	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
-	srcs := strings.Replace(originalDir, "curation", "script/Installer", -1)
+	srcs := strings.Replace(currentDir, "curation", "script/Installer", -1)
 	CopyFile(srcs, dst)
 	type args struct {
 		pwd     string
@@ -811,7 +778,7 @@ func TestCreateOverlayScript(t *testing.T) {
 		{
 			name: "Test Case",
 			args: args{
-				pwd: originalDir,
+				pwd: currentDir,
 			},
 			wantErr: false,
 		},
@@ -829,11 +796,11 @@ func TestCreateOverlayScript(t *testing.T) {
 	}
 	defer func() {
 		os.Remove(dst)
-		os.Remove(dataDir + "/installer.sh")
-		os.Remove(dataDir + "/data.sh")
-		os.Remove(originalDir + "/data/default.sh")
-		os.Remove(originalDir + "/data/data.sh")
-		os.Remove(originalDir + "/data/default/installer.sh")
+		os.Remove(config.PVC + "/installer.sh")
+		os.Remove(config.PVC + "/data.sh")
+		os.Remove(currentDir + "/data/default.sh")
+		os.Remove(currentDir + "/data/data.sh")
+		os.Remove(currentDir + "/data/default/installer.sh")
 		os.Remove(config.DownloadPath + "/default.sh")
 		CopyFile(dst, srcs)
 		os.Unsetenv("MODE")
@@ -855,30 +822,27 @@ func TestCreateOverlayScript_Case(t *testing.T) {
 		"protocol": "000"
 	  }`,
 	)
-	originalDir, _ := os.Getwd()
-	src := strings.Replace(originalDir, "curation", "script", -1)
-	config.ScriptPath = src
-	dir := src + "/Installer"
+
+	dir := config.ScriptPath + "/Installer"
 	os.MkdirAll(dir, 0755)
 	os.MkdirAll(config.DownloadPath, 0755)
-	dataDir := config.PVC
-	os.MkdirAll(dataDir, 0755)
+
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
 # Add your installation commands here
 `
-	err := os.WriteFile(dataDir+"/installer.sh", []byte(dummyData), 0755)
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	err1 := os.WriteFile(dataDir+"/default.sh", []byte(dummyData), 0755)
+	err1 := os.WriteFile(config.PVC+"/default.sh", []byte(dummyData), 0755)
 	if err1 != nil {
 		fmt.Println("Error creating file:", err1)
 		os.Exit(1)
 	}
-	result := strings.Replace(originalDir, "curation", "script/tmp", -1)
+	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
 	dst := filepath.Join(result, "Installer")
 	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
@@ -887,7 +851,7 @@ func TestCreateOverlayScript_Case(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("Error creating file:", err2)
 	}
-	srcs := strings.Replace(originalDir, "curation", "script/Installer", -1)
+	srcs := strings.Replace(currentDir, "curation", "script/Installer", -1)
 	CopyFile(srcs, dst)
 	type args struct {
 		pwd     string
@@ -901,7 +865,7 @@ func TestCreateOverlayScript_Case(t *testing.T) {
 		{
 			name: "Test Case",
 			args: args{
-				pwd: originalDir,
+				pwd: currentDir,
 			},
 			wantErr: false,
 		},
@@ -921,11 +885,11 @@ func TestCreateOverlayScript_Case(t *testing.T) {
 		os.Unsetenv("FIREWALL_REQ_ALLOW")
 		os.Unsetenv("FIREWALL_CFG_ALLOW")
 		os.Remove(dst)
-		os.Remove(dataDir + "/installer.sh")
-		os.Remove(dataDir + "/data.sh")
-		os.Remove(originalDir + "/data/default.sh")
-		os.Remove(originalDir + "/data/data.sh")
-		os.Remove(originalDir + "/data/default/installer.sh")
+		os.Remove(config.PVC + "/installer.sh")
+		os.Remove(config.PVC + "/data.sh")
+		os.Remove(currentDir + "/data/default.sh")
+		os.Remove(currentDir + "/data/data.sh")
+		os.Remove(currentDir + "/data/default/installer.sh")
 		os.Remove(config.DownloadPath + "/default.sh")
 		CopyFile(dst, srcs)
 	}()
@@ -949,25 +913,21 @@ func TestCreateOverlayScript_Case1(t *testing.T) {
 		}
 	  ]`)
 
-	originalDir, _ := os.Getwd()
-	src := strings.Replace(originalDir, "curation", "script", -1)
-	config.ScriptPath = src
-	dir := src + "/Installer"
+	dir := config.ScriptPath + "/Installer"
 	os.MkdirAll(dir, 0755)
 	os.MkdirAll(config.DownloadPath, 0755)
-	dataDir := config.PVC
-	os.MkdirAll(dataDir, 0755)
+
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
 # Add your installation commands here
 `
-	err := os.WriteFile(dataDir+"/installer.sh", []byte(dummyData), 0755)
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	err1 := os.WriteFile(dataDir+"/default.sh", []byte(dummyData), 0755)
+	err1 := os.WriteFile(config.PVC+"/default.sh", []byte(dummyData), 0755)
 	if err1 != nil {
 		fmt.Println("Error creating file:", err1)
 		os.Exit(1)
@@ -976,12 +936,12 @@ func TestCreateOverlayScript_Case1(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("Error creating file:", err2)
 	}
-	result := strings.Replace(originalDir, "curation", "script/tmp", -1)
+	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
 	dst := filepath.Join(result, "Installer")
 	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
-	srcs := strings.Replace(originalDir, "curation", "script/Installer", -1)
+	srcs := strings.Replace(currentDir, "curation", "script/Installer", -1)
 	CopyFile(srcs, dst)
 	type args struct {
 		pwd     string
@@ -995,7 +955,7 @@ func TestCreateOverlayScript_Case1(t *testing.T) {
 		{
 			name: "Test Case",
 			args: args{
-				pwd: originalDir,
+				pwd: currentDir,
 			},
 			wantErr: false,
 		},
@@ -1015,11 +975,11 @@ func TestCreateOverlayScript_Case1(t *testing.T) {
 		os.Unsetenv("FIREWALL_REQ_ALLOW")
 		os.Unsetenv("FIREWALL_CFG_ALLOW")
 		os.RemoveAll(dst)
-		os.Remove(dataDir + "/installer.sh")
-		os.Remove(dataDir + "/data.sh")
-		os.Remove(originalDir + "/data/default.sh")
-		os.Remove(originalDir + "/data/data.sh")
-		os.Remove(originalDir + "/data/default/installer.sh")
+		os.Remove(config.PVC + "/installer.sh")
+		os.Remove(config.PVC + "/data.sh")
+		os.Remove(currentDir + "/data/default.sh")
+		os.Remove(currentDir + "/data/data.sh")
+		os.Remove(currentDir + "/data/default/installer.sh")
 		os.Remove(config.DownloadPath + "/default.sh")
 		CopyFile(dst, srcs)
 	}()
@@ -1027,29 +987,25 @@ func TestCreateOverlayScript_Case1(t *testing.T) {
 
 func TestCreateOverlayScript_Case2(t *testing.T) {
 	os.MkdirAll(config.DownloadPath, 0755)
-	originalDir, _ := os.Getwd()
-	src := strings.Replace(originalDir, "curation", "script", -1)
-	config.ScriptPath = src
-	dir := src + "/Installer"
+	dir := config.ScriptPath + "/Installer"
 	os.MkdirAll(dir, 0755)
-	dataDir := config.PVC
-	os.MkdirAll(dataDir, 0755)
+
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
 # Add your installation commands here
 `
-	err := os.WriteFile(dataDir+"/installer.sh", []byte(dummyData), 0755)
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	result := strings.Replace(originalDir, "curation", "script/tmp", -1)
+	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
 	dst := filepath.Join(result, "Installer")
 	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
-	err1 := os.WriteFile(dataDir+"/default.sh", []byte(dummyData), 0755)
+	err1 := os.WriteFile(config.PVC+"/default.sh", []byte(dummyData), 0755)
 	if err1 != nil {
 		fmt.Println("Error creating file:", err1)
 		os.Exit(1)
@@ -1058,7 +1014,7 @@ func TestCreateOverlayScript_Case2(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("Error creating file:", err2)
 	}
-	srcs := strings.Replace(originalDir, "curation", "script/Installer", -1)
+	srcs := strings.Replace(currentDir, "curation", "script/Installer", -1)
 	CopyFile(srcs, dst)
 	type args struct {
 		pwd     string
@@ -1072,7 +1028,7 @@ func TestCreateOverlayScript_Case2(t *testing.T) {
 		{
 			name: "Test Case",
 			args: args{
-				pwd: originalDir,
+				pwd: currentDir,
 			},
 			wantErr: false,
 		},
@@ -1090,11 +1046,11 @@ func TestCreateOverlayScript_Case2(t *testing.T) {
 	}
 	defer func() {
 		os.RemoveAll(dst)
-		os.Remove(dataDir + "/installer.sh")
-		os.Remove(dataDir + "/data.sh")
-		os.Remove(originalDir + "/data/default.sh")
-		os.Remove(originalDir + "/data/data.sh")
-		os.Remove(originalDir + "/data/default/installer.sh")
+		os.Remove(config.PVC + "/installer.sh")
+		os.Remove(config.PVC + "/data.sh")
+		os.Remove(currentDir + "/data/default.sh")
+		os.Remove(currentDir + "/data/data.sh")
+		os.Remove(currentDir + "/data/default/installer.sh")
 		os.Remove(config.DownloadPath + "/default.sh")
 		CopyFile(dst, srcs)
 	}()
@@ -1118,25 +1074,21 @@ func TestCreateOverlayScript_Case4(t *testing.T) {
 		}
 	  ]`)
 
-	originalDir, _ := os.Getwd()
-	src := strings.Replace(originalDir, "curation", "script", -1)
-	config.ScriptPath = src
-	dir := src + "/Installer"
+	dir := config.ScriptPath + "/Installer"
 	os.MkdirAll(dir, 0755)
-	dataDir := config.PVC
-	os.MkdirAll(dataDir, 0755)
+
 	os.MkdirAll(config.DownloadPath, 0755)
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
 # Add your installation commands here
 `
-	err := os.WriteFile(dataDir+"/installer.sh", []byte(dummyData), 0755)
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	err1 := os.WriteFile(dataDir+"/default.sh", []byte(dummyData), 0755)
+	err1 := os.WriteFile(config.PVC+"/default.sh", []byte(dummyData), 0755)
 	if err1 != nil {
 		fmt.Println("Error creating file:", err1)
 		os.Exit(1)
@@ -1145,12 +1097,12 @@ func TestCreateOverlayScript_Case4(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("Error creating file:", err2)
 	}
-	result := strings.Replace(originalDir, "curation", "script/tmp", -1)
+	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
 	dst := filepath.Join(result, "Installer")
 	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
-	srcs := strings.Replace(originalDir, "curation", "script/Installer", -1)
+	srcs := strings.Replace(currentDir, "curation", "script/Installer", -1)
 	CopyFile(srcs, dst)
 	type args struct {
 		pwd     string
@@ -1164,7 +1116,7 @@ func TestCreateOverlayScript_Case4(t *testing.T) {
 		{
 			name: "Test Case",
 			args: args{
-				pwd: originalDir,
+				pwd: currentDir,
 			},
 			wantErr: false,
 		},
@@ -1184,46 +1136,42 @@ func TestCreateOverlayScript_Case4(t *testing.T) {
 		os.Unsetenv("FIREWALL_REQ_ALLOW")
 		os.Unsetenv("FIREWALL_CFG_ALLOW")
 		os.RemoveAll(dst)
-		os.Remove(dataDir + "/installer.sh")
-		os.Remove(dataDir + "/data.sh")
-		os.Remove(originalDir + "/data/default.sh")
-		os.Remove(originalDir + "/data/data.sh")
-		os.Remove(originalDir + "/data/default/installer.sh")
+		os.Remove(config.PVC + "/installer.sh")
+		os.Remove(config.PVC + "/data.sh")
+		os.Remove(currentDir + "/data/default.sh")
+		os.Remove(currentDir + "/data/data.sh")
+		os.Remove(currentDir + "/data/default/installer.sh")
 		os.Remove(config.DownloadPath + "/default.sh")
 		CopyFile(dst, srcs)
 	}()
 }
 
 func TestCreateOverlayScript_Case3(t *testing.T) {
-	originalDir, _ := os.Getwd()
-	src := strings.Replace(originalDir, "curation", "script", -1)
-	config.ScriptPath = src
-	dir := src + "/Installer"
+	dir := config.ScriptPath + "/Installer"
 	os.MkdirAll(dir, 0755)
-	dataDir := config.PVC
-	os.MkdirAll(dataDir, 0755)
+
 	os.MkdirAll(config.DownloadPath, 0755)
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
 # Add your installation commands here
 `
-	err := os.WriteFile(dataDir+"/installer.sh", []byte(dummyData), 0755)
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	err1 := os.WriteFile(dataDir+"/default.sh", []byte(dummyData), 0755)
+	err1 := os.WriteFile(config.PVC+"/default.sh", []byte(dummyData), 0755)
 	if err1 != nil {
 		fmt.Println("Error creating file:", err1)
 		os.Exit(1)
 	}
-	result := strings.Replace(originalDir, "curation", "script/tmp", -1)
+	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
 	dst := filepath.Join(result, "Installer")
 	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
-	srcs := strings.Replace(originalDir, "curation", "script/Installer", -1)
+	srcs := strings.Replace(currentDir, "curation", "script/Installer", -1)
 	CopyFile(srcs, dst)
 
 	path := "/etc/ssl/orch-ca-cert/ca.crt"
@@ -1254,7 +1202,7 @@ func TestCreateOverlayScript_Case3(t *testing.T) {
 		{
 			name: "Test Case",
 			args: args{
-				pwd: originalDir,
+				pwd: currentDir,
 			},
 			wantErr: false,
 		},
@@ -1274,12 +1222,12 @@ func TestCreateOverlayScript_Case3(t *testing.T) {
 	}
 	defer func() {
 		os.RemoveAll(dst)
-		os.Remove(dataDir + "/installer.sh")
-		os.Remove(dataDir + "/data.sh")
-		os.Remove(originalDir + "/data/default.sh")
-		os.Remove(originalDir + "/data/installer.sh")
-		os.Remove(originalDir + "/data/data.sh")
-		os.Remove(originalDir + "/data/default/installer.sh")
+		os.Remove(config.PVC + "/installer.sh")
+		os.Remove(config.PVC + "/data.sh")
+		os.Remove(currentDir + "/data/default.sh")
+		os.Remove(currentDir + "/data/installer.sh")
+		os.Remove(currentDir + "/data/data.sh")
+		os.Remove(currentDir + "/data/default/installer.sh")
 		os.Remove(config.DownloadPath + "/default.sh")
 		CopyFile(dst, srcs)
 		os.RemoveAll(path)
@@ -1332,8 +1280,7 @@ func TestAddProxies(t *testing.T) {
 
 		})
 	}
-	pwd, _ := os.Getwd()
-	defer os.Remove(pwd + "/testfile.txt")
+	defer os.Remove(currentDir + "/testfile.txt")
 }
 
 func TestAddFirewallRules(t *testing.T) {
@@ -1362,13 +1309,7 @@ func TestAddFirewallRules(t *testing.T) {
 func TestGetCuratedScript(t *testing.T) {
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
 	defer os.Unsetenv("ORCH_CLUSTER")
-	cdr, _ := os.Getwd()
-	config.ScriptPath = strings.Replace(cdr, "curation", "script", -1)
-	err1 := os.MkdirAll(cdr+"/dummy/dummy1/dummy2/dummy3", 0755)
-	assert.NoError(t, err1)
-	err2 := os.Chdir(cdr + "/dummy/dummy1/dummy2/dummy3")
-	assert.NoError(t, err2)
-	defer os.RemoveAll(cdr + "/dummy/dummy1/dummy2/dummy3")
+
 	type args struct {
 		profile string
 		sha256  string
@@ -1402,35 +1343,31 @@ func TestGetCuratedScript(t *testing.T) {
 }
 
 func TestCreateOverlayScript_Err(t *testing.T) {
-	originalDir, _ := os.Getwd()
 	os.MkdirAll(config.DownloadPath, 0755)
-	src := strings.Replace(originalDir, "curation", "script", -1)
-	config.ScriptPath = src
-	dir := src + "/Installer"
+	dir := config.ScriptPath + "/Installer"
 	os.MkdirAll(dir, 0755)
-	dataDir := config.PVC
-	os.MkdirAll(dataDir, 0755)
+
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
 # Add your installation commands here
 `
-	err := os.WriteFile(dataDir+"/installer.sh", []byte(dummyData), 0755)
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	err1 := os.WriteFile(dataDir+"/default.sh", []byte(dummyData), 0755)
+	err1 := os.WriteFile(config.PVC+"/default.sh", []byte(dummyData), 0755)
 	if err1 != nil {
 		fmt.Println("Error creating file:", err1)
 		os.Exit(1)
 	}
-	result := strings.Replace(originalDir, "curation", "script/tmp", -1)
+	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
 	dst := filepath.Join(result, "Installer")
 	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
-	srcs := strings.Replace(originalDir, "curation", "script/Installer", -1)
+	srcs := strings.Replace(currentDir, "curation", "script/Installer", -1)
 	CopyFile(srcs, dst)
 	type args struct {
 		pwd     string
@@ -1444,7 +1381,7 @@ func TestCreateOverlayScript_Err(t *testing.T) {
 		{
 			name: "Test Case",
 			args: args{
-				pwd: originalDir,
+				pwd: currentDir,
 			},
 			wantErr: false,
 		},
@@ -1462,11 +1399,11 @@ func TestCreateOverlayScript_Err(t *testing.T) {
 	}
 	defer func() {
 		os.Remove(dst)
-		os.Remove(dataDir + "/installer.sh")
-		os.Remove(dataDir + "/data.sh")
-		os.Remove(originalDir + "/data/default.sh")
-		os.Remove(originalDir + "/data/data.sh")
-		os.Remove(originalDir + "/data/default/installer.sh")
+		os.Remove(config.PVC + "/installer.sh")
+		os.Remove(config.PVC + "/data.sh")
+		os.Remove(currentDir + "/data/default.sh")
+		os.Remove(currentDir + "/data/data.sh")
+		os.Remove(currentDir + "/data/default/installer.sh")
 		os.Remove(config.DownloadPath + "/default.sh")
 		CopyFile(dst, srcs)
 	}()
@@ -1505,39 +1442,171 @@ func TestPathExists(t *testing.T) {
 	}
 }
 
-func TestCreateCloudCfgScript(t *testing.T) {
-	originalDir, _ := os.Getwd()
-	config.ScriptPath = strings.Replace(originalDir, "curation", "script", -1)
-	type args struct {
-		pwd   string
-		osRes *osv1.OperatingSystemResource
+func TestCurateScriptFromTemplate(t *testing.T) {
+	testCaCert := "-----BEGIN CERTIFICATE-----\nMIIFYTCCA0mgAwIBAgIRAKbmACDFdpXWP890dsFbSaUwDQYJKoZIhvcNAQELBQAw\nKTELMAkGA1UEBhMCVVMxGjAYBgNVBAoTEUludGVsIENvcnBvcmF0aW9uMB4XDTI1\nMDEwMjE1NDgyNFoXDTI3MDEwMjE1NDgyNFowKTELMAkGA1UEBhMCVVMxGjAYBgNV\nBAoTEUludGVsIENvcnBvcmF0aW9uMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIIC\nCgKCAgEAn4WF0VQity1EJWfltgSMGbRDFaX8ML97tcIY8vtWRrLgYYkxN/OUcI4k\n3NUO9gofa1sZ9FsNqyyPozQtJjd67PnngG5IJgNqjUEVUpwezk0AjuopLxH138NA\n3PebgKHztYHGA1K69QVBwuvI8PvuJ5ic37YUj4qH4djQdwwlpEMAM3l9OST2Mk64\nk7yXFkP79bx33Q01q5zreQ6WvzDl5a17mFDjotUhKh0udR4XKn+/8hBEs28ohBZa\nl4zXIqbw1V1T8baQdJsB5VaItlXJ40IWhYuCh5NtW71toFcePWP/ef+LwjvwZYo0\niPB72mxoRACmL8z7vpFD71Sdn6mBDhI34wMXYhwLtU+P7ySGvsS2PQWHggYsQdbv\n74IBtIBVmt5nrjTAJzaWKDQSz2u3iJvct/CnfS8wp4xjH53qeSqp0ToPwqNy0iQF\n/z2uLn//eIyc//pbe59zehrN09SqxCGJhQr7CdoxO/PC6ZtemKg28WSl8iSaBvvp\njGS7Kaj5RPuRN3Ms1RymJV0FuMMdNfy7kn4KmPYVl4y6CRcD+orCDj3RTsycEP6c\nf/ulT2NzX6k8wJBq3yOjUim54HaPnSbUEmmhJnnrHyVqtHOv4IgJgr/F5Bjyv8+o\nHp5uyL/oidLaj7bO2rsNWrkJawpuWs3gr+aheesYHzBvKJMttmMCAwEAAaOBgzCB\ngDAOBgNVHQ8BAf8EBAMCAqQwEwYDVR0lBAwwCgYIKwYBBQUHAwEwDwYDVR0TAQH/\nBAUwAwEB/zAdBgNVHQ4EFgQUP5dseOrhR0SEA1eJXvDazoI/5ogwKQYDVR0RBCIw\nIIINa2luZC5pbnRlcm5hbIIPKi5raW5kLmludGVybmFsMA0GCSqGSIb3DQEBCwUA\nA4ICAQBfyjP6vxpMHSPHn1Buz4+TZa8an0knz+0iAuLUYyUSBTNw6JCwcvQ0fVIZ\ngYXjyJZ16KhpvvygoL78CR72aC/TayeJHAwtsGWLLh1PXXtdZ36x/5SoedVLbChA\nD0HFRaFYzSlMd5yja8ECYUKv+qyb5WhhE+8qAct2h7BHG2RqzGru8U8I52WIXE1O\nWUb+EL+4TbWc3ARNpFER9HAy3ZXuUQax+tcPVSRDFpGcAFULjRFz8MyJ1hp9h3eX\nHwbitJvn/tmEP2tuIPUNN4yrYP3fpFJhjIYOrR2e7OaVRdJZMyw6vFHsceRNw0mv\n3O4Fa/O3bO9v9p/PHJlQMBqo8Tx8wYYnsRtpTxipwleKxBv+NtQw11g8Twh23ngQ\nh6O1i3pKst5eB6IJV5s5tXHdMKj2tk0iJcZ/BuZk9iRWguSgX3Qyb+1eUgbn4Ypa\nrLySufMbDv+LzxwTvQ7xWjVerhgiD7PAxNl0vCAN+rvpUonhDdBtjN8PIG0cjCRx\nwlEyL3+eQa58bIAxDRc97UmxUdhbjKGcL5E9JMR8t6XpFj+UKiW90zxx7ckLgyh+\n3+6q7nWtoAGeX1kZqBCc9idN1+0wp9F3xlG7VoVCtAf8rhNRA1l/3rpHb5ACfSrb\nFUiNbT1AeeTP59OwEBIOHNWAq58TBYTVItg7Sjqc6L2eavSWwA==\n-----END CERTIFICATE-----"
+	baseClusterVariables := map[string]interface{}{
+		"MODE":                           "dev",
+		"ORCH_CLUSTER":                   "cluster.kind.internal",
+		"ORCH_INFRA":                     "infra.test",
+		"ORCH_UPDATE":                    "update.test",
+		"ORCH_PLATFORM_OBS_HOST":         "obs.test",
+		"ORCH_PLATFORM_OBS_PORT":         "1234",
+		"ORCH_PLATFORM_OBS_METRICS_HOST": "metrics.test",
+		"ORCH_PLATFORM_OBS_METRICS_PORT": "5678",
+		"ORCH_TELEMETRY_HOST":            "telemetry.test",
+		"ORCH_TELEMETRY_PORT":            "1234",
+		"KEYCLOAK_URL":                   "keycloak.test",
+		"RELEASE_TOKEN_URL":              "release-svc.test",
+		"ORCH_APT_PORT":                  "1234",
+		"ORCH_IMG_PORT":                  "1234",
+		"FILE_SERVER":                    "file-server.test",
+		"IMG_REGISTRY_URL":               "registry-svc.test",
+		"NTP_SERVERS":                    "ntp1.test,ntp2.test",
+		"EN_HTTP_PROXY":                  "http-proxy.test",
+		"EN_HTTPS_PROXY":                 "https-proxy.test",
+		"EN_NO_PROXY":                    "no-proxy.test",
+		"EN_FTP_PROXY":                   "ftp-proxy.test",
+		"EN_SOCKS_PROXY":                 "socks-server.test",
+
+		"CA_CERT": testCaCert,
+
+		"IPTABLES_RULES": []string{
+			"iptables -A INPUT -p tcp --dport 80 -j ACCEPT",
+			"iptables -A INPUT -p tcp --dport 443 -j ACCEPT",
+		},
+
+		"EXTRA_HOSTS": strings.Split("1.1.1.1 a.test,2.2.2.2 b.test", ","),
 	}
-	os.Setenv("SOCKS_PROXY", "proxy")
-	os.Setenv("MODE", "dev")
+
+	copyBaseVariables := func() map[string]interface{} {
+		templVarMap := make(map[string]interface{})
+		for k, v := range baseClusterVariables {
+			templVarMap[k] = v
+		}
+		return templVarMap
+	}
+
+	type args struct {
+		templateVariables map[string]interface{}
+	}
 	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
+		name                   string
+		args                   args
+		expectedOutputFileName string
+		wantErr                bool
 	}{
 		{
-			name: "Test case",
+			name: "Success_Base",
 			args: args{
-				pwd:   "",
-				osRes: &osv1.OperatingSystemResource{},
+				templateVariables: baseClusterVariables,
+			},
+			expectedOutputFileName: "expected-installer-01.cfg",
+			wantErr:                false,
+		},
+		{
+			name: "Success_NotKindInternal",
+			args: args{
+				templateVariables: func() map[string]interface{} {
+					templVarMap := copyBaseVariables()
+					templVarMap["ORCH_CLUSTER"] = "cluster.not-kind.internal"
+					return templVarMap
+				}(),
+			},
+			expectedOutputFileName: "expected-installer-02.cfg",
+			wantErr:                false,
+		},
+		{
+			name: "Success_ProdMode",
+			args: args{
+				templateVariables: func() map[string]interface{} {
+					templVarMap := copyBaseVariables()
+					templVarMap["MODE"] = "prod"
+					return templVarMap
+				}(),
+			},
+			expectedOutputFileName: "expected-installer-03.cfg",
+			wantErr:                false,
+		},
+		{
+			name: "Success_NoProxies",
+			args: args{
+				templateVariables: func() map[string]interface{} {
+					templVarMap := copyBaseVariables()
+					templVarMap["EN_HTTP_PROXY"] = ""
+					templVarMap["EN_HTTPS_PROXY"] = ""
+					templVarMap["EN_NO_PROXY"] = ""
+					templVarMap["EN_FTP_PROXY"] = ""
+					templVarMap["EN_SOCKS_PROXY"] = ""
+					return templVarMap
+				}(),
+			},
+			expectedOutputFileName: "expected-installer-04.cfg",
+			wantErr:                false,
+		},
+		{
+			name: "Success_SelectedProxies",
+			args: args{
+				templateVariables: func() map[string]interface{} {
+					templVarMap := copyBaseVariables()
+					templVarMap["EN_FTP_PROXY"] = ""
+					templVarMap["EN_SOCKS_PROXY"] = ""
+					return templVarMap
+				}(),
+			},
+			expectedOutputFileName: "expected-installer-05.cfg",
+			wantErr:                false,
+		},
+		{
+			name: "Success_NoIptablesRules",
+			args: args{
+				templateVariables: func() map[string]interface{} {
+					templVarMap := copyBaseVariables()
+					templVarMap["IPTABLES_RULES"] = []string{}
+					return templVarMap
+				}(),
+			},
+			expectedOutputFileName: "expected-installer-06.cfg",
+			wantErr:                false,
+		},
+		{
+			name: "Failed_MissingTemplateVariables",
+			args: args{
+				templateVariables: func() map[string]interface{} {
+					templVarMap := copyBaseVariables()
+					delete(templVarMap, "MODE")
+					return templVarMap
+				}(),
 			},
 			wantErr: true,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := CreateCloudCfgScript(tt.args.osRes); (err != nil) != tt.wantErr {
-				t.Errorf("CreateCloudCfgScript() error = %v, wantErr %v", err, tt.wantErr)
+			templatePath := strings.Replace(currentDir, "curation", "script", -1)
+			got, err := CurateScriptFromTemplate(templatePath, tt.args.templateVariables)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("CurateScriptFromTemplate() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr {
+				fileData, err := os.ReadFile(currentDir + "/testout/" + tt.expectedOutputFileName)
+				require.NoError(t, err)
+
+				require.Equal(t, got, string(fileData))
 			}
 		})
 	}
-	wd, _ := os.Getwd()
-	defer func() {
-		os.Unsetenv("SOCKS_PROXY")
-		os.RemoveAll(wd + "/data")
-	}()
+
+	// test missing input file
+	t.Run("Failed_MissingInputFile", func(t *testing.T) {
+		_, err := CurateScriptFromTemplate("", baseClusterVariables)
+		require.Error(t, err)
+	})
+
+	t.Run("Failed_InvalidTemplateFile", func(t *testing.T) {
+		_, err := CurateScriptFromTemplate(currentDir+"/testdata/invalid-template", baseClusterVariables)
+		require.Error(t, err)
+	})
 }

@@ -64,9 +64,15 @@ const exampleManifest1 = `
 		}],
 		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
 
-const example = `#!/bin/bash
-		echo "This is a example script."
-		`
+func TestMain(m *testing.M) {
+	var err error
+	config.PVC, err = os.MkdirTemp(os.TempDir(), "test_pvc")
+	if err != nil {
+		panic(fmt.Sprintf("Error creating temp directory: %v", err))
+	}
+	run := m.Run()
+	os.Exit(run)
+}
 
 func TestDownloadUbuntuImage(t *testing.T) {
 	randBytes := make([]byte, 20)
@@ -81,9 +87,6 @@ func TestDownloadUbuntuImage(t *testing.T) {
 	tmpFolderPath, err := os.MkdirTemp("/tmp", "test_download_ubuntu")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpFolderPath)
-
-	dir := config.PVC
-	os.MkdirAll(dir, 0755)
 
 	hasher := sha256.New()
 	_, err = hasher.Write(randBytes)
@@ -101,10 +104,6 @@ func TestDownloadUbuntuImage(t *testing.T) {
 	// Check the expected file is created
 	// _, err = os.Stat(config.PVC + "/" + expectedFileName)
 	// assert.NoError(t, err)
-
-	defer func() {
-		os.Remove(dir)
-	}()
 }
 
 func TestPathExists(t *testing.T) {
@@ -295,6 +294,10 @@ func Test_downloadImage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.args.targetDir != "" {
+				err := os.MkdirAll(tt.args.targetDir, 0755)
+				require.NoError(t, err)
+			}
 			if err := downloadImage(tt.args.ctx, tt.args.url, tt.args.targetDir+tt.args.fileName); (err != nil) != tt.wantErr {
 				t.Errorf("downloadImage() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -390,6 +393,10 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 			fmt.Printf("Error writing YAML to file: %v\n", err)
 			return
 		}
+		defer func() {
+			// ignore error, usually not exists
+			os.Remove(yamlFilePath)
+		}()
 		returnWrongManifest = true
 
 	})
@@ -416,7 +423,7 @@ func TestDownloadUbuntuImage_Negative(t *testing.T) {
 			args: args{
 				targetDir: config.PVC,
 				osr: &osv1.OperatingSystemResource{
-					ImageUrl:    config.ImageUrl,
+					ImageUrl:    "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img",
 					ProfileName: "test-profile-name",
 				},
 			},
