@@ -123,7 +123,7 @@ pipeline {
                 axes {
                     axis {
                         name 'PROJECT_FOLDER'
-                        values "onboarding-manager", "dkam", "tinker-actions"
+                        values "onboarding-manager", "dkam", "tinker-actions", "hook-os"
                     }
                 }
                 stages {
@@ -216,6 +216,19 @@ pipeline {
                                     }
                                 }
                             }
+                            stage('Shellcheck') {
+                                when {
+                                    allOf {
+                                        changeRequest()
+                                        expression { PROJECT_FOLDER == 'hook-os' }
+                                    }
+                                }
+                                steps {
+                                    dir("${PROJECT_FOLDER}") {
+                                        shellcheck('*.sh', 'SC1091,SC2154,SC2086,SC2016,SC2181,SC2164,SC2129,SC2034,SC2236,SC2206,SC2068,SC2207,SC2002,SC2261,SC2024,SC2210,SC2001,SC2209,SC2317')
+                                    }
+                                }
+                            }
                             stage('Version Check') {
                                 steps {
                                     dir("${PROJECT_FOLDER}") {
@@ -245,7 +258,7 @@ pipeline {
                             }
                             stage('Dep Version Check') {
                                 when {
-                                    expression { PROJECT_FOLDER != 'tinker-actions' }
+                                    expression { PROJECT_FOLDER != 'tinker-actions' && PROJECT_FOLDER != 'hook-os' }
                                 }
                                 steps {
                                     dir("${PROJECT_FOLDER}") {
@@ -263,7 +276,7 @@ pipeline {
                             }
                             stage('Build Code') {
                                 when {
-                                    expression { PROJECT_FOLDER != 'tinker-actions' }
+                                    expression { PROJECT_FOLDER != 'tinker-actions' && PROJECT_FOLDER != 'hook-os' }
                                 }
                                 steps {
                                     dir("${PROJECT_FOLDER}") {
@@ -275,6 +288,54 @@ pipeline {
                                                 echo "Building the code"
                                                 make go-build
                                                 '''
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            stage('[Hook OS] Build OS Image') {
+                                when {
+                                    expression { PROJECT_FOLDER == 'hook-os' }
+                                }
+                                environment {
+                                    IS_JENKINS_BUILD =  true
+                                }
+                                steps {
+                                    dir("${PROJECT_FOLDER}") {
+                                        script {
+                                        withCredentials([
+                                            usernamePassword(
+                                                credentialsId: 'sys_oie_devops_github_api',
+                                                usernameVariable: 'GITHUB_USER',
+                                                passwordVariable: 'GITHUB_TOKEN',
+                                            ),
+                                            usernamePassword(
+                                                credentialsId: 'generic_dockerhub_account',
+                                                usernameVariable: 'DOCKER_USER',
+                                                passwordVariable: 'DOCKER_TOKEN',
+                                            ),
+                                        ]) {
+                                            sh """
+                                                echo 'http_proxy=http://proxy-dmz.intel.com:911' >> config
+                                            echo 'https_proxy=http://proxy-dmz.intel.com:911' >> config
+                                            echo 'ftp_proxy=http://proxy-dmz.intel.com:911' >> config
+                                            echo 'socks_proxy=socks://proxy-dmz.intel.com:1080' >> config
+                                            echo 'no_proxy=localhost,*.intel.com,*intel.com,192.168.0.0/16,172.16.0.0/12,127.0.0.0/8,10.0.0.0/8,/var/run/docker.sock,.internal' >> config
+                                            echo 'keycloak_url=keycloak.validation.maestro.intel.com' >> config
+                                            echo 'harbor_url_tinker_actions=amr-registry.caas.intel.com/one-intel-edge/edge-node/tinker-actions' >> config
+                                            echo "" >> client_auth/files/ca.pem
+                                            echo "" >> client_auth/files/server_cert.pem
+                                            docker login -u $DOCKER_USER -p $DOCKER_TOKEN
+                                            """
+                                            def tag = sh(script: 'cat TINKER_ACTIONS_VERSION', returnStdout: true).trim()
+                                            // pull other required images
+                                            sh """
+                                            eval \$(ssh-agent) > /dev/null
+                                            make build
+                                                tar -zcvf grub_source.tar.gz grub_source
+                                            """
+                                            stash name: "alpine_image", includes: "alpine_image/hook_x86_64.tar.gz"
+                                            stash name: "grub_source", includes: "grub_source.tar.gz"
                                             }
                                         }
                                     }
@@ -303,6 +364,7 @@ pipeline {
                                     allOf {
                                         changeRequest()
                                         expression { PROJECT_FOLDER != 'tinker-actions' }
+                                        expression { PROJECT_FOLDER != 'hook-os' }
                                     }
                                 }
                                 steps {
@@ -368,7 +430,10 @@ pipeline {
                             }
                             stage('Validate clean folder') {
                                 when {
-                                    changeRequest()
+                                    allOf {
+                                        changeRequest()
+                                        expression { PROJECT_FOLDER != 'hook-os' }
+                                    }
                                 }
                                 steps {
                                     dir("${PROJECT_FOLDER}") {
@@ -405,7 +470,10 @@ pipeline {
                             }
                             stage('Build Docker image') {
                                 when {
-                                    anyOf { branch 'main'; branch 'release-*'; changeRequest(); }
+                                    allOf {
+                                        anyOf { branch 'main'; branch 'release-*'; changeRequest(); }
+                                        expression { PROJECT_FOLDER != 'hook-os' }
+                                    }
                                 }
                                 steps {
                                     script {
@@ -436,7 +504,10 @@ pipeline {
                             }
                             stage('Push Docker image') {
                                 when {
-                                    anyOf { branch 'main'; branch 'release-*'; expression { common.isMatchingCommit(/.*\[push-docker-image\]*/) }; }
+                                    allOf {
+                                        anyOf { branch 'main'; branch 'release-*'; expression { common.isMatchingCommit(/.*\[push-docker-image\]*/) }; }
+                                        expression { PROJECT_FOLDER != 'hook-os' }
+                                    }
                                 }
                                 steps {
                                     script {
@@ -459,6 +530,29 @@ pipeline {
                                             def envVars = envVarsMap[PROJECT_FOLDER].collect { key, value -> "${key}=${value}" }
                                             withEnv(envVars) {
                                                 dockerDevPush("${PROJECT_FOLDER}-")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            stage('[Hook OS] Push OS Image') {
+                                when {
+                                        allOf {
+                                            anyOf { branch 'main'; branch 'release-*'; expression { common.isMatchingCommit(/.*\[push-docker-image\]*/) }; }
+                                            expression { PROJECT_FOLDER == 'hook-os' }
+                                    }
+                                }
+                                steps {
+                                    script{
+                                        dir("${PROJECT_FOLDER}") {
+                                            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'intel-harbor-credentials',
+                                                        usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
+                                                {
+                                                unstash 'alpine_image'
+                                                unstash 'grub_source'
+                                            sh '''
+                                            /opt/ci/push-oci-package.sh -f 'alpine_image/hook_x86_64.tar.gz grub_source.tar.gz'
+                                            '''
                                             }
                                         }
                                     }
