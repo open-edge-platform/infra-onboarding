@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sync"
 	"syscall"
 
@@ -20,7 +21,6 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/metrics"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/oam"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/policy/rbac"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/tracing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/dkammgr"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/handlers/controller"
@@ -32,14 +32,11 @@ var (
 	name = "MIDKAMMain"
 	zlog = logging.GetLogger(name + "Main")
 
-	servaddr         = flag.String(config.ServerAddress, config.Port, config.ServerAddressDescription)
 	inventoryAddress = flag.String(client.InventoryAddress, "localhost:50051", client.InventoryAddressDescription)
 	wg               = sync.WaitGroup{}
 	oamServerAddress = flag.String(oam.OamServerAddress, "", oam.OamServerAddressDescription)
 	enableTracing    = flag.Bool(tracing.EnableTracing, false, tracing.EnableTracingDescription)
 	traceURL         = flag.String(tracing.TraceURL, "", tracing.TraceURLDescription)
-	enableAuth       = flag.Bool(rbac.EnableAuth, true, rbac.EnableAuthDescription)
-	rbacRules        = flag.String(rbac.RbacRules, "/rego/authz.rego", rbac.RbacRulesDescription)
 	enableMetrics    = flag.Bool(metrics.EnableMetrics, false, metrics.EnableMetricsDescription)
 	metricsAddress   = flag.String(metrics.MetricsAddress, metrics.MetricsAddressDefault, metrics.MetricsAddressDescription)
 	readyChan        = make(chan bool, 1)
@@ -109,7 +106,7 @@ func main() {
 	if err != nil {
 		zlog.MiSec().Fatal().Err(err).Msgf("Unable to start onboarding inventory client")
 	}
-	dkammgr.InitOnboarding(invClient, *enableAuth, *rbacRules)
+
 	dkamController, err := controller.New(invClient, *enableTracing)
 	if err != nil {
 		zlog.MiSec().Fatal().Err(err).Msgf("Unable to create onboarding controller")
@@ -166,6 +163,9 @@ func setupOamServerAndSetReady(enableTracing bool, oamServerAddress string) {
 }
 
 func GetArtifacts(ctx context.Context) error {
+	outDir := filepath.Join(config.DownloadPath, "tmp")
+	// 0. cleanup
+	os.RemoveAll(outDir)
 	zlog.MiSec().Info().Msg("Get all artifacts...")
 	// Download release manifest.yaml file.
 	artifactsErr := dkammgr.DownloadArtifacts(ctx)

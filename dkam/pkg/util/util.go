@@ -5,6 +5,9 @@ package util
 
 import (
 	"fmt"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
+	"os"
+	"path/filepath"
 
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
 
@@ -76,4 +79,35 @@ func GetInstallerLocation(os *osv1.OperatingSystemResource, rootDir string) (str
 	}
 
 	return installerPath, nil
+}
+
+func PathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil // path exists
+	}
+	if os.IsNotExist(err) {
+		return false, nil // path does not exist
+	}
+	return false, err // an error occurred (other than not existing)
+}
+
+func GetReleaseFilePathIfExists() (string, error) {
+	releaseFilePath := filepath.Join(config.DownloadPath, "tmp", config.ReleaseVersion+".yaml")
+	exists, err := PathExists(releaseFilePath)
+	if err != nil {
+		invErr := inv_errors.Errorf("Failed to check if path %s exists: %s", releaseFilePath, err)
+		zlog.MiSec().Err(invErr).Msg("")
+		return "", invErr
+	}
+
+	if !exists {
+		invErr := inv_errors.Errorf("The release file not found under path %s", releaseFilePath)
+		zlog.MiSec().Err(invErr).Msg("")
+		return "", invErr
+	}
+
+	zlog.MiSec().Debug().Msgf("Release file found under path %s", releaseFilePath)
+
+	return releaseFilePath, nil
 }

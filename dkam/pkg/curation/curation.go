@@ -79,23 +79,11 @@ type Image struct {
 }
 
 func GetArtifactsVersion() ([]AgentsVersion, error) {
-
-	scriptDir := config.ScriptPath
-	yamlFile := filepath.Join(config.DownloadPath, "tmp", config.ReleaseVersion+".yaml")
-	exists, err := PathExists(yamlFile)
+	releaseFilePath, err := util.GetReleaseFilePathIfExists()
 	if err != nil {
-		zlog.MiSec().Info().Msgf("Error checking path %v", err)
-	}
-	releaseFilePath := ""
-	if exists {
-		zlog.MiSec().Info().Msg("Path exists:")
-		releaseFilePath = yamlFile
-	} else {
-		zlog.MiSec().Info().Msg("Path not exists:")
-		releaseFilePath = filepath.Join(scriptDir, config.ReleaseVersion+".yaml")
+		return nil, err
 	}
 
-	zlog.MiSec().Info().Msg(releaseFilePath)
 	configs, err := GetReleaseArtifactList(releaseFilePath)
 	if err != nil {
 		zlog.MiSec().Info().Msgf("Error checking path %v", err)
@@ -117,7 +105,7 @@ func GetArtifactsVersion() ([]AgentsVersion, error) {
 
 func getCaCert() (string, error) {
 	caPath := config.OrchCACertificateFile
-	caexists, err := PathExists(caPath)
+	caexists, err := util.PathExists(caPath)
 	if err != nil {
 		errMsg := "Failed to check if CA certificate path exists"
 		zlog.Error().Err(err).Msg(errMsg)
@@ -245,17 +233,6 @@ func CurateScript(osRes *osv1.OperatingSystemResource) error {
 
 }
 
-func PathExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil // path exists
-	}
-	if os.IsNotExist(err) {
-		return false, nil // path does not exist
-	}
-	return false, err // an error occurred (other than not existing)
-}
-
 func GetReleaseArtifactList(filePath string) (Config, error) {
 
 	// Open the file
@@ -347,7 +324,7 @@ func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
 	installerPath := filepath.Join(scriptDir, "Installer")
 	scriptFileName := ""
 
-	exists, err := PathExists(config.PVC)
+	exists, err := util.PathExists(config.PVC)
 	if err != nil {
 		zlog.MiSec().Info().Msgf("Error checking path %v", err)
 	}
@@ -376,7 +353,7 @@ func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
 
 	profileName := osRes.GetProfileName()
 
-	profileExists, err := PathExists(config.DownloadPath + "/" + profileName + ".sh")
+	profileExists, err := util.PathExists(config.DownloadPath + "/" + profileName + ".sh")
 	if err != nil {
 		zlog.MiSec().Info().Msgf("Error checking path %v", err)
 	}
@@ -456,7 +433,7 @@ func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
 	zlog.Info().Msg(firewallReqAllow)
 	firewallCfgAllow := os.Getenv("FIREWALL_CFG_ALLOW")
 	zlog.Info().Msg(firewallCfgAllow)
-	caexists, err := PathExists("/etc/ssl/orch-ca-cert/ca.crt")
+	caexists, err := util.PathExists(config.OrchCACertificateFile)
 	if err != nil {
 		zlog.MiSec().Info().Msgf("Error checking path %v", err)
 		zlog.MiSec().Error().Err(err).Msgf("Error: %v", err)
@@ -464,39 +441,7 @@ func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
 
 	var caContent []byte
 	if caexists {
-		caContent, err = os.ReadFile("/etc/ssl/orch-ca-cert/ca.crt")
-		if err != nil {
-			zlog.MiSec().Error().Msgf("Error: %v", err)
-		}
-	}
-
-	dockerFilePath := filepath.Join(scriptDir, "docker.key")
-
-	dockerKeyExists, err := PathExists(dockerFilePath)
-	if err != nil {
-		zlog.MiSec().Info().Msgf("Error checking path %v", err)
-		zlog.MiSec().Error().Err(err).Msgf("Error: %v", err)
-	}
-
-	var dockerContent []byte
-	if dockerKeyExists {
-		dockerContent, err = os.ReadFile(dockerFilePath)
-		if err != nil {
-			zlog.MiSec().Error().Msgf("Error: %v", err)
-		}
-	}
-
-	caddyFilePath := filepath.Join(scriptDir, "gpg.key")
-
-	caddyKeyExists, err := PathExists(caddyFilePath)
-	if err != nil {
-		zlog.MiSec().Info().Msgf("Error checking path %v", err)
-		zlog.MiSec().Error().Err(err).Msgf("Error: %v", err)
-	}
-
-	var caddyContent []byte
-	if caddyKeyExists {
-		caddyContent, err = os.ReadFile(caddyFilePath)
+		caContent, err = os.ReadFile(config.OrchCACertificateFile)
 		if err != nil {
 			zlog.MiSec().Error().Msgf("Error: %v", err)
 		}
@@ -506,7 +451,6 @@ func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
 	//modifiedScript := strings.ReplaceAll(string(content), "__SUBSTITUTE_PACKAGE_COMMANDS__", packages)
 	modifiedScript := strings.ReplaceAll(string(content), "__REGISTRY_URL__", registryService)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__FILE_SERVER__", fileServer)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__AUTH_SERVER__", config.AuthServer)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_CLUSTER__", orchCluster)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_INFRA__", orchInfra)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_UPDATE__", orchUpdate)
@@ -529,8 +473,6 @@ func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__MAX_USER_INSTANCE__", systemConfigFsInotifyMaxUserInstances)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__NTP_SERVERS__", ntpServer)
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__CA_CERT__", string(caContent))
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__DOCKER_KEY__", string(dockerContent))
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__CADDY_KEY__", string(caddyContent))
 	modifiedScript = strings.ReplaceAll(modifiedScript, "__APT_SRC__", string(distribution))
 
 	// Loop through the agentsList

@@ -5,7 +5,7 @@ package reconcilers
 
 import (
 	"context"
-	"io"
+	"github.com/stretchr/testify/require"
 	"os"
 	"path/filepath"
 	"time"
@@ -15,15 +15,19 @@ import (
 	"testing"
 
 	rec_v2 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go/pkg/controller/v2"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
+	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/testing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/invclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
 	dkam_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/testing"
-	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
-	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/testing"
 )
 
 const (
 	tenant1 = "11111111-1111-1111-1111-111111111111"
+)
+
+var (
+	projectRoot string
 )
 
 func TestMain(m *testing.M) {
@@ -31,7 +35,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
-	projectRoot := filepath.Dir(filepath.Dir(filepath.Dir(filepath.Dir(wd))))
+	projectRoot = filepath.Dir(filepath.Dir(filepath.Dir(filepath.Dir(wd))))
 	policyPath := projectRoot + "/build"
 	migrationsDir := projectRoot + "/build"
 
@@ -69,29 +73,6 @@ func TestNewOsReconciler(t *testing.T) {
 			}
 		})
 	}
-}
-
-func CopyFile(src, dst string) error {
-	srcFile, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer srcFile.Close()
-	if err := os.MkdirAll(filepath.Dir(src), 0755); err != nil {
-		return err
-	}
-	dstFile, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer dstFile.Close()
-
-	_, err = io.Copy(dstFile, srcFile)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func TestOsReconcilerReconcile(t *testing.T) {
@@ -206,9 +187,9 @@ func TestOsReconciler_Reconcile(t *testing.T) {
 	})
 	osre := inv_testing.CreateOsWithArgs(t, "", "profile:profile", osv1.SecurityFeature_SECURITY_FEATURE_NONE, osv1.OsType_OS_TYPE_IMMUTABLE)
 	testRequest := rec_v2.Request[ReconcilerID]{
-		ID: ReconcilerID(WrapReconcilerID(osre.TenantId, osre.ResourceId)),
+		ID: WrapReconcilerID(osre.TenantId, osre.ResourceId),
 	}
-	expectedFilePath := config.DownloadPath + "/" + config.TiberOSImage
+	expectedFilePath := config.DownloadPath + "/" + "tiberos.raw.xz"
 	err := os.MkdirAll(filepath.Dir(expectedFilePath), 0755)
 	if err != nil {
 		t.Fatalf("Failed to create directories: %v", err)
@@ -218,19 +199,15 @@ func TestOsReconciler_Reconcile(t *testing.T) {
 		t.Fatalf("Failed to create file: %v", err)
 	}
 	file.Close()
-	///
-	originalDir, _ := os.Getwd()
-	result := strings.Replace(originalDir, "reconcilers", "script/tmp", -1)
-	res := filepath.Join(result, "latest-dev.yaml")
-	if err := os.MkdirAll(filepath.Dir(res), 0755); err != nil {
-		t.Fatalf("Failed to create directory: %v", err)
-	}
-	src := strings.Replace(originalDir, "internal/handlers/controller/reconcilers", "pkg/script/latest-dev.yaml", -1)
-	CopyFile(src, res)
-	direc := config.DownloadPath + "/tmp/"
-	os.MkdirAll(direc, 0755)
-	os.Create(direc + "latest-dev.yaml")
-	CopyFile(src, direc+"latest-dev.yaml")
+
+	err = dkam_testing.CopyFile(
+		filepath.Join(projectRoot, "test", "testdata", "example-manifest-internal-rs.yaml"),
+		filepath.Join(config.DownloadPath, "tmp", config.ReleaseVersion+".yaml"))
+	require.NoError(t, err)
+	defer func() {
+		os.RemoveAll(filepath.Join(config.DownloadPath, "tmp"))
+	}()
+
 	tests := []struct {
 		name   string
 		fields fields
@@ -261,12 +238,8 @@ func TestOsReconciler_Reconcile(t *testing.T) {
 			}
 		})
 	}
-	tmpDir := strings.Replace(originalDir, "reconcilers", "script", -1)
 	defer func() {
-		CopyFile(res, src)
 		os.RemoveAll(config.PVC)
-		os.RemoveAll(originalDir + "/tmp")
-		os.RemoveAll(tmpDir)
 	}()
 }
 

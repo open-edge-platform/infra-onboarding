@@ -5,13 +5,19 @@
 package testing
 
 import (
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
+	"github.com/stretchr/testify/require"
+	"io"
+	"os"
+	"path/filepath"
 	"sync"
+	"testing"
 	"time"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/invclient"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/inventory/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/testing"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/invclient"
 )
 
 var (
@@ -20,6 +26,39 @@ var (
 	InvClient  *invclient.DKAMInventoryClient
 	mu         sync.Mutex
 )
+
+func PrepareTestReleaseFile(t *testing.T, projectRoot string) {
+	err := CopyFile(
+		filepath.Join(projectRoot, "test", "testdata", "example-manifest-internal-rs.yaml"),
+		filepath.Join(config.DownloadPath, "tmp", config.ReleaseVersion+".yaml"))
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		os.RemoveAll(filepath.Join(config.DownloadPath, "tmp"))
+	})
+}
+
+func CopyFile(src, dst string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+		return err
+	}
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 // CreateInventoryDKAMClientForTesting is an helper function to create a new client.
 func CreateInventoryDKAMClientForTesting() {

@@ -8,7 +8,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	"io"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -22,13 +21,11 @@ import (
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/util"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/invclient"
+	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
+	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/testing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/download"
 	dkam_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/testing"
-	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/policy/rbac"
-	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/testing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -74,12 +71,20 @@ const exampleManifests = `
 		}],
 		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
 
+var projectRoot string
+
 func TestMain(m *testing.M) {
 	wd, err := os.Getwd()
 	if err != nil {
 		panic(err)
 	}
-	projectRoot := filepath.Dir(filepath.Dir(wd))
+
+	config.PVC, err = os.MkdirTemp(os.TempDir(), "test_pvc")
+	if err != nil {
+		panic(fmt.Sprintf("Error creating temp directory: %v", err))
+	}
+
+	projectRoot = filepath.Dir(filepath.Dir(wd))
 	policyPath := projectRoot + "/build"
 	migrationsDir := projectRoot + "/build"
 
@@ -91,7 +96,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestDownloadArtifacts(t *testing.T) {
-
+	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	// Create a UploadBaseImageRequest
 
 	err := DownloadArtifacts(context.Background())
@@ -101,6 +106,7 @@ func TestDownloadArtifacts(t *testing.T) {
 }
 
 func TestGetCuratedScript(t *testing.T) {
+	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	dir := config.PVC
 	os.MkdirAll(dir, 0755)
 	os.MkdirAll(config.DownloadPath, 0755)
@@ -300,6 +306,24 @@ func TestDownloadOS(t *testing.T) {
 }
 
 func TestDownloadArtifacts_Case(t *testing.T) {
+	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
+
+	// Fake server to serve expected requests
+	mux := http.NewServeMux()
+	returnWrongManifest := false
+	mux.HandleFunc("/manifests/HOOK_OS_VERSION", func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		if returnWrongManifest {
+			w.Write([]byte(exampleManifestWrong))
+		} else {
+			w.Write([]byte(exampleManifest))
+		}
+	})
+	svr := httptest.NewServer(mux)
+	defer svr.Close()
+	// Override the RSProxy with test HTTP server
+	config.HookOSRepo = svr.URL + "/"
+
 	// Create a UploadBaseImageRequest
 	os.Setenv("MODE", "preint")
 	err := DownloadArtifacts(context.Background())
@@ -312,6 +336,7 @@ func TestDownloadArtifacts_Case(t *testing.T) {
 }
 
 func TestDownloadArtifacts_Case1(t *testing.T) {
+	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	os.Setenv("KUBERNETES_SERVICE_HOST", "localhost")
 	os.Setenv("KUBERNETES_SERVICE_PORT", "2521")
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -441,74 +466,12 @@ func TestDownloadArtifacts_Case1(t *testing.T) {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 	src := strings.Replace(originalDir, "curation", "script/latest-dev.yaml", -1)
-	CopyFile(src, res)
+	dkam_testing.CopyFile(src, res)
 	defer func() {
-		CopyFile(res, src)
+		dkam_testing.CopyFile(res, src)
 		os.Remove(res)
 		os.Remove(originalDir + "/hook/TEST_FILE")
 	}()
-}
-
-func CopyFile(src, dst string) error {
-	srcFile, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer srcFile.Close()
-	if err := os.MkdirAll(filepath.Dir(src), 0755); err != nil {
-		return err
-	}
-	dstFile, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer dstFile.Close()
-
-	_, err = io.Copy(dstFile, srcFile)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func TestInitOnboarding(t *testing.T) {
-	type args struct {
-		invClient  *invclient.DKAMInventoryClient
-		enableAuth bool
-		rbacRules  string
-	}
-	dkam_testing.CreateInventoryDKAMClientForTesting()
-	t.Cleanup(func() {
-		dkam_testing.DeleteInventoryDKAMClientForTesting()
-	})
-	rbac.New(rbacRules)
-	tests := []struct {
-		name string
-		args args
-	}{
-		{
-			name: "InitOnboarding Failure Test Case",
-			args: args{
-				invClient:  nil,
-				enableAuth: false,
-				rbacRules:  rbacRules,
-			},
-		},
-		{
-			name: "InitOnboarding Test Case",
-			args: args{
-				invClient:  dkam_testing.InvClient,
-				enableAuth: true,
-				rbacRules:  rbacRules,
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			InitOnboarding(tt.args.invClient, tt.args.enableAuth, tt.args.rbacRules)
-		})
-	}
 }
 
 func TestDownloadOs(t *testing.T) {
@@ -544,7 +507,7 @@ func TestDownloadOs(t *testing.T) {
 	})
 	svr := httptest.NewServer(mux)
 	defer svr.Close()
-	config.RSProxyTiberOSManifest = svr.URL + "/"
+
 	file.Close()
 	defer func() {
 		err := os.Remove(expectedFilePath)

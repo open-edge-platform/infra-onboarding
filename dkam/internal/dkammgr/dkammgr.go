@@ -7,11 +7,8 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/util"
 	"os"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/invclient"
-
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/policy/rbac"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/curation"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/download"
@@ -55,7 +52,7 @@ func GetCuratedScript(ctx context.Context, os *osv1.OperatingSystemResource) err
 		return err
 	}
 
-	installerExists, patherr := download.PathExists(scriptFileName)
+	installerExists, patherr := util.PathExists(scriptFileName)
 	if patherr != nil {
 		zlog.MiSec().Info().Msgf("Error checking installer file path %v", patherr)
 	}
@@ -126,7 +123,6 @@ func DownloadOS(ctx context.Context, osRes *osv1.OperatingSystemResource) error 
 	if osRes.GetOsType() == osv1.OsType_OS_TYPE_IMMUTABLE {
 		zlog.Debug().Msgf("Skipping OS download for OS type: %s", osRes.GetOsType())
 		return nil
-
 	}
 
 	imageURL := osRes.GetImageUrl()
@@ -151,21 +147,4 @@ func DownloadOS(ctx context.Context, osRes *osv1.OperatingSystemResource) error 
 	zlog.MiSec().Info().Msg("OS Image downloaded and move to PVC")
 	return nil
 
-}
-
-func InitOnboarding(invClient *invclient.DKAMInventoryClient, enableAuth bool, rbacRules string) {
-	if invClient == nil {
-		zlog.Debug().Msgf("Warning: invClient is nil")
-		return
-	}
-
-	var err error
-	if enableAuth {
-		zlog.Info().Msgf("Authentication is enabled, starting RBAC server for DKAM manager")
-		// start OPA server with policies
-		_, err = rbac.New(rbacRules)
-		if err != nil {
-			zlog.Fatal().Msg("Failed to start RBAC OPA server")
-		}
-	}
 }

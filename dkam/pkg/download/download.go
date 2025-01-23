@@ -16,15 +16,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/util"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
 	as "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/artifactservice"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/util"
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
 )
 
 var zlog = logging.GetLogger("MIDKAMAuth")
@@ -64,18 +64,10 @@ type Data struct {
 
 func DownloadMicroOS(ctx context.Context) (bool, error) {
 	zlog.Info().Msgf("Inside Download and sign artifact... %s", config.DownloadPath)
-	yamlFile := filepath.Join(config.DownloadPath, "tmp", config.ReleaseVersion+".yaml")
-	exists, err := PathExists(yamlFile)
+
+	releaseFilePath, err := util.GetReleaseFilePathIfExists()
 	if err != nil {
-		zlog.MiSec().Info().Msgf("Error checking path %v", err)
-	}
-	releaseFilePath := ""
-	if exists {
-		zlog.MiSec().Info().Msg("Path exists:")
-		releaseFilePath = yamlFile
-	} else {
-		zlog.MiSec().Info().Msg("Path not exists:")
-		releaseFilePath = filepath.Join(config.ScriptPath, config.ReleaseVersion+".yaml")
+		return false, err
 	}
 
 	file, err := os.Open(releaseFilePath)
@@ -160,10 +152,7 @@ func DownloadPrecuratedScript(ctx context.Context, profile string) error {
 }
 
 func DownloadArtifacts(ctx context.Context, manifestTag string) error {
-
 	outDir := filepath.Join(config.DownloadPath, "tmp")
-	// 0. cleanup
-	os.RemoveAll(outDir)
 
 	mkErr := os.MkdirAll(outDir, 0755) // 0755 sets read, write, and execute permissions for owner, and read and execute permissions for others
 	if mkErr != nil {
@@ -390,13 +379,13 @@ func DownloadUbuntuImage(ctx context.Context, osRes *osv1.OperatingSystemResourc
 			zlog.MiSec().Error().Err(err).Msgf("Error removing temporary file: image.raw %v", err)
 		}
 	}
-	copyErr := CopyFile(
+	moveErr := MoveFile(
 		tempDownloadDir+"/image.raw.gz",
 		util.GetOSImageLocation(osRes, targetDir),
 	)
-	if copyErr != nil {
-		zlog.MiSec().Error().Err(copyErr).Msgf("Failed to copy file to PV:%v", copyErr)
-		return copyErr
+	if moveErr != nil {
+		zlog.MiSec().Error().Err(moveErr).Msgf("Failed to move file to PV:%v", moveErr)
+		return moveErr
 	}
 
 	zlog.MiSec().Info().Msg("File downloaded, converted into raw format and move to PVC")
@@ -404,8 +393,8 @@ func DownloadUbuntuImage(ctx context.Context, osRes *osv1.OperatingSystemResourc
 
 }
 
-func CopyFile(source, destination string) error {
-	exists, patherr := PathExists(source)
+func MoveFile(source, destination string) error {
+	exists, patherr := util.PathExists(source)
 	if patherr != nil {
 		zlog.MiSec().Error().Err(patherr).Msgf("Error checking file path %v", source)
 		return patherr
@@ -432,15 +421,4 @@ func CopyFile(source, destination string) error {
 		zlog.MiSec().Debug().Msgf("Source file path %s does not exist", source)
 	}
 	return nil
-}
-
-func PathExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil // path exists
-	}
-	if os.IsNotExist(err) {
-		return false, nil // path does not exist
-	}
-	return false, err // an error occurred (other than not existing)
 }

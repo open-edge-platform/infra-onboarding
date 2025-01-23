@@ -7,22 +7,21 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	dkam_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/testing"
+	"gopkg.in/yaml.v2"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path"
 	"path/filepath"
-	"runtime"
 	"testing"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/util"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
 	as "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/artifactservice"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v2"
 )
 
 const testDigest = "TEST_DIGEST"
@@ -64,12 +63,21 @@ const exampleManifest1 = `
 		}],
 		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
 
+var projectRoot string
+
 func TestMain(m *testing.M) {
 	var err error
 	config.PVC, err = os.MkdirTemp(os.TempDir(), "test_pvc")
 	if err != nil {
 		panic(fmt.Sprintf("Error creating temp directory: %v", err))
 	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(fmt.Sprintf("Error getting current directory: %v", err))
+	}
+	projectRoot = filepath.Dir(filepath.Dir(wd))
+
 	run := m.Run()
 	os.Exit(run)
 }
@@ -100,10 +108,6 @@ func TestDownloadUbuntuImage(t *testing.T) {
 		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 	}, config.DownloadPath)
 	require.NoError(t, err)
-
-	// Check the expected file is created
-	// _, err = os.Stat(config.PVC + "/" + expectedFileName)
-	// assert.NoError(t, err)
 }
 
 func TestPathExists(t *testing.T) {
@@ -115,21 +119,22 @@ func TestPathExists(t *testing.T) {
 	_, err = os.Create(expectedFilePath)
 	require.NoError(t, err)
 
-	exists, err := PathExists(expectedFilePath)
+	exists, err := util.PathExists(expectedFilePath)
 	require.NoError(t, err)
 	assert.True(t, exists)
 
-	exists, err = PathExists(tmpFolderPath + "/non_exist")
+	exists, err = util.PathExists(tmpFolderPath + "/non_exist")
 	require.NoError(t, err)
 	assert.False(t, exists)
 
 	invalidPath := string([]byte{0x00})
-	exists, err = PathExists(invalidPath)
+	exists, err = util.PathExists(invalidPath)
 	assert.Error(t, err)
 	assert.False(t, exists)
 }
 
 func TestDownloadArtifacts(t *testing.T) {
+	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	tmpFolderPath, err := os.MkdirTemp("/tmp", "test_download_artifacts")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpFolderPath)
@@ -161,19 +166,10 @@ func TestDownloadArtifacts(t *testing.T) {
 	// err = DownloadArtifacts(config.PVC, testTag, testManifest)
 	err = DownloadArtifacts(context.Background(), testTag)
 	assert.NoError(t, err)
-
-	// // Assert file is created with expected content
-	// _, err = os.Stat(expectedFilePath)
-	// require.NoError(t, err)
-	// data, err := os.ReadFile(expectedFilePath)
-	// require.NoError(t, err)
-	// assert.Equal(t, expectedFileContent, string(data))
 }
 
 func TestDownloadMicroOS(t *testing.T) {
-	_, filename, _, _ := runtime.Caller(0)
-	localPath := path.Dir(filename)
-
+	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	expectedFileContent := "GOOD TEST!"
 
 	// Create temporary folder and expected files and folder required by the DownloadMicroOS function
@@ -183,13 +179,6 @@ func TestDownloadMicroOS(t *testing.T) {
 	dkamTmpFolderPath := tmpFolderPath + "/tmp/"
 	dkamHookFolderPath := tmpFolderPath + "/hook/"
 	err = os.MkdirAll(dkamTmpFolderPath, 0755)
-	require.NoError(t, err)
-
-	// Create a fake EN Manifest in tmp folder copying the local example
-	expectedManifestFilePath := dkamTmpFolderPath + config.ReleaseVersion + ".yaml"
-	data, err := os.ReadFile(localPath + "/../../test/testdata/example-manifest-internal-rs.yaml")
-	require.NoError(t, err)
-	err = os.WriteFile(expectedManifestFilePath, data, 0755)
 	require.NoError(t, err)
 
 	// Fake server to serve expected requests
@@ -310,8 +299,7 @@ func Test_installPackage(t *testing.T) {
 }
 
 func TestDownloadMicroOS_Case1(t *testing.T) {
-	_, filename, _, _ := runtime.Caller(0)
-	localPath := path.Dir(filename)
+	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	expectedFileContent := "GOOD TEST!"
 	tmpFolderPath, err := os.MkdirTemp("/tmp", "test_download_microOS")
 	require.NoError(t, err)
@@ -320,11 +308,7 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 	dkamHookFolderPath := tmpFolderPath + "/hook/"
 	err = os.MkdirAll(dkamTmpFolderPath, 0755)
 	require.NoError(t, err)
-	expectedManifestFilePath := dkamTmpFolderPath + config.ReleaseVersion + ".yaml"
-	data, err := os.ReadFile(localPath + "/../../test/testdata/example-manifest-internal-rs.yaml")
-	require.NoError(t, err)
-	err = os.WriteFile(expectedManifestFilePath, data, 0755)
-	require.NoError(t, err)
+
 	mux := http.NewServeMux()
 	returnWrongManifest := false
 	mux.HandleFunc("/manifests/HOOK_OS_VERSION", func(w http.ResponseWriter, req *http.Request) {
@@ -393,10 +377,10 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 			fmt.Printf("Error writing YAML to file: %v\n", err)
 			return
 		}
-		defer func() {
-			// ignore error, usually not exists
-			os.Remove(yamlFilePath)
-		}()
+		//defer func() {
+		//	// ignore error, usually not exists
+		//	os.Remove(yamlFilePath)
+		//}()
 		returnWrongManifest = true
 
 	})
@@ -482,6 +466,7 @@ func TestDownloadUbuntuImage_Negative(t *testing.T) {
 }
 
 func TestDownloadPrecuratedScript(t *testing.T) {
+	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	expAcceptHeader := "application/vnd.oci.image.manifest.v1+json"
 	// svr1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	// 	assert.Equal(t, r.Header.Get("Accept"), expAcceptHeader)

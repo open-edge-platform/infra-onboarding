@@ -5,21 +5,22 @@ package curation
 
 import (
 	"fmt"
-	"io"
+	dkam_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/testing"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	currentDir string
+	currentDir  string
+	projectRoot string
 )
 
 func TestMain(m *testing.M) {
@@ -27,6 +28,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(fmt.Sprintf("Error getting current directory: %v", err))
 	}
+	projectRoot = filepath.Dir(filepath.Dir(wd))
 	currentDir = wd
 	config.ScriptPath = strings.Replace(currentDir, "curation", "script", -1)
 	config.PVC, err = os.MkdirTemp(os.TempDir(), "test_pvc")
@@ -241,6 +243,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 }
 
 func Test_GetCuratedScript(t *testing.T) {
+	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	os.Setenv("NETIP", "static")
 
 	os.MkdirAll(config.DownloadPath, 0755)
@@ -286,11 +289,13 @@ func Test_GetCuratedScript(t *testing.T) {
 		ProfileName: "profile",
 		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 	}
+
 	err = CurateScript(osr)
 	assert.NoError(t, err)
 }
 
 func Test_GetCuratedScript_Case(t *testing.T) {
+	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	config.OrchCACertificateFile = config.ScriptPath + "/Installer.cfg"
 
 	os.MkdirAll(config.DownloadPath, 0755)
@@ -393,11 +398,13 @@ func Test_GetCuratedScript_Case(t *testing.T) {
     }
 ]
 `)
+
 	err := CurateScript(osr)
 	assert.NoError(t, err)
 }
 
 func Test_GetCuratedScript_Case1(t *testing.T) {
+	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
 	os.MkdirAll(config.DownloadPath, 0755)
 
@@ -438,6 +445,7 @@ func Test_GetCuratedScript_Case1(t *testing.T) {
 }
 
 func Test_GetCuratedScript_Case2(t *testing.T) {
+	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	os.Setenv("SOCKS_PROXY", "proxy")
 	os.MkdirAll(config.DownloadPath, 0755)
 
@@ -480,6 +488,7 @@ func Test_GetCuratedScript_Case2(t *testing.T) {
 }
 
 func Test_GetCuratedScript_Case3(t *testing.T) {
+	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	os.MkdirAll(config.DownloadPath, 0755)
 
 	dummyData := `#!/bin/bash
@@ -508,7 +517,7 @@ func Test_GetCuratedScript_Case3(t *testing.T) {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 	src := strings.Replace(currentDir, "curation", "script/latest-dev.yaml", -1)
-	CopyFile(src, res)
+	dkam_testing.CopyFile(src, res)
 	os.Setenv("NETIP", "static")
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
 	defer os.Unsetenv("ORCH_CLUSTER")
@@ -521,7 +530,7 @@ func Test_GetCuratedScript_Case3(t *testing.T) {
 	assert.NoError(t, err)
 	defer func() {
 		os.Unsetenv("NETIP")
-		CopyFile(res, src)
+		dkam_testing.CopyFile(res, src)
 		os.Remove(res)
 		os.Remove(config.PVC + "/installer.sh")
 		os.Remove(config.PVC + "/profile.sh")
@@ -531,6 +540,7 @@ func Test_GetCuratedScript_Case3(t *testing.T) {
 }
 
 func Test_GetCuratedScript_Case4(t *testing.T) {
+	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	os.MkdirAll(config.DownloadPath, 0755)
 
 	dummyData := `#!/bin/bash
@@ -558,12 +568,12 @@ func Test_GetCuratedScript_Case4(t *testing.T) {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 	src := strings.Replace(currentDir, "curation", "script/latest-dev.yaml", -1)
-	CopyFile(src, res)
+	dkam_testing.CopyFile(src, res)
 	os.Setenv("NETIP", "static")
 	direc := config.PVC + "/tmp/"
 	os.MkdirAll(direc, 0755)
 	os.Create(direc + "latest-dev.yaml")
-	CopyFile(src, direc+"latest-dev.yaml")
+	dkam_testing.CopyFile(src, direc+"latest-dev.yaml")
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
 	defer os.Unsetenv("ORCH_CLUSTER")
 	osr := &osv1.OperatingSystemResource{
@@ -575,36 +585,13 @@ func Test_GetCuratedScript_Case4(t *testing.T) {
 	assert.NoError(t, err)
 	defer func() {
 		os.Unsetenv("NETIP")
-		CopyFile(res, src)
+		dkam_testing.CopyFile(res, src)
 		os.Remove(res)
 		os.Remove(config.PVC + "/installer.sh")
 		os.Remove(config.PVC + "/profile.sh")
 		os.Remove(config.PVC + "/profile/installer.sh")
 		os.Remove(config.DownloadPath + "/profile.sh")
 	}()
-}
-
-func CopyFile(src, dst string) error {
-	srcFile, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer srcFile.Close()
-	if err := os.MkdirAll(filepath.Dir(src), 0755); err != nil {
-		return err
-	}
-	dstFile, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer dstFile.Close()
-
-	_, err = io.Copy(dstFile, srcFile)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func Test_copyFile(t *testing.T) {
@@ -691,7 +678,7 @@ func TestGetReleaseArtifactList_NegativeCase(t *testing.T) {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 	src := strings.Replace(currentDir, "curation", "script/latest-dev.yaml", -1)
-	CopyFile(src, res)
+	dkam_testing.CopyFile(src, res)
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
@@ -765,7 +752,7 @@ func TestCreateOverlayScript(t *testing.T) {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 	srcs := strings.Replace(currentDir, "curation", "script/Installer", -1)
-	CopyFile(srcs, dst)
+	dkam_testing.CopyFile(srcs, dst)
 	type args struct {
 		pwd     string
 		profile string
@@ -802,7 +789,7 @@ func TestCreateOverlayScript(t *testing.T) {
 		os.Remove(currentDir + "/data/data.sh")
 		os.Remove(currentDir + "/data/default/installer.sh")
 		os.Remove(config.DownloadPath + "/default.sh")
-		CopyFile(dst, srcs)
+		dkam_testing.CopyFile(dst, srcs)
 		os.Unsetenv("MODE")
 	}()
 }
@@ -852,7 +839,7 @@ func TestCreateOverlayScript_Case(t *testing.T) {
 		fmt.Println("Error creating file:", err2)
 	}
 	srcs := strings.Replace(currentDir, "curation", "script/Installer", -1)
-	CopyFile(srcs, dst)
+	dkam_testing.CopyFile(srcs, dst)
 	type args struct {
 		pwd     string
 		profile string
@@ -891,7 +878,7 @@ func TestCreateOverlayScript_Case(t *testing.T) {
 		os.Remove(currentDir + "/data/data.sh")
 		os.Remove(currentDir + "/data/default/installer.sh")
 		os.Remove(config.DownloadPath + "/default.sh")
-		CopyFile(dst, srcs)
+		dkam_testing.CopyFile(dst, srcs)
 	}()
 }
 
@@ -942,7 +929,7 @@ func TestCreateOverlayScript_Case1(t *testing.T) {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 	srcs := strings.Replace(currentDir, "curation", "script/Installer", -1)
-	CopyFile(srcs, dst)
+	dkam_testing.CopyFile(srcs, dst)
 	type args struct {
 		pwd     string
 		profile string
@@ -981,7 +968,7 @@ func TestCreateOverlayScript_Case1(t *testing.T) {
 		os.Remove(currentDir + "/data/data.sh")
 		os.Remove(currentDir + "/data/default/installer.sh")
 		os.Remove(config.DownloadPath + "/default.sh")
-		CopyFile(dst, srcs)
+		dkam_testing.CopyFile(dst, srcs)
 	}()
 }
 
@@ -1015,7 +1002,7 @@ func TestCreateOverlayScript_Case2(t *testing.T) {
 		fmt.Println("Error creating file:", err2)
 	}
 	srcs := strings.Replace(currentDir, "curation", "script/Installer", -1)
-	CopyFile(srcs, dst)
+	dkam_testing.CopyFile(srcs, dst)
 	type args struct {
 		pwd     string
 		profile string
@@ -1052,7 +1039,7 @@ func TestCreateOverlayScript_Case2(t *testing.T) {
 		os.Remove(currentDir + "/data/data.sh")
 		os.Remove(currentDir + "/data/default/installer.sh")
 		os.Remove(config.DownloadPath + "/default.sh")
-		CopyFile(dst, srcs)
+		dkam_testing.CopyFile(dst, srcs)
 	}()
 }
 
@@ -1103,7 +1090,7 @@ func TestCreateOverlayScript_Case4(t *testing.T) {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 	srcs := strings.Replace(currentDir, "curation", "script/Installer", -1)
-	CopyFile(srcs, dst)
+	dkam_testing.CopyFile(srcs, dst)
 	type args struct {
 		pwd     string
 		profile string
@@ -1142,7 +1129,7 @@ func TestCreateOverlayScript_Case4(t *testing.T) {
 		os.Remove(currentDir + "/data/data.sh")
 		os.Remove(currentDir + "/data/default/installer.sh")
 		os.Remove(config.DownloadPath + "/default.sh")
-		CopyFile(dst, srcs)
+		dkam_testing.CopyFile(dst, srcs)
 	}()
 }
 
@@ -1172,7 +1159,7 @@ func TestCreateOverlayScript_Case3(t *testing.T) {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 	srcs := strings.Replace(currentDir, "curation", "script/Installer", -1)
-	CopyFile(srcs, dst)
+	dkam_testing.CopyFile(srcs, dst)
 
 	path := "/etc/ssl/orch-ca-cert/ca.crt"
 	err2 := os.MkdirAll("/etc/ssl/orch-ca-cert", 0755)
@@ -1229,7 +1216,7 @@ func TestCreateOverlayScript_Case3(t *testing.T) {
 		os.Remove(currentDir + "/data/data.sh")
 		os.Remove(currentDir + "/data/default/installer.sh")
 		os.Remove(config.DownloadPath + "/default.sh")
-		CopyFile(dst, srcs)
+		dkam_testing.CopyFile(dst, srcs)
 		os.RemoveAll(path)
 	}()
 }
@@ -1307,6 +1294,7 @@ func TestAddFirewallRules(t *testing.T) {
 }
 
 func TestGetCuratedScript(t *testing.T) {
+	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
 	defer os.Unsetenv("ORCH_CLUSTER")
 
@@ -1368,7 +1356,7 @@ func TestCreateOverlayScript_Err(t *testing.T) {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 	srcs := strings.Replace(currentDir, "curation", "script/Installer", -1)
-	CopyFile(srcs, dst)
+	dkam_testing.CopyFile(srcs, dst)
 	type args struct {
 		pwd     string
 		profile string
@@ -1405,41 +1393,8 @@ func TestCreateOverlayScript_Err(t *testing.T) {
 		os.Remove(currentDir + "/data/data.sh")
 		os.Remove(currentDir + "/data/default/installer.sh")
 		os.Remove(config.DownloadPath + "/default.sh")
-		CopyFile(dst, srcs)
+		dkam_testing.CopyFile(dst, srcs)
 	}()
-}
-
-func TestPathExists(t *testing.T) {
-	type args struct {
-		path string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    bool
-		wantErr bool
-	}{
-		{
-			name: "Path exists test case",
-			args: args{
-				path: string([]byte{0x00}),
-			},
-			want:    false,
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := PathExists(tt.args.path)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("PathExists() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("PathExists() = %v, want %v", got, tt.want)
-			}
-		})
-	}
 }
 
 func TestCurateScriptFromTemplate(t *testing.T) {
