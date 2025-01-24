@@ -61,6 +61,13 @@ POSTGRES_VERSION          := 16.4
 BUFVERSION_REQ		      := 1.45.0
 OPAVERSION_REQ            := 0.69.0
 
+PROTOCGENGOGRPCVERSION_HAVE     := $(shell protoc-gen-go-grpc -version | sed s/.*"protoc-gen-go-grpc "// | sed 's/ .*//')
+PROTOCGENGOGRPCVERSION_REQ      := 1.2.0
+PROTOCGENGOVERSION_HAVE         := $(shell protoc-gen-go --version | sed s/.*"protoc-gen-go v"// | sed 's/ .*//')
+PROTOCGENGOVERSION_REQ          := 1.30.0
+PROTOCGENVALIDATEGOVERSION_REQ  := 1.0.1
+
+
 GOCMD := GOPRIVATE="github.com/intel-innersource/*" go
 
 # Create the virtualenv with python tools installed
@@ -158,6 +165,9 @@ buf-gen: ## compile protoc files into code
 
 go-dependency: ## install go dependency tooling
 	$(GOCMD) install github.com/bufbuild/buf/cmd/buf@v${BUFVERSION_REQ}
+	$(GOCMD) install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v${PROTOCGENGOGRPCVERSION_REQ}
+	$(GOCMD) install google.golang.org/protobuf/cmd/protoc-gen-go@v${PROTOCGENGOVERSION_REQ}
+	$(GOCMD) install github.com/envoyproxy/protoc-gen-validate@v${PROTOCGENVALIDATEGOVERSION_REQ}
 
 go-lint: ## lint code
 	golangci-lint --version
