@@ -150,7 +150,7 @@ func (ir *InstanceReconciler) updateHostInstanceStatusAndCurrentState(
 		if err := ir.invClient.SetHostOnboardingStatus(
 			ctx, newHost.GetTenantId(), newHost.GetResourceId(),
 			inv_status.New(newHost.GetOnboardingStatus(), newHost.GetOnboardingStatusIndicator())); err != nil {
-			zlogInst.MiSec().MiErr(err).Msgf("Failed to update host status")
+			zlogInst.InfraSec().InfraErr(err).Msgf("Failed to update host status")
 		}
 	}
 
@@ -167,7 +167,7 @@ func (ir *InstanceReconciler) updateHostInstanceStatusAndCurrentState(
 			inv_status.New(newInstance.GetProvisioningStatus(), newInstance.GetProvisioningStatusIndicator()),
 			newInstance.GetCurrentOs(),
 		); err != nil {
-			zlogInst.MiSec().MiErr(err).Msgf("Failed to update instance status")
+			zlogInst.InfraSec().InfraErr(err).Msgf("Failed to update instance status")
 		}
 	}
 }
@@ -196,7 +196,7 @@ func (ir *InstanceReconciler) reconcileInstance(
 	}
 
 	if instance.GetDesiredState() == computev1.InstanceState_INSTANCE_STATE_DELETED {
-		zlogInst.MiSec().Info().Msgf("Deleting instance (set current status to Deleted)")
+		zlogInst.InfraSec().Info().Msgf("Deleting instance (set current status to Deleted)")
 
 		if err := ir.cleanupProvisioningResources(ctx, instance); err != nil {
 			if directive := HandleProvisioningError(err, request); directive != nil {
@@ -314,7 +314,7 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 		return nil
 	}
 
-	if instance.GetDesiredOs().GetOsProvider() != osv1.OsProviderKind_OS_PROVIDER_KIND_EIM {
+	if instance.GetDesiredOs().GetOsProvider() != osv1.OsProviderKind_OS_PROVIDER_KIND_INFRA {
 		zlogInst.Debug().Msgf("Skipping OS provisioning for %s due to OS provider kind: %s",
 			instance.GetResourceId(), instance.GetDesiredOs().GetOsProvider().String())
 		return nil
@@ -322,7 +322,7 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 
 	deviceInfo, err := convertInstanceToDeviceInfo(instance)
 	if err != nil {
-		zlogInst.MiSec().Err(err).Msgf("Failed convertInstanceToDeviceInfo - Instance %s with Host UUID %s",
+		zlogInst.InfraSec().Err(err).Msgf("Failed convertInstanceToDeviceInfo - Instance %s with Host UUID %s",
 			instance.GetResourceId(), instance.GetHost().GetUuid())
 		return err
 	}
@@ -340,14 +340,14 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 		}
 		// should be safe to not return an error
 		// if the inventory client fails, this will be eventually fixed in the next reconciliation cycle
-		zlogInst.MiSec().Err(err).Msgf("Updating Host and Instance status - Instance %s with Host UUID %s",
+		zlogInst.InfraSec().Err(err).Msgf("Updating Host and Instance status - Instance %s with Host UUID %s",
 			instance.GetResourceId(), instance.GetHost().GetUuid())
 		ir.updateHostInstanceStatusAndCurrentState(ctx, oldInstance, instance)
 	}()
 
 	// Check status of Prod Workflow and initiate if it's not running.
 	if err := onbworkflowclient.CheckStatusOrRunProdWorkflow(ctx, deviceInfo, instance); err != nil {
-		zlogInst.MiSec().Err(err).Msgf("Failed CheckStatusOrRunProdWorkflow - Instance %s with Host UUID %s",
+		zlogInst.InfraSec().Err(err).Msgf("Failed CheckStatusOrRunProdWorkflow - Instance %s with Host UUID %s",
 			instance.GetResourceId(), instance.GetHost().GetUuid())
 		return err
 	}

@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/pkg/status"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/inventory/v1"
 	network_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/network/v1"
@@ -21,6 +20,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/client"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/status"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/testing"
+	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/pkg/status"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -996,7 +996,7 @@ func TestOnboardingInventoryClient_CreateOSResource(t *testing.T) {
 				os: &osv1.OperatingSystemResource{
 					OsType:     osv1.OsType_OS_TYPE_IMMUTABLE,
 					TenantId:   tenant1,
-					OsProvider: osv1.OsProviderKind_OS_PROVIDER_KIND_EIM,
+					OsProvider: osv1.OsProviderKind_OS_PROVIDER_KIND_INFRA,
 				},
 			},
 			wantErr: false,

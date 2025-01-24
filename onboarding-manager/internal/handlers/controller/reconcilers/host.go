@@ -141,28 +141,28 @@ func (hr *HostReconciler) deleteHost(
 	// following functions are only modifying current state
 	// we continue to delete other host objects in case of not found errors
 	if err := hr.deleteHostNicByHost(ctx, host); err != nil {
-		zlogHost.MiSec().MiError("Failed to delete host nic resource of Host").Msg("deleteHost")
+		zlogHost.InfraSec().InfraError("Failed to delete host nic resource of Host").Msg("deleteHost")
 		return err
 	}
 
 	if err := hr.deleteHostStorageByHost(ctx, host); err != nil {
-		zlogHost.MiSec().MiError("Failed to delete host storage resource of Host").Msg("deleteHost")
+		zlogHost.InfraSec().InfraError("Failed to delete host storage resource of Host").Msg("deleteHost")
 		return err
 	}
 
 	if err := hr.deleteHostUsbByHost(ctx, host); err != nil {
-		zlogHost.MiSec().MiError("Failed to delete host usb resource of Host").Msg("deleteHost")
+		zlogHost.InfraSec().InfraError("Failed to delete host usb resource of Host").Msg("deleteHost")
 		return err
 	}
 
 	if err := hr.deleteHostGpuByHost(ctx, host); err != nil {
-		zlogHost.MiSec().MiError("Failed to delete host gpu resource of Host").Msg("deleteHost")
+		zlogHost.InfraSec().InfraError("Failed to delete host gpu resource of Host").Msg("deleteHost")
 		return err
 	}
 
 	err := hr.invClient.DeleteHostResource(ctx, host.GetTenantId(), host.GetResourceId())
 	if err != nil {
-		zlogHost.MiSec().MiError("Failed to delete Host").Msg("deleteHost")
+		zlogHost.InfraSec().InfraError("Failed to delete Host").Msg("deleteHost")
 		// inventory error will be handled by upper layer
 		return err
 	}
@@ -272,10 +272,10 @@ func (hr *HostReconciler) invalidateHost(ctx context.Context, host *computev1.Ho
 	// OM is the only source of truth for state reconciliation. Anyway, this operation is safe to
 	// HRM because once the state is moved to UNTRUSTED, HRM won't perform any runtime status update.
 	if err := hr.invClient.UpdateHostStateAndRuntimeStatus(ctx, host.GetTenantId(), &untrustedHost); err != nil {
-		zlogHost.MiSec().MiError("Failed to update host state and status").Msg("invalidateHost")
+		zlogHost.InfraSec().InfraError("Failed to update host state and status").Msg("invalidateHost")
 		return err
 	}
 
-	zlogHost.MiSec().Info().Msgf("Host %s is invalidated", host.GetHostname())
+	zlogHost.InfraSec().Info().Msgf("Host %s is invalidated", host.GetHostname())
 	return nil
 }

@@ -51,7 +51,7 @@ func CreateWorkflowIfNotExists(ctx context.Context, k8sCli client.Client, workfl
 		zlog.Debug().Msgf("Creating new Tinkerbell workflow %s.", workflow.Name)
 		createErr := k8sCli.Create(ctx, workflow)
 		if createErr != nil {
-			zlog.MiSec().MiErr(err).Msgf("")
+			zlog.InfraSec().InfraErr(err).Msgf("")
 			return inv_errors.Errorf("Failed to create Tinkerbell workflow %s", workflow.Name)
 		}
 
@@ -59,7 +59,7 @@ func CreateWorkflowIfNotExists(ctx context.Context, k8sCli client.Client, workfl
 	}
 
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("")
+		zlog.InfraSec().InfraErr(err).Msgf("")
 		// some other error that may need retry
 		return inv_errors.Errorf("Failed to check if Tinkerbell workflow %s exists.", workflow.Name)
 	}
@@ -92,7 +92,7 @@ func DeleteProdWorkflowResourcesIfExist(ctx context.Context, k8sNamespace, hostU
 	}
 
 	if err = kubeClient.Delete(ctx, prodTemplate); err != nil && !errors.IsNotFound(err) {
-		zlog.MiSec().MiErr(err).Msg("")
+		zlog.InfraSec().InfraErr(err).Msg("")
 		zlog.Debug().Msgf("Failed to delete prod template resources for host %s", hostUUID)
 		return inv_errors.Errorf("Failed to delete prod template resources for host")
 	}
@@ -111,7 +111,7 @@ func DeleteProdWorkflowResourcesIfExist(ctx context.Context, k8sNamespace, hostU
 	}
 
 	if err = kubeClient.Delete(ctx, prodWorkflow); err != nil && !errors.IsNotFound(err) {
-		zlog.MiSec().MiErr(err).Msg("")
+		zlog.InfraSec().InfraErr(err).Msg("")
 		zlog.Debug().Msgf("Failed to delete prod workflow resources for host %s", hostUUID)
 		return inv_errors.Errorf("Failed to delete prod workflow resources for host")
 	}

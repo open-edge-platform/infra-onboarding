@@ -100,7 +100,7 @@ func runProdWorkflow(
 	deviceInfo.TenantID = instance.GetTenantId()
 	prodTemplate, err := tinkerbell.GenerateTemplateForProd(env.K8sNamespace, deviceInfo)
 	if err != nil {
-		zlog.MiErr(err).Msg("")
+		zlog.InfraErr(err).Msg("")
 		return inv_errors.Errorf("Failed to generate Tinkerbell prod template for host %s", deviceInfo.GUID)
 	}
 
@@ -136,12 +136,12 @@ func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName string)
 	got := &tink.Workflow{}
 	clientErr := k8sCli.Get(ctx, types.NamespacedName{Namespace: env.K8sNamespace, Name: workflowName}, got)
 	if clientErr != nil && errors.IsNotFound(clientErr) {
-		zlog.MiSec().Debug().Msgf("%s", clientErr)
+		zlog.InfraSec().Debug().Msgf("%s", clientErr)
 		return nil, inv_errors.Errorfc(codes.NotFound, "Workflow %s doesn't exist", workflowName)
 	}
 
 	if clientErr != nil {
-		zlog.MiSec().MiErr(clientErr).Msgf("")
+		zlog.InfraSec().InfraErr(clientErr).Msgf("")
 		// some other error that may need retry
 		return nil, inv_errors.Errorf("Failed to get workflow %s status.", workflowName)
 	}
@@ -227,7 +227,7 @@ func createENCredentialsIfNotExists(ctx context.Context, tenantID string, device
 	}
 
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("")
+		zlog.InfraSec().InfraErr(err).Msgf("")
 		// some other error that may need retry
 		return "", "", inv_errors.Errorf("Failed to check if EN credentials for host %s exist.", deviceInfo.GUID)
 	}
@@ -295,7 +295,7 @@ func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.W
 
 		return inv_errors.Errorfr(inv_errors.Reason_OPERATION_IN_PROGRESS, "")
 	default:
-		zlog.MiSec().MiError("Unknown workflow state %s", workflow.Status.State)
+		zlog.InfraSec().InfraError("Unknown workflow state %s", workflow.Status.State)
 		return inv_errors.Errorf("Unknown workflow state %s", workflow.Status.State)
 	}
 }

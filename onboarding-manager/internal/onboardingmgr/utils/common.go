@@ -68,7 +68,7 @@ func Init(filename string) {
 	once.Do(func() {
 		file, errLogTimeStamp = os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, FileModeReadWriteAll)
 		if errLogTimeStamp != nil {
-			zlog.MiSec().MiErr(errLogTimeStamp).Msgf("failed to open timestamp log file")
+			zlog.InfraSec().InfraErr(errLogTimeStamp).Msgf("failed to open timestamp log file")
 		}
 	})
 }
@@ -78,7 +78,7 @@ func TimeStamp(message string) {
 	timestamp := time.Now().Format(time.RFC3339)
 	_, err := fmt.Fprintf(file, "%s: %s\n", timestamp, message)
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("failed to write to timestamp log file")
+		zlog.InfraSec().InfraErr(err).Msgf("failed to write to timestamp log file")
 	}
 }
 
@@ -87,7 +87,7 @@ func Close() {
 	if file != nil {
 		err := file.Close()
 		if err != nil {
-			zlog.MiSec().MiErr(err).Msgf("failed to close timestamp log file")
+			zlog.InfraSec().InfraErr(err).Msgf("failed to close timestamp log file")
 		}
 	}
 }
@@ -105,7 +105,7 @@ func FetchClientSecret(ctx context.Context, tenantID, uuid string) (string, stri
 	}
 
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("")
+		zlog.InfraSec().InfraErr(err).Msgf("")
 		// some other error that may need retry
 		zlog.Debug().Msgf("Failed to check if EN credentials for host %s exist.", uuid)
 		return "", "", inv_errors.Errorf("Failed to check if EN credentials for host exist.")

@@ -83,7 +83,7 @@ func (obc *OnboardingController) Start() error {
 	obc.wg.Add(1)
 	go obc.controlLoop()
 
-	zlog.MiSec().Info().Msgf("Onboarding controller started")
+	zlog.InfraSec().Info().Msgf("Onboarding controller started")
 	return nil
 }
 
@@ -93,7 +93,7 @@ func (obc *OnboardingController) Stop() {
 	for _, ctrl := range obc.controllers {
 		ctrl.Stop()
 	}
-	zlog.MiSec().Info().Msgf("Onboarding controller stopped")
+	zlog.InfraSec().Info().Msgf("Onboarding controller stopped")
 }
 
 func (obc *OnboardingController) controlLoop() {
@@ -104,7 +104,7 @@ func (obc *OnboardingController) controlLoop() {
 		select {
 		case ev, ok := <-obc.invClient.Watcher:
 			if !ok {
-				zlog.MiSec().Fatal().Msg("gRPC stream with inventory closed")
+				zlog.InfraSec().Fatal().Msg("gRPC stream with inventory closed")
 				return
 			}
 			if !obc.filterEvent(ev.Event) {
@@ -113,15 +113,15 @@ func (obc *OnboardingController) controlLoop() {
 			}
 			tID, resID, err := util.GetResourceKeyFromResource(ev.Event.GetResource())
 			if err != nil {
-				zlog.MiSec().Err(err).Msgf("Failed to get resource key from event: event=%v", ev.Event)
+				zlog.InfraSec().Err(err).Msgf("Failed to get resource key from event: event=%v", ev.Event)
 				continue
 			}
 			if err := obc.reconcileResource(tID, resID); err != nil {
-				zlog.MiSec().MiErr(err).Msgf("reconciliation resource failed")
+				zlog.InfraSec().InfraErr(err).Msgf("reconciliation resource failed")
 			}
 		case <-ticker.C:
 			if err := obc.reconcileAll(); err != nil {
-				zlog.MiSec().MiErr(err).Msgf("full reconciliation failed")
+				zlog.InfraSec().InfraErr(err).Msgf("full reconciliation failed")
 			}
 		case <-obc.stop:
 			obc.wg.Done()
@@ -133,13 +133,13 @@ func (obc *OnboardingController) controlLoop() {
 func (obc *OnboardingController) filterEvent(event *inv_v1.SubscribeEventsResponse) bool {
 	zlog.Debug().Msgf("New inventory event received. ResourceID=%v, Kind=%s", event.ResourceId, event.EventKind)
 	if err := validator.ValidateMessage(event); err != nil {
-		zlog.MiSec().MiErr(err).Msgf("Invalid event received: %s", event.ResourceId)
+		zlog.InfraSec().InfraErr(err).Msgf("Invalid event received: %s", event.ResourceId)
 		return false
 	}
 
 	expectedKind, err := util.GetResourceKindFromResourceID(event.ResourceId)
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("Unknown resource kind for ID %s.", event.ResourceId)
+		zlog.InfraSec().InfraErr(err).Msgf("Unknown resource kind for ID %s.", event.ResourceId)
 		return false
 	}
 	filter, ok := obc.filters[expectedKind]

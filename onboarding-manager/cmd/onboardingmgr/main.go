@@ -68,7 +68,7 @@ var (
 
 func printSummary() {
 	zlog.Info().Msgf("Starting IFM Onboarding Manager")
-	zlog.MiSec().Info().Msgf("RepoURL: %s, Version: %s, Revision: %s, BuildDate: %s\n",
+	zlog.InfraSec().Info().Msgf("RepoURL: %s, Version: %s, Revision: %s, BuildDate: %s\n",
 		RepoURL, Version, Revision, BuildDate)
 }
 
@@ -91,7 +91,7 @@ func setupOamServerAndSetReady(enableTracing bool, oamServerAddress string) {
 		wg.Add(1)
 		go func() {
 			if err := oam.StartOamGrpcServer(termChan, readyChan, &wg, oamServerAddress, enableTracing); err != nil {
-				zlog.MiSec().Fatal().Err(err).Msg("Cannot start Inventory OAM gRPC server")
+				zlog.InfraSec().Fatal().Err(err).Msg("Cannot start Inventory OAM gRPC server")
 			}
 		}()
 		readyChan <- true
@@ -130,7 +130,7 @@ func main() {
 		invclient.WithEnableMetrics(*enableMetrics),
 	)
 	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Unable to start onboarding inventory client")
+		zlog.InfraSec().Fatal().Err(err).Msgf("Unable to start onboarding inventory client")
 	}
 
 	onboarding.InitOnboarding(invClient, *dkamAddr, *enableAuth, *rbacRules)
@@ -138,25 +138,25 @@ func main() {
 	onboardingCredentialsSecretName := os.Getenv(envNameOnboardingCredentialsSecretName)
 	if onboardingCredentialsSecretName == "" {
 		invErr := inv_errors.Errorf("%s env variable is not set, using default value", envNameOnboardingCredentialsSecretName)
-		zlog.MiSec().Fatal().Err(invErr).Msgf("")
+		zlog.InfraSec().Fatal().Err(invErr).Msgf("")
 	}
 
 	if initErr := secretprovider.Init(context.Background(), []string{onboardingCredentialsSecretName}); initErr != nil {
-		zlog.MiSec().Fatal().Err(initErr).Msgf("Unable to initialize required secrets")
+		zlog.InfraSec().Fatal().Err(initErr).Msgf("Unable to initialize required secrets")
 	}
 
 	if authInitErr := auth.Init(); authInitErr != nil {
-		zlog.MiSec().Fatal().Err(authInitErr).Msgf("Unable to initialize auth service")
+		zlog.InfraSec().Fatal().Err(authInitErr).Msgf("Unable to initialize auth service")
 	}
 
 	onboardingController, err := controller.New(invClient, *enableTracing)
 	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Unable to create onboarding controller")
+		zlog.InfraSec().Fatal().Err(err).Msgf("Unable to create onboarding controller")
 	}
 
 	err = onboardingController.Start()
 	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Unable to start onboarding controller")
+		zlog.InfraSec().Fatal().Err(err).Msgf("Unable to start onboarding controller")
 	}
 
 	// SB handler for IO.
@@ -170,13 +170,13 @@ func main() {
 		RBAC:             *rbacRules,
 	})
 	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Unable to create southbound handler")
+		zlog.InfraSec().Fatal().Err(err).Msgf("Unable to create southbound handler")
 	}
 
 	// start SB IO handler.
 	err = sbHandler.Start()
 	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Unable to start southbound handler")
+		zlog.InfraSec().Fatal().Err(err).Msgf("Unable to start southbound handler")
 	}
 
 	// SB handler for NIO.
@@ -186,12 +186,12 @@ func main() {
 		InventoryAddress: *inventoryAddress,
 	})
 	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Unable to create southbound handler")
+		zlog.InfraSec().Fatal().Err(err).Msgf("Unable to create southbound handler")
 	}
 	// start SB NIO handler.
 	err = sbnioHandler.Start()
 	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Unable to start southbound handler")
+		zlog.InfraSec().Fatal().Err(err).Msgf("Unable to start southbound handler")
 	}
 
 	setupOamServerAndSetReady(*enableTracing, *oamServerAddress)

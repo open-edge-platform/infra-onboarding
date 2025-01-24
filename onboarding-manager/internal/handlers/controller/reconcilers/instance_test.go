@@ -70,7 +70,7 @@ func createOsWithArgs(tb testing.TB, doCleanup bool,
 		InstalledPackages: "intel-opencl-icd\nintel-level-zero-gpu\nlevel-zero",
 		SecurityFeature:   osv1.SecurityFeature_SECURITY_FEATURE_UNSPECIFIED,
 		OsType:            osv1.OsType_OS_TYPE_IMMUTABLE,
-		OsProvider:        osv1.OsProviderKind_OS_PROVIDER_KIND_EIM,
+		OsProvider:        osv1.OsProviderKind_OS_PROVIDER_KIND_INFRA,
 	}
 	resp, err := inv_testing.GetClient(tb, inv_testing.APIClient).Create(ctx,
 		&inv_v1.Resource{Resource: &inv_v1.Resource_Os{Os: osr}})
@@ -260,8 +260,8 @@ func TestReconcileInstance(t *testing.T) {
 
 	host := inv_testing.CreateHost(t, nil, nil)
 	osRes := createOsWithArgs(t, true)
-	_ = createProviderWithArgs(t, true, osRes.ResourceId, "fm_onboarding", providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL) // Creating Provider profile which would be fetched by the reconciler.
-	instance := inv_testing.CreateInstanceNoCleanup(t, host, osRes)                                                         // Instance should not be assigned to the Provider.
+	_ = createProviderWithArgs(t, true, osRes.ResourceId, utils.DefaultProviderName, providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL) // Creating Provider profile which would be fetched by the reconciler.
+	instance := inv_testing.CreateInstanceNoCleanup(t, host, osRes)                                                                   // Instance should not be assigned to the Provider.
 	instanceID := instance.GetResourceId()
 
 	runReconcilationFunc := func() {

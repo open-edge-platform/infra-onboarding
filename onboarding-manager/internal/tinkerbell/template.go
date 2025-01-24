@@ -78,7 +78,7 @@ func GenerateTemplateForNodeReboot(k8sNamespace string, deviceInfo utils.DeviceI
 	tmplData, err := NewRebootTemplateData(tmplName)
 	if err != nil {
 		// failed to marshal template data
-		zlog.MiSec().MiErr(err).Msg("")
+		zlog.InfraSec().InfraErr(err).Msg("")
 		return nil, inv_errors.Errorf("Failed to generate Reboot template resources for host %s", deviceInfo.GUID)
 	}
 
@@ -96,7 +96,7 @@ func CreateTemplateIfNotExists(ctx context.Context, k8sCli client.Client, templa
 		zlog.Debug().Msgf("Creating new Tinkerbell template %s.", template.Name)
 		createErr := k8sCli.Create(ctx, template)
 		if createErr != nil {
-			zlog.MiSec().MiErr(createErr).Msgf("")
+			zlog.InfraSec().InfraErr(createErr).Msgf("")
 			return inv_errors.Errorf("Failed to create Tinkerbell template %s", template.Name)
 		}
 
@@ -104,7 +104,7 @@ func CreateTemplateIfNotExists(ctx context.Context, k8sCli client.Client, templa
 	}
 
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("")
+		zlog.InfraSec().InfraErr(err).Msgf("")
 		// some other error that may need retry
 		return inv_errors.Errorf("Failed to check if Tinkerbell template %s exists.", template.Name)
 	}

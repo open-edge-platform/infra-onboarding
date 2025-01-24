@@ -108,17 +108,17 @@ func (sbh *SBHandler) Start() error {
 	// Run go routine to start the gRPC server.
 	go func() {
 		if err := sbh.server.Serve(sbh.lis); err != nil {
-			zlog.MiSec().Fatal().Err(err).Msgf("Error listening with TCP: %s", sbh.lis.Addr().String())
+			zlog.InfraSec().Fatal().Err(err).Msgf("Error listening with TCP: %s", sbh.lis.Addr().String())
 		}
 	}()
 
-	zlog.MiSec().Info().Msgf("SB handler started")
+	zlog.InfraSec().Info().Msgf("SB handler started")
 	return nil
 }
 
 func (sbh *SBHandler) Stop() {
 	sbh.server.Stop()
-	zlog.MiSec().Info().Msgf("SB handler stopped")
+	zlog.InfraSec().Info().Msgf("SB handler stopped")
 }
 
 func NewSBNioHandler(invClient *invclient.OnboardingInventoryClient,
@@ -157,15 +157,15 @@ func (sbhnio *SBNioHandler) Start() error {
 	// Run go routine to start the gRPC server.
 	go func() {
 		if err := sbhnio.server.Serve(sbhnio.lis); err != nil {
-			zlog.MiSec().Fatal().Err(err).Msgf("Error listening with TCP: %s", sbhnio.lis.Addr().String())
+			zlog.InfraSec().Fatal().Err(err).Msgf("Error listening with TCP: %s", sbhnio.lis.Addr().String())
 		}
 	}()
 
-	zlog.MiSec().Info().Msgf("SB NIO handler started")
+	zlog.InfraSec().Info().Msgf("SB NIO handler started")
 	return nil
 }
 
 func (sbhnio *SBNioHandler) Stop() {
 	sbhnio.server.Stop()
-	zlog.MiSec().Info().Msgf("SB NIO handler stopped")
+	zlog.InfraSec().Info().Msgf("SB NIO handler stopped")
 }

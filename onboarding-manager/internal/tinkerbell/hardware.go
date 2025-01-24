@@ -88,7 +88,7 @@ func CreateHardwareIfNotExists(ctx context.Context, k8sCli client.Client, k8sNam
 
 		createErr := k8sCli.Create(ctx, hwInfo)
 		if createErr != nil {
-			zlog.MiSec().MiErr(err).Msgf("")
+			zlog.InfraSec().InfraErr(err).Msgf("")
 			return inv_errors.Errorf("Failed to create Tinkerbell hardware %s", hwInfo.Name)
 		}
 
@@ -96,7 +96,7 @@ func CreateHardwareIfNotExists(ctx context.Context, k8sCli client.Client, k8sNam
 	}
 
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("")
+		zlog.InfraSec().InfraErr(err).Msgf("")
 		// some other error that may need retry
 		return inv_errors.Errorf("Failed to check if Tinkerbell hardware %s exists.", hwInfo.Name)
 	}
@@ -127,7 +127,7 @@ func DeleteHardwareForHostIfExist(ctx context.Context, k8sNamespace, hostUUID st
 	}
 
 	if err = kubeClient.Delete(ctx, hw); err != nil && !errors.IsNotFound(err) {
-		zlog.MiSec().MiErr(err).Msg("")
+		zlog.InfraSec().InfraErr(err).Msg("")
 		zlog.Debug().Msgf("Failed to delete Tink hardware resources for host %s", hostUUID)
 		return inv_errors.Errorf("Failed to delete Tink hardware resources for host")
 	}

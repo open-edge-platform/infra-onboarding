@@ -213,7 +213,7 @@ func (s *NonInteractiveOnboardingService) receiveFromStream(stream pb.NonInterac
 		return nil, io.EOF
 	}
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("OnboardNodeStream error receiving from stream: %v", err)
+		zlog.InfraSec().InfraErr(err).Msgf("OnboardNodeStream error receiving from stream: %v", err)
 		return nil, err
 	}
 	return req, nil
@@ -541,7 +541,7 @@ func (s *NonInteractiveOnboardingService) OnboardNodeStream(
 func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
 	zlog.Info().Msgf("CreateNodes")
 	if validationErr := req.Validate(); validationErr != nil {
-		zlog.MiSec().MiErr(validationErr).Msgf("Request does not match the expected regex pattern %v", validationErr)
+		zlog.InfraSec().InfraErr(validationErr).Msgf("Request does not match the expected regex pattern %v", validationErr)
 		return nil, validationErr
 	}
 
@@ -549,7 +549,7 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 		// checking if JWT contains write permission
 		if !s.rbac.IsRequestAuthorized(ctx, rbac.CreateKey) {
 			err := inv_errors.Errorfc(codes.PermissionDenied, "Request is blocked by RBAC")
-			zlog.MiSec().MiErr(err).Msgf("Request CreateNodes is not authenticated")
+			zlog.InfraSec().InfraErr(err).Msgf("Request CreateNodes is not authenticated")
 			return nil, err
 		}
 	}
@@ -558,7 +558,7 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 	if !present {
 		// This should never happen! Interceptor should either fail or set it!
 		err := inv_errors.Errorfc(codes.Unauthenticated, "Tenant ID is not present in context")
-		zlog.MiSec().MiErr(err).Msg("Request CreateNodes is not authenticated")
+		zlog.InfraSec().InfraErr(err).Msg("Request CreateNodes is not authenticated")
 		return nil, err
 	}
 	zlog.Debug().Msgf("CreateNodes: tenantID=%s", tenantID)
@@ -566,7 +566,7 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 	/* Copy node data from user */
 	hostresdata, err := CopyNodeReqToNodeData(req.Payload, tenantID)
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("CopyNodeReqToNodeData error: %v", err)
+		zlog.InfraSec().InfraErr(err).Msgf("CopyNodeReqToNodeData error: %v", err)
 		return nil, err
 	}
 	// TODO: CopyNodeReqToNodeData currently returns a list of Host resources with just a single element.
@@ -606,30 +606,30 @@ func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeReque
 				inv_status.New(om_status.OnboardingStatusDone.Status, om_status.OnboardingStatusDone.StatusIndicator),
 				inv_status.New(om_status.HostRegistrationUnknown.Status,
 					om_status.HostRegistrationUnknown.StatusIndicator)); updateErr != nil {
-				zlog.MiSec().MiErr(updateErr).Msgf("Failed to update Host resource: %v tID=%s", hostInv, tenantID)
+				zlog.InfraSec().InfraErr(updateErr).Msgf("Failed to update Host resource: %v tID=%s", hostInv, tenantID)
 				return nil, updateErr
 			}
 		}
 		if ztErr := s.startZeroTouch(ctx, tenantID, hostInv.ResourceId); ztErr != nil {
-			zlog.MiSec().MiErr(ztErr).Msgf("startZeroTouch error: %v", ztErr)
+			zlog.InfraSec().InfraErr(ztErr).Msgf("startZeroTouch error: %v", ztErr)
 			return nil, ztErr
 		}
 		return &pb.NodeResponse{Payload: req.Payload, ProjectId: hostInv.GetTenantId()}, nil
 	case err != nil:
 		zlog.Debug().Msgf("Create op :Failed CreateNodes() for GUID %s tID=%s \n", host.Uuid, tenantID)
-		zlog.MiSec().MiErr(err).Msgf("Create op :Failed CreateNodes()\n")
+		zlog.InfraSec().InfraErr(err).Msgf("Create op :Failed CreateNodes()\n")
 		return nil, err
 	}
 	// UUID not found, create a new host
 	hostResID, err = s.invClient.CreateHostResource(ctx, tenantID, host)
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("Cannot create Host resource: %v tID=%s", host, tenantID)
+		zlog.InfraSec().InfraErr(err).Msgf("Cannot create Host resource: %v tID=%s", host, tenantID)
 		return nil, err
 	}
 	zlog.Debug().Msgf("CreateHostResource ID = %s and tID=%s", hostResID, tenantID)
 
 	if err := s.startZeroTouch(ctx, tenantID, hostResID); err != nil {
-		zlog.MiSec().MiErr(err).Msgf("startZeroTouch error: %v", err)
+		zlog.InfraSec().InfraErr(err).Msgf("startZeroTouch error: %v", err)
 		return nil, err
 	}
 

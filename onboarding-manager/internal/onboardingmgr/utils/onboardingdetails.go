@@ -11,7 +11,7 @@ const (
 	ImgTypeFocal        = "prod_focal"
 	ImgTypeFocalMs      = "prod_focal-ms"
 	ImgTypeTiberOs      = "prod_tiber-os"
-	DefaultProviderName = "fm_onboarding"
+	DefaultProviderName = "infra_onboarding"
 )
 
 type (

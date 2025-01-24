@@ -21,18 +21,18 @@ func newK8SClient() (client.Client, error) {
 
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msg("")
+		zlog.InfraSec().InfraErr(err).Msg("")
 		return nil, inv_errors.Errorf("Cannot create K8s config for client")
 	}
 
 	if schemeErr := tinkv1alpha1.AddToScheme(scheme.Scheme); schemeErr != nil {
-		zlog.MiSec().MiErr(schemeErr).Msg("")
+		zlog.InfraSec().InfraErr(schemeErr).Msg("")
 		return nil, inv_errors.Errorf("Cannot add Tink schema for K8s client")
 	}
 
 	kubeClient, err := client.New(config, client.Options{Scheme: scheme.Scheme})
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msg("")
+		zlog.InfraSec().InfraErr(err).Msg("")
 		return nil, inv_errors.Errorf("Unable to create new K8s client")
 	}
 	return kubeClient, nil

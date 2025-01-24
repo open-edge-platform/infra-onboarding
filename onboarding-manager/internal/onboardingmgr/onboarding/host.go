@@ -24,7 +24,7 @@ func UpdateHostStatusByHostGUID(ctx context.Context,
 	/* Check if any host with the UUID exists or not */
 	hostResc, err := invClient.GetHostResourceByUUID(ctx, tenantID, hostUUID)
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("Node Doesn't Exist")
+		zlog.InfraSec().InfraErr(err).Msgf("Node Doesn't Exist")
 		return err
 	}
 	zlog.Debug().Msgf("Node and its Host Resource Exist")
@@ -39,7 +39,7 @@ func UpdateHostStatusByHostGUID(ctx context.Context,
 
 	if err = invClient.SetHostOnboardingStatus(ctx, tenantID,
 		hostResc.GetResourceId(), onboardingStatus); err != nil {
-		zlog.MiSec().MiError("Failed to update host resource info").Msg("UpdateHostStatusByHostGUID")
+		zlog.InfraSec().InfraError("Failed to update host resource info").Msg("UpdateHostStatusByHostGUID")
 		return err
 	}
 
