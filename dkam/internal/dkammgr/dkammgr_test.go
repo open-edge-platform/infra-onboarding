@@ -112,10 +112,10 @@ func TestGetCuratedScript(t *testing.T) {
 	os.MkdirAll(config.DownloadPath, 0755)
 	currentDir, err := os.Getwd()
 	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
+		zlog.InfraSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
 		return
 	}
-	zlog.MiSec().Info().Msgf("Current dir %s", currentDir)
+	zlog.InfraSec().Info().Msgf("Current dir %s", currentDir)
 	parentDir := filepath.Join(currentDir, "..", "..")
 	config.ScriptPath = parentDir + "/pkg/script"
 	dummyData := `#!/bin/bash
@@ -224,10 +224,10 @@ func TestGetMode(t *testing.T) {
 func TestSignMicroOS(t *testing.T) {
 	currentDir, err := os.Getwd()
 	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
+		zlog.InfraSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
 		return
 	}
-	zlog.MiSec().Info().Msgf("Current dir %s", currentDir)
+	zlog.InfraSec().Info().Msgf("Current dir %s", currentDir)
 	parentDir := filepath.Join(currentDir, "..", "..")
 	config.ScriptPath = parentDir + "/pkg/script"
 
@@ -248,10 +248,10 @@ func TestSignMicroOS(t *testing.T) {
 func TestBuildSignIpxe1(t *testing.T) {
 	currentDir, err := os.Getwd()
 	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
+		zlog.InfraSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
 		return
 	}
-	zlog.MiSec().Info().Msgf("Current dir %s", currentDir)
+	zlog.InfraSec().Info().Msgf("Current dir %s", currentDir)
 	parentDir := filepath.Join(currentDir, "..", "..")
 	config.ScriptPath = parentDir + "/pkg/script"
 
@@ -276,7 +276,7 @@ func TestDownloadOS(t *testing.T) {
 		ImageUrl:   osUrl,
 		OsType:     osv1.OsType_OS_TYPE_MUTABLE,
 		Sha256:     sha256,
-		OsProvider: osv1.OsProviderKind_OS_PROVIDER_KIND_EIM,
+		OsProvider: osv1.OsProviderKind_OS_PROVIDER_KIND_INFRA,
 	}
 
 	expectedFilePath := util.GetOSImageLocation(osr, config.PVC)
@@ -561,7 +561,7 @@ func TestDownloadOs(t *testing.T) {
 					ImageUrl:    osUrl,
 					OsType:      osv1.OsType_OS_TYPE_IMMUTABLE,
 					Sha256:      sha256,
-					OsProvider:  osv1.OsProviderKind_OS_PROVIDER_KIND_EIM,
+					OsProvider:  osv1.OsProviderKind_OS_PROVIDER_KIND_INFRA,
 				},
 			},
 			wantErr: false,
@@ -574,7 +574,7 @@ func TestDownloadOs(t *testing.T) {
 					ImageUrl:    "osUrl",
 					OsType:      osv1.OsType_OS_TYPE_IMMUTABLE,
 					Sha256:      sha256,
-					OsProvider:  osv1.OsProviderKind_OS_PROVIDER_KIND_EIM,
+					OsProvider:  osv1.OsProviderKind_OS_PROVIDER_KIND_INFRA,
 				},
 			},
 			wantErr: false,

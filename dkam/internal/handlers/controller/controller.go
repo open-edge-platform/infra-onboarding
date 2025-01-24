@@ -12,13 +12,13 @@ import (
 	"github.com/pkg/errors"
 
 	rec_v2 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go/pkg/controller/v2"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/handlers/controller/reconcilers"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/invclient"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/inventory/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/util"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/validator"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/handlers/controller/reconcilers"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/invclient"
 )
 
 var (
@@ -78,7 +78,7 @@ func (obc *DKAMController) Start() error {
 	obc.wg.Add(1)
 	go obc.controlLoop(ctx)
 
-	zlog.MiSec().Info().Msgf("DKAM controller started")
+	zlog.InfraSec().Info().Msgf("DKAM controller started")
 	return nil
 }
 
@@ -88,7 +88,7 @@ func (obc *DKAMController) Stop() {
 	for _, ctrl := range obc.controllers {
 		ctrl.Stop()
 	}
-	zlog.MiSec().Info().Msgf("Onboarding controller stopped")
+	zlog.InfraSec().Info().Msgf("Onboarding controller stopped")
 }
 
 func (obc *DKAMController) controlLoop(ctx context.Context) {
@@ -99,7 +99,7 @@ func (obc *DKAMController) controlLoop(ctx context.Context) {
 		select {
 		case ev, ok := <-obc.invClient.Watcher:
 			if !ok {
-				zlog.MiSec().Fatal().Msg("gRPC stream with inventory closed")
+				zlog.InfraSec().Fatal().Msg("gRPC stream with inventory closed")
 				return
 			}
 			if !obc.filterEvent(ev.Event) {
@@ -107,11 +107,11 @@ func (obc *DKAMController) controlLoop(ctx context.Context) {
 				continue
 			}
 			if err := obc.reconcileResource(ev.Event.Resource); err != nil {
-				zlog.MiSec().MiErr(err).Msgf("reconciliation resource failed")
+				zlog.InfraSec().InfraErr(err).Msgf("reconciliation resource failed")
 			}
 		case <-ticker.C:
 			if err := obc.reconcileAll(ctx); err != nil {
-				zlog.MiSec().MiErr(err).Msgf("full reconciliation failed")
+				zlog.InfraSec().InfraErr(err).Msgf("full reconciliation failed")
 			}
 		case <-obc.stop:
 			obc.wg.Done()
@@ -123,13 +123,13 @@ func (obc *DKAMController) controlLoop(ctx context.Context) {
 func (obc *DKAMController) filterEvent(event *inv_v1.SubscribeEventsResponse) bool {
 	zlog.Debug().Msgf("New inventory event received. ResourceID=%v, Kind=%s", event.ResourceId, event.EventKind)
 	if err := validator.ValidateMessage(event); err != nil {
-		zlog.MiSec().MiErr(err).Msgf("Invalid event received: %s", event.ResourceId)
+		zlog.InfraSec().InfraErr(err).Msgf("Invalid event received: %s", event.ResourceId)
 		return false
 	}
 
 	expectedKind, err := util.GetResourceKindFromResourceID(event.ResourceId)
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("Unknown resource kind for ID %s.", event.ResourceId)
+		zlog.InfraSec().InfraErr(err).Msgf("Unknown resource kind for ID %s.", event.ResourceId)
 		return false
 	}
 	filter, ok := obc.filters[expectedKind]

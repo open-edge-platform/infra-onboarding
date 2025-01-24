@@ -6,12 +6,13 @@ package reconcilers
 import (
 	"context"
 	"fmt"
+
 	rec_v2 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go/pkg/controller/v2"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/dkammgr"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/invclient"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/tracing"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/dkammgr"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/invclient"
 )
 
 var (
@@ -43,7 +44,7 @@ func (osr *OsReconciler) Reconcile(ctx context.Context,
 	}
 
 	tenantID, resourceID := UnwrapReconcilerID(request.ID)
-	zlogOs.MiSec().Debug().Msgf("Reconciling OS %s of tenant %s", resourceID, tenantID)
+	zlogOs.InfraSec().Debug().Msgf("Reconciling OS %s of tenant %s", resourceID, tenantID)
 	osre, err := osr.invClient.GetOSResourceByResourceID(ctx, tenantID, resourceID)
 	if directive := HandleInventoryError(err, request); directive != nil {
 		return directive
@@ -60,7 +61,7 @@ func (osr *OsReconciler) reconcileOs(
 	osinst *osv1.OperatingSystemResource,
 ) rec_v2.Directive[ReconcilerID] {
 	id := osinst.GetResourceId()
-	zlogOs.MiSec().Info().Msgf("Reconciling OS instance with ID : %s", id)
+	zlogOs.InfraSec().Info().Msgf("Reconciling OS instance with ID : %s", id)
 	fmt.Printf("Received AType: %v\n", osinst.OsType)
 	//Download OS image
 	downloadErr := dkammgr.DownloadOS(ctx, osinst)

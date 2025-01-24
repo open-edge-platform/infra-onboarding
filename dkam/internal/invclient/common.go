@@ -20,7 +20,7 @@ func getInventoryResourceAndID(resource proto.Message) (*inv_v1.Resource, string
 
 	if resource == nil {
 		err := inv_errors.Errorfc(codes.InvalidArgument, "no resource provided")
-		zlog.MiSec().MiErr(err).Msgf("getInventoryResourceAndID")
+		zlog.InfraSec().InfraErr(err).Msgf("getInventoryResourceAndID")
 		return nil, "", err
 	}
 
@@ -77,7 +77,7 @@ func setInventoryResourceAndID(resource proto.Message, invResource *inv_v1.Resou
 		invResourceID = res.GetResourceId()
 	default:
 		err := inv_errors.Errorfc(codes.InvalidArgument, "unsupported resource type: %t", resource)
-		zlog.MiSec().MiErr(err).Msg("getInventoryResourceAndID")
+		zlog.InfraSec().InfraErr(err).Msg("getInventoryResourceAndID")
 		return invResourceID, err
 	}
 	return invResourceID, nil

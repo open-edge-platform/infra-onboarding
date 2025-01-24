@@ -8,13 +8,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
 	"io"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/util"
 
@@ -86,7 +87,7 @@ func GetArtifactsVersion() ([]AgentsVersion, error) {
 
 	configs, err := GetReleaseArtifactList(releaseFilePath)
 	if err != nil {
-		zlog.MiSec().Info().Msgf("Error checking path %v", err)
+		zlog.InfraSec().Info().Msgf("Error checking path %v", err)
 		return []AgentsVersion{}, err
 	}
 	agentsList = []AgentsVersion{}
@@ -94,9 +95,9 @@ func GetArtifactsVersion() ([]AgentsVersion, error) {
 
 	distribution = configs.Metadata.DebianRepositories[0].Distribution
 
-	zlog.MiSec().Info().Msgf("Agents List' %s", agentsList)
+	zlog.InfraSec().Info().Msgf("Agents List' %s", agentsList)
 	if len(agentsList) == 0 {
-		zlog.MiSec().Info().Msg("Failed to get the agent list")
+		zlog.InfraSec().Info().Msg("Failed to get the agent list")
 		return []AgentsVersion{}, err
 	}
 
@@ -119,7 +120,7 @@ func getCaCert() (string, error) {
 
 	caContent, err := os.ReadFile(caPath)
 	if err != nil {
-		zlog.MiSec().Error().Err(err).Msg("")
+		zlog.InfraSec().Error().Err(err).Msg("")
 		return "", inv_errors.Errorf("Failed to read CA certificate file")
 	}
 
@@ -198,34 +199,34 @@ func CurateScript(osRes *osv1.OperatingSystemResource) error {
 	}
 
 	agentsList, err := GetArtifactsVersion()
-	zlog.MiSec().Info().Msgf("Agents List' %s", agentsList)
+	zlog.InfraSec().Info().Msgf("Agents List' %s", agentsList)
 	if len(agentsList) == 0 {
-		zlog.MiSec().Info().Msg("Failed to get the agent list")
+		zlog.InfraSec().Info().Msg("Failed to get the agent list")
 		return err
 	}
 
 	if osRes.GetOsType() == osv1.OsType_OS_TYPE_IMMUTABLE {
 		templateVariables, err := getScriptTemplateVariables()
 		if err != nil {
-			zlog.MiSec().Error().Err(err).Msg("Failed to get template variables for curation")
+			zlog.InfraSec().Error().Err(err).Msg("Failed to get template variables for curation")
 			return err
 		}
 
 		curatedScriptData, createErr := CurateScriptFromTemplate(config.ScriptPath, templateVariables)
 		if createErr != nil {
-			zlog.MiSec().Error().Msgf("Error checking path %v", createErr)
+			zlog.InfraSec().Error().Msgf("Error checking path %v", createErr)
 			return createErr
 		}
 
 		writeErr := WriteFileToPath(installerScriptPath, []byte(curatedScriptData))
 		if writeErr != nil {
-			zlog.MiSec().Error().Err(writeErr).Msgf("Failed to write file to path %s", installerScriptPath)
+			zlog.InfraSec().Error().Err(writeErr).Msgf("Failed to write file to path %s", installerScriptPath)
 			return writeErr
 		}
 	} else {
 		createErr := CreateOverlayScript(osRes)
 		if createErr != nil {
-			zlog.MiSec().Info().Msgf("Error checking path %v", createErr)
+			zlog.InfraSec().Info().Msgf("Error checking path %v", createErr)
 			return createErr
 		}
 	}
@@ -236,12 +237,12 @@ func CurateScript(osRes *osv1.OperatingSystemResource) error {
 func GetReleaseArtifactList(filePath string) (Config, error) {
 
 	// Open the file
-	zlog.MiSec().Info().Msg("Inside GetReleaseArtifactList")
-	zlog.MiSec().Info().Msg(filePath)
+	zlog.InfraSec().Info().Msg("Inside GetReleaseArtifactList")
+	zlog.InfraSec().Info().Msg(filePath)
 
 	file, err := os.Open(filePath)
 	if err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error opening file: %v", err)
+		zlog.InfraSec().Error().Err(err).Msgf("Error opening file: %v", err)
 		return Config{}, err
 	}
 	defer file.Close()
@@ -249,14 +250,14 @@ func GetReleaseArtifactList(filePath string) (Config, error) {
 	// Read the content of the file
 	content, err := io.ReadAll(file)
 	if err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error reading file: %v", err)
+		zlog.InfraSec().Error().Err(err).Msgf("Error reading file: %v", err)
 		return configs, err
 	}
 	// Unmarshal the YAML content into the Config struct
 
 	err = yaml.Unmarshal(content, &configs)
 	if err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error unmarshalling YAML: %v", err)
+		zlog.InfraSec().Error().Err(err).Msgf("Error unmarshalling YAML: %v", err)
 		return configs, err
 	}
 	return configs, nil
@@ -269,7 +270,7 @@ func CurateScriptFromTemplate(scriptTemplatePath string, templateVariables map[s
 	// Read the template of cloud-init script
 	tmplCloudInit, err := os.ReadFile(cfgFilePath)
 	if err != nil {
-		zlog.MiSec().Error().Err(err).Msgf(
+		zlog.InfraSec().Error().Err(err).Msgf(
 			"Failed to read template of cloud-init script from path %v", scriptTemplatePath)
 		return "", err
 	}
@@ -300,7 +301,7 @@ func WriteFileToPath(filePath string, content []byte) error {
 
 	err := os.MkdirAll(filepath.Dir(filePath), 0755)
 	if err != nil {
-		zlog.MiSec().Error().Err(err).Msg("")
+		zlog.InfraSec().Error().Err(err).Msg("")
 		return inv_errors.Errorf("Failed to create sub-directories to save file")
 	}
 
@@ -316,20 +317,20 @@ func WriteFileToPath(filePath string, content []byte) error {
 
 func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
 	MODE := os.Getenv("MODE")
-	zlog.MiSec().Info().Msgf("MODE: %s", MODE)
+	zlog.InfraSec().Info().Msgf("MODE: %s", MODE)
 
 	beginString := "true >/etc/environment"
 	scriptDir := config.ScriptPath
-	zlog.MiSec().Info().Msg(scriptDir)
+	zlog.InfraSec().Info().Msg(scriptDir)
 	installerPath := filepath.Join(scriptDir, "Installer")
 	scriptFileName := ""
 
 	exists, err := util.PathExists(config.PVC)
 	if err != nil {
-		zlog.MiSec().Info().Msgf("Error checking path %v", err)
+		zlog.InfraSec().Info().Msgf("Error checking path %v", err)
 	}
 	if exists {
-		zlog.MiSec().Info().Msg("Path exists:")
+		zlog.InfraSec().Info().Msg("Path exists:")
 
 		scriptFileName, err = util.GetInstallerLocation(osRes, config.PVC)
 		if err != nil {
@@ -338,38 +339,38 @@ func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
 
 		dir := filepath.Dir(scriptFileName)
 		if err := os.MkdirAll(dir, 0755); err != nil {
-			zlog.MiSec().Info().Msgf("Error creating path %v", err)
+			zlog.InfraSec().Info().Msgf("Error creating path %v", err)
 		}
 	} else {
-		zlog.MiSec().Info().Msg("Path does not exists")
+		zlog.InfraSec().Info().Msg("Path does not exists")
 	}
 
 	cpErr := copyFile(installerPath, scriptFileName)
 	if cpErr != nil {
-		zlog.MiSec().Error().Err(cpErr).Msgf("Error: %v", cpErr)
+		zlog.InfraSec().Error().Err(cpErr).Msgf("Error: %v", cpErr)
 	}
 
-	zlog.MiSec().Info().Msg("File copied successfully.")
+	zlog.InfraSec().Info().Msg("File copied successfully.")
 
 	profileName := osRes.GetProfileName()
 
 	profileExists, err := util.PathExists(config.DownloadPath + "/" + profileName + ".sh")
 	if err != nil {
-		zlog.MiSec().Info().Msgf("Error checking path %v", err)
+		zlog.InfraSec().Info().Msgf("Error checking path %v", err)
 	}
 
 	if profileExists {
 		// Read the source file content
 		sourceContent, err := os.Open(config.DownloadPath + "/" + profileName + ".sh")
 		if err != nil {
-			zlog.MiSec().Info().Msgf("Error reading donwloaded profile script file:%v", err)
+			zlog.InfraSec().Info().Msgf("Error reading donwloaded profile script file:%v", err)
 			return err
 		}
 		defer sourceContent.Close()
 
 		destinationFile, err := os.OpenFile(scriptFileName, os.O_APPEND|os.O_WRONLY, 0644)
 		if err != nil {
-			zlog.MiSec().Info().Msgf("Error opening installer.sh script:%v", err)
+			zlog.InfraSec().Info().Msgf("Error opening installer.sh script:%v", err)
 			return err
 		}
 		defer destinationFile.Close()
@@ -377,19 +378,19 @@ func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
 		reader := bufio.NewReader(sourceContent)
 		_, err = io.Copy(destinationFile, reader)
 		if err != nil {
-			zlog.MiSec().Info().Msgf("Error appending profile script to installer.sh:%v", err)
+			zlog.InfraSec().Info().Msgf("Error appending profile script to installer.sh:%v", err)
 			return err
 		}
 
-		zlog.MiSec().Info().Msg("Contents appended successfully!")
+		zlog.InfraSec().Info().Msg("Contents appended successfully!")
 	} else {
-		zlog.MiSec().Info().Msg("Use default profile.")
+		zlog.InfraSec().Info().Msg("Use default profile.")
 	}
 
 	// Read the installer
 	content, err := os.ReadFile(scriptFileName)
 	if err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error %v", err)
+		zlog.InfraSec().Error().Err(err).Msgf("Error %v", err)
 	}
 	//Get FQDN names for agents:
 	orchCluster := os.Getenv("ORCH_CLUSTER")
@@ -435,15 +436,15 @@ func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
 	zlog.Info().Msg(firewallCfgAllow)
 	caexists, err := util.PathExists(config.OrchCACertificateFile)
 	if err != nil {
-		zlog.MiSec().Info().Msgf("Error checking path %v", err)
-		zlog.MiSec().Error().Err(err).Msgf("Error: %v", err)
+		zlog.InfraSec().Info().Msgf("Error checking path %v", err)
+		zlog.InfraSec().Error().Err(err).Msgf("Error: %v", err)
 	}
 
 	var caContent []byte
 	if caexists {
 		caContent, err = os.ReadFile(config.OrchCACertificateFile)
 		if err != nil {
-			zlog.MiSec().Error().Msgf("Error: %v", err)
+			zlog.InfraSec().Error().Msgf("Error: %v", err)
 		}
 	}
 
@@ -478,7 +479,7 @@ func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
 	// Loop through the agentsList
 	for _, agent := range agentsList {
 		// Access the fields of each struct
-		zlog.MiSec().Info().Msgf("Package: %s, Version: %s\n", agent.Package, agent.Version)
+		zlog.InfraSec().Info().Msgf("Package: %s, Version: %s\n", agent.Package, agent.Version)
 		modifiedScript = strings.ReplaceAll(modifiedScript, agent.Package+"-VERSION", agent.Version)
 	}
 
@@ -490,11 +491,11 @@ func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
 	// Find the start and end positions of the function
 	startIdx := strings.Index(modifiedScript, functionToRemove)
 	if startIdx == -1 {
-		zlog.MiSec().Info().Msg("Function not found in script")
+		zlog.InfraSec().Info().Msg("Function not found in script")
 	}
 	endIdx := strings.Index(modifiedScript[startIdx:], "}") + startIdx
 	if endIdx == -1 {
-		zlog.MiSec().Info().Msg("Function end not found in script")
+		zlog.InfraSec().Info().Msg("Function end not found in script")
 	}
 
 	// Remove the function from the script
@@ -515,18 +516,18 @@ func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
 	// Save the modified script to the specified output path
 	err = os.WriteFile(scriptFileName, []byte(modifiedScript), 0644)
 	if err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error: %v", err)
+		zlog.InfraSec().Error().Err(err).Msgf("Error: %v", err)
 	}
 
 	functionToRemove = "install_intel_CAcertificates"
 	// Find the start and end positions of the function
 	startIdx = strings.Index(modifiedScript, functionToRemove)
 	if startIdx == -1 {
-		zlog.MiSec().Info().Msg("Function not found in script")
+		zlog.InfraSec().Info().Msg("Function not found in script")
 	}
 	endIdx = strings.Index(modifiedScript[startIdx:], "}") + startIdx
 	if endIdx == -1 {
-		zlog.MiSec().Info().Msg("Function end not found in script")
+		zlog.InfraSec().Info().Msg("Function end not found in script")
 	}
 
 	// Remove the function from the script
@@ -547,14 +548,14 @@ func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
 	// Save the modified script to the specified output path
 	err = os.WriteFile(scriptFileName, []byte(modifiedScript), 0644)
 	if err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error: %v", err)
+		zlog.InfraSec().Error().Err(err).Msgf("Error: %v", err)
 	}
 
 	var newLines []string
 	var kindLines []string
 	//check if its a kind cluster
 	if strings.Contains(orchCluster, "kind.internal") {
-		zlog.MiSec().Info().Msg("Its a kind cluster")
+		zlog.InfraSec().Info().Msg("Its a kind cluster")
 		kindLines = append(kindLines, fmt.Sprintf("extra_hosts=\"%s\"", extra_hosts))
 		kindLines = append(kindLines, "IFS=',' read -ra hosts <<< \"$extra_hosts\"")
 		kindLines = append(kindLines, "for host in \"${hosts[@]}\"; do")
@@ -566,7 +567,7 @@ func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
 		AddProxies(scriptFileName, kindLines, beginString)
 
 	} else {
-		zlog.MiSec().Info().Msg("Its not a kind cluster")
+		zlog.InfraSec().Info().Msg("Its not a kind cluster")
 	}
 
 	proxies := map[string]string{
@@ -622,16 +623,16 @@ func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
 
 	AddProxies(scriptFileName, newLines, beginString)
 
-	zlog.MiSec().Debug().Msgf("Starting modifying ufw Rules")
+	zlog.InfraSec().Debug().Msgf("Starting modifying ufw Rules")
 
 	// Parse each rule map into a Rule struct
 	rules, err := ParseJSONUfwRules(firewallReqAllow)
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("Error while un-marshaling the UFW req firewall Rules")
+		zlog.InfraSec().InfraErr(err).Msgf("Error while un-marshaling the UFW req firewall Rules")
 	}
 	rules2, err := ParseJSONUfwRules(firewallCfgAllow)
 	if err != nil {
-		zlog.MiSec().MiErr(err).Msgf("Error while un-marshaling the UFW cfg firewall Rules")
+		zlog.InfraSec().InfraErr(err).Msgf("Error while un-marshaling the UFW cfg firewall Rules")
 	}
 	ufwCommands := make([]string, len(rules)+len(rules2))
 	for i, rule := range append(rules, rules2...) {
@@ -667,7 +668,7 @@ func AddProxies(fileName string, newLines []string, beginLine string) {
 	// Read the content of the file
 	file, err := os.Open(fileName)
 	if err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error: %v", err)
+		zlog.InfraSec().Error().Err(err).Msgf("Error: %v", err)
 	}
 	defer file.Close()
 
@@ -689,19 +690,19 @@ func AddProxies(fileName string, newLines []string, beginLine string) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error: %v", err)
+		zlog.InfraSec().Error().Err(err).Msgf("Error: %v", err)
 		return
 	}
 
 	// If the target line was not found, return an error
 	if !foundTargetLine {
-		zlog.MiSec().Error().Err(err).Msgf("target line '%s' not found in the file", beginLine)
+		zlog.InfraSec().Error().Err(err).Msgf("target line '%s' not found in the file", beginLine)
 	}
 
 	// Write the modified content back to the file
 	err = os.WriteFile(fileName, []byte(strings.Join(lines, "\n")), 0644)
 	if err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error: %v", err)
+		zlog.InfraSec().Error().Err(err).Msgf("Error: %v", err)
 		return
 	}
 
@@ -803,7 +804,7 @@ func AddFirewallRules(fileName string, newLines []string) {
 	// Read the content of the file
 	file, err := os.Open(fileName)
 	if err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error: %v", err)
+		zlog.InfraSec().Error().Err(err).Msgf("Error: %v", err)
 	}
 	defer file.Close()
 
@@ -825,13 +826,13 @@ func AddFirewallRules(fileName string, newLines []string) {
 	}
 	// If the target line was not found, return an error
 	if !foundTargetLine {
-		zlog.MiSec().Error().Err(err).Msgf("target line '%s' not found in the file", "#!/bin/bash")
+		zlog.InfraSec().Error().Err(err).Msgf("target line '%s' not found in the file", "#!/bin/bash")
 	}
 
 	// Write the modified content back to the file
 	err = os.WriteFile(fileName, []byte(strings.Join(lines, "\n")), 0644)
 	if err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error: %v", err)
+		zlog.InfraSec().Error().Err(err).Msgf("Error: %v", err)
 		return
 	}
 }
@@ -845,7 +846,7 @@ func ParseJSONUfwRules(ufwRules string) ([]Rule, error) {
 	var rules []Rule
 	err := json.Unmarshal([]byte(ufwRules), &rules)
 	if err != nil {
-		zlog.MiSec().Error().Err(err).Msg("Failed to unmarshal firwall rules")
+		zlog.InfraSec().Error().Err(err).Msg("Failed to unmarshal firwall rules")
 		return nil, err
 	}
 	return rules, nil

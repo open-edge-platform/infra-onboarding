@@ -54,7 +54,7 @@ var (
 
 func printSummary() {
 	zlog.Info().Msg("Starting DKAM")
-	zlog.MiSec().Info().Msgf("RepoURL: %s, Version: %s, Revision: %s, BuildDate: %s\n",
+	zlog.InfraSec().Info().Msgf("RepoURL: %s, Version: %s, Revision: %s, BuildDate: %s\n",
 		RepoURL, Version, Revision, BuildDate)
 }
 
@@ -62,7 +62,7 @@ func main() {
 
 	watcher, watcherErr := SetWatcher()
 	if watcherErr != nil {
-		zlog.MiSec().Fatal().Err(watcherErr).Msgf("Failed to set watcher.")
+		zlog.InfraSec().Fatal().Err(watcherErr).Msgf("Failed to set watcher.")
 		return
 	}
 	defer watcher.Close()
@@ -88,13 +88,13 @@ func main() {
 	}
 
 	if err := GetArtifacts(context.Background()); err != nil {
-		zlog.MiSec().Fatal().Err(err).Msg("Failed to get artifacts")
+		zlog.InfraSec().Fatal().Err(err).Msg("Failed to get artifacts")
 	}
 
 	go func() {
 		defer wg.Done()
 		if err := BuildBinaries(); err != nil {
-			zlog.MiSec().Fatal().Err(err).Msg("Failed to get artifacts")
+			zlog.InfraSec().Fatal().Err(err).Msg("Failed to get artifacts")
 		}
 	}()
 
@@ -104,17 +104,17 @@ func main() {
 		invclient.WithEnableMetrics(*enableMetrics),
 	)
 	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Unable to start onboarding inventory client")
+		zlog.InfraSec().Fatal().Err(err).Msgf("Unable to start onboarding inventory client")
 	}
 
 	dkamController, err := controller.New(invClient, *enableTracing)
 	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Unable to create onboarding controller")
+		zlog.InfraSec().Fatal().Err(err).Msgf("Unable to create onboarding controller")
 	}
 
 	err = dkamController.Start()
 	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Unable to start onboarding controller")
+		zlog.InfraSec().Fatal().Err(err).Msgf("Unable to start onboarding controller")
 	}
 
 	setupOamServerAndSetReady(*enableTracing, *oamServerAddress)
@@ -155,7 +155,7 @@ func setupOamServerAndSetReady(enableTracing bool, oamServerAddress string) {
 		wg.Add(1)
 		go func() {
 			if err := oam.StartOamGrpcServer(termChan, readyChan, &wg, oamServerAddress, enableTracing); err != nil {
-				zlog.MiSec().Fatal().Err(err).Msg("Cannot start Inventory OAM gRPC server")
+				zlog.InfraSec().Fatal().Err(err).Msg("Cannot start Inventory OAM gRPC server")
 			}
 		}()
 		readyChan <- true
@@ -166,11 +166,11 @@ func GetArtifacts(ctx context.Context) error {
 	outDir := filepath.Join(config.DownloadPath, "tmp")
 	// 0. cleanup
 	os.RemoveAll(outDir)
-	zlog.MiSec().Info().Msg("Get all artifacts...")
+	zlog.InfraSec().Info().Msg("Get all artifacts...")
 	// Download release manifest.yaml file.
 	artifactsErr := dkammgr.DownloadArtifacts(ctx)
 	if artifactsErr != nil {
-		zlog.MiSec().Fatal().Err(artifactsErr).Msgf("Error downloading file %v", artifactsErr)
+		zlog.InfraSec().Fatal().Err(artifactsErr).Msgf("Error downloading file %v", artifactsErr)
 		return artifactsErr
 	}
 	return nil
@@ -181,30 +181,30 @@ func BuildBinaries() error {
 	// Donwload and sign iPXE
 	signedIPXE, pxeErr := dkammgr.BuildSignIpxe()
 	if pxeErr != nil {
-		zlog.MiSec().Fatal().Err(pxeErr).Msgf("Failed to sign MicroOS %v", pxeErr)
+		zlog.InfraSec().Fatal().Err(pxeErr).Msgf("Failed to sign MicroOS %v", pxeErr)
 		return pxeErr
 	}
 	if signedIPXE {
-		zlog.MiSec().Info().Msg("Signed IPXE and moved to PVC")
+		zlog.InfraSec().Info().Msg("Signed IPXE and moved to PVC")
 	}
 
 	// Download and sign MicroOS.
 	signed, signerr := dkammgr.SignMicroOS()
 	if signerr != nil {
-		zlog.MiSec().Fatal().Err(signerr).Msgf("Failed to sign MicroOS %v", signerr)
+		zlog.InfraSec().Fatal().Err(signerr).Msgf("Failed to sign MicroOS %v", signerr)
 		return signerr
 	}
 	if signed {
-		zlog.MiSec().Info().Msg("Signed MicroOS and moved to PVC")
+		zlog.InfraSec().Info().Msg("Signed MicroOS and moved to PVC")
 	}
 	return nil
 }
 
 func SetWatcher() (*fsnotify.Watcher, error) {
-	zlog.MiSec().Info().Msg("Enable watcher...")
+	zlog.InfraSec().Info().Msg("Enable watcher...")
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		zlog.MiSec().Fatal().Err(err).Msgf("Failed to create a watcher")
+		zlog.InfraSec().Fatal().Err(err).Msgf("Failed to create a watcher")
 	}
 
 	orchCACertificateFile := config.OrchCACertificateFile
@@ -223,14 +223,14 @@ func SetWatcher() (*fsnotify.Watcher, error) {
 					return
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					zlog.MiSec().Info().Msg("Certificate file changed. Rebuilding iPXE and microOS...")
-					zlog.MiSec().Fatal().Err(err).Msgf("Restart DKAM: %v", err)
+					zlog.InfraSec().Info().Msg("Certificate file changed. Rebuilding iPXE and microOS...")
+					zlog.InfraSec().Fatal().Err(err).Msgf("Restart DKAM: %v", err)
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
 					return
 				}
-				zlog.MiSec().Fatal().Err(err).Msgf("Error:%v", err)
+				zlog.InfraSec().Fatal().Err(err).Msgf("Error:%v", err)
 			}
 		}
 	}()
@@ -241,12 +241,12 @@ func SetWatcher() (*fsnotify.Watcher, error) {
 
 func addFileToWatcher(watcher *fsnotify.Watcher, filename string) {
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		zlog.MiSec().Fatal().Err(err).Msgf("File does not exist:%s, error: %v", filename, err)
+		zlog.InfraSec().Fatal().Err(err).Msgf("File does not exist:%s, error: %v", filename, err)
 		return
 	}
 	if err := watcher.Add(filename); err != nil {
-		zlog.MiSec().Error().Msgf("Failed to add file to watcher:%s, error: %v", filename, err)
+		zlog.InfraSec().Error().Msgf("Failed to add file to watcher:%s, error: %v", filename, err)
 	} else {
-		zlog.MiSec().Info().Msgf("Watcher added for file:%s", filename)
+		zlog.InfraSec().Info().Msgf("Watcher added for file:%s", filename)
 	}
 }

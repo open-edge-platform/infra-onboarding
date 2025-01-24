@@ -72,32 +72,32 @@ func DownloadMicroOS(ctx context.Context) (bool, error) {
 
 	file, err := os.Open(releaseFilePath)
 	if err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error opening file: %v", err)
+		zlog.InfraSec().Error().Err(err).Msgf("Error opening file: %v", err)
 	}
 	defer file.Close()
 
 	content, err := io.ReadAll(file)
 	if err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error reading file: %v", err)
+		zlog.InfraSec().Error().Err(err).Msgf("Error reading file: %v", err)
 	}
 
 	// Parse YAML
 	var data Data
 	if err := yaml.Unmarshal(content, &data); err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error unmarshalling YAML: %v", err)
+		zlog.InfraSec().Error().Err(err).Msgf("Error unmarshalling YAML: %v", err)
 	}
 
 	for _, file := range data.Provisioning.Files {
 		if file.Path == config.HookOSRepo {
-			zlog.MiSec().Info().Msgf("Version for hook os:%s", file.Version)
+			zlog.InfraSec().Info().Msgf("Version for hook os:%s", file.Version)
 			version = file.Version
 		}
 	}
 
-	zlog.MiSec().Info().Msgf("Hook OS version %s", version)
+	zlog.InfraSec().Info().Msgf("Hook OS version %s", version)
 
 	repo := config.HookOSRepo
-	zlog.MiSec().Info().Msgf("Hook OS repo URL is %s", repo)
+	zlog.InfraSec().Info().Msgf("Hook OS repo URL is %s", repo)
 	artifacts, err := as.DownloadArtifacts(ctx, repo, version)
 	if err != nil {
 		invErr := inv_errors.Errorf("Error downloading HookOS for tag %s", version)
@@ -106,19 +106,19 @@ func DownloadMicroOS(ctx context.Context) (bool, error) {
 
 	if artifacts != nil && len(*artifacts) > 0 {
 		for _, artifact := range *artifacts {
-			zlog.MiSec().Info().Msgf("Downloading artifact %s", artifact.Name)
+			zlog.InfraSec().Info().Msgf("Downloading artifact %s", artifact.Name)
 			filePath := config.DownloadPath + "/" + artifact.Name
 
 			err = CreateFile(filePath, &artifact)
 			if err != nil {
-				zlog.MiSec().Error().Err(err).Msg("Error writing to file")
+				zlog.InfraSec().Error().Err(err).Msg("Error writing to file")
 				return false, err
 			}
 		}
 
 	}
 
-	zlog.MiSec().Info().Msg("File downloaded")
+	zlog.InfraSec().Info().Msg("File downloaded")
 	return true, nil
 
 }
@@ -127,7 +127,7 @@ func DownloadPrecuratedScript(ctx context.Context, profile string) error {
 	// FIXME: hardcode profile script version for now, will be addressed in https://jira.devtools.intel.com/browse/NEX-11556
 	profileScriptVersion := "1.0.2"
 	repo := config.ProfileScriptRepo + profile
-	zlog.MiSec().Info().Msgf("Profile script repo URL is:%s", repo)
+	zlog.InfraSec().Info().Msgf("Profile script repo URL is:%s", repo)
 	artifacts, err := as.DownloadArtifacts(ctx, repo, profileScriptVersion)
 	if err != nil {
 		invErr := inv_errors.Errorf("Error downloading profile script for tag %s", profileScriptVersion)
@@ -135,18 +135,18 @@ func DownloadPrecuratedScript(ctx context.Context, profile string) error {
 	}
 	if artifacts != nil && len(*artifacts) > 0 {
 		artifact := (*artifacts)[0]
-		zlog.MiSec().Info().Msgf("Downloading artifact %s", artifact.Name)
+		zlog.InfraSec().Info().Msgf("Downloading artifact %s", artifact.Name)
 		filePath := config.DownloadPath + "/" + profile + ".sh"
 
 		err = CreateFile(filePath, &artifact)
 		if err != nil {
-			zlog.MiSec().Error().Err(err).Msg("Error writing to file")
+			zlog.InfraSec().Error().Err(err).Msg("Error writing to file")
 			return err
 		}
 
 	}
 
-	zlog.MiSec().Info().Msg("Precurated script downloaded")
+	zlog.InfraSec().Info().Msg("Precurated script downloaded")
 	return nil
 
 }
@@ -156,14 +156,14 @@ func DownloadArtifacts(ctx context.Context, manifestTag string) error {
 
 	mkErr := os.MkdirAll(outDir, 0755) // 0755 sets read, write, and execute permissions for owner, and read and execute permissions for others
 	if mkErr != nil {
-		zlog.MiSec().Error().Err(mkErr).Msgf("Error creating directory: %v", mkErr)
+		zlog.InfraSec().Error().Err(mkErr).Msgf("Error creating directory: %v", mkErr)
 		return mkErr
 	}
-	zlog.MiSec().Info().Msg("tmp folder created successfully")
-	zlog.MiSec().Info().Msgf("Tag is:%s", manifestTag)
+	zlog.InfraSec().Info().Msg("tmp folder created successfully")
+	zlog.InfraSec().Info().Msgf("Tag is:%s", manifestTag)
 
 	repo := config.ENManifestRepo
-	zlog.MiSec().Info().Msgf("Manifest repo URL is:%s", repo)
+	zlog.InfraSec().Info().Msgf("Manifest repo URL is:%s", repo)
 	artifacts, err := as.DownloadArtifacts(ctx, repo, manifestTag)
 	if err != nil {
 		invErr := inv_errors.Errorf("Error downloading EN Manifest file for tag %s", manifestTag)
@@ -171,17 +171,17 @@ func DownloadArtifacts(ctx context.Context, manifestTag string) error {
 	}
 	if artifacts != nil && len(*artifacts) > 0 {
 		artifact := (*artifacts)[0]
-		zlog.MiSec().Info().Msgf("Downloading artifact %s", artifact.Name)
+		zlog.InfraSec().Info().Msgf("Downloading artifact %s", artifact.Name)
 		filePath := outDir + "/" + config.ReleaseVersion + ".yaml"
 
 		err = CreateFile(filePath, &artifact)
 		if err != nil {
-			zlog.MiSec().Error().Err(err).Msg("Error writing to file")
+			zlog.InfraSec().Error().Err(err).Msg("Error writing to file")
 			return err
 		}
 
 	}
-	zlog.MiSec().Info().Msg("File downloaded")
+	zlog.InfraSec().Info().Msg("File downloaded")
 	return nil
 
 }
@@ -189,14 +189,14 @@ func DownloadArtifacts(ctx context.Context, manifestTag string) error {
 func CreateFile(filePath string, artifact *as.Artifact) error {
 	file, fileErr := os.Create(filePath)
 	if fileErr != nil {
-		zlog.MiSec().Error().Err(fileErr).Msgf("Error while creating file %v", filePath)
+		zlog.InfraSec().Error().Err(fileErr).Msgf("Error while creating file %v", filePath)
 		return fileErr
 	}
 	defer file.Close()
 
 	_, err := file.Write(artifact.Data)
 	if err != nil {
-		zlog.MiSec().Error().Err(err).Msgf("Error writing to file:%v", err)
+		zlog.InfraSec().Error().Err(err).Msgf("Error writing to file:%v", err)
 		return err
 	}
 	return nil
@@ -205,7 +205,7 @@ func CreateFile(filePath string, artifact *as.Artifact) error {
 // Ensure that pigz and qemu-img are installed
 func ensureDependencies() error {
 	if !commandExists("pigz") {
-		zlog.MiSec().Info().Msg("Installing pigz...")
+		zlog.InfraSec().Info().Msg("Installing pigz...")
 		err := installPackage("pigz")
 		if err != nil {
 			return err
@@ -213,7 +213,7 @@ func ensureDependencies() error {
 	}
 
 	if !commandExists("qemu-img") {
-		zlog.MiSec().Info().Msg("Installing qemu-utils...")
+		zlog.InfraSec().Info().Msg("Installing qemu-utils...")
 		err := installPackage("qemu-utils")
 		if err != nil {
 			return err
@@ -241,14 +241,14 @@ func downloadImage(ctx context.Context, url string, targetFilePath string) error
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to create HTTP GET request to %s", url)
-		zlog.MiSec().MiErr(err).Msgf(errMsg)
+		zlog.InfraSec().InfraErr(err).Msgf(errMsg)
 		return inv_errors.Errorf(errMsg)
 	}
 
 	response, err := http.DefaultClient.Do(req)
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to download file from %s", url)
-		zlog.MiSec().MiErr(err).Msgf(errMsg)
+		zlog.InfraSec().InfraErr(err).Msgf(errMsg)
 		return inv_errors.Errorf(errMsg)
 	}
 	defer response.Body.Close()
@@ -256,7 +256,7 @@ func downloadImage(ctx context.Context, url string, targetFilePath string) error
 	file, err := os.Create(targetFilePath)
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to create file %s", targetFilePath)
-		zlog.MiSec().MiErr(err).Msgf(errMsg)
+		zlog.InfraSec().InfraErr(err).Msgf(errMsg)
 		return inv_errors.Errorf(errMsg)
 	}
 	defer file.Close()
@@ -264,7 +264,7 @@ func downloadImage(ctx context.Context, url string, targetFilePath string) error
 	_, err = io.Copy(file, response.Body)
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to save file %s", targetFilePath)
-		zlog.MiSec().MiErr(err).Msgf(errMsg)
+		zlog.InfraSec().InfraErr(err).Msgf(errMsg)
 		return inv_errors.Errorf(errMsg)
 	}
 
@@ -322,7 +322,7 @@ func DownloadUbuntuImage(ctx context.Context, osRes *osv1.OperatingSystemResourc
 		zlog.Info().Msgf("File is in raw format")
 		if err := downloadImage(ctx, osRes.GetImageUrl(),
 			tempDownloadDir+"/"+osRes.GetProfileName()+".raw.gz"); err != nil {
-			zlog.MiSec().Error().Err(err).Msgf("Error downloading image:%v", err)
+			zlog.InfraSec().Error().Err(err).Msgf("Error downloading image:%v", err)
 			return err
 		}
 
@@ -331,52 +331,52 @@ func DownloadUbuntuImage(ctx context.Context, osRes *osv1.OperatingSystemResourc
 		zlog.Info().Msgf("File is in img format")
 		// Check and install dependencies if necessary
 		if err := ensureDependencies(); err != nil {
-			zlog.MiSec().Error().Err(err).Msgf("Error installing dependencies: %v", err)
+			zlog.InfraSec().Error().Err(err).Msgf("Error installing dependencies: %v", err)
 			return err
 		}
 
 		// Download the image
 		if err := downloadImage(ctx, osRes.GetImageUrl(), tempDownloadDir+"/image.img"); err != nil {
-			zlog.MiSec().Error().Err(err).Msgf("Error downloading image:%v", err)
+			zlog.InfraSec().Error().Err(err).Msgf("Error downloading image:%v", err)
 			return err
 		}
 
 		zlog.Info().Msg("Calculating SHA256 checksum of downloaded image...")
 		computedChecksum, err := getSHA256Checksum(tempDownloadDir + "/" + "image.img")
 		if err != nil {
-			zlog.MiSec().Error().Err(err).Msgf("Error calculating MD5 checksum:%v", err)
+			zlog.InfraSec().Error().Err(err).Msgf("Error calculating MD5 checksum:%v", err)
 			return err
 		}
 
-		zlog.MiSec().Info().Msgf("Expected checksum: %s\n", osRes.GetSha256())
-		zlog.MiSec().Info().Msgf("Computed checksum: %s\n", computedChecksum)
+		zlog.InfraSec().Info().Msgf("Expected checksum: %s\n", osRes.GetSha256())
+		zlog.InfraSec().Info().Msgf("Computed checksum: %s\n", computedChecksum)
 
 		if osRes.GetSha256() == computedChecksum {
-			zlog.MiSec().Info().Msgf("Checksum verification succeeded!")
+			zlog.InfraSec().Info().Msgf("Checksum verification succeeded!")
 		} else {
-			zlog.MiSec().Error().Err(err).Msgf(
+			zlog.InfraSec().Error().Err(err).Msgf(
 				"Checksum verification failed! Expected checksum:%s and Computed checksum:%s",
 				osRes.GetSha256(), computedChecksum)
 		}
 
 		// Convert the image to raw format
 		if err := convertImage(tempDownloadDir+"/"+"image.img", tempDownloadDir+"/"+"image.raw"); err != nil {
-			zlog.MiSec().Error().Err(err).Msgf("Error converting image:%v", err)
+			zlog.InfraSec().Error().Err(err).Msgf("Error converting image:%v", err)
 			return err
 		}
 
 		// Compress the raw image using pigz
 		if err := compressImage(tempDownloadDir+"/"+"image.raw", tempDownloadDir+"/image.raw.gz"); err != nil {
-			zlog.MiSec().Error().Err(err).Msgf("Error compressing image:%v", err)
+			zlog.InfraSec().Error().Err(err).Msgf("Error compressing image:%v", err)
 			return err
 		}
 
 		// Clean up temporary files
 		if err := os.Remove(tempDownloadDir + "/" + "image.img"); err != nil {
-			zlog.MiSec().Error().Err(err).Msgf("Error removing temporary file: image.img: %v", err)
+			zlog.InfraSec().Error().Err(err).Msgf("Error removing temporary file: image.img: %v", err)
 		}
 		if err := os.Remove(tempDownloadDir + "/" + "image.raw"); err != nil {
-			zlog.MiSec().Error().Err(err).Msgf("Error removing temporary file: image.raw %v", err)
+			zlog.InfraSec().Error().Err(err).Msgf("Error removing temporary file: image.raw %v", err)
 		}
 	}
 	moveErr := MoveFile(
@@ -384,11 +384,11 @@ func DownloadUbuntuImage(ctx context.Context, osRes *osv1.OperatingSystemResourc
 		util.GetOSImageLocation(osRes, targetDir),
 	)
 	if moveErr != nil {
-		zlog.MiSec().Error().Err(moveErr).Msgf("Failed to move file to PV:%v", moveErr)
+		zlog.InfraSec().Error().Err(moveErr).Msgf("Failed to move file to PV:%v", moveErr)
 		return moveErr
 	}
 
-	zlog.MiSec().Info().Msg("File downloaded, converted into raw format and move to PVC")
+	zlog.InfraSec().Info().Msg("File downloaded, converted into raw format and move to PVC")
 	return nil
 
 }
@@ -396,13 +396,13 @@ func DownloadUbuntuImage(ctx context.Context, osRes *osv1.OperatingSystemResourc
 func MoveFile(source, destination string) error {
 	exists, patherr := util.PathExists(source)
 	if patherr != nil {
-		zlog.MiSec().Error().Err(patherr).Msgf("Error checking file path %v", source)
+		zlog.InfraSec().Error().Err(patherr).Msgf("Error checking file path %v", source)
 		return patherr
 	}
 	if exists {
 		destDir := filepath.Dir(destination)
 		if err := os.MkdirAll(destDir, 0755); err != nil {
-			zlog.MiSec().Error().Err(err).Msgf("Failed to create destination dir %s", destDir)
+			zlog.InfraSec().Error().Err(err).Msgf("Failed to create destination dir %s", destDir)
 			return err
 		}
 
@@ -412,13 +412,13 @@ func MoveFile(source, destination string) error {
 
 		err := cmd.Run()
 		if err != nil {
-			zlog.MiSec().Info().Msgf("error running 'mv' command: %v", err)
+			zlog.InfraSec().Info().Msgf("error running 'mv' command: %v", err)
 			return err
 		} else {
-			zlog.MiSec().Info().Msgf("File %s copied to %s", source, destination)
+			zlog.InfraSec().Info().Msgf("File %s copied to %s", source, destination)
 		}
 	} else {
-		zlog.MiSec().Debug().Msgf("Source file path %s does not exist", source)
+		zlog.InfraSec().Debug().Msgf("Source file path %s does not exist", source)
 	}
 	return nil
 }

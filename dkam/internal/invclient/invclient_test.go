@@ -612,7 +612,7 @@ func TestDKAMInventoryClient_listAndReturnProvider(t *testing.T) {
 				ctx: context.Background(),
 				filter: &inv_v1.ResourceFilter{
 					Resource: &inv_v1.Resource{Resource: &inv_v1.Resource_Os{}},
-					Filter:   fmt.Sprintf("%s = %q", provider_v1.ProviderResourceFieldName, "fm_onboarding"),
+					Filter:   fmt.Sprintf("%s = %q", provider_v1.ProviderResourceFieldName, "infra_onboarding"),
 				},
 			},
 			want:    &provider_v1.ProviderResource{},
@@ -633,7 +633,7 @@ func TestDKAMInventoryClient_listAndReturnProvider(t *testing.T) {
 func TestDKAMInventoryClient_GetProviderConfig(t *testing.T) {
 	CreateDkamClientForTesting(t)
 	invClient := DkamTestClient
-	inv_testing.CreateProvider(t, "fm_onboarding")
+	inv_testing.CreateProvider(t, "infra_onboarding")
 	type args struct {
 		ctx  context.Context
 		name string
@@ -654,7 +654,7 @@ func TestDKAMInventoryClient_GetProviderConfig(t *testing.T) {
 			name: "GetProviderConfig with name",
 			args: args{
 				ctx:  context.Background(),
-				name: "fm_onboarding",
+				name: "infra_onboarding",
 			},
 			wantErr: true,
 		},

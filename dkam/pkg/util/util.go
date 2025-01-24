@@ -5,9 +5,10 @@ package util
 
 import (
 	"fmt"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
 	"os"
 	"path/filepath"
+
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
 
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
 
@@ -36,12 +37,12 @@ func GetOSImageLocation(os *osv1.OperatingSystemResource, rootDir string) string
 
 	switch os.GetOsType() {
 	case osv1.OsType_OS_TYPE_IMMUTABLE:
-		zlog.MiSec().Info().Msgf("OS image URL: %v", rootDir+os.GetImageUrl())
+		zlog.InfraSec().Info().Msgf("OS image URL: %v", rootDir+os.GetImageUrl())
 		return rootDir + os.GetImageUrl()
 	case osv1.OsType_OS_TYPE_MUTABLE:
 		fileName += ".raw.gz"
 	default:
-		zlog.MiSec().Error().Msgf("Unsupported OS type %v, may result in wrong OS image path", os.GetOsType())
+		zlog.InfraSec().Error().Msgf("Unsupported OS type %v, may result in wrong OS image path", os.GetOsType())
 	}
 
 	return getOSImageLocation(os, rootDir, fileName)
@@ -74,7 +75,7 @@ func GetInstallerLocation(os *osv1.OperatingSystemResource, rootDir string) (str
 	default:
 		invErr := inv_errors.Errorf("Unsupported OS type %v, may result in wrong installation artifacts path",
 			os.GetOsType())
-		zlog.MiSec().Error().Err(invErr).Msg("")
+		zlog.InfraSec().Error().Err(invErr).Msg("")
 		return "", invErr
 	}
 
@@ -97,17 +98,17 @@ func GetReleaseFilePathIfExists() (string, error) {
 	exists, err := PathExists(releaseFilePath)
 	if err != nil {
 		invErr := inv_errors.Errorf("Failed to check if path %s exists: %s", releaseFilePath, err)
-		zlog.MiSec().Err(invErr).Msg("")
+		zlog.InfraSec().Err(invErr).Msg("")
 		return "", invErr
 	}
 
 	if !exists {
 		invErr := inv_errors.Errorf("The release file not found under path %s", releaseFilePath)
-		zlog.MiSec().Err(invErr).Msg("")
+		zlog.InfraSec().Err(invErr).Msg("")
 		return "", invErr
 	}
 
-	zlog.MiSec().Debug().Msgf("Release file found under path %s", releaseFilePath)
+	zlog.InfraSec().Debug().Msgf("Release file found under path %s", releaseFilePath)
 
 	return releaseFilePath, nil
 }

@@ -113,7 +113,7 @@ func NewDKAMInventoryClientWithOptions(opts ...Option) (*DKAMInventoryClient, er
 	if err != nil {
 		return nil, err
 	}
-	zlog.MiSec().Info().Msgf("Inventory client started")
+	zlog.InfraSec().Info().Msgf("Inventory client started")
 	return NewDKAMInventoryClient(invClient, eventsWatcher)
 }
 
@@ -129,9 +129,9 @@ func NewDKAMInventoryClient(
 
 func (c *DKAMInventoryClient) Close() {
 	if err := c.Client.Close(); err != nil {
-		zlog.MiSec().MiErr(err).Msgf("")
+		zlog.InfraSec().InfraErr(err).Msgf("")
 	}
-	zlog.MiSec().Info().Msgf("Inventory client stopped")
+	zlog.InfraSec().Info().Msgf("Inventory client stopped")
 }
 
 // List resources by the provided filter. Filter is done only on fields that are set (not default values of the
@@ -147,14 +147,14 @@ func (c *DKAMInventoryClient) listAllResources(
 	// responses to the consumer of our external APIs.
 	objs, err := c.Client.List(ctx, filter)
 	if err != nil && !inv_errors.IsNotFound(err) {
-		zlog.MiSec().MiErr(err).Msgf("Unable to listAll %v", filter)
+		zlog.InfraSec().InfraErr(err).Msgf("Unable to listAll %v", filter)
 		return nil, err
 	}
 	resources := make([]*inv_v1.Resource, 0, len(objs.Resources))
 	for _, v := range objs.Resources {
 		if v.GetResource() != nil {
 			if err = validator.ValidateMessage(v.GetResource()); err != nil {
-				zlog.MiSec().MiErr(err).Msgf("Invalid input, validation has failed: %v", v)
+				zlog.InfraSec().InfraErr(err).Msgf("Invalid input, validation has failed: %v", v)
 				return nil, inv_errors.Wrap(err)
 			}
 			resources = append(resources, v.GetResource())
@@ -188,7 +188,7 @@ func (c *DKAMInventoryClient) listAndReturnHost(
 	host := resources[0].GetHost()
 	if host == nil {
 		err = inv_errors.Errorfc(codes.Internal, "Empty Host resource")
-		zlog.MiSec().MiErr(err).Msg("Inventory returned an empty Host resource")
+		zlog.InfraSec().InfraErr(err).Msg("Inventory returned an empty Host resource")
 		return nil, err
 	}
 
@@ -375,7 +375,7 @@ func (c *DKAMInventoryClient) listAndReturnProvider(
 	provider := resources[0].GetProvider()
 	if provider == nil {
 		err = inv_errors.Errorfc(codes.Internal, "Empty provider resource")
-		zlog.MiSec().MiErr(err).Msg("Inventory returned an empty provider resource")
+		zlog.InfraSec().InfraErr(err).Msg("Inventory returned an empty provider resource")
 		return nil, err
 	}
 
@@ -390,7 +390,7 @@ func GetProviderResourceByName(
 	zlog.Info().Msgf("Obtaining Provider resource by its name (%s)", name)
 	if name == "" {
 		err := inv_errors.Errorfc(codes.InvalidArgument, "Empty provider name")
-		zlog.MiSec().MiErr(err).Msg("Empty provider name obtained at the input of the function")
+		zlog.InfraSec().InfraErr(err).Msg("Empty provider name obtained at the input of the function")
 		return nil, err
 	}
 
@@ -421,7 +421,7 @@ func (c *DKAMInventoryClient) GetProviderConfig(
 	var pconf ProviderConfig
 	// Unmarshal provider config JSON into pconf
 	if err := json.Unmarshal([]byte(provider.Config), &pconf); err != nil {
-		zlog.MiErr(err).Msgf("failed to unmarshal ProviderConfig")
+		zlog.InfraErr(err).Msgf("failed to unmarshal ProviderConfig")
 		return nil, inv_errors.Wrap(err)
 	}
 
