@@ -68,8 +68,6 @@ func SignHookOS() (bool, error) {
 	//nameserver := os.Getenv("NAMESERVERS")
 
 	//////////// FQDNS ********************************
-	fdo_manufacturer_svc := os.Getenv("FDO_MANUFACTURE_SVC")
-	fdo_owner_svc := os.Getenv("FDO_OWNER_SVC")
 	release_svc := os.Getenv("CDN_SVC")
 	tink_stack_svc := host
 	releaseSVC := os.Getenv("RELEASE_SVC")
@@ -91,8 +89,7 @@ func SignHookOS() (bool, error) {
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__socks_proxy__", socks_proxy)
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__no_proxy__", no_proxy)
 	//modifiedConfig = strings.ReplaceAll(modifiedConfig, "__nameserver__", nameserver)
-	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__fdo_manufacturer_svc__", fdo_manufacturer_svc)
-	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__fdo_owner_svc__", fdo_owner_svc)
+	
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__release_svc__", release_svc)
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__tink_stack_svc__", tink_stack_svc)
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__tink_server_svc__", tink_server_svc)

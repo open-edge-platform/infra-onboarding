@@ -42,8 +42,6 @@ keycloak_url="__keycloak_url__"
 #extra_hosts="10.114.181.238 api-proxy.kind.internal,10.114.181.238 app-orch.kind.internal,10.114.181.238 cluster-orch-edge-node.kind.internal"
 extra_hosts="__extra_hosts__"
 #NGINX runtime configs
-fdo_manufacturer_svc="__fdo_manufacturer_svc__"
-fdo_owner_svc="__fdo_owner_svc__"
 release_svc="__release_svc__"
 oci_release_svc="__oci_release_svc__"
 logging_svc="__logging_svc__"

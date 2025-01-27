@@ -42,7 +42,6 @@ create_env_config() {
     then
 	echo -e "KEYCLOAK_URL=$keycloak_url" >> "$LOCATION_OF_ENV_CONFIG"
     fi
-	fdo_owner_svc="${fdo_owner_svc:-}"
 	release_svc="${release_svc:-}"
 	oci_release_svc="${oci_release_svc:-}"
 	tink_stack_svc="${tink_stack_svc:-}"
@@ -52,11 +51,9 @@ create_env_config() {
 	en_http_proxy="${en_http_proxy:-}"
 	en_no_proxy="${en_no_proxy:-}"
 	
-    if [ -n "$fdo_manufacturer_svc" ];
+    if [ -n "$release_svc" ];
     then
 	{
-	echo -e "fdo_manufacturer_svc=$fdo_manufacturer_svc"
-	echo -e "fdo_owner_svc=$fdo_owner_svc" 
 	echo -e "release_svc=$release_svc" 
 	echo -e "oci_release_svc=$oci_release_svc" 
 	echo -e "tink_stack_svc=$tink_stack_svc" 
