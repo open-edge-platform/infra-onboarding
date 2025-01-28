@@ -3,7 +3,7 @@ module device-discovery.com/v2
 go 1.23.2
 
 require (
-	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager v0.0.0-20250113132456-e88a3a571435
+	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager v0.0.0-20250124122926-30920e0afd39
 	golang.org/x/oauth2 v0.23.0
 	google.golang.org/grpc v1.69.2
 )
