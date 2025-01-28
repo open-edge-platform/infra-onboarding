@@ -551,7 +551,7 @@ pipeline {
                                                 unstash 'alpine_image'
                                                 unstash 'grub_source'
                                             sh '''
-                                            /opt/ci/push-oci-package.sh -o provisioning-hook-os -f 'alpine_image/hook_x86_64.tar.gz grub_source.tar.gz'
+                                            /opt/ci/push-oci-package.sh -s edge-node -o provisioning-hook-os -f 'alpine_image/hook_x86_64.tar.gz grub_source.tar.gz'
                                             '''
                                             }
                                         }
