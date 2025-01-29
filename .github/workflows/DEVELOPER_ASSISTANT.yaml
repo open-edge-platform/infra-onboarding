@@ -1,7 +1,7 @@
 name: DEVELOPER ASSISTANT
 on:
   pull_request:
-    types: [opened, reopened, ready_for_review]
+    types: [ready_for_review]
   issue_comment:
 jobs:
   pr_agent_job:
@@ -18,13 +18,16 @@ jobs:
         shell: bash
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
-          GITHUB_ACTION_CONFIG.AUTO_REVIEW: false
-          GITHUB_ACTION_CONFIG.AUTO_IMPROVE: true
+          GITHUB_ACTION_CONFIG.AUTO_REVIEW: true
+          GITHUB_ACTION_CONFIG.AUTO_IMPROVE: false
           GITHUB_ACTION_CONFIG.AUTO_DESCRIBE: false
           GITHUB_ACTION.UPDATE_TITLE: false
           CONFIG.PUBLISH_OUTPUT_PROGRESS: false
           CONFIG.PUBLISH_OUTPUT: true # must be enabled to publish review comments, but will result in useless progress comments
-          PR_CODE_SUGGESTIONS.COMMITABLE_CODE_SUGGESTIONS: true
+          PR_CODE_SUGGESTIONS.COMMITABLE_CODE_SUGGESTIONS: false
+          IGNORE.GLOB:
+            - **/vendor/**
+            - **/api/**
           # See https://github.com/intel-innersource/firmware.ethernet.devops.pr-patrol/blob/01a25ad56e41d090a7a39b5b47595689408d2ee0/pr_agent_src/pr_agent/settings/configuration.toml#L139
           # for more GenAI agent settings
           PR_NUMBER: ${{ github.event.number }}
