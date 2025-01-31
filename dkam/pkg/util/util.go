@@ -53,6 +53,20 @@ func GetOSImageLocationWithCustomFilename(os *osv1.OperatingSystemResource, root
 	return getOSImageLocation(os, rootDir, fileName)
 }
 
+func GetLocalInstallerPath(osType osv1.OsType) (string, error) {
+	switch osType {
+	case osv1.OsType_OS_TYPE_MUTABLE:
+		return config.ScriptPath + "/Installer", nil
+	case osv1.OsType_OS_TYPE_IMMUTABLE:
+		return config.ScriptPath + "/Installer.cfg", nil
+	default:
+		invErr := inv_errors.Errorf("Unsupported OS type %v, may result in wrong local installer path",
+			osType)
+		zlog.InfraSec().Error().Err(invErr).Msg("")
+		return "", invErr
+	}
+}
+
 // GetInstallerLocation returns a relative, standard path where OS installation artifacts are stored.
 // We assume that installation artifacts are unique per OS resource as scripts may change over time for OS profiles.
 // That's why we use OS resource ID to uniquely identify the installation artifact.

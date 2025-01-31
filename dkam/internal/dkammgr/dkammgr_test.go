@@ -57,7 +57,6 @@ const exampleManifestWrong = `
 			"size":24800
 		}],
 		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
-const rbacRules = "../../rego/authz.rego"
 
 const exampleManifests = `
 		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
@@ -88,6 +87,9 @@ func TestMain(m *testing.M) {
 	policyPath := projectRoot + "/build"
 	migrationsDir := projectRoot + "/build"
 
+	cleanupFunc := dkam_testing.StartTestReleaseService("profile")
+	defer cleanupFunc()
+
 	inv_testing.StartTestingEnvironment(policyPath, "", migrationsDir)
 	run := m.Run()
 	inv_testing.StopTestingEnvironment()
@@ -107,6 +109,8 @@ func TestDownloadArtifacts(t *testing.T) {
 
 func TestGetCuratedScript(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
+	dkam_testing.PrepareTestCaCertificateFile(t)
+
 	dir := config.PVC
 	os.MkdirAll(dir, 0755)
 	os.MkdirAll(config.DownloadPath, 0755)
@@ -130,33 +134,18 @@ func TestGetCuratedScript(t *testing.T) {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	err1 := os.WriteFile(dir+"/profile.sh", []byte(dummyData), 0755)
-	if err1 != nil {
-		fmt.Println("Error creating file:", err1)
-		os.Exit(1)
-	}
-	err2 := os.WriteFile(config.DownloadPath+"/profile.sh", []byte(dummyData), 0755)
-	if err2 != nil {
-		fmt.Println("Error creating file:", err2)
-	}
+	defer func() {
+		os.Remove(dir + "/installer.sh")
+	}()
+
 	osr := &osv1.OperatingSystemResource{
-		ProfileName: "profile:profile",
+		ProfileName: "profile",
 		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 	}
 	err = GetCuratedScript(context.TODO(), osr)
 
 	// Check if the returned filename matches the expected format
 	assert.NoError(t, err)
-
-	defer func() {
-		os.Remove(dir + "/installer.sh")
-		os.Remove(dir + "/profile.sh")
-		os.Remove(config.DownloadPath + "/profile.sh")
-	}()
-	t.Run("empty os type", func(t *testing.T) {
-		err := GetCuratedScript(context.TODO(), &osv1.OperatingSystemResource{})
-		assert.Error(t, err)
-	})
 }
 
 func TestServerUrl(t *testing.T) {

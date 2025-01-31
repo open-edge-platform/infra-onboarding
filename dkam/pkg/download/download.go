@@ -120,35 +120,6 @@ func DownloadMicroOS(ctx context.Context) (bool, error) {
 
 	zlog.InfraSec().Info().Msg("File downloaded")
 	return true, nil
-
-}
-
-func DownloadPrecuratedScript(ctx context.Context, profile string) error {
-	// FIXME: hardcode profile script version for now, will be addressed in https://jira.devtools.intel.com/browse/NEX-11556
-	profileScriptVersion := "1.0.2"
-	repo := config.ProfileScriptRepo + profile
-	zlog.InfraSec().Info().Msgf("Profile script repo URL is:%s", repo)
-	artifacts, err := as.DownloadArtifacts(ctx, repo, profileScriptVersion)
-	if err != nil {
-		invErr := inv_errors.Errorf("Error downloading profile script for tag %s", profileScriptVersion)
-		zlog.Err(invErr).Msg("")
-	}
-	if artifacts != nil && len(*artifacts) > 0 {
-		artifact := (*artifacts)[0]
-		zlog.InfraSec().Info().Msgf("Downloading artifact %s", artifact.Name)
-		filePath := config.DownloadPath + "/" + profile + ".sh"
-
-		err = CreateFile(filePath, &artifact)
-		if err != nil {
-			zlog.InfraSec().Error().Err(err).Msg("Error writing to file")
-			return err
-		}
-
-	}
-
-	zlog.InfraSec().Info().Msg("Precurated script downloaded")
-	return nil
-
 }
 
 func DownloadArtifacts(ctx context.Context, manifestTag string) error {

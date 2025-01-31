@@ -465,68 +465,6 @@ func TestDownloadUbuntuImage_Negative(t *testing.T) {
 	}
 }
 
-func TestDownloadPrecuratedScript(t *testing.T) {
-	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
-	expAcceptHeader := "application/vnd.oci.image.manifest.v1+json"
-	// svr1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	// 	assert.Equal(t, r.Header.Get("Accept"), expAcceptHeader)
-	// 	w.WriteHeader(http.StatusOK)
-	// 	w.Write([]byte(exampleManifest))
-	// }))
-	// defer svr1.Close()
-	// svr2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	// 	w.WriteHeader(http.StatusOK)
-	// 	w.Write([]byte(example))
-	// }))
-	// defer svr2.Close()
-	testTag := "testTag"
-	// testManifest := "testManifest"
-	exampleDownloadManifest := `{"layers":[{"digest":"` + testDigest + `"}]}`
-	expectedFileContent := "GOOD TEST!"
-	mux := http.NewServeMux()
-	mux.HandleFunc("/"+"profile:profile"+"/manifests/"+"1.0.2", func(w http.ResponseWriter, req *http.Request) {
-		assert.Equal(t, req.Header.Get("Accept"), expAcceptHeader)
-		w.WriteHeader(http.StatusOK)
-		// return example manifest
-		w.Write([]byte(exampleDownloadManifest))
-	})
-	// Path comes from the "DownloadArtifacts" by combining content of the exampleDownloadManifest digest
-	mux.HandleFunc("/"+testTag+"/blobs/"+testDigest, func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(expectedFileContent))
-	})
-	svr := httptest.NewServer(mux)
-	defer svr.Close()
-	originalRSProxy := config.HookOSRepo
-	originalRSProxyManifest := config.ENManifestRepo
-	defer func() {
-		config.HookOSRepo = originalRSProxy
-		config.ENManifestRepo = originalRSProxyManifest
-	}()
-
-	// config.HookOSRepo = svr1.URL + "/"
-	config.ENManifestRepo = svr.URL + "/"
-	type args struct {
-		profile string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
-			args: args{
-				profile: "profile:profile",
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		DownloadPrecuratedScript(context.TODO(), tt.args.profile)
-	}
-}
-
 func Test_getSHA256Checksum(t *testing.T) {
 	type args struct {
 		filename string

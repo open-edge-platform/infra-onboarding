@@ -4,6 +4,7 @@
 package curation
 
 import (
+	"context"
 	"fmt"
 	dkam_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/testing"
 	"log"
@@ -16,6 +17,10 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+)
+
+const (
+	testOSProfileName = "test-profile"
 )
 
 var (
@@ -32,7 +37,8 @@ func TestMain(m *testing.M) {
 	currentDir = wd
 	config.ScriptPath = strings.Replace(currentDir, "curation", "script", -1)
 	config.PVC, err = os.MkdirTemp(os.TempDir(), "test_pvc")
-
+	cleanupFunc := dkam_testing.StartTestReleaseService(testOSProfileName)
+	defer cleanupFunc()
 	if err != nil {
 		panic(fmt.Sprintf("Error creating temp directory: %v", err))
 	}
@@ -146,11 +152,11 @@ func Test_ParseJSONUfwRules(t *testing.T) {
 func Test_GenerateUFWCommand(t *testing.T) {
 	tests := map[string]struct {
 		ufwRule            Rule
-		expectedUfwCommand string
+		expectedUfwCommand []string
 	}{
 		"empty": {
 			ufwRule:            Rule{},
-			expectedUfwCommand: "echo Firewall rule not set 0",
+			expectedUfwCommand: []string{},
 		},
 		"rule1": {
 			ufwRule: Rule{
@@ -159,7 +165,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 				IpVer:    "ipv4",
 				Protocol: "tcp",
 			},
-			expectedUfwCommand: "ufw allow from $(dig +short kind.internal | tail -n1) to any port 6443,10250 proto tcp",
+			expectedUfwCommand: []string{"ufw allow from $(dig +short kind.internal | tail -n1) to any port 6443,10250 proto tcp"},
 		},
 		"rule2": {
 			ufwRule: Rule{
@@ -168,7 +174,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 				Protocol: "tcp",
 				Ports:    "2379,2380,6443,9345,10250,5473",
 			},
-			expectedUfwCommand: "ufw allow in to any port 2379,2380,6443,9345,10250,5473 proto tcp",
+			expectedUfwCommand: []string{"ufw allow in to any port 2379,2380,6443,9345,10250,5473 proto tcp"},
 		},
 		"rule3": {
 			ufwRule: Rule{
@@ -177,7 +183,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 				Protocol: "",
 				Ports:    "7946",
 			},
-			expectedUfwCommand: "ufw allow in to any port 7946",
+			expectedUfwCommand: []string{"ufw allow in to any port 7946"},
 		},
 		"rule4": {
 			ufwRule: Rule{
@@ -186,7 +192,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 				Protocol: "udp",
 				Ports:    "123",
 			},
-			expectedUfwCommand: "ufw allow in to any port 123 proto udp",
+			expectedUfwCommand: []string{"ufw allow in to any port 123 proto udp"},
 		},
 		"rule5": {
 			ufwRule: Rule{
@@ -195,7 +201,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 				IpVer:    "ipv4",
 				Protocol: "tcp",
 			},
-			expectedUfwCommand: "ufw allow from $(dig +short kind.internal | tail -n1) proto tcp",
+			expectedUfwCommand: []string{"ufw allow from $(dig +short kind.internal | tail -n1) proto tcp"},
 		},
 		"rule6": {
 			ufwRule: Rule{
@@ -204,7 +210,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 				IpVer:    "ipv4",
 				Protocol: "",
 			},
-			expectedUfwCommand: "ufw allow from $(dig +short kind.internal | tail -n1)",
+			expectedUfwCommand: []string{"ufw allow from $(dig +short kind.internal | tail -n1)"},
 		},
 		"rule7": {
 			ufwRule: Rule{
@@ -213,7 +219,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 				IpVer:    "ipv4",
 				Protocol: "",
 			},
-			expectedUfwCommand: "ufw allow from $(dig +short kind.internal | tail -n1) to any port 1234",
+			expectedUfwCommand: []string{"ufw allow from $(dig +short kind.internal | tail -n1) to any port 1234"},
 		},
 		"rule8": {
 			ufwRule: Rule{
@@ -222,7 +228,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 				Protocol: "abc",
 				Ports:    "",
 			},
-			expectedUfwCommand: "echo Firewall rule not set 0",
+			expectedUfwCommand: []string{},
 		},
 		"rule9": {
 			ufwRule: Rule{
@@ -231,19 +237,21 @@ func Test_GenerateUFWCommand(t *testing.T) {
 				IpVer:    "ipv4",
 				Protocol: "tcp",
 			},
-			expectedUfwCommand: "ufw allow from 0000:000::00 to any port 6443,10250 proto tcp",
+			expectedUfwCommand: []string{"ufw allow from 0000:000::00 to any port 6443,10250 proto tcp"},
 		},
 	}
 	for tcname, tc := range tests {
 		t.Run(tcname, func(t *testing.T) {
-			ufwCommand := GenerateUFWCommand(tc.ufwRule)
-			assert.Equal(t, tc.expectedUfwCommand, ufwCommand)
+			ufwCommands := GenerateUFWCommands(tc.ufwRule)
+			assert.Equal(t, tc.expectedUfwCommand, ufwCommands)
 		})
 	}
 }
 
 func Test_GetCuratedScript(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
+	dkam_testing.PrepareTestCaCertificateFile(t)
+
 	os.Setenv("NETIP", "static")
 
 	os.MkdirAll(config.DownloadPath, 0755)
@@ -273,30 +281,19 @@ func Test_GetCuratedScript(t *testing.T) {
 	defer func() {
 		os.Remove(config.PVC + "/installer.sh")
 	}()
-	err = os.WriteFile(config.PVC+"/profile.sh", []byte(dummyData), 0755)
-	require.NoError(t, err)
-	defer func() {
-		os.Remove(config.PVC + "/profile.sh")
-	}()
-
-	err = os.WriteFile(config.DownloadPath+"/profile.sh", []byte(dummyData), 0755)
-	require.NoError(t, err)
-	defer func() {
-		os.Remove(config.DownloadPath + "/profile.sh")
-	}()
 
 	osr := &osv1.OperatingSystemResource{
-		ProfileName: "profile",
+		ProfileName: testOSProfileName,
 		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 	}
 
-	err = CurateScript(osr)
-	assert.NoError(t, err)
+	err = CurateScript(context.TODO(), osr)
+	require.NoError(t, err)
 }
 
 func Test_GetCuratedScript_Case(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
-	config.OrchCACertificateFile = config.ScriptPath + "/Installer.cfg"
+	dkam_testing.PrepareTestCaCertificateFile(t)
 
 	os.MkdirAll(config.DownloadPath, 0755)
 
@@ -320,7 +317,7 @@ func Test_GetCuratedScript_Case(t *testing.T) {
 	}()
 
 	osr := &osv1.OperatingSystemResource{
-		ProfileName: "profile",
+		ProfileName: testOSProfileName,
 		OsType:      osv1.OsType_OS_TYPE_IMMUTABLE,
 	}
 	os.Setenv("FIREWALL_REQ_ALLOW", `[
@@ -399,12 +396,14 @@ func Test_GetCuratedScript_Case(t *testing.T) {
 ]
 `)
 
-	err := CurateScript(osr)
+	err := CurateScript(context.TODO(), osr)
 	assert.NoError(t, err)
 }
 
 func Test_GetCuratedScript_Case1(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
+	dkam_testing.PrepareTestCaCertificateFile(t)
+
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
 	os.MkdirAll(config.DownloadPath, 0755)
 
@@ -418,34 +417,26 @@ func Test_GetCuratedScript_Case1(t *testing.T) {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	err1 := os.WriteFile(config.PVC+"/profile.sh", []byte(dummyData), 0755)
-	if err1 != nil {
-		fmt.Println("Error creating file:", err1)
-		os.Exit(1)
-	}
-	err2 := os.WriteFile(config.DownloadPath+"/profile.sh", []byte(dummyData), 0755)
-	if err2 != nil {
-		fmt.Println("Error creating file:", err2)
-	}
+
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
 	defer os.Unsetenv("ORCH_CLUSTER")
 	osr := &osv1.OperatingSystemResource{
-		ProfileName: "profile",
+		ProfileName: testOSProfileName,
 		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 	}
-	err = CurateScript(osr)
+	err = CurateScript(context.TODO(), osr)
 
 	assert.NoError(t, err)
 	defer func() {
 		os.Unsetenv("ORCH_CLUSTER")
 		os.Remove(config.PVC + "/installer.sh")
-		os.Remove(config.PVC + "/profile.sh")
-		os.Remove(config.DownloadPath + "/profile.sh")
 	}()
 }
 
 func Test_GetCuratedScript_Case2(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
+	dkam_testing.PrepareTestCaCertificateFile(t)
+
 	os.Setenv("SOCKS_PROXY", "proxy")
 	os.MkdirAll(config.DownloadPath, 0755)
 
@@ -459,36 +450,27 @@ func Test_GetCuratedScript_Case2(t *testing.T) {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	err1 := os.WriteFile(config.PVC+"/profile.sh", []byte(dummyData), 0755)
-	if err1 != nil {
-		fmt.Println("Error creating file:", err1)
-		os.Exit(1)
-	}
-	err2 := os.WriteFile(config.DownloadPath+"/profile.sh", []byte(dummyData), 0755)
-	if err2 != nil {
-		fmt.Println("Error creating file:", err2)
-	}
+
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
 	defer os.Unsetenv("ORCH_CLUSTER")
 	osr := &osv1.OperatingSystemResource{
-		ProfileName: "profile",
+		ProfileName: testOSProfileName,
 		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 	}
-	err = CurateScript(osr)
+	err = CurateScript(context.TODO(), osr)
 
 	assert.NoError(t, err)
 
 	defer func() {
 		os.Unsetenv("SOCKS_PROXY")
 		os.Remove(config.PVC + "/installer.sh")
-		os.Remove(config.PVC + "/profile.sh")
-		os.Remove(config.PVC + "/profile/installer.sh")
-		os.Remove(config.DownloadPath + "/profile.sh")
 	}()
 }
 
 func Test_GetCuratedScript_Case3(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
+	dkam_testing.PrepareTestCaCertificateFile(t)
+
 	os.MkdirAll(config.DownloadPath, 0755)
 
 	dummyData := `#!/bin/bash
@@ -501,16 +483,6 @@ func Test_GetCuratedScript_Case3(t *testing.T) {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	err1 := os.WriteFile(config.PVC+"/profile.sh", []byte(dummyData), 0755)
-	if err1 != nil {
-		fmt.Println("Error creating file:", err1)
-		os.Exit(1)
-	}
-	err2 := os.WriteFile(config.DownloadPath+"/profile.sh", []byte(dummyData), 0755)
-	if err2 != nil {
-		fmt.Println("Error creating file:", err2)
-	}
-
 	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
 	res := filepath.Join(result, "latest-dev.yaml")
 	if err := os.MkdirAll(filepath.Dir(res), 0755); err != nil {
@@ -522,10 +494,10 @@ func Test_GetCuratedScript_Case3(t *testing.T) {
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
 	defer os.Unsetenv("ORCH_CLUSTER")
 	osr := &osv1.OperatingSystemResource{
-		ProfileName: "profile",
+		ProfileName: testOSProfileName,
 		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 	}
-	err = CurateScript(osr)
+	err = CurateScript(context.TODO(), osr)
 
 	assert.NoError(t, err)
 	defer func() {
@@ -533,14 +505,13 @@ func Test_GetCuratedScript_Case3(t *testing.T) {
 		dkam_testing.CopyFile(res, src)
 		os.Remove(res)
 		os.Remove(config.PVC + "/installer.sh")
-		os.Remove(config.PVC + "/profile.sh")
-		os.Remove(config.PVC + "/profile/installer.sh")
-		os.Remove(config.DownloadPath + "/profile.sh")
 	}()
 }
 
 func Test_GetCuratedScript_Case4(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
+	dkam_testing.PrepareTestCaCertificateFile(t)
+
 	os.MkdirAll(config.DownloadPath, 0755)
 
 	dummyData := `#!/bin/bash
@@ -553,15 +524,7 @@ func Test_GetCuratedScript_Case4(t *testing.T) {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	err1 := os.WriteFile(config.PVC+"/profile.sh", []byte(dummyData), 0755)
-	if err1 != nil {
-		fmt.Println("Error creating file:", err1)
-		os.Exit(1)
-	}
-	err2 := os.WriteFile(config.DownloadPath+"/profile.sh", []byte(dummyData), 0755)
-	if err2 != nil {
-		fmt.Println("Error creating file:", err2)
-	}
+
 	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
 	res := filepath.Join(result, "latest-dev.yaml")
 	if err := os.MkdirAll(filepath.Dir(res), 0755); err != nil {
@@ -577,10 +540,10 @@ func Test_GetCuratedScript_Case4(t *testing.T) {
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
 	defer os.Unsetenv("ORCH_CLUSTER")
 	osr := &osv1.OperatingSystemResource{
-		ProfileName: "profile",
+		ProfileName: testOSProfileName,
 		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 	}
-	err = CurateScript(osr)
+	err = CurateScript(context.TODO(), osr)
 
 	assert.NoError(t, err)
 	defer func() {
@@ -588,56 +551,6 @@ func Test_GetCuratedScript_Case4(t *testing.T) {
 		dkam_testing.CopyFile(res, src)
 		os.Remove(res)
 		os.Remove(config.PVC + "/installer.sh")
-		os.Remove(config.PVC + "/profile.sh")
-		os.Remove(config.PVC + "/profile/installer.sh")
-		os.Remove(config.DownloadPath + "/profile.sh")
-	}()
-}
-
-func Test_copyFile(t *testing.T) {
-	type args struct {
-		src string
-		dst string
-	}
-
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
-			args: args{
-				src: "",
-			},
-			wantErr: true,
-		},
-		{
-			name: "Test Case1",
-			args: args{
-				src: currentDir,
-				dst: "",
-			},
-			wantErr: true,
-		},
-		{
-			name: "Test Case 2",
-			args: args{
-				src: currentDir,
-				dst: currentDir + "dummy",
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := copyFile(tt.args.src, tt.args.dst); (err != nil) != tt.wantErr {
-				t.Errorf("copyFile() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-	defer func() {
-		os.Remove(currentDir + "dummy")
 	}()
 }
 
@@ -721,580 +634,9 @@ func TestGetReleaseArtifactList_NegativeCase(t *testing.T) {
 	}()
 }
 
-func TestCreateOverlayScript(t *testing.T) {
-	os.MkdirAll(config.DownloadPath, 0755)
-	dir := config.ScriptPath + "/Installer"
-	os.MkdirAll(dir, 0755)
-
-	dummyData := `#!/bin/bash
-	enable_netipplan
-        install_intel_CAcertificates
-# Add your installation commands here
-`
-	os.Setenv("MODE", "prod")
-	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
-	if err != nil {
-		fmt.Println("Error creating file:", err)
-		os.Exit(1)
-	}
-	err1 := os.WriteFile(config.PVC+"/default.sh", []byte(dummyData), 0755)
-	if err1 != nil {
-		fmt.Println("Error creating file:", err1)
-		os.Exit(1)
-	}
-	err2 := os.WriteFile(config.DownloadPath+"/default.sh", []byte(dummyData), 0755)
-	if err2 != nil {
-		fmt.Println("Error creating file:", err2)
-	}
-	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
-	dst := filepath.Join(result, "Installer")
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-		t.Fatalf("Failed to create directory: %v", err)
-	}
-	srcs := strings.Replace(currentDir, "curation", "script/Installer", -1)
-	dkam_testing.CopyFile(srcs, dst)
-	type args struct {
-		pwd     string
-		profile string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
-			args: args{
-				pwd: currentDir,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			osr := &osv1.OperatingSystemResource{
-				ProfileName: tt.args.profile,
-				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
-			}
-			if err := CreateOverlayScript(osr); (err != nil) != tt.wantErr {
-				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-	defer func() {
-		os.Remove(dst)
-		os.Remove(config.PVC + "/installer.sh")
-		os.Remove(config.PVC + "/data.sh")
-		os.Remove(currentDir + "/data/default.sh")
-		os.Remove(currentDir + "/data/data.sh")
-		os.Remove(currentDir + "/data/default/installer.sh")
-		os.Remove(config.DownloadPath + "/default.sh")
-		dkam_testing.CopyFile(dst, srcs)
-		os.Unsetenv("MODE")
-	}()
-}
-
-func TestCreateOverlayScript_Case(t *testing.T) {
-	os.Setenv("FIREWALL_REQ_ALLOW", `{
-		"sourceIp": "000.000.0.000",
-		"ports": "00,000",
-		"ipVer": "0000",
-		"protocol": "000"
-	  }`,
-	)
-	os.Setenv("FIREWALL_CFG_ALLOW", `{
-		"sourceIp": "000.000.0.000",
-		"ports": "00,000",
-		"ipVer": "0000",
-		"protocol": "000"
-	  }`,
-	)
-
-	dir := config.ScriptPath + "/Installer"
-	os.MkdirAll(dir, 0755)
-	os.MkdirAll(config.DownloadPath, 0755)
-
-	dummyData := `#!/bin/bash
-	enable_netipplan
-        install_intel_CAcertificates
-# Add your installation commands here
-`
-	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
-	if err != nil {
-		fmt.Println("Error creating file:", err)
-		os.Exit(1)
-	}
-	err1 := os.WriteFile(config.PVC+"/default.sh", []byte(dummyData), 0755)
-	if err1 != nil {
-		fmt.Println("Error creating file:", err1)
-		os.Exit(1)
-	}
-	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
-	dst := filepath.Join(result, "Installer")
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-		t.Fatalf("Failed to create directory: %v", err)
-	}
-	err2 := os.WriteFile(config.DownloadPath+"/default.sh", []byte(dummyData), 0755)
-	if err2 != nil {
-		fmt.Println("Error creating file:", err2)
-	}
-	srcs := strings.Replace(currentDir, "curation", "script/Installer", -1)
-	dkam_testing.CopyFile(srcs, dst)
-	type args struct {
-		pwd     string
-		profile string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
-			args: args{
-				pwd: currentDir,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			osr := &osv1.OperatingSystemResource{
-				ProfileName: tt.args.profile,
-				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
-			}
-			if err := CreateOverlayScript(osr); (err != nil) != tt.wantErr {
-				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-	defer func() {
-		os.Unsetenv("FIREWALL_REQ_ALLOW")
-		os.Unsetenv("FIREWALL_CFG_ALLOW")
-		os.Remove(dst)
-		os.Remove(config.PVC + "/installer.sh")
-		os.Remove(config.PVC + "/data.sh")
-		os.Remove(currentDir + "/data/default.sh")
-		os.Remove(currentDir + "/data/data.sh")
-		os.Remove(currentDir + "/data/default/installer.sh")
-		os.Remove(config.DownloadPath + "/default.sh")
-		dkam_testing.CopyFile(dst, srcs)
-	}()
-}
-
-func TestCreateOverlayScript_Case1(t *testing.T) {
-	os.Setenv("FIREWALL_REQ_ALLOW", `[
-		{
-		  "sourceIp": "000.000.0.000",
-		  "ports": "00,000",
-		  "ipVer": "0000",
-		  "protocol": "0000"
-		}
-	  ]`)
-	os.Setenv("FIREWALL_CFG_ALLOW", `[
-		{
-		  "sourceIp": "000.000.0.000",
-		  "ports": "00,000",
-		  "ipVer": "0000",
-		  "protocol": "0000"
-		}
-	  ]`)
-
-	dir := config.ScriptPath + "/Installer"
-	os.MkdirAll(dir, 0755)
-	os.MkdirAll(config.DownloadPath, 0755)
-
-	dummyData := `#!/bin/bash
-	enable_netipplan
-        install_intel_CAcertificates
-# Add your installation commands here
-`
-	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
-	if err != nil {
-		fmt.Println("Error creating file:", err)
-		os.Exit(1)
-	}
-	err1 := os.WriteFile(config.PVC+"/default.sh", []byte(dummyData), 0755)
-	if err1 != nil {
-		fmt.Println("Error creating file:", err1)
-		os.Exit(1)
-	}
-	err2 := os.WriteFile(config.DownloadPath+"/default.sh", []byte(dummyData), 0755)
-	if err2 != nil {
-		fmt.Println("Error creating file:", err2)
-	}
-	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
-	dst := filepath.Join(result, "Installer")
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-		t.Fatalf("Failed to create directory: %v", err)
-	}
-	srcs := strings.Replace(currentDir, "curation", "script/Installer", -1)
-	dkam_testing.CopyFile(srcs, dst)
-	type args struct {
-		pwd     string
-		profile string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
-			args: args{
-				pwd: currentDir,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			osr := &osv1.OperatingSystemResource{
-				ProfileName: tt.args.profile,
-				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
-			}
-			if err := CreateOverlayScript(osr); (err != nil) != tt.wantErr {
-				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-	defer func() {
-		os.Unsetenv("FIREWALL_REQ_ALLOW")
-		os.Unsetenv("FIREWALL_CFG_ALLOW")
-		os.RemoveAll(dst)
-		os.Remove(config.PVC + "/installer.sh")
-		os.Remove(config.PVC + "/data.sh")
-		os.Remove(currentDir + "/data/default.sh")
-		os.Remove(currentDir + "/data/data.sh")
-		os.Remove(currentDir + "/data/default/installer.sh")
-		os.Remove(config.DownloadPath + "/default.sh")
-		dkam_testing.CopyFile(dst, srcs)
-	}()
-}
-
-func TestCreateOverlayScript_Case2(t *testing.T) {
-	os.MkdirAll(config.DownloadPath, 0755)
-	dir := config.ScriptPath + "/Installer"
-	os.MkdirAll(dir, 0755)
-
-	dummyData := `#!/bin/bash
-	enable_netipplan
-        install_intel_CAcertificates
-# Add your installation commands here
-`
-	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
-	if err != nil {
-		fmt.Println("Error creating file:", err)
-		os.Exit(1)
-	}
-	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
-	dst := filepath.Join(result, "Installer")
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-		t.Fatalf("Failed to create directory: %v", err)
-	}
-	err1 := os.WriteFile(config.PVC+"/default.sh", []byte(dummyData), 0755)
-	if err1 != nil {
-		fmt.Println("Error creating file:", err1)
-		os.Exit(1)
-	}
-	err2 := os.WriteFile(config.DownloadPath+"/default.sh", []byte(dummyData), 0755)
-	if err2 != nil {
-		fmt.Println("Error creating file:", err2)
-	}
-	srcs := strings.Replace(currentDir, "curation", "script/Installer", -1)
-	dkam_testing.CopyFile(srcs, dst)
-	type args struct {
-		pwd     string
-		profile string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
-			args: args{
-				pwd: currentDir,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			osr := &osv1.OperatingSystemResource{
-				ProfileName: tt.args.profile,
-				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
-			}
-			if err := CreateOverlayScript(osr); (err != nil) != tt.wantErr {
-				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-	defer func() {
-		os.RemoveAll(dst)
-		os.Remove(config.PVC + "/installer.sh")
-		os.Remove(config.PVC + "/data.sh")
-		os.Remove(currentDir + "/data/default.sh")
-		os.Remove(currentDir + "/data/data.sh")
-		os.Remove(currentDir + "/data/default/installer.sh")
-		os.Remove(config.DownloadPath + "/default.sh")
-		dkam_testing.CopyFile(dst, srcs)
-	}()
-}
-
-func TestCreateOverlayScript_Case4(t *testing.T) {
-	os.Setenv("FIREWALL_REQ_ALLOW", `[
-		{
-		  "sourceIp": "000.000.0.000",
-		  "ports": "00,000",
-		  "ipVer": "0000",
-		  "protocol": "0000"
-		}
-	  ]`)
-	os.Setenv("FIREWALL_CFG_ALLOW", `[
-		{
-		  "sourceIp": "000.000.0.000",
-		  "ports": "00,000",
-		  "ipVer": "0000",
-		  "protocol": "0000"
-		}
-	  ]`)
-
-	dir := config.ScriptPath + "/Installer"
-	os.MkdirAll(dir, 0755)
-
-	os.MkdirAll(config.DownloadPath, 0755)
-	dummyData := `#!/bin/bash
-	enable_netipplan
-        install_intel_CAcertificates
-# Add your installation commands here
-`
-	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
-	if err != nil {
-		fmt.Println("Error creating file:", err)
-		os.Exit(1)
-	}
-	err1 := os.WriteFile(config.PVC+"/default.sh", []byte(dummyData), 0755)
-	if err1 != nil {
-		fmt.Println("Error creating file:", err1)
-		os.Exit(1)
-	}
-	err2 := os.WriteFile(config.DownloadPath+"/default.sh", []byte(dummyData), 0755)
-	if err2 != nil {
-		fmt.Println("Error creating file:", err2)
-	}
-	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
-	dst := filepath.Join(result, "Installer")
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-		t.Fatalf("Failed to create directory: %v", err)
-	}
-	srcs := strings.Replace(currentDir, "curation", "script/Installer", -1)
-	dkam_testing.CopyFile(srcs, dst)
-	type args struct {
-		pwd     string
-		profile string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
-			args: args{
-				pwd: currentDir,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			osr := &osv1.OperatingSystemResource{
-				ProfileName: tt.args.profile,
-				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
-			}
-			if err := CreateOverlayScript(osr); (err != nil) != tt.wantErr {
-				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-	defer func() {
-		os.Unsetenv("FIREWALL_REQ_ALLOW")
-		os.Unsetenv("FIREWALL_CFG_ALLOW")
-		os.RemoveAll(dst)
-		os.Remove(config.PVC + "/installer.sh")
-		os.Remove(config.PVC + "/data.sh")
-		os.Remove(currentDir + "/data/default.sh")
-		os.Remove(currentDir + "/data/data.sh")
-		os.Remove(currentDir + "/data/default/installer.sh")
-		os.Remove(config.DownloadPath + "/default.sh")
-		dkam_testing.CopyFile(dst, srcs)
-	}()
-}
-
-func TestCreateOverlayScript_Case3(t *testing.T) {
-	dir := config.ScriptPath + "/Installer"
-	os.MkdirAll(dir, 0755)
-
-	os.MkdirAll(config.DownloadPath, 0755)
-	dummyData := `#!/bin/bash
-	enable_netipplan
-        install_intel_CAcertificates
-# Add your installation commands here
-`
-	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
-	if err != nil {
-		fmt.Println("Error creating file:", err)
-		os.Exit(1)
-	}
-	err1 := os.WriteFile(config.PVC+"/default.sh", []byte(dummyData), 0755)
-	if err1 != nil {
-		fmt.Println("Error creating file:", err1)
-		os.Exit(1)
-	}
-	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
-	dst := filepath.Join(result, "Installer")
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-		t.Fatalf("Failed to create directory: %v", err)
-	}
-	srcs := strings.Replace(currentDir, "curation", "script/Installer", -1)
-	dkam_testing.CopyFile(srcs, dst)
-
-	path := "/etc/ssl/orch-ca-cert/ca.crt"
-	err2 := os.MkdirAll("/etc/ssl/orch-ca-cert", 0755)
-	if err2 != nil {
-		fmt.Println("Error creating directories:", err2)
-		return
-	}
-	err4 := os.WriteFile(config.DownloadPath+"/default.sh", []byte(dummyData), 0755)
-	if err4 != nil {
-		fmt.Println("Error creating file:", err4)
-	}
-	file, err3 := os.Create(path)
-	if err3 != nil {
-		fmt.Println("Error creating file:", err3)
-		return
-	}
-	defer file.Close()
-	type args struct {
-		pwd     string
-		profile string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
-			args: args{
-				pwd: currentDir,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv("MODE", "dev")
-			defer os.Unsetenv("MODE")
-			osr := &osv1.OperatingSystemResource{
-				ProfileName: tt.args.profile,
-				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
-			}
-			if err := CreateOverlayScript(osr); (err != nil) != tt.wantErr {
-				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-	defer func() {
-		os.RemoveAll(dst)
-		os.Remove(config.PVC + "/installer.sh")
-		os.Remove(config.PVC + "/data.sh")
-		os.Remove(currentDir + "/data/default.sh")
-		os.Remove(currentDir + "/data/installer.sh")
-		os.Remove(currentDir + "/data/data.sh")
-		os.Remove(currentDir + "/data/default/installer.sh")
-		os.Remove(config.DownloadPath + "/default.sh")
-		dkam_testing.CopyFile(dst, srcs)
-		os.RemoveAll(path)
-	}()
-}
-
-func TestAddProxies(t *testing.T) {
-	type args struct {
-		fileName  string
-		newLines  []string
-		beginLine string
-	}
-	tests := []struct {
-		name  string
-		args  args
-		setup func() string
-	}{
-		{
-			name: "Invalid file name",
-			args: args{
-				fileName:  "",
-				newLines:  []string{"new proxy line 1", "new proxy line 2"},
-				beginLine: "begin line",
-			},
-		},
-		{
-			name: "File without target line",
-			args: args{
-				fileName:  "testfile.txt",
-				newLines:  []string{"new proxy line 1", "new proxy line 2"},
-				beginLine: "non-existing begin line",
-			},
-			setup: func() string {
-				content := "some line\nanother line"
-				fileName := "testfile.txt"
-				os.WriteFile(fileName, []byte(content), 0644)
-				return fileName
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var fileName string
-			if tt.setup != nil {
-				fileName = tt.setup()
-			} else {
-				fileName = tt.args.fileName
-			}
-			AddProxies(fileName, tt.args.newLines, tt.args.beginLine)
-
-		})
-	}
-	defer os.Remove(currentDir + "/testfile.txt")
-}
-
-func TestAddFirewallRules(t *testing.T) {
-	type args struct {
-		fileName string
-		newLines []string
-	}
-	tests := []struct {
-		name string
-		args args
-	}{
-		{
-			name: "Invalid file name",
-			args: args{
-				fileName: "",
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			AddFirewallRules(tt.args.fileName, tt.args.newLines)
-		})
-	}
-}
-
 func TestGetCuratedScript(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
+	dkam_testing.PrepareTestCaCertificateFile(t)
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
 	defer os.Unsetenv("ORCH_CLUSTER")
 
@@ -1311,7 +653,7 @@ func TestGetCuratedScript(t *testing.T) {
 		{
 			name: "CurateScript test case",
 			args: args{
-				profile: "",
+				profile: testOSProfileName,
 				sha256:  "",
 			},
 			wantErr: false,
@@ -1323,78 +665,11 @@ func TestGetCuratedScript(t *testing.T) {
 				ProfileName: tt.args.profile,
 				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 			}
-			if err := CurateScript(osr); (err != nil) != tt.wantErr {
+			if err := CurateScript(context.TODO(), osr); (err != nil) != tt.wantErr {
 				t.Errorf("CurateScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
-}
-
-func TestCreateOverlayScript_Err(t *testing.T) {
-	os.MkdirAll(config.DownloadPath, 0755)
-	dir := config.ScriptPath + "/Installer"
-	os.MkdirAll(dir, 0755)
-
-	dummyData := `#!/bin/bash
-	enable_netipplan
-        install_intel_CAcertificates
-# Add your installation commands here
-`
-	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
-	if err != nil {
-		fmt.Println("Error creating file:", err)
-		os.Exit(1)
-	}
-	err1 := os.WriteFile(config.PVC+"/default.sh", []byte(dummyData), 0755)
-	if err1 != nil {
-		fmt.Println("Error creating file:", err1)
-		os.Exit(1)
-	}
-	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
-	dst := filepath.Join(result, "Installer")
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-		t.Fatalf("Failed to create directory: %v", err)
-	}
-	srcs := strings.Replace(currentDir, "curation", "script/Installer", -1)
-	dkam_testing.CopyFile(srcs, dst)
-	type args struct {
-		pwd     string
-		profile string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
-			args: args{
-				pwd: currentDir,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			osr := &osv1.OperatingSystemResource{
-				ProfileName: tt.args.profile,
-				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
-			}
-			if err := CreateOverlayScript(osr); (err != nil) != tt.wantErr {
-				t.Errorf("CreateOverlayScript() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-	defer func() {
-		os.Remove(dst)
-		os.Remove(config.PVC + "/installer.sh")
-		os.Remove(config.PVC + "/data.sh")
-		os.Remove(currentDir + "/data/default.sh")
-		os.Remove(currentDir + "/data/data.sh")
-		os.Remove(currentDir + "/data/default/installer.sh")
-		os.Remove(config.DownloadPath + "/default.sh")
-		dkam_testing.CopyFile(dst, srcs)
-	}()
 }
 
 func TestCurateScriptFromTemplate(t *testing.T) {
@@ -1425,7 +700,7 @@ func TestCurateScriptFromTemplate(t *testing.T) {
 
 		"CA_CERT": testCaCert,
 
-		"IPTABLES_RULES": []string{
+		"FIREWALL_RULES": []string{
 			"iptables -A INPUT -p tcp --dport 80 -j ACCEPT",
 			"iptables -A INPUT -p tcp --dport 443 -j ACCEPT",
 		},
@@ -1516,7 +791,7 @@ func TestCurateScriptFromTemplate(t *testing.T) {
 			args: args{
 				templateVariables: func() map[string]interface{} {
 					templVarMap := copyBaseVariables()
-					templVarMap["IPTABLES_RULES"] = []string{}
+					templVarMap["FIREWALL_RULES"] = []string{}
 					return templVarMap
 				}(),
 			},
@@ -1539,6 +814,7 @@ func TestCurateScriptFromTemplate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			templatePath := strings.Replace(currentDir, "curation", "script", -1)
+			templatePath = filepath.Join(templatePath, "Installer.cfg")
 			got, err := CurateScriptFromTemplate(templatePath, tt.args.templateVariables)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CurateScriptFromTemplate() error = %v, wantErr %v", err, tt.wantErr)

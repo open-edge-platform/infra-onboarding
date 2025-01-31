@@ -6,7 +6,32 @@ set -euo pipefail
 if [ -f /etc/apt/apt.conf ]; then
     rm /etc/apt/apt.conf
 fi
-true >/etc/environment
+
+{{- if contains ".kind.internal" .ORCH_CLUSTER }}
+{{- range .EXTRA_HOSTS }}
+echo {{ . }} >> /etc/hosts
+{{- end }}
+{{- end }}
+
+{{- if .EN_HTTP_PROXY }}
+grep -qF "http_proxy" /etc/environment || echo http_proxy={{ .EN_HTTP_PROXY }} >> /etc/environment
+{{- end }}
+{{- if .EN_HTTPS_PROXY }}
+grep -qF "https_proxy" /etc/environment || echo https_proxy={{ .EN_HTTPS_PROXY }} >> /etc/environment
+{{- end }}
+{{- if .EN_FTP_PROXY }}
+grep -qF "ftp_proxy" /etc/environment || echo ftp_proxy={{ .EN_FTP_PROXY }} >> /etc/environment
+{{- end }}
+{{- if .EN_SOCKS_PROXY }}
+grep -qF "socks_server" /etc/environment || echo socks_proxy={{ .EN_SOCKS_PROXY }} >> /etc/environment
+{{- end }}
+{{- if .EN_NO_PROXY }}
+grep -qF "no_proxy" /etc/environment || echo no_proxy={{ .EN_NO_PROXY }} >> /etc/environment
+{{- end }}
+. /etc/environment
+export http_proxy https_proxy ftp_proxy socks_server no_proxy;
+
+
 SETUP_STATUS_FILENAME="install_pkgs_status"
 STATUS_FILENAME=".success_install_status"
 SCRIPT_DIR=$(pwd)
@@ -46,24 +71,32 @@ print_error_on_console() {
 
 trap 'print_error_on_console ${LINENO}' ERR
 
-PROVISIONING_URL=${PROVISIONING_URL:-"localhost"}
-ACCESS_TOKEN_URL=__KEYCLOAK_URL__
-RELEASE_TOKEN_URL=__RELEASE_TOKEN_URL__
-APT_SOURCE_URL=__FILE_SERVER__
-IMG_REGISTRY_URL=__IMG_REGISTRY_URL__
-APT_SOURCE_PROXY_PORT=__ORCH_APT_PORT__
-IMG_REGISTRY_PROXY_PORT=__ORCH_IMG_PORT__
+KEYCLOAK_FQDN={{ .KEYCLOAK_FQDN }}
+ACCESS_TOKEN_URL={{ .KEYCLOAK_URL }}
+RELEASE_TOKEN_URL={{ .RELEASE_TOKEN_URL }}
+RELEASE_FQDN={{ .RELEASE_FQDN }}
+APT_SOURCE_URL={{ .FILE_SERVER }}
+IMG_REGISTRY_URL={{ .IMG_REGISTRY_URL }}
+APT_SOURCE_PROXY_PORT={{ .ORCH_APT_PORT }}
+IMG_REGISTRY_PROXY_PORT={{ .ORCH_IMG_PORT }}
+APT_DISTRO={{ .APT_DISTRO }}
 
-ORCH_C_URL=__ORCH_CLUSTER__
-ORCH_I_URL=__ORCH_INFRA__
-ORCH_PLATFORM_OBSERVABILITY_HOST=__ORCH_PLATFORM_OBS_HOST__
-ORCH_PLATFORM_OBSERVABILITY_PORT=__ORCH_PLATFORM_OBS_PORT__
-OBSERVABILITY_METRICS_HOST=__ORCH_PLATFORM_OBS_METRICS_HOST__
-OBSERVABILITY_METRICS_PORT=__ORCH_PLATFORM_OBS_METRICS_PORT__
-MAINTENANCE_MANAGER_URL=__ORCH_UPDATE__
-TELEMETRY_MANAGER_URL=__ORCH_TELEMETRY_HOST__:__ORCH_TELEMETRY_PORT__
-RELEASE_SERVER=__FILE_SERVER__
-CA_CERT="__CA_CERT__"
+ORCH_C_URL={{ .ORCH_CLUSTER }}
+ORCH_I_URL={{ .ORCH_INFRA }}
+ORCH_PLATFORM_OBSERVABILITY_HOST={{ .ORCH_PLATFORM_OBS_HOST }}
+ORCH_PLATFORM_OBSERVABILITY_PORT={{ .ORCH_PLATFORM_OBS_PORT }}
+OBSERVABILITY_METRICS_HOST={{ .ORCH_PLATFORM_OBS_METRICS_HOST }}
+OBSERVABILITY_METRICS_PORT={{ .ORCH_PLATFORM_OBS_METRICS_PORT }}
+MAINTENANCE_MANAGER_URL={{ .ORCH_UPDATE }}
+TELEMETRY_MANAGER_URL={{ .ORCH_TELEMETRY_HOST }}:{{ .ORCH_TELEMETRY_PORT }}
+RELEASE_SERVER={{ .FILE_SERVER }}
+CA_CERT="{{ .CA_CERT }}"
+
+NTP_SERVERS={{ .NTP_SERVERS }}
+KERNEL_CONFIG_OVER_COMMIT_MEMORY={{ .KERNEL_CONFIG_OVER_COMMIT_MEMORY }}
+KERNEL_CONFIG_KERNEL_PANIC={{ .KERNEL_CONFIG_KERNEL_PANIC }}
+KERNEL_CONFIG_PANIC_ON_OOPS={{ .KERNEL_CONFIG_PANIC_ON_OOPS }}
+KERNEL_CONFIG_MAX_USER_INSTANCE={{ .KERNEL_CONFIG_MAX_USER_INSTANCE }}
 
 # 1. Install dependencies
 install_dependencies() {
@@ -141,11 +174,15 @@ install_fws(){
         systemctl enable ufw
         echo "y" | ufw enable
         ufw default allow outgoing
+        {{- if .FIREWALL_RULES }}
+        {{- range .FIREWALL_RULES }}
+        {{ . }}
+        {{- end }}
+        {{- end }}
         ufw reload
         echo "install_fws done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
-
 
 # Get the release from github repo.
 download_github_url() {
@@ -159,20 +196,16 @@ download_github_url() {
   fi
 }
 
+{{- if eq .MODE "dev" }}
 # 3. Install Intel CA certificates
 install_intel_CAcertificates() {
     if grep -q "install_intel_CAcertificates done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping install_intel_CAcertificates"
     else
         echo "Install intel CA certificates."
-        export no_proxy=$no_proxy,__FILE_SERVER__
-        export NO_PROXY=$no_proxy,__FILE_SERVER__
-        # wget  http://owrdropbox.intel.com/dropbox/public/Ansible/certificates/IntelCA5A-base64.crt
-        # wget  http://owrdropbox.intel.com/dropbox/public/Ansible/certificates/IntelCA5B-base64.crt
-        # wget  http://owrdropbox.intel.com/dropbox/public/Ansible/certificates/IntelSHA256RootCA-base64.crt
-        # sudo cp Intel* /usr/local/share/ca-certificates/
-        # sudo update-ca-certificates
-        sudo apt-get install -y unzip 
+        export no_proxy=$no_proxy,{{ .FILE_SERVER }}
+        export NO_PROXY=$no_proxy,{{ .FILE_SERVER }}
+        sudo apt-get install -y unzip
         ca_bundle_list="Intel%20Root%20Certificate%20Chain%20Base64.zip \
                     Public%20Root%20Certificate%20Chain%20Base64.zip \
                     IntelSHA2RootChain-Base64.zip \
@@ -181,12 +214,13 @@ install_intel_CAcertificates() {
         for bundle in $ca_bundle_list; do
             wget -O- -O /usr/local/share/ca-certificates/tmp.zip "http://certificates.intel.com/repository/certificates/$bundle"
             unzip /usr/local/share/ca-certificates/tmp.zip -d /usr/local/share/ca-certificates
-            rm /usr/local/share/ca-certificates/tmp.zip        
+            rm /usr/local/share/ca-certificates/tmp.zip
         done
         update-ca-certificates
         echo "install_intel_CAcertificates done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
+{{- end }}
 
 # 6. Get Token
 install_cleanup() {
@@ -219,7 +253,7 @@ install_node_agent(){
 
         echo "get access token from orchestrator"
         # Save the response to the temporary file
-        curl -X POST -u "$CLIENT_ID:$CLIENT_SECRET" -d "grant_type=client_credentials" https://__KEYCLOAK__/realms/master/protocol/openid-connect/token -o "$tempfile"
+        curl -X POST -u "$CLIENT_ID:$CLIENT_SECRET" -d "grant_type=client_credentials" https://${KEYCLOAK_FQDN}/realms/master/protocol/openid-connect/token -o "$tempfile"
 
         # Check the exit status of curl
         if [ ! -s "$tempfile" ]; then
@@ -234,7 +268,7 @@ install_node_agent(){
 
         # Get RS token now
         tempfile=$(mktemp)
-        curl -XGET https://__RELEASE_FQDN__/token -H "Authorization: Bearer $AT" -o "$tempfile"
+        curl -XGET https://${RELEASE_FQDN}/token -H "Authorization: Bearer $AT" -o "$tempfile"
 
         if [ ! -s "$tempfile" ]; then
             echo "error in getting Release Service token"
@@ -287,7 +321,7 @@ install_node_agent(){
         echo "Install caddy for node agent..."
 
         echo "download caddy deb package..."
-        CADDY_VERSION="caddy-VERSION"
+        CADDY_VERSION={{ index . "caddy-VERSION" }}
         CADDY_PKGFILE="./caddy_${CADDY_VERSION}_linux_amd64.deb"
         echo "${RS_AT}" | oras pull "${IMG_REGISTRY_URL}/one-intel-edge/edge-node/deb/caddy:$CADDY_VERSION" --password-stdin
 
@@ -304,7 +338,7 @@ install_node_agent(){
 
         echo "Install node agent..."
         echo "download node agent..."
-        VERSION="node-agent-VERSION"
+        VERSION={{ index . "node-agent-VERSION" }}
         echo $VERSION
         PKGFILE="./node-agent_${VERSION}_amd64.deb"
 
@@ -336,13 +370,12 @@ install_node_agent(){
 
         echo "setup apt source"
         curl -kfsSL "https://$APT_SOURCE_URL/edge-node.asc" -H "Authorization: Bearer $RS_AT" -o /etc/apt/trusted.gpg.d/edge-node.asc
-        echo "deb https://localhost:$APT_SOURCE_PROXY_PORT/repository __APT_SRC__ main" | tee /etc/apt/sources.list.d/edge-node.list
+        echo "deb https://localhost:$APT_SOURCE_PROXY_PORT/repository ${APT_DISTRO} main" | tee /etc/apt/sources.list.d/edge-node.list
 
         apt-get update
         echo "install_node_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
-
 
 # 8. Install Cluster Agent
 install_cluster_agent(){
@@ -350,7 +383,7 @@ install_cluster_agent(){
 		echo "Skipping install_cluster_agent"
     else
         echo "Install Cluster agent..."
-        VERSION="cluster-agent-VERSION"
+        VERSION={{ index . "cluster-agent-VERSION" }}
         echo $VERSION
         apt-get update
         echo "cluster-agent cluster-agent/cluster-orchestrator-url string ${ORCH_C_URL}" | debconf-set-selections
@@ -366,8 +399,8 @@ install_hardware_discovery_agent(){
 		echo "Skipping install_hardware_discovery_agent"
     else
         echo "Install Hardware discovery agent..."
-        VERSION="hardware-discovery-agent-VERSION"
-        echo $VERSION 
+        VERSION={{ index . "hardware-discovery-agent-VERSION" }}
+        echo $VERSION
         apt-get update
         echo "hardware-discovery-agent hardware-discovery-agent/onboarding.serviceURL string ${ORCH_I_URL}" | debconf-set-selections
         apt-get install -y -o Dpkg::Options::="--force-confnew" hardware-discovery-agent="$VERSION"
@@ -382,7 +415,7 @@ install_platform_observability_agent(){
 		echo "Skipping install_platform_observability_agent"
     else
         echo "install platform-observability-agent"
-        VERSION="platform-observability-agent-VERSION"
+        VERSION={{ index . "platform-observability-agent-VERSION" }}
         echo $VERSION
         apt-get update
         echo "platform-observability-agent platform-observability-agent/host string $ORCH_PLATFORM_OBSERVABILITY_HOST" | debconf-set-selections
@@ -402,7 +435,7 @@ install_trtl(){
     else
         echo "Install TRTL..."
         apt-get update
-        VERSION="trtl-VERSION"
+        VERSION={{ index . "trtl-VERSION" }}
         echo $VERSION
         apt-get -y install trtl="$VERSION"
         echo "install_trtl done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
@@ -416,12 +449,11 @@ install_inbm_cloudadapter_agent(){
     else
         echo "Install inbm-cloudadapter-agent..."
         apt-get update
-        VERSION="inbm-cloudadapter-agent-VERSION"
+        VERSION={{ index . "inbm-cloudadapter-agent-VERSION" }}
         echo $VERSION
         apt-get -y install inbm-cloudadapter-agent="$VERSION"
         echo "install_inbm_cloudadapter_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
-
 }
 
 # 13. Install INBM Dispatcher Agent
@@ -431,7 +463,7 @@ install_inbm_dispatcher_agent(){
     else
         echo "Install inbm-dispatcher-agent..."
         apt-get update
-        VERSION="inbm-dispatcher-agent-VERSION"
+        VERSION={{ index . "inbm-dispatcher-agent-VERSION" }}
         echo $VERSION
         apt-get -y install inbm-dispatcher-agent="$VERSION"
         echo "install_inbm_dispatcher_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
@@ -446,7 +478,7 @@ install_inbm_configuration_agent(){
     else
         echo "Install inbm-configuration-agent..."
         apt-get update
-        VERSION="inbm-configuration-agent-VERSION"
+        VERSION={{ index . "inbm-configuration-agent-VERSION" }}
         echo $VERSION
         apt-get -y install inbm-configuration-agent="$VERSION"
         echo "install_inbm_configuration_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
@@ -461,7 +493,7 @@ install_inbm_telemetry_agent(){
     else
         echo "Install inbm-telemetry-agent..."
         apt-get update
-        VERSION="inbm-telemetry-agent-VERSION"
+        VERSION={{ index . "inbm-telemetry-agent-VERSION" }}
         echo $VERSION
         apt-get -y install inbm-telemetry-agent="$VERSION"
         echo "install_inbm_telemetry_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
@@ -475,7 +507,7 @@ install_inbm_diagnostic_agent(){
     else
         echo "Install inbm-diagnostic-agent..."
         apt-get update
-        VERSION="inbm-diagnostic-agent-VERSION"
+        VERSION={{ index . "inbm-diagnostic-agent-VERSION" }}
         echo $VERSION
         apt-get -y install inbm-diagnostic-agent="$VERSION"
         echo "install_inbm_diagnostic_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
@@ -489,7 +521,7 @@ install_mqtt(){
     else
         echo "Install mqtt..."
         apt-get update
-        VERSION="mqtt-VERSION"
+        VERSION={{ index . "mqtt-VERSION" }}
         echo $VERSION
         apt-get -y install mqtt="$VERSION"
         echo "install_mqtt done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
@@ -503,7 +535,7 @@ install_tpm_provision(){
     else
         echo "Install tpm-provision..."
         apt-get update
-        VERSION="tpm-provision-VERSION"
+        VERSION={{ index . "tpm-provision-VERSION" }}
         echo $VERSION
         apt-get -y install tpm-provision="$VERSION"
         echo "install_tpm_provision done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
@@ -517,7 +549,7 @@ install_inbc_program(){
     else
         echo "Install inbc-program..."
         apt-get update
-        VERSION="inbc-program-VERSION"
+        VERSION={{ index . "inbc-program-VERSION" }}
         echo $VERSION
         apt-get -y install inbc-program="$VERSION"
         echo "install_inbc_program done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
@@ -531,7 +563,7 @@ install_platform_update_agent(){
     else
         echo "Install Platform Update agent..."
         apt-get update
-        VERSION="platform-update-agent-VERSION"
+        VERSION={{ index . "platform-update-agent-VERSION" }}
         echo $VERSION
 
         echo "platform-update-agent platform-update-agent/bmaDebURL string ${RELEASE_SERVER}" | debconf-set-selections
@@ -548,7 +580,7 @@ install_platform_telemetry_agent(){
 		echo "Skipping install_platform_telemetry_agent"
     else
         echo "install platform-telemetry-agent"
-        VERSION="platform-telemetry-agent-VERSION"
+        VERSION={{ index . "platform-telemetry-agent-VERSION" }}
         echo $VERSION
         apt-get update
         echo "telemetry-agent telemetry-agent/telemetrymanager.serviceURL string ${TELEMETRY_MANAGER_URL}" | debconf-set-selections
@@ -668,6 +700,7 @@ install_CA_cert(){
     fi
 }
 
+{{- if eq .NETIP "dynamic" }}
 # 25. Enable netIp
 enable_netipplan() {
     if grep -q "enable_netipplan done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
@@ -697,6 +730,7 @@ enable_netipplan() {
         echo "enable_netipplan done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
+{{- end }}
 
 # 26. delete the invalid ubuntu boot menu options
 delete_invalid_ubuntu_boot_menuoptions () {
@@ -722,14 +756,14 @@ enable_kernel_config(){
 		echo "Skipping enable_kernel_config"
     else
         echo "Enable kernel config"
-        sysctl -w vm.overcommit_memory=__OVER_COMMIT_MEMORY__ 
-        sysctl -w kernel.panic=__KERNEL_PANIC__ 
-        sysctl -w kernel.panic_on_oops=__PANIC_ON_OOPS__ 
-        sysctl -w fs.inotify.max_user_instances=__MAX_USER_INSTANCE__
-        echo vm.overcommit_memory=__OVER_COMMIT_MEMORY__ | tee -a /etc/sysctl.conf
-        echo kernel.panic=__KERNEL_PANIC__ | tee -a /etc/sysctl.conf
-        echo kernel.panic_on_oops=__PANIC_ON_OOPS__ | tee -a /etc/sysctl.conf
-        echo fs.inotify.max_user_instances=__MAX_USER_INSTANCE__ | tee -a /etc/sysctl.conf
+        sysctl -w vm.overcommit_memory=${KERNEL_CONFIG_OVER_COMMIT_MEMORY}
+        sysctl -w kernel.panic=${KERNEL_CONFIG_KERNEL_PANIC}
+        sysctl -w kernel.panic_on_oops=${KERNEL_CONFIG_PANIC_ON_OOPS}
+        sysctl -w fs.inotify.max_user_instances=${KERNEL_CONFIG_MAX_USER_INSTANCE}
+        echo vm.overcommit_memory=${KERNEL_CONFIG_OVER_COMMIT_MEMORY} | tee -a /etc/sysctl.conf
+        echo kernel.panic=${KERNEL_CONFIG_KERNEL_PANIC} | tee -a /etc/sysctl.conf
+        echo kernel.panic_on_oops=${KERNEL_CONFIG_PANIC_ON_OOPS} | tee -a /etc/sysctl.conf
+        echo fs.inotify.max_user_instances=${KERNEL_CONFIG_MAX_USER_INSTANCE} | tee -a /etc/sysctl.conf
         sysctl -p
         echo "enable_kernel_config done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
@@ -744,7 +778,7 @@ enable_NTP(){
 	ufw allow 123/udp
 	apt-get install systemd-timesyncd -y -q
 	cp /etc/systemd/timesyncd.conf /etc/systemd/timesyncd.conf.bak
-	ntpServers=__NTP_SERVERS__
+	ntpServers=${NTP_SERVERS}
 	timeServers="NTP="
 	IFS=',' read -ra servers <<< "$ntpServers"
 	for server in "${servers[@]}"; do
@@ -826,7 +860,7 @@ creat_lvm_partition(){
 	 	#Before start the LVM,clear the previously created LVM if exist
         	for lvname in $(lvs --noheadings -o lv_name lvmvg)
         	do
-			if [ -n "$lvname" ]; then 
+			if [ -n "$lvname" ]; then
 			    umount -f /dev/lvmvg/${lvname}
                 	    lvremove /dev/lvmvg/${lvname} -y
 			fi
@@ -889,7 +923,7 @@ creat_lvm_partition(){
         fi
         vgscan
         vgchange -ay
-	
+
 	if vgchange -ay; then
     	    echo "Successfuly created the logical volume group"
 	else
@@ -905,11 +939,11 @@ install_lvm_on_disk(){
     if grep -q "install_lvm_on_disk done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping install_lvm_on_disk"
     else
-	
+
         echo "lvm setup for secondary disk"
         #check if FDE enabled , if not enabled  do the LVM for the secondary disk
         if [ ! -L /dev/mapper/rootfs_crypt ]; then
-            
+
             echo "FDE not enabled and starting the LVM creation"
             #check for NVME && SATA disk types , ignore USB and virtual media devices
             disk_list=$(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*/ {if ($3 !="0B" && $4 !=1)  {print $1}}')
@@ -940,7 +974,7 @@ install_lvm_on_disk(){
                 echo "found single hard disk && create LVM on the Primary harddisk"
 		creat_lvm_partition "$num_disks" "${os_disk[@]}"
 
-            #multiple Hard disks 
+            #multiple Hard disks
             elif [ "$num_disks" -ge 2 ]; then
 	        echo "found more than 1 disk for LVM creation"
                 #create lvm for the secondary disk
@@ -973,16 +1007,19 @@ install_lvm_on_disk(){
     fi
 }
 
-#create the lvm for cluster 
 install_lvm_on_disk 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 enable_inactive_boot_numbers  2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+{{- if eq .NETIP "dynamic" }}
 enable_netipplan 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+{{- end }}
 install_dependencies 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_fws 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+{{- if eq .MODE "dev" }}
 if [ ! -f /usr/local/share/ca-certificates/IntelCA7B-Base64.crt ]; then
     echo "File not present"
     install_intel_CAcertificates 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 fi
+{{- end }}
 
 enable_kernel_config 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 enable_NTP 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
@@ -1010,8 +1047,5 @@ disable_unattended_upgrade 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 #Delete the invalid ubuntu boot numbers created from previous installation from boot menu
 delete_invalid_ubuntu_boot_menuoptions  2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 
-echo "Installation completed Successfuly on EdgeNode!!!!" > /dev/tty1 
+echo "Installation completed Successfuly on EdgeNode!!!!" > /dev/tty1
 echo "Installation done" > "$SCRIPT_DIR"/.base_pkg_install_done
-
-#sudo reboot
-

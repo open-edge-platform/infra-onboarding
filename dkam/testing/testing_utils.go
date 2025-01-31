@@ -8,8 +8,11 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
 	"github.com/stretchr/testify/require"
 	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -20,12 +23,69 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/invclient"
 )
 
+const testDigest = "TEST_DIGEST"
+const testFile = "TEST_FILE"
+const exampleManifest = `
+		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
+		"config":{"mediaType":"application/vnd.intel.ensp.en",
+		"digest":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a","size":2},
+		"layers":[{
+			"mediaType":"application/vnd.oci.image.layer.v1.tar",
+			"digest":"` + testDigest + `",
+			"size":10,
+			"annotations":{"org.opencontainers.image.title":"` + testFile + `"}
+		}],
+		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
+
 var (
 	clientName = inv_testing.ClientType("TestDKAMInventoryClient")
 	zlog       = logging.GetLogger("DKAM-Manager-Testing")
 	InvClient  *invclient.DKAMInventoryClient
 	mu         sync.Mutex
 )
+
+func StartTestReleaseService(testProfileName string) func() {
+	expectedFileContent := "GOOD TEST!"
+	mux := http.NewServeMux()
+	mux.HandleFunc("/v2/"+config.ProfileScriptRepo+testProfileName+"/manifests/1.0.2", func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		// return example manifest
+		w.Write([]byte(exampleManifest))
+	})
+
+	mux.HandleFunc("/v2/"+config.ProfileScriptRepo+testProfileName+"/blobs/"+testDigest, func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(expectedFileContent))
+	})
+	svr := httptest.NewServer(mux)
+
+	testRegistryEndpoint, _ := strings.CutPrefix(svr.URL, "http://")
+
+	os.Setenv("RSPROXY_ADDRESS", testRegistryEndpoint+"/")
+
+	return func() {
+		os.Unsetenv("RSPROXY_ADDRESS")
+		svr.Close()
+	}
+}
+
+func PrepareTestCaCertificateFile(t *testing.T) {
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "test_cert")
+	require.NoError(t, err)
+	tmpFile, err := os.CreateTemp(tmpDir, "ca_certificate")
+	require.NoError(t, err)
+	_, err = tmpFile.Write([]byte("TEST CA CONTENT"))
+	require.NoError(t, err)
+	defer tmpFile.Close()
+
+	originalCaCertificatePath := config.OrchCACertificateFile
+	config.OrchCACertificateFile = tmpFile.Name()
+
+	t.Cleanup(func() {
+		os.RemoveAll(tmpDir)
+		config.OrchCACertificateFile = originalCaCertificatePath
+	})
+}
 
 func PrepareTestReleaseFile(t *testing.T, projectRoot string) {
 	err := CopyFile(

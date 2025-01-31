@@ -4,10 +4,11 @@
 package curation
 
 import (
-	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	as "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/artifactservice"
 	"io"
 	"net"
 	"os"
@@ -28,9 +29,6 @@ import (
 )
 
 var zlog = logging.GetLogger("MIDKAMAuth")
-
-var agentsList []AgentsVersion
-var distribution string
 
 type AgentsVersion struct {
 	Package string `yaml:"package"`
@@ -70,8 +68,6 @@ type Rule struct {
 	Protocol string `json:"protocol,omitempty"`
 }
 
-var configs Config
-
 type Image struct {
 	Description string `yaml:"description"`
 	Registry    string `yaml:"registry"`
@@ -79,29 +75,25 @@ type Image struct {
 	Version     string `yaml:"version"`
 }
 
-func GetArtifactsVersion() ([]AgentsVersion, error) {
+func GetBMAgentsInfo() (agentsList []AgentsVersion, distribution string, err error) {
 	releaseFilePath, err := util.GetReleaseFilePathIfExists()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	configs, err := GetReleaseArtifactList(releaseFilePath)
 	if err != nil {
 		zlog.InfraSec().Info().Msgf("Error checking path %v", err)
-		return []AgentsVersion{}, err
+		return nil, "", err
 	}
-	agentsList = []AgentsVersion{}
-	agentsList = append(agentsList, configs.BMA.Debs...)
+
+	agentsList = configs.BMA.Debs
 
 	distribution = configs.Metadata.DebianRepositories[0].Distribution
 
 	zlog.InfraSec().Info().Msgf("Agents List' %s", agentsList)
-	if len(agentsList) == 0 {
-		zlog.InfraSec().Info().Msg("Failed to get the agent list")
-		return []AgentsVersion{}, err
-	}
 
-	return agentsList, nil
+	return agentsList, distribution, nil
 }
 
 func getCaCert() (string, error) {
@@ -127,7 +119,8 @@ func getCaCert() (string, error) {
 	return string(caContent), nil
 }
 
-func getCustomFirewallRules() ([]string, error) {
+// ufw rules if true, iptables otherwise
+func getCustomFirewallRules(ufw bool) ([]string, error) {
 	// Parse each rule map into a Rule struct
 	rules, err := ParseJSONUfwRules(os.Getenv("FIREWALL_REQ_ALLOW"))
 	if err != nil {
@@ -137,22 +130,45 @@ func getCustomFirewallRules() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO: refactor this code to generate UFW or iptables rules, depending on the input variable
-	ipTablesCommands := make([]string, 0)
+
+	firewallRules := make([]string, 0)
 	for _, rule := range append(rules, rules2...) {
-		ipTablesCommands = append(ipTablesCommands, GenerateIptablesCommands(rule)...)
+		if ufw {
+			firewallRules = append(firewallRules, GenerateUFWCommands(rule)...)
+		} else {
+			firewallRules = append(firewallRules, GenerateIptablesCommands(rule)...)
+		}
 	}
 
-	return ipTablesCommands, nil
+	return firewallRules, nil
 }
 
-func getScriptTemplateVariables() (map[string]interface{}, error) {
+func getAgentsListTemplateVariables() (map[string]interface{}, error) {
+	agentsList, distro, err := GetBMAgentsInfo()
+	zlog.InfraSec().Info().Msgf("Agents List' %s", agentsList)
+	if len(agentsList) == 0 {
+		zlog.InfraSec().Info().Msg("Failed to get the agent list")
+		return nil, err
+	}
+
+	templateVariables := make(map[string]interface{}, len(agentsList))
+	for _, agent := range agentsList {
+		zlog.InfraSec().Info().Msgf("Package: %s, Version: %s\n", agent.Package, agent.Version)
+		templateVariables[agent.Package+"-VERSION"] = agent.Version
+	}
+
+	templateVariables["APT_DISTRO"] = distro
+
+	return templateVariables, nil
+}
+
+func getCommonScriptTemplateVariables(osType osv1.OsType) (map[string]interface{}, error) {
 	caCert, err := getCaCert()
 	if err != nil {
 		return nil, err
 	}
 
-	firewallRules, err := getCustomFirewallRules()
+	firewallRules, err := getCustomFirewallRules(osType == osv1.OsType_OS_TYPE_MUTABLE)
 	if err != nil {
 		return nil, err
 	}
@@ -172,6 +188,8 @@ func getScriptTemplateVariables() (map[string]interface{}, error) {
 		"ORCH_TELEMETRY_HOST":            os.Getenv("ORCH_TELEMETRY_HOST"),
 		"ORCH_TELEMETRY_PORT":            os.Getenv("ORCH_TELEMETRY_PORT"),
 		"KEYCLOAK_URL":                   os.Getenv("ORCH_KEYCLOAK"),
+		"KEYCLOAK_FQDN":                  strings.Split(os.Getenv("ORCH_KEYCLOAK"), ":")[0],
+		"RELEASE_FQDN":                   strings.Split(os.Getenv("ORCH_RELEASE"), ":")[0],
 		"RELEASE_TOKEN_URL":              os.Getenv("ORCH_RELEASE"),
 		"ORCH_APT_PORT":                  os.Getenv("ORCH_APT_PORT"),
 		"ORCH_IMG_PORT":                  os.Getenv("ORCH_IMG_PORT"),
@@ -185,57 +203,74 @@ func getScriptTemplateVariables() (map[string]interface{}, error) {
 		"EN_FTP_PROXY":   os.Getenv("EN_FTP_PROXY"),
 		"EN_SOCKS_PROXY": os.Getenv("EN_SOCKS_PROXY"),
 
+		"KERNEL_CONFIG_OVER_COMMIT_MEMORY": os.Getenv("OVER_COMMIT_MEMORY"),
+		"KERNEL_CONFIG_PANIC_ON_OOPS":      os.Getenv("PANIC_ON_OOPS"),
+		"KERNEL_CONFIG_KERNEL_PANIC":       os.Getenv("KERNEL_PANIC"),
+		"KERNEL_CONFIG_MAX_USER_INSTANCE":  os.Getenv("MAX_USER_INSTANCE"),
+
+		"NETIP": os.Getenv("NETIP"),
+
 		"EXTRA_HOSTS": strings.Split(os.Getenv("EXTRA_HOSTS"), ","),
 
-		"IPTABLES_RULES": firewallRules,
+		"FIREWALL_RULES": firewallRules,
 	}
+
 	return templateVariables, nil
 }
 
-func CurateScript(osRes *osv1.OperatingSystemResource) error {
+func CurateScript(ctx context.Context, osRes *osv1.OperatingSystemResource) error {
 	installerScriptPath, err := util.GetInstallerLocation(osRes, config.PVC)
 	if err != nil {
 		return err
 	}
 
-	agentsList, err := GetArtifactsVersion()
-	zlog.InfraSec().Info().Msgf("Agents List' %s", agentsList)
-	if len(agentsList) == 0 {
-		zlog.InfraSec().Info().Msg("Failed to get the agent list")
+	localInstallerPath, err := util.GetLocalInstallerPath(osRes.GetOsType())
+	if err != nil {
 		return err
 	}
 
-	if osRes.GetOsType() == osv1.OsType_OS_TYPE_IMMUTABLE {
-		templateVariables, err := getScriptTemplateVariables()
+	templateVariables, err := getCommonScriptTemplateVariables(osRes.GetOsType())
+	if err != nil {
+		zlog.InfraSec().Error().Err(err).Msg("Failed to get template variables for curation")
+		return err
+	}
+
+	if osRes.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE {
+		agentsListVariables, err := getAgentsListTemplateVariables()
 		if err != nil {
-			zlog.InfraSec().Error().Err(err).Msg("Failed to get template variables for curation")
 			return err
 		}
 
-		curatedScriptData, createErr := CurateScriptFromTemplate(config.ScriptPath, templateVariables)
-		if createErr != nil {
-			zlog.InfraSec().Error().Msgf("Error checking path %v", createErr)
-			return createErr
-		}
-
-		writeErr := WriteFileToPath(installerScriptPath, []byte(curatedScriptData))
-		if writeErr != nil {
-			zlog.InfraSec().Error().Err(writeErr).Msgf("Failed to write file to path %s", installerScriptPath)
-			return writeErr
-		}
-	} else {
-		createErr := CreateOverlayScript(osRes)
-		if createErr != nil {
-			zlog.InfraSec().Info().Msgf("Error checking path %v", createErr)
-			return createErr
+		for agentsPackage, agentsVersion := range agentsListVariables {
+			templateVariables[agentsPackage] = agentsVersion
 		}
 	}
-	return nil
 
+	curatedScriptData, createErr := CurateScriptFromTemplate(localInstallerPath, templateVariables)
+	if createErr != nil {
+		zlog.InfraSec().Error().Msgf("Error checking path %v", createErr)
+		return createErr
+	}
+
+	// Append profile script, to be removed once Platform Bundle is integrated
+	if osRes.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE {
+		curatedScriptData, err = FetchAndAppendProfileScript(ctx, osRes.GetProfileName(), curatedScriptData)
+		if err != nil {
+			return err
+		}
+	}
+
+	writeErr := WriteFileToPath(installerScriptPath, []byte(curatedScriptData))
+	if writeErr != nil {
+		zlog.InfraSec().Error().Err(writeErr).Msgf("Failed to write file to path %s", installerScriptPath)
+		return writeErr
+	}
+
+	return nil
 }
 
 func GetReleaseArtifactList(filePath string) (Config, error) {
-
+	var configs Config
 	// Open the file
 	zlog.InfraSec().Info().Msg("Inside GetReleaseArtifactList")
 	zlog.InfraSec().Info().Msg(filePath)
@@ -263,15 +298,11 @@ func GetReleaseArtifactList(filePath string) (Config, error) {
 	return configs, nil
 }
 
-// TODO: this function is intended to be generic, so in future we can use it to render Installer script for Ubuntu as well.
 func CurateScriptFromTemplate(scriptTemplatePath string, templateVariables map[string]interface{}) (string, error) {
-	cfgFilePath := filepath.Join(scriptTemplatePath, "Installer.cfg")
-
-	// Read the template of cloud-init script
-	tmplCloudInit, err := os.ReadFile(cfgFilePath)
+	tmplScript, err := os.ReadFile(scriptTemplatePath)
 	if err != nil {
 		zlog.InfraSec().Error().Err(err).Msgf(
-			"Failed to read template of cloud-init script from path %v", scriptTemplatePath)
+			"Failed to read template of installation script from path %v", scriptTemplatePath)
 		return "", err
 	}
 
@@ -279,16 +310,16 @@ func CurateScriptFromTemplate(scriptTemplatePath string, templateVariables map[s
 	// We use sprig to extend basic Go's text/template with more powerful keywords
 	// See: https://masterminds.github.io/sprig/
 	// This function will fail if any of keys is not provided
-	t, err := template.New("yaml").Option("missingkey=error").Funcs(sprig.TxtFuncMap()).Parse(string(tmplCloudInit))
+	t, err := template.New("installer").Option("missingkey=error").Funcs(sprig.TxtFuncMap()).Parse(string(tmplScript))
 	if err != nil {
-		invErr := inv_errors.Errorf("Failed to parse cloud-init template")
+		invErr := inv_errors.Errorf("Failed to parse installation script template")
 		zlog.Error().Err(err).Msg(invErr.Error())
 		return "", invErr
 	}
 
 	var rendered bytes.Buffer
 	if renderErr := t.Execute(&rendered, templateVariables); renderErr != nil {
-		invErr := inv_errors.Errorf("Failed to render cloud-init script")
+		invErr := inv_errors.Errorf("Failed to render installation script")
 		zlog.Error().Err(renderErr).Msg(invErr.Error())
 		return "", invErr
 	}
@@ -315,401 +346,39 @@ func WriteFileToPath(filePath string, content []byte) error {
 	return nil
 }
 
-func CreateOverlayScript(osRes *osv1.OperatingSystemResource) error {
-	MODE := os.Getenv("MODE")
-	zlog.InfraSec().Info().Msgf("MODE: %s", MODE)
+func FetchAndAppendProfileScript(ctx context.Context, profileName, originalScript string) (string, error) {
+	// FIXME: hardcode profile script version for now, will be addressed in https://jira.devtools.intel.com/browse/NEX-11556
+	profileScriptVersion := "1.0.2"
 
-	beginString := "true >/etc/environment"
-	scriptDir := config.ScriptPath
-	zlog.InfraSec().Info().Msg(scriptDir)
-	installerPath := filepath.Join(scriptDir, "Installer")
-	scriptFileName := ""
+	repo := config.ProfileScriptRepo + profileName
+	zlog.InfraSec().Info().Msgf("Profile script repo URL is:%s", repo)
 
-	exists, err := util.PathExists(config.PVC)
+	artifacts, err := as.DownloadArtifacts(ctx, repo, profileScriptVersion)
 	if err != nil {
-		zlog.InfraSec().Info().Msgf("Error checking path %v", err)
-	}
-	if exists {
-		zlog.InfraSec().Info().Msg("Path exists:")
-
-		scriptFileName, err = util.GetInstallerLocation(osRes, config.PVC)
-		if err != nil {
-			return err
-		}
-
-		dir := filepath.Dir(scriptFileName)
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			zlog.InfraSec().Info().Msgf("Error creating path %v", err)
-		}
-	} else {
-		zlog.InfraSec().Info().Msg("Path does not exists")
+		invErr := inv_errors.Errorf("Error downloading profile script for tag %s", profileScriptVersion)
+		zlog.Err(invErr).Msg("")
+		return "", invErr
 	}
 
-	cpErr := copyFile(installerPath, scriptFileName)
-	if cpErr != nil {
-		zlog.InfraSec().Error().Err(cpErr).Msgf("Error: %v", cpErr)
+	if artifacts == nil {
+		invErr := inv_errors.Errorf("Unexpected nil data received for %s:%s", repo, profileScriptVersion)
+		zlog.Err(invErr).Msg("")
+		return "", invErr
 	}
 
-	zlog.InfraSec().Info().Msg("File copied successfully.")
-
-	profileName := osRes.GetProfileName()
-
-	profileExists, err := util.PathExists(config.DownloadPath + "/" + profileName + ".sh")
-	if err != nil {
-		zlog.InfraSec().Info().Msgf("Error checking path %v", err)
+	if artifacts != nil && len(*artifacts) == 0 {
+		zlog.InfraSec().Debug().Msgf("No artifacts found for profile %s", profileName)
+		return originalScript, nil
 	}
 
-	if profileExists {
-		// Read the source file content
-		sourceContent, err := os.Open(config.DownloadPath + "/" + profileName + ".sh")
-		if err != nil {
-			zlog.InfraSec().Info().Msgf("Error reading donwloaded profile script file:%v", err)
-			return err
-		}
-		defer sourceContent.Close()
+	profileScript := (*artifacts)[0].Data
 
-		destinationFile, err := os.OpenFile(scriptFileName, os.O_APPEND|os.O_WRONLY, 0644)
-		if err != nil {
-			zlog.InfraSec().Info().Msgf("Error opening installer.sh script:%v", err)
-			return err
-		}
-		defer destinationFile.Close()
-
-		reader := bufio.NewReader(sourceContent)
-		_, err = io.Copy(destinationFile, reader)
-		if err != nil {
-			zlog.InfraSec().Info().Msgf("Error appending profile script to installer.sh:%v", err)
-			return err
-		}
-
-		zlog.InfraSec().Info().Msg("Contents appended successfully!")
-	} else {
-		zlog.InfraSec().Info().Msg("Use default profile.")
-	}
-
-	// Read the installer
-	content, err := os.ReadFile(scriptFileName)
-	if err != nil {
-		zlog.InfraSec().Error().Err(err).Msgf("Error %v", err)
-	}
-	//Get FQDN names for agents:
-	orchCluster := os.Getenv("ORCH_CLUSTER")
-	orchInfra := os.Getenv("ORCH_INFRA")
-	orchUpdate := os.Getenv("ORCH_UPDATE")
-	orchPlatformObsHost := os.Getenv("ORCH_PLATFORM_OBS_HOST")
-	orchPlatformObsPort := os.Getenv("ORCH_PLATFORM_OBS_PORT")
-	orchPlatformObsMetricsHost := os.Getenv("ORCH_PLATFORM_OBS_METRICS_HOST")
-	orchPlatformObsMetricsPort := os.Getenv("ORCH_PLATFORM_OBS_METRICS_PORT")
-	orchTelemetryHost := os.Getenv("ORCH_TELEMETRY_HOST")
-	orchTelemetryPort := os.Getenv("ORCH_TELEMETRY_PORT")
-	orchKeycloak := os.Getenv("ORCH_KEYCLOAK")
-	orchRelease := os.Getenv("ORCH_RELEASE")
-	orchAptSrcPort := os.Getenv("ORCH_APT_PORT")
-	orchImgRegProxyPort := os.Getenv("ORCH_IMG_PORT")
-
-	fileServer := os.Getenv("FILE_SERVER")
-	registryService := os.Getenv("REGISTRY_SERVICE")
-
-	//Proxies
-	httpProxy := os.Getenv("EN_HTTP_PROXY")
-	httpsProxy := os.Getenv("EN_HTTPS_PROXY")
-	noProxy := os.Getenv("EN_NO_PROXY")
-	ftpProxy := os.Getenv("EN_FTP_PROXY")
-	sockProxy := os.Getenv("EN_SOCKS_PROXY")
-
-	//Extra hosts
-	extra_hosts := os.Getenv("EXTRA_HOSTS")
-
-	//Kernel configurations
-	systemConfigVmOverCommitMemory := os.Getenv("OVER_COMMIT_MEMORY")
-	systemConfigKernelPanicOnOops := os.Getenv("PANIC_ON_OOPS")
-	systemConfigKernelPanic := os.Getenv("KERNEL_PANIC")
-	systemConfigFsInotifyMaxUserInstances := os.Getenv("MAX_USER_INSTANCE")
-
-	//NTP configurations
-	ntpServer := os.Getenv("NTP_SERVERS")
-
-	//Firewall configurations
-	firewallReqAllow := os.Getenv("FIREWALL_REQ_ALLOW")
-	zlog.Info().Msg(firewallReqAllow)
-	firewallCfgAllow := os.Getenv("FIREWALL_CFG_ALLOW")
-	zlog.Info().Msg(firewallCfgAllow)
-	caexists, err := util.PathExists(config.OrchCACertificateFile)
-	if err != nil {
-		zlog.InfraSec().Info().Msgf("Error checking path %v", err)
-		zlog.InfraSec().Error().Err(err).Msgf("Error: %v", err)
-	}
-
-	var caContent []byte
-	if caexists {
-		caContent, err = os.ReadFile(config.OrchCACertificateFile)
-		if err != nil {
-			zlog.InfraSec().Error().Msgf("Error: %v", err)
-		}
-	}
-
-	// Substitute relevant data in the script
-	//modifiedScript := strings.ReplaceAll(string(content), "__SUBSTITUTE_PACKAGE_COMMANDS__", packages)
-	modifiedScript := strings.ReplaceAll(string(content), "__REGISTRY_URL__", registryService)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__FILE_SERVER__", fileServer)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_CLUSTER__", orchCluster)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_INFRA__", orchInfra)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_UPDATE__", orchUpdate)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PLATFORM_OBS_HOST__", orchPlatformObsHost)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PLATFORM_OBS_PORT__", orchPlatformObsPort)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PLATFORM_OBS_METRICS_HOST__", orchPlatformObsMetricsHost)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_PLATFORM_OBS_METRICS_PORT__", orchPlatformObsMetricsPort)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_TELEMETRY_HOST__", orchTelemetryHost)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_TELEMETRY_PORT__", orchTelemetryPort)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__KEYCLOAK__", strings.Split(orchKeycloak, ":")[0])
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__RELEASE_FQDN__", strings.Split(orchRelease, ":")[0])
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__KEYCLOAK_URL__", orchKeycloak)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__RELEASE_TOKEN_URL__", orchRelease)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__IMG_REGISTRY_URL__", registryService)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_APT_PORT__", orchAptSrcPort)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__ORCH_IMG_PORT__", orchImgRegProxyPort)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__OVER_COMMIT_MEMORY__", systemConfigVmOverCommitMemory)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__KERNEL_PANIC__", systemConfigKernelPanic)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__PANIC_ON_OOPS__", systemConfigKernelPanicOnOops)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__MAX_USER_INSTANCE__", systemConfigFsInotifyMaxUserInstances)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__NTP_SERVERS__", ntpServer)
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__CA_CERT__", string(caContent))
-	modifiedScript = strings.ReplaceAll(modifiedScript, "__APT_SRC__", string(distribution))
-
-	// Loop through the agentsList
-	for _, agent := range agentsList {
-		// Access the fields of each struct
-		zlog.InfraSec().Info().Msgf("Package: %s, Version: %s\n", agent.Package, agent.Version)
-		modifiedScript = strings.ReplaceAll(modifiedScript, agent.Package+"-VERSION", agent.Version)
-	}
-
-	//netplan
-	netip_enable_flag := os.Getenv("NETIP")
-	// Name of the function to remove
-	functionToRemove := "enable_netipplan"
-
-	// Find the start and end positions of the function
-	startIdx := strings.Index(modifiedScript, functionToRemove)
-	if startIdx == -1 {
-		zlog.InfraSec().Info().Msg("Function not found in script")
-	}
-	endIdx := strings.Index(modifiedScript[startIdx:], "}") + startIdx
-	if endIdx == -1 {
-		zlog.InfraSec().Info().Msg("Function end not found in script")
-	}
-
-	// Remove the function from the script
-	if netip_enable_flag == "static" {
-		newcontent := []byte(modifiedScript)
-		newScript := bytes.Replace(newcontent, newcontent[startIdx:endIdx+1], []byte{}, 1)
-		modifiedScript = string(newScript)
-		// Remove any lines containing calls to the function
-		lines := strings.Split(string(modifiedScript), "\n")
-		for i := range lines {
-			if strings.Contains(lines[i], functionToRemove) {
-				lines[i] = ""
-			}
-		}
-		modifiedScript = strings.Join(lines, "\n")
-	}
-
-	// Save the modified script to the specified output path
-	err = os.WriteFile(scriptFileName, []byte(modifiedScript), 0644)
-	if err != nil {
-		zlog.InfraSec().Error().Err(err).Msgf("Error: %v", err)
-	}
-
-	functionToRemove = "install_intel_CAcertificates"
-	// Find the start and end positions of the function
-	startIdx = strings.Index(modifiedScript, functionToRemove)
-	if startIdx == -1 {
-		zlog.InfraSec().Info().Msg("Function not found in script")
-	}
-	endIdx = strings.Index(modifiedScript[startIdx:], "}") + startIdx
-	if endIdx == -1 {
-		zlog.InfraSec().Info().Msg("Function end not found in script")
-	}
-
-	// Remove the function from the script
-	if MODE == "prod" {
-		newcontent := []byte(modifiedScript)
-		newScript := bytes.Replace(newcontent, newcontent[startIdx:endIdx+1], []byte{}, 1)
-		modifiedScript = string(newScript)
-		// Remove any lines containing calls to the function
-		lines := strings.Split(string(modifiedScript), "\n")
-		for i := range lines {
-			if strings.Contains(lines[i], functionToRemove) {
-				lines[i] = ""
-			}
-		}
-		modifiedScript = strings.Join(lines, "\n")
-	}
-
-	// Save the modified script to the specified output path
-	err = os.WriteFile(scriptFileName, []byte(modifiedScript), 0644)
-	if err != nil {
-		zlog.InfraSec().Error().Err(err).Msgf("Error: %v", err)
-	}
-
-	var newLines []string
-	var kindLines []string
-	//check if its a kind cluster
-	if strings.Contains(orchCluster, "kind.internal") {
-		zlog.InfraSec().Info().Msg("Its a kind cluster")
-		kindLines = append(kindLines, fmt.Sprintf("extra_hosts=\"%s\"", extra_hosts))
-		kindLines = append(kindLines, "IFS=',' read -ra hosts <<< \"$extra_hosts\"")
-		kindLines = append(kindLines, "for host in \"${hosts[@]}\"; do")
-		kindLines = append(kindLines, "    IFS=' ' read -ra parts <<< \"$host\"")
-		kindLines = append(kindLines, "    ip=\"${parts[0]}\"")
-		kindLines = append(kindLines, "     hostname=\"${parts[1]}\"")
-		kindLines = append(kindLines, "     echo \"$ip $hostname\" >> /etc/hosts")
-		kindLines = append(kindLines, "done")
-		AddProxies(scriptFileName, kindLines, beginString)
-
-	} else {
-		zlog.InfraSec().Info().Msg("Its not a kind cluster")
-	}
-
-	proxies := map[string]string{
-		"http_proxy":  httpProxy,
-		"https_proxy": httpsProxy,
-		"ftp_proxy":   ftpProxy,
-		"socks_proxy": sockProxy,
-		"no_proxy":    noProxy,
-	}
-
-	//Add proxies to the installer script for dev environment.
-	if len(proxies) > 0 {
-
-		for key, value := range proxies {
-			if value != "" {
-				newLines = append(newLines, fmt.Sprintf("%s=\"%s\"", key, value))
-			}
-		}
-		if httpProxy != "" {
-			newLines = append(newLines, "if ! grep -q \"http_proxy\" /etc/environment; then")
-			newLines = append(newLines, "    echo \"http_proxy=$http_proxy\" >> /etc/environment;")
-			newLines = append(newLines, "fi")
-		}
-
-		if httpsProxy != "" {
-			newLines = append(newLines, "if ! grep -q \"https_proxy\" /etc/environment; then")
-			newLines = append(newLines, "    echo \"https_proxy=$https_proxy\" >> /etc/environment;")
-			newLines = append(newLines, "fi")
-		}
-
-		if ftpProxy != "" {
-			newLines = append(newLines, "if ! grep -q \"ftp_proxy\" /etc/environment; then")
-			newLines = append(newLines, "    echo \"ftp_proxy=$ftp_proxy\" >> /etc/environment;")
-			newLines = append(newLines, "fi")
-		}
-
-		if sockProxy != "" {
-			newLines = append(newLines, "if ! grep -q \"socks_proxy\" /etc/environment; then")
-			newLines = append(newLines, "    echo \"socks_server=$socks_proxy\" >> /etc/environment;")
-			newLines = append(newLines, "fi")
-		}
-
-		if noProxy != "" {
-			newLines = append(newLines, "if ! grep -q \"no_proxy\" /etc/environment; then")
-			newLines = append(newLines, "    echo \"no_proxy=$no_proxy\" >> /etc/environment;")
-			newLines = append(newLines, "fi")
-		}
-		newLines = append(newLines, "    echo \"Proxies added to /etc/environment.\"")
-		newLines = append(newLines, ". /etc/environment;")
-		newLines = append(newLines, "export http_proxy https_proxy ftp_proxy socks_server no_proxy;")
-
-	}
-
-	AddProxies(scriptFileName, newLines, beginString)
-
-	zlog.InfraSec().Debug().Msgf("Starting modifying ufw Rules")
-
-	// Parse each rule map into a Rule struct
-	rules, err := ParseJSONUfwRules(firewallReqAllow)
-	if err != nil {
-		zlog.InfraSec().InfraErr(err).Msgf("Error while un-marshaling the UFW req firewall Rules")
-	}
-	rules2, err := ParseJSONUfwRules(firewallCfgAllow)
-	if err != nil {
-		zlog.InfraSec().InfraErr(err).Msgf("Error while un-marshaling the UFW cfg firewall Rules")
-	}
-	ufwCommands := make([]string, len(rules)+len(rules2))
-	for i, rule := range append(rules, rules2...) {
-		ufwCommands[i] = "    " + GenerateUFWCommand(rule)
-	}
-	AddFirewallRules(scriptFileName, ufwCommands)
-
-	return nil
+	return originalScript + string(profileScript), nil
 }
 
-func copyFile(src, dst string) error {
-	source, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer source.Close()
-
-	destination, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer destination.Close()
-
-	_, err = io.Copy(destination, source)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func AddProxies(fileName string, newLines []string, beginLine string) {
-	// Read the content of the file
-	file, err := os.Open(fileName)
-	if err != nil {
-		zlog.InfraSec().Error().Err(err).Msgf("Error: %v", err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	var lines []string
-	foundTargetLine := false
-
-	// Scan through the file and locate the target line
-	for scanner.Scan() {
-		line := scanner.Text()
-		lines = append(lines, line)
-
-		// Check if the current line matches the target line
-		if strings.TrimSpace(line) == beginLine {
-			foundTargetLine = true
-			// Insert the new lines after the target line
-			lines = append(lines, newLines...)
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		zlog.InfraSec().Error().Err(err).Msgf("Error: %v", err)
-		return
-	}
-
-	// If the target line was not found, return an error
-	if !foundTargetLine {
-		zlog.InfraSec().Error().Err(err).Msgf("target line '%s' not found in the file", beginLine)
-	}
-
-	// Write the modified content back to the file
-	err = os.WriteFile(fileName, []byte(strings.Join(lines, "\n")), 0644)
-	if err != nil {
-		zlog.InfraSec().Error().Err(err).Msgf("Error: %v", err)
-		return
-	}
-
-}
-
-// GenerateUFWCommand convert a Rule into the corresponding ufw command.
-func GenerateUFWCommand(rule Rule) string {
+// GenerateUFWCommands convert a Rule into the corresponding ufw command.
+func GenerateUFWCommands(rule Rule) []string {
+	commands := []string{}
 	ipAddr := ""
 	if rule.SourceIp != "" {
 		ip := net.ParseIP(rule.SourceIp)
@@ -720,32 +389,29 @@ func GenerateUFWCommand(rule Rule) string {
 		}
 		if rule.Protocol != "" {
 			if rule.Ports != "" {
-				return fmt.Sprintf("ufw allow from %s to any port %s proto %s", ipAddr, rule.Ports, rule.Protocol)
+				commands = append(commands, fmt.Sprintf("ufw allow from %s to any port %s proto %s", ipAddr, rule.Ports, rule.Protocol))
 			} else {
-				return fmt.Sprintf("ufw allow from %s proto %s", ipAddr, rule.Protocol)
+				commands = append(commands, fmt.Sprintf("ufw allow from %s proto %s", ipAddr, rule.Protocol))
 			}
 		} else {
 			if rule.Ports != "" {
-				return fmt.Sprintf("ufw allow from %s to any port %s", ipAddr, rule.Ports)
+				commands = append(commands, fmt.Sprintf("ufw allow from %s to any port %s", ipAddr, rule.Ports))
 			} else {
-				return fmt.Sprintf("ufw allow from %s", ipAddr)
+				commands = append(commands, fmt.Sprintf("ufw allow from %s", ipAddr))
 			}
 		}
 	} else {
 		if rule.Protocol != "" {
 			if rule.Ports != "" {
-				return fmt.Sprintf("ufw allow in to any port %s proto %s", rule.Ports, rule.Protocol)
-			} else {
-				return fmt.Sprintf("echo Firewall rule not set %d", 0)
+				commands = append(commands, fmt.Sprintf("ufw allow in to any port %s proto %s", rule.Ports, rule.Protocol))
 			}
 		} else {
 			if rule.Ports != "" {
-				return fmt.Sprintf("ufw allow in to any port %s", rule.Ports)
-			} else {
-				return fmt.Sprintf("echo Firewall rule not set %d", 0)
+				commands = append(commands, fmt.Sprintf("ufw allow in to any port %s", rule.Ports))
 			}
 		}
 	}
+	return commands
 }
 
 func GenerateIptablesCommands(rule Rule) []string {
@@ -797,43 +463,6 @@ func GenerateIptablesCommands(rule Rule) []string {
 			}
 			return []string{}
 		}
-	}
-}
-
-func AddFirewallRules(fileName string, newLines []string) {
-	// Read the content of the file
-	file, err := os.Open(fileName)
-	if err != nil {
-		zlog.InfraSec().Error().Err(err).Msgf("Error: %v", err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	var lines []string
-	foundTargetLine := false
-
-	// Scan through the file and locate the target line
-	for scanner.Scan() {
-		line := scanner.Text()
-		lines = append(lines, line)
-
-		// Check if the current line matches the target line
-		if strings.TrimSpace(line) == "ufw default allow outgoing" {
-			foundTargetLine = true
-			// Insert the new lines after the target line
-			lines = append(lines, newLines...)
-		}
-	}
-	// If the target line was not found, return an error
-	if !foundTargetLine {
-		zlog.InfraSec().Error().Err(err).Msgf("target line '%s' not found in the file", "#!/bin/bash")
-	}
-
-	// Write the modified content back to the file
-	err = os.WriteFile(fileName, []byte(strings.Join(lines, "\n")), 0644)
-	if err != nil {
-		zlog.InfraSec().Error().Err(err).Msgf("Error: %v", err)
-		return
 	}
 }
 

@@ -60,15 +60,7 @@ func GetCuratedScript(ctx context.Context, os *osv1.OperatingSystemResource) err
 	if installerExists {
 		zlog.InfraSec().Info().Msg("Installer exists. Skip curation.")
 	} else {
-		if os.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE {
-			err := download.DownloadPrecuratedScript(ctx, os.GetProfileName())
-			if err != nil {
-				zlog.InfraSec().Info().Msgf("Failed to download Profile script: %v", err)
-				return err
-			}
-		}
-
-		err := curation.CurateScript(os)
+		err := curation.CurateScript(ctx, os)
 		if err != nil {
 			zlog.InfraSec().Info().Msgf("Failed curate %v", err)
 			return err
