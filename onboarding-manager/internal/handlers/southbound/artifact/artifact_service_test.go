@@ -2169,19 +2169,12 @@ func TestMustEnsureRequired(t *testing.T) {
 
 // FUZZ test cases
 func FuzzCreateNodes(f *testing.F) {
-	om_testing.CreateInventoryOnboardingClientForTesting()
-	f.Cleanup(func() {
-		om_testing.DeleteInventoryOnboardingClientForTesting()
-	})
-	mutex.Lock()
-	dao := inv_testing.NewInvResourceDAOOrFail(f)
-	host := dao.CreateHostNoCleanup(f, tenant1)
-
 	f.Add("node1", "platform1", "9fa0a788-f9f8-434a-8620-bbed2a12b0ad", "00:1A:2B:3C:4D:5E", "ABCDEFGH", "192.168.1.1")
-	mutex.Unlock()
 	f.Fuzz(func(t *testing.T, hwId string, platformType string, uuid string, macId string, serialNum string, sutIp string) {
-		mutex.Lock()
-		defer mutex.Unlock()
+		om_testing.CreateInventoryOnboardingClientForTesting()
+		t.Cleanup(func() {
+			om_testing.DeleteInventoryOnboardingClientForTesting()
+		})
 		if hwId == "" || platformType == "" || uuid == "" || macId == "" || serialNum == "" || sutIp == "" {
 			t.Skip("Skipping test because one of the required fields is empty")
 			return
@@ -2198,15 +2191,12 @@ func FuzzCreateNodes(f *testing.F) {
 		if !isValidsutIp(sutIp) {
 			sutIp = generateValidSutIp()
 		}
-
 		ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
 		ctx = tenant.AddTenantIDToContext(ctx, tenant1)
-
 		rbacServer, err := rbac.New(rbacRules)
 		if err != nil {
 			t.Errorf("Error at the RBAC rules %v", err)
 		}
-
 		s := &NodeArtifactService{
 			UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
 			InventoryClientService: InventoryClientService{
@@ -2216,12 +2206,11 @@ func FuzzCreateNodes(f *testing.F) {
 			rbac:        rbacServer,
 			authEnabled: true,
 		}
-
 		hwdata := &pb.HwData{
 			HwId:         getFirstNChars(getMD5Hash(hwId), 6),
 			MacId:        macId,
 			PlatformType: getFirstNChars(getMD5Hash(platformType), 10),
-			Uuid:         host.GetUuid(),
+			Uuid:         u_uuid.NewString(),
 			Serialnum:    serialNum,
 			SutIp:        sutIp,
 		}
@@ -2231,7 +2220,6 @@ func FuzzCreateNodes(f *testing.F) {
 		mockRequest := &pb.NodeRequest{
 			Payload: payloads,
 		}
-
 		_, err = s.CreateNodes(ctx, mockRequest)
 		if err != nil {
 			t.Errorf("CreateNodes returned an error: %v", err)
@@ -2246,7 +2234,7 @@ func isValidMacID(mac string) bool {
 }
 
 func isValidserialNum(serialNum string) bool {
-	re := regexp.MustCompile(`[A-Za-z0-9]{5,20}$`)
+	re := regexp.MustCompile(`^[A-Za-z0-9]{5,20}$`)
 	return re.MatchString(serialNum)
 }
 
