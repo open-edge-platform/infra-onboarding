@@ -127,7 +127,7 @@ if echo "$disk" | grep -q "nvme"; then
 else
     swap_part="${swap_part_number}"
 fi
-partprobe
+partprobe "${disk}"
 mkswap "/dev/${os_disk}${swap_part}"
 swapon "/dev/${os_disk}${swap_part}"
 
@@ -138,6 +138,17 @@ if [ -z "$uuid" ]; then
     exit 1
 else
     #add entry for swap partition in fstab
+   
+    #Before mouting the file system check if the file system exist or not from user space, if not wait for few seconds
+    count=0
+    partprobe "${disk}" 
+    while [ ! -b "$rootfs_partition_disk" ] && [ "$count" -le 9 ]; do
+	    sleep 1 && count=$((count+1))
+    done
+    if [ "$count" -ge 10 ]; then 
+        echo "Faild to mount the root file system for for swap entry update $disk"
+        exit 1
+    fi
     mount $rootfs_partition_disk /mnt
     mount --bind /dev /mnt/dev
     mount --bind /dev/pts /mnt/dev/pts
@@ -212,44 +223,36 @@ fi
 if [ "$blk_disk_count" -eq 1 ]; then
     #expand the tiber_persistent partition max to 100GB if only one disk
     new_disk_partition_size="100"
-    echo yes | parted ---pretend-input-tty "${disk}"  resizepart "$data_part_number" "${new_disk_partition_size}GB"
-    e2fsck -f "$data_partition_disk"
-    resize2fs "$data_partition_disk"
-    if [ $? -ne 0 ]; then
-        echo "Partition resize for the disk ${disk} failed"
-	exit 1
-    else
-	echo "Partition resize for the disk ${disk} Successful!!"
-    fi
-    partprobe "${disk}"
+    #secondary rootfs partitions for A/B day2 upgrades
+    secondary_rootfs_disk_end=$((new_disk_partition_size+secondary_rootfs_disk_size))
 
-    #create the secondary rootfs partitions for A/B day2 upgrades
-    data_part_end=$(parted -m $disk unit GB print | grep "^$data_part_number" | cut -d: -f3 | sed 's/GB//')
-    secondary_rootfs_disk_end=$((data_part_end+secondary_rootfs_disk_size))
-    parted "${disk}" --script mkpart primary ext4 "${data_part_end}GB" "${secondary_rootfs_disk_end}GB"
-    parted "${disk}" --script name ${secondary_rootfs_disk_num} rootfs2
-    echo y | mkfs.ext4 "${disk}${secondary_rootfs_disk}" 
-    partprobe "${disk}"
+    parted ---pretend-input-tty "${disk}" \
+        resizepart "$data_part_number" "${new_disk_partition_size}GB" \
+        mkpart primary ext4 "${new_disk_partition_size}GB" "${secondary_rootfs_disk_end}GB"
     if [ $? -ne 0 ]; then
-        echo "rootfs2 partition for the disk ${disk} failed"
+        echo "Partition creation failed for the disk ${disk} failed"
         exit 1
     else
-        echo "rootfs2 partition for the disk ${disk} Successful!!"
+        echo "Partition creation for the disk ${disk} Successful!!"
     fi
+    partprobe "${disk}"
 else
     #more than one disk detected expand the tiber_persistent partition to max-swap  partition
-    
-    #get the last partition end point 
+
+    #get the last partition end point
     data_part_end=$(parted -m $disk unit GB print | grep "^$data_part_number" | cut -d: -f3 | sed 's/GB//')
- 
-    #add data_part_end secondary_rootfs disk size and swap_size to get toatl size in use 
-    total_size_inuse=$(echo "$data_part_end + $swap_size + $secondary_rootfs_disk_size" | bc)   
+    if echo "$data_part_end" | grep -qE '^[0-9]+\.[0-9]+$'; then
+        data_part_end=$(printf "%.0f" "$data_part_end")
+    fi
+    #add data_part_end secondary_rootfs disk size and swap_size to get toatl size in use
+    total_size_inuse=$(echo "$data_part_end + $swap_size + $secondary_rootfs_disk_size" | bc)
     #calculate the size for expanding the data partition
     data_part_end_size=$(echo "$disk_size - $total_size_inuse" | bc)
-
-    echo yes | parted ---pretend-input-tty "${disk}"  resizepart "${data_part_number}" "${data_part_end_size}GB"
-    e2fsck -f "$data_partition_disk"
-    resize2fs "$data_partition_disk"
+    #secondary rootfs partitions for A/B day2 upgrades
+    secondary_rootfs_disk_end=$((data_part_end_size+secondary_rootfs_disk_size))
+    parted ---pretend-input-tty "${disk}" \
+        resizepart "$data_part_number" "${data_part_end_size}GB" \
+       	mkpart primary ext4 "${data_part_end_size}GB" "${secondary_rootfs_disk_end}GB"
     if [ $? -ne 0 ]; then
         echo "Partition resize for the disk ${disk} failed"
         exit 1
@@ -258,23 +261,13 @@ else
     fi
     partprobe "${disk}"
 
-    #create the secondary rootfs partitions for A/B day2 upgrades
-    data_part_end=$(parted -m $disk unit GB print | grep "^$data_part_number" | cut -d: -f3 | sed 's/GB//')
-    secondary_rootfs_disk_end=$((data_part_end+secondary_rootfs_disk_size))
-    parted "${disk}" --script mkpart primary ext4 "${data_part_end}GB" "${secondary_rootfs_disk_end}GB"
-    parted "${disk}" --script name ${secondary_rootfs_disk_num} rootfs2
-    echo y | mkfs.ext4 "${disk}${secondary_rootfs_disk}"
-    partprobe "${disk}"
-    if [ $? -ne 0 ]; then
-        echo "rootfs2 partition for the disk ${disk} failed"
-        exit 1
-    else
-        echo "rootfs2 partition for the disk ${disk} Successful!!"
-    fi
 fi
 
 #get the end size of the last partition from the  disk
-last_partition_end=$(parted -ms $disk  print | tail -n 1 | awk -F: '{print $3}' | sed 's/[^0-9]*//g')
+last_partition_end=$(parted -ms $disk  print | tail -n 1 | awk -F: '{print $3}' | sed 's/GB$//')
+if echo "$last_partition_end" | grep -qE '^[0-9]+\.[0-9]+$'; then
+        last_partition_end=$(printf "%.0f" "$last_partition_end")
+fi
 swap_partition_size_end=$((last_partition_end+swap_size))
 
 #create SWAP
@@ -299,6 +292,16 @@ else
     echo "found more than 1 disk for LVM creation"
     create_lvm_partition  "${blk_disk_count}" "${final_disk_list}" 
 fi
+
+#finally expand the data partition using resize2fs
+e2fsck -f "$data_partition_disk"
+resize2fs "$data_partition_disk"
+if [ $? -ne 0 ]; then
+    echo "Partition resize for the disk ${disk} failed"
+    exit 1
+else
+    echo "Partition resize for the disk ${disk} Successful!!"
+    fi
 }
 
 #######@main
@@ -328,6 +331,9 @@ ram_size=$(free -g | grep -i mem | awk '{ print $2 }')
 
 sgdisk -e "/dev/$os_disk"
 total_disk_size=$(parted -m "/dev/$os_disk" unit GB print | grep "^/dev" | cut -d: -f2 | sed 's/GB//')
+if echo "$total_disk_size" | grep -qE '^[0-9]+\.[0-9]+$'; then
+	total_disk_size=$(printf "%.0f" "$total_disk_size")
+fi
 
 #partition the disk with swap and LVM
 
