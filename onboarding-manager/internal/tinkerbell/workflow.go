@@ -70,7 +70,7 @@ func CreateWorkflowIfNotExists(ctx context.Context, k8sCli client.Client, workfl
 	return nil
 }
 
-func DeleteProdWorkflowResourcesIfExist(ctx context.Context, k8sNamespace, hostUUID, imgType string) error {
+func DeleteProdWorkflowResourcesIfExist(ctx context.Context, k8sNamespace, hostUUID string) error {
 	zlog.Debug().Msgf("Deleting prod workflow resources for host %s", hostUUID)
 
 	kubeClient, err := K8sClientFactory()
@@ -86,7 +86,7 @@ func DeleteProdWorkflowResourcesIfExist(ctx context.Context, k8sNamespace, hostU
 			APIVersion: "tinkerbell.org/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      GetProdTemplateName(imgType, hostUUID),
+			Name:      GetProdTemplateName(hostUUID),
 			Namespace: k8sNamespace,
 		},
 	}

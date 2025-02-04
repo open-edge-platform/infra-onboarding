@@ -6,11 +6,8 @@
 package utils
 
 const (
-	ImgTypeBkc          = "prod_bkc"
-	ImgTypeJammy        = "prod_jammy"
-	ImgTypeFocal        = "prod_focal"
-	ImgTypeFocalMs      = "prod_focal-ms"
-	ImgTypeTiberOs      = "prod_tiber-os"
+	ImgTypeUbuntu       = "ubuntu"
+	ImgTypeTiberOs      = "tiberos"
 	DefaultProviderName = "infra_onboarding"
 )
 
@@ -23,18 +20,12 @@ type (
 		HwMacID string
 		// HwIP IP address of the management NIC of a host.
 		HwIP string
-		// DiskType disk type of a host.
-		DiskType string
 		// OSImageURL a URL pointing to the OS location on the EN's reverse proxy.
 		OSImageURL string
 		// Gateway IP gateway of a local subnet where a host is located.
 		Gateway string
 		// InstallerScriptURL a URL pointing to the location of OS Installer script on the EN's reverse proxy.
 		InstallerScriptURL string
-		// Rootfspart a number of rootfs partition
-		Rootfspart string
-		// ClientImgName a name of the OS image used for a host
-		ClientImgName string
 		// ImgType an OS image type used for a host
 		ImgType string
 		// GUID UUID identifier of a host

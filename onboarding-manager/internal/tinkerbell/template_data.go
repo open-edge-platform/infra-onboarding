@@ -57,7 +57,6 @@ const (
 )
 
 const (
-	hardWareDesk   = "{{ index .Hardware.Disks 0 }}"
 	timeOutMax9800 = 9800
 	timeOutMax8000 = 8000
 	timeOutAvg560  = 560
@@ -96,9 +95,7 @@ const (
 	envTinkActionTiberOSPartitionImage     = "TINKER_TIBEROS_IMAGE_PARTITION"
 	defaultTinkActionTiberOSPartitionImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/tiberos_partition"
 
-	envTinkActionCredcopyImage     = "TINKER_CREDCOPY_IMAGE"                                            // #nosec G101
-	defaultTinkActionCredcopyImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/cred_copy" // #nosec G101
-	envDkamDevMode                 = "dev"
+	envDkamDevMode = "dev"
 )
 
 // if `tinkerImageVersion` is non-empty, its value is returned,
@@ -278,13 +275,52 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo) ([]byt
 				},
 
 				{
+					Name:    ActionCreateSecretsDirectory,
+					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":             "ext4",
+						"CHROOT":              "y",
+						"DEFAULT_INTERPRETER": "/bin/sh -c",
+						"CMD_LINE":            "mkdir -p /etc/intel_edge_node/client-credentials/",
+					},
+				},
+				{
+					Name:    ActionWriteClientID,
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":   "ext4",
+						"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_id",
+						"CONTENTS":  deviceInfo.AuthClientID,
+						"UID":       "0",
+						"GID":       "0",
+						"MODE":      "0755",
+						"DIRMODE":   "0755",
+					},
+				},
+				{
+					Name:    ActionWriteClientSecret,
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":   "ext4",
+						"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_secret",
+						"CONTENTS":  deviceInfo.AuthClientSecret,
+						"UID":       "0",
+						"GID":       "0",
+						"MODE":      "0755",
+						"DIRMODE":   "0755",
+					},
+				},
+
+				{
 					Name:    ActionCloudInitfileDownload,
 					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg200,
 					Environment: map[string]string{
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
-						"SCRIPT_URL":          deviceInfo.InstallerScriptURL,
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
 						"CMD_LINE": fmt.Sprintf("curl -o /etc/cloud/cloud.cfg.d/installer.cfg %s;"+
 							"chmod +x /etc/cloud/cloud.cfg.d/installer.cfg",
@@ -343,60 +379,6 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo) ([]byt
 			},
 		}},
 	}
-	directoryActions := []Action{
-		{
-			Name:    ActionCreateSecretsDirectory,
-			Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
-			Timeout: timeOutMin90,
-			Environment: map[string]string{
-				"FS_TYPE":             "ext4",
-				"CHROOT":              "y",
-				"DEFAULT_INTERPRETER": "/bin/sh -c",
-				"CMD_LINE":            "mkdir -p /etc/intel_edge_node/client-credentials/",
-			},
-		},
-		{
-			Name:    ActionWriteClientID,
-			Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-			Timeout: timeOutMin90,
-			Environment: map[string]string{
-				"FS_TYPE":   "ext4",
-				"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_id",
-				"CONTENTS":  deviceInfo.AuthClientID,
-				"UID":       "0",
-				"GID":       "0",
-				"MODE":      "0755",
-				"DIRMODE":   "0755",
-			},
-		},
-		{
-			Name:    ActionWriteClientSecret,
-			Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-			Timeout: timeOutMin90,
-			Environment: map[string]string{
-				"FS_TYPE":   "ext4",
-				"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_secret",
-				"CONTENTS":  deviceInfo.AuthClientSecret,
-				"UID":       "0",
-				"GID":       "0",
-				"MODE":      "0755",
-				"DIRMODE":   "0755",
-			},
-		},
-	}
-
-	// Find the index of the "add-dns-namespace" action
-	var writeHostnameIndex int
-	for i, action := range wf.Tasks[0].Actions {
-		if action.Name == ActionWriteHostname {
-			writeHostnameIndex = i
-			break
-		}
-	}
-
-	// Insert the new actions after the "write-hostname" action
-	wf.Tasks[0].Actions = append(wf.Tasks[0].Actions[:writeHostnameIndex+1],
-		append(directoryActions, wf.Tasks[0].Actions[writeHostnameIndex+1:]...)...)
 
 	// FDE removal if security feature flag is not set for FDE
 	// #nosec G115
@@ -442,8 +424,8 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo) ([]byt
 	return marshalWorkflow(&wf)
 }
 
-//nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
-func NewTemplateDataProdBKC(name string, deviceInfo utils.DeviceInfo) ([]byte, error) {
+//nolint:funlen // May effect the functionality, need to simplify this in future
+func NewTemplateDataUbuntu(name string, deviceInfo utils.DeviceInfo) ([]byte, error) {
 	// #nosec G115
 	securityFeatureTypeVar := osv1.SecurityFeature(deviceInfo.SecurityFeature)
 	securityFeatureStr := securityFeatureTypeVar.String()
@@ -571,6 +553,47 @@ func NewTemplateDataProdBKC(name string, deviceInfo utils.DeviceInfo) ([]byte, e
 						"DIRMODE": "0755",
 					},
 				},
+
+				{
+					Name:    ActionCreateSecretsDirectory,
+					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":             "ext4",
+						"CHROOT":              "y",
+						"DEFAULT_INTERPRETER": "/bin/sh -c",
+						"CMD_LINE":            "mkdir -p /etc/intel_edge_node/client-credentials/",
+					},
+				},
+				{
+					Name:    ActionWriteClientID,
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":   "ext4",
+						"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_id",
+						"CONTENTS":  deviceInfo.AuthClientID,
+						"UID":       "0",
+						"GID":       "0",
+						"MODE":      "0755",
+						"DIRMODE":   "0755",
+					},
+				},
+				{
+					Name:    ActionWriteClientSecret,
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":   "ext4",
+						"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_secret",
+						"CONTENTS":  deviceInfo.AuthClientSecret,
+						"UID":       "0",
+						"GID":       "0",
+						"MODE":      "0755",
+						"DIRMODE":   "0755",
+					},
+				},
+
 				{
 					Name:    ActionCreateUser,
 					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
@@ -590,11 +613,10 @@ func NewTemplateDataProdBKC(name string, deviceInfo utils.DeviceInfo) ([]byte, e
 					Environment: map[string]string{
 						"FS_TYPE":             "ext4",
 						"CHROOT":              "y",
-						"SCRIPT_URL":          deviceInfo.InstallerScriptURL,
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE": fmt.Sprintf("mkdir -p /home/postinstall/Setup;chown user:user /home/postinstall/Setup;"+
+						"CMD_LINE": fmt.Sprintf("mkdir -p /home/postinstall/Setup;chown %s:%s /home/postinstall/Setup;"+
 							"wget -P /home/postinstall/Setup %s; chmod 755 /home/postinstall/Setup/installer.sh",
-							deviceInfo.InstallerScriptURL),
+							env.ENUserName, env.ENUserName, deviceInfo.InstallerScriptURL),
 					},
 					Pid: "host",
 				},
@@ -811,61 +833,6 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 		}},
 	}
 
-	directoryActions := []Action{
-		{
-			Name:    ActionCreateSecretsDirectory,
-			Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
-			Timeout: timeOutMin90,
-			Environment: map[string]string{
-				"FS_TYPE":             "ext4",
-				"CHROOT":              "y",
-				"DEFAULT_INTERPRETER": "/bin/sh -c",
-				"CMD_LINE":            "mkdir -p /etc/intel_edge_node/client-credentials/",
-			},
-		},
-		{
-			Name:    ActionWriteClientID,
-			Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-			Timeout: timeOutMin90,
-			Environment: map[string]string{
-				"FS_TYPE":   "ext4",
-				"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_id",
-				"CONTENTS":  deviceInfo.AuthClientID,
-				"UID":       "0",
-				"GID":       "0",
-				"MODE":      "0755",
-				"DIRMODE":   "0755",
-			},
-		},
-		{
-			Name:    ActionWriteClientSecret,
-			Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-			Timeout: timeOutMin90,
-			Environment: map[string]string{
-				"FS_TYPE":   "ext4",
-				"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_secret",
-				"CONTENTS":  deviceInfo.AuthClientSecret,
-				"UID":       "0",
-				"GID":       "0",
-				"MODE":      "0755",
-				"DIRMODE":   "0755",
-			},
-		},
-	}
-
-	// Find the index of the "add-dns-namespace" action
-	var dnsNamespaceIndex int
-	for i, action := range wf.Tasks[0].Actions {
-		if action.Name == ActionAddDNSNamespace {
-			dnsNamespaceIndex = i
-			break
-		}
-	}
-
-	// Insert the new actions after the "add-dns-namespace" action
-	wf.Tasks[0].Actions = append(wf.Tasks[0].Actions[:dnsNamespaceIndex+1],
-		append(directoryActions, wf.Tasks[0].Actions[dnsNamespaceIndex+1:]...)...)
-
 	// FDE removal if security feature flag is not set for FDE
 	// #nosec G115
 	if osv1.SecurityFeature(deviceInfo.SecurityFeature) !=
@@ -892,361 +859,5 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 			}
 		}
 	}
-	return marshalWorkflow(&wf)
-}
-
-//nolint:funlen // May effect the functionality, need to simplify this in future
-func NewTemplateDataProdMS(name, rootPart, _, hostIP, clientIP, gateway, mac, tinkerVersion string) ([]byte, error) {
-	wf := Workflow{
-		Version:       "0.1",
-		Name:          name,
-		GlobalTimeout: timeOutMax9800,
-		Tasks: []Task{{
-			Name:       "os-installation",
-			WorkerAddr: "{{.device_1}}",
-			Volumes: []string{
-				"/dev:/dev",
-				"/dev/console:/dev/console",
-				"/lib/firmware:/lib/firmware:ro",
-			},
-			Actions: []Action{
-				{
-					Name:    "stream-ubuntu-image",
-					Image:   tinkActionDiskImage(tinkerVersion),
-					Timeout: timeOutMax9800,
-					Environment: map[string]string{
-						"DEST_DISK":  hardWareDesk,
-						"IMG_URL":    fmt.Sprintf("http://%s:8080/focal-server-cloudimg-amd64.raw.gz", hostIP),
-						"COMPRESSED": "true",
-					},
-				},
-				{
-					Name:    "copy-secrets",
-					Image:   env.ProvisionerIP + ":5015/cred_copy:latest",
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"BLOCK_DEVICE": hardWareDesk + rootPart,
-						"FS_TYPE":      "ext4",
-					},
-				},
-				{
-					Name:    ActionGrowPartitionInstallScript,
-					Image:   tinkActionWriteFileImage(tinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"DEST_DISK": hardWareDesk + rootPart,
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/usr/local/bin/grow_part.sh",
-						"CONTENTS": fmt.Sprintf(`#!/bin/bash
-growpart {{ index .Hardware.Disks 0 }} %s
-resize2fs {{ index .Hardware.Disks 0 }}%s
-touch /usr/local/bin/.grow_part_done`, rootPart, rootPart),
-						"UID":     "0",
-						"GID":     "0",
-						"MODE":    "0755",
-						"DIRMODE": "0755",
-					},
-				},
-				{
-					Name:    "add-env-proxies",
-					Image:   tinkActionWriteFileImage(tinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"DEST_DISK": hardWareDesk + rootPart,
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/environment",
-						"CONTENTS": `
-						http_proxy=http://proxy-dmz.intel.com:911
-						https_proxy=http://proxy-dmz.intel.com:912
-						no_proxy=localhost,127.0.0.1,.intel.com`,
-						"UID":     "0",
-						"GID":     "0",
-						"MODE":    "0644",
-						"DIRMODE": "0755",
-					},
-				},
-				{
-					Name:    "create-docker-proxy-directory",
-					Image:   tinkActionWriteFileImage(tinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        hardWareDesk + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE": "mkdir /etc/systemd/system/docker.service.d/;" +
-							" touch /etc/systemd/system/docker.service.d/proxy.conf;touch /etc/apt/apt.conf",
-					},
-				},
-				{
-					Name:    "add-docker-proxies",
-					Image:   tinkActionWriteFileImage(tinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"DEST_DISK": hardWareDesk + rootPart,
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/systemd/system/docker.service.d/proxy.conf",
-						"CONTENTS": `
-						[Service]
-						Environment="HTTP_PROXY=http://proxy-dmz.intel.com:912"
-						Environment="HTTPS_PROXY=http://proxy-dmz.intel.com:912"
-						Environment="NO_PROXY=localhost,127.0.0.1,.intel.com"`,
-						"UID":     "0",
-						"GID":     "0",
-						"MODE":    "0644",
-						"DIRMODE": "0755",
-					},
-				},
-				{
-					Name:    "install-openssl",
-					Image:   tinkActionCexecImage(tinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        hardWareDesk + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "apt -y update && apt -y install wget openssl",
-					},
-				},
-				{
-					Name:    "create-user",
-					Image:   tinkActionCexecImage(tinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        hardWareDesk + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "useradd -p $(openssl passwd -1 user) -s /bin/bash -d /home/user/ -m -G sudo user",
-					},
-				},
-				{
-					Name:    "hookos-bootmenu-delete-script",
-					Image:   tinkActionWriteFileImage(tinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"DEST_DISK": hardWareDesk + rootPart,
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/tmp/hook_part_del.sh",
-						"CONTENTS": `#!/bin/bash
-while IFS= read -r boot_part_number; do
-sudo efibootmgr -b $boot_part_number -B
-done < <(efibootmgr | grep -i hookos | awk '{print $1}'| cut -c 5-8 )`,
-						"UID":     "0",
-						"GID":     "0",
-						"MODE":    "0755",
-						"DIRMODE": "0755",
-					},
-				},
-				{
-					Name:    "executing-del-hookos-from-boot-menu",
-					Image:   tinkActionCexecImage(tinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        hardWareDesk + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "/tmp/hook_part_del.sh",
-					},
-				},
-				{
-					Name:    "enable-ssh",
-					Image:   tinkActionCexecImage(tinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        hardWareDesk + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE": "ssh-keygen -A; systemctl enable ssh.service;" +
-							" sed -i 's/^PasswordAuthentication no/#PasswordAuthentication yes/g' /etc/ssh/sshd_config",
-					},
-				},
-				{
-					Name:    "write-netplan",
-					Image:   tinkActionWriteFileImage(tinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"DEST_DISK": hardWareDesk + rootPart,
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/netplan/config.yaml",
-						"CONTENTS": fmt.Sprintf(`
-                network:
-                  version: 2
-                  renderer: networkd
-                  ethernets:
-                    id0:
-                      match:
-                        name: en*
-		      dhcp4: no
-		      addresses: [%s/24]
-		      gateway4: %s
-		      nameservers:
-		        addresses: [ 10.248.2.1,172.30.90.4,10.223.45.36]`, clientIP, gateway),
-						"UID":     "0",
-						"GID":     "0",
-						"MODE":    "0644",
-						"DIRMODE": "0755",
-					},
-				},
-				{
-					Name:    "download-kernel-deb-files",
-					Image:   tinkActionCexecImage(tinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        hardWareDesk + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"KER_HEADER_URL":      fmt.Sprintf("http://%s:8080/linux-headers-5.15.96-lts.deb", hostIP),
-						"KER_IMG_URL":         fmt.Sprintf("http://%s:8080/linux-image-5.15.96-lts.deb", hostIP),
-						"CMD_LINE": fmt.Sprintf("mkdir -p /home/user/Setup;chown user:user /home/user/Setup;"+
-							"wget -P /home/user/Setup http://%s:8080/linux-headers-5.15.96-lts.deb;"+
-							" wget -P /home/user/Setup http://%s:8080/linux-image-5.15.96-lts.deb",
-							hostIP, hostIP),
-					},
-				},
-				{
-					Name:    "install-kernel",
-					Image:   tinkActionCexecImage(tinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        hardWareDesk + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "cd /home/user/Setup && dpkg -i *.deb",
-					},
-				},
-				{
-					Name:    "download-azure-scripts",
-					Image:   tinkActionCexecImage(tinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        hardWareDesk + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"AZR_ENV":             fmt.Sprintf("http://%s:8080/azure-credentials.env_%s", hostIP, mac),
-						"AZR_LOG_FILE":        fmt.Sprintf("http://%s:8080/log.sh", hostIP),
-						"AZR_INSTLR_FILE":     fmt.Sprintf("http://%s:8080/azure_dps_installer.sh", hostIP),
-						"CMD_LINE": fmt.Sprintf("mkdir -p /home/user/Setup/.creds;"+
-							"wget -P /home/user/Setup/.creds http://%s:8080/azure-credentials.env_%s;"+
-							" wget -P /home/user/Setup http://%s:8080/log.sh;"+
-							"  wget -P /home/user/Setup http://%s:8080/azure_dps_installer.sh;chmod 755  /home/user/Setup/*;"+
-							" cd /home/user/Setup/.creds; mv azure-credentials.env_%s azure-credentials.env",
-							hostIP, mac, hostIP, hostIP, mac),
-					},
-				},
-				{
-					Name:    "service-script-for-azure-dps-installer",
-					Image:   tinkActionWriteFileImage(tinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"DEST_DISK": hardWareDesk + rootPart,
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/systemd/system/install-azure-dps.service",
-						"CONTENTS": `
-						[Unit]
-						Description=Azure DPS installer
-						After=network.target
-						ConditionPathExists = !/home/user/Setup/.azure_dps_setp_done
-		
-						[Service]
-						ExecStartPre=/bin/sleep 70 
-						WorkingDirectory=/home/user/Setup
-						ExecStart=bash -E /home/user/Setup/azure_dps_installer.sh -e  .creds/azure-credentials.env
-		
-						[Install]
-						WantedBy=multi-user.target`,
-						"UID":     "0",
-						"GID":     "0",
-						"MODE":    "0644",
-						"DIRMODE": "0755",
-					},
-				},
-				{
-					Name:    "enable-service-script",
-					Image:   tinkActionCexecImage(tinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        hardWareDesk + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "systemctl enable install-azure-dps.service",
-					},
-				},
-				{
-					Name:    "service-script-for-grow-partion-installer",
-					Image:   tinkActionWriteFileImage(tinkerVersion),
-					Timeout: timeOutAvg200,
-					Environment: map[string]string{
-						"DEST_DISK": hardWareDesk + rootPart,
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/systemd/system/install-grow-part.service",
-						"CONTENTS": `
-                                                [Unit]
-                                                Description=disk size grow installer
-                                                After=network.target
-                                                ConditionPathExists = !/usr/local/bin/.grow_part_done
-
-                                                [Service]
-                                                ExecStartPre=/bin/sleep 30
-                                                WorkingDirectory=/usr/local/bin
-                                                ExecStart=/usr/local/bin/grow_part.sh
-
-                                                [Install]
-                                                WantedBy=multi-user.target`,
-						"UID":     "0",
-						"GID":     "0",
-						"MODE":    "0644",
-						"DIRMODE": "0755",
-					},
-				},
-				{
-					Name:    "enable-grow-partinstall-service-script",
-					Image:   tinkActionCexecImage(tinkerVersion),
-					Timeout: timeOutAvg200,
-					Environment: map[string]string{
-						"BLOCK_DEVICE":        hardWareDesk + rootPart,
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "systemctl enable install-grow-part.service",
-					},
-				},
-
-				{
-					Name:    "add-apt-proxies",
-					Image:   tinkActionWriteFileImage(tinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"DEST_DISK": hardWareDesk + rootPart,
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/apt/apt.conf",
-						"CONTENTS": `
-						Acquire::http::Proxy "http://proxy-dmz.intel.com:911";
-						Acquire::https::Proxy "http://proxy-dmz.intel.com:912";`,
-						"UID":     "0",
-						"GID":     "0",
-						"MODE":    "0644",
-						"DIRMODE": "0755",
-					},
-				},
-				{
-					Name:    "reboot",
-					Image:   "public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest",
-					Timeout: timeOutMin90,
-					Volumes: []string{
-						"/worker:/worker",
-					},
-				},
-			},
-		}},
-	}
-
 	return marshalWorkflow(&wf)
 }

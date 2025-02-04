@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/onboardingmgr/utils"
 )
 
 const (
@@ -16,8 +15,6 @@ const (
 	envNoProxy       = "EN_NO_PROXY"
 	envNameservers   = "EN_NAMESERVERS"
 	envImageType     = "IMAGE_TYPE"
-	envDiskType      = "DISK_PARTITION"
-	envProvisionerIP = "PD_IP"
 	envK8sNamespace  = "MI_K8S_NAMESPACE"
 	envDkamMode      = "EN_DKAMMODE"
 	envUserName      = "EN_USERNAME"
@@ -28,8 +25,6 @@ const (
 )
 
 var (
-	DiskType      = os.Getenv(envDiskType)
-	ProvisionerIP = os.Getenv(envProvisionerIP)
 	ENProxyHTTP   = os.Getenv(envHTTPProxy)
 	ENProxyHTTPS  = os.Getenv(envHTTPSProxy)
 	ENProxyNo     = os.Getenv(envNoProxy)
@@ -38,7 +33,6 @@ var (
 	ENUserName    = os.Getenv(envUserName)
 	ENPassWord    = os.Getenv(envPassWord)
 
-	ImgType      = GetEnvWithDefault(envImageType, utils.ImgTypeJammy)
 	K8sNamespace = GetEnvWithDefault(envK8sNamespace, defaultK8sNamespace)
 
 	TinkerActionVersion = os.Getenv(envTinkerVersion)

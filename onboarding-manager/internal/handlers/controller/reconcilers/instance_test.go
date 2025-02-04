@@ -32,7 +32,6 @@ import (
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/testing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/util"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/env"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/invclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/onboardingmgr/utils"
 	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/testing"
@@ -578,6 +577,7 @@ func Test_convertInstanceToDeviceInfo(t *testing.T) {
 					},
 					SecurityFeature: osv1.SecurityFeature_SECURITY_FEATURE_UNSPECIFIED,
 					DesiredOs: &osv1.OperatingSystemResource{
+						OsType:   osv1.OsType_OS_TYPE_MUTABLE,
 						ImageUrl: "http://some-url.raw.gz;http://some-url-2;v0.7.4",
 					},
 				},
@@ -588,11 +588,9 @@ func Test_convertInstanceToDeviceInfo(t *testing.T) {
 				TinkerVersion:      "v0.7.4",
 				HwIP:               "0.0.0.0",
 				Gateway:            "", // note that this is not valid and temporary
-				Rootfspart:         "1",
-				ClientImgName:      ClientImgName,
-				ImgType:            "prod_bkc",
+				ImgType:            utils.ImgTypeUbuntu,
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "Failed - invalid OS URL format",
@@ -626,7 +624,6 @@ func Test_convertInstanceToDeviceInfo(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			env.ImgType = utils.ImgTypeBkc
 			_, err := convertInstanceToDeviceInfo(tt.args.instance)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)

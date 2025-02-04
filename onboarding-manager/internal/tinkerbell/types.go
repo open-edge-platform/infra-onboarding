@@ -50,32 +50,3 @@ func unmarshalWorkflow(yamlContent []byte) (*Workflow, error) {
 	}
 	return &workflow, nil
 }
-
-func NewRebootTemplateData(name string) ([]byte, error) {
-	wf := Workflow{
-		Version:       "0.1",
-		Name:          name,
-		GlobalTimeout: timeOutMax8000,
-		Tasks: []Task{{
-			Name:       "node-reboot",
-			WorkerAddr: "{{.device_1}}",
-			Volumes: []string{
-				"/dev:/dev",
-				"/dev/console:/dev/console",
-				"/lib/firmware:/lib/firmware:ro",
-			},
-			Actions: []Action{
-				{
-					Name:    ActionReboot,
-					Image:   "public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest",
-					Timeout: timeOutMin90,
-					Volumes: []string{
-						"/worker:/worker",
-					},
-				},
-			},
-		}},
-	}
-
-	return marshalWorkflow(&wf)
-}

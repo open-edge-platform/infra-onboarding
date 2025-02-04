@@ -110,7 +110,7 @@ func TestDeleteProdWorkflowResourcesIfExist(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := DeleteProdWorkflowResourcesIfExist(tt.args.ctx, tt.args.hostUUID, "bkc"); (err != nil) != tt.wantErr {
+			if err := DeleteProdWorkflowResourcesIfExist(tt.args.ctx, tt.args.hostUUID); (err != nil) != tt.wantErr {
 				t.Errorf("DeleteProdWorkflowResourcesIfExist() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

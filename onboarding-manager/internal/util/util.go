@@ -9,9 +9,22 @@ import (
 
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/compute/v1"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/status"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/util"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/onboardingmgr/utils"
 )
+
+func GetImageTypeFromOsType(osType osv1.OsType) (string, error) {
+	switch osType {
+	case osv1.OsType_OS_TYPE_IMMUTABLE:
+		return utils.ImgTypeTiberOs, nil
+	case osv1.OsType_OS_TYPE_MUTABLE:
+		return utils.ImgTypeUbuntu, nil
+	default:
+		return "", inv_errors.Errorf("Unknown OS type %T", osType)
+	}
+}
 
 func IsSameHostStatus(
 	oldHost *computev1.HostResource,

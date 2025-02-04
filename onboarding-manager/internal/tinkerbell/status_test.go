@@ -15,7 +15,7 @@ import (
 
 func TestWorkflowActionToStatusDetail(t *testing.T) {
 
-	prodBkcWorkflow, err := NewTemplateDataProdBKC("test-prod-bkc", utils.DeviceInfo{})
+	prodBkcWorkflow, err := NewTemplateDataUbuntu("test-prod-bkc", utils.DeviceInfo{})
 	require.NoError(t, err)
 
 	prodBkcWorkflowInstance, err := unmarshalWorkflow(prodBkcWorkflow)

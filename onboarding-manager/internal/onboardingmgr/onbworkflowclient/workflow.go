@@ -113,7 +113,7 @@ func runProdWorkflow(
 		env.K8sNamespace,
 		deviceInfo.HwMacID,
 		tinkerbell.GetTinkHardwareName(deviceInfo.GUID),
-		tinkerbell.GetProdTemplateName(deviceInfo.ImgType, deviceInfo.GUID))
+		tinkerbell.GetProdTemplateName(deviceInfo.GUID))
 
 	if createWFErr := tinkerbell.CreateWorkflowIfNotExists(ctx, k8sCli, prodWorkflow); createWFErr != nil {
 		return createWFErr
@@ -241,8 +241,8 @@ func DeleteTinkHardwareForHostIfExist(ctx context.Context, hostUUID string) erro
 	return tinkerbell.DeleteHardwareForHostIfExist(ctx, env.K8sNamespace, hostUUID)
 }
 
-func DeleteProdWorkflowResourcesIfExist(ctx context.Context, hostUUID, imgType string) error {
-	return tinkerbell.DeleteProdWorkflowResourcesIfExist(ctx, env.K8sNamespace, hostUUID, imgType)
+func DeleteProdWorkflowResourcesIfExist(ctx context.Context, hostUUID string) error {
+	return tinkerbell.DeleteProdWorkflowResourcesIfExist(ctx, env.K8sNamespace, hostUUID)
 }
 
 func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.Workflow,

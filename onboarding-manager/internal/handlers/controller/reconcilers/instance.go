@@ -273,6 +273,11 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 	}
 	tinkerVersion := env.TinkerActionVersion
 
+	imgType, err := util.GetImageTypeFromOsType(desiredOs.GetOsType())
+	if err != nil {
+		return utils.DeviceInfo{}, err
+	}
+
 	deviceInfo := utils.DeviceInfo{
 		GUID:               host.GetUuid(),
 		HwSerialID:         host.GetSerialNumber(),
@@ -280,25 +285,12 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		HwIP:               host.GetBmcIp(),
 		Hostname:           host.GetResourceId(),                  // we use resource ID as hostname to uniquely identify a host
 		SecurityFeature:    uint32(instance.GetSecurityFeature()), // #nosec G115
-		ImgType:            env.ImgType,
+		ImgType:            imgType,
 		OSImageURL:         osLocationURL,
 		OsImageSHA256:      desiredOs.GetSha256(),
-		DiskType:           env.DiskType,
-		Rootfspart:         utils.CalculateRootFS(env.ImgType, env.DiskType),
 		InstallerScriptURL: installerScriptURL,
 		TinkerVersion:      tinkerVersion,
-		ClientImgName:      ClientImgName,
 		OsType:             desiredOs.GetOsType().String(),
-	}
-
-	if desiredOs.GetOsType() == osv1.OsType_OS_TYPE_IMMUTABLE {
-		deviceInfo.ImgType = utils.ImgTypeTiberOs
-		// TODO: Fix the correct env image type based on OS type in charts
-		env.ImgType = utils.ImgTypeTiberOs
-	} else {
-		deviceInfo.ImgType = utils.ImgTypeBkc
-		// TODO: Fix the correct env image type based on OS type in charts
-		env.ImgType = utils.ImgTypeBkc
 	}
 
 	zlogInst.Debug().Msgf("DeviceInfo generated from OS resource (%s): %+v",
@@ -364,8 +356,7 @@ func (ir *InstanceReconciler) cleanupProvisioningResources(
 ) error {
 	zlogInst.Debug().Msgf("Cleaning up all provisioning resources for host %s", instance.GetHost().GetUuid())
 
-	if err := onbworkflowclient.DeleteProdWorkflowResourcesIfExist(
-		ctx, instance.GetHost().GetUuid(), env.ImgType); err != nil {
+	if err := onbworkflowclient.DeleteProdWorkflowResourcesIfExist(ctx, instance.GetHost().GetUuid()); err != nil {
 		return err
 	}
 

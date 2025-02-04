@@ -25,7 +25,6 @@ func TestNewHardware(t *testing.T) {
 		name         string
 		ns           string
 		id           string
-		device       string
 		ip           string
 		gateway      string
 		osResourceID string
@@ -44,7 +43,7 @@ func TestNewHardware(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewHardware(tt.args.name, tt.args.ns, tt.args.id, tt.args.device,
+			if got := NewHardware(tt.args.name, tt.args.ns, tt.args.id,
 				tt.args.ip, tt.args.gateway, tt.args.osResourceID); reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewHardware() = %v, want %v", got, tt.want)
 			}
@@ -244,29 +243,6 @@ func TestCreateHardwareIfNotExists(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := CreateHardwareIfNotExists(tt.args.ctx, tt.args.k8sCli, tt.args.k8sNamespace, tt.args.deviceInfo, tt.args.osResourceID); (err != nil) != tt.wantErr {
 				t.Errorf("CreateHardwareIfNotExists() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestGetRebootWorkflowName(t *testing.T) {
-	type args struct {
-		uuid string
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			name: "TestGetRebootWorkflowNameUUID",
-			want: "reboot-workflow-",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := GetRebootWorkflowName(tt.args.uuid); got != tt.want {
-				t.Errorf("GetRebootWorkflowName() = %v, want %v", got, tt.want)
 			}
 		})
 	}

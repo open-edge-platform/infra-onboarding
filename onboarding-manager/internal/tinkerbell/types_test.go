@@ -4,7 +4,6 @@
 package tinkerbell
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -59,36 +58,5 @@ func TestMarshal(t *testing.T) {
 
 	if !assert.EqualValues(t, wfExpected, wfGot) {
 		t.Errorf(`Got unexpected result: got "%v" wanted "%v"`, wfGot, wfExpected)
-	}
-}
-
-func TestNewRebootTemplateData(t *testing.T) {
-	type args struct {
-		name string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    []byte
-		wantErr bool
-	}{
-		{
-			name: "TestNewRebootTemplateData_ValidName",
-			args: args{
-				name: "name",
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewRebootTemplateData(tt.args.name)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NewRebootTemplateData() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewRebootTemplateData() = %v, want %v", got, tt.want)
-			}
-		})
 	}
 }

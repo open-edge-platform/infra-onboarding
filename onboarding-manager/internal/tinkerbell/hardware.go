@@ -15,7 +15,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/onboardingmgr/utils"
 )
 
-func NewHardware(name, ns, id, device, ip, gateway, osResourceID string) *tink.Hardware {
+func NewHardware(name, ns, id, ip, gateway, osResourceID string) *tink.Hardware {
 	hw := &tink.Hardware{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Hardware",
@@ -26,9 +26,6 @@ func NewHardware(name, ns, id, device, ip, gateway, osResourceID string) *tink.H
 			Namespace: ns,
 		},
 		Spec: tink.HardwareSpec{
-			Disks: []tink.Disk{{
-				Device: device,
-			}},
 			Metadata: &tink.HardwareMetadata{
 				Facility: &tink.MetadataFacility{
 					FacilityCode: "onboarding",
@@ -57,10 +54,9 @@ func NewHardware(name, ns, id, device, ip, gateway, osResourceID string) *tink.H
 							Gateway: gateway,
 							Netmask: "255.255.255.0",
 						},
-						LeaseTime:   leaseTime86400,
-						MAC:         id,
-						NameServers: []string{"10.248.2.1", "172.30.90.4", "10.223.45.36"},
-						UEFI:        true,
+						LeaseTime: leaseTime86400,
+						MAC:       id,
+						UEFI:      true,
 					},
 				},
 			},
@@ -79,7 +75,7 @@ func CreateHardwareIfNotExists(ctx context.Context, k8sCli client.Client, k8sNam
 		GetTinkHardwareName(deviceInfo.GUID),
 		k8sNamespace,
 		deviceInfo.HwMacID,
-		deviceInfo.DiskType, deviceInfo.HwIP, deviceInfo.Gateway, osResourceID)
+		deviceInfo.HwIP, deviceInfo.Gateway, osResourceID)
 
 	obj := &tink.Hardware{}
 	err := k8sCli.Get(ctx, client.ObjectKeyFromObject(hwInfo), obj)

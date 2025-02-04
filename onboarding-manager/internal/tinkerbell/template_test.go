@@ -85,27 +85,7 @@ func TestGenerateTemplateForProd(t *testing.T) {
 			name: "Test Case1",
 			args: args{
 				deviceInfo: utils.DeviceInfo{
-					ImgType: utils.ImgTypeBkc,
-				},
-			},
-			want:    nil,
-			wantErr: false,
-		},
-		{
-			name: "Test Case2",
-			args: args{
-				deviceInfo: utils.DeviceInfo{
-					ImgType: utils.ImgTypeJammy,
-				},
-			},
-			want:    nil,
-			wantErr: false,
-		},
-		{
-			name: "Test Case3",
-			args: args{
-				deviceInfo: utils.DeviceInfo{
-					ImgType: utils.ImgTypeFocalMs,
+					ImgType: utils.ImgTypeUbuntu,
 				},
 			},
 			want:    nil,
@@ -163,37 +143,6 @@ func TestCreateTemplateIfNotExists(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := CreateTemplateIfNotExists(tt.args.ctx, tt.args.k8sCli, tt.args.template); (err != nil) != tt.wantErr {
 				t.Errorf("CreateTemplateIfNotExists() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestGenerateTemplateForNodeReboot(t *testing.T) {
-	type args struct {
-		k8sNamespace string
-		deviceInfo   utils.DeviceInfo
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *tink.Template
-		wantErr bool
-	}{
-		{
-			name:    "Test Case",
-			want:    &tink.Template{},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := GenerateTemplateForNodeReboot(tt.args.k8sNamespace, tt.args.deviceInfo)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GenerateTemplateForNodeReboot() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GenerateTemplateForNodeReboot() = %v, want %v", got, tt.want)
 			}
 		})
 	}

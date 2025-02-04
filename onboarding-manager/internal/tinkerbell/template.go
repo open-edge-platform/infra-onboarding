@@ -39,14 +39,13 @@ blob/1a9621b4f8d5146659b680518052a3b7a24d0867/internal/onboardingmgr/onbworkflow
 */
 func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (*tink.Template, error) {
 	var (
-		tmplName      = GetProdTemplateName(deviceInfo.ImgType, deviceInfo.GUID)
-		tinkerVersion = getTinkerImageVersion(deviceInfo.TinkerVersion)
-		tmplData      []byte
-		err           error
+		tmplName = GetProdTemplateName(deviceInfo.GUID)
+		tmplData []byte
+		err      error
 	)
 	switch deviceInfo.ImgType {
-	case utils.ImgTypeBkc:
-		tmplData, err = NewTemplateDataProdBKC(tmplName, deviceInfo)
+	case utils.ImgTypeUbuntu:
+		tmplData, err = NewTemplateDataUbuntu(tmplName, deviceInfo)
 		if err != nil {
 			return nil, err
 		}
@@ -56,30 +55,11 @@ func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (
 			return nil, err
 		}
 
-	case utils.ImgTypeFocalMs:
-		tmplData, err = NewTemplateDataProdMS(tmplName, deviceInfo.Rootfspart, deviceInfo.InstallerScriptURL,
-			deviceInfo.OSImageURL, deviceInfo.HwIP, deviceInfo.Gateway, deviceInfo.HwMacID, tinkerVersion)
-		if err != nil {
-			return nil, err
-		}
 	default:
 		tmplData, err = NewTemplateDataProdTIBEROS(tmplName, deviceInfo)
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	tmpl := NewTemplate(string(tmplData), tmplName, k8sNamespace)
-	return tmpl, nil
-}
-
-func GenerateTemplateForNodeReboot(k8sNamespace string, deviceInfo utils.DeviceInfo) (*tink.Template, error) {
-	tmplName := GetRebootTemplateName(deviceInfo.GUID)
-	tmplData, err := NewRebootTemplateData(tmplName)
-	if err != nil {
-		// failed to marshal template data
-		zlog.InfraSec().InfraErr(err).Msg("")
-		return nil, inv_errors.Errorf("Failed to generate Reboot template resources for host %s", deviceInfo.GUID)
 	}
 
 	tmpl := NewTemplate(string(tmplData), tmplName, k8sNamespace)
