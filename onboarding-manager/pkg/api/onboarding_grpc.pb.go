@@ -18,84 +18,84 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// NodeArtifactServiceNBClient is the client API for NodeArtifactServiceNB service.
+// InteractiveOnboardingServiceClient is the client API for InteractiveOnboardingService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type NodeArtifactServiceNBClient interface {
+type InteractiveOnboardingServiceClient interface {
 	CreateNodes(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error)
 }
 
-type nodeArtifactServiceNBClient struct {
+type interactiveOnboardingServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewNodeArtifactServiceNBClient(cc grpc.ClientConnInterface) NodeArtifactServiceNBClient {
-	return &nodeArtifactServiceNBClient{cc}
+func NewInteractiveOnboardingServiceClient(cc grpc.ClientConnInterface) InteractiveOnboardingServiceClient {
+	return &interactiveOnboardingServiceClient{cc}
 }
 
-func (c *nodeArtifactServiceNBClient) CreateNodes(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error) {
+func (c *interactiveOnboardingServiceClient) CreateNodes(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error) {
 	out := new(NodeResponse)
-	err := c.cc.Invoke(ctx, "/onboardingmgr.NodeArtifactServiceNB/CreateNodes", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/onboardingmgr.InteractiveOnboardingService/CreateNodes", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// NodeArtifactServiceNBServer is the server API for NodeArtifactServiceNB service.
-// All implementations should embed UnimplementedNodeArtifactServiceNBServer
+// InteractiveOnboardingServiceServer is the server API for InteractiveOnboardingService service.
+// All implementations should embed UnimplementedInteractiveOnboardingServiceServer
 // for forward compatibility
-type NodeArtifactServiceNBServer interface {
+type InteractiveOnboardingServiceServer interface {
 	CreateNodes(context.Context, *NodeRequest) (*NodeResponse, error)
 }
 
-// UnimplementedNodeArtifactServiceNBServer should be embedded to have forward compatible implementations.
-type UnimplementedNodeArtifactServiceNBServer struct {
+// UnimplementedInteractiveOnboardingServiceServer should be embedded to have forward compatible implementations.
+type UnimplementedInteractiveOnboardingServiceServer struct {
 }
 
-func (UnimplementedNodeArtifactServiceNBServer) CreateNodes(context.Context, *NodeRequest) (*NodeResponse, error) {
+func (UnimplementedInteractiveOnboardingServiceServer) CreateNodes(context.Context, *NodeRequest) (*NodeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateNodes not implemented")
 }
 
-// UnsafeNodeArtifactServiceNBServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to NodeArtifactServiceNBServer will
+// UnsafeInteractiveOnboardingServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to InteractiveOnboardingServiceServer will
 // result in compilation errors.
-type UnsafeNodeArtifactServiceNBServer interface {
-	mustEmbedUnimplementedNodeArtifactServiceNBServer()
+type UnsafeInteractiveOnboardingServiceServer interface {
+	mustEmbedUnimplementedInteractiveOnboardingServiceServer()
 }
 
-func RegisterNodeArtifactServiceNBServer(s grpc.ServiceRegistrar, srv NodeArtifactServiceNBServer) {
-	s.RegisterService(&NodeArtifactServiceNB_ServiceDesc, srv)
+func RegisterInteractiveOnboardingServiceServer(s grpc.ServiceRegistrar, srv InteractiveOnboardingServiceServer) {
+	s.RegisterService(&InteractiveOnboardingService_ServiceDesc, srv)
 }
 
-func _NodeArtifactServiceNB_CreateNodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _InteractiveOnboardingService_CreateNodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(NodeRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(NodeArtifactServiceNBServer).CreateNodes(ctx, in)
+		return srv.(InteractiveOnboardingServiceServer).CreateNodes(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/onboardingmgr.NodeArtifactServiceNB/CreateNodes",
+		FullMethod: "/onboardingmgr.InteractiveOnboardingService/CreateNodes",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NodeArtifactServiceNBServer).CreateNodes(ctx, req.(*NodeRequest))
+		return srv.(InteractiveOnboardingServiceServer).CreateNodes(ctx, req.(*NodeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// NodeArtifactServiceNB_ServiceDesc is the grpc.ServiceDesc for NodeArtifactServiceNB service.
+// InteractiveOnboardingService_ServiceDesc is the grpc.ServiceDesc for InteractiveOnboardingService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var NodeArtifactServiceNB_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "onboardingmgr.NodeArtifactServiceNB",
-	HandlerType: (*NodeArtifactServiceNBServer)(nil),
+var InteractiveOnboardingService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "onboardingmgr.InteractiveOnboardingService",
+	HandlerType: (*InteractiveOnboardingServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "CreateNodes",
-			Handler:    _NodeArtifactServiceNB_CreateNodes_Handler,
+			Handler:    _InteractiveOnboardingService_CreateNodes_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

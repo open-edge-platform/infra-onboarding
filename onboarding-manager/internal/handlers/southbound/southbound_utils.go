@@ -13,7 +13,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/metrics"
 	inv_tenant "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/tenant"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/handlers/southbound/artifact"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/handlers/southbound/grpcserver"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/invclient"
 	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/pkg/api"
 )
@@ -79,7 +79,7 @@ func NewSBHandlerWithListener(listener net.Listener,
 
 // Start IO server.
 func (sbh *SBHandler) Start() error {
-	nodeArtifactService, err := artifact.NewArtifactService(sbh.invClient,
+	interactiveOnboardingService, err := grpcserver.NewInteractiveOnboardingService(sbh.invClient,
 		sbh.cfg.InventoryAddress, sbh.cfg.EnableTracing, sbh.cfg.EnableAuth, sbh.cfg.RBAC)
 	if err != nil {
 		return err
@@ -95,7 +95,7 @@ func (sbh *SBHandler) Start() error {
 	}
 	srvOpts = append(srvOpts, grpc.ChainUnaryInterceptor(unaryInter...))
 	sbh.server = grpc.NewServer(srvOpts...)
-	pb.RegisterNodeArtifactServiceNBServer(sbh.server, nodeArtifactService)
+	pb.RegisterInteractiveOnboardingServiceServer(sbh.server, interactiveOnboardingService)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(sbh.server)
@@ -144,14 +144,14 @@ func NewSBNioHandlerWithListener(listener net.Listener,
 
 // start SB Nio server.
 func (sbhnio *SBNioHandler) Start() error {
-	nodeArtifactService, err := artifact.NewNonInteractiveOnboardingService(sbhnio.invClient,
+	interactiveOnboardingService, err := grpcserver.NewNonInteractiveOnboardingService(sbhnio.invClient,
 		sbhnio.cfg.InventoryAddress, sbhnio.cfg.EnableTracing)
 	if err != nil {
 		return err
 	}
 	var srvOpts []grpc.ServerOption
 	sbhnio.server = grpc.NewServer(srvOpts...)
-	pb.RegisterNonInteractiveOnboardingServiceServer(sbhnio.server, nodeArtifactService)
+	pb.RegisterNonInteractiveOnboardingServiceServer(sbhnio.server, interactiveOnboardingService)
 	// Register reflection service on gRPC server.
 	reflection.Register(sbhnio.server)
 	// Run go routine to start the gRPC server.

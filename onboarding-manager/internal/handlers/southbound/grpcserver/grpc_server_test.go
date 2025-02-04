@@ -1,7 +1,7 @@
 // // SPDX-FileCopyrightText: (C) 2023 Intel Corporation
 // // SPDX-License-Identifier: LicenseRef-Intel
 
-package artifact
+package grpcserver
 
 import (
 	"context"
@@ -19,12 +19,6 @@ import (
 	"testing"
 
 	u_uuid "github.com/google/uuid"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/env"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/invclient"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/onboardingmgr/utils"
-	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/testing"
-	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/pkg/api"
-	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/pkg/status"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/compute/v1"
 	providerv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/provider/v1"
 	statusv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/status/v1"
@@ -34,6 +28,12 @@ import (
 	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/status"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/tenant"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/testing"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/env"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/invclient"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/testing"
+	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/pkg/api"
+	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/pkg/status"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -96,7 +96,7 @@ func createIncomingContextWithENJWT(t *testing.T, tenantID string) context.Conte
 	return rbac.AddJWTToTheIncomingContext(context.Background(), jwtToken)
 }
 
-func TestNewArtifactService(t *testing.T) {
+func TestNewInteractiveOnboardingService(t *testing.T) {
 	type args struct {
 		invClient  *invclient.OnboardingInventoryClient
 		enableAuth bool
@@ -105,7 +105,7 @@ func TestNewArtifactService(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    *NodeArtifactService
+		want    *InteractiveOnboardingService
 		wantErr bool
 	}{
 		{
@@ -115,7 +115,7 @@ func TestNewArtifactService(t *testing.T) {
 				enableAuth: true,
 				rbac:       "../../../../rego/authz.rego",
 			},
-			want:    &NodeArtifactService{},
+			want:    &InteractiveOnboardingService{},
 			wantErr: false,
 		},
 		{
@@ -123,19 +123,19 @@ func TestNewArtifactService(t *testing.T) {
 			args: args{
 				invClient: nil,
 			},
-			want:    &NodeArtifactService{},
+			want:    &InteractiveOnboardingService{},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewArtifactService(tt.args.invClient, "", false, tt.args.enableAuth, tt.args.rbac)
+			got, err := NewInteractiveOnboardingService(tt.args.invClient, "", false, tt.args.enableAuth, tt.args.rbac)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NewArtifactService() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("NewInteractiveOnboardingService() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewArtifactService() = %v, want %v", got, tt.want)
+				t.Errorf("NewInteractiveOnboardingService() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -150,13 +150,10 @@ func TestCopyNodeReqtoNodetData(t *testing.T) {
 		{
 			Hwdata: []*pb.HwData{
 				{
-					MacId:          "mac1",
-					SutIp:          "192.168.1.1",
-					Uuid:           "uuid1",
-					Serialnum:      "serial1",
-					BmcIp:          "10.0.0.1",
-					HostNicDevName: "eth0",
-					BmcInterface:   true,
+					MacId:     "mac1",
+					SutIp:     "192.168.1.1",
+					Uuid:      "uuid1",
+					Serialnum: "serial1",
 				},
 			},
 		},
@@ -194,12 +191,12 @@ func TestCopyNodeReqtoNodetData(t *testing.T) {
 	}
 }
 
-func TestNodeArtifactService_CreateNodes_Case(t *testing.T) {
+func TestInteractiveOnboardingService_CreateNodes_Case(t *testing.T) {
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		enableAuth                               bool
-		rbac                                     *rbac.Policy
+		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
+		invClient                                       *invclient.OnboardingInventoryClient
+		enableAuth                                      bool
+		rbac                                            *rbac.Policy
 	}
 	rbacServer, err := rbac.New(rbacRules)
 	require.NoError(t, err)
@@ -269,8 +266,8 @@ func TestNodeArtifactService_CreateNodes_Case(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+			s := &InteractiveOnboardingService{
+				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
 				InventoryClientService: InventoryClientService{
 					invClient: tt.fields.invClient,
 				},
@@ -279,22 +276,22 @@ func TestNodeArtifactService_CreateNodes_Case(t *testing.T) {
 			}
 			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NodeArtifactService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("InteractiveOnboardingService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NodeArtifactService.CreateNodes() = %v, want %v", got, tt.want)
+				t.Errorf("InteractiveOnboardingService.CreateNodes() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestNodeArtifactService_CreateNodes_Case1(t *testing.T) {
+func TestInteractiveOnboardingService_CreateNodes_Case1(t *testing.T) {
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		enableAuth                               bool
-		rbac                                     *rbac.Policy
+		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
+		invClient                                       *invclient.OnboardingInventoryClient
+		enableAuth                                      bool
+		rbac                                            *rbac.Policy
 	}
 	rbacServer, err := rbac.New(rbacRules)
 	require.NoError(t, err)
@@ -326,12 +323,9 @@ func TestNodeArtifactService_CreateNodes_Case1(t *testing.T) {
 						{
 							Hwdata: []*pb.HwData{
 								{
-									BmcIp:          "123",
-									Serialnum:      "123",
-									Uuid:           "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-									MacId:          "00.00.00.00",
-									HostNicDevName: "abc",
-									BmcInterface:   true,
+									Serialnum: "123",
+									Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+									MacId:     "00.00.00.00",
 								},
 							},
 						},
@@ -355,12 +349,9 @@ func TestNodeArtifactService_CreateNodes_Case1(t *testing.T) {
 						{
 							Hwdata: []*pb.HwData{
 								{
-									BmcIp:          "123",
-									Serialnum:      "123",
-									Uuid:           "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-									MacId:          "00.00.00.00",
-									HostNicDevName: "abc",
-									BmcInterface:   true,
+									Serialnum: "123",
+									Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+									MacId:     "00.00.00.00",
 								},
 							},
 						},
@@ -373,8 +364,8 @@ func TestNodeArtifactService_CreateNodes_Case1(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+			s := &InteractiveOnboardingService{
+				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
 				InventoryClientService: InventoryClientService{
 					invClient: tt.fields.invClient,
 				},
@@ -383,22 +374,22 @@ func TestNodeArtifactService_CreateNodes_Case1(t *testing.T) {
 			}
 			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NodeArtifactService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("InteractiveOnboardingService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NodeArtifactService.CreateNodes() = %v, want %v", got, tt.want)
+				t.Errorf("InteractiveOnboardingService.CreateNodes() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestNodeArtifactService_CreateNodes_Case2(t *testing.T) {
+func TestInteractiveOnboardingService_CreateNodes_Case2(t *testing.T) {
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		enableAuth                               bool
-		rbac                                     *rbac.Policy
+		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
+		invClient                                       *invclient.OnboardingInventoryClient
+		enableAuth                                      bool
+		rbac                                            *rbac.Policy
 	}
 	rbacServer, err := rbac.New(rbacRules)
 	require.NoError(t, err)
@@ -464,8 +455,8 @@ func TestNodeArtifactService_CreateNodes_Case2(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+			s := &InteractiveOnboardingService{
+				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
 				InventoryClientService: InventoryClientService{
 					invClient: tt.fields.invClient,
 				},
@@ -474,22 +465,22 @@ func TestNodeArtifactService_CreateNodes_Case2(t *testing.T) {
 			}
 			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NodeArtifactService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("InteractiveOnboardingService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NodeArtifactService.CreateNodes() = %v, want %v", got, tt.want)
+				t.Errorf("InteractiveOnboardingService.CreateNodes() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestNodeArtifactService_CreateNodes_Case3(t *testing.T) {
+func TestInteractiveOnboardingService_CreateNodes_Case3(t *testing.T) {
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		enableAuth                               bool
-		rbac                                     *rbac.Policy
+		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
+		invClient                                       *invclient.OnboardingInventoryClient
+		enableAuth                                      bool
+		rbac                                            *rbac.Policy
 	}
 	rbacServer, err := rbac.New(rbacRules)
 	require.NoError(t, err)
@@ -558,8 +549,8 @@ func TestNodeArtifactService_CreateNodes_Case3(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+			s := &InteractiveOnboardingService{
+				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
 				InventoryClientService: InventoryClientService{
 					invClient: tt.fields.invClient,
 				},
@@ -568,22 +559,22 @@ func TestNodeArtifactService_CreateNodes_Case3(t *testing.T) {
 			}
 			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NodeArtifactService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("InteractiveOnboardingService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NodeArtifactService.CreateNodes() = %v, want %v", got, tt.want)
+				t.Errorf("InteractiveOnboardingService.CreateNodes() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestNodeArtifactService_CreateNodes_Case4(t *testing.T) {
+func TestInteractiveOnboardingService_CreateNodes_Case4(t *testing.T) {
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		enableAuth                               bool
-		rbac                                     *rbac.Policy
+		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
+		invClient                                       *invclient.OnboardingInventoryClient
+		enableAuth                                      bool
+		rbac                                            *rbac.Policy
 	}
 	rbacServer, err := rbac.New(rbacRules)
 	require.NoError(t, err)
@@ -649,8 +640,8 @@ func TestNodeArtifactService_CreateNodes_Case4(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+			s := &InteractiveOnboardingService{
+				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
 				InventoryClientService: InventoryClientService{
 					invClient: tt.fields.invClient,
 				},
@@ -659,22 +650,22 @@ func TestNodeArtifactService_CreateNodes_Case4(t *testing.T) {
 			}
 			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NodeArtifactService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("InteractiveOnboardingService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NodeArtifactService.CreateNodes() = %v, want %v", got, tt.want)
+				t.Errorf("InteractiveOnboardingService.CreateNodes() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestNodeArtifactService_CreateNodes_Case_Success(t *testing.T) {
+func TestInteractiveOnboardingService_CreateNodes_Case_Success(t *testing.T) {
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		enableAuth                               bool
-		rbac                                     *rbac.Policy
+		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
+		invClient                                       *invclient.OnboardingInventoryClient
+		enableAuth                                      bool
+		rbac                                            *rbac.Policy
 	}
 	rbacServer, err := rbac.New(rbacRules)
 	require.NoError(t, err)
@@ -722,8 +713,8 @@ func TestNodeArtifactService_CreateNodes_Case_Success(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+			s := &InteractiveOnboardingService{
+				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
 				InventoryClientService: InventoryClientService{
 					invClient: tt.fields.invClient,
 				},
@@ -732,21 +723,21 @@ func TestNodeArtifactService_CreateNodes_Case_Success(t *testing.T) {
 			}
 			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NodeArtifactService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("InteractiveOnboardingService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NodeArtifactService.CreateNodes() = %v, want %v", got, tt.want)
+				t.Errorf("InteractiveOnboardingService.CreateNodes() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestNodeArtifactService_startZeroTouch(t *testing.T) {
+func TestInteractiveOnboardingService_startZeroTouch(t *testing.T) {
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		invClientAPI                             *invclient.OnboardingInventoryClient
+		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
+		invClient                                       *invclient.OnboardingInventoryClient
+		invClientAPI                                    *invclient.OnboardingInventoryClient
 	}
 	type args struct {
 		ctx          context.Context
@@ -782,25 +773,25 @@ func TestNodeArtifactService_startZeroTouch(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+			s := &InteractiveOnboardingService{
+				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
 				InventoryClientService: InventoryClientService{
 					invClient:    tt.fields.invClient,
 					invClientAPI: tt.fields.invClientAPI,
 				},
 			}
 			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
-				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("InteractiveOnboardingService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestNodeArtifactService_startZeroTouch_Case(t *testing.T) {
+func TestInteractiveOnboardingService_startZeroTouch_Case(t *testing.T) {
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		invClientAPI                             *invclient.OnboardingInventoryClient
+		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
+		invClient                                       *invclient.OnboardingInventoryClient
+		invClientAPI                                    *invclient.OnboardingInventoryClient
 	}
 	type args struct {
 		ctx          context.Context
@@ -833,21 +824,21 @@ func TestNodeArtifactService_startZeroTouch_Case(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+			s := &InteractiveOnboardingService{
+				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
 				InventoryClientService: InventoryClientService{
 					invClient:    tt.fields.invClient,
 					invClientAPI: tt.fields.invClientAPI,
 				},
 			}
 			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
-				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("InteractiveOnboardingService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestNewArtifactService_Case(t *testing.T) {
+func TestNewInteractiveOnboardingService_Case(t *testing.T) {
 	type args struct {
 		invClient     *invclient.OnboardingInventoryClient
 		inventoryAdr  string
@@ -858,11 +849,11 @@ func TestNewArtifactService_Case(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    *NodeArtifactService
+		want    *InteractiveOnboardingService
 		wantErr bool
 	}{
 		{
-			name: "NewArtifactService_WithInvalidRBACFile",
+			name: "NewInteractiveOnboardingService_WithInvalidRBACFile",
 			args: args{
 				invClient:     &invclient.OnboardingInventoryClient{},
 				inventoryAdr:  "addr",
@@ -876,24 +867,24 @@ func TestNewArtifactService_Case(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewArtifactService(tt.args.invClient, tt.args.inventoryAdr, tt.args.enableTracing, tt.args.enableAuth, tt.args.rbac)
+			got, err := NewInteractiveOnboardingService(tt.args.invClient, tt.args.inventoryAdr, tt.args.enableTracing, tt.args.enableAuth, tt.args.rbac)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NewArtifactService() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("NewInteractiveOnboardingService() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewArtifactService() = %v, want %v", got, tt.want)
+				t.Errorf("NewInteractiveOnboardingService() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestNodeArtifactService_CreateNodes_Case5(t *testing.T) {
+func TestInteractiveOnboardingService_CreateNodes_Case5(t *testing.T) {
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		enableAuth                               bool
-		rbac                                     *rbac.Policy
+		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
+		invClient                                       *invclient.OnboardingInventoryClient
+		enableAuth                                      bool
+		rbac                                            *rbac.Policy
 	}
 	rbacServer, err := rbac.New(rbacRules)
 	require.NoError(t, err)
@@ -962,8 +953,8 @@ func TestNodeArtifactService_CreateNodes_Case5(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+			s := &InteractiveOnboardingService{
+				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
 				InventoryClientService: InventoryClientService{
 					invClient: tt.fields.invClient,
 				},
@@ -972,21 +963,21 @@ func TestNodeArtifactService_CreateNodes_Case5(t *testing.T) {
 			}
 			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NodeArtifactService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("InteractiveOnboardingService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if reflect.DeepEqual(got, tt.want) && !tt.wantErr {
-				t.Errorf("NodeArtifactService.CreateNodes() = %v, want %v", got, tt.want)
+				t.Errorf("InteractiveOnboardingService.CreateNodes() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestNodeArtifactService_startZeroTouch_Case1(t *testing.T) {
+func TestInteractiveOnboardingService_startZeroTouch_Case1(t *testing.T) {
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		invClientAPI                             *invclient.OnboardingInventoryClient
+		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
+		invClient                                       *invclient.OnboardingInventoryClient
+		invClientAPI                                    *invclient.OnboardingInventoryClient
 	}
 	type args struct {
 		ctx          context.Context
@@ -1020,24 +1011,24 @@ func TestNodeArtifactService_startZeroTouch_Case1(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+			s := &InteractiveOnboardingService{
+				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
 				InventoryClientService: InventoryClientService{
 					invClient: tt.fields.invClient,
 				},
 			}
 			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
-				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("InteractiveOnboardingService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestNodeArtifactService_startZeroTouch_Case2(t *testing.T) {
+func TestInteractiveOnboardingService_startZeroTouch_Case2(t *testing.T) {
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		invClientAPI                             *invclient.OnboardingInventoryClient
+		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
+		invClient                                       *invclient.OnboardingInventoryClient
+		invClientAPI                                    *invclient.OnboardingInventoryClient
 	}
 	type args struct {
 		ctx          context.Context
@@ -1071,25 +1062,25 @@ func TestNodeArtifactService_startZeroTouch_Case2(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+			s := &InteractiveOnboardingService{
+				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
 				InventoryClientService: InventoryClientService{
 					invClient:    tt.fields.invClient,
 					invClientAPI: tt.fields.invClientAPI,
 				},
 			}
 			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
-				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("InteractiveOnboardingService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestNodeArtifactService_startZeroTouch_Case3(t *testing.T) {
+func TestInteractiveOnboardingService_startZeroTouch_Case3(t *testing.T) {
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		invClientAPI                             *invclient.OnboardingInventoryClient
+		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
+		invClient                                       *invclient.OnboardingInventoryClient
+		invClientAPI                                    *invclient.OnboardingInventoryClient
 	}
 	type args struct {
 		ctx          context.Context
@@ -1123,25 +1114,25 @@ func TestNodeArtifactService_startZeroTouch_Case3(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+			s := &InteractiveOnboardingService{
+				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
 				InventoryClientService: InventoryClientService{
 					invClient:    tt.fields.invClient,
 					invClientAPI: tt.fields.invClientAPI,
 				},
 			}
 			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
-				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("InteractiveOnboardingService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestNodeArtifactService_startZeroTouch_Case4(t *testing.T) {
+func TestInteractiveOnboardingService_startZeroTouch_Case4(t *testing.T) {
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		invClientAPI                             *invclient.OnboardingInventoryClient
+		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
+		invClient                                       *invclient.OnboardingInventoryClient
+		invClientAPI                                    *invclient.OnboardingInventoryClient
 	}
 	type args struct {
 		ctx          context.Context
@@ -1178,21 +1169,21 @@ func TestNodeArtifactService_startZeroTouch_Case4(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+			s := &InteractiveOnboardingService{
+				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
 				InventoryClientService: InventoryClientService{
 					invClient:    tt.fields.invClient,
 					invClientAPI: tt.fields.invClientAPI,
 				},
 			}
 			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
-				t.Errorf("NodeArtifactService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("InteractiveOnboardingService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestNodeArtifactService_startZeroTouch_MultiTenant(t *testing.T) {
+func TestInteractiveOnboardingService_startZeroTouch_MultiTenant(t *testing.T) {
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
@@ -1208,7 +1199,7 @@ func TestNodeArtifactService_startZeroTouch_MultiTenant(t *testing.T) {
 
 	host := dao.CreateHost(t, tenant1)
 
-	s := &NodeArtifactService{
+	s := &InteractiveOnboardingService{
 		InventoryClientService: InventoryClientService{
 			invClient:    om_testing.InvClient,
 			invClientAPI: om_testing.InvClient,
@@ -1221,12 +1212,12 @@ func TestNodeArtifactService_startZeroTouch_MultiTenant(t *testing.T) {
 	})
 }
 
-func TestNodeArtifactService_CreateNodes_Case6(t *testing.T) {
+func TestInteractiveOnboardingService_CreateNodes_Case6(t *testing.T) {
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		enableAuth                               bool
-		rbac                                     *rbac.Policy
+		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
+		invClient                                       *invclient.OnboardingInventoryClient
+		enableAuth                                      bool
+		rbac                                            *rbac.Policy
 	}
 	rbacServer, err := rbac.New(rbacRules)
 	require.NoError(t, err)
@@ -1286,8 +1277,8 @@ func TestNodeArtifactService_CreateNodes_Case6(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+			s := &InteractiveOnboardingService{
+				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
 				InventoryClientService: InventoryClientService{
 					invClient: tt.fields.invClient,
 				},
@@ -1296,19 +1287,19 @@ func TestNodeArtifactService_CreateNodes_Case6(t *testing.T) {
 			}
 			_, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NodeArtifactService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("InteractiveOnboardingService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 		})
 	}
 }
 
-func TestNodeArtifactService_CreateNodes_Case7(t *testing.T) {
+func TestInteractiveOnboardingService_CreateNodes_Case7(t *testing.T) {
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		enableAuth                               bool
-		rbac                                     *rbac.Policy
+		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
+		invClient                                       *invclient.OnboardingInventoryClient
+		enableAuth                                      bool
+		rbac                                            *rbac.Policy
 	}
 	rbacServer, err := rbac.New(rbacRules)
 	require.NoError(t, err)
@@ -1378,8 +1369,8 @@ func TestNodeArtifactService_CreateNodes_Case7(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+			s := &InteractiveOnboardingService{
+				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
 				InventoryClientService: InventoryClientService{
 					invClient: tt.fields.invClient,
 				},
@@ -1388,23 +1379,23 @@ func TestNodeArtifactService_CreateNodes_Case7(t *testing.T) {
 			}
 			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NodeArtifactService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("InteractiveOnboardingService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if reflect.DeepEqual(got, tt.want) && !tt.wantErr {
-				t.Errorf("NodeArtifactService.CreateNodes() = %v, want %v", got, tt.want)
+				t.Errorf("InteractiveOnboardingService.CreateNodes() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestNodeArtifactService_checkNCreateInstance(t *testing.T) {
+func TestInteractiveOnboardingService_checkNCreateInstance(t *testing.T) {
 	type fields struct {
-		UnimplementedNodeArtifactServiceNBServer pb.UnimplementedNodeArtifactServiceNBServer
-		invClient                                *invclient.OnboardingInventoryClient
-		invClientAPI                             *invclient.OnboardingInventoryClient
-		rbac                                     *rbac.Policy
-		authEnabled                              bool
+		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
+		invClient                                       *invclient.OnboardingInventoryClient
+		invClientAPI                                    *invclient.OnboardingInventoryClient
+		rbac                                            *rbac.Policy
+		authEnabled                                     bool
 	}
 	rbacServer, err := rbac.New(rbacRules)
 	require.NoError(t, err)
@@ -1464,8 +1455,8 @@ func TestNodeArtifactService_checkNCreateInstance(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeArtifactService{
-				UnimplementedNodeArtifactServiceNBServer: tt.fields.UnimplementedNodeArtifactServiceNBServer,
+			s := &InteractiveOnboardingService{
+				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
 				InventoryClientService: InventoryClientService{
 					invClient:    tt.fields.invClient,
 					invClientAPI: tt.fields.invClientAPI,
@@ -1474,7 +1465,7 @@ func TestNodeArtifactService_checkNCreateInstance(t *testing.T) {
 				authEnabled: tt.fields.authEnabled,
 			}
 			if err := s.checkNCreateInstance(tt.args.ctx, tt.args.tenentID, tt.args.pconf, tt.args.host); (err != nil) != tt.wantErr {
-				t.Errorf("NodeArtifactService.checkNCreateInstance() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("InteractiveOnboardingService.checkNCreateInstance() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -1564,7 +1555,7 @@ func Test_sendStreamErrorResponse(t *testing.T) {
 	}
 }
 
-func TestNodeArtifactService_handleRegisteredState(t *testing.T) {
+func TestInteractiveOnboardingService_handleRegisteredState(t *testing.T) {
 	type fields struct {
 		UnimplementedNonInteractiveOnboardingServiceServer pb.UnimplementedNonInteractiveOnboardingServiceServer
 		invClient                                          *invclient.OnboardingInventoryClient
@@ -1637,13 +1628,13 @@ func TestNodeArtifactService_handleRegisteredState(t *testing.T) {
 				},
 			}
 			if err := s.handleRegisteredState(tt.args.stream, tt.args.hostInv, tt.args.req); (err != nil) != tt.wantErr {
-				t.Errorf("NodeArtifactService.handleRegisteredState() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("InteractiveOnboardingService.handleRegisteredState() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestNodeArtifactService_handleOnboardedState(t *testing.T) {
+func TestInteractiveOnboardingService_handleOnboardedState(t *testing.T) {
 	type fields struct {
 		UnimplementedNonInteractiveOnboardingServiceServer pb.UnimplementedNonInteractiveOnboardingServiceServer
 		invClient                                          *invclient.OnboardingInventoryClient
@@ -1696,13 +1687,13 @@ func TestNodeArtifactService_handleOnboardedState(t *testing.T) {
 				UnimplementedNonInteractiveOnboardingServiceServer: tt.fields.UnimplementedNonInteractiveOnboardingServiceServer,
 			}
 			if err := s.handleOnboardedState(tt.args.stream, tt.args.hostInv, tt.args.req); (err != nil) != tt.wantErr {
-				t.Errorf("NodeArtifactService.handleOnboardedState() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("InteractiveOnboardingService.handleOnboardedState() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestNodeArtifactService_handleDefaultState(t *testing.T) {
+func TestInteractiveOnboardingService_handleDefaultState(t *testing.T) {
 	var art MockNonInteractiveOnboardingService_OnboardNodeStreamServer
 	art.On("Send", mock.Anything).Return(errors.New("err"))
 	type fields struct {
@@ -1742,7 +1733,7 @@ func TestNodeArtifactService_handleDefaultState(t *testing.T) {
 				},
 			}
 			if err := s.handleDefaultState(tt.args.stream); (err != nil) != tt.wantErr {
-				t.Errorf("NodeArtifactService.handleDefaultState() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("InteractiveOnboardingService.handleDefaultState() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -1805,7 +1796,7 @@ func TestNewNonInteractiveOnboardingService(t *testing.T) {
 	}
 }
 
-func TestNodeArtifactServiceOnboardNodeStream(t *testing.T) {
+func TestInteractiveOnboardingServiceOnboardNodeStream(t *testing.T) {
 	type fields struct {
 		UnimplementedNonInteractiveOnboardingServiceServer pb.UnimplementedNonInteractiveOnboardingServiceServer
 		invClient                                          *invclient.OnboardingInventoryClient
@@ -1918,7 +1909,7 @@ func TestNodeArtifactServiceOnboardNodeStream(t *testing.T) {
 				},
 			}
 			if err := s.OnboardNodeStream(tt.args.stream); (err != nil) != tt.wantErr {
-				t.Errorf("NodeArtifactService.OnboardNodeStream() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("InteractiveOnboardingService.OnboardNodeStream() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -1928,7 +1919,7 @@ func TestNodeArtifactServiceOnboardNodeStream(t *testing.T) {
 	}()
 }
 
-func TestNodeArtifactService_getHostResource(t *testing.T) {
+func TestInteractiveOnboardingService_getHostResource(t *testing.T) {
 	type fields struct {
 		UnimplementedNonInteractiveOnboardingServiceServer pb.UnimplementedNonInteractiveOnboardingServiceServer
 		invClient                                          *invclient.OnboardingInventoryClient
@@ -2023,7 +2014,7 @@ func TestNodeArtifactService_getHostResource(t *testing.T) {
 	}
 }
 
-func TestNodeArtifactService_getHostResourcetest(t *testing.T) {
+func TestInteractiveOnboardingService_getHostResourcetest(t *testing.T) {
 	type fields struct {
 		UnimplementedNonInteractiveOnboardingServiceServer pb.UnimplementedNonInteractiveOnboardingServiceServer
 		invClient                                          *invclient.OnboardingInventoryClient
@@ -2107,7 +2098,7 @@ func TestNodeArtifactService_getHostResourcetest(t *testing.T) {
 			}
 			got, err := s.getHostResource(tt.args.req)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NodeArtifactService.getHostResource() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("InteractiveOnboardingService.getHostResource() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if !tt.wantErr {
 				if got != tt.want {
@@ -2197,8 +2188,8 @@ func FuzzCreateNodes(f *testing.F) {
 		if err != nil {
 			t.Errorf("Error at the RBAC rules %v", err)
 		}
-		s := &NodeArtifactService{
-			UnimplementedNodeArtifactServiceNBServer: pb.UnimplementedNodeArtifactServiceNBServer{},
+		s := &InteractiveOnboardingService{
+			UnimplementedInteractiveOnboardingServiceServer: pb.UnimplementedInteractiveOnboardingServiceServer{},
 			InventoryClientService: InventoryClientService{
 				invClient:    om_testing.InvClient,
 				invClientAPI: om_testing.InvClient,
@@ -2207,12 +2198,10 @@ func FuzzCreateNodes(f *testing.F) {
 			authEnabled: true,
 		}
 		hwdata := &pb.HwData{
-			HwId:         getFirstNChars(getMD5Hash(hwId), 6),
-			MacId:        macId,
-			PlatformType: getFirstNChars(getMD5Hash(platformType), 10),
-			Uuid:         u_uuid.NewString(),
-			Serialnum:    serialNum,
-			SutIp:        sutIp,
+			MacId:     macId,
+			Uuid:      u_uuid.NewString(),
+			Serialnum: serialNum,
+			SutIp:     sutIp,
 		}
 		hwdatas := []*pb.HwData{hwdata}
 		payload1 := pb.NodeData{Hwdata: hwdatas}

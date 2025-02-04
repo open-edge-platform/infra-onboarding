@@ -13,16 +13,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/handlers/southbound"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/invclient"
-	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/testing"
-	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/pkg/api"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/inventory/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/policy/rbac"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/testing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/util"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/handlers/southbound"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/invclient"
+	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/testing"
+	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/pkg/api"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -34,7 +34,7 @@ var (
 	zlog           = logging.GetLogger("Onboarding-Manager-Southbound-Testing")
 
 	SBHandler        *southbound.SBHandler
-	OMTestClient     pb.NodeArtifactServiceNBClient
+	OMTestClient     pb.InteractiveOnboardingServiceClient
 	OMTestClientConn *grpc.ClientConn
 	BufconnLis       *bufconn.Listener
 	InvClient        *invclient.OnboardingInventoryClient
@@ -53,7 +53,7 @@ func createOutgoingContextWithENJWT(t *testing.T) context.Context {
 
 func CreateSouthboundOMClient(target string,
 	bufconnLis *bufconn.Listener,
-) (pb.NodeArtifactServiceNBClient, *grpc.ClientConn, error) {
+) (pb.InteractiveOnboardingServiceClient, *grpc.ClientConn, error) {
 	opts := []grpc.DialOption{
 		grpc.WithBlock(),
 	}
@@ -73,7 +73,7 @@ func CreateSouthboundOMClient(target string,
 	if err != nil {
 		return nil, nil, err
 	}
-	southboundClient := pb.NewNodeArtifactServiceNBClient(conn)
+	southboundClient := pb.NewInteractiveOnboardingServiceClient(conn)
 
 	return southboundClient, conn, nil
 }

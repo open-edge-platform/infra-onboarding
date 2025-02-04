@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/pkg/api"
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/compute/v1"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/testing"
+	pb "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/pkg/api"
 )
 
 var (
@@ -36,13 +36,10 @@ func TestSouthbound_CreateNodes(t *testing.T) {
 				{
 					Hwdata: []*pb.HwData{
 						{
-							MacId:          "90:49:fa:07:6c:fd",
-							SutIp:          "10.10.1.1",
-							Serialnum:      hostSN,
-							Uuid:           h1.Uuid,
-							BmcIp:          "10.10.10.10",
-							BmcInterface:   true,
-							HostNicDevName: "bmc0",
+							MacId:     "90:49:fa:07:6c:fd",
+							SutIp:     "10.10.1.1",
+							Serialnum: hostSN,
+							Uuid:      h1.Uuid,
 						},
 					},
 				},
@@ -60,13 +57,10 @@ func TestSouthbound_CreateNodes(t *testing.T) {
 				{
 					Hwdata: []*pb.HwData{
 						{
-							MacId:          "90:49:fa:07:6c:fd",
-							SutIp:          "10.10.1.1",
-							Serialnum:      hostSN,
-							Uuid:           "malformed uuid",
-							BmcIp:          "10.10.10.10",
-							BmcInterface:   true,
-							HostNicDevName: "bmc0",
+							MacId:     "90:49:fa:07:6c:fd",
+							SutIp:     "10.10.1.1",
+							Serialnum: hostSN,
+							Uuid:      "malformed uuid",
 						},
 					},
 				},
@@ -85,13 +79,10 @@ func TestSouthbound_CreateNodes(t *testing.T) {
 				{
 					Hwdata: []*pb.HwData{
 						{
-							MacId:          "90:49:fa:07:6c:fd",
-							SutIp:          bmcIP,
-							Serialnum:      hostSN,
-							Uuid:           hostGUID,
-							BmcIp:          "10.10.10.10",
-							BmcInterface:   true,
-							HostNicDevName: "bmc0",
+							MacId:     "90:49:fa:07:6c:fd",
+							SutIp:     bmcIP,
+							Serialnum: hostSN,
+							Uuid:      hostGUID,
 						},
 					},
 				},

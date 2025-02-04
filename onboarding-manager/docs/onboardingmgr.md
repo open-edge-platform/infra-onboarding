@@ -4,26 +4,16 @@
 ## Table of Contents
 
 - [onboarding.proto](#onboarding-proto)
-    - [ArtifactData](#onboardingmgr-ArtifactData)
-    - [ArtifactRequest](#onboardingmgr-ArtifactRequest)
-    - [ArtifactResponse](#onboardingmgr-ArtifactResponse)
-    - [CustomerParams](#onboardingmgr-CustomerParams)
     - [HwData](#onboardingmgr-HwData)
     - [NodeData](#onboardingmgr-NodeData)
     - [NodeRequest](#onboardingmgr-NodeRequest)
     - [NodeResponse](#onboardingmgr-NodeResponse)
     - [OnboardStreamRequest](#onboardingmgr-OnboardStreamRequest)
     - [OnboardStreamResponse](#onboardingmgr-OnboardStreamResponse)
-    - [Ports](#onboardingmgr-Ports)
-    - [Proxy](#onboardingmgr-Proxy)
-    - [Supplier](#onboardingmgr-Supplier)
   
-    - [ArtifactData.ArtifactCategory](#onboardingmgr-ArtifactData-ArtifactCategory)
-    - [ArtifactData.Response](#onboardingmgr-ArtifactData-Response)
-    - [NodeData.Response](#onboardingmgr-NodeData-Response)
     - [OnboardStreamResponse.NodeState](#onboardingmgr-OnboardStreamResponse-NodeState)
   
-    - [NodeArtifactServiceNB](#onboardingmgr-NodeArtifactServiceNB)
+    - [InteractiveOnboardingService](#onboardingmgr-InteractiveOnboardingService)
     - [NonInteractiveOnboardingService](#onboardingmgr-NonInteractiveOnboardingService)
   
 - [Scalar Value Types](#scalar-value-types)
@@ -37,82 +27,6 @@
 
 
 
-<a name="onboardingmgr-ArtifactData"></a>
-
-### ArtifactData
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| name | [string](#string) |  | Name of the artifact |
-| version | [string](#string) |  | Version of the artifact |
-| platform | [string](#string) |  | Platform of the artifact |
-| category | [ArtifactData.ArtifactCategory](#onboardingmgr-ArtifactData-ArtifactCategory) |  | Category of the artifact ex:BIOS,OS etc., |
-| description | [string](#string) |  | Description of the artifact |
-| details | [Supplier](#onboardingmgr-Supplier) |  | Supplier details |
-| package_url | [string](#string) |  | URL of the package |
-| author | [string](#string) |  | Author of package |
-| state | [bool](#bool) |  | state |
-| license | [string](#string) |  | License information |
-| vendor | [string](#string) |  | vendor details |
-| manufacturer | [string](#string) |  | manufacter details |
-| release_data | [string](#string) |  | Release data |
-| artifact_id | [string](#string) |  | Artifact ID generated while creating an artifact. This can be zero if not available during CreateArtifact Call or Batch actions like DeleteAll. |
-| result | [ArtifactData.Response](#onboardingmgr-ArtifactData-Response) |  |  |
-
-
-
-
-
-
-<a name="onboardingmgr-ArtifactRequest"></a>
-
-### ArtifactRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| payload | [ArtifactData](#onboardingmgr-ArtifactData) | repeated | Payload data represented as an array or list |
-
-
-
-
-
-
-<a name="onboardingmgr-ArtifactResponse"></a>
-
-### ArtifactResponse
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| payload | [ArtifactData](#onboardingmgr-ArtifactData) | repeated | Payload data {will be same as request for CREATE/DELETE}. |
-
-
-
-
-
-
-<a name="onboardingmgr-CustomerParams"></a>
-
-### CustomerParams
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| dps_scope_id | [string](#string) |  | DPS Scope ID |
-| dps_registration_id | [string](#string) |  | DPS registration ID |
-| dps_enrollment_sym_key | [string](#string) |  | DPS Enrollment Symetric Key |
-
-
-
-
-
-
 <a name="onboardingmgr-HwData"></a>
 
 ### HwData
@@ -121,18 +35,10 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| hw_id | [string](#string) |  | HW ID of Node |
+| uuid | [string](#string) |  |  |
+| serialnum | [string](#string) |  |  |
 | mac_id | [string](#string) |  | Mac ID of Node |
 | sut_ip | [string](#string) |  | sutip |
-| cus_params | [CustomerParams](#onboardingmgr-CustomerParams) |  | Azure Specific Parameters |
-| disk_partition | [string](#string) |  | Disk Partition Details |
-| platform_type | [string](#string) |  | Device platform type |
-| serialnum | [string](#string) |  |  |
-| uuid | [string](#string) |  |  |
-| bmc_ip | [string](#string) |  |  |
-| bmc_interface | [bool](#bool) |  |  |
-| host_nic_dev_name | [string](#string) |  |  |
-| SecurityFeature | [uint32](#uint32) |  |  |
 
 
 
@@ -147,22 +53,6 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| hw_id | [string](#string) |  | HW Node ID |
-| platform_type | [string](#string) |  | Platform details of the node //EHL,ADL/RPL/etc., |
-| fw_artifact_id | [string](#string) |  | Node FW Artifact ID to be stored here.This ID is retured to GetArtifacts{id} |
-| os_artifact_id | [string](#string) |  | Node OS Artifact ID to be stored here.This ID is retured to GetArtifacts{id} |
-| app_artifact_id | [string](#string) |  | TODO: a new member for Image artifact has to be added here, for now, app_artifact_id is used for image artifact
-
-Node App Artifact ID to be stored here.This ID is retured to GetArtifacts{id} |
-| plat_artifact_id | [string](#string) |  | Node Platform Artifact ID to be stored here.This ID is retured to GetArtifacts{id} |
-| device_type | [string](#string) |  | Node can be physical or virtual or container. If ID is not given, then all nodes FW artifacts wil be returned |
-| device_info_agent | [string](#string) |  | Inventory Agent update SBOM &amp; HBOM details during bootup. |
-| device_status | [string](#string) |  | Only Inventory Agent Update READY Status to Inventory Manager. Other status by Admin or other managers UNCLAIMED,CLAIMED,READY,MAINTENANCE,ERROR,DECOMMISSIONED |
-| update_status | [string](#string) |  | Update Manager Update the Node update status. |
-| update_available | [string](#string) |  | Update manager updates if update is available. |
-| onboarding_status | [string](#string) |  | Onboarding Status |
-| node_id | [string](#string) |  | Generated Node ID. This field can be left empty for Create or DeleteAll |
-| result | [NodeData.Response](#onboardingmgr-NodeData-Response) |  | Result |
 | hwdata | [HwData](#onboardingmgr-HwData) | repeated |  |
 
 
@@ -238,101 +128,7 @@ over the bidirectional stream
 
 
 
-
-<a name="onboardingmgr-Ports"></a>
-
-### Ports
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| inv_mgr_port | [string](#string) |  | inventory manager port |
-| up_mgr_port | [string](#string) |  | update manager port |
-| oob_mgr_port | [string](#string) |  | oob manager port |
-| tele_mgr_port | [string](#string) |  | Telemetry manager port |
-
-
-
-
-
-
-<a name="onboardingmgr-Proxy"></a>
-
-### Proxy
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| http_proxy | [string](#string) |  | http proxy |
-| https_proxy | [string](#string) |  | http proxy |
-| no_proxy | [string](#string) |  | http proxy |
-| socks_proxy | [string](#string) |  | socks proxy |
-| rsync_proxy | [string](#string) |  | rsync proxy |
-
-
-
-
-
-
-<a name="onboardingmgr-Supplier"></a>
-
-### Supplier
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| name | [string](#string) |  | Name of supplier |
-| url | [string](#string) |  | URL of supplier |
-| contact | [string](#string) |  | Contact details of supplier |
-
-
-
-
-
  
-
-
-<a name="onboardingmgr-ArtifactData-ArtifactCategory"></a>
-
-### ArtifactData.ArtifactCategory
-
-
-| Name | Number | Description |
-| ---- | ------ | ----------- |
-| DEFAULT | 0 | Setting default artifact type getting all artifact |
-| BIOS | 1 | BIOS Artifact |
-| OS | 2 | OS Artifact |
-| APPLICATION | 3 | Application Artifact |
-| IMAGE | 4 | Container image Artifact |
-| PLATFORM | 5 | Type of platform of the artifact |
-
-
-
-<a name="onboardingmgr-ArtifactData-Response"></a>
-
-### ArtifactData.Response
-
-
-| Name | Number | Description |
-| ---- | ------ | ----------- |
-| SUCCESS | 0 | Success |
-| FAILURE | 1 | Failure |
-
-
-
-<a name="onboardingmgr-NodeData-Response"></a>
-
-### NodeData.Response
-
-
-| Name | Number | Description |
-| ---- | ------ | ----------- |
-| SUCCESS | 0 | Success |
-| FAILURE | 1 | Failure |
-
 
 
 <a name="onboardingmgr-OnboardStreamResponse-NodeState"></a>
@@ -352,9 +148,9 @@ NodeState represents state of the device as stored in EIM Inventory
  
 
 
-<a name="onboardingmgr-NodeArtifactServiceNB"></a>
+<a name="onboardingmgr-InteractiveOnboardingService"></a>
 
-### NodeArtifactServiceNB
+### InteractiveOnboardingService
 Artifact &amp; Node Endpoints towards Inventory Manager
 
 | Method Name | Request Type | Response Type | Description |

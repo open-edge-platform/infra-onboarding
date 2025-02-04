@@ -230,7 +230,7 @@ help: ## Print help for each target
 fuzztest:
 	$(MAKE) db-stop
 	$(MAKE) db-start
-	$(SCRIPTS_DIR)/fuzz_test.sh "internal/handlers/southbound/southbound_utils_test.go" "internal/handlers/controller/reconcilers/instance_test.go" "internal/handlers/southbound/artifact/artifact_service_test.go"
+	$(SCRIPTS_DIR)/fuzz_test.sh "internal/handlers/southbound/southbound_utils_test.go" "internal/handlers/controller/reconcilers/instance_test.go" "internal/handlers/southbound/grpcserver/grpc_server_test.go"
 	$(MAKE) db-stop
 
 dependency-check:

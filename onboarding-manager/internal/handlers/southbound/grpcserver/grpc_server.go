@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2023 Intel Corporation
 // SPDX-License-Identifier: LicenseRef-Intel
 
-package artifact
+package grpcserver
 
 import (
 	"context"
@@ -33,7 +33,7 @@ const (
 )
 
 var (
-	name = "NodeArtifactService"
+	name = "InteractiveOnboardingService"
 	zlog = logging.GetLogger(name)
 
 	hostResID string
@@ -63,8 +63,8 @@ type InventoryClientService struct {
 }
 
 type (
-	NodeArtifactService struct {
-		pb.UnimplementedNodeArtifactServiceNBServer
+	InteractiveOnboardingService struct {
+		pb.UnimplementedInteractiveOnboardingServiceServer
 		InventoryClientService
 		rbac        *rbac.Policy
 		authEnabled bool
@@ -78,18 +78,18 @@ type (
 	}
 )
 
-// NewArtifactService to start the gRPC server - IO.
-func NewArtifactService(invClient *invclient.OnboardingInventoryClient, inventoryAdr string, enableTracing bool,
+// NewInteractiveOnboardingService to start the gRPC server - IO.
+func NewInteractiveOnboardingService(invClient *invclient.OnboardingInventoryClient, inventoryAdr string, enableTracing bool,
 	enableAuth bool, rbacRules string,
-) (*NodeArtifactService, error) {
+) (*InteractiveOnboardingService, error) {
 	if invClient == nil {
-		return nil, inv_errors.Errorf("invClient is nil in NewArtifactService")
+		return nil, inv_errors.Errorf("invClient is nil in NewInteractiveOnboardingService")
 	}
 
 	var rbacPolicy *rbac.Policy
 	var err error
 	if enableAuth {
-		zlog.Info().Msgf("Authentication is enabled, starting RBAC server for Artifact Service")
+		zlog.Info().Msgf("Authentication is enabled, starting RBAC server for InteractiveOnboarding Service")
 		// start OPA server with policies
 		rbacPolicy, err = rbac.New(rbacRules)
 		if err != nil {
@@ -112,7 +112,7 @@ func NewArtifactService(invClient *invclient.OnboardingInventoryClient, inventor
 		}
 	}
 
-	return &NodeArtifactService{
+	return &InteractiveOnboardingService{
 		InventoryClientService: InventoryClientService{
 			invClient:    invClient,
 			invClientAPI: invClientAPI,
@@ -538,7 +538,7 @@ func (s *NonInteractiveOnboardingService) OnboardNodeStream(
 }
 
 //nolint:funlen,cyclop // reason: function is long due to necessary logic; cyclomatic complexity is high due to necessary handling
-func (s *NodeArtifactService) CreateNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
+func (s *InteractiveOnboardingService) CreateNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
 	zlog.Info().Msgf("CreateNodes")
 	if validationErr := req.Validate(); validationErr != nil {
 		zlog.InfraSec().InfraErr(validationErr).Msgf("Request does not match the expected regex pattern %v", validationErr)
