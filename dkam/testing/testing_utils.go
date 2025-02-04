@@ -5,8 +5,6 @@
 package testing
 
 import (
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -17,15 +15,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/inventory/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
 	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/testing"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/invclient"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
 )
 
-const testDigest = "TEST_DIGEST"
-const testFile = "TEST_FILE"
-const exampleManifest = `
+const (
+	testDigest      = "TEST_DIGEST"
+	testFile        = "TEST_FILE"
+	exampleManifest = `
 		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
 		"config":{"mediaType":"application/vnd.intel.ensp.en",
 		"digest":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a","size":2},
@@ -36,6 +38,8 @@ const exampleManifest = `
 			"annotations":{"org.opencontainers.image.title":"` + testFile + `"}
 		}],
 		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
+	fileMode = 0o755
+)
 
 var (
 	clientName = inv_testing.ClientType("TestDKAMInventoryClient")
@@ -47,16 +51,18 @@ var (
 func StartTestReleaseService(testProfileName string) func() {
 	expectedFileContent := "GOOD TEST!"
 	mux := http.NewServeMux()
-	mux.HandleFunc("/v2/"+config.ProfileScriptRepo+testProfileName+"/manifests/1.0.2", func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		// return example manifest
-		w.Write([]byte(exampleManifest))
-	})
+	mux.HandleFunc("/v2/"+config.ProfileScriptRepo+testProfileName+"/manifests/1.0.2",
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			// return example manifest
+			w.Write([]byte(exampleManifest))
+		})
 
-	mux.HandleFunc("/v2/"+config.ProfileScriptRepo+testProfileName+"/blobs/"+testDigest, func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(expectedFileContent))
-	})
+	mux.HandleFunc("/v2/"+config.ProfileScriptRepo+testProfileName+"/blobs/"+testDigest,
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(expectedFileContent))
+		})
 	svr := httptest.NewServer(mux)
 
 	testRegistryEndpoint, _ := strings.CutPrefix(svr.URL, "http://")
@@ -70,11 +76,12 @@ func StartTestReleaseService(testProfileName string) func() {
 }
 
 func PrepareTestCaCertificateFile(t *testing.T) {
+	t.Helper()
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "test_cert")
 	require.NoError(t, err)
 	tmpFile, err := os.CreateTemp(tmpDir, "ca_certificate")
 	require.NoError(t, err)
-	_, err = tmpFile.Write([]byte("TEST CA CONTENT"))
+	_, err = tmpFile.WriteString("TEST CA CONTENT")
 	require.NoError(t, err)
 	defer tmpFile.Close()
 
@@ -88,6 +95,7 @@ func PrepareTestCaCertificateFile(t *testing.T) {
 }
 
 func PrepareTestReleaseFile(t *testing.T, projectRoot string) {
+	t.Helper()
 	err := CopyFile(
 		filepath.Join(projectRoot, "test", "testdata", "example-manifest-internal-rs.yaml"),
 		filepath.Join(config.DownloadPath, "tmp", config.ReleaseVersion+".yaml"))
@@ -103,8 +111,8 @@ func CopyFile(src, dst string) error {
 		return err
 	}
 	defer srcFile.Close()
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-		return err
+	if mkdirErr := os.MkdirAll(filepath.Dir(dst), fileMode); mkdirErr != nil {
+		return mkdirErr
 	}
 	dstFile, err := os.Create(dst)
 	if err != nil {

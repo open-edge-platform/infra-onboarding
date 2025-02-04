@@ -50,6 +50,10 @@ build: go-build ## Build local binaries
 ## TODO: add hadolint and yamlint
 lint: go-lint license shellcheck
 
+go-lint: $(BUILD_DIR)## lint code
+	golangci-lint --version
+	golangci-lint run --config .golangci.yml
+
 test: go-test fuzztest
 
 #### Sub-targets ####

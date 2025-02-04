@@ -9,7 +9,7 @@ const (
 	BootsCaCertificateFile = "/etc/ssl/boots-ca-cert/ca.crt"
 )
 
-// As variable to allow changes in tests
+// As a variable to allow changes in tests.
 var (
 	PVC                   = "/data"
 	OrchCACertificateFile = "/etc/ssl/orch-ca-cert/ca.crt"

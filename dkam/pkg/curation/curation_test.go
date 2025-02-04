@@ -6,12 +6,13 @@ package curation
 import (
 	"context"
 	"fmt"
-	dkam_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/testing"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	dkam_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/testing"
 
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
@@ -70,9 +71,9 @@ func Test_ParseJSONUfwRules(t *testing.T) {
 			jsonUfw: `[{"sourceIp":"kind.internal", "ipVer": "ipv4", "protocol": "tcp", "ports": "6443,10250"}]`,
 			expectedUfw: []Rule{
 				{
-					SourceIp: "kind.internal",
+					SourceIP: "kind.internal",
 					Ports:    "6443,10250",
-					IpVer:    "ipv4",
+					IPVer:    "ipv4",
 					Protocol: "tcp",
 				},
 			},
@@ -86,20 +87,20 @@ func Test_ParseJSONUfwRules(t *testing.T) {
 ]`,
 			expectedUfw: []Rule{
 				{
-					SourceIp: "",
-					IpVer:    "",
+					SourceIP: "",
+					IPVer:    "",
 					Protocol: "tcp",
 					Ports:    "2379,2380,6443,9345,10250,5473",
 				},
 				{
-					SourceIp: "",
-					IpVer:    "",
+					SourceIP: "",
+					IPVer:    "",
 					Protocol: "",
 					Ports:    "7946",
 				},
 				{
-					SourceIp: "",
-					IpVer:    "",
+					SourceIP: "",
+					IPVer:    "",
 					Protocol: "udp",
 					Ports:    "123",
 				},
@@ -114,20 +115,20 @@ func Test_ParseJSONUfwRules(t *testing.T) {
 ]`,
 			expectedUfw: []Rule{
 				{
-					SourceIp: "",
-					IpVer:    "",
+					SourceIP: "",
+					IPVer:    "",
 					Protocol: "tcp",
 					Ports:    "2379,2380,6443,9345,10250,5473",
 				},
 				{
-					SourceIp: "",
-					IpVer:    "",
+					SourceIP: "",
+					IPVer:    "",
 					Protocol: "",
 					Ports:    "7946",
 				},
 				{
-					SourceIp: "",
-					IpVer:    "",
+					SourceIP: "",
+					IPVer:    "",
 					Protocol: "udp",
 					Ports:    "123",
 				},
@@ -160,17 +161,17 @@ func Test_GenerateUFWCommand(t *testing.T) {
 		},
 		"rule1": {
 			ufwRule: Rule{
-				SourceIp: "kind.internal",
+				SourceIP: "kind.internal",
 				Ports:    "6443,10250",
-				IpVer:    "ipv4",
+				IPVer:    "ipv4",
 				Protocol: "tcp",
 			},
 			expectedUfwCommand: []string{"ufw allow from $(dig +short kind.internal | tail -n1) to any port 6443,10250 proto tcp"},
 		},
 		"rule2": {
 			ufwRule: Rule{
-				SourceIp: "",
-				IpVer:    "",
+				SourceIP: "",
+				IPVer:    "",
 				Protocol: "tcp",
 				Ports:    "2379,2380,6443,9345,10250,5473",
 			},
@@ -178,8 +179,8 @@ func Test_GenerateUFWCommand(t *testing.T) {
 		},
 		"rule3": {
 			ufwRule: Rule{
-				SourceIp: "",
-				IpVer:    "",
+				SourceIP: "",
+				IPVer:    "",
 				Protocol: "",
 				Ports:    "7946",
 			},
@@ -187,8 +188,8 @@ func Test_GenerateUFWCommand(t *testing.T) {
 		},
 		"rule4": {
 			ufwRule: Rule{
-				SourceIp: "",
-				IpVer:    "",
+				SourceIP: "",
+				IPVer:    "",
 				Protocol: "udp",
 				Ports:    "123",
 			},
@@ -196,35 +197,35 @@ func Test_GenerateUFWCommand(t *testing.T) {
 		},
 		"rule5": {
 			ufwRule: Rule{
-				SourceIp: "kind.internal",
+				SourceIP: "kind.internal",
 				Ports:    "",
-				IpVer:    "ipv4",
+				IPVer:    "ipv4",
 				Protocol: "tcp",
 			},
 			expectedUfwCommand: []string{"ufw allow from $(dig +short kind.internal | tail -n1) proto tcp"},
 		},
 		"rule6": {
 			ufwRule: Rule{
-				SourceIp: "kind.internal",
+				SourceIP: "kind.internal",
 				Ports:    "",
-				IpVer:    "ipv4",
+				IPVer:    "ipv4",
 				Protocol: "",
 			},
 			expectedUfwCommand: []string{"ufw allow from $(dig +short kind.internal | tail -n1)"},
 		},
 		"rule7": {
 			ufwRule: Rule{
-				SourceIp: "kind.internal",
+				SourceIP: "kind.internal",
 				Ports:    "1234",
-				IpVer:    "ipv4",
+				IPVer:    "ipv4",
 				Protocol: "",
 			},
 			expectedUfwCommand: []string{"ufw allow from $(dig +short kind.internal | tail -n1) to any port 1234"},
 		},
 		"rule8": {
 			ufwRule: Rule{
-				SourceIp: "",
-				IpVer:    "",
+				SourceIP: "",
+				IPVer:    "",
 				Protocol: "abc",
 				Ports:    "",
 			},
@@ -232,9 +233,9 @@ func Test_GenerateUFWCommand(t *testing.T) {
 		},
 		"rule9": {
 			ufwRule: Rule{
-				SourceIp: "0000:000::00",
+				SourceIP: "0000:000::00",
 				Ports:    "6443,10250",
-				IpVer:    "ipv4",
+				IPVer:    "ipv4",
 				Protocol: "tcp",
 			},
 			expectedUfwCommand: []string{"ufw allow from 0000:000::00 to any port 6443,10250 proto tcp"},
@@ -254,7 +255,7 @@ func Test_GetCuratedScript(t *testing.T) {
 
 	os.Setenv("NETIP", "static")
 
-	os.MkdirAll(config.DownloadPath, 0755)
+	os.MkdirAll(config.DownloadPath, 0o755)
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
 	defer os.Unsetenv("ORCH_CLUSTER")
 	dummyData := `#!/bin/bash
@@ -276,7 +277,7 @@ func Test_GetCuratedScript(t *testing.T) {
 		os.Unsetenv("EN_SOCKS_PROXY")
 	}()
 
-	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0o755)
 	require.NoError(t, err)
 	defer func() {
 		os.Remove(config.PVC + "/installer.sh")
@@ -295,7 +296,7 @@ func Test_GetCuratedScript_Case(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	dkam_testing.PrepareTestCaCertificateFile(t)
 
-	os.MkdirAll(config.DownloadPath, 0755)
+	os.MkdirAll(config.DownloadPath, 0o755)
 
 	os.Setenv("MODE", "dev")
 	os.Setenv("EN_HTTP_PROXY", "proxy")
@@ -405,14 +406,14 @@ func Test_GetCuratedScript_Case1(t *testing.T) {
 	dkam_testing.PrepareTestCaCertificateFile(t)
 
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
-	os.MkdirAll(config.DownloadPath, 0755)
+	os.MkdirAll(config.DownloadPath, 0o755)
 
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
 # Add your installation commands here
 `
-	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0o755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
@@ -438,14 +439,14 @@ func Test_GetCuratedScript_Case2(t *testing.T) {
 	dkam_testing.PrepareTestCaCertificateFile(t)
 
 	os.Setenv("SOCKS_PROXY", "proxy")
-	os.MkdirAll(config.DownloadPath, 0755)
+	os.MkdirAll(config.DownloadPath, 0o755)
 
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
 # Add your installation commands here
 `
-	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0o755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
@@ -471,21 +472,21 @@ func Test_GetCuratedScript_Case3(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	dkam_testing.PrepareTestCaCertificateFile(t)
 
-	os.MkdirAll(config.DownloadPath, 0755)
+	os.MkdirAll(config.DownloadPath, 0o755)
 
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
 # Add your installation commands here
 `
-	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0o755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
 	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
 	res := filepath.Join(result, "latest-dev.yaml")
-	if err := os.MkdirAll(filepath.Dir(res), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(res), 0o755); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 	src := strings.Replace(currentDir, "curation", "script/latest-dev.yaml", -1)
@@ -512,14 +513,14 @@ func Test_GetCuratedScript_Case4(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	dkam_testing.PrepareTestCaCertificateFile(t)
 
-	os.MkdirAll(config.DownloadPath, 0755)
+	os.MkdirAll(config.DownloadPath, 0o755)
 
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
 # Add your installation commands here
 `
-	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0755)
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0o755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
@@ -527,14 +528,14 @@ func Test_GetCuratedScript_Case4(t *testing.T) {
 
 	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
 	res := filepath.Join(result, "latest-dev.yaml")
-	if err := os.MkdirAll(filepath.Dir(res), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(res), 0o755); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 	src := strings.Replace(currentDir, "curation", "script/latest-dev.yaml", -1)
 	dkam_testing.CopyFile(src, res)
 	os.Setenv("NETIP", "static")
 	direc := config.PVC + "/tmp/"
-	os.MkdirAll(direc, 0755)
+	os.MkdirAll(direc, 0o755)
 	os.Create(direc + "latest-dev.yaml")
 	dkam_testing.CopyFile(src, direc+"latest-dev.yaml")
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
@@ -587,7 +588,7 @@ func TestGetReleaseArtifactList(t *testing.T) {
 func TestGetReleaseArtifactList_NegativeCase(t *testing.T) {
 	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
 	res := filepath.Join(result, "latest-dev.yaml")
-	if err := os.MkdirAll(filepath.Dir(res), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(res), 0o755); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 	src := strings.Replace(currentDir, "curation", "script/latest-dev.yaml", -1)
@@ -597,7 +598,7 @@ func TestGetReleaseArtifactList_NegativeCase(t *testing.T) {
         install_intel_CAcertificates
 # Add your installation commands here
 `
-	err := os.WriteFile(res, []byte(dummyData), 0644)
+	err := os.WriteFile(res, []byte(dummyData), 0o644)
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}

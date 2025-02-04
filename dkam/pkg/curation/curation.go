@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	as "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/artifactservice"
 	"io"
 	"net"
 	"os"
@@ -16,19 +15,25 @@ import (
 	"strings"
 	"text/template"
 
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
-
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/util"
-
 	"github.com/Masterminds/sprig/v3"
 	"gopkg.in/yaml.v2"
 
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
+	as "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/artifactservice"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/util"
 )
 
 var zlog = logging.GetLogger("MIDKAMAuth")
+
+const (
+	// file owner RW permissions.
+	writeMode = 0o600
+	// file owner RWX, other user RX permissions.
+	fileMode = 0o755
+)
 
 type AgentsVersion struct {
 	Package string `yaml:"package"`
@@ -46,6 +51,7 @@ type Config struct {
 		Images []Image `yaml:"images"`
 	} `yaml:"provisioning"`
 	Metadata struct {
+		//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
 		DebianRepositories []struct {
 			Name         string `yaml:"name"`
 			URL          string `yaml:"url"`
@@ -54,17 +60,21 @@ type Config struct {
 			Section      string `yaml:"section"`
 			Distribution string `yaml:"distribution"`
 			Root         string `yaml:"root"`
-			ThirdParty   bool   `yaml:"thirdParty"`
-			AuthType     string `yaml:"authType"`
+			//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
+			ThirdParty bool `yaml:"thirdParty"`
+			//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
+			AuthType string `yaml:"authType"`
 		} `yaml:"debianRepositories"`
 	} `yaml:"metadata"`
 }
 
 // Rule UFW Firewall structure in JSON, expected to be provided as environment variable.
 type Rule struct {
-	SourceIp string `json:"sourceIp,omitempty"`
+	//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
+	SourceIP string `json:"sourceIp,omitempty"`
 	Ports    string `json:"ports,omitempty"`
-	IpVer    string `json:"ipVer,omitempty"`
+	//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
+	IPVer    string `json:"ipVer,omitempty"`
 	Protocol string `json:"protocol,omitempty"`
 }
 
@@ -102,7 +112,7 @@ func getCaCert() (string, error) {
 	if err != nil {
 		errMsg := "Failed to check if CA certificate path exists"
 		zlog.Error().Err(err).Msg(errMsg)
-		return "", inv_errors.Errorf(errMsg)
+		return "", inv_errors.Errorf("%s", errMsg)
 	}
 
 	if !caexists {
@@ -119,7 +129,7 @@ func getCaCert() (string, error) {
 	return string(caContent), nil
 }
 
-// ufw rules if true, iptables otherwise
+// ufw rules if true, iptables otherwise.
 func getCustomFirewallRules(ufw bool) ([]string, error) {
 	// Parse each rule map into a Rule struct
 	rules, err := ParseJSONUfwRules(os.Getenv("FIREWALL_REQ_ALLOW"))
@@ -236,9 +246,9 @@ func CurateScript(ctx context.Context, osRes *osv1.OperatingSystemResource) erro
 	}
 
 	if osRes.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE {
-		agentsListVariables, err := getAgentsListTemplateVariables()
-		if err != nil {
-			return err
+		agentsListVariables, agentsListVariablesErr := getAgentsListTemplateVariables()
+		if agentsListVariablesErr != nil {
+			return agentsListVariablesErr
 		}
 
 		for agentsPackage, agentsVersion := range agentsListVariables {
@@ -252,8 +262,15 @@ func CurateScript(ctx context.Context, osRes *osv1.OperatingSystemResource) erro
 		return createErr
 	}
 
+	return finalizeCuratedScript(ctx, osRes, installerScriptPath, curatedScriptData)
+}
+
+func finalizeCuratedScript(ctx context.Context, osRes *osv1.OperatingSystemResource,
+	installerScriptPath, curatedScriptData string,
+) error {
 	// Append profile script, to be removed once Platform Bundle is integrated
 	if osRes.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE {
+		var err error
 		curatedScriptData, err = FetchAndAppendProfileScript(ctx, osRes.GetProfileName(), curatedScriptData)
 		if err != nil {
 			return err
@@ -330,17 +347,17 @@ func CurateScriptFromTemplate(scriptTemplatePath string, templateVariables map[s
 func WriteFileToPath(filePath string, content []byte) error {
 	zlog.Debug().Msgf("Writing data to path %s", filePath)
 
-	err := os.MkdirAll(filepath.Dir(filePath), 0755)
+	err := os.MkdirAll(filepath.Dir(filePath), fileMode)
 	if err != nil {
 		zlog.InfraSec().Error().Err(err).Msg("")
 		return inv_errors.Errorf("Failed to create sub-directories to save file")
 	}
 
-	err = os.WriteFile(filePath, content, 0644)
+	err = os.WriteFile(filePath, content, writeMode)
 	if err != nil {
 		errMsg := "Failed save the data to output path"
 		zlog.Error().Err(err).Msg(errMsg)
-		return inv_errors.Errorf(errMsg)
+		return inv_errors.Errorf("%s", errMsg)
 	}
 
 	return nil
@@ -380,16 +397,17 @@ func FetchAndAppendProfileScript(ctx context.Context, profileName, originalScrip
 func GenerateUFWCommands(rule Rule) []string {
 	commands := []string{}
 	ipAddr := ""
-	if rule.SourceIp != "" {
-		ip := net.ParseIP(rule.SourceIp)
+	if rule.SourceIP != "" {
+		ip := net.ParseIP(rule.SourceIP)
 		if ip == nil {
-			ipAddr = "$(dig +short " + rule.SourceIp + " | tail -n1)"
+			ipAddr = "$(dig +short " + rule.SourceIP + " | tail -n1)"
 		} else {
-			ipAddr = rule.SourceIp
+			ipAddr = rule.SourceIP
 		}
 		if rule.Protocol != "" {
 			if rule.Ports != "" {
-				commands = append(commands, fmt.Sprintf("ufw allow from %s to any port %s proto %s", ipAddr, rule.Ports, rule.Protocol))
+				commands = append(commands, fmt.Sprintf("ufw allow from %s to any port %s proto %s",
+					ipAddr, rule.Ports, rule.Protocol))
 			} else {
 				commands = append(commands, fmt.Sprintf("ufw allow from %s proto %s", ipAddr, rule.Protocol))
 			}
@@ -416,25 +434,17 @@ func GenerateUFWCommands(rule Rule) []string {
 
 func GenerateIptablesCommands(rule Rule) []string {
 	ipAddr := ""
-	if rule.SourceIp != "" {
-		ip := net.ParseIP(rule.SourceIp)
-		if ip == nil {
-			ipAddr = "$(dig +short " + rule.SourceIp + " | tail -n1)"
-		} else {
-			ipAddr = rule.SourceIp
-		}
+	if rule.SourceIP != "" {
+		ipAddr = resolveIP(rule.SourceIP)
 	}
 	portsList := strings.Split(rule.Ports, ",")
+	//nolint:revive // Ignoring due to specific need for this structure
 	if rule.Protocol != "" {
 		if len(portsList) > 0 && portsList[0] != "" {
 			commands := []string{}
 			for _, port := range portsList {
 				port = strings.TrimSpace(port)
-				if ipAddr != "" {
-					commands = append(commands, fmt.Sprintf("iptables -A INPUT -p %s -s %s --dport %s -j ACCEPT", rule.Protocol, ipAddr, port))
-				} else {
-					commands = append(commands, fmt.Sprintf("iptables -A INPUT -p %s --dport %s -j ACCEPT", rule.Protocol, port))
-				}
+				commands = append(commands, generateIptablesForProtocol(rule.Protocol, ipAddr, port))
 			}
 			return commands
 		} else {
@@ -445,25 +455,49 @@ func GenerateIptablesCommands(rule Rule) []string {
 		}
 	} else {
 		if len(portsList) > 0 && portsList[0] != "" {
-			commands := []string{}
-			for _, port := range portsList {
-				port = strings.TrimSpace(port)
-				if ipAddr != "" {
-					commands = append(commands, fmt.Sprintf("iptables -A INPUT -p tcp -s %s --dport %s -j ACCEPT", ipAddr, port))
-					commands = append(commands, fmt.Sprintf("iptables -A INPUT -p udp -s %s --dport %s -j ACCEPT", ipAddr, port))
-				} else {
-					commands = append(commands, fmt.Sprintf("iptables -A INPUT -p tcp --dport %s -j ACCEPT", port))
-					commands = append(commands, fmt.Sprintf("iptables -A INPUT -p udp --dport %s -j ACCEPT", port))
-				}
-			}
+			commands := generateIptablesForPorts(portsList, ipAddr)
 			return commands
 		} else {
 			if ipAddr != "" {
-				return []string{fmt.Sprintf("iptables -A INPUT -p tcp -s %s -j ACCEPT && iptables -A INPUT -p udp -s %s -j ACCEPT", ipAddr, ipAddr)}
+				return []string{fmt.Sprintf(
+					"iptables -A INPUT -p tcp -s %s -j ACCEPT && iptables -A INPUT -p udp -s %s -j ACCEPT",
+					ipAddr, ipAddr)}
 			}
 			return []string{}
 		}
 	}
+}
+
+func resolveIP(sourceIP string) string {
+	ip := net.ParseIP(sourceIP)
+	if ip == nil {
+		return "$(dig +short " + sourceIP + " | tail -n1)"
+	}
+	return sourceIP
+}
+
+func generateIptablesForProtocol(protocol, ipAddr, port string) string {
+	if ipAddr != "" {
+		return fmt.Sprintf("iptables -A INPUT -p %s -s %s --dport %s -j ACCEPT", protocol, ipAddr, port)
+	}
+	return fmt.Sprintf("iptables -A INPUT -p %s --dport %s -j ACCEPT", protocol, port)
+}
+
+func generateIptablesForPorts(portsList []string, ipAddr string) []string {
+	commands := []string{}
+	for _, port := range portsList {
+		port = strings.TrimSpace(port)
+		if ipAddr != "" {
+			//nolint:gocritic
+			commands = append(commands, fmt.Sprintf("iptables -A INPUT -p tcp -s %s --dport %s -j ACCEPT", ipAddr, port))
+			commands = append(commands, fmt.Sprintf("iptables -A INPUT -p udp -s %s --dport %s -j ACCEPT", ipAddr, port))
+		} else {
+			//nolint:gocritic
+			commands = append(commands, fmt.Sprintf("iptables -A INPUT -p tcp --dport %s -j ACCEPT", port))
+			commands = append(commands, fmt.Sprintf("iptables -A INPUT -p udp --dport %s -j ACCEPT", port))
+		}
+	}
+	return commands
 }
 
 // ParseJSONUfwRules parse the ufw rule provided as JSON, expected JSON is expected to

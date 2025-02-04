@@ -7,8 +7,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	dkam_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/testing"
-	"gopkg.in/yaml.v2"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -20,12 +18,16 @@ import (
 	as "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/artifactservice"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/util"
+	dkam_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/testing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 )
 
-const testDigest = "TEST_DIGEST"
-const testFile = "TEST_FILE"
+const (
+	testDigest = "TEST_DIGEST"
+	testFile   = "TEST_FILE"
+)
 
 // Manifest example from OCI repo, used by DKAM to gather the hookOS
 const exampleManifest = `
@@ -141,7 +143,7 @@ func TestDownloadArtifacts(t *testing.T) {
 
 	expectedFileContent := "GOOD TEST!"
 	// Expected file path comes from the internal path manipulation done by the DownloadArtifact function
-	//expectedFilePath := tmpFolderPath + "/tmp/" + config.ReleaseVersion + ".yaml"
+	// expectedFilePath := tmpFolderPath + "/tmp/" + config.ReleaseVersion + ".yaml"
 
 	testTag := "testTag"
 	testManifest := "testManifest"
@@ -178,7 +180,7 @@ func TestDownloadMicroOS(t *testing.T) {
 	defer os.RemoveAll(tmpFolderPath)
 	dkamTmpFolderPath := tmpFolderPath + "/tmp/"
 	dkamHookFolderPath := tmpFolderPath + "/hook/"
-	err = os.MkdirAll(dkamTmpFolderPath, 0755)
+	err = os.MkdirAll(dkamTmpFolderPath, 0o755)
 	require.NoError(t, err)
 
 	// Fake server to serve expected requests
@@ -203,7 +205,7 @@ func TestDownloadMicroOS(t *testing.T) {
 	// Override the RSProxy with test HTTP server
 	config.HookOSRepo = svr.URL + "/"
 	dir := config.PVC
-	os.MkdirAll(dir, 0755)
+	os.MkdirAll(dir, 0o755)
 	// Test: No tmpFolderPath/hook dir
 	t.Run("Fail", func(t *testing.T) {
 		_, err = DownloadMicroOS(context.Background())
@@ -211,7 +213,7 @@ func TestDownloadMicroOS(t *testing.T) {
 		// assert.Contains(t, err.Error(), "no such file or directory")
 	})
 
-	err = os.MkdirAll(dkamHookFolderPath, 0755)
+	err = os.MkdirAll(dkamHookFolderPath, 0o755)
 	require.NoError(t, err)
 
 	// Test: empty manifest
@@ -284,7 +286,7 @@ func Test_downloadImage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.args.targetDir != "" {
-				err := os.MkdirAll(tt.args.targetDir, 0755)
+				err := os.MkdirAll(tt.args.targetDir, 0o755)
 				require.NoError(t, err)
 			}
 			if err := downloadImage(tt.args.ctx, tt.args.url, tt.args.targetDir+tt.args.fileName); (err != nil) != tt.wantErr {
@@ -306,7 +308,7 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 	defer os.RemoveAll(tmpFolderPath)
 	dkamTmpFolderPath := tmpFolderPath + "/tmp/"
 	dkamHookFolderPath := tmpFolderPath + "/hook/"
-	err = os.MkdirAll(dkamTmpFolderPath, 0755)
+	err = os.MkdirAll(dkamTmpFolderPath, 0o755)
 	require.NoError(t, err)
 
 	mux := http.NewServeMux()
@@ -332,7 +334,7 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 		// assert.Contains(t, err.Error(), "no such file or directory")
 	})
 
-	err = os.MkdirAll(dkamHookFolderPath, 0755)
+	err = os.MkdirAll(dkamHookFolderPath, 0o755)
 	require.NoError(t, err)
 
 	// Test: empty manifest
@@ -346,7 +348,7 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 		existingDir := config.PVC
 		subfolder := "tmp"
 		subfolderPath := filepath.Join(existingDir, subfolder)
-		err := os.MkdirAll(subfolderPath, 0755)
+		err := os.MkdirAll(subfolderPath, 0o755)
 		if err != nil {
 			fmt.Println("Error creating subfolder:", err)
 			return
@@ -372,7 +374,7 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 			return
 		}
 		yamlFilePath := filepath.Join(subfolderPath, "latest-dev.yaml")
-		err = os.WriteFile(yamlFilePath, yamlData, 0644)
+		err = os.WriteFile(yamlFilePath, yamlData, 0o644)
 		if err != nil {
 			fmt.Printf("Error writing YAML to file: %v\n", err)
 			return
@@ -382,7 +384,6 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 		//	os.Remove(yamlFilePath)
 		//}()
 		returnWrongManifest = true
-
 	})
 }
 

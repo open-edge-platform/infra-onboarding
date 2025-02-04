@@ -36,6 +36,7 @@ func TestMain(m *testing.M) {
 
 	os.Exit(run)
 }
+
 func TestWithInventoryAddress(t *testing.T) {
 	type args struct {
 		invAddr string
@@ -98,6 +99,7 @@ func TestNewDKAMInventoryClientWithOptions(t *testing.T) {
 		})
 	}
 }
+
 func TestNewDKAMInventoryClient(t *testing.T) {
 	type args struct {
 		invClient client.TenantAwareInventoryClient

@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	rec_v2 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go/pkg/controller/v2"
+
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/tracing"
@@ -63,7 +64,7 @@ func (osr *OsReconciler) reconcileOs(
 	id := osinst.GetResourceId()
 	zlogOs.InfraSec().Info().Msgf("Reconciling OS instance with ID : %s", id)
 	fmt.Printf("Received AType: %v\n", osinst.OsType)
-	//Download OS image
+	// Download OS image
 	downloadErr := dkammgr.DownloadOS(ctx, osinst)
 	if downloadErr != nil {
 		zlogOs.Err(downloadErr).Msgf("Error downloading and converting OS image")

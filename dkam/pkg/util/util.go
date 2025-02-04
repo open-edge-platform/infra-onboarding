@@ -8,49 +8,47 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
-
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
-
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
 )
 
 var zlog = logging.GetLogger("DKAMUtil")
 
 // getOSImageLocation generates a relative, standard path based on user inputs.
 // fileName should also include file extension (e.g., someFileName.raw.gz).
-func getOSImageLocation(os *osv1.OperatingSystemResource, rootDir string, fileName string) string {
-	return rootDir + "/OSImage/" + os.GetSha256() + "/" + fileName
+func getOSImageLocation(osResource *osv1.OperatingSystemResource, rootDir, fileName string) string {
+	return rootDir + "/OSImage/" + osResource.GetSha256() + "/" + fileName
 }
 
 // GetOSImageLocation generates a relative, standard path where OS image is stored.
 // File name is generated based on the OperatingSystemResource.
-func GetOSImageLocation(os *osv1.OperatingSystemResource, rootDir string) string {
+func GetOSImageLocation(osResource *osv1.OperatingSystemResource, rootDir string) string {
 	// Immutable OS images will be downloaded directly from RS, so return the same path.
 	// FIXME: commented out for now, because we still use PV for immutable OS images in M2 demo.
-	//if os.GetOsType() == osv1.OsType_OS_TYPE_IMMUTABLE {
+	// if os.GetOsType() == osv1.OsType_OS_TYPE_IMMUTABLE {
 	//	return os.GetRepoUrl()
 	//}
 
-	fileName := os.GetProfileName()
+	fileName := osResource.GetProfileName()
 
-	switch os.GetOsType() {
+	switch osResource.GetOsType() {
 	case osv1.OsType_OS_TYPE_IMMUTABLE:
-		zlog.InfraSec().Info().Msgf("OS image URL: %v", rootDir+os.GetImageUrl())
-		return rootDir + os.GetImageUrl()
+		zlog.InfraSec().Info().Msgf("OS image URL: %v", rootDir+osResource.GetImageUrl())
+		return rootDir + osResource.GetImageUrl()
 	case osv1.OsType_OS_TYPE_MUTABLE:
 		fileName += ".raw.gz"
 	default:
-		zlog.InfraSec().Error().Msgf("Unsupported OS type %v, may result in wrong OS image path", os.GetOsType())
+		zlog.InfraSec().Error().Msgf("Unsupported OS type %v, may result in wrong OS image path", osResource.GetOsType())
 	}
 
-	return getOSImageLocation(os, rootDir, fileName)
+	return getOSImageLocation(osResource, rootDir, fileName)
 }
 
-// GetOSImageLocationWithCustomFilename returns a relative, standard path where OS image is stored, using a custom filename,
-func GetOSImageLocationWithCustomFilename(os *osv1.OperatingSystemResource, rootDir string, fileName string) string {
-	return getOSImageLocation(os, rootDir, fileName)
+// GetOSImageLocationWithCustomFilename returns a relative, standard path where OS image is stored, using a custom filename.
+func GetOSImageLocationWithCustomFilename(osResource *osv1.OperatingSystemResource, rootDir, fileName string) string {
+	return getOSImageLocation(osResource, rootDir, fileName)
 }
 
 func GetLocalInstallerPath(osType osv1.OsType) (string, error) {
@@ -74,21 +72,21 @@ func GetLocalInstallerPath(osType osv1.OsType) (string, error) {
 // we may use profile_version+profile_name (once profile_version is populated) to save space on the PV.
 // NOTE2: We should make sure that installation artifacts doesn't include any tenant-specific information.
 // Multiple tenants should be able to share the same installation artifacts (see NOTE1).
-func GetInstallerLocation(os *osv1.OperatingSystemResource, rootDir string) (string, error) {
+func GetInstallerLocation(osResource *osv1.OperatingSystemResource, rootDir string) (string, error) {
 	// profileIdentifier is a unique identifier of OS profile. For now we use OS resource ID instead of
 	// profile_name+profile_version to uniqely identify installation artifacts until we fully integrate profile_version.
-	profileIdentifier := os.GetResourceId()
+	profileIdentifier := osResource.GetResourceId()
 
 	installerPath := fmt.Sprintf("%s/OSArtifacts/%s/installer", rootDir, profileIdentifier)
 
-	switch os.GetOsType() {
+	switch osResource.GetOsType() {
 	case osv1.OsType_OS_TYPE_IMMUTABLE:
 		installerPath += ".cfg"
 	case osv1.OsType_OS_TYPE_MUTABLE:
 		installerPath += ".sh"
 	default:
 		invErr := inv_errors.Errorf("Unsupported OS type %v, may result in wrong installation artifacts path",
-			os.GetOsType())
+			osResource.GetOsType())
 		zlog.InfraSec().Error().Err(invErr).Msg("")
 		return "", invErr
 	}

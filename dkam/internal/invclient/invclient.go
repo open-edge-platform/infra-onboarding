@@ -12,6 +12,8 @@ import (
 	"time"
 
 	uuid_lib "github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+
 	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/compute/v1"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/inventory/v1"
 	network_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/network/v1"
@@ -23,7 +25,6 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/util"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/util/collections"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/validator"
-	"google.golang.org/grpc/codes"
 )
 
 const (
@@ -163,7 +164,10 @@ func (c *DKAMInventoryClient) listAllResources(
 	return resources, nil
 }
 
-func (c *DKAMInventoryClient) getResourceByID(ctx context.Context, tenantID, resourceID string) (*inv_v1.GetResourceResponse, error) {
+func (c *DKAMInventoryClient) getResourceByID(
+	ctx context.Context,
+	tenantID, resourceID string,
+) (*inv_v1.GetResourceResponse, error) {
 	getresresp, err := c.Client.Get(ctx, tenantID, resourceID)
 	if err != nil {
 		return nil, err

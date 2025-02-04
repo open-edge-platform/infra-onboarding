@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
+	rec_v2 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go/pkg/controller/v2"
 	"github.com/pkg/errors"
 
-	rec_v2 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go/pkg/controller/v2"
 	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/inventory/v1"
 	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
@@ -35,6 +35,7 @@ var (
 
 const (
 	parallelism = 1
+	timeOut5m   = 5 * time.Minute
 )
 
 type Filter func(event *inv_v1.SubscribeEventsResponse) bool
@@ -56,7 +57,7 @@ func New(
 
 	osRcnl := reconcilers.NewOsReconciler(invClient, enableTracing)
 	osCtrl := rec_v2.NewController[reconcilers.ReconcilerID](
-		osRcnl.Reconcile, rec_v2.WithParallelism(parallelism), rec_v2.WithTimeout(5*time.Minute))
+		osRcnl.Reconcile, rec_v2.WithParallelism(parallelism), rec_v2.WithTimeout(timeOut5m))
 	controllers[inv_v1.ResourceKind_RESOURCE_KIND_OS] = osCtrl
 	filters[inv_v1.ResourceKind_RESOURCE_KIND_OS] = osEventFilter
 

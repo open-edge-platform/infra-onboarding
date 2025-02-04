@@ -31,10 +31,11 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const testDigest = "TEST_DIGEST"
-const testFile = "TEST_FILE"
-const testImage = "TEST_IMAGE.raw.xz"
-const exampleManifest = `
+const (
+	testDigest      = "TEST_DIGEST"
+	testFile        = "TEST_FILE"
+	testImage       = "TEST_IMAGE.raw.xz"
+	exampleManifest = `
 		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
 		"config":{"mediaType":"application/vnd.intel.ensp.en",
 		"digest":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a","size":2},
@@ -45,6 +46,7 @@ const exampleManifest = `
 			"annotations":{"org.opencontainers.image.title":"` + testFile + `"}
 		}],
 		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
+)
 
 // Manifest example with no Annotation in Layers
 const exampleManifestWrong = `
@@ -112,8 +114,8 @@ func TestGetCuratedScript(t *testing.T) {
 	dkam_testing.PrepareTestCaCertificateFile(t)
 
 	dir := config.PVC
-	os.MkdirAll(dir, 0755)
-	os.MkdirAll(config.DownloadPath, 0755)
+	os.MkdirAll(dir, 0o755)
+	os.MkdirAll(config.DownloadPath, 0o755)
 	currentDir, err := os.Getwd()
 	if err != nil {
 		zlog.InfraSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
@@ -129,7 +131,7 @@ func TestGetCuratedScript(t *testing.T) {
 `
 	os.Setenv("ORCH_CLUSTER", "kind.internal")
 	defer os.Unsetenv("ORCH_CLUSTER")
-	err = os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0755)
+	err = os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0o755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
@@ -171,7 +173,7 @@ func TestServerUrl(t *testing.T) {
 			// Set the test value for MODE
 			os.Setenv("DNS_NAME", tt.testMode)
 
-			result := GetServerUrl()
+			result := GetServerURL()
 			if result != tt.expectedMode {
 				t.Errorf("Expected %v, but got %v", tt.expectedMode, result)
 			}
@@ -269,7 +271,7 @@ func TestDownloadOS(t *testing.T) {
 	}
 
 	expectedFilePath := util.GetOSImageLocation(osr, config.PVC)
-	err := os.MkdirAll(filepath.Dir(expectedFilePath), 0755)
+	err := os.MkdirAll(filepath.Dir(expectedFilePath), 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create directories: %v", err)
 	}
@@ -350,7 +352,7 @@ func TestDownloadArtifacts_Case1(t *testing.T) {
 	}
 	path := "/var"
 	dummypath := "/run/secrets/kubernetes.io/serviceaccount/"
-	cerr := os.MkdirAll(path+dummypath, 0755)
+	cerr := os.MkdirAll(path+dummypath, 0o755)
 	if cerr != nil {
 		t.Fatalf("Error creating directory: %v", cerr)
 	}
@@ -420,12 +422,12 @@ func TestDownloadArtifacts_Case1(t *testing.T) {
 	defer os.RemoveAll(tmpFolderPath)
 	dkamTmpFolderPath := tmpFolderPath + "/tmp/"
 	dkamHookFolderPath := tmpFolderPath + "/hook/"
-	err = os.MkdirAll(dkamTmpFolderPath, 0755)
+	err = os.MkdirAll(dkamTmpFolderPath, 0o755)
 	require.NoError(t, err)
 	expectedManifestFilePath := dkamTmpFolderPath + config.ReleaseVersion + ".yaml"
 	fileData, filrErr := os.ReadFile(localPath + "/../../test/testdata/example-manifest-internal-rs.yaml")
 	require.NoError(t, filrErr)
-	os.WriteFile(expectedManifestFilePath, fileData, 0755)
+	os.WriteFile(expectedManifestFilePath, fileData, 0o755)
 	require.NoError(t, filrErr)
 	returnWrongManifest := false
 	mux.HandleFunc("/manifests/", func(w http.ResponseWriter, req *http.Request) {
@@ -440,7 +442,7 @@ func TestDownloadArtifacts_Case1(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(expectedFileContent))
 	})
-	os.MkdirAll(dkamHookFolderPath, 0755)
+	os.MkdirAll(dkamHookFolderPath, 0o755)
 	sver := httptest.NewServer(mux)
 	defer sver.Close()
 	config.ENManifestRepo = sver.URL + "/"
@@ -451,7 +453,7 @@ func TestDownloadArtifacts_Case1(t *testing.T) {
 	originalDir, _ := os.Getwd()
 	result := strings.Replace(originalDir, "script", "script/tmp", -1)
 	res := filepath.Join(result, "latest-dev.yaml")
-	if err := os.MkdirAll(filepath.Dir(res), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(res), 0o755); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 	src := strings.Replace(originalDir, "curation", "script/latest-dev.yaml", -1)
@@ -470,7 +472,7 @@ func TestDownloadOs(t *testing.T) {
 	fileName := parts[len(parts)-1]
 	rawFileName := strings.TrimSuffix(fileName, ".img") + ".raw.gz"
 	expectedFilePath := config.PVC + "/OSImage/" + sha256 + "/" + rawFileName
-	err := os.MkdirAll(filepath.Dir(expectedFilePath), 0755)
+	err := os.MkdirAll(filepath.Dir(expectedFilePath), 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create directories: %v", err)
 	}
@@ -480,7 +482,7 @@ func TestDownloadOs(t *testing.T) {
 	}
 
 	path := config.DownloadPath + "/profile.raw.gz"
-	err = os.MkdirAll(filepath.Dir(path), 0755)
+	err = os.MkdirAll(filepath.Dir(path), 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create directories: %v", err)
 	}
@@ -576,5 +578,4 @@ func TestDownloadOs(t *testing.T) {
 			}
 		})
 	}
-
 }

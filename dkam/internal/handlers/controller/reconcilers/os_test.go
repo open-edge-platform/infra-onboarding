@@ -5,14 +5,12 @@ package reconcilers
 
 import (
 	"context"
-	"github.com/stretchr/testify/require"
 	"os"
 	"path/filepath"
-	"time"
-
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	rec_v2 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go/pkg/controller/v2"
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
@@ -20,15 +18,14 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/invclient"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
 	dkam_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/testing"
+	"github.com/stretchr/testify/require"
 )
 
 const (
 	tenant1 = "11111111-1111-1111-1111-111111111111"
 )
 
-var (
-	projectRoot string
-)
+var projectRoot string
 
 func TestMain(m *testing.M) {
 	wd, err := os.Getwd()
@@ -97,7 +94,7 @@ func TestOsReconcilerReconcile(t *testing.T) {
 	}
 	rawFileName := strings.TrimSuffix(osre.ProfileName, ".img") + ".raw.gz"
 	expectedFilePath := config.PVC + "/OSImage/" + osre.Sha256 + "/" + rawFileName
-	err := os.MkdirAll(filepath.Dir(expectedFilePath), 0755)
+	err := os.MkdirAll(filepath.Dir(expectedFilePath), 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create directories: %v", err)
 	}
@@ -109,7 +106,7 @@ func TestOsReconcilerReconcile(t *testing.T) {
 	//
 	filePath := config.PVC + "/OSArtifacts/" + osre.ResourceId + "/installer.sh"
 	dir := filepath.Dir(filePath)
-	mkerr := os.MkdirAll(dir, 0755)
+	mkerr := os.MkdirAll(dir, 0o755)
 	if mkerr != nil {
 		t.Fatalf("Failed to create directories: %v", mkerr)
 	}
@@ -190,7 +187,7 @@ func TestOsReconciler_Reconcile(t *testing.T) {
 		ID: WrapReconcilerID(osre.TenantId, osre.ResourceId),
 	}
 	expectedFilePath := config.DownloadPath + "/" + "tiberos.raw.xz"
-	err := os.MkdirAll(filepath.Dir(expectedFilePath), 0755)
+	err := os.MkdirAll(filepath.Dir(expectedFilePath), 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create directories: %v", err)
 	}
@@ -288,13 +285,11 @@ func TestOsReconcilerReconcile_DownloadOs_Err(t *testing.T) {
 	}
 }
 
-//Fuzz test
-
+// Fuzz test
 func FuzzReconcileOs(f *testing.F) {
 	f.Add("ec426b10")
 
 	f.Fuzz(func(t *testing.T, id string) {
-
 		dkam_testing.CreateInventoryDKAMClientForTesting()
 		t.Cleanup(func() {
 			dkam_testing.DeleteInventoryDKAMClientForTesting()
@@ -323,6 +318,5 @@ func FuzzReconcileOs(f *testing.F) {
 		}
 
 		osr.reconcileOs(ctx, request, osre)
-
 	})
 }

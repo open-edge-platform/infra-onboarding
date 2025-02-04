@@ -29,16 +29,16 @@ go-tidy: ## Run go mod tidy
 go-vendor: ## Run go mod vendor
 	$(GOCMD) mod vendor
 
-go-lint: ## run go lint
-	golangci-lint linters
+#go-lint: ## run go lint
+#	golangci-lint linters
 
 # TODO: add correct golintci configuration and uncomment
 #go-lint: $(OUT_DIR) ## Lint go code with golangci-lint
 #	golangci-lint --version
 #	golangci-lint run --config .golangci.yml
 
-go-lint-fix: ## Apply automated lint/formatting fixes to go files
-	golangci-lint run --fix --config .golangci.yml
+#go-lint-fix: ## Apply automated lint/formatting fixes to go files
+#	golangci-lint run --fix --config .golangci.yml
 
 #### Docker Config & Targets ####
 # Docker variables

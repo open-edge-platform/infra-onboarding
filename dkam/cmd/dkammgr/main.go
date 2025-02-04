@@ -3,8 +3,6 @@
 package main
 
 import (
-	// import dependencies
-
 	"context"
 	"flag"
 	"fmt"
@@ -59,7 +57,6 @@ func printSummary() {
 }
 
 func main() {
-
 	watcher, watcherErr := SetWatcher()
 	if watcherErr != nil {
 		zlog.InfraSec().Fatal().Err(watcherErr).Msgf("Failed to set watcher.")
@@ -71,17 +68,7 @@ func main() {
 	printSummary()
 	flag.Parse()
 
-	if *enableTracing {
-		cleanup := setupTracing(*traceURL)
-		if cleanup != nil {
-			defer func() {
-				err := cleanup(context.Background())
-				if err != nil {
-					zlog.Err(err).Msg("Error in tracing cleanup")
-				}
-			}()
-		}
-	}
+	setupTracingIfEnabled()
 
 	if *enableMetrics {
 		startMetricsServer()
@@ -127,7 +114,21 @@ func main() {
 	dkamController.Stop()
 	invClient.Close()
 
-	//wg.Done()
+	// wg.Done()
+}
+
+func setupTracingIfEnabled() {
+	if *enableTracing {
+		cleanup := setupTracing(*traceURL)
+		if cleanup != nil {
+			defer func() {
+				err := cleanup(context.Background())
+				if err != nil {
+					zlog.Err(err).Msg("Error in tracing cleanup")
+				}
+			}()
+		}
+	}
 }
 
 func setupTracing(traceURL string) func(context.Context) error {
@@ -177,8 +178,7 @@ func GetArtifacts(ctx context.Context) error {
 }
 
 func BuildBinaries() error {
-
-	// Donwload and sign iPXE
+	// Download and sign iPXE
 	signedIPXE, pxeErr := dkammgr.BuildSignIpxe()
 	if pxeErr != nil {
 		zlog.InfraSec().Fatal().Err(pxeErr).Msgf("Failed to sign MicroOS %v", pxeErr)
@@ -205,6 +205,7 @@ func SetWatcher() (*fsnotify.Watcher, error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		zlog.InfraSec().Fatal().Err(err).Msgf("Failed to create a watcher")
+		return nil, fmt.Errorf("failed to create a watcher: %w", err)
 	}
 
 	orchCACertificateFile := config.OrchCACertificateFile
@@ -236,7 +237,6 @@ func SetWatcher() (*fsnotify.Watcher, error) {
 	}()
 
 	return watcher, nil
-
 }
 
 func addFileToWatcher(watcher *fsnotify.Watcher, filename string) {

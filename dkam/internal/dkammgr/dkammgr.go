@@ -1,12 +1,8 @@
 package dkammgr
 
 import (
-	//import dependencies
-
 	"context"
 	"os"
-
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/util"
 
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
@@ -14,15 +10,18 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/curation"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/download"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/signing"
+	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/util"
 )
 
-var zlog = logging.GetLogger("DKAM-Mgr")
-var file string
+var (
+	zlog = logging.GetLogger("DKAM-Mgr")
+	file string
+)
 
 func DownloadArtifacts(ctx context.Context) error {
 	MODE := GetMODE()
 	manifestTag := os.Getenv("MANIFEST_TAG")
-	//MODE := "dev"
+	// MODE := "dev"
 	zlog.InfraSec().Info().Msgf("Mode of deployment: %s", MODE)
 	zlog.InfraSec().Info().Msgf("Manifest Tag: %s", manifestTag)
 
@@ -47,8 +46,8 @@ func DownloadArtifacts(ctx context.Context) error {
 	return nil
 }
 
-func GetCuratedScript(ctx context.Context, os *osv1.OperatingSystemResource) error {
-	scriptFileName, err := util.GetInstallerLocation(os, config.PVC)
+func GetCuratedScript(ctx context.Context, osResource *osv1.OperatingSystemResource) error {
+	scriptFileName, err := util.GetInstallerLocation(osResource, config.PVC)
 	if err != nil {
 		return err
 	}
@@ -60,22 +59,20 @@ func GetCuratedScript(ctx context.Context, os *osv1.OperatingSystemResource) err
 	if installerExists {
 		zlog.InfraSec().Info().Msg("Installer exists. Skip curation.")
 	} else {
-		err := curation.CurateScript(ctx, os)
+		err := curation.CurateScript(ctx, osResource)
 		if err != nil {
 			zlog.InfraSec().Info().Msgf("Failed curate %v", err)
 			return err
 		}
-
 	}
 	return nil
 }
 
-func GetServerUrl() string {
+func GetServerURL() string {
 	return os.Getenv("DNS_NAME")
 }
 
 func SignMicroOS() (bool, error) {
-
 	signed, err := signing.SignHookOS()
 	if err != nil {
 		zlog.InfraSec().Info().Msgf("Failed to sign MicroOS %v", err)
@@ -89,7 +86,7 @@ func SignMicroOS() (bool, error) {
 }
 
 func BuildSignIpxe() (bool, error) {
-	dnsName := GetServerUrl()
+	dnsName := GetServerURL()
 	signed, err := signing.BuildSignIpxe(dnsName)
 	if err != nil {
 		zlog.InfraSec().Info().Msgf("Failed to build and sign iPXE %v", err)
@@ -132,12 +129,10 @@ func DownloadOS(ctx context.Context, osRes *osv1.OperatingSystemResource) error 
 			zlog.InfraSec().Error().Err(err).Msgf("Error downloading image:%v", err)
 			return err
 		}
-
 	} else {
 		zlog.InfraSec().Info().Msgf("Compressed raw image file already exists: %s", file)
 	}
 
 	zlog.InfraSec().Info().Msg("OS Image downloaded and move to PVC")
 	return nil
-
 }
