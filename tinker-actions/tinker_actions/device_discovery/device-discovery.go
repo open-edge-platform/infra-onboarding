@@ -174,7 +174,7 @@ func grpcMaestroOnboardNodeJWT(ctx context.Context, address string, port int, ma
 	defer conn.Close()
 	fmt.Println("Dial Complete")
 
-	cli := pb_om.NewNodeArtifactServiceNBClient(conn)
+	cli := pb_om.NewInteractiveOnboardingServiceClient(conn)
 	// Create a NodeData object
 	nodeData := &pb_om.NodeData{
 		Hwdata: []*pb_om.HwData{
@@ -183,7 +183,6 @@ func grpcMaestroOnboardNodeJWT(ctx context.Context, address string, port int, ma
 				SutIp:        ip,
 				Uuid:         uuid,
 				Serialnum:    serial,
-				BmcInterface: false,
 			},
 		},
 	}
