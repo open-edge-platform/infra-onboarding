@@ -63,17 +63,6 @@ print_error_on_console() {
 
 trap 'print_error_on_console ${LINENO}' ERR
 
-download_github_url() {
-  url="$1"
-  echo "download file ${url##*/}"
-  if ! [ -e "${url##*/}" ]; then
-    wget "$url"
-  fi
-  if ! [ -e "${url##*/}" ]; then
-    curl -L -O "$url"
-  fi
-}
-
 install_dependencies() {
     if grep -q "install_dependencies done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping install_dependencies"
@@ -103,38 +92,6 @@ install_dependencies() {
         id -u node-agent &>/dev/null || useradd node-agent --system -g bm-agents -s /sbin/nologin
         id -u platform-update-agent &>/dev/null || useradd platform-update-agent --system -g bm-agents -s /sbin/nologin
 
-        if ! command -v yq_linux_amd64 &> /dev/null; then
-            echo "Download yq and install on provisioning host."
-            version="v4.42.1"
-            expected_checksum="99fc7fd4874daaceb8a718264afccc8f777413fa655c7e16063cfa87d39efe3a"
-            echo "yq download version: $version"
-            url=https://github.com/mikefarah/yq/releases/download/${version}/yq_linux_amd64.tar.gz
-            download_github_url "$url"
-            if [ -f "yq_linux_amd64.tar.gz" ]; then
-                actual_checksum=$(sha256sum "yq_linux_amd64.tar.gz" | awk '{print $1}')
-                if [ "$actual_checksum" != "$expected_checksum" ]; then
-                    echo "Checksum mismatch. File may be corrupted."
-                    exit 1
-                fi
-                echo "Checksum verification successful."
-            else
-                echo "Downloaded file does not exist. Aborting installation."
-                exit 1
-            fi
-            tmpyq=/tmp/yq_linux_amd64
-            if [ -d "$tmpyq" ];then
-                sudo rm -rf "$tmpyq"
-            fi
-            mkdir -p $tmpyq
-            mv yq_linux_amd64.tar.gz $tmpyq
-            tar -xzvf $tmpyq/yq_linux_amd64.tar.gz -C "$tmpyq"
-            sudo mv "$tmpyq"/yq_linux_amd64 /usr/local/bin/yq_linux_amd64
-	    #Set correct GID to the bare metal agent group instead of 127
-	    sudo chown platform-update-agent:bm-agents /usr/local/bin/yq_linux_amd64
-        fi
-        if [ ! -L /usr/local/bin/yq ]; then
-            sudo ln -s yq_linux_amd64 /usr/local/bin/yq
-        fi
         echo "install_dependencies done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
