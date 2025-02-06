@@ -223,6 +223,15 @@ func getCommonScriptTemplateVariables(osType osv1.OsType) (map[string]interface{
 		"EXTRA_HOSTS": strings.Split(os.Getenv("EXTRA_HOSTS"), ","),
 
 		"FIREWALL_RULES": firewallRules,
+
+		// TODO: keeping OS-dependence for now, but will be removed once we reach the final solution
+		"IS_TIBEROS": osType == osv1.OsType_OS_TYPE_IMMUTABLE,
+	}
+
+	if osType == osv1.OsType_OS_TYPE_MUTABLE {
+		templateVariables["FIREWALL_PROVIDER"] = "ufw"
+	} else if osType == osv1.OsType_OS_TYPE_IMMUTABLE {
+		templateVariables["FIREWALL_PROVIDER"] = "iptables"
 	}
 
 	return templateVariables, nil
@@ -237,6 +246,13 @@ func CurateScript(ctx context.Context, osRes *osv1.OperatingSystemResource) erro
 	localInstallerPath, err := util.GetLocalInstallerPath(osRes.GetOsType())
 	if err != nil {
 		return err
+	}
+
+	// - if MUTABLE && legacyCurationMode -> Installer (Bash script)
+	// - if MUTABLE && !legacyCurationMode -> Installer.cfg (cloud-init)
+	if osRes.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE && *config.FlagEnforceCloudInit {
+		installerScriptPath = strings.ReplaceAll(installerScriptPath, ".sh", ".cfg")
+		localInstallerPath = config.ScriptPath + "/Installer.cfg"
 	}
 
 	templateVariables, err := getCommonScriptTemplateVariables(osRes.GetOsType())
@@ -269,11 +285,29 @@ func finalizeCuratedScript(ctx context.Context, osRes *osv1.OperatingSystemResou
 	installerScriptPath, curatedScriptData string,
 ) error {
 	// Append profile script, to be removed once Platform Bundle is integrated
-	if osRes.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE {
+	if osRes.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE && !*config.FlagEnforceCloudInit {
 		var err error
 		curatedScriptData, err = FetchAndAppendProfileScript(ctx, osRes.GetProfileName(), curatedScriptData)
 		if err != nil {
 			return err
+		}
+	} else if osRes.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE && *config.FlagEnforceCloudInit {
+		// FIXME: hardocded path for now. Will be fixed once we integrate EEF Platform Bundle coming from RS
+		platformBundleScriptData, err := os.ReadFile(config.ScriptPath + "/platform-bundle/ubuntu-22.04/Installer")
+		if err != nil {
+			return err
+		}
+		platformBundleScript := string(platformBundleScriptData)
+
+		platformBundleScript, err = FetchAndAppendProfileScript(ctx, osRes.GetProfileName(), platformBundleScript)
+		if err != nil {
+			return err
+		}
+		platformBundleScriptPath := strings.ReplaceAll(installerScriptPath, ".cfg", ".sh")
+		writeErr := WriteFileToPath(platformBundleScriptPath, []byte(platformBundleScript))
+		if writeErr != nil {
+			zlog.InfraSec().Error().Err(writeErr).Msgf("Failed to write file to path %s", platformBundleScriptPath)
+			return writeErr
 		}
 	}
 

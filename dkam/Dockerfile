@@ -18,6 +18,7 @@ COPY cmd/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.ma
 COPY internal/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/
 COPY pkg/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/
 COPY vendor/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/vendor/
+COPY platform-bundle/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/script/platform-bundle/
 
 WORKDIR /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam
 

@@ -4,6 +4,7 @@
 package env
 
 import (
+	"flag"
 	"os"
 
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
@@ -36,6 +37,9 @@ var (
 	K8sNamespace = GetEnvWithDefault(envK8sNamespace, defaultK8sNamespace)
 
 	TinkerActionVersion = os.Getenv(envTinkerVersion)
+
+	FlagEnforceCloudInit = flag.Bool("enforceCloudInit", false,
+		"Set to true to always use cloud-init to provision Day0/Day1 EN configuration")
 )
 
 var zlog = logging.GetLogger("Env")

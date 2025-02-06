@@ -687,7 +687,9 @@ func TestCurateScriptFromTemplate(t *testing.T) {
 		"ORCH_TELEMETRY_HOST":            "telemetry.test",
 		"ORCH_TELEMETRY_PORT":            "1234",
 		"KEYCLOAK_URL":                   "keycloak.test",
+		"KEYCLOAK_FQDN":                  "keycloak.test",
 		"RELEASE_TOKEN_URL":              "release-svc.test",
+		"RELEASE_FQDN":                   "release-svc.test",
 		"ORCH_APT_PORT":                  "1234",
 		"ORCH_IMG_PORT":                  "1234",
 		"FILE_SERVER":                    "file-server.test",
@@ -701,6 +703,8 @@ func TestCurateScriptFromTemplate(t *testing.T) {
 
 		"CA_CERT": testCaCert,
 
+		"IS_TIBEROS":        true,
+		"FIREWALL_PROVIDER": "iptables",
 		"FIREWALL_RULES": []string{
 			"iptables -A INPUT -p tcp --dport 80 -j ACCEPT",
 			"iptables -A INPUT -p tcp --dport 443 -j ACCEPT",

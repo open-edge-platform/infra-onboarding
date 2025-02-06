@@ -3,6 +3,10 @@
 
 package config
 
+import (
+	"flag"
+)
+
 const (
 	ReleaseVersion         = "latest-dev"
 	DownloadPath           = "/tmp"
@@ -17,4 +21,7 @@ var (
 	ENManifestRepo        = "one-intel-edge/edge-node/en/manifest"
 	HookOSRepo            = "one-intel-edge/edge-node/file/provisioning-hook-os"
 	ProfileScriptRepo     = "one-intel-edge/edge-node/file/profile-scripts/"
+
+	FlagEnforceCloudInit = flag.Bool("enforceCloudInit", false,
+		"Set to true to always use cloud-init to provision Day0/Day1 EN configuration")
 )

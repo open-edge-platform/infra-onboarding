@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
+	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/env"
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/onboardingmgr/utils"
 )
@@ -424,7 +425,7 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo) ([]byt
 	return marshalWorkflow(&wf)
 }
 
-//nolint:funlen // May effect the functionality, need to simplify this in future
+//nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
 func NewTemplateDataUbuntu(name string, deviceInfo utils.DeviceInfo) ([]byte, error) {
 	// #nosec G115
 	securityFeatureTypeVar := osv1.SecurityFeature(deviceInfo.SecurityFeature)
@@ -606,6 +607,7 @@ func NewTemplateDataUbuntu(name string, deviceInfo utils.DeviceInfo) ([]byte, er
 							env.ENPassWord, env.ENUserName, env.ENUserName),
 					},
 				},
+
 				{
 					Name:    ActionInstallScriptDownload,
 					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
@@ -833,6 +835,56 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 		}},
 	}
 
+	if *env.FlagEnforceCloudInit {
+		// Find the index of the "add-dns-namespace" action
+		dnsNamespaceIndex := -1
+		for i, action := range wf.Tasks[0].Actions {
+			if action.Name == ActionAddDNSNamespace {
+				dnsNamespaceIndex = i
+				break
+			}
+		}
+
+		if dnsNamespaceIndex == -1 || dnsNamespaceIndex > len(wf.Tasks[0].Actions) {
+			return nil, inv_errors.Errorf("action %s not found in the workflow", ActionAddDNSNamespace)
+		}
+
+		cloudInitPathForUbuntu := strings.ReplaceAll(deviceInfo.InstallerScriptURL, ".sh", ".cfg")
+		cloudInitActions := []Action{
+			{
+				Name:    ActionCloudInitfileDownload,
+				Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
+				Timeout: timeOutAvg200,
+				Environment: map[string]string{
+					"FS_TYPE":             "ext4",
+					"CHROOT":              "y",
+					"DEFAULT_INTERPRETER": "/bin/sh -c",
+					"CMD_LINE": fmt.Sprintf("curl -o /etc/cloud/cloud.cfg.d/installer.cfg %s",
+						cloudInitPathForUbuntu),
+				},
+				Pid: "host",
+			},
+			{
+				Name:    ActionCloudinitDsidentity,
+				Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+				Timeout: timeOutMin90,
+				Environment: map[string]string{
+					"FS_TYPE":   "ext4",
+					"DEST_PATH": "/etc/cloud/ds-identify.cfg",
+					"CONTENTS":  `datasource: NoCloud`,
+					"UID":       "0",
+					"GID":       "0",
+					"MODE":      "0600",
+					"DIRMODE":   "0700",
+				},
+			},
+		}
+
+		// Insert the new actions after the "add-dns-namespace" action
+		wf.Tasks[0].Actions = append(wf.Tasks[0].Actions[:dnsNamespaceIndex+1],
+			append(cloudInitActions, wf.Tasks[0].Actions[dnsNamespaceIndex+1:]...)...)
+	}
+
 	// FDE removal if security feature flag is not set for FDE
 	// #nosec G115
 	if osv1.SecurityFeature(deviceInfo.SecurityFeature) !=
@@ -859,5 +911,6 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 			}
 		}
 	}
+
 	return marshalWorkflow(&wf)
 }
