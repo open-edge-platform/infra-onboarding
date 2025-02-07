@@ -106,8 +106,8 @@ var InteractiveOnboardingService_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type NonInteractiveOnboardingServiceClient interface {
-	// OnboardNodeStream establishes a bidirectional stream between the EN and the OM
-	// It allows EN to send stream requests and receive responses
+	// OnboardNodeStream establishes a bidirectional stream between the Edge Node and the Onboarding Manager
+	// It allows Edge Node to send stream requests and receive responses
 	OnboardNodeStream(ctx context.Context, opts ...grpc.CallOption) (NonInteractiveOnboardingService_OnboardNodeStreamClient, error)
 }
 
@@ -154,8 +154,8 @@ func (x *nonInteractiveOnboardingServiceOnboardNodeStreamClient) Recv() (*Onboar
 // All implementations should embed UnimplementedNonInteractiveOnboardingServiceServer
 // for forward compatibility
 type NonInteractiveOnboardingServiceServer interface {
-	// OnboardNodeStream establishes a bidirectional stream between the EN and the OM
-	// It allows EN to send stream requests and receive responses
+	// OnboardNodeStream establishes a bidirectional stream between the Edge Node and the Onboarding Manager
+	// It allows Edge Node to send stream requests and receive responses
 	OnboardNodeStream(NonInteractiveOnboardingService_OnboardNodeStreamServer) error
 }
 

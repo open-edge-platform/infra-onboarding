@@ -10,14 +10,15 @@ import "validate/validate.proto";
 
 option go_package = "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/tree/main/api/grpc/onboardingmgr;onboardingmgr";
 
-//Artifact & Node Endpoints towards Inventory Manager
+// Interactive Onboarding
 service InteractiveOnboardingService {
   rpc CreateNodes(NodeRequest) returns (NodeResponse) {}
 }
 
+// Non Interactive Onboarding
 service NonInteractiveOnboardingService {
-  // OnboardNodeStream establishes a bidirectional stream between the EN and the OM
-  // It allows EN to send stream requests and receive responses
+  // OnboardNodeStream establishes a bidirectional stream between the Edge Node and the Onboarding Manager
+  // It allows Edge Node to send stream requests and receive responses
   rpc OnboardNodeStream(stream OnboardStreamRequest) returns (stream OnboardStreamResponse) {}
 }
 
@@ -27,7 +28,7 @@ message NodeRequest {
 
 message NodeResponse {
   repeated NodeData payload = 1; // Payload data
-  string project_id = 2; // The project_id associated with the node, identifying the project to which the node belongs
+  string project_id = 2; // The project_id associated with the Edge Node, identifying the project to which the Edge Node belongs
 }
 
 message NodeData {
@@ -37,33 +38,33 @@ message NodeData {
 message HwData {
   string uuid = 1 [(validate.rules).string.uuid = true];
   string serialnum = 2 [(validate.rules).string.pattern = "^[A-Za-z0-9]{5,20}$"];
-  string mac_id = 3 [(validate.rules).string.pattern = "^([0-9a-fA-F]{2}([-:])){5}[0-9a-fA-F]{2}$"]; // Mac ID of Node
+  string mac_id = 3 [(validate.rules).string.pattern = "^([0-9a-fA-F]{2}([-:])){5}[0-9a-fA-F]{2}$"]; // Mac ID of Edge Node
   string sut_ip = 4 [(validate.rules).string.pattern = "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"]; // sutip
 }
 
-// OnboardStreamRequest represents a request sent from EN to the OM
+// OnboardStreamRequest represents a request sent from Edge Node to the Onboarding Manager
 message OnboardStreamRequest {
-  // The UUID of the EN being onboarded
+  // The UUID of the Edge Node being onboarded
   string uuid = 1 [(validate.rules).string.uuid = true];
-  // The serial number of the EN
+  // The serial number of the Edge Node
   string serialnum = 2 [(validate.rules).string.pattern = "^[A-Za-z0-9]{5,20}$"];
-  // The MAC ID of the EN
+  // The MAC ID of the Edge Node
   string mac_id = 3 [(validate.rules).string.pattern = "^([0-9a-fA-F]{2}([-:])){5}[0-9a-fA-F]{2}$"];
-  // The IP (IPv4 pattern) of the EN
+  // The IP (IPv4 pattern) of the Edge Node
   string host_ip = 4 [(validate.rules).string.pattern = "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"];
 }
 
-// OnboardStreamResponse represents a response sent from the OM to a EN
+// OnboardStreamResponse represents a response sent from the Onboarding Manager to a Edge Node
 // over the bidirectional stream
 message OnboardStreamResponse {
-  // NodeState represents state of the device as stored in EIM Inventory
+  // NodeState represents state of the device as stored in Infra Inventory
   enum NodeState {
-    UNSPECIFIED = 0; // Node state is unspecified or unknown
+    UNSPECIFIED = 0; // Edge Node state is unspecified or unknown
     REGISTERED = 1; // Allow to retry, Node is registered but not yet onboarded
-    ONBOARDED = 2; // Node successfully onboarded
+    ONBOARDED = 2; // Edge Node successfully onboarded
   }
   google.rpc.Status status = 1; // The status of the onboarding request
-  NodeState node_state = 2; // The current state of the device as stored in EIM Inventory
+  NodeState node_state = 2; // The current state of the device as stored in Infra Inventory
   string client_id = 3; // The client_id provided to the node upon successful onboarding
   string client_secret = 4; // The client_secret provided to the node upon successful onboarding
   string project_id = 5; // The project_id associated with the node, identifying the project to which the node belongs

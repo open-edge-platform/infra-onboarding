@@ -37,7 +37,7 @@
 | ----- | ---- | ----- | ----------- |
 | uuid | [string](#string) |  |  |
 | serialnum | [string](#string) |  |  |
-| mac_id | [string](#string) |  | Mac ID of Node |
+| mac_id | [string](#string) |  | Mac ID of Edge Node |
 | sut_ip | [string](#string) |  | sutip |
 
 
@@ -84,7 +84,7 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | payload | [NodeData](#onboardingmgr-NodeData) | repeated | Payload data |
-| project_id | [string](#string) |  | The project_id associated with the node, identifying the project to which the node belongs |
+| project_id | [string](#string) |  | The project_id associated with the Edge Node, identifying the project to which the Edge Node belongs |
 
 
 
@@ -94,15 +94,15 @@
 <a name="onboardingmgr-OnboardStreamRequest"></a>
 
 ### OnboardStreamRequest
-OnboardStreamRequest represents a request sent from EN to the OM
+OnboardStreamRequest represents a request sent from Edge Node to the Onboarding Manager
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| uuid | [string](#string) |  | The UUID of the EN being onboarded |
-| serialnum | [string](#string) |  | The serial number of the EN |
-| mac_id | [string](#string) |  | The MAC ID of the EN |
-| host_ip | [string](#string) |  | The IP (IPv4 pattern) of the EN |
+| uuid | [string](#string) |  | The UUID of the Edge Node being onboarded |
+| serialnum | [string](#string) |  | The serial number of the Edge Node |
+| mac_id | [string](#string) |  | The MAC ID of the Edge Node |
+| host_ip | [string](#string) |  | The IP (IPv4 pattern) of the Edge Node |
 
 
 
@@ -112,14 +112,14 @@ OnboardStreamRequest represents a request sent from EN to the OM
 <a name="onboardingmgr-OnboardStreamResponse"></a>
 
 ### OnboardStreamResponse
-OnboardStreamResponse represents a response sent from the OM to a EN
+OnboardStreamResponse represents a response sent from the Onboarding Manager to a Edge Node
 over the bidirectional stream
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | status | [google.rpc.Status](#google-rpc-Status) |  | The status of the onboarding request |
-| node_state | [OnboardStreamResponse.NodeState](#onboardingmgr-OnboardStreamResponse-NodeState) |  | The current state of the device as stored in EIM Inventory |
+| node_state | [OnboardStreamResponse.NodeState](#onboardingmgr-OnboardStreamResponse-NodeState) |  | The current state of the device as stored in Infra Inventory |
 | client_id | [string](#string) |  | The client_id provided to the node upon successful onboarding |
 | client_secret | [string](#string) |  | The client_secret provided to the node upon successful onboarding |
 | project_id | [string](#string) |  | The project_id associated with the node, identifying the project to which the node belongs |
@@ -134,13 +134,13 @@ over the bidirectional stream
 <a name="onboardingmgr-OnboardStreamResponse-NodeState"></a>
 
 ### OnboardStreamResponse.NodeState
-NodeState represents state of the device as stored in EIM Inventory
+NodeState represents state of the device as stored in Infra Inventory
 
 | Name | Number | Description |
 | ---- | ------ | ----------- |
-| UNSPECIFIED | 0 | Node state is unspecified or unknown |
+| UNSPECIFIED | 0 | Edge Node state is unspecified or unknown |
 | REGISTERED | 1 | Allow to retry, Node is registered but not yet onboarded |
-| ONBOARDED | 2 | Node successfully onboarded |
+| ONBOARDED | 2 | Edge Node successfully onboarded |
 
 
  
@@ -151,7 +151,7 @@ NodeState represents state of the device as stored in EIM Inventory
 <a name="onboardingmgr-InteractiveOnboardingService"></a>
 
 ### InteractiveOnboardingService
-Artifact &amp; Node Endpoints towards Inventory Manager
+Interactive Onboarding
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
@@ -161,11 +161,11 @@ Artifact &amp; Node Endpoints towards Inventory Manager
 <a name="onboardingmgr-NonInteractiveOnboardingService"></a>
 
 ### NonInteractiveOnboardingService
-
+Non Interactive Onboarding
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| OnboardNodeStream | [OnboardStreamRequest](#onboardingmgr-OnboardStreamRequest) stream | [OnboardStreamResponse](#onboardingmgr-OnboardStreamResponse) stream | OnboardNodeStream establishes a bidirectional stream between the EN and the OM It allows EN to send stream requests and receive responses |
+| OnboardNodeStream | [OnboardStreamRequest](#onboardingmgr-OnboardStreamRequest) stream | [OnboardStreamResponse](#onboardingmgr-OnboardStreamResponse) stream | OnboardNodeStream establishes a bidirectional stream between the Edge Node and the Onboarding Manager It allows Edge Node to send stream requests and receive responses |
 
  
 

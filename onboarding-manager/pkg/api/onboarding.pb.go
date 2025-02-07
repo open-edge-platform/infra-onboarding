@@ -25,13 +25,13 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// NodeState represents state of the device as stored in EIM Inventory
+// NodeState represents state of the device as stored in Infra Inventory
 type OnboardStreamResponse_NodeState int32
 
 const (
-	OnboardStreamResponse_UNSPECIFIED OnboardStreamResponse_NodeState = 0 // Node state is unspecified or unknown
+	OnboardStreamResponse_UNSPECIFIED OnboardStreamResponse_NodeState = 0 // Edge Node state is unspecified or unknown
 	OnboardStreamResponse_REGISTERED  OnboardStreamResponse_NodeState = 1 // Allow to retry, Node is registered but not yet onboarded
-	OnboardStreamResponse_ONBOARDED   OnboardStreamResponse_NodeState = 2 // Node successfully onboarded
+	OnboardStreamResponse_ONBOARDED   OnboardStreamResponse_NodeState = 2 // Edge Node successfully onboarded
 )
 
 // Enum value maps for OnboardStreamResponse_NodeState.
@@ -128,7 +128,7 @@ type NodeResponse struct {
 	unknownFields protoimpl.UnknownFields
 
 	Payload   []*NodeData `protobuf:"bytes,1,rep,name=payload,proto3" json:"payload,omitempty"`                      // Payload data
-	ProjectId string      `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"` // The project_id associated with the node, identifying the project to which the node belongs
+	ProjectId string      `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"` // The project_id associated with the Edge Node, identifying the project to which the Edge Node belongs
 }
 
 func (x *NodeResponse) Reset() {
@@ -231,7 +231,7 @@ type HwData struct {
 
 	Uuid      string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
 	Serialnum string `protobuf:"bytes,2,opt,name=serialnum,proto3" json:"serialnum,omitempty"`
-	MacId     string `protobuf:"bytes,3,opt,name=mac_id,json=macId,proto3" json:"mac_id,omitempty"` // Mac ID of Node
+	MacId     string `protobuf:"bytes,3,opt,name=mac_id,json=macId,proto3" json:"mac_id,omitempty"` // Mac ID of Edge Node
 	SutIp     string `protobuf:"bytes,4,opt,name=sut_ip,json=sutIp,proto3" json:"sut_ip,omitempty"` // sutip
 }
 
@@ -295,19 +295,19 @@ func (x *HwData) GetSutIp() string {
 	return ""
 }
 
-// OnboardStreamRequest represents a request sent from EN to the OM
+// OnboardStreamRequest represents a request sent from Edge Node to the Onboarding Manager
 type OnboardStreamRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// The UUID of the EN being onboarded
+	// The UUID of the Edge Node being onboarded
 	Uuid string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
-	// The serial number of the EN
+	// The serial number of the Edge Node
 	Serialnum string `protobuf:"bytes,2,opt,name=serialnum,proto3" json:"serialnum,omitempty"`
-	// The MAC ID of the EN
+	// The MAC ID of the Edge Node
 	MacId string `protobuf:"bytes,3,opt,name=mac_id,json=macId,proto3" json:"mac_id,omitempty"`
-	// The IP (IPv4 pattern) of the EN
+	// The IP (IPv4 pattern) of the Edge Node
 	HostIp string `protobuf:"bytes,4,opt,name=host_ip,json=hostIp,proto3" json:"host_ip,omitempty"`
 }
 
@@ -371,7 +371,7 @@ func (x *OnboardStreamRequest) GetHostIp() string {
 	return ""
 }
 
-// OnboardStreamResponse represents a response sent from the OM to a EN
+// OnboardStreamResponse represents a response sent from the Onboarding Manager to a Edge Node
 // over the bidirectional stream
 type OnboardStreamResponse struct {
 	state         protoimpl.MessageState
@@ -379,7 +379,7 @@ type OnboardStreamResponse struct {
 	unknownFields protoimpl.UnknownFields
 
 	Status       *status.Status                  `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`                                                                            // The status of the onboarding request
-	NodeState    OnboardStreamResponse_NodeState `protobuf:"varint,2,opt,name=node_state,json=nodeState,proto3,enum=onboardingmgr.OnboardStreamResponse_NodeState" json:"node_state,omitempty"` // The current state of the device as stored in EIM Inventory
+	NodeState    OnboardStreamResponse_NodeState `protobuf:"varint,2,opt,name=node_state,json=nodeState,proto3,enum=onboardingmgr.OnboardStreamResponse_NodeState" json:"node_state,omitempty"` // The current state of the device as stored in Infra Inventory
 	ClientId     string                          `protobuf:"bytes,3,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`                                                        // The client_id provided to the node upon successful onboarding
 	ClientSecret string                          `protobuf:"bytes,4,opt,name=client_secret,json=clientSecret,proto3" json:"client_secret,omitempty"`                                            // The client_secret provided to the node upon successful onboarding
 	ProjectId    string                          `protobuf:"bytes,5,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`                                                     // The project_id associated with the node, identifying the project to which the node belongs
