@@ -1,5 +1,5 @@
-// SPDX-FileCopyrightText: (C) 2023 Intel Corporation
-// SPDX-License-Identifier: LicenseRef-Intel
+// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
 
 package main
 
@@ -36,7 +36,7 @@ const (
 )
 
 var (
-	name = "MiOnboardingRM"
+	name = "InfraOnboarding"
 	zlog = logging.GetLogger(name + "Main")
 
 	dkamAddr         = flag.String("dkamaddr", "localhost:5581", "DKAM server address to connect to")
@@ -59,7 +59,7 @@ var (
 )
 
 var (
-	Project   = "frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service"
+	Project   = "frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager"
 	RepoURL   = fmt.Sprintf("https://github.com/intel-innersource/%s.git", Project)
 	Version   = "<unset>"
 	Revision  = "<unset>"

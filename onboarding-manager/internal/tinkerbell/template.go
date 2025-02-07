@@ -1,5 +1,5 @@
-// SPDX-FileCopyrightText: (C) 2023 Intel Corporation
-// SPDX-License-Identifier: LicenseRef-Intel
+// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
 
 package tinkerbell
 
@@ -32,11 +32,6 @@ func NewTemplate(tpData, name, ns string) *tink.Template {
 	return tp
 }
 
-/*
-	see https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.secure-os-provision-onboarding-service/
-
-blob/1a9621b4f8d5146659b680518052a3b7a24d0867/internal/onboardingmgr/onbworkflowclient/workflowcreator.go#L1044.
-*/
 func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (*tink.Template, error) {
 	var (
 		tmplName = GetProdTemplateName(deviceInfo.GUID)
@@ -66,7 +61,7 @@ func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (
 	return tmpl, nil
 }
 
-// TODO (LPIO-1865): We can probably optimize it.
+// TODO (ITEP-1865): We can probably optimize it.
 //
 //	Instead of doing GET+CREATE we can try CREATE and check if resource already exists.
 func CreateTemplateIfNotExists(ctx context.Context, k8sCli client.Client, template *tink.Template) error {

@@ -1,5 +1,5 @@
-// SPDX-FileCopyrightText: (C) 2024 Intel Corporation
-// SPDX-License-Identifier: LicenseRef-Intel
+// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
 
 package tinkerbell
 
@@ -42,7 +42,7 @@ func NewWorkflow(name, ns, mac, hardwareRef, templateRef string) *tink.Workflow 
 	return wf
 }
 
-// TODO (LPIO-1865): We can probably optimize it.
+// TODO (ITEP-1865): We can probably optimize it.
 // Instead of doing GET+CREATE we can try CREATE and check if resource already exists.
 func CreateWorkflowIfNotExists(ctx context.Context, k8sCli client.Client, workflow *tink.Workflow) error {
 	got := &tink.Workflow{}

@@ -1,5 +1,5 @@
-// SPDX-FileCopyrightText: (C) 2023 Intel Corporation
-// SPDX-License-Identifier: LicenseRef-Intel
+// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
 
 package tinkerbell
 
@@ -66,7 +66,7 @@ func NewHardware(name, ns, id, ip, gateway, osResourceID string) *tink.Hardware 
 	return hw
 }
 
-// TODO (LPIO-1865): We can probably optimize it.
+// TODO (ITEP-1865): We can probably optimize it.
 // Instead of doing GET+CREATE we can try CREATE and check if resource already exists.
 func CreateHardwareIfNotExists(ctx context.Context, k8sCli client.Client, k8sNamespace string,
 	deviceInfo utils.DeviceInfo, osResourceID string,

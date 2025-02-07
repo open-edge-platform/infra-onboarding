@@ -1,7 +1,7 @@
-# Edge Infrastructure Manager Onboarding Manager Makefile
+# Onboarding Manager Makefile
 
-# SPDX-FileCopyrightText: (C) 2024 Intel Corporation
-# SPDX-License-Identifier: LicenseRef-Intel
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
 
 .DEFAULT_GOAL := help
 .PHONY: docker-build test lint license help
@@ -15,7 +15,7 @@ CURRENT_GID := $(shell id -g)
 
 # Project variables
 PROJECT_NAME := onboardingmgr
-BINARY_NAME  := mionboarding
+BINARY_NAME  := $(PROJECT_NAME)
 
 # Code versions, tags, and so on
 VERSION       := $(shell cat VERSION)
@@ -71,7 +71,7 @@ PROTOCGENVALIDATEGOVERSION_REQ  := 1.0.1
 GOCMD := GOPRIVATE="github.com/intel-innersource/*" go
 
 # Create the virtualenv with python tools installed
-VENV_NAME = venv_mionboarding
+VENV_NAME = venv_$(PROJECT_NAME)
 
 # Postgres DB configuration and credentials for testing. This mimics the Aurora
 # production environment.
@@ -235,3 +235,4 @@ fuzztest:
 
 dependency-check:
 	echo "No dependency check step"
+

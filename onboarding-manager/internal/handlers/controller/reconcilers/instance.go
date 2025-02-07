@@ -1,6 +1,6 @@
-// SPDX-FileCopyrightText: (C) 2023 Intel Corporation
+// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 //
-// SPDX-License-Identifier: LicenseRef-Intel
+// SPDX-License-Identifier: Apache-2.0
 
 package reconcilers
 
@@ -57,7 +57,7 @@ func (ir *InstanceReconciler) Reconcile(ctx context.Context,
 	request rec_v2.Request[ReconcilerID],
 ) rec_v2.Directive[ReconcilerID] {
 	if ir.enableTracing {
-		ctx = tracing.StartTrace(ctx, "MIOnboardingManager", "InstanceReconciler")
+		ctx = tracing.StartTrace(ctx, "InfraOnboardingManager", "InstanceReconciler")
 		defer tracing.StopTrace(ctx)
 	}
 	resourceID := request.ID.GetResourceID()

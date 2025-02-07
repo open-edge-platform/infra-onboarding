@@ -1,5 +1,5 @@
-// SPDX-FileCopyrightText: (C) 2024	 Intel Corporation
-// SPDX-License-Identifier: LicenseRef-Intel
+// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
 
 module github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager
 

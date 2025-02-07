@@ -1,5 +1,5 @@
-// SPDX-FileCopyrightText: (C) 2024 Intel Corporation
-// SPDX-License-Identifier: LicenseRef-Intel
+// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
 
 package env
 
@@ -22,7 +22,7 @@ const (
 	envPassWord      = "EN_PASSWORD"
 	envTinkerVersion = "TINKER_VERSION"
 
-	defaultK8sNamespace = "maestro-iaas-system"
+	defaultK8sNamespace = "orch-infa"
 )
 
 var (

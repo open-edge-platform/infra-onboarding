@@ -1,7 +1,6 @@
 <!---
-  SPDX-FileCopyrightText: (C) 2022 Intel Corporation
-  SPDX-License-Identifier: LicenseRef-Intel
-
+  SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+  SPDX-License-Identifier: Apache-2.0
   ------------------------------------------------------
 
   Author Mandatory (to be filled by PR Author/Submitter)

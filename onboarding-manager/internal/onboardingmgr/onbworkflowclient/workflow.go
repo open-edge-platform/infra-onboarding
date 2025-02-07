@@ -213,7 +213,7 @@ func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName string)
 	return got, nil
 }
 
-// TODO (LPIO-1865).
+// TODO (ITEP-1865).
 func createENCredentialsIfNotExists(ctx context.Context, tenantID string, deviceInfo utils.DeviceInfo) (string, string, error) {
 	authService, err := auth.AuthServiceFactory(ctx)
 	if err != nil {
