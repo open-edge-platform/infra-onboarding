@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
+
 module cexec
 
 go 1.23.1

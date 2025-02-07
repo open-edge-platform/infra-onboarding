@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# SPDX-FileCopyrightText: (C) 2024 Intel Corporation
-# SPDX-License-Identifier: LicenseRef-Intel
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
 
 # Review each source code folder for fuzz tests and run them
 homeDir=$(pwd)

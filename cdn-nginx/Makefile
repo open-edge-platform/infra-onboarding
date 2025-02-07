@@ -1,7 +1,7 @@
 # Maestro-I API Makefile
 
-# SPDX-FileCopyrightText: (C) 2022 Intel Corporation
-# SPDX-License-Identifier: LicenseRef-Intel
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
 
 .DEFAULT_GOAL := help
 .PHONY: build test lint license help generate

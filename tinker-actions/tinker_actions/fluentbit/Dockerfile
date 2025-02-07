@@ -1,6 +1,5 @@
-# SPDX-FileCopyrightText: 2024 Intel Corporation
-#
-# SPDX-License-Identifier: LicenseRef-Intel
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
 
 # Use an official Ubuntu base image
 FROM fluent/fluent-bit:3.1.10 AS fluent-bit-uos

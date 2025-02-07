@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
 FROM nginx:1.25.3-alpine
 
 # Set environment variables

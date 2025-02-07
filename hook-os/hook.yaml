@@ -11,8 +11,8 @@
 # - HOOK_CONTAINER_EMBEDDED_IMAGE: ${HOOK_CONTAINER_EMBEDDED_IMAGE}
 # - Other variables are not replaced: for example this is a literal dollarsign-SOMETHING: $SOMETHING and with braces: ${SOMETHING}
 
-# SPDX-FileCopyrightText: (C) 2024 Intel Corporation
-# SPDX-License-Identifier: LicenseRef-Intel
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
 
 kernel:
   image: "${HOOK_KERNEL_IMAGE}"

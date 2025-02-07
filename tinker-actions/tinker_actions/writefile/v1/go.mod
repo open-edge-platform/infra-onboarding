@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
+
 module github.com/tinkerbell/hub/actions/writefile/v1
 
 go 1.15
