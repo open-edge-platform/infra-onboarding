@@ -123,7 +123,7 @@ pipeline {
                 axes {
                     axis {
                         name 'PROJECT_FOLDER'
-                        values "onboarding-manager", "dkam", "tinker-actions", "hook-os"
+                        values "onboarding-manager", "dkam", "tinker-actions", "hook-os", "pa-server"
                     }
                 }
                 stages {
@@ -375,6 +375,27 @@ pipeline {
                                                 sh '''
                                                     echo "Testing the code"
                                                     make test
+                                                '''
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            stage('Upload artifacts') {
+                                when {
+                                    allOf {
+                                        changeRequest()
+                                        expression { PROJECT_FOLDER != 'tinker-actions' }
+                                        expression { PROJECT_FOLDER != 'hook-os' }
+                                        expression { PROJECT_FOLDER != 'pa-server' }
+                                    }
+                                }
+                                steps {
+                                    dir("${PROJECT_FOLDER}") {
+                                        script {
+                                            def envVars = envVarsMap[PROJECT_FOLDER].collect { key, value -> "${key}=${value}" }
+                                            withEnv(envVars) {
+                                                sh '''
                                                     ls build/
                                                 '''
                                                 artifactUpload()

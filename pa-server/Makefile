@@ -1,4 +1,4 @@
-# Maestro-I API Makefile
+# Provisioning Artifacts Server Makefile
 
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
@@ -14,13 +14,13 @@ CURRENT_UID := $(shell id -u)
 CURRENT_GID := $(shell id -g)
 
 # Project variables
-PROJECT_NAME := cdn-nginx
-BINARY_NAME  := cdn-nginx
+PROJECT_NAME := pa-server
+BINARY_NAME  := $(PROJECT_NAME)
 
 # Code versions, tags, and so on
 VERSION       := $(shell cat VERSION)
 VERSION_MAJOR := $(shell cut -c 1 VERSION)
-IMG_NAME      := ${PROJECT_NAME}
+IMG_NAME      := $(PROJECT_NAME)
 IMG_VERSION   ?= $(VERSION)
 GIT_COMMIT    ?= $(shell git rev-parse HEAD)
 BRANCH_NAME   ?= $(shell git rev-parse --abbrev-ref HEAD)
@@ -31,7 +31,7 @@ DOCKER_TAG              := ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}
 
 
 # Create the virtualenv with python tools installed
-VENV_NAME = venv_midkammgr
+VENV_NAME = venv_$(PROJECT_NAME)
 
 $(VENV_NAME): requirements.txt
 	echo "Creating virtualenv $@"
@@ -46,13 +46,21 @@ all:
 	@# Help: Runs build, lint, test stage
 	build lint test 	
 	
+go-build: build
+
 build:
 	@# Help: Runs build stage
 	@echo "---MAKEFILE BUILD---"
+	$(MAKE) docker-build
 	@echo "---END MAKEFILE Build---"
 
 docker-build:
-	docker build --rm --build-arg http_proxy='http://proxy-dmz.intel.com:911' --build-arg https_proxy='http://proxy-dmz.intel.com:912' --build-arg HTTP_PROXY='http://proxy-dmz.intel.com:911' --build-arg HTTPS_PROXY='http://proxy-dmz.intel.com:912' --build-arg NO_PROXY='localhost,*.intel.com,intel.com,127.0.0.1' --build-arg no_proxy='localhost,*.intel.com,intel.com,127.0.0.1' -t ${DOCKER_TAG}:${IMG_VERSION} -f cdn-nginx/Dockerfile cdn-nginx
+	docker build pa-server -f pa-server/Dockerfile \
+	-t ${DOCKER_TAG}:${IMG_VERSION} \
+	--rm \
+	--build-arg http_proxy="$(http_proxy)" --build-arg HTTP_PROXY="$(HTTP_PROXY)" \
+    --build-arg https_proxy="$(https_proxy)" --build-arg HTTPS_PROXY="$(HTTPS_PROXY)" \
+    --build-arg no_proxy="$(no_proxy)" --build-arg NO_PROXY="$(NO_PROXY)" \
 
 docker-push:
 	docker push ${DOCKER_TAG}:${IMG_VERSION}
@@ -68,13 +76,24 @@ license: $(VENV_NAME) ## Check licensing with the reuse tool.
 lint:
 	@# Help: Runs lint stage
 	@echo "---MAKEFILE LINT---"
-	echo $@
+	$(MAKE) lint-ci
 	@echo "---END MAKEFILE LINT---"
 
 test:
 	@# Help: Runs test stage
 	@echo "---MAKEFILE TEST---"
-	./test.sh
+	docker run --name pa-server --rm -d --network container:$$HOSTNAME   ${DOCKER_TAG}:${IMG_VERSION}
+	sleep 10
+	curl -s "http://localhost:8080/index.php" --noproxy '*' --output result.html
+	docker stop pa-server
+	if diff -wB "result.html" "reference.html"; then \
+		echo "FILES MATCH"; \
+		exit 0; \
+	else \
+		diff "result.html" "reference.html"; \
+		echo "FILES DON'T MATCH"; \
+		exit 1; \
+	fi
 	@echo "---END MAKEFILE TEST---"
 	
 coverage:
@@ -86,6 +105,12 @@ coverage:
 list: 
 	@# Help: displays make targets
 	help
+
+dependency-check:
+	@# Help: Runs Dependency Check
+	@echo "---MAKEFILE COVERAGE---"
+	echo $@
+	@echo "---END MAKEFILE COVERAGE---"
 
 help:	
 	@printf "%-20s %s\n" "Target" "Description"
