@@ -1,7 +1,7 @@
 # common.mk - common targets for Fleet Management repos
 
-# SPDX-FileCopyrightText: (C) 2024 Intel Corporation
-# SPDX-License-Identifier: LicenseRef-Intel
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
 
 # Makefile Style Guide:
 # - Help will be generated from ## comments at end of any target line
@@ -164,7 +164,7 @@ buf-lint-fix: $(VENV_NAME) ## Lint and when possible fix protobuf files
 	buf --version
 	buf format -d -w
 	buf lint
-	buf breaking --against 'https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.dkam-service.git#branch=${BASE_BRANCH}
+	buf breaking --against 'https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam.git#branch=${BASE_BRANCH}
 
 #### Lint Targets ####
 # https://github.com/hadolint/hadolint/

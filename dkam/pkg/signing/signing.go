@@ -1,5 +1,5 @@
-// SPDX-FileCopyrightText: (C) 2023 Intel Corporation
-// SPDX-License-Identifier: LicenseRef-Intel
+// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
 
 package signing
 
@@ -16,7 +16,7 @@ import (
 	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
 )
 
-var zlog = logging.GetLogger("MIDKAMAuth")
+var zlog = logging.GetLogger("InfraDKAMAuth")
 
 const (
 	fileMode  = 0o755

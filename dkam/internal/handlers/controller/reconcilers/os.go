@@ -1,5 +1,5 @@
-// SPDX-FileCopyrightText: (C) 2023 Intel Corporation
-// SPDX-License-Identifier: LicenseRef-Intel
+// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
 
 package reconcilers
 
@@ -40,7 +40,7 @@ func (osr *OsReconciler) Reconcile(ctx context.Context,
 	request rec_v2.Request[ReconcilerID],
 ) rec_v2.Directive[ReconcilerID] {
 	if osr.enableTracing {
-		ctx = tracing.StartTrace(ctx, "MIDKAM", "OsReconciler")
+		ctx = tracing.StartTrace(ctx, "InfraDKAM", "OsReconciler")
 		defer tracing.StopTrace(ctx)
 	}
 

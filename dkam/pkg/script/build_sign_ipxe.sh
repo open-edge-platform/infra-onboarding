@@ -11,6 +11,9 @@
 # or implied warranties, other than those that are expressly stated in the License. #
 #####################################################################################
 
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
 set -xuo pipefail
 working_dir=$1
 IPXE_DIR=$working_dir/ipxe

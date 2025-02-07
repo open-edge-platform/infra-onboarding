@@ -1,6 +1,6 @@
-// SPDX-FileCopyrightText: (C) 2023 Intel Corporation
+// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 //
-// SPDX-License-Identifier: LicenseRef-Intel
+// SPDX-License-Identifier: Apache-2.0
 module github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam
 
 go 1.23.2

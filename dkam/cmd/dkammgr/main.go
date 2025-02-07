@@ -1,5 +1,5 @@
-// SPDX-FileCopyrightText: (C) 2023 Intel Corporation
-// SPDX-License-Identifier: LicenseRef-Intel
+// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
 package main
 
 import (
@@ -27,7 +27,7 @@ import (
 )
 
 var (
-	name = "MIDKAMMain"
+	name = "InfraDKAM"
 	zlog = logging.GetLogger(name + "Main")
 
 	inventoryAddress = flag.String(client.InventoryAddress, "localhost:50051", client.InventoryAddressDescription)

@@ -1,7 +1,7 @@
 # DKAM manager Makefile
 
-# SPDX-FileCopyrightText: (C) 2022 Intel Corporation
-# SPDX-License-Identifier: LicenseRef-Intel
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
 
 .DEFAULT_GOAL := help
 .PHONY: build test lint license help generate
@@ -15,7 +15,7 @@ CURRENT_GID := $(shell id -g)
 
 # Project variables
 PROJECT_NAME := dkammgr
-BINARY_NAME  := dkammgr
+BINARY_NAME  := $(PROJECT_NAME) 
 
 DB_CONTAINER_NAME := $(PROJECT_NAME)-db
 
@@ -29,7 +29,7 @@ IMG_VERSION   ?= main
 GIT_COMMIT    ?= $(shell git rev-parse HEAD)
 
 # Create the virtualenv with python tools installed
-VENV_NAME = venv_midkammgr
+VENV_NAME := venv_$(PROJECT_NAME) 
 
 BASE_BRANCH ?= main
 APIPKG_DIR := pkg/api
@@ -62,7 +62,7 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
 go-build: $(BUILD_DIR) ## build resource manager binary
-	$(GOCMD) build $(GOEXTRAFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) cmd/$(BINARY_NAME)/main.go
+	$(GOCMD) build $(GOEXTRAFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) cmd/$(PROJECT_NAME)/main.go
 
 go-test: $(BUILD_DIR)
 	$(MAKE) db-stop
