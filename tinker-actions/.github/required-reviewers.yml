@@ -1,0 +1,13 @@
+---
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+- paths:
+    - ".*/**"
+    - "**"
+    - ".*"
+  approvals: 0
+  reviewers:
+    - nbmaiti
+    - ram-srini
+    - manju956

@@ -1,0 +1,5 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+
+Files: Makefile README.md pa-server/* VERSION .gitignore README.md reference.html result.html .trivyignore .env.jenkins
+Copyright: (C) 2025 Intel Corporation
+License: Apache-2.0

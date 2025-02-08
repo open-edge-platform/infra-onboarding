@@ -1,0 +1,104 @@
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+{
+    servers {
+        protocols h1 h2 h2c
+    }
+
+    log {
+        level DEBUG
+        format filter {
+            wrap console
+            fields {
+                resp_headers delete
+                request>headers delete
+                request>tls delete
+            }
+        }
+    }
+}
+
+# Proxy server for fileserver access
+localhost:443 {
+    bind 127.0.0.1
+    tls /etc/caddy/caddy-cert.pem /etc/caddy/caddy-key.pem
+    reverse_proxy {$release_svc}:443 {
+        header_up Authorization "Bearer {$release_token}"
+        header_up Host {upstream_hostport}
+
+        transport http {
+            tls
+        }
+    }
+}
+
+# Proxy server for OCI release service
+localhost:7443 {
+    bind 127.0.0.1 
+    tls /etc/caddy/caddy-cert.pem /etc/caddy/caddy-key.pem
+    reverse_proxy {$oci_release_svc}:443 {
+        header_up Authorization "Bearer {$release_token}"
+        header_up Host {upstream_hostport}
+
+        transport http {
+            tls
+        }
+    }
+}
+
+# Proxy server(HTTP) to route tink stack routes 
+:80 {
+    bind 127.0.0.1
+
+    reverse_proxy /tink-stack/* {$tink_stack_svc}:443 {
+        header_up Authorization "Bearer {$access_token}"
+        header_up Host {upstream_hostport}
+
+        transport http {
+            tls
+            tls_server_name {$tink_stack_svc}
+        }
+    }
+    reverse_proxy /repository/* {$release_svc}:443 {
+        header_up Authorization "Bearer {$release_token}"
+        header_up Host {upstream_hostport}
+
+        transport http {
+            tls
+            tls_server_name {$release_svc}
+        }
+    }
+}
+
+# GRPC Proxy server for tink server
+:42113 {
+    bind 127.0.0.1
+    reverse_proxy {$tink_server_svc}:443 {
+        header_up Authorization "Bearer {$access_token}"
+        header_up Host {upstream_hostport}
+
+        transport http {
+            tls
+            tls_server_name {$tink_server_svc}
+        }
+    }
+}
+
+# Server to route fluent-bit logs to Loki/Grafana
+localhost:24224 {
+    bind 127.0.0.1
+    tls /etc/caddy/caddy-cert.pem /etc/caddy/caddy-key.pem
+    reverse_proxy {$logging_svc}:443 {
+        header_up Authorization "Bearer {$access_token}"
+        header_up Host {upstream_hostport}
+
+        # add projectId for proper multi-tenancy handling
+        header_up X-Scope-OrgID {$project_id}
+
+        transport http {
+            tls
+            tls_server_name {$logging_svc}
+        }
+    }
+}

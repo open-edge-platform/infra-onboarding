@@ -1,0 +1,199 @@
+---
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+linters:
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - cyclop
+    - copyloopvar
+    - depguard
+    - dogsled
+    - durationcheck
+    - errcheck
+    - errname
+    - errorlint
+    - exhaustive
+    - funlen
+    - gci
+    - gochecknoinits
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - gofmt
+    - gofumpt
+    - goimports
+    - goheader
+    - gomoddirectives
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - lll
+    - mnd
+    - misspell
+    - nakedret
+    - nilerr
+    - nilnil
+    - noctx
+    - nolintlint
+    - prealloc
+    - predeclared
+    - revive
+    - staticcheck
+    - stylecheck
+    - tagliatelle
+    - testpackage
+    - tenv
+    - testableexamples
+    - thelper
+    - tparallel
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - whitespace
+    # - dupl  #TBD
+run:
+  timeout: 10m
+  issues-exit-code: 1
+  tests: true
+  # With the read-only mode linter will fail if go.mod file is outdated.
+  modules-download-mode: readonly
+  # Keep this empty to use the Go version from the go.mod file.
+  go: ""
+linters-settings:
+  cyclop:
+    # SDL requirements dictate a maximum cyclomatic complexity of 10
+    max-complexity: 10
+  govet:
+    enable:
+      - shadow
+  misspell:
+    locale: US
+  lll:
+    line-length: 130
+    tab-width: 4
+  funlen:
+    lines: 100
+    statements: 50
+  exhaustive:
+    default-signifies-exhaustive: true
+  gci:
+    sections:
+      # Standard section: captures all standard packages.
+      - standard
+      # Default section: contains all imports that could not be matched to another section type.
+      - default
+      # Custom section: groups all imports with the specified Prefix.
+      - prefix(github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra)
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      # These 3 will detect many cases, but they do sense
+      # if it's performance oriented code
+      - hugeParam
+      - rangeExprCopy
+      - rangeValCopy
+      - unnamedResult
+  errcheck:
+    # Report `a := b.(MyStruct)` when `a, ok := ...` should be.
+    check-type-assertions: true # Default: false
+    # Report skipped checks:`num, _ := strconv.Atoi(numStr)`.
+    check-blank: true # Default: false
+    # Function to skip.
+    exclude-functions:
+      - io/ioutil.ReadFile
+      - io.Copy(*bytes.Buffer)
+      - io.Copy(os.Stdout)
+  nakedret:
+    # No naked returns, ever.
+    max-func-lines: 1 # Default: 30
+  tagliatelle:
+    case:
+      rules:
+        json: snake
+        yaml: snake
+        xml: camel
+        bson: camel
+        avro: snake
+        mapstructure: kebab
+  depguard:
+    rules:
+      Main:
+        files:
+          - $all
+          - "!$test"
+        allow:
+          - $gostd
+          - github.com/intel-innersource
+          - entgo.io/ent
+          - github.com/goccy/go-json
+          - github.com/google
+          - github.com/grpc-ecosystem
+          - github.com/lib/pq
+          - github.com/mennanov/fmutils
+          - github.com/labstack/echo
+          - github.com/onosproject
+          - github.com/open-policy-agent
+          - github.com/pkg/errors
+          - github.com/rs/zerolog
+          - github.com/cenkalti/backoff
+          - github.com/spf13
+          - k8s.io/apimachinery
+          - k8s.io/client-go
+          - github.com/tinkerbell
+          - github.com/Nerzal/gocloak
+          - github.com/scylladb/gocqlx
+          - sigs.k8s.io/controller-runtime/pkg/client
+          - sigs.k8s.io/controller-runtime/pkg/log
+          - sigs.k8s.io/controller-runtime/pkg/log/zap
+          - github.com/stretchr/testify
+          - github.com/prometheus/client_golang/prometheus
+          - github.com/fsnotify/fsnotify
+          - github.com/Masterminds/sprig/v3
+        deny: []
+      Test:
+        files:
+          - $test
+        allow:
+          - $gostd
+          - github.com/intel-innersource
+          - github.com/goccy/go-json
+          - github.com/google
+          - github.com/grpc-ecosystem
+          - github.com/mennanov/fmutils
+          - github.com/onosproject
+          - github.com/rs/zerolog
+          - github.com/stretchr/testify/require
+          - github.com/stretchr/testify/assert
+          - github.com/grpc-ecosystem/go-grpc-middleware/util/metautils
+        deny: []
+issues:
+  exclude-dirs:
+  exclude-files:
+    - ".*_test\\.go"
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  # When set to `true` linter will analyze only new code which are
+  # not committed or after some specific revision. This is a cool
+  # feature when you're going to introduce linter into a big project.
+  # But I prefer going gradually package by package.
+  # So, it's set to `false` to scan all code.
+  new: false
+  fix: false
+  exclude:
+    - Error return value of `.*Close` is not checked
+    - Error return value of `.*Flush` is not checked
+    - Error return value of `.*Write` is not checked
+    - Error return value of `.*Stop` is not checked
