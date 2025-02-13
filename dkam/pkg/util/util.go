@@ -8,10 +8,10 @@ import (
 	"os"
 	"path/filepath"
 
-	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
+	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
+	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
+	"github.com/intel/infra-core/inventory/v2/pkg/logging"
+	"github.com/intel/infra-onboarding/dkam/pkg/config"
 )
 
 var zlog = logging.GetLogger("DKAMUtil")

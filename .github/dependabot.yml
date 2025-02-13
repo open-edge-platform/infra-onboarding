@@ -11,11 +11,13 @@ registries:
     password: ${{ secrets.SYS_OIE_DEVOPS_GITHUBAPI_TOKEN }}
 updates:
   - package-ecosystem: "gomod"
-    directory: "/"
+    directories:
+      - "/onboarding-manager"
+      - "/dkam"
     registries:
       - github
     schedule:
       interval: daily
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 10
     commit-message:
       prefix: "[gomod] "

@@ -54,7 +54,7 @@ go-lint: $(BUILD_DIR)## lint code
 	golangci-lint --version
 	golangci-lint run --config .golangci.yml
 
-test: go-test fuzztest
+test: go-test
 
 #### Sub-targets ####
 

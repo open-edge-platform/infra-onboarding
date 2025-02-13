@@ -1,0 +1,193 @@
+name: Pre-Merge CI Pipeline
+# TO BE MIGRATED TO SHARED ORCH-CI REPO.
+on:
+  workflow_call:
+    inputs:
+      run_security_scans:
+        description: "Run security scans"
+        required: false
+        default: false
+        type: boolean
+      run_version_check:
+        description: "Run version check"
+        required: false
+        default: true
+        type: boolean
+      run_dep_version_check:
+        description: "Run dependency version check"
+        required: false
+        default: false
+        type: boolean
+      run_build:
+        description: "Run build"
+        required: true
+        default: true
+        type: boolean
+      run_lint:
+        description: "Run lint"
+        required: false
+        default: true
+        type: boolean
+      run_test:
+        description: "Run test"
+        required: false
+        default: true
+        type: boolean
+      run_validate_clean_folder:
+        description: "Run validate clean folder"
+        required: false
+        default: false
+        type: boolean
+      run_docker_build:
+        description: "Run docker build"
+        required: false
+        default: false
+        type: boolean
+      run_docker_push:
+        description: "Run docker build"
+        required: false
+        default: false
+        type: boolean
+      run_helm_build:
+        description: "Run helm build"
+        required: false
+        default: false
+        type: boolean
+      run_scan_containers:
+        description: "Run scan containers"
+        required: true
+        default: true
+        type: boolean
+      run_artifact:
+        description: "Run artifact"
+        required: false
+        default: false
+        type: boolean
+      prefix_tag_separator:
+        description: "If provided, the tag will be prefixed input.project_folder with this separator"
+        required: false
+        default: ""
+        type: string
+      project_folder:
+        description: "Project subfolder where the job will run, defaults to ."
+        required: false
+        default: "."
+        type: string
+jobs:
+  run-repo-pipelines:
+    # TODO: runs-on: ${{ github.repository_owner == 'intel' && 'intel-ubuntu-latest' || 'ubuntu-latest' }}
+    runs-on: 'ubuntu-latest'
+    env:
+      GIT_SHORT_URL: ${{ github.repository }}
+      PROJECT_NAME: ${{ github.repository }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history, WO sporadic issue with missing tags
+          fetch-tags: true # Fetch tags
+          ref: ${{ github.head_ref }} # Checkout the branch that triggered the workflow to avoid detached HEAD
+
+      - name: Version Check
+        if: ${{ inputs.run_version_check == true }}
+        env:
+          BASEDIR: ${{ inputs.project_folder }}
+        run: |
+          if [ -n "${{ inputs.prefix_tag_separator }}" ]; then
+            ./.github/tobemigrated/tools/version-check.sh "${{ inputs.project_folder }}${{ inputs.prefix_tag_separator }}"
+          else
+            ./.github/tobemigrated/tools/version-check.sh
+          fi
+
+      - name: Setup CI environment
+        uses: ./.github/tobemigrated/setup-ci-env
+        with:
+          gh_token: ${{ secrets.SYS_ORCH_GITHUB }}
+
+      - name: Dep Version Check
+        if: ${{ inputs.run_dep_version_check == true }}
+        working-directory: ${{ inputs.project_folder }}
+        run: |
+          echo "Verifying dependencies version"
+          make dependency-check
+
+      - name: Load Environment Variables
+        working-directory: ${{ inputs.project_folder }}
+        id: load-env
+        run: |
+          env_file="${{ inputs.project_folder }}/.env.jenkins"
+          if [ -f "$env_file" ]; then
+            export $(grep -v '^#' $env_file | xargs)
+          fi
+
+      - name: Print Loaded Environment Variables
+        working-directory: ${{ inputs.project_folder }}
+        run: |
+          env_file="${{ matrix.project_folder }}/.env.jenkins"
+          if [ -f "$env_file" ]; then
+            cat $env_file
+          fi
+
+      - name: Print env
+        run: printenv
+
+      - name: Security Scans
+        if: ${{ inputs.run_security_scans == true }}
+        run: |
+          echo 'Call scanners from a different yml'
+
+      - name: Build Code
+        if: ${{ inputs.run_build == true }}
+        working-directory: ${{ inputs.project_folder }}
+        shell: bash
+        run: |
+          echo "Building the code"
+          make build
+
+      - name: Lint Code
+        if: ${{ inputs.run_lint == true }}
+        working-directory: ${{ inputs.project_folder }}
+        run: |
+          make lint
+
+      - name: Test Code
+        if: ${{ inputs.run_test == true }}
+        working-directory: ${{ inputs.project_folder }}
+        run: |
+          make test
+          # TO DO find a replacement for cobertura
+
+      - name: Validate clean folder
+        if: ${{ inputs.run_validate_clean_folder == true }}
+        working-directory: ${{ inputs.project_folder }}
+        run: |
+          bash -c "diff -u <(echo -n) <(git diff .)"
+
+      - name: Build Docker image
+        if: ${{ inputs.run_docker_build == true }}
+        working-directory: ${{ inputs.project_folder }}
+        run: |
+          make docker-build
+
+      - name: Build Helm image
+        if: ${{ inputs.run_helm_build == true }}
+        working-directory: ${{ inputs.project_folder }}
+        run: |
+          make helm-build
+
+      - name: Scan Containers
+        if: ${{ inputs.run_scan_containers == true }}
+        run: |
+          # TO DO figure out how to separate containers
+          echo "Scanning containers..."
+
+      - name: Artifact
+        if: ${{ inputs.run_artifact == true }}
+        run: |
+          #TO DO figure out if needed, mainly legacy stage
+          echo "Uploading artifacts..."
+
+      - name: Send failure email
+        if: ${{ failure() }}
+        run: |
+          echo "Sending failure email..."

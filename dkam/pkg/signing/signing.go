@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
+	"github.com/intel/infra-core/inventory/v2/pkg/logging"
+	"github.com/intel/infra-onboarding/dkam/pkg/config"
 )
 
 var zlog = logging.GetLogger("InfraDKAMAuth")

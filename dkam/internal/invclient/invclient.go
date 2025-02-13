@@ -13,17 +13,17 @@ import (
 	uuid_lib "github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 
-	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/compute/v1"
-	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/inventory/v1"
-	network_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/network/v1"
-	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
-	provider_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/provider/v1"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/client"
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/util"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/util/collections"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/validator"
+	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
+	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
+	network_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/network/v1"
+	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
+	provider_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/provider/v1"
+	"github.com/intel/infra-core/inventory/v2/pkg/client"
+	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
+	"github.com/intel/infra-core/inventory/v2/pkg/logging"
+	"github.com/intel/infra-core/inventory/v2/pkg/util"
+	"github.com/intel/infra-core/inventory/v2/pkg/util/collections"
+	"github.com/intel/infra-core/inventory/v2/pkg/validator"
 )
 
 const (

@@ -7,13 +7,12 @@ import (
 	"context"
 	"fmt"
 
-	rec_v2 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go/pkg/controller/v2"
-
-	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/tracing"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/dkammgr"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/invclient"
+	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
+	"github.com/intel/infra-core/inventory/v2/pkg/logging"
+	"github.com/intel/infra-core/inventory/v2/pkg/tracing"
+	"github.com/intel/infra-onboarding/dkam/internal/dkammgr"
+	"github.com/intel/infra-onboarding/dkam/internal/invclient"
+	rec_v2 "github.com/intel/orch-library/go/pkg/controller/v2"
 )
 
 var (

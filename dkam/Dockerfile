@@ -13,14 +13,14 @@ ARG VERSION
 ARG REVISION
 ARG BUILD_DATE
 
-COPY Makefile common.mk requirements.txt VERSION go.mod go.sum /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/
-COPY cmd/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/cmd/
-COPY internal/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/
-COPY pkg/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/
-COPY vendor/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/vendor/
-COPY platform-bundle/ /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/script/platform-bundle/
+COPY Makefile common.mk requirements.txt VERSION go.mod go.sum /go/src/github.com/intel/infra-onboarding/dkam/
+COPY cmd/ /go/src/github.com/intel/infra-onboarding/dkam/cmd/
+COPY internal/ /go/src/github.com/intel/infra-onboarding/dkam/internal/
+COPY pkg/ /go/src/github.com/intel/infra-onboarding/dkam/pkg/
+COPY vendor/ /go/src/github.com/intel/infra-onboarding/dkam/vendor/
+COPY platform-bundle/ /go/src/github.com/intel/infra-onboarding/dkam/pkg/script/platform-bundle/
 
-WORKDIR /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam
+WORKDIR /go/src/github.com/intel/infra-onboarding/dkam
 
 RUN CGO_ENABLED=0 TOOL_VERSION_CHECK=0 \
   DOCKER_LABEL_REPO_URL=${REPO_URL} \
@@ -55,8 +55,8 @@ LABEL org.opencontainers.image.version=${VERSION} \
 
 WORKDIR /home/$USERNAME
 
-COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/build/dkammgr /usr/local/bin/dkammgr
-COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg /home/$USERNAME/pkg
+COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/intel/infra-onboarding/dkam/build/dkammgr /usr/local/bin/dkammgr
+COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/intel/infra-onboarding/dkam/pkg /home/$USERNAME/pkg
 
 RUN chown -R $USERNAME:$USERNAME /home/$USERNAME
 RUN chmod +x pkg/script/build_sign_ipxe.sh

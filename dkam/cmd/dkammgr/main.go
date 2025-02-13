@@ -15,15 +15,15 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/client"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/metrics"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/oam"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/tracing"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/dkammgr"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/handlers/controller"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/invclient"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
+	"github.com/intel/infra-core/inventory/v2/pkg/client"
+	"github.com/intel/infra-core/inventory/v2/pkg/logging"
+	"github.com/intel/infra-core/inventory/v2/pkg/metrics"
+	"github.com/intel/infra-core/inventory/v2/pkg/oam"
+	"github.com/intel/infra-core/inventory/v2/pkg/tracing"
+	"github.com/intel/infra-onboarding/dkam/internal/dkammgr"
+	"github.com/intel/infra-onboarding/dkam/internal/handlers/controller"
+	"github.com/intel/infra-onboarding/dkam/internal/invclient"
+	"github.com/intel/infra-onboarding/dkam/pkg/config"
 )
 
 var (
@@ -43,8 +43,8 @@ var (
 )
 
 var (
-	Project   = "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam"
-	RepoURL   = fmt.Sprintf("https://github.com/intel-innersource/%s.git", Project)
+	Project   = "infra-onboarding/dkam"
+	RepoURL   = fmt.Sprintf("https://github.com/intel/%s.git", Project)
 	Version   = "<unset>"
 	Revision  = "<unset>"
 	BuildDate = "<unset>"

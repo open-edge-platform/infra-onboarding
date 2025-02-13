@@ -9,16 +9,16 @@ import (
 	"sync"
 	"time"
 
-	rec_v2 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go/pkg/controller/v2"
 	"github.com/pkg/errors"
 
-	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/inventory/v1"
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/util"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/validator"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/handlers/controller/reconcilers"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/invclient"
+	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
+	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
+	"github.com/intel/infra-core/inventory/v2/pkg/logging"
+	"github.com/intel/infra-core/inventory/v2/pkg/util"
+	"github.com/intel/infra-core/inventory/v2/pkg/validator"
+	"github.com/intel/infra-onboarding/dkam/internal/handlers/controller/reconcilers"
+	"github.com/intel/infra-onboarding/dkam/internal/invclient"
+	rec_v2 "github.com/intel/orch-library/go/pkg/controller/v2"
 )
 
 var (

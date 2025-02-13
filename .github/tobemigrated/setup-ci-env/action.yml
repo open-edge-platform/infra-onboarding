@@ -1,0 +1,197 @@
+name: 'Setup CI environment'
+inputs:
+  gh_token:
+    required: true
+    description: "PAT token for private repositories"
+runs:
+  using: "composite"
+  steps:
+    - name: "Setup VERSION in env"
+      shell: bash
+      run: |
+        cat ${{ github.action_path }}/VERSIONS >> $GITHUB_ENV
+        echo "GOLANG_VER=$GOLANG_VER" >> $GITHUB_OUTPUT
+    - id: out_go_ver
+      shell: bash
+      run: |
+        echo "GOLANG_VER=$GOLANG_VER" >> $GITHUB_OUTPUT
+    - uses: actions/setup-go@v5
+      with:
+        go-version: ${{ steps.out_go_ver.outputs.GOLANG_VER }}
+        cache: false
+    - name: Set up Go environment
+      shell: bash
+      run: |
+        echo "Setting up Go environment"
+        echo "GOPRIVATE=github.com/intel" >> $GITHUB_ENV
+        git config --global url."https://${{ inputs.gh_token }}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+
+    - name: "Python dependencies"
+      shell: bash
+      run: pip install -r ${{ github.action_path }}/requirements.txt
+    - name: "node.js dependencies"
+      shell: bash
+      run: |
+        npm install -g \
+        "@mermaid-js/mermaid-cli@${MERMAID_JS_CLI_VER}" \
+        "@stoplight/spectral-cli@${SPECTRAL_CLI_VER}" \
+        "markdownlint-cli@${MARKDOWNLINT_CLI_VER}" \
+        "markdownlint-cli2@${MARKDOWNLINT_CLI2_VER}" \
+        "npm-groovy-lint@${NPM_GROOVY_LINT_VER}" \
+        "swagger-cli@${SWAGGER_CLI_VER}" \
+        "@eslint/js@${ESLINT_VER}" \
+        "pajv@${PAJV_VER}"
+    - name: "Golang dependencies"
+      shell: bash
+      run: |
+          go install "google.golang.org/protobuf/cmd/protoc-gen-go@v${PROTO_GEN_GO_VER}"
+          go install "google.golang.org/grpc/cmd/protoc-gen-go-grpc@v${PROTO_GEN_GO_GRPC_VER}"
+          go install "github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v${PROTO_GEN_DOC_VER}"
+          go install "github.com/envoyproxy/protoc-gen-validate@v${PROTO_GEN_VALIDATE_VER}"
+          go install "entgo.io/contrib/entproto/cmd/protoc-gen-ent@v${PROTO_GEN_ENT_VER}"
+          go install "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v${PROTO_GEN_GRPC_GW_VER}"
+          go install "entgo.io/ent/cmd/ent@v${ENT_TOOL_VER}"
+          go install "github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v${OAPI_CODEGEN_VER}"
+          go install "github.com/jstemmer/go-junit-report/v2@v${GOLANG_JUNIT_REPORT_VER}"
+          go install "github.com/boumenot/gocover-cobertura@v${GOLANG_COBERTURA_VER}"
+          go install "sigs.k8s.io/kind@v${KIND_VER}"
+          go install "github.com/yannh/kubeconform/cmd/kubeconform@v${KUBE_CONFORM_VER}"
+          go install "github.com/google/gnostic/cmd/protoc-gen-openapi@${GNOSTIC_OPENAPI_VER}"
+          go install "github.com/github-release/github-release@v${GITHUB_RELEASE_VER}"
+          go install "github.com/google/gnostic@v${GNOSTIC_VER}"
+          go install "github.com/googleapis/gnostic-grpc@v${GNOSTIC_GRPC_VER}"
+          go install "github.com/golang/mock/mockgen@v${GOLANG_MOCKGEN_VER}"
+          go install "mvdan.cc/sh/v3/cmd/shfmt@v${SHFMT_VER}"
+          go install "golang.org/x/vuln/cmd/govulncheck@v${GOVULNCHECK_VER}"
+          go install "github.com/santhosh-tekuri/jsonschema/cmd/jv@${JV_VER}"
+          go install "github.com/magefile/mage@v${MAGE_VER}"
+          GOBIN=/tmp go install "github.com/kollalabs/protoc-gen-openapi@v${KOLLALABS_OPENAPI}"
+          mv /tmp/protoc-gen-openapi /usr/local/bin/protoc-gen-openapi-kollalabs
+    - name: "Other system dependencies"
+      shell: bash
+      run: |
+        # golangci-lint tool
+        curl -Lo /tmp/golangci-lint.deb "https://github.com/golangci/golangci-lint/releases/download/v${GOLANG_CI_LINT_VER}/golangci-lint-${GOLANG_CI_LINT_VER}-linux-amd64.deb"
+        sha256sum -c --ignore-missing ${{ github.action_path }}/SHA256SUM
+        sudo dpkg -i /tmp/golangci-lint.deb
+        rm -rf /tmp/golangci-lint.deb
+
+        # helm tool
+        curl -Lo /tmp/helm.tgz "https://get.helm.sh/helm-v${HELM_VER}-linux-amd64.tar.gz"
+        sha256sum -c --ignore-missing ${{ github.action_path }}/SHA256SUM
+        tar -xvf /tmp/helm.tgz -C /tmp
+        install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
+        rm -rf /tmp/helm.tgz /tmp/linux-amd64
+        helm plugin install https://github.com/databus23/helm-diff
+        helm plugin install https://github.com/helm-unittest/helm-unittest
+
+        # buf protobuf build tool
+        curl -Lo /tmp/buf "https://github.com/bufbuild/buf/releases/download/v${BUF_VER}/buf-Linux-x86_64"
+        sha256sum -c --ignore-missing ${{ github.action_path }}/SHA256SUM
+        install -m 0755 /tmp/buf /usr/local/bin/buf
+        rm /tmp/buf
+
+        # shellcheck, shell linter
+        curl -Lo /tmp/shellcheck.tar.xz "https://github.com/koalaman/shellcheck/releases/download/v${SHELLCHECK_VER}/shellcheck-v${SHELLCHECK_VER}.linux.x86_64.tar.xz"
+        sha256sum -c --ignore-missing ${{ github.action_path }}/SHA256SUM
+        tar -xvf /tmp/shellcheck.tar.xz -C /tmp
+        install -m 0755 "/tmp/shellcheck-v${SHELLCHECK_VER}/shellcheck" /usr/local/bin/shellcheck
+        rm -rf /tmp/shellcheck*
+
+        # hadolint, dockerfile linter
+        curl -Lo /tmp/hadolint "https://github.com/hadolint/hadolint/releases/download/v${HADOLINT_VER}/hadolint-Linux-x86_64"
+        sha256sum -c --ignore-missing ${{ github.action_path }}/SHA256SUM
+        install -m 0755 /tmp/hadolint /usr/local/bin/hadolint
+        rm /tmp/hadolint
+
+        # tflint, terraform linter
+        curl -Lo /tmp/tflint.zip "https://github.com/terraform-linters/tflint/releases/download/v${TFLINT_VER}/tflint_linux_amd64.zip"
+        sha256sum -c --ignore-missing ${{ github.action_path }}/SHA256SUM
+        unzip -d /tmp/tflint /tmp/tflint.zip
+        install -m 0755 /tmp/tflint/tflint /usr/local/bin/tflint
+        rm -rf /tmp/tflint*
+
+        # yq, yaml CLI parse/manipulation tool
+        curl -Lo /tmp/yq "https://github.com/mikefarah/yq/releases/download/v${YQ_VER}/yq_linux_amd64"
+        sha256sum -c --ignore-missing ${{ github.action_path }}/SHA256SUM
+        install -m 0755 /tmp/yq /usr/local/bin/yq
+        rm /tmp/yq
+
+        # jq, json CLI parse/manipulation tool
+        curl -Lo /tmp/jq "https://github.com/jqlang/jq/releases/download/jq-${JQ_VER}/jq-linux-amd64"
+        sha256sum -c --ignore-missing ${{ github.action_path }}/SHA256SUM
+        install -m 0755 /tmp/jq /usr/local/bin/jq
+        rm /tmp/jq
+
+        # kubectl
+        curl -Lo /tmp/kubectl "https://dl.k8s.io/release/v${KUBECTL_VER}/bin/linux/amd64/kubectl"
+        sha256sum -c --ignore-missing ${{ github.action_path }}/SHA256SUM
+        install -m 0755 /tmp/kubectl /usr/local/bin/kubectl
+        rm /tmp/kubectl
+
+        # OPA tool
+        curl -Lo /tmp/opa "https://openpolicyagent.org/downloads/v${OPA_VER}/opa_linux_amd64_static"
+        sha256sum -c --ignore-missing ${{ github.action_path }}/SHA256SUM
+        chmod +x /tmp/opa
+        mv /tmp/opa /usr/local/bin
+
+        # Atlas tool
+        curl -Lo /tmp/atlas "https://release.ariga.io/atlas/atlas-community-linux-amd64-v${ATLAS_VER}"
+        sha256sum -c --ignore-missing ${{ github.action_path }}/SHA256SUM
+        chmod +x /tmp/atlas
+        mv /tmp/atlas /usr/local/bin
+
+        # Fleet tool
+        curl -Lo /tmp/fleet "https://github.com/rancher/fleet/releases/download/v${FLEET_VER}/fleet-linux-amd64"
+        sha256sum -c --ignore-missing ${{ github.action_path }}/SHA256SUM
+        install -m 0755 /tmp/fleet /usr/local/bin/fleet
+        rm /tmp/fleet
+
+        # Trivy tool TODO: do we need it anymore?
+        curl -Lo /tmp/trivy.deb "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VER}/trivy_${TRIVY_VER}_Linux-64bit.deb"
+        sha256sum -c --ignore-missing ${{ github.action_path }}/SHA256SUM
+        sudo dpkg -i /tmp/trivy.deb
+        rm -rf /tmp/trivy.deb
+
+        # Install Oras
+        curl -Lo /tmp/oras.tgz "https://github.com/oras-project/oras/releases/download/v${ORAS_VER}/oras_${ORAS_VER}_linux_amd64.tar.gz"
+        sha256sum -c --ignore-missing ${{ github.action_path }}/SHA256SUM
+        mkdir -p /tmp/oras-install/
+        tar -zxf /tmp/oras.tgz -C /tmp/oras-install/
+        install -m 0755 /tmp/oras-install/oras /usr/local/bin/oras
+        rm -rf /tmp/oras.tgz /tmp/oras-install
+
+        # Install checksec.sh
+        curl -Lo /tmp/checksec "https://raw.githubusercontent.com/slimm609/checksec.sh/${CHECKSEC_VER}/checksec"
+        sha256sum -c --ignore-missing ${{ github.action_path }}/SHA256SUM
+        chmod +x /tmp/checksec
+        install -m 0755 /tmp/checksec /usr/local/bin/checksec
+        rm -rf /tmp/checksec
+
+        # Install promtool
+        curl -Lo /tmp/prometheus.tgz "https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VER}/prometheus-${PROMETHEUS_VER}.linux-amd64.tar.gz"
+        sha256sum -c --ignore-missing ${{ github.action_path }}/SHA256SUM
+        mkdir -p /tmp/prometheus
+        tar -xzf /tmp/prometheus.tgz -C /tmp/prometheus --strip-components=1
+        install -m 0755 /tmp/prometheus/promtool /usr/local/bin/promtool
+        rm -rf /tmp/prometheus /tmp/prometheus.tgz
+
+        #Install level-zero
+        curl -Lo /tmp/level-zero.deb "https://github.com/oneapi-src/level-zero/releases/download/v${LEVEL_ZERO_VER}/level-zero_${LEVEL_ZERO_VER}+u22.04_amd64.deb"
+        sudo dpkg -i /tmp/level-zero.deb
+        rm -rf /tmp/level-zero.deb
+
+        #Install protolint
+        curl -Lo /tmp/protolint.tgz "https://github.com/yoheimuta/protolint/releases/download/v${PROTOLINT_VER}/protolint_${PROTOLINT_VER}_linux_amd64.tar.gz"
+        sha256sum -c --ignore-missing ${{ github.action_path }}/SHA256SUM
+        mkdir -p /tmp/protolint
+        tar -zxf /tmp/protolint.tgz -C /tmp/protolint/
+        install -m 0755 /tmp/protolint/protolint /usr/local/bin/protolint
+        rm -rf /tmp/protolint.tgz /tmp/protolint

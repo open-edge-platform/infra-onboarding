@@ -15,7 +15,7 @@
 #### Go Targets ####
 
 # Set GOPRIVATE to deal with private innersource repos
-GOCMD := GOPRIVATE="github.com/intel-innersource/*" go
+GOCMD := GOPRIVATE="github.com/intel/*" go
 
 # optionally include tool version checks, not used in Docker builds
 TOOL_VERSION_CHECK ?= 1
@@ -51,7 +51,18 @@ DOCKER_LABEL_VERSION    ?= $(IMG_VERSION)
 DOCKER_LABEL_REVISION   ?= $(GIT_COMMIT)
 DOCKER_LABEL_BUILD_DATE ?= $(shell date -u "+%Y-%m-%dT%H:%M:%SZ")
 
-DB_CONTAINER_NAME 		?= inv-db
+DB_CONTAINER_NAME 		?= $(PROJECT_NAME)-db
+
+#### Database Config & Targets (for unit testing only) ####
+
+# Postgres DB configuration and credentials for testing. This mimics the Aurora
+# production environment.
+export PGUSER=admin
+export PGHOST=localhost
+export PGDATABASE=postgres
+export PGPORT=5432
+export PGPASSWORD=pass
+export PGSSLMODE=disable
 
 # Docker networking flags for the database container.
 # The problem is as follows: On a local MacOS machine we want to expose the port
@@ -59,7 +70,7 @@ DB_CONTAINER_NAME 		?= inv-db
 # CI we're already inside a container, hence have to attach the DB container to
 # the same network stack as the job. Because the port (-p) syntax cannot be used
 # at the same time as the --network container:x flag, we need this variable.
-ifeq ($(shell set +u; echo $$CI), true)
+ifeq ($(shell echo $${CI_CONTAINER:-false}), true)
   DOCKER_NETWORKING_FLAGS = --network container:$$HOSTNAME
 else
   DOCKER_NETWORKING_FLAGS = -p 5432:5432
@@ -80,14 +91,6 @@ docker-build: ## build Docker image
 docker-push: docker-build ## tag and push Docker image
 	docker tag maestro-i/$(IMG_NAME):$(IMG_VERSION) $(DOCKER_TAG):$(IMG_VERSION)
 	docker push $(DOCKER_TAG):$(IMG_VERSION)
-
-#### Database Config & Targets (for unit testing only) ####
-PGHOST     := localhost
-PGDATABASE := postgres
-PGPORT     := 5432
-PGSSLMODE  := disable
-PGUSER     := admin
-PGPASSWORD := pass
 
 db-start: ## Start the local postgres database. See: db-stop
 	if [ -z "`docker ps -aq -f name=^$(DB_CONTAINER_NAME)`" ]; then \

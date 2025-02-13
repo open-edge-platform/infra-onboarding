@@ -15,9 +15,8 @@ on:
 
 jobs:
   Auto-Update-PR:
-    runs-on: generic
+    runs-on: ${{ github.repository_owner == 'intel' && 'intel-ubuntu-latest' || 'ubuntu-latest' }}
     steps:
-      - uses: intel-innersource/frameworks.actions.thirdparty.auto-update@v2.2.1
+      - uses: tibdex/auto-update@v2.2.1
         with:
-          # Use DevOp's GitHub API token since it is authorized to trigger new workflows
-          github_token: ${{ secrets.SYS_OIE_DEVOPS_GITHUBAPI_TOKEN }}
+          github_token: ${{ secrets.SYS_ORCH_GITHUB }}

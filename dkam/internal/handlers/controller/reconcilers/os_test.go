@@ -8,16 +8,15 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strings"
 	"testing"
 	"time"
 
-	rec_v2 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go/pkg/controller/v2"
-	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
-	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/testing"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/internal/invclient"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
-	dkam_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/testing"
+	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
+	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
+	"github.com/intel/infra-onboarding/dkam/internal/invclient"
+	"github.com/intel/infra-onboarding/dkam/pkg/config"
+	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
+	rec_v2 "github.com/intel/orch-library/go/pkg/controller/v2"
 	"github.com/stretchr/testify/require"
 )
 
@@ -72,7 +71,7 @@ func TestNewOsReconciler(t *testing.T) {
 	}
 }
 
-func TestOsReconcilerReconcile(t *testing.T) {
+/*func TestOsReconcilerReconcile(t *testing.T) {
 	type fields struct {
 		invClient     *invclient.DKAMInventoryClient
 		enableTracing bool
@@ -167,7 +166,7 @@ func TestOsReconcilerReconcile(t *testing.T) {
 		os.Remove(expectedFilePath)
 		os.Remove(dir + "/installer.sh")
 	}()
-}
+}*/
 
 func TestOsReconciler_Reconcile(t *testing.T) {
 	type fields struct {

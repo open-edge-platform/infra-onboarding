@@ -12,10 +12,10 @@ import (
 	"strings"
 	"testing"
 
-	dkam_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/testing"
+	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
 
-	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam/pkg/config"
+	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
+	"github.com/intel/infra-onboarding/dkam/pkg/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -6,9 +6,9 @@ package invclient
 import (
 	"testing"
 
-	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/inventory/v1"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
-	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/testing"
+	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
+	"github.com/intel/infra-core/inventory/v2/pkg/logging"
+	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
 )
 
 const (

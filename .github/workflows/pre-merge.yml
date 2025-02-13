@@ -1,0 +1,50 @@
+name: Pre-Merge CI Pipeline
+
+on:
+  pull_request:
+    branches:
+      - main
+      - release-*
+  workflow_dispatch:
+
+jobs:
+  pre-checks:
+    runs-on: ${{ github.repository_owner == 'intel' && 'intel-ubuntu-latest' || 'ubuntu-latest' }}
+    outputs:
+      filtered_projects: ${{ steps.filter-changes.outputs.filtered_projects }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Verify Branch Name"
+        uses: intel-tiber/orch-ci/verify-branch-name@main
+      - name: "Discover Changed Subfolders"
+        id: discover-changes
+        uses: intel-tiber/orch-ci/discover-changed-subfolders@main
+      - name: "Filter Out Unwanted Changed Subfolders"
+        id: filter-changes
+        run: |
+          folders_to_remove='[".github",".reuse","LICENSES"]'
+          
+          changed_projects='${{ steps.discover-changes.outputs.changed_projects }}'
+          filtered_projects=$(echo "$changed_projects" | jq -cr --argjson folders_to_remove "$folders_to_remove" 'map(select(. as $item | $folders_to_remove | index($item) | not))')
+          echo "filtered_projects=$filtered_projects" >> $GITHUB_OUTPUT
+  pre-merge-pipeline:
+    needs: pre-checks
+    strategy:
+      fail-fast: false
+      matrix:
+        project_folder: ${{ fromJson(needs.pre-checks.outputs.filtered_projects) }}
+    uses: ./.github/workflows/pre-merge_workflow.yml
+    with:
+      run_security_scans: true
+      run_version_check: true
+      run_dep_version_check: true
+      run_build: true
+      run_lint: true
+      run_test: true
+      run_validate_clean_folder: true
+      run_docker_build: true
+      run_scan_containers: false
+      run_artifact: false
+      prefix_tag_separator: "/"
+      project_folder: ${{ matrix.project_folder }}
+    secrets: inherit
