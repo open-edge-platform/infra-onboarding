@@ -8,9 +8,9 @@ package onboarding
 import (
 	"context"
 
-	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/status"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/invclient"
-	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/pkg/status"
+	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
+	om_status "github.com/intel/infra-onboarding/onboarding-manager/pkg/status"
 )
 
 func UpdateHostStatusByHostGUID(ctx context.Context,

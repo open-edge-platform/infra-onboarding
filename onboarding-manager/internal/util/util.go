@@ -7,12 +7,12 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
-	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/compute/v1"
-	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
-	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/status"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/util"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
+	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
+	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
+	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
+	"github.com/intel/infra-core/inventory/v2/pkg/util"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
 )
 
 func GetImageTypeFromOsType(osType osv1.OsType) (string, error) {

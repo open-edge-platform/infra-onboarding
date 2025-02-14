@@ -11,12 +11,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/invclient"
-	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/testing"
-	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/pkg/status"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/client"
-	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/status"
-	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/testing"
+	"github.com/intel/infra-core/inventory/v2/pkg/client"
+	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
+	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
+	om_testing "github.com/intel/infra-onboarding/onboarding-manager/internal/testing"
+	om_status "github.com/intel/infra-onboarding/onboarding-manager/pkg/status"
 )
 
 func TestMain(m *testing.M) {

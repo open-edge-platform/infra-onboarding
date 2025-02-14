@@ -1,15 +1,16 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-module github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager
+module github.com/intel/infra-onboarding/onboarding-manager
 
 go 1.23.2
 
 require (
 	github.com/envoyproxy/protoc-gen-validate v1.1.0
 	github.com/google/uuid v1.6.0
-	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go v0.5.1
-	github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2 v2.0.0-20250124094213-7018ac65857f
+	github.com/intel/infra-core/inventory/v2 v2.16.1-0.20250211231238-126d77881bc1
+	github.com/intel/infra-onboarding/dkam v0.0.0-20250213103346-d7fa0af7d501
+	github.com/intel/orch-library/go v0.5.18
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.20.5
 	github.com/stretchr/testify v1.10.0
@@ -23,8 +24,6 @@ require (
 	k8s.io/client-go v0.32.0
 	sigs.k8s.io/controller-runtime v0.19.3
 )
-
-require github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/dkam v0.0.0-20250124102629-4d527a2fd771
 
 require (
 	ariga.io/atlas v0.30.0 // indirect

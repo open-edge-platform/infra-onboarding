@@ -8,8 +8,6 @@ import (
 	"context"
 	"strings"
 
-	inv_client "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/client"
-
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
@@ -19,7 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
+	inv_client "github.com/intel/infra-core/inventory/v2/pkg/client"
+	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
 )
 
 type k8sCliMock struct {

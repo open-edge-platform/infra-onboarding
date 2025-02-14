@@ -6,8 +6,8 @@ package status
 import (
 	"fmt"
 
-	statusv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/status/v1"
-	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/status"
+	statusv1 "github.com/intel/infra-core/inventory/v2/pkg/api/status/v1"
+	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
 )
 
 var (

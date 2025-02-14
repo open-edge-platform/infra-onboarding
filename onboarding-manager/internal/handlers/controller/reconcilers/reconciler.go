@@ -11,8 +11,8 @@ import (
 	"google.golang.org/grpc/codes"
 	grpc_status "google.golang.org/grpc/status"
 
-	rec_v2 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-app.lib-go/pkg/controller/v2"
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
+	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
+	rec_v2 "github.com/intel/orch-library/go/pkg/controller/v2"
 )
 
 const (

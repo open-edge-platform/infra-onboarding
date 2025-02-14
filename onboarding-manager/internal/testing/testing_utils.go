@@ -13,12 +13,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/compute/v1"
-	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/inventory/v1"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
-	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/status"
-	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/testing"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/invclient"
+	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
+	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
+	"github.com/intel/infra-core/inventory/v2/pkg/logging"
+	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
+	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
 )
 
 var (

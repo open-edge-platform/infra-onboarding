@@ -12,21 +12,21 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/auth"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/client"
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/flags"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/metrics"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/oam"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/policy/rbac"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/secretprovider"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/tracing"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/env"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/handlers/controller"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/handlers/southbound"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/invclient"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/onboardingmgr/onboarding"
+	"github.com/intel/infra-core/inventory/v2/pkg/auth"
+	"github.com/intel/infra-core/inventory/v2/pkg/client"
+	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
+	"github.com/intel/infra-core/inventory/v2/pkg/flags"
+	"github.com/intel/infra-core/inventory/v2/pkg/logging"
+	"github.com/intel/infra-core/inventory/v2/pkg/metrics"
+	"github.com/intel/infra-core/inventory/v2/pkg/oam"
+	"github.com/intel/infra-core/inventory/v2/pkg/policy/rbac"
+	"github.com/intel/infra-core/inventory/v2/pkg/secretprovider"
+	"github.com/intel/infra-core/inventory/v2/pkg/tracing"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/env"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/handlers/controller"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/handlers/southbound"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/onboarding"
 )
 
 const envNameOnboardingCredentialsSecretName = "ONBOARDING_CREDENTIALS_SECRET_NAME"
@@ -39,17 +39,19 @@ var (
 	name = "InfraOnboarding"
 	zlog = logging.GetLogger(name + "Main")
 
-	dkamAddr         = flag.String("dkamaddr", "localhost:5581", "DKAM server address to connect to")
-	serverAddress    = flag.String(flags.ServerAddress, "0.0.0.0:50054", flags.ServerAddressDescription)
-	serverAddressNio = flag.String(ServerAddressNio, "0.0.0.0:50055", "grpc server address for nio")
-	inventoryAddress = flag.String(client.InventoryAddress, "localhost:50051", client.InventoryAddressDescription)
-	oamServerAddress = flag.String(oam.OamServerAddress, "", oam.OamServerAddressDescription)
-	enableTracing    = flag.Bool(tracing.EnableTracing, false, tracing.EnableTracingDescription)
-	enableMetrics    = flag.Bool(metrics.EnableMetrics, false, metrics.EnableMetricsDescription)
-	metricsAddress   = flag.String(metrics.MetricsAddress, "0.0.0.0:8081", metrics.MetricsAddressDescription)
-	traceURL         = flag.String(tracing.TraceURL, "", tracing.TraceURLDescription)
-	enableAuth       = flag.Bool(rbac.EnableAuth, true, rbac.EnableAuthDescription)
-	rbacRules        = flag.String(rbac.RbacRules, "/rego/authz.rego", rbac.RbacRulesDescription)
+	dkamAddr             = flag.String("dkamaddr", "localhost:5581", "DKAM server address to connect to")
+	serverAddress        = flag.String(flags.ServerAddress, "0.0.0.0:50054", flags.ServerAddressDescription)
+	serverAddressNio     = flag.String(ServerAddressNio, "0.0.0.0:50055", "grpc server address for nio")
+	inventoryAddress     = flag.String(client.InventoryAddress, "localhost:50051", client.InventoryAddressDescription)
+	oamServerAddress     = flag.String(oam.OamServerAddress, "", oam.OamServerAddressDescription)
+	enableTracing        = flag.Bool(tracing.EnableTracing, false, tracing.EnableTracingDescription)
+	enableMetrics        = flag.Bool(metrics.EnableMetrics, false, metrics.EnableMetricsDescription)
+	metricsAddress       = flag.String(metrics.MetricsAddress, "0.0.0.0:8081", metrics.MetricsAddressDescription)
+	traceURL             = flag.String(tracing.TraceURL, "", tracing.TraceURLDescription)
+	enableAuth           = flag.Bool(rbac.EnableAuth, true, rbac.EnableAuthDescription)
+	rbacRules            = flag.String(rbac.RbacRules, "/rego/authz.rego", rbac.RbacRulesDescription)
+	FlagEnforceCloudInit = flag.Bool("enforceCloudInit", false,
+		"Set to true to always use cloud-init to provision Day0/Day1 EN configuration")
 	// see also internal/common/flags.go for other flags.
 
 	wg        = sync.WaitGroup{}
@@ -59,8 +61,8 @@ var (
 )
 
 var (
-	Project   = "frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager"
-	RepoURL   = fmt.Sprintf("https://github.com/intel-innersource/%s.git", Project)
+	Project   = "infra-onboarding"
+	RepoURL   = fmt.Sprintf("https://github.com/intel/%s.git", Project)
 	Version   = "<unset>"
 	Revision  = "<unset>"
 	BuildDate = "<unset>"

@@ -16,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
 )
 
 func TestNewTemplate(t *testing.T) {

@@ -8,10 +8,10 @@ import (
 	"os"
 	"strings"
 
-	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
-	inv_errors "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/errors"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/env"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
+	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/env"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
 )
 
 const (
@@ -835,7 +835,7 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 		}},
 	}
 
-	if *env.FlagEnforceCloudInit {
+	if env.FlagEnforceCloudInit {
 		// Find the index of the "add-dns-namespace" action
 		dnsNamespaceIndex := -1
 		for i, action := range wf.Tasks[0].Actions {

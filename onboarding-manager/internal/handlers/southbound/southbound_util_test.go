@@ -8,7 +8,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/invclient"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
 )
 
 const rbacRules = "../../../rego/authz.rego"

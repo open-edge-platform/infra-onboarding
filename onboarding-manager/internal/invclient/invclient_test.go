@@ -12,15 +12,15 @@ import (
 	"testing"
 	"time"
 
-	computev1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/compute/v1"
-	inv_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/inventory/v1"
-	network_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/network/v1"
-	osv1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/os/v1"
-	provider_v1 "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/api/provider/v1"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/client"
-	inv_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/status"
-	inv_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/testing"
-	om_status "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/pkg/status"
+	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
+	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
+	network_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/network/v1"
+	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
+	provider_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/provider/v1"
+	"github.com/intel/infra-core/inventory/v2/pkg/client"
+	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
+	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
+	om_status "github.com/intel/infra-onboarding/onboarding-manager/pkg/status"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -598,7 +598,6 @@ func TestOnboardingInventoryClient_DeleteHostResource(t *testing.T) {
 			if !t.Failed() && tt.valid {
 				err := invClient.DeleteHostResource(ctx, tt.args.tenantID, host.ResourceId)
 				require.NoError(t, err)
-
 			}
 		})
 	}

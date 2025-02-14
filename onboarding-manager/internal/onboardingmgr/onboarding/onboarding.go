@@ -6,9 +6,9 @@ SPDX-License-Identifier: Apache-2.0
 package onboarding
 
 import (
-	logging "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/logging"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-core/inventory/v2/pkg/policy/rbac"
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/invclient"
+	logging "github.com/intel/infra-core/inventory/v2/pkg/logging"
+	"github.com/intel/infra-core/inventory/v2/pkg/policy/rbac"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
 )
 
 var (

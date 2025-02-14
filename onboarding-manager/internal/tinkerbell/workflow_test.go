@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	om_testing "github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/testing"
+	om_testing "github.com/intel/infra-onboarding/onboarding-manager/internal/testing"
 	"github.com/stretchr/testify/mock"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	error "k8s.io/apimachinery/pkg/api/errors"

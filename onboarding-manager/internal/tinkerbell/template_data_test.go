@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
 )
 
 func TestNewTemplateDataProdBKC(t *testing.T) {

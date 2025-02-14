@@ -40,7 +40,7 @@ DB_CONTAINER_NAME 		:= $(PROJECT_NAME)-db
 # CI we're already inside a container, hence have to attach the DB container to
 # the same network stack as the job. Because the port (-p) syntax cannot be used
 # at the same time as the --network container:x flag, we need this variable.
-ifeq ($(shell echo $$CI), true)
+ifeq ($(shell echo $${CI_CONTAINER:-false}), true)
   DOCKER_NETWORKING_FLAGS = --network container:$$HOSTNAME
 else
   DOCKER_NETWORKING_FLAGS = -p 5432:5432
@@ -68,7 +68,7 @@ PROTOCGENGOVERSION_REQ          := 1.30.0
 PROTOCGENVALIDATEGOVERSION_REQ  := 1.0.1
 
 
-GOCMD := GOPRIVATE="github.com/intel-innersource/*" go
+GOCMD := GOPRIVATE="github.com/intel/*,github.com/intel-tiber/*, github.com/intel-innersource/*" go
 
 # Create the virtualenv with python tools installed
 VENV_NAME = venv_$(PROJECT_NAME)
@@ -157,7 +157,7 @@ buf-lint: ## Lint and format protobuf files
 	buf format -d --exit-code
 	# TODO: buf lint and breaking disabled for now
 	#buf lint
-	#buf breaking --against 'https://github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding.git#branch=${BASE_BRANCH},subdir=onboarding-manager'
+	#buf breaking --against 'https://github.com/intel/infra-onboarding.git#branch=${BASE_BRANCH},subdir=onboarding-manager'
 
 buf-gen: ## compile protoc files into code
 	buf --version ;\
@@ -179,14 +179,11 @@ db-start: ## Start the local postgres database. See: db-stop
 		docker run --name $(DB_CONTAINER_NAME) --rm $(DOCKER_NETWORKING_FLAGS) -e POSTGRES_PASSWORD=$$PGPASSWORD -e POSTGRES_DB=$$PGDATABASE -e POSTGRES_USER=$$PGUSER -d postgres:$(POSTGRES_VERSION); \
 	fi
 
-db-stop: ## Stop the local postgres database and remove the Docker image. See: db-start
+db-stop: ## Stop the local postgres database. See: db-start
 	@if [ -n "`docker ps -aq -f name=^$(DB_CONTAINER_NAME)`" ]; then \
-		docker container kill $(DB_CONTAINER_NAME); \
-	fi
-	@if [ -n "`docker images -q postgres:$(POSTGRES_VERSION)`" ]; then \
-		docker rmi postgres:$(POSTGRES_VERSION); \
-	fi
-
+    docker container kill $(DB_CONTAINER_NAME); \
+  fi
+	   
 db-shell: ## Run the postgres shell connected to a local database. See: db-start
 	docker run -it --network=host -e PGPASSWORD=${PGPASSWORD} --name inv-shell --rm postgres:$(POSTGRES_VERSION) psql -h $$PGHOST -U $$PGUSER -d $$PGDATABASE
 
@@ -216,10 +213,11 @@ list:
 	@# Help: displays make targets
 	help
 
-clean:
-	rm -rf ${BUILD_DIR}
-	rm -rf api/proto/
-	rm -rf ${APIPKG_DIR}/*.go
+clean: ## delete all build artifacts
+	rm -rf $(BUILD_DIR) || true
+
+clean-all: clean ## delete all built artifacts and downloaded tools
+	rm -rf $(VENV_NAME) vendor || true
 
 help: ## Print help for each target
 	@echo inventory make targets

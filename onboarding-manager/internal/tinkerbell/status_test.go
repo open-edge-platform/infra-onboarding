@@ -7,14 +7,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/intel-innersource/frameworks.edge.one-intel-edge.maestro-infra.eim-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 )
 
 func TestWorkflowActionToStatusDetail(t *testing.T) {
-
 	prodBkcWorkflow, err := NewTemplateDataUbuntu("test-prod-bkc", utils.DeviceInfo{})
 	require.NoError(t, err)
 
