@@ -9,7 +9,7 @@ on:
 
 jobs:
   pre-checks:
-    runs-on: ${{ github.repository_owner == 'intel' && 'intel-ubuntu-latest' || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     outputs:
       filtered_projects: ${{ steps.filter-changes.outputs.filtered_projects }}
     steps:
@@ -33,7 +33,7 @@ jobs:
       fail-fast: false
       matrix:
         project_folder: ${{ fromJson(needs.pre-checks.outputs.filtered_projects) }}
-    uses: ./.github/workflows/pre-merge_workflow.yml
+    uses: intel-tiber/orch-ci/.github/workflows/pre-merge.yml@main
     with:
       run_security_scans: true
       run_version_check: true
