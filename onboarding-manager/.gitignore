@@ -3,7 +3,7 @@
 
 *.swp
 venv*
-build/*
+out/*
 **/_output
 **/build-tools
 .idea

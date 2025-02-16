@@ -16,7 +16,7 @@ for testFile in "${@}"; do
 			fuzzFileName="${homeDir}/${testFile}"
 			echo "running ${fuzzFileName} test case"
 			cd "$(dirname "${fuzzFileName}")" || exit
-			logFile="${homeDir}/build/fuzz_${fuzzTest}.log"
+			logFile="${homeDir}/out/fuzz_${fuzzTest}.log"
 			go test -v -fuzz "${fuzzTest}" -fuzztime 1m -parallel=1 > "${logFile}" 2>&1
 			exitStatus=$?
 			echo "Output written to ${logFile}"

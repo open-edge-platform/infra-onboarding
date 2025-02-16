@@ -5,6 +5,7 @@ FROM golang:1.23.2-bookworm as build
 
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
+ENV GO111MODULE=on
 ARG MAKE_TARGET=build
 
 # Arguments used to stamp the binary
@@ -13,7 +14,8 @@ ARG VERSION
 ARG REVISION
 ARG BUILD_DATE
 
-COPY Makefile common.mk requirements.txt VERSION go.mod go.sum /go/src/github.com/intel/infra-onboarding/dkam/
+COPY common.mk version.mk /go/src/github.com/intel/infra-onboarding/
+COPY Makefile requirements.txt VERSION go.mod go.sum /go/src/github.com/intel/infra-onboarding/dkam/
 COPY cmd/ /go/src/github.com/intel/infra-onboarding/dkam/cmd/
 COPY internal/ /go/src/github.com/intel/infra-onboarding/dkam/internal/
 COPY pkg/ /go/src/github.com/intel/infra-onboarding/dkam/pkg/
@@ -55,7 +57,7 @@ LABEL org.opencontainers.image.version=${VERSION} \
 
 WORKDIR /home/$USERNAME
 
-COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/intel/infra-onboarding/dkam/build/dkammgr /usr/local/bin/dkammgr
+COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/intel/infra-onboarding/dkam/out/dkammgr /usr/local/bin/dkammgr
 COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/intel/infra-onboarding/dkam/pkg /home/$USERNAME/pkg
 
 RUN chown -R $USERNAME:$USERNAME /home/$USERNAME

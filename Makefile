@@ -1,43 +1,49 @@
-# SPDX-FileCopyrightText: (C) 2024 Intel Corporation
-# SPDX-License-Identifier: LicenseRef-Intel
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
 
-all: 
-	@# Help: Runs build, lint, test stages
-	build lint test 	
+SUBPROJECTS := onboarding-manager dkam
+
+.DEFAULT_GOAL := help
+.PHONY: all build clean clean-all help lint test
+
+all: build lint test
+	@# Help: Runs build, lint, test stages for all subprojects
 	
 build:
-	@# Help: Runs build stage
+	@# Help: Runs build stage in all subprojects
 	@echo "---MAKEFILE BUILD---"
-	echo $@
+	for dir in $(SUBPROJECTS); do $(MAKE) -C $$dir build; done
 	@echo "---END MAKEFILE Build---"
 
 lint:
-	@# Help: Runs lint stage
+	@# Help: Runs lint stage in all subprojects
 	@echo "---MAKEFILE LINT---"
-	echo $@
+	@for dir in $(SUBPROJECTS); do $(MAKE) -C $$dir lint; done
 	@echo "---END MAKEFILE LINT---"
 
+mdlint:
+	@echo "---MAKEFILE LINT README---"
+	@markdownlint --version
+	@markdownlint "*.md"
+	@echo "---END MAKEFILE LINT README---"
+
 test:
-	@# Help: Runs test stage
+	@# Help: Runs test stage in all subprojects
 	@echo "---MAKEFILE TEST---"
-	echo $@
+	for dir in $(SUBPROJECTS); do $(MAKE) -C $$dir test; done
 	@echo "---END MAKEFILE TEST---"
 	
-coverage:
-	@# Help: Runs coverage stage
-	@echo "---MAKEFILE COVERAGE---"
-	echo $@
-	@echo "---END MAKEFILE COVERAGE---"
+clean:
+	@# Help: Runs clean stage in all subprojects
+	@echo "---MAKEFILE CLEAN---"
+	for dir in $(SUBPROJECTS); do $(MAKE) -C $$dir clean; done
+	@echo "---END MAKEFILE CLEAN---"
 
-license: 
-	@# Help: Runs license check
-	@echo "---MAKEFILE LICENSE---"
-	echo $@
-	@echo "---END MAKEFILE LICENSE---"
-
-list: 
-	@# Help: displays make targets
-	help
+clean-all:
+	@# Help: Runs clean-all stage in all subprojects
+	@echo "---MAKEFILE CLEAN-ALL---"
+	for dir in $(SUBPROJECTS); do $(MAKE) -C $$dir clean-all; done
+	@echo "---END MAKEFILE CLEAN-ALL---"
 
 help:	
 	@printf "%-20s %s\n" "Target" "Description"
@@ -47,4 +53,3 @@ help:
         | sort \
         | egrep -v -e '^[^[:alnum:]]' -e '^$@$$' \
         | xargs -I _ sh -c 'printf "%-20s " _; make _ -nB | (grep -i "^# Help:" || echo "") | tail -1 | sed "s/^# Help: //g"'
-	

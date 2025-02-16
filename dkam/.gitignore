@@ -3,7 +3,7 @@
 
 venv*
 vendor
-build/*
+out/*
 .idea
 .vscode
 .DS_Store

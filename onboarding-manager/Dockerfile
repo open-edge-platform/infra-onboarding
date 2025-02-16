@@ -3,6 +3,7 @@
 
 FROM golang:1.23.2-bookworm as builder
 
+ENV GO111MODULE=on
 ARG MAKE_TARGET=go-build
 
 # Arguments used to stamp the binary
@@ -11,6 +12,7 @@ ARG VERSION
 ARG REVISION
 ARG BUILD_DATE
 
+COPY common.mk version.mk /go/src/github.com/intel/infra-onboarding/
 COPY Makefile requirements.txt VERSION go.mod go.sum /go/src/github.com/intel/infra-onboarding/onboarding-manager/
 COPY cmd/ /go/src/github.com/intel/infra-onboarding/onboarding-manager/cmd/
 COPY internal/ /go/src/github.com/intel/infra-onboarding/onboarding-manager/internal/
@@ -39,7 +41,7 @@ LABEL org.opencontainers.image.version=${VERSION} \
       org.opencontainers.image.revision=${REVISION} \
       org.opencontainers.image.created=${BUILD_DATE}
 
-COPY --from=builder --chown=nobody:nobody /go/src/github.com/intel/infra-onboarding/onboarding-manager/build/onboardingmgr /onboardingmgr
+COPY --from=builder --chown=nobody:nobody /go/src/github.com/intel/infra-onboarding/onboarding-manager/out/onboardingmgr /onboardingmgr
 
 COPY --from=builder  --chown=nobody:nobody /go/src/github.com/intel/infra-onboarding/onboarding-manager/rego/authz.rego /rego/authz.rego
 

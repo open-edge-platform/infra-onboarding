@@ -77,8 +77,8 @@ func TestMain(m *testing.M) {
 	}
 
 	projectRoot = filepath.Dir(filepath.Dir(wd))
-	policyPath := projectRoot + "/build"
-	migrationsDir := projectRoot + "/build"
+	policyPath := projectRoot + "/out"
+	migrationsDir := projectRoot + "/out"
 
 	cleanupFunc := dkam_testing.StartTestReleaseService("profile")
 	defer cleanupFunc()

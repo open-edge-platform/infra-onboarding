@@ -4,14 +4,23 @@
 # SPDX-License-Identifier: Apache-2.0
 
 .DEFAULT_GOAL := help
-.PHONY: docker-build test lint license help
+.PHONY: test lint license help generate
+
+all: generate build lint test
+
+# Optionally include tool version checks, not used in Docker builds
+TOOL_VERSION_CHECK ?= 1
 
 ##### Variables #####
-
-# Defining the shell, users and groups
-SHELL       := bash -e -o pipefail
-CURRENT_UID := $(shell id -u)
-CURRENT_GID := $(shell id -g)
+## Required Go Dependencies
+GOLINT               := true
+GOJUNITREPORT        := true
+GOCOBERTURA          := true
+PROTOCGENDOC         := true
+BUF                  := true
+PROTOCGENGO          := true
+PROTOCGENGOGRPC      := true
+PROTOCGENVALIDATEGO  := true
 
 # Project variables
 PROJECT_NAME := onboardingmgr
@@ -21,216 +30,59 @@ BINARY_NAME  := $(PROJECT_NAME)
 VERSION       := $(shell cat VERSION)
 VERSION_MAJOR := $(shell cut -c 1 VERSION)
 IMG_NAME      := ${PROJECT_NAME}
-IMG_VERSION   ?= main
+IMG_VERSION   ?= $(shell git branch --show-current)
 GIT_COMMIT    ?= $(shell git rev-parse HEAD)
-DOCKER_ENV              := DOCKER_BUILDKIT=1
-DOCKER_REGISTRY         ?= amr-registry.caas.intel.com
-DOCKER_REPOSITORY       ?= one-intel-edge/maestro-i
-DOCKER_TAG              := ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}
-DOCKER_LABEL_REPO_URL   ?= $(shell git remote get-url $(shell git remote | head -n 1))
-DOCKER_LABEL_VERSION    ?= ${IMG_VERSION}
-DOCKER_LABEL_REVISION   ?= ${GIT_COMMIT}
-DOCKER_LABEL_BUILD_DATE ?= $(shell date -u "+%Y-%m-%dT%H:%M:%SZ")
+DIR_TO_CLEAN  := pkg/api/*
 
-DB_CONTAINER_NAME 		:= $(PROJECT_NAME)-db
+# Test variables
+# Set TEST_TARGET to '<testname1>' or '<testname1\|testname2>' to run specific tests or use other  regex '<testname.*>' - example:
+#  TEST_TARGET='TestAuth.*' make test
+TEST_TARGET       ?= .
+# Default TEST_PKG, overwrite to select particular test pakages
+TEST_PKG          ?= $(shell go list ./... | grep -v "internal/env" | grep -v "internal/handlers/controller" |  grep -v "internal/handlers/southbound" | grep -v "internal/invclient" | grep -v "internal/onboardingmgr/onboarding" | grep -v "internal/onboardingmgr/onbworkflowclient" | grep -v "internal/onboardingmgr/utils" | grep -v "internal/tinkerbell" | grep -v "internal/util" | grep -v "pkg/status" | tr '\n' ,)
+TEST_ARGS         := -globalLogLevel=error
+TEST_IGNORE_FILES := $(shell go list ./... | grep -v "api/grpc/onboardingmgr" | grep -v 'pkg/api' | grep -v 'internal/onboardingmgr/onboarding/onboardingmocks' | grep -v 'internal/testing' | grep -v 'cmd/onboardingmgr' | tr '\n' ,)
+TEST_COVER        := atomic ./...
+TEST_USE_DB       := true
+GO_TEST_DEPS      := policy-build certificates
 
-# Docker networking flags for the database container.
-# The problem is as follows: On a local MacOS machine we want to expose the port
-# of the DB to the native host to enable smooth tooling and unit tests. During
-# CI we're already inside a container, hence have to attach the DB container to
-# the same network stack as the job. Because the port (-p) syntax cannot be used
-# at the same time as the --network container:x flag, we need this variable.
-ifeq ($(shell echo $${CI_CONTAINER:-false}), true)
-  DOCKER_NETWORKING_FLAGS = --network container:$$HOSTNAME
-else
-  DOCKER_NETWORKING_FLAGS = -p 5432:5432
-endif
+# Yamllint variables
+YAML_FILES           := $(shell find . -path './venv_onboardingmgr' -path './vendor' -prune -o -type f \( -name '*.yaml' -o -name '*.yml' \) -print )
+YAML_IGNORE          := vendor, .github/workflows
 
-# Base branch to check against for breaking API changes
-BASE_BRANCH ?= main
+# Include shared makefile
+include ../common.mk
 
-# Path variables
-APIPKG_DIR  := pkg/api
-BUILD_DIR   := build
-SECRETS_DIR := /var/run/secrets
-SCRIPTS_DIR := ./ci_scripts
-
-# Tools versions
-GOLINTVERSION_HAVE        := $(shell golangci-lint version | sed 's/.*version //' | sed 's/ .*//')
-POSTGRES_VERSION          := 16.4
-BUFVERSION_REQ		      := 1.45.0
-OPAVERSION_REQ            := 0.69.0
-
-PROTOCGENGOGRPCVERSION_HAVE     := $(shell protoc-gen-go-grpc -version | sed s/.*"protoc-gen-go-grpc "// | sed 's/ .*//')
-PROTOCGENGOGRPCVERSION_REQ      := 1.2.0
-PROTOCGENGOVERSION_HAVE         := $(shell protoc-gen-go --version | sed s/.*"protoc-gen-go v"// | sed 's/ .*//')
-PROTOCGENGOVERSION_REQ          := 1.30.0
-PROTOCGENVALIDATEGOVERSION_REQ  := 1.0.1
-
-
-GOCMD := GOPRIVATE="github.com/intel/*,github.com/intel-tiber/*, github.com/intel-innersource/*" go
-
-# Create the virtualenv with python tools installed
-VENV_NAME = venv_$(PROJECT_NAME)
-
-# Postgres DB configuration and credentials for testing. This mimics the Aurora
-# production environment.
-export PGUSER=admin
-export PGHOST=localhost
-export PGDATABASE=postgres
-export PGPORT=5432
-export PGPASSWORD=pass
-export PGSSLMODE=disable
-
-$(VENV_NAME): requirements.txt
-	echo "Creating virtualenv $@"
-	python3 -m venv $@;\
-	. ./$@/bin/activate; set -u;\
-	python3 -m pip install --upgrade pip;\
-	python3 -m pip install -r requirements.txt
-
-
-#-trimpath: Remove all file system paths from the resulting executable.
-#-mod=readonly: Ignore vendor directory and report an error if go.mod needs to be updated
-#-gcflags="all=-m": Print optimizations applied by the compiler for review and verification against security requirements.
-#-gcflags="all=-spectre=all" Enable all available Spectre mitigations
-#-ldflags="all=-s -w" remove the symbol and debug info
-#-ldflags="all=-X ..." Embedd binary build stamping information.
-# Note that arm64 (MacBooks) does not support any spectre mititations.
-GOARCH:=$(shell go env GOARCH)
-ifeq ($(GOARCH),arm64)
-  GOEXTRAFLAGS:=-trimpath -gcflags="all=-spectre= -N -l" -asmflags="all=-spectre=" -ldflags="all=-s -w"
-else
-  GOEXTRAFLAGS:=-trimpath -gcflags="all=-spectre=all -N -l" -asmflags="all=-spectre=all" -ldflags="all=-s -w"
-endif
+# Policy related
+REGODIR           := $(shell pwd)/rego/
+BUNDLE            := "$(shell pwd)/$(OUT_DIR)/policy_bundle.tar.gz"
 
 ##### CI Targets #####
+generate: buf-gen
 
-lint: ${BUILD_DIR} generate-ci lint-ci
+build: go-build
 
-all: 
-	@# Help: Runs build, lint, test stage
-	build lint test
+lint: license yamllint go-lint hadolint
 
-go-build: ${BUILD_DIR}
-	--mount=type=cache,target=/root/.cache/go-build \
-    $(GOCMD) build $(GOEXTRAFLAGS) -ldflags="-X 'main.RepoURL=${DOCKER_LABEL_REPO_URL}' -X 'main.Version=${DOCKER_LABEL_VERSION}' \
-	-X 'main.Revision=${DOCKER_LABEL_REVISION}' -X 'main.BuildDate=${DOCKER_LABEL_BUILD_DATE}'" \
-	-o build/onboardingmgr cmd/onboardingmgr/main.go
+test: go-test
 
-hadolint: ## Check Dockerfile with Hadolint
-	hadolint Dockerfile
+#### Sub-targets ####
 
-docker-build:  ## build Docker image
-	$(GOCMD) mod vendor
-	docker build . -f Dockerfile --no-cache \
-	    -t maestro-i/${IMG_NAME}:${IMG_VERSION} \
-	    --build-arg http_proxy="$(http_proxy)" --build-arg https_proxy="$(https_proxy)" --build-arg no_proxy="$(no_proxy)" \
-	    --build-arg HTTP_PROXY="$(HTTP_PROXY)" --build-arg HTTPS_PROXY="$(HTTPS_PROXY)" --build-arg NO_PROXY="$(NO_PROXY)" \
-	    --build-arg REPO_URL="$(DOCKER_LABEL_REPO_URL)" --build-arg VERSION="$(DOCKER_LABEL_VERSION)"  \
-	    --build-arg REVISION="$(DOCKER_LABEL_REVISION)" --build-arg BUILD_DATE="$(DOCKER_LABEL_BUILD_DATE)" \
-	    --build-arg OPA_VERSION=${OPAVERSION_REQ}
+go-build: $(OUT_DIR) ## Run go build
+	$(GOCMD) fmt ./...
+	$(GOCMD) build $(GOEXTRAFLAGS) -o $(OUT_DIR)/$(BINARY_NAME)  cmd/onboardingmgr/main.go
 
-docker-push: docker-build ## tag and push Docker image
-	docker tag maestro-i/${IMG_NAME}:${IMG_VERSION} ${DOCKER_TAG}:${IMG_VERSION}
-	docker push ${DOCKER_TAG}:${IMG_VERSION}
+go-run: $(TYPES) $(SERVER) $(CLIENT) ## Run go run
+	$(GOCMD) run $(GOEXTRAFLAGS) cmd/onboardingmgr/main.go
 
-generate-ci: buf-gen
+buf-update: common-buf-update ## Update buf modules
 
-lint-ci: license go-lint buf-lint hadolint
+buf-gen: common-buf-gen ## Compile protoc files into code
 
-${BUILD_DIR}:
-	mkdir -p ${BUILD_DIR}
-
-${SECRETS_DIR}:
-	sudo mkdir -p ${SECRETS_DIR}
-	sudo chown ${CURRENT_UID}:${CURRENT_GID} -R ${SECRETS_DIR}
-
-# Maintenance and lint targets
-license: $(VENV_NAME) ## Check licensing with the reuse tool.
-	. ./$</bin/activate; set -u;\
-	reuse --version;\
-	reuse --root . lint
-
-buf-lint: ## Lint and format protobuf files
-	buf --version
-	buf format -d --exit-code
-	# TODO: buf lint and breaking disabled for now
-	#buf lint
-	#buf breaking --against 'https://github.com/intel/infra-onboarding.git#branch=${BASE_BRANCH},subdir=onboarding-manager'
-
-buf-gen: ## compile protoc files into code
-	buf --version ;\
-	buf generate
-
-go-dependency: ## install go dependency tooling
-	$(GOCMD) install github.com/bufbuild/buf/cmd/buf@v${BUFVERSION_REQ}
-	$(GOCMD) install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v${PROTOCGENGOGRPCVERSION_REQ}
-	$(GOCMD) install google.golang.org/protobuf/cmd/protoc-gen-go@v${PROTOCGENGOVERSION_REQ}
-	$(GOCMD) install github.com/envoyproxy/protoc-gen-validate@v${PROTOCGENVALIDATEGOVERSION_REQ}
-
-go-lint: ## lint code
-	golangci-lint --version
-	golangci-lint run --config .golangci.yml
-
-db-start: ## Start the local postgres database. See: db-stop
-	if [ -z "`docker ps -aq -f name=^$(DB_CONTAINER_NAME)`" ]; then \
-		echo POSTGRES_PASSWORD=$$PGPASSWORD -e POSTGRES_DB=$$PGDATABASE -e POSTGRES_USER=$$PGUSER -d postgres:$(POSTGRES_VERSION); \
-		docker run --name $(DB_CONTAINER_NAME) --rm $(DOCKER_NETWORKING_FLAGS) -e POSTGRES_PASSWORD=$$PGPASSWORD -e POSTGRES_DB=$$PGDATABASE -e POSTGRES_USER=$$PGUSER -d postgres:$(POSTGRES_VERSION); \
-	fi
-
-db-stop: ## Stop the local postgres database. See: db-start
-	@if [ -n "`docker ps -aq -f name=^$(DB_CONTAINER_NAME)`" ]; then \
-    docker container kill $(DB_CONTAINER_NAME); \
-  fi
-	   
-db-shell: ## Run the postgres shell connected to a local database. See: db-start
-	docker run -it --network=host -e PGPASSWORD=${PGPASSWORD} --name inv-shell --rm postgres:$(POSTGRES_VERSION) psql -h $$PGHOST -U $$PGUSER -d $$PGDATABASE
-
-go-tidy: ## go mod tidy
-	$(GOCMD) mod tidy
-
-go-vendor:
-	$(GOCMD) mod vendor
-
-test: ${BUILD_DIR} ${SECRETS_DIR} ## run tests, generate output
-	$(MAKE) db-stop
-	$(MAKE) db-start
-	$(GOCMD) test -race -v -p 1 -coverpkg=$$(go list ./... | grep -v 'api/grpc/onboardingmgr' | grep -v 'pkg/api' | grep -v 'internal/onboardingmgr/onboarding/onboardingmocks' | grep -v 'internal/testing' | grep -v 'cmd/onboardingmgr' | tr '\n' ,) -coverprofile=${BUILD_DIR}/coverage.out -covermode atomic ./... | tee \
-		>(go-junit-report -set-exit-code > ${BUILD_DIR}/report.xml)
-	gocover-cobertura < ${BUILD_DIR}/coverage.out > ${BUILD_DIR}/coverage.xml
-	$(GOCMD) tool cover -html=${BUILD_DIR}/coverage.out -o ${BUILD_DIR}/coverage.html
-	$(GOCMD) tool cover -func ${BUILD_DIR}/coverage.out -o ${BUILD_DIR}/function_coverage.log
-	$(MAKE) db-stop
-
-coverage:
-	@# Help: Runs coverage stage
-	@echo "---MAKEFILE COVERAGE---"
-	echo $@
-	@echo "---END MAKEFILE COVERAGE---"
-
-list: 
-	@# Help: displays make targets
-	help
-
-clean: ## delete all build artifacts
-	rm -rf $(BUILD_DIR) || true
-
-clean-all: clean ## delete all built artifacts and downloaded tools
-	rm -rf $(VENV_NAME) vendor || true
-
-help: ## Print help for each target
-	@echo inventory make targets
-	@echo
-	@grep '^[[:alnum:]_-]*:.* ##' $(MAKEFILE_LIST) \
-    | sort | awk 'BEGIN {FS=":.* ## "}; {printf "%-25s %s\n", $$1, $$2};'
+buf-lint: common-buf-lint  ## Lint and format protobuf files
 
 fuzztest:
 	$(MAKE) db-stop
 	$(MAKE) db-start
 	$(SCRIPTS_DIR)/fuzz_test.sh "internal/handlers/southbound/southbound_utils_test.go" "internal/handlers/controller/reconcilers/instance_test.go" "internal/handlers/southbound/grpcserver/grpc_server_test.go"
 	$(MAKE) db-stop
-
-dependency-check:
-	echo "No dependency check step"
-
