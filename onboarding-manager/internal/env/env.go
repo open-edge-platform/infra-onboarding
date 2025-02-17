@@ -35,8 +35,7 @@ var (
 
 	K8sNamespace = GetEnvWithDefault(envK8sNamespace, defaultK8sNamespace)
 
-	TinkerActionVersion  = os.Getenv(envTinkerVersion)
-	FlagEnforceCloudInit bool
+	TinkerActionVersion = os.Getenv(envTinkerVersion)
 )
 
 var zlog = logging.GetLogger("Env")

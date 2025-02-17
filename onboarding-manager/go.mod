@@ -9,7 +9,7 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v1.1.0
 	github.com/google/uuid v1.6.0
 	github.com/intel/infra-core/inventory/v2 v2.16.1-0.20250211231238-126d77881bc1
-	github.com/intel/infra-onboarding/dkam v0.0.0-20250213103346-d7fa0af7d501
+	github.com/intel/infra-onboarding/dkam v0.0.0-20250217053801-87e02b8437f1
 	github.com/intel/orch-library/go v0.5.18
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.20.5
@@ -102,6 +102,7 @@ require (
 	github.com/labstack/echo/v4 v4.12.0 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/lib/pq v1.10.9 // indirect
+	github.com/magefile/mage v1.15.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

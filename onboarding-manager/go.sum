@@ -719,6 +719,8 @@ github.com/intel/infra-core/inventory/v2 v2.16.1-0.20250211231238-126d77881bc1 h
 github.com/intel/infra-core/inventory/v2 v2.16.1-0.20250211231238-126d77881bc1/go.mod h1:2QHCxWuwOr7TG4X6ebKNdWumAcUFjaH7BLmvHM0YQYo=
 github.com/intel/infra-onboarding/dkam v0.0.0-20250213103346-d7fa0af7d501 h1:DqFh/oyAG0NIQTJwyjQKAP/j3Vo3mZC0L3gW3Pj8040=
 github.com/intel/infra-onboarding/dkam v0.0.0-20250213103346-d7fa0af7d501/go.mod h1:fmc3DZM/hbdFgWVO683OeLGlBJXO7aXs4fG2YFAwGGo=
+github.com/intel/infra-onboarding/dkam v0.0.0-20250217053801-87e02b8437f1 h1:a6o0F4pGfXqsz9oSdP8TUrF8JmJMKAw72UXhs1xBnVk=
+github.com/intel/infra-onboarding/dkam v0.0.0-20250217053801-87e02b8437f1/go.mod h1:fmc3DZM/hbdFgWVO683OeLGlBJXO7aXs4fG2YFAwGGo=
 github.com/intel/orch-library/go v0.5.18 h1:VGzr5X1A54PkQkCuW9D+L+oH4TNlP2jBSkL/vwCKUwo=
 github.com/intel/orch-library/go v0.5.18/go.mod h1:mhDHd+eVkt552hgtK8tvBrMp1jj8I6lnU0T6mcBHgg0=
 github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=
@@ -767,6 +769,8 @@ github.com/labstack/gommon v0.4.2 h1:F8qTUNXgG1+6WQmqoUWnz8WiEU60mXVVw0P4ht1WRA0
 github.com/labstack/gommon v0.4.2/go.mod h1:QlUFxVM+SNXhDL/Z7YhocGIBYOiwB0mXm1+1bAPHPyU=
 github.com/lib/pq v1.10.9 h1:YXG7RB+JIjhP29X+OtkiDnYaXQwpS4JEWq7dtCCRUEw=
 github.com/lib/pq v1.10.9/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
+github.com/magefile/mage v1.15.0 h1:BvGheCMAsG3bWUDbZ8AyXXpCNwU9u5CB6sM+HNb9HYg=
+github.com/magefile/mage v1.15.0/go.mod h1:z5UZb/iS3GoOSn0JgWuiw7dxlurVYTu+/jHXqQg881A=
 github.com/magiconair/properties v1.8.7 h1:IeQXZAiQcpL9mgcAe1Nu6cX9LLw6ExEHKjN0VQdvPDY=
 github.com/magiconair/properties v1.8.7/go.mod h1:Dhd985XPs7jluiymwWYZ0G4Z61jb3vdS329zhj2hYo0=
 github.com/mailru/easyjson v0.7.7 h1:UGYAvKxe3sBsEDzO8ZeWOSlIQfWFlxbzLZe7hwFURr0=

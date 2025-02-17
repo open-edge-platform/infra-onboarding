@@ -10,6 +10,7 @@ import (
 
 	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
 	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
+	"github.com/intel/infra-onboarding/dkam/pkg/config"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/env"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
 )
@@ -849,7 +850,8 @@ netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", "
 		}},
 	}
 
-	if env.FlagEnforceCloudInit {
+	// flag shared with DKAM
+	if *config.FlagEnforceCloudInit {
 		// Find the index of the "add-dns-namespace" action
 		dnsNamespaceIndex := -1
 		for i, action := range wf.Tasks[0].Actions {

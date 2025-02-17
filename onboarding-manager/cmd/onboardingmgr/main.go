@@ -39,19 +39,17 @@ var (
 	name = "InfraOnboarding"
 	zlog = logging.GetLogger(name + "Main")
 
-	dkamAddr             = flag.String("dkamaddr", "localhost:5581", "DKAM server address to connect to")
-	serverAddress        = flag.String(flags.ServerAddress, "0.0.0.0:50054", flags.ServerAddressDescription)
-	serverAddressNio     = flag.String(ServerAddressNio, "0.0.0.0:50055", "grpc server address for nio")
-	inventoryAddress     = flag.String(client.InventoryAddress, "localhost:50051", client.InventoryAddressDescription)
-	oamServerAddress     = flag.String(oam.OamServerAddress, "", oam.OamServerAddressDescription)
-	enableTracing        = flag.Bool(tracing.EnableTracing, false, tracing.EnableTracingDescription)
-	enableMetrics        = flag.Bool(metrics.EnableMetrics, false, metrics.EnableMetricsDescription)
-	metricsAddress       = flag.String(metrics.MetricsAddress, "0.0.0.0:8081", metrics.MetricsAddressDescription)
-	traceURL             = flag.String(tracing.TraceURL, "", tracing.TraceURLDescription)
-	enableAuth           = flag.Bool(rbac.EnableAuth, true, rbac.EnableAuthDescription)
-	rbacRules            = flag.String(rbac.RbacRules, "/rego/authz.rego", rbac.RbacRulesDescription)
-	FlagEnforceCloudInit = flag.Bool("enforceCloudInit", false,
-		"Set to true to always use cloud-init to provision Day0/Day1 EN configuration")
+	dkamAddr         = flag.String("dkamaddr", "localhost:5581", "DKAM server address to connect to")
+	serverAddress    = flag.String(flags.ServerAddress, "0.0.0.0:50054", flags.ServerAddressDescription)
+	serverAddressNio = flag.String(ServerAddressNio, "0.0.0.0:50055", "grpc server address for nio")
+	inventoryAddress = flag.String(client.InventoryAddress, "localhost:50051", client.InventoryAddressDescription)
+	oamServerAddress = flag.String(oam.OamServerAddress, "", oam.OamServerAddressDescription)
+	enableTracing    = flag.Bool(tracing.EnableTracing, false, tracing.EnableTracingDescription)
+	enableMetrics    = flag.Bool(metrics.EnableMetrics, false, metrics.EnableMetricsDescription)
+	metricsAddress   = flag.String(metrics.MetricsAddress, "0.0.0.0:8081", metrics.MetricsAddressDescription)
+	traceURL         = flag.String(tracing.TraceURL, "", tracing.TraceURLDescription)
+	enableAuth       = flag.Bool(rbac.EnableAuth, true, rbac.EnableAuthDescription)
+	rbacRules        = flag.String(rbac.RbacRules, "/rego/authz.rego", rbac.RbacRulesDescription)
 	// see also internal/common/flags.go for other flags.
 
 	wg        = sync.WaitGroup{}
