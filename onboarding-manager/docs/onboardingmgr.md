@@ -1,22 +1,22 @@
+<!-- markdownlint-disable -->
 # Protocol Documentation
 <a name="top"></a>
 
 ## Table of Contents
 
-- [onboarding.proto](#onboarding-proto)
-    - [HwData](#onboardingmgr-HwData)
-    - [NodeData](#onboardingmgr-NodeData)
-    - [NodeRequest](#onboardingmgr-NodeRequest)
-    - [NodeResponse](#onboardingmgr-NodeResponse)
-    - [OnboardStreamRequest](#onboardingmgr-OnboardStreamRequest)
-    - [OnboardStreamResponse](#onboardingmgr-OnboardStreamResponse)
-  
-    - [OnboardStreamResponse.NodeState](#onboardingmgr-OnboardStreamResponse-NodeState)
-  
-    - [InteractiveOnboardingService](#onboardingmgr-InteractiveOnboardingService)
-    - [NonInteractiveOnboardingService](#onboardingmgr-NonInteractiveOnboardingService)
-  
-- [Scalar Value Types](#scalar-value-types)
+- [Protocol Documentation](#protocol-documentation)
+  - [Table of Contents](#table-of-contents)
+  - [onboarding.proto](#onboardingproto)
+    - [HwData](#hwdata)
+    - [NodeData](#nodedata)
+    - [NodeRequest](#noderequest)
+    - [NodeResponse](#noderesponse)
+    - [OnboardStreamRequest](#onboardstreamrequest)
+    - [OnboardStreamResponse](#onboardstreamresponse)
+    - [OnboardStreamResponse.NodeState](#onboardstreamresponsenodestate)
+    - [InteractiveOnboardingService](#interactiveonboardingservice)
+    - [NonInteractiveOnboardingService](#noninteractiveonboardingservice)
+  - [Scalar Value Types](#scalar-value-types)
 
 
 
@@ -191,3 +191,4 @@ Non Interactive Onboarding
 | <a name="string" /> string | A string must always contain UTF-8 encoded or 7-bit ASCII text. | string | String | str/unicode | string | string | string | String (UTF-8) |
 | <a name="bytes" /> bytes | May contain any arbitrary sequence of bytes. | string | ByteString | str | []byte | ByteString | string | String (ASCII-8BIT) |
 
+<!-- markdownlint-enable -->

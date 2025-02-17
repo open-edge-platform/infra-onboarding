@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 This subdirectory stores a per-OS platform bundle, a script that customizes a base OS (e.g., Ubuntu 22.04) with additional
 packages and configuration. Currently, the only supported OS is Ubuntu 22.04 and there is only one script under `ubuntu-22.04` folder.
 
@@ -17,4 +18,4 @@ The platform bundle script should rely on the existence of the following configu
 - `/etc/intel_edge_node/client-credentials/client_secret` - a file that contains the client secret for JWT authorization. Both `client_id` and `client_secret` are required to authenticate to EIM orchestrator services.
 - `/etc/lp/node/agent_variables` - an environment file that contains all environment variables required for bare metal agents (mainly orchestrator URLs).
 - `/etc/intel_edge_node/agent_versions` - an environment file that specifies a version of bare metal agents that should be installed on the EN. This file should be used by the platform bundle script to install the correct version of the agents.
-
+<!-- markdownlint-enable-->

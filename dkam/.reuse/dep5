@@ -1,5 +1,5 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 
-Files: VERSION README.md cmd/dkammgr/README.md placeholder.txt go.sum pkg/script/chain.ipxe build/* pkg/script/Installer pkg/script/build_sign_ipxe.sh pkg/script/secure_hookos.sh pkg/script/hook/* pkg/script/docker.key pkg/script/gpg.key pkg/api/*  docs/* .env.jenkins pkg/curation/testdata/* pkg/curation/testout/* platform-bundle/README.md platform-bundle/ubuntu-22.04/Installer  out/golangci-lint_report.html
+Files: VERSION README.md docs/cloud-init-os-compatibility.md cmd/dkammgr/README.md placeholder.txt go.sum pkg/script/chain.ipxe build/* pkg/script/Installer pkg/script/build_sign_ipxe.sh pkg/script/secure_hookos.sh pkg/script/hook/* pkg/script/docker.key pkg/script/gpg.key pkg/api/*  docs/* .env.jenkins pkg/curation/testdata/* pkg/curation/testout/* platform-bundle/README.md platform-bundle/ubuntu-22.04/Installer  out/golangci-lint_report.html
 Copyright: (C) 2025 Intel Corporation
 License: Apache-2.0

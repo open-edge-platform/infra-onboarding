@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # cloud-init OS compatibility
 
 Edge Infrastructure Manager (EIM) onboarding uses a cloud-init as a first-citizen configuration management tool that is meant to be portable among different OSes.
@@ -23,3 +24,4 @@ Although cloud-init is a widely supported tool, there are some OS-specific requi
 - Should be able to configure NTP settings using `systemd-timesyncd`.
 - Should have `efibootmgr` installed for boot options configuration.
 - Should support `ufw` or `iptables` for firewall settings.
+<!-- markdownlint-enable-->

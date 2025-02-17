@@ -54,7 +54,7 @@ include ../common.mk
 
 build: go-build
 
-lint: go-lint license shellcheck
+lint: go-lint license shellcheck mdlint
 
 test: go-test
 

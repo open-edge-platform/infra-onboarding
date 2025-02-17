@@ -1,41 +1,89 @@
-Your new repo has been pre-propulated with this Readme and a minimal Jenkinsfile. The steps for the Jenkinsfile should be adapted to suit the build/test commands of this repo contents.
+# Edge Infrastructure Manager DKAM service
 
-## Scans
-Scans have been limited to the minimal required number. They can be extended with Bandit(for python code) or Snyk(for go code). Protex will only run on "main" branch and not on PRs because of tool limitations (parelel jobs cannot be executed) and also to shorten the PR check time. 
+## Table of Contents
 
-## Triggers
-Please adapt the time at which the main branch is being executed according to your night time
+- [Edge Infrastructure Manager DKAM service](#edge-infrastructure-manager-dkam-service)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Features](#features)
+  - [Get Started](#get-started)
+    - [Build the Binary](#build-the-binary)
+  - [Contribute](#contribute)
 
-## Containers
-amr-registry.caas.intel.com/one-intel-edge/rrp-devops/oie_ci_testing:latest is used currently. This container has the following tools: 
+## Overview
+
+The DKAM stands for Dynamic Kit Adaptation Module is a component
+in the Edge Infrastructure Manager,responsible to onboard edge node with
+curated sets of bare metal agents and software that can support deployment
+of other apps.It prepare artifacts like iPXE, HookOS for onboarding.
+
+## Features
+
+- OS Resource Management: Interfaces with the Infra Inventory Service
+  to manage OS resources lifecycle.
+- Secure Boot support: Generate signing keys to enroll inside
+  UEFI BIOS Secure Boot Settings
+- iPXE build support: Build iPXE binary, inject orchestrator
+  certificate and sign the binary for secure boot.
+- HookOS Configurations: Dowload prebuilt HookOS, inject certificates
+  and required configurations and sign the image.
+- UbuntuOS download: Download and integrity check of ubuntu OS based
+  on the profile selected.
+- Curation: Installer script (Ubuntu LTS, Ubuntu EXT, "Intel® Tiber™ Microvisor"
+  RT and "Intel® Tiber™ Microvisor" NONRT)curation based on profile.
+
+## Get Started
+
+Instructions on how to install and set up the DKAM on your machine.
+
+This code requires the following tools to be installed on your development machine:
+
+- [Go\* programming language](https://go.dev) - check [$GOVERSION_REQ](Makefile)
+- [golangci-lint](https://github.com/golangci/golangci-lint) - check [$GOLINTVERSION_REQ](Makefile)
+
+### Build the Binary
+
+Build the project as follows:
+
+```bash
+# Build go binary
+make build
 ```
-Git 
-Make and standard build tooling 
-Docker CLI (to start containers) 
-Go 1.19.x 
-Python 3.9 or later 
-NodeJS 18 
-Mermaid CLI (used in documentation generation): https://github.com/mermaid-js/mermaid-cli 
-```
 
-## Coverage above 70% threshold. The following tools 
-```
-Python - Coverage
-Java - Bazel, Jacoco
-Go - Built-in Coverage
-JS - c8
-```
+The binary is installed in the [$OUT_DIR](../common.mk) folder.
 
-## Linters. The following tools 
-```
-Python - Flake8 (formerly pep8)
-Java - Sonallint 
-Go - GoLint
-JS - prittier, Karma
-Ansible - Ansible Lint
-```
+## Contribute
 
-## Artifacts
-The source will be packed in a archive named after the repo. The archive will then be uploaded to artifactory following a path simillar to:
-https://ubit-artifactory-or.intel.com/artifactory/one-intel-edge-or-local/<project_name>/<jenkins_controller>/<jenkins_team>/<jenkins_job>/<repo_name>/<branch>/
+To learn how to contribute to the project, see the [contributor's guide][contributors-guide-url]
+The project will accept contributions through Pull-Requests (PRs).
+PRs must be built successfully by the CI pipeline, pass linters
+verifications and the unit tests.
 
+There are several convenience make targets to support developer activities,
+you can use `help` to see a list of makefile targets.
+The following is a list of makefile targets that support developer activities:
+
+- `generate` to generate the database schema, Go code, and the Python
+  binding from the protobuf definition of the APIs
+- `lint` to run a list of linting targets
+- `mdlint` to run linting of this file.
+- `test` to run the unit test
+- `go-tidy` to update the Go dependencies and regenerate the `go.sum` file
+- `build` to build the project and generate executable files
+- `docker-build` to build the Inventory Docker container
+
+- For more information on how to onboard an edge node,
+  refer to the [user guide on onboarding an edge node][user-guide-onboard-edge-node].
+- To get started, check out the [user guide][user-guide-url].
+- For the infrastructure manager development guide, visit the
+  [infrastructure manager development guide][inframanager-dev-guide-url].
+- If you are contributing, please read the [contributors guide][contributors-guide-url].
+- For troubleshooting, see the [troubleshooting guide][troubleshooting-url].
+
+[user-guide-onboard-edge-node]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/set_up_edge_infra/edge_node_onboard.html
+[user-guide-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/get_started_guide/gsg_content.html
+[inframanager-dev-guide-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/get_started_guide/gsg_content.html
+[contributors-guide-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/index.html
+[troubleshooting-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/troubleshooting/troubleshooting.html
+
+Last Updated Date: February 7, 2025
