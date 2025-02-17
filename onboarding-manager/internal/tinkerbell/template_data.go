@@ -96,6 +96,9 @@ const (
 	envTinkActionTiberOSPartitionImage     = "TINKER_TIBEROS_IMAGE_PARTITION"
 	defaultTinkActionTiberOSPartitionImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/tiberos_partition"
 
+	envTinkActionQemuNbdImage2DiskImage     = "TINKER_QEMU_NBD_IMAGE2DISK_IMAGE"
+	defaultTinkActionQemuNbdImage2DiskImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/qemu_nbd_image2disk"
+
 	envDkamDevMode = "dev"
 )
 
@@ -181,6 +184,14 @@ func tinkActionTiberOSPartitionImage(tinkerImageVersion string) string {
 		return fmt.Sprintf("%s:%s", v, iv)
 	}
 	return fmt.Sprintf("%s:%s", defaultTinkActionTiberOSPartitionImage, iv)
+}
+
+func tinkActionQemuNbdImage2DiskImage(tinkerImageVersion string) string {
+	iv := getTinkerImageVersion(tinkerImageVersion)
+	if v := os.Getenv(envTinkActionQemuNbdImage2DiskImage); v != "" {
+		return fmt.Sprintf("%s:%s", v, iv)
+	}
+	return fmt.Sprintf("%s:%s", defaultTinkActionQemuNbdImage2DiskImage, iv)
 }
 
 //nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
@@ -464,11 +475,14 @@ func NewTemplateDataUbuntu(name string, deviceInfo utils.DeviceInfo) ([]byte, er
 
 				{
 					Name:    ActionStreamUbuntuImage,
-					Image:   tinkActionDiskImage(deviceInfo.TinkerVersion),
+					Image:   tinkActionQemuNbdImage2DiskImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutMax9800,
 					Environment: map[string]string{
-						"IMG_URL":    deviceInfo.OSImageURL,
-						"COMPRESSED": "true",
+						"IMG_URL":     deviceInfo.OSImageURL,
+						"SHA256":      deviceInfo.OsImageSHA256,
+						"HTTP_PROXY":  env.ENProxyHTTP,
+						"HTTPS_PROXY": env.ENProxyHTTPS,
+						"NO_PROXY":    env.ENProxyNo,
 					},
 					Pid: "host",
 				},
