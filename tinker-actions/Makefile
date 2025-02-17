@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 .DEFAULT_GOAL := help
-.PHONY: docker-build test lint license help generate
+.PHONY: docker-build docker-push test lint license help generate
 
 ##### Variables #####
 
@@ -25,31 +25,14 @@ IMG_VERSION   ?= $(VERSION)
 GIT_COMMIT    ?= $(shell git rev-parse HEAD)
 BRANCH_NAME   ?= $(shell git rev-parse --abbrev-ref HEAD)
 DOCKER_ENV              := DOCKER_BUILDKIT=1
-DOCKER_REGISTRY         ?= amr-registry.caas.intel.com
-DOCKER_REPOSITORY       ?= one-intel-edge/edge-node
+DOCKER_REGISTRY         ?= gar-registry.caas.intel.com
+DOCKER_REPOSITORY       ?= star-fw/tinkerbell/testing
 DOCKER_TAG              := ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}
 
-ACTION_ARRAY := \
-	securebootflag \
-	efibootset \
-	fde \
-	cred_copy \
-	caddy_proxy \
-	fluentbit \
-	image2disk \
-	cexec \
-	writefile \
-	erase_non_removable_disks \
-	hook_dind \
-	device-discovery \
-	kernelupgrd \
-	tiberos_partition
+ACTIONS := $(shell ls src)
 
 # Create the virtualenv with python tools installed
-VENV_NAME = venv_tinker_actions
-
-# CI SCRIPTS
-SCRIPTS_DIR=./ci_scripts
+VENV_NAME = venv_$(PROJECT_NAME)
 
 $(VENV_NAME): requirements.txt
 	echo "Creating virtualenv $@"
@@ -60,15 +43,32 @@ $(VENV_NAME): requirements.txt
 
 ##### CI Targets #####
 
+
 all: 
 	@# Help: Runs build, lint, test stage
-	go-build lint test
+	lint docker-build docker-push
 
-docker-build:
+$(ACTIONS): 
+	docker build src/$@ -f src/$@/Dockerfile \
+		-t $@:latest \
+		--rm \
+		--build-arg http_proxy="$(http_proxy)" --build-arg HTTP_PROXY="$(HTTP_PROXY)" \
+		--build-arg https_proxy="$(https_proxy)" --build-arg HTTPS_PROXY="$(HTTPS_PROXY)" \
+		--build-arg no_proxy="$(no_proxy)" --build-arg NO_PROXY="$(NO_PROXY)"
+
+docker-build: $(ACTIONS)
+
+dependency-check:
+	@# Help: Runs dependency-check stage
+	@echo "---MAKEFILE TEST---"
+	echo $@
+	@echo "---END MAKEFILE TEST---"
+
+build:
 	@# Help: Runs build stage
-	@echo "---MAKEFILE BUILD---"
-	./setup_actions.sh
-	@echo "---END MAKEFILE Build---"
+	@echo "---MAKEFILE TEST---"
+	echo $@
+	@echo "---END MAKEFILE TEST---"
 
 define docker_push_with_retry
 sh -c ' \
@@ -92,18 +92,18 @@ if [ $$retry -eq $$max_retries ]; then \
 fi'
 endef
 
-docker-push:
-	@$(foreach action,$(ACTION_ARRAY), \
-	       $(call docker_push_with_retry,${action},${BRANCH_NAME}); \
-		   $(call docker_push_with_retry,${action},${VERSION}); \
-		   echo ""; \
-       )
+.PHONY: push-%
+push-%: ## Push a specific action image to the registry. This recipe assumes you are already authenticated with the registry.
+	$(call docker_push_with_retry,$*,${BRANCH_NAME}); \
 
-docker-dev-push:
-	@$(foreach action,$(ACTION_ARRAY), \
-	       $(call docker_push_with_retry,${action},${BRANCH_NAME}); \
-		   echo ""; \
-       )
+.PHONY: release-%
+release-%: ## Push a specific action image to the registry. This recipe assumes you are already authenticated with the registry.
+	$(call docker_push_with_retry,$*,${VERSION}); \
+
+docker-dev-push: $(addprefix push-,$(ACTIONS))
+
+docker-push: docker-dev-push $(addprefix release-,$(ACTIONS))
+
 
 lint-ci: license
 
@@ -113,15 +113,22 @@ license: $(VENV_NAME) ## Check licensing with the reuse tool.
 	reuse --version;\
 	reuse --root . lint
 
-lint:
+lint: license
 	@# Help: Runs lint stage
 	@echo "---MAKEFILE LINT---"
+	echo $@
 	@echo "---END MAKEFILE LINT---"
 
 test:
 	@# Help: Runs test stage
 	@echo "---MAKEFILE TEST---"
-	./test.sh
+	echo $@
+	@echo "---END MAKEFILE TEST---"
+
+helm-build:
+	@# Help: Runs helm-build stage
+	@echo "---MAKEFILE TEST---"
+	echo $@
 	@echo "---END MAKEFILE TEST---"
 
 coverage:
@@ -142,6 +149,3 @@ help:
         | sort \
         | egrep -v -e '^[^[:alnum:]]' -e '^$@$$' \
         | xargs -I _ sh -c 'printf "%-20s " _; make _ -nB | (grep -i "^# Help:" || echo "") | tail -1 | sed "s/^# Help: //g"'
-
-fuzztest:
-	$(SCRIPTS_DIR)/fuzz_test.sh "tinker_actions/device_discovery/device-discovery_test.go"
