@@ -443,6 +443,8 @@ func NewTemplateDataUbuntu(name string, deviceInfo utils.DeviceInfo) ([]byte, er
 	securityFeatureTypeVar := osv1.SecurityFeature(deviceInfo.SecurityFeature)
 	securityFeatureStr := securityFeatureTypeVar.String()
 
+	infraConfig := config.GetInfraConfig()
+
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -481,9 +483,9 @@ func NewTemplateDataUbuntu(name string, deviceInfo utils.DeviceInfo) ([]byte, er
 					Environment: map[string]string{
 						"IMG_URL":     deviceInfo.OSImageURL,
 						"SHA256":      deviceInfo.OsImageSHA256,
-						"HTTP_PROXY":  env.ENProxyHTTP,
-						"HTTPS_PROXY": env.ENProxyHTTPS,
-						"NO_PROXY":    env.ENProxyNo,
+						"HTTP_PROXY":  infraConfig.ENProxyHTTP,
+						"HTTPS_PROXY": infraConfig.ENProxyHTTPS,
+						"NO_PROXY":    infraConfig.ENProxyNoProxy,
 					},
 					Pid: "host",
 				},
@@ -498,7 +500,7 @@ func NewTemplateDataUbuntu(name string, deviceInfo utils.DeviceInfo) ([]byte, er
 						"CONTENTS": fmt.Sprintf(`
 						http_proxy=%s
 						https_proxy=%s
-						no_proxy=%s`, env.ENProxyHTTP, env.ENProxyHTTPS, env.ENProxyNo),
+						no_proxy=%s`, infraConfig.ENProxyHTTP, infraConfig.ENProxyHTTPS, infraConfig.ENProxyNoProxy),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -515,7 +517,7 @@ func NewTemplateDataUbuntu(name string, deviceInfo utils.DeviceInfo) ([]byte, er
 						"DEST_PATH": "/etc/apt/apt.conf",
 						"CONTENTS": fmt.Sprintf(`
 						Acquire::http::Proxy "%s";
-						Acquire::https::Proxy "%s";`, env.ENProxyHTTP, env.ENProxyHTTPS),
+						Acquire::https::Proxy "%s";`, infraConfig.ENProxyHTTP, infraConfig.ENProxyHTTPS),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -562,7 +564,7 @@ func NewTemplateDataUbuntu(name string, deviceInfo utils.DeviceInfo) ([]byte, er
 						"DEST_PATH": "/etc/systemd/resolved.conf",
 						"CONTENTS": fmt.Sprintf(`
 						[Resolve]
-						DNS "%s"`, env.ENNameservers),
+						DNS "%s"`, strings.Join(infraConfig.DNSServers, " ")),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",
@@ -739,7 +741,7 @@ network:
 echo "$config_yaml" | tee /etc/netplan/config.yaml
 ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 touch .netplan_update_done
-netplan apply`, deviceInfo.HwIP, strings.ReplaceAll(env.ENNameservers, " ", ", ")),
+netplan apply`, deviceInfo.HwIP, strings.Join(infraConfig.DNSServers, ", ")),
 						"UID":     "0",
 						"GID":     "0",
 						"MODE":    "0755",

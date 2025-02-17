@@ -22,6 +22,7 @@ import (
 	"github.com/intel/infra-core/inventory/v2/pkg/policy/rbac"
 	"github.com/intel/infra-core/inventory/v2/pkg/secretprovider"
 	"github.com/intel/infra-core/inventory/v2/pkg/tracing"
+	"github.com/intel/infra-onboarding/dkam/pkg/config"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/env"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/handlers/controller"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/handlers/southbound"
@@ -105,6 +106,9 @@ func main() {
 	flag.Parse()
 
 	env.MustEnsureRequired()
+	if err := config.Read(); err != nil {
+		zlog.InfraSec().Fatal().Err(err).Msgf("Failed to read config")
+	}
 
 	// Startup order, respecting deps
 	// 1. Setup tracing
