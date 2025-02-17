@@ -67,6 +67,9 @@ func main() {
 	// Print a summary of the build
 	printSummary()
 	flag.Parse()
+	if err := config.Read(); err != nil {
+		zlog.InfraSec().Fatal().Err(err).Msgf("Failed to read config")
+	}
 
 	setupTracingIfEnabled()
 

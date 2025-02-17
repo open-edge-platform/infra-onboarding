@@ -5,6 +5,7 @@
 package testing
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -25,20 +26,10 @@ import (
 )
 
 const (
-	testDigest      = "TEST_DIGEST"
-	testFile        = "TEST_FILE"
-	exampleManifest = `
-		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
-		"config":{"mediaType":"application/vnd.intel.ensp.en",
-		"digest":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a","size":2},
-		"layers":[{
-			"mediaType":"application/vnd.oci.image.layer.v1.tar",
-			"digest":"` + testDigest + `",
-			"size":10,
-			"annotations":{"org.opencontainers.image.title":"` + testFile + `"}
-		}],
-		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
 	fileMode = 0o755
+
+	CorrectTestManifestTag = "correct"
+	EmptyTestManifestTag   = "empty"
 )
 
 var (
@@ -48,21 +39,106 @@ var (
 	mu         sync.Mutex
 )
 
+func exampleManifest(digest string, fileLen int) string {
+	return fmt.Sprintf(`
+		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
+		"config":{"mediaType":"application/vnd.intel.ensp.en",
+		"digest":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a","size":2},
+		"layers":[{
+			"mediaType":"application/vnd.oci.image.layer.v1.tar",
+			"digest":"`+digest+`",
+			"size":%d,
+			"annotations":{"org.opencontainers.image.title":"`+digest+`"}
+		}],
+		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`, fileLen)
+}
+
 func StartTestReleaseService(testProfileName string) func() {
+	config.SetInfraConfig(config.InfraConfig{
+		ENManifestTag: CorrectTestManifestTag,
+	})
 	expectedFileContent := "GOOD TEST!"
+	expectedTestManifest := `
+metadata:
+  schemaVersion: 0.2.1
+  release: 3.0.0-dev
+  bma:
+  debs:
+    - description: Node Agent
+      repository: Release Service debian repository
+      package: node-agent
+      registry: Release Service OCI registry
+      ociArtifact: one-intel-edge/edge-node/deb/node-agent
+      version: 1.4.4
+      publishToRepo: true
+    - description: Cluster Agent
+      repository: Release Service debian repository
+      package: cluster-agent
+      registry: Release Service OCI registry
+      ociArtifact: one-intel-edge/edge-node/deb/cluster-agent
+      version: 1.3.11
+      publishToRepo: true
+    - description: Hardware Discovery Agent
+      repository: Release Service debian repository
+      package: hardware-discovery-agent
+      registry: Release Service OCI registry
+      ociArtifact: one-intel-edge/edge-node/deb/hardware-discovery-agent
+      version: 1.4.5
+  provisioning:
+  files:
+    - description: iPXE binary & script
+      server: Release Service OCI registry
+      path: one-intel-edge/edge-node/file/provisioning-ipxe-efi-app
+      version: 1.0.1
+    - description: MicroOS image
+      server: Release Service OCI registry
+      path: one-intel-edge/edge-node/file/provisioning-hook-os
+      version: 1.6.0
+`
+
 	mux := http.NewServeMux()
+
+	testManifestDigestCorrect := "TEST_MANIFEST_DIGEST_CORRECT"
+	testManifestDigestEmpty := "TEST_MANIFEST_DIGEST_EMPTY"
+	testProfileManifest := "TEST_PROFILE_MANIFEST"
+
+	mux.HandleFunc("/v2/"+config.ENManifestRepo+"/manifests/"+CorrectTestManifestTag,
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			// return example manifest
+			w.Write([]byte(exampleManifest(testManifestDigestCorrect, len(expectedTestManifest))))
+		})
+	mux.HandleFunc("/v2/"+config.ENManifestRepo+"/blobs/"+testManifestDigestCorrect,
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(expectedTestManifest))
+		})
+
+	mux.HandleFunc("/v2/"+config.ENManifestRepo+"/manifests/"+EmptyTestManifestTag,
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			// return example manifest
+			w.Write([]byte(exampleManifest(testManifestDigestEmpty, 1)))
+		})
+	mux.HandleFunc("/v2/"+config.ENManifestRepo+"/blobs/"+testManifestDigestEmpty,
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			// empty data
+		})
+
+	// test handlers for profile script
 	mux.HandleFunc("/v2/"+config.ProfileScriptRepo+testProfileName+"/manifests/1.0.2",
 		func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			// return example manifest
-			w.Write([]byte(exampleManifest))
+			w.Write([]byte(exampleManifest(testProfileManifest, len(expectedFileContent))))
 		})
-
-	mux.HandleFunc("/v2/"+config.ProfileScriptRepo+testProfileName+"/blobs/"+testDigest,
+	mux.HandleFunc("/v2/"+config.ProfileScriptRepo+testProfileName+"/blobs/"+testProfileManifest,
 		func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(expectedFileContent))
 		})
+
 	svr := httptest.NewServer(mux)
 
 	testRegistryEndpoint, _ := strings.CutPrefix(svr.URL, "http://")
@@ -92,6 +168,93 @@ func PrepareTestCaCertificateFile(t *testing.T) {
 		os.RemoveAll(tmpDir)
 		config.OrchCACertificateFile = originalCaCertificatePath
 	})
+}
+
+func PrepareTestInfraConfig(_ *testing.T) {
+	testConfig := config.InfraConfig{
+		ENManifestTag:                         "latest-dev",
+		InfraURL:                              "infra.test:443",
+		ClusterURL:                            "cluster.test:443",
+		UpdateURL:                             "update.test:443",
+		ReleaseServiceURL:                     "rs.test:443",
+		LogsObservabilityURL:                  "logs.test:443",
+		MetricsObservabilityURL:               "metrics.test:443",
+		KeycloakURL:                           "keycloak.test:443",
+		TelemetryURL:                          "telemetry.test:443",
+		RegistryURL:                           "registry.test:443",
+		FileServerURL:                         "fs.test:443",
+		ProvisioningService:                   "provisioning.test:443",
+		ProvisioningServerURL:                 "provisioning.test:443",
+		TinkServerURL:                         "tink.test:443",
+		OnboardingURL:                         "onboarding.test:443",
+		OnboardingStreamURL:                   "onboarding-stream.test:443",
+		CDN:                                   "cdn.test:443",
+		SystemConfigFsInotifyMaxUserInstances: 1,
+		SystemConfigVmOverCommitMemory:        1,
+		SystemConfigKernelPanicOnOops:         1,
+		SystemConfigKernelPanic:               1,
+		ENProxyHTTP:                           "http-proxy.test",
+		ENProxyHTTPS:                          "https-proxy.test",
+		ENProxyFTP:                            "ftp-proxy.test",
+		ENProxyNoProxy:                        "no-proxy.test",
+		ENProxySocks:                          "socks.test",
+		NetIP:                                 "dynamic",
+		NTPServers:                            []string{"ntp1.org", "ntp2.org"},
+		DNSServers:                            []string{"1.1.1.1"},
+		ExtraHosts:                            []string{},
+		FirewallReqAllow:                      "",
+		FirewallCfgAllow:                      "",
+		ENManifest: config.ENManifest{
+			Packages: struct {
+				Debians []string `yaml:"deb_packages"`
+			}{},
+			BMA: struct {
+				Debs []config.AgentsVersion `yaml:"debs"`
+			}{
+				Debs: []config.AgentsVersion{
+					{
+						Package: "node-agent",
+						Version: "1.0.0",
+					},
+				},
+			},
+			Provisioning: config.Provisioning{
+				Images: []config.Image{},
+			},
+			Metadata: struct {
+				//nolint:tagliatelle // test file
+				DebianRepositories []struct {
+					Name         string `yaml:"name"`
+					URL          string `yaml:"url"`
+					Architecture string `yaml:"architecture"`
+					Key          string `yaml:"key"`
+					Section      string `yaml:"section"`
+					Distribution string `yaml:"distribution"`
+					Root         string `yaml:"root"`
+					ThirdParty   bool   `yaml:"thirdParty"`
+					AuthType     string `yaml:"authType"`
+				} `yaml:"debianRepositories"`
+			}{
+				//nolint:tagliatelle // test file
+				DebianRepositories: []struct {
+					Name         string `yaml:"name"`
+					URL          string `yaml:"url"`
+					Architecture string `yaml:"architecture"`
+					Key          string `yaml:"key"`
+					Section      string `yaml:"section"`
+					Distribution string `yaml:"distribution"`
+					Root         string `yaml:"root"`
+					ThirdParty   bool   `yaml:"thirdParty"`
+					AuthType     string `yaml:"authType"`
+				}{
+					{
+						Distribution: "test-distro",
+					},
+				},
+			},
+		},
+	}
+	config.SetInfraConfig(testConfig)
 }
 
 func PrepareTestReleaseFile(t *testing.T, projectRoot string) {

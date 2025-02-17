@@ -6,7 +6,6 @@ package signing
 import (
 	"errors"
 	"io"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -29,22 +28,17 @@ func SignHookOS() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	ReleaseService := os.Getenv("REGISTRY_SERVICE")
-	dnsName := os.Getenv("DNS_NAME")
-	zlog.InfraSec().Info().Msgf("CDN boot DNS name %s", dnsName)
-	parsedURL, parseerr := url.Parse(dnsName)
-	if parseerr != nil {
-		zlog.InfraSec().Fatal().Err(parseerr).Msgf("Error parsing URL: %v", parseerr)
-		return false, parseerr
-	}
-	// Extract the host (including subdomain) from the URL
-	host := parsedURL.Hostname()
-	zlog.InfraSec().Info().Msgf("Domain: %s", host)
+
+	infraConfig := config.GetInfraConfig()
+
+	zlog.InfraSec().Info().Msgf("CDN boot DNS name %s", infraConfig.ProvisioningServerURL)
+	zlog.InfraSec().Info().Msgf("Domain: %s", infraConfig.ProvisioningService)
+
 	content, err := os.ReadFile("config")
 	if err != nil {
 		zlog.InfraSec().Fatal().Err(err).Msgf("Error %v", err)
 	}
-	modifiedConfig := replaceConfigPlaceholders(content, ReleaseService, host)
+	modifiedConfig := replaceConfigPlaceholders(content)
 	// Write the modified config back to the file
 	errconf := os.WriteFile("config", []byte(modifiedConfig), writeMode)
 	if errconf != nil {
@@ -130,47 +124,26 @@ func validateAndSetMode(buildScriptPath string) (string, error) {
 	return mode, nil
 }
 
-func replaceConfigPlaceholders(content []byte, releaseService, host string) string {
-	keycloakURL := os.Getenv("KEYCLOAK_URL")
-	//nolint:gocritic // might be used in future so, used nolint.
-	// harbor_url_tinker_actions := harborServer + "/one-intel-edge/edge-node/tinker-actions"
-	////////// Proxies **********************************
-	httpProxy := os.Getenv("EN_HTTP_PROXY")
-	httpsProxy := os.Getenv("EN_HTTPS_PROXY")
-	ftpProxy := os.Getenv("EN_FTP_PROXY")
-	socksProxy := os.Getenv("EN_SOCKS_PROXY")
-	noProxy := os.Getenv("EN_NO_PROXY")
-	// Name server
-	// nameserver := os.Getenv("NAMESERVERS")
-	//////////// FQDNS ********************************
-	releaseSvc := os.Getenv("CDN_SVC")
-	tinkStackSvc := host
-	releaseSVC := os.Getenv("RELEASE_SVC")
-	tinkServerSvc := os.Getenv("TINKER_SVC")
-	ociReleaseSvc := releaseService
-	loggingSvc := os.Getenv("ORCH_PLATFORM_OBS_HOST")
-	extraHosts := os.Getenv("EXTRA_HOSTS")
-	onboardingManagerSvc := os.Getenv("OM_SERVICE_URL")
-	onboardingStreamSvc := os.Getenv("OM_STREAM_URL")
-	modifiedConfig := strings.ReplaceAll(string(content), "__http_proxy__", httpProxy)
-	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__https_proxy__", httpsProxy)
-	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__ftp_proxy__", ftpProxy)
-	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__socks_proxy__", socksProxy)
-	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__no_proxy__", noProxy)
-	//nolint:gocritic // might be used in future so, used nolint.
-	// modifiedConfig = strings.ReplaceAll(modifiedConfig, "__nameserver__", nameserver)
-	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__release_svc__", releaseSvc)
-	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__tink_stack_svc__", tinkStackSvc)
-	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__tink_server_svc__", tinkServerSvc)
-	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__extra_hosts__", extraHosts)
-	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__releaseSVC__", releaseSVC)
-	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__keycloak_url__", keycloakURL)
-	//nolint:gocritic // might be used in future so, used nolint.
-	// modifiedConfig = strings.ReplaceAll(modifiedConfig, "__harbor_url_tinker_actions__", harbor_url_tinker_actions)
-	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__oci_release_svc__", ociReleaseSvc)
-	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__logging_svc__", loggingSvc)
-	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__onboarding_manager_svc__", onboardingManagerSvc)
-	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__onboarding_stream_svc__", onboardingStreamSvc)
+func replaceConfigPlaceholders(content []byte) string {
+	infraConfig := config.GetInfraConfig()
+
+	modifiedConfig := strings.ReplaceAll(string(content), "__http_proxy__", infraConfig.ENProxyHTTP)
+	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__https_proxy__", infraConfig.ENProxyHTTPS)
+	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__ftp_proxy__", infraConfig.ENProxyFTP)
+	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__socks_proxy__", infraConfig.ENProxySocks)
+	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__no_proxy__", infraConfig.ENProxyNoProxy)
+
+	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__release_svc__", infraConfig.CDN)
+	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__tink_stack_svc__", infraConfig.ProvisioningService)
+	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__tink_server_svc__", infraConfig.TinkServerURL)
+	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__extra_hosts__", strings.Join(infraConfig.ExtraHosts, ","))
+	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__keycloak_url__", infraConfig.KeycloakURL)
+	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__oci_release_svc__", strings.Split(infraConfig.RegistryURL, ":")[0])
+	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__logging_svc__",
+		strings.Split(infraConfig.LogsObservabilityURL, ":")[0])
+	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__onboarding_manager_svc__", infraConfig.OnboardingURL)
+	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__onboarding_stream_svc__", infraConfig.OnboardingStreamURL)
+
 	return modifiedConfig
 }
 
@@ -220,18 +193,10 @@ func copyDir(src, dst string) error {
 	})
 }
 
-func BuildSignIpxe(dnsName string) (bool, error) {
-	zlog.InfraSec().Info().Msgf("CDN boot DNS name %s", dnsName)
-	parsedURL, parseerr := url.Parse(dnsName)
-	if parseerr != nil {
-		zlog.InfraSec().Fatal().Err(parseerr).Msgf("Error parsing URL: %v", parseerr)
-		return false, parseerr
-	}
-
-	// Extract the host (including subdomain) from the URL
-	host := parsedURL.Hostname()
-
-	zlog.InfraSec().Info().Msgf("Domain: %s", host)
+func BuildSignIpxe() (bool, error) {
+	provisioningServerURL := config.GetInfraConfig().ProvisioningServerURL
+	zlog.InfraSec().Info().Msgf("CDN boot DNS name %s", provisioningServerURL)
+	zlog.InfraSec().Info().Msgf("Domain: %s", config.GetInfraConfig().ProvisioningService)
 
 	tinkURLString := "<TINK_STACK_URL>"
 	chainPath := config.ScriptPath + "/" + "chain.ipxe"
@@ -251,7 +216,7 @@ func BuildSignIpxe(dnsName string) (bool, error) {
 
 	if strings.Contains(string(content), tinkURLString) {
 		// Substitute relevant data in the script
-		modifiedScript := strings.ReplaceAll(string(content), tinkURLString, dnsName)
+		modifiedScript := strings.ReplaceAll(string(content), tinkURLString, provisioningServerURL)
 
 		// Save the modified script to the specified output path
 		err = os.WriteFile(targetChainPath, []byte(modifiedScript), writeMode)

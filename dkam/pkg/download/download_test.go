@@ -135,41 +135,6 @@ func TestPathExists(t *testing.T) {
 	assert.False(t, exists)
 }
 
-func TestDownloadArtifacts(t *testing.T) {
-	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
-	tmpFolderPath, err := os.MkdirTemp("/tmp", "test_download_artifacts")
-	require.NoError(t, err)
-	defer os.RemoveAll(tmpFolderPath)
-
-	expectedFileContent := "GOOD TEST!"
-	// Expected file path comes from the internal path manipulation done by the DownloadArtifact function
-	// expectedFilePath := tmpFolderPath + "/tmp/" + config.ReleaseVersion + ".yaml"
-
-	testTag := "testTag"
-	testManifest := "testManifest"
-	exampleDownloadManifest := `{"layers":[{"digest":"` + testDigest + `"}]}`
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/"+testTag+"/manifests/"+testManifest, func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		// return example manifest
-		w.Write([]byte(exampleDownloadManifest))
-	})
-	// Path comes from the "DownloadArtifacts" by combining content of the exampleDownloadManifest digest
-	mux.HandleFunc("/"+testTag+"/blobs/"+testDigest, func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(expectedFileContent))
-	})
-	svr := httptest.NewServer(mux)
-	defer svr.Close()
-
-	// Override the RSProxyManifest with test HTTP server
-	config.ENManifestRepo = svr.URL + "/"
-	// err = DownloadArtifacts(config.PVC, testTag, testManifest)
-	err = DownloadArtifacts(context.Background(), testTag)
-	assert.NoError(t, err)
-}
-
 func TestDownloadMicroOS(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	expectedFileContent := "GOOD TEST!"
@@ -354,11 +319,9 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 			return
 		}
 
-		data := Data{
-			Provisioning: struct {
-				Files []File `yaml:"files"`
-			}{
-				Files: []File{
+		data := config.ENManifest{
+			Provisioning: config.Provisioning{
+				Files: []config.File{
 					{
 						Description: "Dummy file 1",
 						Server:      "server1",

@@ -16,8 +16,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gopkg.in/yaml.v2"
-
 	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
 	as "github.com/intel/infra-core/inventory/v2/pkg/artifactservice"
 	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
@@ -26,60 +24,15 @@ import (
 	"github.com/intel/infra-onboarding/dkam/pkg/util"
 )
 
-var zlog = logging.GetLogger("InfraDKAMAuth")
+var zlog = logging.GetLogger("InfraDKAMDownload")
 
 const fileMode = 0o755
-
-//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
-type Response struct {
-	SchemaVersion int    `json:"schemaVersion"`
-	MediaType     string `json:"mediaType"`
-	ArtifactType  string `json:"artifactType"`
-	Config        struct {
-		MediaType string `json:"mediaType"`
-		Digest    string `json:"digest"`
-		Size      int    `json:"size"`
-		Data      string `json:"data"`
-	} `json:"config"`
-	Layers []struct {
-		MediaType   string            `json:"mediaType"`
-		Digest      string            `json:"digest"`
-		Size        int               `json:"size"`
-		Annotations map[string]string `json:"annotations"`
-	} `json:"layers"`
-}
-
-type File struct {
-	Description string `yaml:"description"`
-	Server      string `yaml:"server"`
-	Path        string `yaml:"path"`
-	Version     string `yaml:"version"`
-}
-
-var version string
-
-type Data struct {
-	Provisioning struct {
-		Files []File `yaml:"files"`
-	} `yaml:"provisioning"`
-}
 
 //nolint:revive // Keeping the function name for clarity and consistency.
 func DownloadMicroOS(ctx context.Context) (bool, error) {
 	zlog.Info().Msgf("Inside Download and sign artifact... %s", config.DownloadPath)
 
-	releaseFilePath, err := util.GetReleaseFilePathIfExists()
-	if err != nil {
-		return false, err
-	}
-
-	file, err := os.Open(releaseFilePath)
-	if err != nil {
-		zlog.InfraSec().Error().Err(err).Msgf("Error opening file: %v", err)
-	}
-	defer file.Close()
-
-	version = getHookOSVersion(file)
+	version := getHookOSVersion()
 
 	zlog.InfraSec().Info().Msgf("Hook OS version %s", version)
 
@@ -108,59 +61,16 @@ func DownloadMicroOS(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-func getHookOSVersion(file *os.File) string {
-	content, err := io.ReadAll(file)
-	if err != nil {
-		zlog.InfraSec().Error().Err(err).Msgf("Error reading file: %v", err)
-	}
+func getHookOSVersion() string {
+	infraConfig := config.GetInfraConfig()
 
-	// Parse YAML
-	var data Data
-	if unamarshalErr := yaml.Unmarshal(content, &data); unamarshalErr != nil {
-		zlog.InfraSec().Error().Err(unamarshalErr).Msgf("Error unmarshalling YAML: %v", unamarshalErr)
-	}
-
-	for _, file := range data.Provisioning.Files {
+	for _, file := range infraConfig.ENManifest.Provisioning.Files {
 		if file.Path == config.HookOSRepo {
 			zlog.InfraSec().Info().Msgf("Version for hook os:%s", file.Version)
 			return file.Version
 		}
 	}
 	return ""
-}
-
-//nolint:revive // Keeping the function name for clarity and consistency.
-func DownloadArtifacts(ctx context.Context, manifestTag string) error {
-	outDir := filepath.Join(config.DownloadPath, "tmp")
-
-	mkErr := os.MkdirAll(outDir, fileMode)
-	if mkErr != nil {
-		zlog.InfraSec().Error().Err(mkErr).Msgf("Error creating directory: %v", mkErr)
-		return mkErr
-	}
-	zlog.InfraSec().Info().Msg("tmp folder created successfully")
-	zlog.InfraSec().Info().Msgf("Tag is:%s", manifestTag)
-
-	repo := config.ENManifestRepo
-	zlog.InfraSec().Info().Msgf("Manifest repo URL is:%s", repo)
-	artifacts, err := as.DownloadArtifacts(ctx, repo, manifestTag)
-	if err != nil {
-		invErr := inv_errors.Errorf("Error downloading EN Manifest file for tag %s", manifestTag)
-		zlog.Err(invErr).Msg("")
-	}
-	if artifacts != nil && len(*artifacts) > 0 {
-		artifact := (*artifacts)[0]
-		zlog.InfraSec().Info().Msgf("Downloading artifact %s", artifact.Name)
-		filePath := outDir + "/" + config.ReleaseVersion + ".yaml"
-
-		err = CreateFile(filePath, &artifact)
-		if err != nil {
-			zlog.InfraSec().Error().Err(err).Msg("Error writing to file")
-			return err
-		}
-	}
-	zlog.InfraSec().Info().Msg("File downloaded")
-	return nil
 }
 
 func CreateFile(filePath string, artifact *as.Artifact) error {

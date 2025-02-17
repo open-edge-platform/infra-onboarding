@@ -23,21 +23,12 @@ var (
 
 func DownloadArtifacts(ctx context.Context) error {
 	MODE := GetMODE()
-	manifestTag := os.Getenv("MANIFEST_TAG")
-	// MODE := "dev"
 	zlog.InfraSec().Info().Msgf("Mode of deployment: %s", MODE)
-	zlog.InfraSec().Info().Msgf("Manifest Tag: %s", manifestTag)
+	zlog.InfraSec().Info().Msgf("Manifest Tag: %s", config.GetInfraConfig().ENManifestTag)
 
 	zlog.InfraSec().Info().Msg("Download artifacts")
 
-	err := download.DownloadArtifacts(ctx, manifestTag)
-	if err != nil {
-		zlog.InfraSec().Info().Msgf("Failed to download manifest file: %v", err)
-		return err
-	}
-
 	downloaded, downloadErr := download.DownloadMicroOS(ctx)
-
 	if downloadErr != nil {
 		zlog.InfraSec().Info().Msgf("Failed to download MicroOS %v", downloadErr)
 		return downloadErr
@@ -71,10 +62,6 @@ func GetCuratedScript(ctx context.Context, osResource *osv1.OperatingSystemResou
 	return nil
 }
 
-func GetServerURL() string {
-	return os.Getenv("DNS_NAME")
-}
-
 func SignMicroOS() (bool, error) {
 	signed, err := signing.SignHookOS()
 	if err != nil {
@@ -89,8 +76,7 @@ func SignMicroOS() (bool, error) {
 }
 
 func BuildSignIpxe() (bool, error) {
-	dnsName := GetServerURL()
-	signed, err := signing.BuildSignIpxe(dnsName)
+	signed, err := signing.BuildSignIpxe()
 	if err != nil {
 		zlog.InfraSec().Info().Msgf("Failed to build and sign iPXE %v", err)
 		return false, err

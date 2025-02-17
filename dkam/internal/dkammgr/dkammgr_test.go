@@ -101,6 +101,7 @@ func TestDownloadArtifacts(t *testing.T) {
 }
 
 func TestGetCuratedScript(t *testing.T) {
+	dkam_testing.PrepareTestInfraConfig(t)
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	dkam_testing.PrepareTestCaCertificateFile(t)
 
@@ -120,8 +121,6 @@ func TestGetCuratedScript(t *testing.T) {
         install_intel_CAcertificates
 # Add your installation commands here
 `
-	os.Setenv("ORCH_CLUSTER", "kind.internal")
-	defer os.Unsetenv("ORCH_CLUSTER")
 	err = os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0o755)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
@@ -139,37 +138,6 @@ func TestGetCuratedScript(t *testing.T) {
 
 	// Check if the returned filename matches the expected format
 	assert.NoError(t, err)
-}
-
-func TestServerUrl(t *testing.T) {
-	// Save the original value of MODE so that it can be restored later
-	originalurl := os.Getenv("DNS_NAME")
-
-	// Defer the restoration of the original value
-	defer func() {
-		os.Setenv("DNS_NAME", originalurl)
-	}()
-
-	tests := []struct {
-		name         string
-		testMode     string
-		expectedMode string
-	}{
-		{"Mode is set", "dev", "dev"},
-		{"Mode is not set", "", ""},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Set the test value for MODE
-			os.Setenv("DNS_NAME", tt.testMode)
-
-			result := GetServerURL()
-			if result != tt.expectedMode {
-				t.Errorf("Expected %v, but got %v", tt.expectedMode, result)
-			}
-		})
-	}
 }
 
 func TestGetMode(t *testing.T) {
@@ -383,8 +351,8 @@ func TestDownloadArtifacts_Case(t *testing.T) {
 	exampleDownloadManifest := `{"layers":[{"digest":"` + testDigest + `"}]}`
 
 	mux := http.NewServeMux()
-	data := download.Data{}
-	data.Provisioning.Files = append(data.Provisioning.Files, download.File{
+	data := config.ENManifest{}
+	data.Provisioning.Files = append(data.Provisioning.Files, config.File{
 		Description: "Script file",
 		Server:      "example.com",
 		Path:        "",
@@ -406,7 +374,6 @@ func TestDownloadArtifacts_Case(t *testing.T) {
 	svr := httptest.NewServer(mux)
 	defer svr.Close()
 	config.ENManifestRepo = svr.URL + "/"
-	os.Setenv("MANIFEST_TAG", "testManifest")
 	_, filename, _, _ := runtime.Caller(0)
 	localPath := pa.Dir(filename)
 	expectedFileContent := "GOOD TEST!"

@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -16,7 +15,6 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
-	"gopkg.in/yaml.v2"
 
 	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
 	as "github.com/intel/infra-core/inventory/v2/pkg/artifactservice"
@@ -35,41 +33,8 @@ const (
 	fileMode = 0o755
 )
 
-type AgentsVersion struct {
-	Package string `yaml:"package"`
-	Version string `yaml:"version"`
-}
-
-type Config struct {
-	Packages struct {
-		Debians []string `yaml:"deb_packages"`
-	} `yaml:"packages"`
-	BMA struct {
-		Debs []AgentsVersion `yaml:"debs"`
-	} `yaml:"bma"`
-	Provisioning struct {
-		Images []Image `yaml:"images"`
-	} `yaml:"provisioning"`
-	Metadata struct {
-		//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
-		DebianRepositories []struct {
-			Name         string `yaml:"name"`
-			URL          string `yaml:"url"`
-			Architecture string `yaml:"architecture"`
-			Key          string `yaml:"key"`
-			Section      string `yaml:"section"`
-			Distribution string `yaml:"distribution"`
-			Root         string `yaml:"root"`
-			//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
-			ThirdParty bool `yaml:"thirdParty"`
-			//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
-			AuthType string `yaml:"authType"`
-		} `yaml:"debianRepositories"`
-	} `yaml:"metadata"`
-}
-
-// Rule UFW Firewall structure in JSON, expected to be provided as environment variable.
-type Rule struct {
+// FirewallRule UFW Firewall structure in JSON, expected to be provided as environment variable.
+type FirewallRule struct {
 	//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
 	SourceIP string `json:"sourceIp,omitempty"`
 	Ports    string `json:"ports,omitempty"`
@@ -78,24 +43,8 @@ type Rule struct {
 	Protocol string `json:"protocol,omitempty"`
 }
 
-type Image struct {
-	Description string `yaml:"description"`
-	Registry    string `yaml:"registry"`
-	Image       string `yaml:"image"`
-	Version     string `yaml:"version"`
-}
-
-func GetBMAgentsInfo() (agentsList []AgentsVersion, distribution string, err error) {
-	releaseFilePath, err := util.GetReleaseFilePathIfExists()
-	if err != nil {
-		return nil, "", err
-	}
-
-	configs, err := GetReleaseArtifactList(releaseFilePath)
-	if err != nil {
-		zlog.InfraSec().Info().Msgf("Error checking path %v", err)
-		return nil, "", err
-	}
+func GetBMAgentsInfo() (agentsList []config.AgentsVersion, distribution string, err error) {
+	configs := config.GetInfraConfig().ENManifest
 
 	agentsList = configs.BMA.Debs
 
@@ -131,18 +80,18 @@ func getCaCert() (string, error) {
 
 // ufw rules if true, iptables otherwise.
 func getCustomFirewallRules(ufw bool) ([]string, error) {
-	// Parse each rule map into a Rule struct
-	rules, err := ParseJSONUfwRules(os.Getenv("FIREWALL_REQ_ALLOW"))
+	reqRules, err := ParseJSONFirewallRules(config.GetInfraConfig().FirewallReqAllow)
 	if err != nil {
 		return nil, err
 	}
-	rules2, err := ParseJSONUfwRules(os.Getenv("FIREWALL_CFG_ALLOW"))
+
+	cfgRules, err := ParseJSONFirewallRules(config.GetInfraConfig().FirewallCfgAllow)
 	if err != nil {
 		return nil, err
 	}
 
 	firewallRules := make([]string, 0)
-	for _, rule := range append(rules, rules2...) {
+	for _, rule := range append(reqRules, cfgRules...) {
 		if ufw {
 			firewallRules = append(firewallRules, GenerateUFWCommands(rule)...)
 		} else {
@@ -183,44 +132,45 @@ func getCommonScriptTemplateVariables(osType osv1.OsType) (map[string]interface{
 		return nil, err
 	}
 
+	infraConfig := config.GetInfraConfig()
 	templateVariables := map[string]interface{}{
 		"MODE": os.Getenv("MODE"),
 
 		"CA_CERT": caCert,
 
-		"ORCH_CLUSTER":                   os.Getenv("ORCH_CLUSTER"),
-		"ORCH_INFRA":                     os.Getenv("ORCH_INFRA"),
-		"ORCH_UPDATE":                    os.Getenv("ORCH_UPDATE"),
-		"ORCH_PLATFORM_OBS_HOST":         os.Getenv("ORCH_PLATFORM_OBS_HOST"),
-		"ORCH_PLATFORM_OBS_PORT":         os.Getenv("ORCH_PLATFORM_OBS_PORT"),
-		"ORCH_PLATFORM_OBS_METRICS_HOST": os.Getenv("ORCH_PLATFORM_OBS_METRICS_HOST"),
-		"ORCH_PLATFORM_OBS_METRICS_PORT": os.Getenv("ORCH_PLATFORM_OBS_METRICS_PORT"),
-		"ORCH_TELEMETRY_HOST":            os.Getenv("ORCH_TELEMETRY_HOST"),
-		"ORCH_TELEMETRY_PORT":            os.Getenv("ORCH_TELEMETRY_PORT"),
-		"KEYCLOAK_URL":                   os.Getenv("ORCH_KEYCLOAK"),
-		"KEYCLOAK_FQDN":                  strings.Split(os.Getenv("ORCH_KEYCLOAK"), ":")[0],
-		"RELEASE_FQDN":                   strings.Split(os.Getenv("ORCH_RELEASE"), ":")[0],
-		"RELEASE_TOKEN_URL":              os.Getenv("ORCH_RELEASE"),
-		"ORCH_APT_PORT":                  os.Getenv("ORCH_APT_PORT"),
-		"ORCH_IMG_PORT":                  os.Getenv("ORCH_IMG_PORT"),
-		"FILE_SERVER":                    os.Getenv("FILE_SERVER"),
-		"IMG_REGISTRY_URL":               os.Getenv("REGISTRY_SERVICE"),
-		"NTP_SERVERS":                    os.Getenv("NTP_SERVERS"),
+		"ORCH_CLUSTER":                   infraConfig.ClusterURL,
+		"ORCH_INFRA":                     infraConfig.InfraURL,
+		"ORCH_UPDATE":                    infraConfig.UpdateURL,
+		"ORCH_PLATFORM_OBS_HOST":         strings.Split(infraConfig.LogsObservabilityURL, ":")[0],
+		"ORCH_PLATFORM_OBS_PORT":         strings.Split(infraConfig.LogsObservabilityURL, ":")[1],
+		"ORCH_PLATFORM_OBS_METRICS_HOST": strings.Split(infraConfig.MetricsObservabilityURL, ":")[0],
+		"ORCH_PLATFORM_OBS_METRICS_PORT": strings.Split(infraConfig.MetricsObservabilityURL, ":")[1],
+		"ORCH_TELEMETRY_HOST":            strings.Split(infraConfig.TelemetryURL, ":")[0],
+		"ORCH_TELEMETRY_PORT":            strings.Split(infraConfig.TelemetryURL, ":")[1],
+		"KEYCLOAK_URL":                   infraConfig.KeycloakURL,
+		"KEYCLOAK_FQDN":                  strings.Split(infraConfig.KeycloakURL, ":")[0],
+		"RELEASE_FQDN":                   strings.Split(infraConfig.ReleaseServiceURL, ":")[0],
+		"RELEASE_TOKEN_URL":              infraConfig.ReleaseServiceURL,
+		"ORCH_APT_PORT":                  strings.Split(infraConfig.FileServerURL, ":")[1],
+		"ORCH_IMG_PORT":                  strings.Split(infraConfig.RegistryURL, ":")[1],
+		"FILE_SERVER":                    strings.Split(infraConfig.FileServerURL, ":")[0],
+		"IMG_REGISTRY_URL":               strings.Split(infraConfig.RegistryURL, ":")[0],
+		"NTP_SERVERS":                    strings.Join(infraConfig.NTPServers, ","),
 
-		"EN_HTTP_PROXY":  os.Getenv("EN_HTTP_PROXY"),
-		"EN_HTTPS_PROXY": os.Getenv("EN_HTTPS_PROXY"),
-		"EN_NO_PROXY":    os.Getenv("EN_NO_PROXY"),
-		"EN_FTP_PROXY":   os.Getenv("EN_FTP_PROXY"),
-		"EN_SOCKS_PROXY": os.Getenv("EN_SOCKS_PROXY"),
+		"EN_HTTP_PROXY":  infraConfig.ENProxyHTTP,
+		"EN_HTTPS_PROXY": infraConfig.ENProxyHTTPS,
+		"EN_NO_PROXY":    infraConfig.ENProxyNoProxy,
+		"EN_FTP_PROXY":   infraConfig.ENProxyFTP,
+		"EN_SOCKS_PROXY": infraConfig.ENProxySocks,
 
-		"KERNEL_CONFIG_OVER_COMMIT_MEMORY": os.Getenv("OVER_COMMIT_MEMORY"),
-		"KERNEL_CONFIG_PANIC_ON_OOPS":      os.Getenv("PANIC_ON_OOPS"),
-		"KERNEL_CONFIG_KERNEL_PANIC":       os.Getenv("KERNEL_PANIC"),
-		"KERNEL_CONFIG_MAX_USER_INSTANCE":  os.Getenv("MAX_USER_INSTANCE"),
+		"KERNEL_CONFIG_OVER_COMMIT_MEMORY": infraConfig.SystemConfigVmOverCommitMemory,
+		"KERNEL_CONFIG_PANIC_ON_OOPS":      infraConfig.SystemConfigKernelPanicOnOops,
+		"KERNEL_CONFIG_KERNEL_PANIC":       infraConfig.SystemConfigKernelPanic,
+		"KERNEL_CONFIG_MAX_USER_INSTANCE":  infraConfig.SystemConfigFsInotifyMaxUserInstances,
 
-		"NETIP": os.Getenv("NETIP"),
+		"NETIP": infraConfig.NetIP,
 
-		"EXTRA_HOSTS": strings.Split(os.Getenv("EXTRA_HOSTS"), ","),
+		"EXTRA_HOSTS": infraConfig.ExtraHosts,
 
 		"FIREWALL_RULES": firewallRules,
 
@@ -320,35 +270,6 @@ func finalizeCuratedScript(ctx context.Context, osRes *osv1.OperatingSystemResou
 	return nil
 }
 
-func GetReleaseArtifactList(filePath string) (Config, error) {
-	var configs Config
-	// Open the file
-	zlog.InfraSec().Info().Msg("Inside GetReleaseArtifactList")
-	zlog.InfraSec().Info().Msg(filePath)
-
-	file, err := os.Open(filePath)
-	if err != nil {
-		zlog.InfraSec().Error().Err(err).Msgf("Error opening file: %v", err)
-		return Config{}, err
-	}
-	defer file.Close()
-
-	// Read the content of the file
-	content, err := io.ReadAll(file)
-	if err != nil {
-		zlog.InfraSec().Error().Err(err).Msgf("Error reading file: %v", err)
-		return configs, err
-	}
-	// Unmarshal the YAML content into the Config struct
-
-	err = yaml.Unmarshal(content, &configs)
-	if err != nil {
-		zlog.InfraSec().Error().Err(err).Msgf("Error unmarshalling YAML: %v", err)
-		return configs, err
-	}
-	return configs, nil
-}
-
 func CurateScriptFromTemplate(scriptTemplatePath string, templateVariables map[string]interface{}) (string, error) {
 	tmplScript, err := os.ReadFile(scriptTemplatePath)
 	if err != nil {
@@ -427,8 +348,8 @@ func FetchAndAppendProfileScript(ctx context.Context, profileName, originalScrip
 	return originalScript + string(profileScript), nil
 }
 
-// GenerateUFWCommands convert a Rule into the corresponding ufw command.
-func GenerateUFWCommands(rule Rule) []string {
+// GenerateUFWCommands convert a FirewallRule into the corresponding ufw command.
+func GenerateUFWCommands(rule FirewallRule) []string {
 	commands := []string{}
 	ipAddr := ""
 	if rule.SourceIP != "" {
@@ -466,7 +387,7 @@ func GenerateUFWCommands(rule Rule) []string {
 	return commands
 }
 
-func GenerateIptablesCommands(rule Rule) []string {
+func GenerateIptablesCommands(rule FirewallRule) []string {
 	ipAddr := ""
 	if rule.SourceIP != "" {
 		ipAddr = resolveIP(rule.SourceIP)
@@ -534,14 +455,14 @@ func generateIptablesForPorts(portsList []string, ipAddr string) []string {
 	return commands
 }
 
-// ParseJSONUfwRules parse the ufw rule provided as JSON, expected JSON is expected to
-// follow the JSON defined by Rule struct. Exported for testing purposes.
-func ParseJSONUfwRules(ufwRules string) ([]Rule, error) {
-	if ufwRules == "" {
-		return make([]Rule, 0), nil
+// ParseJSONFirewallRules parse the firewall rule provided as JSON, expected JSON is expected to
+// follow the JSON defined by FirewallRule struct. Exported for testing purposes.
+func ParseJSONFirewallRules(rulesStr string) ([]FirewallRule, error) {
+	if rulesStr == "" {
+		return make([]FirewallRule, 0), nil
 	}
-	var rules []Rule
-	err := json.Unmarshal([]byte(ufwRules), &rules)
+	var rules []FirewallRule
+	err := json.Unmarshal([]byte(rulesStr), &rules)
 	if err != nil {
 		zlog.InfraSec().Error().Err(err).Msg("Failed to unmarshal firwall rules")
 		return nil, err

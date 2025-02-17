@@ -6,7 +6,6 @@ package curation
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -38,6 +37,7 @@ func TestMain(m *testing.M) {
 	currentDir = wd
 	config.ScriptPath = strings.Replace(currentDir, "curation", "script", -1)
 	config.PVC, err = os.MkdirTemp(os.TempDir(), "test_pvc")
+
 	cleanupFunc := dkam_testing.StartTestReleaseService(testOSProfileName)
 	defer cleanupFunc()
 	if err != nil {
@@ -50,7 +50,7 @@ func TestMain(m *testing.M) {
 func Test_ParseJSONUfwRules(t *testing.T) {
 	tests := map[string]struct {
 		jsonUfw     string
-		expectedUfw []Rule
+		expectedUfw []FirewallRule
 		valid       bool
 	}{
 		"wrongStringUfw": {
@@ -59,17 +59,17 @@ func Test_ParseJSONUfwRules(t *testing.T) {
 		},
 		"emptyStringUfw": {
 			jsonUfw:     "",
-			expectedUfw: make([]Rule, 0),
+			expectedUfw: make([]FirewallRule, 0),
 			valid:       true,
 		},
 		"emptyListUfw": {
 			jsonUfw:     "[]",
-			expectedUfw: make([]Rule, 0),
+			expectedUfw: make([]FirewallRule, 0),
 			valid:       true,
 		},
 		"singleUfwRule": {
 			jsonUfw: `[{"sourceIp":"kind.internal", "ipVer": "ipv4", "protocol": "tcp", "ports": "6443,10250"}]`,
-			expectedUfw: []Rule{
+			expectedUfw: []FirewallRule{
 				{
 					SourceIP: "kind.internal",
 					Ports:    "6443,10250",
@@ -85,7 +85,7 @@ func Test_ParseJSONUfwRules(t *testing.T) {
     {"sourceIp":"", "ipVer": "", "protocol": "", "ports": "7946"},
     {"sourceIp":"", "ipVer": "", "protocol": "udp", "ports": "123"}
 ]`,
-			expectedUfw: []Rule{
+			expectedUfw: []FirewallRule{
 				{
 					SourceIP: "",
 					IPVer:    "",
@@ -113,7 +113,7 @@ func Test_ParseJSONUfwRules(t *testing.T) {
     {"ports": "7946"},
     {"protocol": "udp", "ports": "123"}
 ]`,
-			expectedUfw: []Rule{
+			expectedUfw: []FirewallRule{
 				{
 					SourceIP: "",
 					IPVer:    "",
@@ -139,7 +139,7 @@ func Test_ParseJSONUfwRules(t *testing.T) {
 
 	for tcname, tc := range tests {
 		t.Run(tcname, func(t *testing.T) {
-			parsedRules, err := ParseJSONUfwRules(tc.jsonUfw)
+			parsedRules, err := ParseJSONFirewallRules(tc.jsonUfw)
 			if !tc.valid {
 				require.Error(t, err)
 			} else {
@@ -152,15 +152,15 @@ func Test_ParseJSONUfwRules(t *testing.T) {
 
 func Test_GenerateUFWCommand(t *testing.T) {
 	tests := map[string]struct {
-		ufwRule            Rule
+		ufwRule            FirewallRule
 		expectedUfwCommand []string
 	}{
 		"empty": {
-			ufwRule:            Rule{},
+			ufwRule:            FirewallRule{},
 			expectedUfwCommand: []string{},
 		},
 		"rule1": {
-			ufwRule: Rule{
+			ufwRule: FirewallRule{
 				SourceIP: "kind.internal",
 				Ports:    "6443,10250",
 				IPVer:    "ipv4",
@@ -169,7 +169,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 			expectedUfwCommand: []string{"ufw allow from $(dig +short kind.internal | tail -n1) to any port 6443,10250 proto tcp"},
 		},
 		"rule2": {
-			ufwRule: Rule{
+			ufwRule: FirewallRule{
 				SourceIP: "",
 				IPVer:    "",
 				Protocol: "tcp",
@@ -178,7 +178,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 			expectedUfwCommand: []string{"ufw allow in to any port 2379,2380,6443,9345,10250,5473 proto tcp"},
 		},
 		"rule3": {
-			ufwRule: Rule{
+			ufwRule: FirewallRule{
 				SourceIP: "",
 				IPVer:    "",
 				Protocol: "",
@@ -187,7 +187,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 			expectedUfwCommand: []string{"ufw allow in to any port 7946"},
 		},
 		"rule4": {
-			ufwRule: Rule{
+			ufwRule: FirewallRule{
 				SourceIP: "",
 				IPVer:    "",
 				Protocol: "udp",
@@ -196,7 +196,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 			expectedUfwCommand: []string{"ufw allow in to any port 123 proto udp"},
 		},
 		"rule5": {
-			ufwRule: Rule{
+			ufwRule: FirewallRule{
 				SourceIP: "kind.internal",
 				Ports:    "",
 				IPVer:    "ipv4",
@@ -205,7 +205,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 			expectedUfwCommand: []string{"ufw allow from $(dig +short kind.internal | tail -n1) proto tcp"},
 		},
 		"rule6": {
-			ufwRule: Rule{
+			ufwRule: FirewallRule{
 				SourceIP: "kind.internal",
 				Ports:    "",
 				IPVer:    "ipv4",
@@ -214,7 +214,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 			expectedUfwCommand: []string{"ufw allow from $(dig +short kind.internal | tail -n1)"},
 		},
 		"rule7": {
-			ufwRule: Rule{
+			ufwRule: FirewallRule{
 				SourceIP: "kind.internal",
 				Ports:    "1234",
 				IPVer:    "ipv4",
@@ -223,7 +223,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 			expectedUfwCommand: []string{"ufw allow from $(dig +short kind.internal | tail -n1) to any port 1234"},
 		},
 		"rule8": {
-			ufwRule: Rule{
+			ufwRule: FirewallRule{
 				SourceIP: "",
 				IPVer:    "",
 				Protocol: "abc",
@@ -232,7 +232,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 			expectedUfwCommand: []string{},
 		},
 		"rule9": {
-			ufwRule: Rule{
+			ufwRule: FirewallRule{
 				SourceIP: "0000:000::00",
 				Ports:    "6443,10250",
 				IPVer:    "ipv4",
@@ -250,32 +250,15 @@ func Test_GenerateUFWCommand(t *testing.T) {
 }
 
 func Test_GetCuratedScript(t *testing.T) {
+	dkam_testing.PrepareTestInfraConfig(t)
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	dkam_testing.PrepareTestCaCertificateFile(t)
 
-	os.Setenv("NETIP", "static")
-
-	os.MkdirAll(config.DownloadPath, 0o755)
-	os.Setenv("ORCH_CLUSTER", "kind.internal")
-	defer os.Unsetenv("ORCH_CLUSTER")
 	dummyData := `#!/bin/bash
 	enable_netipplan
         install_intel_CAcertificates
 # Add your installation commands here
 `
-	os.Setenv("EN_HTTP_PROXY", "proxy")
-	os.Setenv("EN_HTTPS_PROXY", "proxy")
-	os.Setenv("EN_NO_PROXY", "proxy")
-	os.Setenv("EN_FTP_PROXY", "proxy")
-	os.Setenv("EN_SOCKS_PROXY", "proxy")
-	defer func() {
-		os.Unsetenv("NETIP")
-		os.Unsetenv("EN_HTTP_PROXY")
-		os.Unsetenv("EN_HTTPS_PROXY")
-		os.Unsetenv("EN_NO_PROXY")
-		os.Unsetenv("EN_FTP_PROXY")
-		os.Unsetenv("EN_SOCKS_PROXY")
-	}()
 
 	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0o755)
 	require.NoError(t, err)
@@ -552,86 +535,6 @@ func Test_GetCuratedScript_Case4(t *testing.T) {
 		dkam_testing.CopyFile(res, src)
 		os.Remove(res)
 		os.Remove(config.PVC + "/installer.sh")
-	}()
-}
-
-func TestGetReleaseArtifactList(t *testing.T) {
-	type args struct {
-		filePath string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    Config
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
-			args: args{
-				filePath: "",
-			},
-			want:    Config{},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := GetReleaseArtifactList(tt.args.filePath)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetReleaseArtifactList() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-}
-
-func TestGetReleaseArtifactList_NegativeCase(t *testing.T) {
-	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
-	res := filepath.Join(result, "latest-dev.yaml")
-	if err := os.MkdirAll(filepath.Dir(res), 0o755); err != nil {
-		t.Fatalf("Failed to create directory: %v", err)
-	}
-	src := strings.Replace(currentDir, "curation", "script/latest-dev.yaml", -1)
-	dkam_testing.CopyFile(src, res)
-	dummyData := `#!/bin/bash
-	enable_netipplan
-        install_intel_CAcertificates
-# Add your installation commands here
-`
-	err := os.WriteFile(res, []byte(dummyData), 0o644)
-	if err != nil {
-		log.Fatalf("error: %v", err)
-	}
-
-	type args struct {
-		filePath string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    Config
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
-			args: args{
-				filePath: res,
-			},
-			want:    Config{},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := GetReleaseArtifactList(tt.args.filePath)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetReleaseArtifactList() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-	defer func() {
-		os.Remove(res)
 	}()
 }
 
