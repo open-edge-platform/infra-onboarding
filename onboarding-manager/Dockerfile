@@ -23,8 +23,7 @@ COPY vendor/ /go/src/github.com/intel/infra-onboarding/onboarding-manager/vendor
 WORKDIR /go/src/github.com/intel/infra-onboarding/onboarding-manager
 
 
-RUN CGO_ENABLED=0 DOCKER_LABEL_REPO_URL=${REPO_URL} DOCKER_LABEL_VERSION=${VERSION} DOCKER_LABEL_REVISION=${REVISION} DOCKER_LABEL_BUILD_DATE=${BUILD_DATE} make ${MAKE_TARGET}
-
+RUN CGO_ENABLED=0 LABEL_REPO_URL=${REPO_URL} LABEL_VERSION=${VERSION} LABEL_REVISION=${REVISION} LABEL_BUILD_DATE=${BUILD_DATE} make ${MAKE_TARGET}
 
 
 FROM gcr.io/distroless/static-debian12:nonroot

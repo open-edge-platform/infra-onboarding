@@ -35,15 +35,16 @@ SCRIPTS_DIR := ./ci_scripts
 GOPATH     := $(shell go env GOPATH)
 RBAC       := "$(OUT_DIR)/rego/authz.rego"
 
-# Docker variables
-DOCKER_ENV              := DOCKER_BUILDKIT=1
-DOCKER_REGISTRY         ?= amr-registry.caas.intel.com
-DOCKER_REPOSITORY       ?= one-intel-edge/maestro-i
-DOCKER_TAG              := ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}
-DOCKER_LABEL_REPO_URL   ?= $(shell git remote get-url $(shell git remote | head -n 1))
-DOCKER_LABEL_VERSION    ?= ${IMG_VERSION}
-DOCKER_LABEL_REVISION   ?= ${GIT_COMMIT}
-DOCKER_LABEL_BUILD_DATE ?= $(shell date -u "+%Y-%m-%dT%H:%M:%SZ")
+DOCKER_REGISTRY         ?= 080137407410.dkr.ecr.us-west-2.amazonaws.com
+DOCKER_REPOSITORY       ?= edge-orch
+DOCKER_TAG              := $(DOCKER_REGISTRY)/$(DOCKER_REPOSITORY)/$(IMG_NAME):$(VERSION)
+DOCKER_TAG_BRANCH	    := $(DOCKER_REGISTRY)/$(DOCKER_REPOSITORY)/$(IMG_NAME):$(IMG_VERSION)
+# Decides if we shall push image tagged with the branch name or not.
+DOCKER_TAG_BRANCH_PUSH	?= true
+LABEL_REPO_URL          ?= $(shell git remote get-url $(shell git remote | head -n 1))
+LABEL_VERSION           ?= $(VERSION)
+LABEL_REVISION          ?= $(GIT_COMMIT)
+LABEL_BUILD_DATE        ?= $(shell date -u "+%Y-%m-%dT%H:%M:%SZ")
 DB_CONTAINER_NAME := $(PROJECT_NAME)-db
 
 # Docker networking flags for the database container.
@@ -68,9 +69,9 @@ endif
 # -ldflags="all=-X ..." Embed binary build stamping information
 ifeq ($(GOARCH),arm64)
 	# Note that arm64 (Apple, similar) does not support any spectre mititations.
-  GOEXTRAFLAGS := -trimpath -gcflags="all=-spectre= -N -l" -asmflags="all=-spectre=" -ldflags="all=-s -w -X 'main.RepoURL=$(DOCKER_LABEL_REPO_URL)' -X 'main.Version=$(DOCKER_LABEL_VERSION)' -X 'main.Revision=$(DOCKER_LABEL_REVISION)' -X 'main.BuildDate=$(DOCKER_LABEL_BUILD_DATE)'"
+  GOEXTRAFLAGS := -trimpath -gcflags="all=-spectre= -N -l" -asmflags="all=-spectre=" -ldflags="all=-s -w -X 'main.RepoURL=$(LABEL_REPO_URL)' -X 'main.Version=$(LABEL_VERSION)' -X 'main.Revision=$(LABEL_REVISION)' -X 'main.BuildDate=$(LABEL_BUILD_DATE)'"
 else
-  GOEXTRAFLAGS := -trimpath -gcflags="all=-spectre=all -N -l" -asmflags="all=-spectre=all" -ldflags="all=-s -w -X 'main.RepoURL=$(DOCKER_LABEL_REPO_URL)' -X 'main.Version=$(DOCKER_LABEL_VERSION)' -X 'main.Revision=$(DOCKER_LABEL_REVISION)' -X 'main.BuildDate=$(DOCKER_LABEL_BUILD_DATE)'"
+  GOEXTRAFLAGS := -trimpath -gcflags="all=-spectre=all -N -l" -asmflags="all=-spectre=all" -ldflags="all=-s -w -X 'main.RepoURL=$(LABEL_REPO_URL)' -X 'main.Version=$(LABEL_VERSION)' -X 'main.Revision=$(LABEL_REVISION)' -X 'main.BuildDate=$(LABEL_BUILD_DATE)'"
 endif
 
 # Postgres DB configuration and credentials for testing. This mimics the Aurora
@@ -95,19 +96,25 @@ docker-build: ## build Docker image
 	$(GOCMD) mod vendor
 	cp ../common.mk ../version.mk .
 	docker build . -f Dockerfile \
-		-t maestro-i/$(IMG_NAME):$(IMG_VERSION) \
+		-t $(IMG_NAME):$(IMG_VERSION) \
 		--build-arg http_proxy="$(http_proxy)" --build-arg HTTP_PROXY="$(HTTP_PROXY)" \
 		--build-arg https_proxy="$(https_proxy)" --build-arg HTTPS_PROXY="$(HTTPS_PROXY)" \
 		--build-arg no_proxy="$(no_proxy)" --build-arg NO_PROXY="$(NO_PROXY)" \
-		--build-arg REPO_URL="$(DOCKER_LABEL_REPO_URL)" \
-		--build-arg VERSION="$(DOCKER_LABEL_VERSION)" \
-		--build-arg REVISION="$(DOCKER_LABEL_REVISION)" \
-		--build-arg BUILD_DATE="$(DOCKER_LABEL_BUILD_DATE)"
+		--build-arg REPO_URL="$(LABEL_REPO_URL)" \
+		--build-arg VERSION="$(LABEL_VERSION)" \
+		--build-arg REVISION="$(LABEL_REVISION)" \
+		--build-arg BUILD_DATE="$(LABEL_BUILD_DATE)"
 	@rm -rf vendor common.mk version.mk
 
-docker-push: ## tag and push Docker image
-	docker tag maestro-i/$(IMG_NAME):$(IMG_VERSION) $(DOCKER_TAG):$(IMG_VERSION)
-	docker push $(DOCKER_TAG):$(IMG_VERSION)
+docker-push: docker-build ## Tag and push Docker image
+	# TODO: remove ecr create
+	aws ecr create-repository --region us-west-2 --repository-name $(DOCKER_REPOSITORY)/$(IMG_NAME) || true
+	docker tag $(IMG_NAME):$(IMG_VERSION) $(DOCKER_TAG)
+	docker tag $(IMG_NAME):$(IMG_VERSION) $(DOCKER_TAG)
+	docker push $(DOCKER_TAG)
+ifeq ($(DOCKER_TAG_BRANCH_PUSH), true)
+	docker push $(DOCKER_TAG_BRANCH)
+endif
 
 #### Python venv Target ####
 VENV_NAME	:= venv_$(PROJECT_NAME)
