@@ -4,7 +4,7 @@
 SUBPROJECTS := onboarding-manager dkam
 
 .DEFAULT_GOAL := help
-.PHONY: all build clean clean-all help lint test
+.PHONY: all build clean clean-all help lint test license
 
 all: build lint test
 	@# Help: Runs build, lint, test stages for all subprojects
@@ -24,8 +24,19 @@ lint:
 mdlint:
 	@echo "---MAKEFILE LINT README---"
 	@markdownlint --version
-	@markdownlint "*.md"
+	@markdownlint "*.md" -c .markdownlint.yml
 	@echo "---END MAKEFILE LINT README---"
+
+venv_infra: requirements.txt ## Create Python venv
+	python3 -m venv $@ ;\
+  set +u; . ./$@/bin/activate; set -u ;\
+  python -m pip install --upgrade pip ;\
+  python -m pip install -r requirements.txt
+
+license: venv_infra ## Check licensing with the reuse tool
+	set +u; . ./$</bin/activate; set -u ;\
+  reuse --version ;\
+  reuse --root . lint
 
 test:
 	@# Help: Runs test stage in all subprojects
