@@ -110,7 +110,7 @@ docker-push: docker-build ## Tag and push Docker image
 	# TODO: remove ecr create
 	aws ecr create-repository --region us-west-2 --repository-name $(DOCKER_REPOSITORY)/$(IMG_NAME) || true
 	docker tag $(IMG_NAME):$(IMG_VERSION) $(DOCKER_TAG)
-	docker tag $(IMG_NAME):$(IMG_VERSION) $(DOCKER_TAG)
+	docker tag $(IMG_NAME):$(IMG_VERSION) $(DOCKER_TAG_BRANCH)
 	docker push $(DOCKER_TAG)
 ifeq ($(DOCKER_TAG_BRANCH_PUSH), true)
 	docker push $(DOCKER_TAG_BRANCH)
