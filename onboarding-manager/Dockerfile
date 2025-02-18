@@ -12,7 +12,7 @@ ARG VERSION
 ARG REVISION
 ARG BUILD_DATE
 
-COPY common.mk version.mk /go/src/github.com/intel/infra-onboarding/
+COPY common.mk version.mk common_go.mk /go/src/github.com/intel/infra-onboarding/
 COPY Makefile requirements.txt VERSION go.mod go.sum /go/src/github.com/intel/infra-onboarding/onboarding-manager/
 COPY cmd/ /go/src/github.com/intel/infra-onboarding/onboarding-manager/cmd/
 COPY internal/ /go/src/github.com/intel/infra-onboarding/onboarding-manager/internal/

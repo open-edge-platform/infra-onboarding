@@ -14,7 +14,7 @@ ARG VERSION
 ARG REVISION
 ARG BUILD_DATE
 
-COPY common.mk version.mk /go/src/github.com/intel/infra-onboarding/
+COPY common.mk version.mk common_go.mk /go/src/github.com/intel/infra-onboarding/
 COPY Makefile requirements.txt VERSION go.mod go.sum /go/src/github.com/intel/infra-onboarding/dkam/
 COPY cmd/ /go/src/github.com/intel/infra-onboarding/dkam/cmd/
 COPY internal/ /go/src/github.com/intel/infra-onboarding/dkam/internal/

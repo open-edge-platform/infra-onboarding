@@ -11,8 +11,8 @@
 
 ## Overview
 
-Provisioning Artifacts Server (PA Server) is an NGINX based server which hosts files required for provisioning. These files are provided by DKAM (EFI file, HookOS binaries, iPXE files, GRUB files)
-
+Provisioning Artifacts Server (PA Server) is an NGINX based server which hosts files required for provisioning.
+These files are provided by DKAM (EFI file, HookOS binaries, iPXE files, GRUB files).
 
 ## Features
 
@@ -24,7 +24,7 @@ Instructions on how to install and set up the PA Server on your machine.
 
 ### Develop the PA Server
 
-There are several convenience make targets to support developer activities, you can use `help` to see a list of makefile
+There are several convenient make targets to support developer activities, you can use `help` to see a list of makefile
 targets. The following is a list of makefile targets that support developer activities:
 
 - `lint` to run a list of linting targets
@@ -91,4 +91,4 @@ Edge Orchestrator is licensed under [Apache License
 [contributors-guide-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/index.html
 [troubleshooting-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/troubleshooting/troubleshooting.html
 
-Last Updated Date: February 7, 2025
+Last Updated Date: February 18, 2025

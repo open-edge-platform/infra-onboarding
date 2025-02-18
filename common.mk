@@ -15,11 +15,6 @@ ifeq ($(TOOL_VERSION_CHECK), 1)
 	include ../version.mk
 endif
 
-#### Go Targets ####
-
-# Set GOPRIVATE to deal with private innersource repos
-GOCMD := GOPRIVATE="github.com/intel/*,github.com/intel-tiber/*" go
-
 #### Variables ####
 SHELL	:= bash -eu -o pipefail
 GOARCH	:= $(shell go env GOARCH)
@@ -32,89 +27,27 @@ APIPKG_DIR := pkg/api
 BIN_DIR    := $(OUT_DIR)/bin
 SECRETS_DIR := /var/run/secrets
 SCRIPTS_DIR := ./ci_scripts
-GOPATH     := $(shell go env GOPATH)
 RBAC       := "$(OUT_DIR)/rego/authz.rego"
 
+# Docker variables
+DOCKER_ENV              := DOCKER_BUILDKIT=1
 DOCKER_REGISTRY         ?= 080137407410.dkr.ecr.us-west-2.amazonaws.com
 DOCKER_REPOSITORY       ?= edge-orch
-DOCKER_TAG              := $(DOCKER_REGISTRY)/$(DOCKER_REPOSITORY)/$(IMG_NAME):$(VERSION)
-DOCKER_TAG_BRANCH	    := $(DOCKER_REGISTRY)/$(DOCKER_REPOSITORY)/$(IMG_NAME):$(IMG_VERSION)
+DOCKER_TAG              ?= $(DOCKER_REGISTRY)/$(DOCKER_REPOSITORY)/$(IMG_NAME):$(VERSION)
+DOCKER_TAG_BRANCH	    ?= $(DOCKER_REGISTRY)/$(DOCKER_REPOSITORY)/$(IMG_NAME):$(IMG_VERSION)
 # Decides if we shall push image tagged with the branch name or not.
 DOCKER_TAG_BRANCH_PUSH	?= true
 LABEL_REPO_URL          ?= $(shell git remote get-url $(shell git remote | head -n 1))
 LABEL_VERSION           ?= $(VERSION)
 LABEL_REVISION          ?= $(GIT_COMMIT)
 LABEL_BUILD_DATE        ?= $(shell date -u "+%Y-%m-%dT%H:%M:%SZ")
-DB_CONTAINER_NAME := $(PROJECT_NAME)-db
 
-# Docker networking flags for the database container.
-# The problem is as follows: On a local MacOS machine we want to expose the port
-# of the DB to the native host to enable smooth tooling and unit tests. During
-# CI we're already inside a container, hence have to attach the DB container to
-# the same network stack as the job. Because the port (-p) syntax cannot be used
-# at the same time as the --network container:x flag, we need this variable.
-ifeq ($(shell echo $${CI_CONTAINER:-false}), true)
-  DOCKER_NETWORKING_FLAGS = --network container:$$HOSTNAME
-else
-  DOCKER_NETWORKING_FLAGS = -p 5432:5432
+ifeq ($(GO_CHECK), 1)
+	include ../common_go.mk
 endif
-
-#### Security Config ####
-# Security config for Go Builds - see:
-#   https://readthedocs.intel.com/SecureCodingStandards/latest/compiler/golang/
-# -trimpath: Remove all file system paths from the resulting executable.
-# -gcflags="all=-m": Print optimizations applied by the compiler for review and verification against security requirements.
-# -gcflags="all=-spectre=all" Enable all available Spectre mitigations
-# -ldflags="all=-s -w" remove the symbol and debug info
-# -ldflags="all=-X ..." Embed binary build stamping information
-ifeq ($(GOARCH),arm64)
-	# Note that arm64 (Apple, similar) does not support any spectre mititations.
-  GOEXTRAFLAGS := -trimpath -gcflags="all=-spectre= -N -l" -asmflags="all=-spectre=" -ldflags="all=-s -w -X 'main.RepoURL=$(LABEL_REPO_URL)' -X 'main.Version=$(LABEL_VERSION)' -X 'main.Revision=$(LABEL_REVISION)' -X 'main.BuildDate=$(LABEL_BUILD_DATE)'"
-else
-  GOEXTRAFLAGS := -trimpath -gcflags="all=-spectre=all -N -l" -asmflags="all=-spectre=all" -ldflags="all=-s -w -X 'main.RepoURL=$(LABEL_REPO_URL)' -X 'main.Version=$(LABEL_VERSION)' -X 'main.Revision=$(LABEL_REVISION)' -X 'main.BuildDate=$(LABEL_BUILD_DATE)'"
-endif
-
-# Postgres DB configuration and credentials for testing. This mimics the Aurora
-# production environment.
-export PGUSER=admin
-export PGHOST=localhost
-export PGDATABASE=postgres
-export PGPORT=5432
-export PGPASSWORD=pass
-export PGSSLMODE=disable
 
 $(OUT_DIR): ## Create out directory
 	mkdir -p $(OUT_DIR)
-
-build: $(OUT_DIR) go-build
-
-run: go-build ## Run the resource manager
-	$(OUT_DIR)/$(BINARY_NAME)
-
-#### Docker Target ####
-docker-build: ## build Docker image
-	$(GOCMD) mod vendor
-	cp ../common.mk ../version.mk .
-	docker build . -f Dockerfile \
-		-t $(IMG_NAME):$(IMG_VERSION) \
-		--build-arg http_proxy="$(http_proxy)" --build-arg HTTP_PROXY="$(HTTP_PROXY)" \
-		--build-arg https_proxy="$(https_proxy)" --build-arg HTTPS_PROXY="$(HTTPS_PROXY)" \
-		--build-arg no_proxy="$(no_proxy)" --build-arg NO_PROXY="$(NO_PROXY)" \
-		--build-arg REPO_URL="$(LABEL_REPO_URL)" \
-		--build-arg VERSION="$(LABEL_VERSION)" \
-		--build-arg REVISION="$(LABEL_REVISION)" \
-		--build-arg BUILD_DATE="$(LABEL_BUILD_DATE)"
-	@rm -rf vendor common.mk version.mk
-
-docker-push: docker-build ## Tag and push Docker image
-	# TODO: remove ecr create
-	aws ecr create-repository --region us-west-2 --repository-name $(DOCKER_REPOSITORY)/$(IMG_NAME) || true
-	docker tag $(IMG_NAME):$(IMG_VERSION) $(DOCKER_TAG)
-	docker tag $(IMG_NAME):$(IMG_VERSION) $(DOCKER_TAG_BRANCH)
-	docker push $(DOCKER_TAG)
-ifeq ($(DOCKER_TAG_BRANCH_PUSH), true)
-	docker push $(DOCKER_TAG_BRANCH)
-endif
 
 #### Python venv Target ####
 VENV_NAME	:= venv_$(PROJECT_NAME)
@@ -125,20 +58,16 @@ $(VENV_NAME): requirements.txt
   python -m pip install --upgrade pip ;\
   python -m pip install -r requirements.txt
 
-#### GO Targets ####
-
-go-tidy: ## Run go mod tidy
-	$(GOCMD) mod tidy
-
-go-lint-fix: $(OUT_DIR)## Apply automated lint/formatting fixes to go files
-	golangci-lint run --fix --config .golangci.yml
-
 #### Lint and Validator Targets ####
 # https://github.com/koalaman/shellcheck
 SH_FILES := $(shell find . -type f \( -name '*.sh' \) -print )
 shellcheck: ## lint shell scripts with shellcheck
-	shellcheck --version
-	shellcheck -x -S style $(SH_FILES)
+	shellcheck --version;
+	@if [ -n "$(SH_FILES)" ]; then \
+		shellcheck -x -S style $(SH_FILES); \
+	else \
+		echo "No shell scripts found to lint."; \
+	fi
 
 # https://pypi.org/project/reuse/
 license: $(VENV_NAME) ## Check licensing with the reuse tool
@@ -146,75 +75,23 @@ license: $(VENV_NAME) ## Check licensing with the reuse tool
   reuse --version ;\
   reuse --root . lint
 
+HADOLINT_FILES := $(shell find . -type f \( -name '*Dockerfile*' \) -print )
 hadolint: ## Check Dockerfile with Hadolint
-	hadolint Dockerfile
-
-checksec: go-build #  to check various security properties that are available for executable,like RELRO, STACK CANARY, NX,PIE etc
-	$(GOCMD) version -m ${OUT_DIR}/${BINARY_NAME}
-	checksec --output=json --file=${OUT_DIR}/${BINARY_NAME}
-	checksec --fortify-file=${OUT_DIR}/${BINARY_NAME}
+	hadolint $(HADOLINT_FILES)
 
 yamllint: $(VENV_NAME) ## lint YAML files
 	. ./$</bin/activate; set -u ;\
-  yamllint --version ;\
-  yamllint -d '{extends: default, rules: {line-length: {max: 99}}, ignore: [$(YAML_IGNORE)]}' -s $(YAML_FILES)
+	yamllint --version ;\
+	if [ -n "$(YAML_FILES)" ]; then \
+	    yamllint -d '{extends: default, rules: {line-length: {max: 99}}, ignore: [$(YAML_IGNORE)]}' -s $(YAML_FILES); \
+	else \
+	    echo "No YAML files found to lint."; \
+	fi
 
 mdlint: ## link MD files
 	markdownlint --version ;\
-	markdownlint "**/*.md"
+	markdownlint "**/*.md" -c ../.markdownlint.yml
 
-go-lint: $(OUT_DIR) ## run go lint
-	golangci-lint --version
-	golangci-lint run $(LINT_DIRS) --config .golangci.yml
-
-go-test: $(OUT_DIR) ## Run go test and calculate code coverage
-ifeq ($(TEST_USE_DB), true)
-	$(MAKE) db-stop
-	$(MAKE) db-start
-endif
-	$(GOCMD) test -race -v -p 1 \
-	-coverpkg=$(TEST_PKG) -run $(TEST_TARGET) \
-	-coverprofile=$(OUT_DIR)/coverage.out \
-	-covermode $(TEST_COVER) $(if $(TEST_ARGS),-args $(TEST_ARGS)) \
-	| tee >(go-junit-report -set-exit-code > $(OUT_DIR)/report.xml)
-	gocover-cobertura $(if $(TEST_IGNORE_FILES),-ignore-files $(TEST_IGNORE_FILES)) < $(OUT_DIR)/coverage.out > $(OUT_DIR)/coverage.xml
-	$(GOCMD) tool cover -html=$(OUT_DIR)/coverage.out -o $(OUT_DIR)/coverage.html
-	$(GOCMD) tool cover -func=$(OUT_DIR)/coverage.out -o $(OUT_DIR)/function_coverage.log
-ifeq ($(TEST_USE_DB), true)
-	$(MAKE) db-stop
-endif
-#### Postgress DB Targets ####
-
-db-start: ## Start the local postgres database. See: db-stop
-	if [ -z "`docker ps -aq -f name=^$(DB_CONTAINER_NAME)`" ]; then \
-		echo POSTGRES_PASSWORD=$$PGPASSWORD -e POSTGRES_DB=$$PGDATABASE -e POSTGRES_USER=$$PGUSER -d postgres:$(POSTGRES_VERSION); \
-		docker run --name $(DB_CONTAINER_NAME) --rm $(DOCKER_NETWORKING_FLAGS) -e POSTGRES_PASSWORD=$$PGPASSWORD -e POSTGRES_DB=$$PGDATABASE -e POSTGRES_USER=$$PGUSER -d postgres:$(POSTGRES_VERSION); \
-	fi
-
-db-stop: ## Stop the local postgres database. See: db-start
-	@if [ -n "`docker ps -aq -f name=^$(DB_CONTAINER_NAME)`" ]; then \
-		docker container kill $(DB_CONTAINER_NAME); \
-	fi
-
-db-shell: ## Run the postgres shell connected to a local database. See: db-start
-	docker run -it --network=host -e PGPASSWORD=${PGPASSWORD} --name inv-shell --rm postgres:$(POSTGRES_VERSION) psql -h $$PGHOST -U $$PGUSER -d $$PGDATABASE
-
-#### Buf protobuf code generation tooling ###
-
-common-buf-update: $(VENV_NAME) ## update buf modules
-	set +u; . ./$</bin/activate; set -u ;\
-  buf --version ;\
-  pushd api; buf dep update; popd ;\
-  buf build
-
-common-buf-gen: ## Compile protoc files into code
-	buf --version ;\
-	buf generate
-
-common-buf-lint: $(VENV_NAME) ## Lint and format protobuf files
-	buf --version
-	buf format -d --exit-code
-	buf lint
 
 #### Clean Targets ###
 clean: ## Delete build and vendor directories
@@ -224,7 +101,6 @@ clean-venv: ## Delete Python venv
 	rm -rf "$(VENV_NAME)"
 
 clean-all: clean clean-venv ## Delete all built artifacts and downloaded tool
-
 
 #### Help Target ####
 help: ## Print help for each target

@@ -24,30 +24,18 @@ IMG_NAME      := $(PROJECT_NAME)
 IMG_VERSION   ?= $(VERSION)
 GIT_COMMIT    ?= $(shell git rev-parse HEAD)
 BRANCH_NAME   ?= $(shell git rev-parse --abbrev-ref HEAD)
-DOCKER_ENV              := DOCKER_BUILDKIT=1
-DOCKER_REGISTRY         ?= amr-registry.caas.intel.com
-DOCKER_REPOSITORY       ?= one-intel-edge/maestro-i
-DOCKER_TAG              := ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}
+DOCKER_TAG_BRANCH_PUSH	:= true
 
-
-# Create the virtualenv with python tools installed
 VENV_NAME = venv_$(PROJECT_NAME)
+YAML_FILES           := $(shell find . -path './$(VENV_NAME)' -path './vendor' -prune -o -type f \( -name '*.yaml' -o -name '*.yml' \) -print )
+# Create the virtualenv with python tools installed
 
-$(VENV_NAME): requirements.txt
-	echo "Creating virtualenv $@"
-	python3 -m venv $@;\
-	. ./$@/bin/activate; set -u;\
-	python3 -m pip install --upgrade pip;\
-	python3 -m pip install -r requirements.txt
+# Include shared makefile
+include ../common.mk
 
-##### CI Targets #####
-
-all: 
+all: build lint test 	
 	@# Help: Runs build, lint, test stage
-	build lint test 	
 	
-go-build: build
-
 build:
 	@# Help: Runs build stage
 	@echo "---MAKEFILE BUILD---"
@@ -56,33 +44,28 @@ build:
 
 docker-build:
 	docker build pa-server -f pa-server/Dockerfile \
-	-t ${DOCKER_TAG}:${IMG_VERSION} \
+	-t $(IMG_NAME) \
 	--rm \
 	--build-arg http_proxy="$(http_proxy)" --build-arg HTTP_PROXY="$(HTTP_PROXY)" \
     --build-arg https_proxy="$(https_proxy)" --build-arg HTTPS_PROXY="$(HTTPS_PROXY)" \
     --build-arg no_proxy="$(no_proxy)" --build-arg NO_PROXY="$(NO_PROXY)" \
 
 docker-push:
-	docker push ${DOCKER_TAG}:${IMG_VERSION}
+	# TODO: remove ecr create
+	aws ecr create-repository --region us-west-2 --repository-name $(DOCKER_REPOSITORY)/$(IMG_NAME) || true
+	docker tag $(IMG_NAME) $(DOCKER_TAG)
+	docker push ${DOCKER_TAG}
+ifeq ($(DOCKER_TAG_BRANCH_PUSH), true)
+	docker tag $(IMG_NAME) $(DOCKER_TAG_BRANCH)
+	docker push $(DOCKER_TAG_BRANCH)
+endif
 
-lint-ci: license
-
-# Maintenance and lint targets
-license: $(VENV_NAME) ## Check licensing with the reuse tool.
-	. ./$</bin/activate; set -u;\
-	reuse --version;\
-	reuse --root . lint
-
-lint:
-	@# Help: Runs lint stage
-	@echo "---MAKEFILE LINT---"
-	$(MAKE) lint-ci
-	@echo "---END MAKEFILE LINT---"
+lint: license mdlint shellcheck
 
 test:
 	@# Help: Runs test stage
 	@echo "---MAKEFILE TEST---"
-	docker run --name pa-server --rm -d --network container:$$HOSTNAME   ${DOCKER_TAG}:${IMG_VERSION}
+	docker run --name pa-server --rm -d --network host $(IMG_NAME)
 	sleep 10
 	curl -s "http://localhost:8080/index.php" --noproxy '*' --output result.html
 	docker stop pa-server
@@ -96,27 +79,20 @@ test:
 	fi
 	@echo "---END MAKEFILE TEST---"
 	
-coverage:
-	@# Help: Runs coverage stage
-	@echo "---MAKEFILE COVERAGE---"
-	echo $@
-	@echo "---END MAKEFILE COVERAGE---"
-
-list: 
-	@# Help: displays make targets
-	help
-
 dependency-check:
 	@# Help: Runs Dependency Check
 	@echo "---MAKEFILE COVERAGE---"
 	echo $@
 	@echo "---END MAKEFILE COVERAGE---"
 
-help:	
-	@printf "%-20s %s\n" "Target" "Description"
-	@printf "%-20s %s\n" "------" "-----------"
-	@make -pqR : 2>/dev/null \
-        | awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' \
-        | sort \
-        | egrep -v -e '^[^[:alnum:]]' -e '^$@$$' \
-        | xargs -I _ sh -c 'printf "%-20s " _; make _ -nB | (grep -i "^# Help:" || echo "") | tail -1 | sed "s/^# Help: //g"'
+coverage:
+	@# Help: Runs coverage stage
+	@echo "---MAKEFILE COVERAGE---"
+	echo $@
+	@echo "---END MAKEFILE COVERAGE---"
+
+helm-build:
+	@# Help: Runs coverage stage
+	@echo "---MAKEFILE COVERAGE---"
+	echo $@
+	@echo "---END MAKEFILE COVERAGE---"

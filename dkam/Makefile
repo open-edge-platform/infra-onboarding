@@ -10,6 +10,7 @@ all: generate build lint test
 
 # Optionally include tool version checks, not used in Docker builds
 TOOL_VERSION_CHECK ?= 1
+GO_CHECK ?=1
 ##### Variables #####
 
 ## Required Go Dependencies

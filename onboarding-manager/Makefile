@@ -10,6 +10,7 @@ all: generate build lint test
 
 # Optionally include tool version checks, not used in Docker builds
 TOOL_VERSION_CHECK ?= 1
+GO_CHECK ?=1
 
 ##### Variables #####
 ## Required Go Dependencies
@@ -47,7 +48,7 @@ TEST_USE_DB       := true
 GO_TEST_DEPS      := policy-build certificates
 
 # Yamllint variables
-YAML_FILES           := $(shell find . -path './venv_onboardingmgr' -path './vendor' -prune -o -type f \( -name '*.yaml' -o -name '*.yml' \) -print )
+YAML_FILES           := $(shell find . -path './venv_$(PROJECT_NAME)' -path './vendor' -prune -o -type f \( -name '*.yaml' -o -name '*.yml' \) -print )
 YAML_IGNORE          := vendor, .github/workflows
 
 # Include shared makefile

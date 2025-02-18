@@ -1,4 +1,5 @@
----
+# IMAGE2DISK
+
 slug: image2disk
 name: image2disk
 tags: disk
@@ -8,7 +9,6 @@ is mainly used to write cloud images to a disk. It is recommended to use the `qe
 tool to convert disk images into raw, it is also possible to compress the raw images
 with tar+gzip to prevent wasted disk space"
 version: latest
----
 
 This Action will stream a remote disk image (raw) to a block device, and
 is mainly used to write cloud images to a disk. It is recommended to use the `qemu-img`
@@ -42,7 +42,7 @@ actions:
 The below example will stream a compressed raw ubuntu cloud image (converted by qemu-img)
 and then compressed with gzip to reduce local space. This also use retry.
 
-```
+```sh
 qemu-img convert ubuntu.img ubuntu.raw
 gzip ubuntu.raw
 ```
@@ -59,7 +59,7 @@ actions:
           RETRY_ENABLED: true
 ```
 
-## Compression format supported:
+## Compression format supported
 
 - bzip2 (`.bzip2`)
 - gzip (`.gz`)

@@ -1,4 +1,5 @@
----
+# Writefile
+
 slug: writefile
 name: writefile
 tags: disk
@@ -6,7 +7,6 @@ maintainers: Jason DeTiberus <jdetiberus@equinix.com>
 description: "This action will mount a block device and write a file to a destination path on
 it's filesystem."
 version: main
----
 
 The below example will write a file to the filesystem on the block device `/dev/sda3`.
 
