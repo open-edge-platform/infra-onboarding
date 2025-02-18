@@ -121,7 +121,7 @@ func getAgentsListTemplateVariables() (map[string]interface{}, error) {
 	return templateVariables, nil
 }
 
-func getCommonScriptTemplateVariables(osType osv1.OsType) (map[string]interface{}, error) {
+func GetCommonInfraTemplateVariables(infraConfig config.InfraConfig, osType osv1.OsType) (map[string]interface{}, error) {
 	caCert, err := getCaCert()
 	if err != nil {
 		return nil, err
@@ -132,7 +132,6 @@ func getCommonScriptTemplateVariables(osType osv1.OsType) (map[string]interface{
 		return nil, err
 	}
 
-	infraConfig := config.GetInfraConfig()
 	templateVariables := map[string]interface{}{
 		"MODE": os.Getenv("MODE"),
 
@@ -184,7 +183,40 @@ func getCommonScriptTemplateVariables(osType osv1.OsType) (map[string]interface{
 		templateVariables["FIREWALL_PROVIDER"] = "iptables"
 	}
 
+	if osType == osv1.OsType_OS_TYPE_MUTABLE {
+		agentsListVariables, err := getAgentsListTemplateVariables()
+		if err != nil {
+			return nil, err
+		}
+
+		for agentsPackage, agentsVersion := range agentsListVariables {
+			templateVariables[agentsPackage] = agentsVersion
+		}
+	}
+
 	return templateVariables, nil
+}
+
+func WritePlatformBundleToPV(ctx context.Context, osRes *osv1.OperatingSystemResource, installerScriptPath string) error {
+	// FIXME: hardcoded path for now. Will be fixed once we integrate EEF Platform Bundle coming from RS
+	platformBundleScriptData, err := os.ReadFile(config.ScriptPath + "/platform-bundle/ubuntu-22.04/Installer")
+	if err != nil {
+		return err
+	}
+	platformBundleScript := string(platformBundleScriptData)
+
+	platformBundleScript, err = FetchAndAppendProfileScript(ctx, osRes.GetProfileName(), platformBundleScript)
+	if err != nil {
+		return err
+	}
+
+	writeErr := WriteFileToPath(installerScriptPath, []byte(platformBundleScript))
+	if writeErr != nil {
+		zlog.InfraSec().Error().Err(writeErr).Msgf("Failed to write file to path %s", installerScriptPath)
+		return writeErr
+	}
+
+	return nil
 }
 
 func CurateScript(ctx context.Context, osRes *osv1.OperatingSystemResource) error {
@@ -193,36 +225,29 @@ func CurateScript(ctx context.Context, osRes *osv1.OperatingSystemResource) erro
 		return err
 	}
 
+	if osRes.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE && *config.FlagEnforceCloudInit {
+		return WritePlatformBundleToPV(ctx, osRes, installerScriptPath)
+	}
+
 	localInstallerPath, err := util.GetLocalInstallerPath(osRes.GetOsType())
 	if err != nil {
 		return err
 	}
 
-	// - if MUTABLE && legacyCurationMode -> Installer (Bash script)
-	// - if MUTABLE && !legacyCurationMode -> Installer.cfg (cloud-init)
-	if osRes.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE && *config.FlagEnforceCloudInit {
-		installerScriptPath = strings.ReplaceAll(installerScriptPath, ".sh", ".cfg")
-		localInstallerPath = config.ScriptPath + "/Installer.cfg"
-	}
-
-	templateVariables, err := getCommonScriptTemplateVariables(osRes.GetOsType())
+	templateVariables, err := GetCommonInfraTemplateVariables(config.GetInfraConfig(), osRes.GetOsType())
 	if err != nil {
 		zlog.InfraSec().Error().Err(err).Msg("Failed to get template variables for curation")
 		return err
 	}
 
-	if osRes.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE {
-		agentsListVariables, agentsListVariablesErr := getAgentsListTemplateVariables()
-		if agentsListVariablesErr != nil {
-			return agentsListVariablesErr
-		}
-
-		for agentsPackage, agentsVersion := range agentsListVariables {
-			templateVariables[agentsPackage] = agentsVersion
-		}
+	tmplScript, err := os.ReadFile(localInstallerPath)
+	if err != nil {
+		zlog.InfraSec().Error().Err(err).Msgf(
+			"Failed to read template of installation script from path %v", localInstallerPath)
+		return err
 	}
 
-	curatedScriptData, createErr := CurateScriptFromTemplate(localInstallerPath, templateVariables)
+	curatedScriptData, createErr := CurateFromTemplate(string(tmplScript), templateVariables)
 	if createErr != nil {
 		zlog.InfraSec().Error().Msgf("Error checking path %v", createErr)
 		return createErr
@@ -235,30 +260,10 @@ func finalizeCuratedScript(ctx context.Context, osRes *osv1.OperatingSystemResou
 	installerScriptPath, curatedScriptData string,
 ) error {
 	// Append profile script, to be removed once Platform Bundle is integrated
-	if osRes.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE && !*config.FlagEnforceCloudInit {
-		var err error
-		curatedScriptData, err = FetchAndAppendProfileScript(ctx, osRes.GetProfileName(), curatedScriptData)
-		if err != nil {
-			return err
-		}
-	} else if osRes.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE && *config.FlagEnforceCloudInit {
-		// FIXME: hardocded path for now. Will be fixed once we integrate EEF Platform Bundle coming from RS
-		platformBundleScriptData, err := os.ReadFile(config.ScriptPath + "/platform-bundle/ubuntu-22.04/Installer")
-		if err != nil {
-			return err
-		}
-		platformBundleScript := string(platformBundleScriptData)
-
-		platformBundleScript, err = FetchAndAppendProfileScript(ctx, osRes.GetProfileName(), platformBundleScript)
-		if err != nil {
-			return err
-		}
-		platformBundleScriptPath := strings.ReplaceAll(installerScriptPath, ".cfg", ".sh")
-		writeErr := WriteFileToPath(platformBundleScriptPath, []byte(platformBundleScript))
-		if writeErr != nil {
-			zlog.InfraSec().Error().Err(writeErr).Msgf("Failed to write file to path %s", platformBundleScriptPath)
-			return writeErr
-		}
+	var err error
+	curatedScriptData, err = FetchAndAppendProfileScript(ctx, osRes.GetProfileName(), curatedScriptData)
+	if err != nil {
+		return err
 	}
 
 	writeErr := WriteFileToPath(installerScriptPath, []byte(curatedScriptData))
@@ -270,19 +275,12 @@ func finalizeCuratedScript(ctx context.Context, osRes *osv1.OperatingSystemResou
 	return nil
 }
 
-func CurateScriptFromTemplate(scriptTemplatePath string, templateVariables map[string]interface{}) (string, error) {
-	tmplScript, err := os.ReadFile(scriptTemplatePath)
-	if err != nil {
-		zlog.InfraSec().Error().Err(err).Msgf(
-			"Failed to read template of installation script from path %v", scriptTemplatePath)
-		return "", err
-	}
-
+func CurateFromTemplate(tmpl string, templateVariables map[string]interface{}) (string, error) {
 	// Parse and execute the template
 	// We use sprig to extend basic Go's text/template with more powerful keywords
 	// See: https://masterminds.github.io/sprig/
 	// This function will fail if any of keys is not provided
-	t, err := template.New("installer").Option("missingkey=error").Funcs(sprig.TxtFuncMap()).Parse(string(tmplScript))
+	t, err := template.New("installer").Option("missingkey=error").Funcs(sprig.TxtFuncMap()).Parse(tmpl)
 	if err != nil {
 		invErr := inv_errors.Errorf("Failed to parse installation script template")
 		zlog.Error().Err(err).Msg(invErr.Error())

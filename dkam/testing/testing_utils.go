@@ -170,6 +170,7 @@ func PrepareTestCaCertificateFile(t *testing.T) {
 	})
 }
 
+//nolint:funlen // test helper
 func PrepareTestInfraConfig(_ *testing.T) {
 	testConfig := config.InfraConfig{
 		ENManifestTag:                         "latest-dev",
@@ -214,6 +215,66 @@ func PrepareTestInfraConfig(_ *testing.T) {
 				Debs: []config.AgentsVersion{
 					{
 						Package: "node-agent",
+						Version: "1.0.0",
+					},
+					{
+						Package: "caddy",
+						Version: "1.0.0",
+					},
+					{
+						Package: "hardware-discovery-agent",
+						Version: "1.0.0",
+					},
+					{
+						Package: "cluster-agent",
+						Version: "1.0.0",
+					},
+					{
+						Package: "platform-observability-agent",
+						Version: "1.0.0",
+					},
+					{
+						Package: "platform-telemetry-agent",
+						Version: "1.0.0",
+					},
+					{
+						Package: "trtl",
+						Version: "1.0.0",
+					},
+					{
+						Package: "inbm-cloudadapter-agent",
+						Version: "1.0.0",
+					},
+					{
+						Package: "inbm-dispatcher-agent",
+						Version: "1.0.0",
+					},
+					{
+						Package: "inbm-configuration-agent",
+						Version: "1.0.0",
+					},
+					{
+						Package: "inbm-telemetry-agent",
+						Version: "1.0.0",
+					},
+					{
+						Package: "inbm-diagnostic-agent",
+						Version: "1.0.0",
+					},
+					{
+						Package: "mqtt",
+						Version: "1.0.0",
+					},
+					{
+						Package: "tpm-provision",
+						Version: "1.0.0",
+					},
+					{
+						Package: "inbc-program",
+						Version: "1.0.0",
+					},
+					{
+						Package: "platform-update-agent",
 						Version: "1.0.0",
 					},
 				},
