@@ -8,8 +8,8 @@ go 1.23.2
 require (
 	github.com/envoyproxy/protoc-gen-validate v1.1.0
 	github.com/google/uuid v1.6.0
-	github.com/intel/infra-core/inventory/v2 v2.16.1-0.20250211231238-126d77881bc1
-	github.com/intel/infra-onboarding/dkam v0.0.0-20250217134505-22cd0eaba740
+	github.com/intel/infra-core/inventory/v2 v2.17.0
+	github.com/intel/infra-onboarding/dkam v1.18.1
 	github.com/intel/orch-library/go v0.5.18
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.20.5
