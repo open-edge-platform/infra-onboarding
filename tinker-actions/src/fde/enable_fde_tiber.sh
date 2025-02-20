@@ -729,7 +729,7 @@ enable_luks(){
 
     chroot /mnt /bin/bash <<EOT
 
-    #inside installed tiber OS
+    #inside installed Tiber Microvisor
 
     export TPM2TOOLS_TCTI="device:/dev/tpmrm0"
 
@@ -858,7 +858,7 @@ EOT
 #####################################################################################
 tiber_main() {
 
-    echo "Tiber OS detected"
+    echo "Tiber Microvisor detected"
     get_dest_disk
 
     is_single_hdd

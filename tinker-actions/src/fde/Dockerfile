@@ -20,5 +20,4 @@ RUN chmod +x os_selection.sh
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:50054/healthz || exit 1
 
-#CMD ["/bin/bash", "/enable_fde_tiber.sh"]
 CMD ["/bin/bash", "/os_selection.sh"]

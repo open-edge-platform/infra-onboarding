@@ -1,5 +1,8 @@
 # IMAGE2DISK
 
+NOTICE: This file has been modified by Intel Corporation.
+Original file can be found at [github.com/tinkerbell/actions](https://github.com/tinkerbell/actions).
+
 slug: image2disk
 name: image2disk
 tags: disk

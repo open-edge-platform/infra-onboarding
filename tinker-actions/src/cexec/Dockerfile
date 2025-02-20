@@ -1,6 +1,9 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+# NOTICE: This file has been modified by Intel Corporation.
+# Original file can be found at https://github.com/tinkerbell/actions.
+
 # Build cexec
 FROM golang:1.23.2-alpine3.20 as cexec
 

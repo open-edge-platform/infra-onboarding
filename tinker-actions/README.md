@@ -17,22 +17,23 @@ Each action performs a specific task, such as provisioning an operating system, 
 or running custom scripts. These actions are executed in sequence as part of a Tinkerbell Workflow to automate
 the provisioning and management of bare metal servers.
 
-This repo is forked from the [open source repo](https://github.com/tinkerbell/actions).
+Some of the tinker actions have been forked from the [github.com/tinkerbell/actions](https://github.com/tinkerbell/actions).
+Summary of all the changes and contributions can be found [here](CHANGELOG.md)
 
 Following is the list of tinker actions maintained:
 
-| Action Name             | Description                                                              |
-|-------------------------|--------------------------------------------------------------------------|
+| Action Name             | Description                                                               |
+|-------------------------|---------------------------------------------------------------------------|
 | cexec                   | chroot and execute binaries                                               |
-| cred_copy               | copy folder from a source path to a destination path on the mounted device |
+| cred_copy               | copy folder from a source path to a destination path on the mounted device|
 | efibootset              | modify the boot order to prioritize the installed OS disk after a restart |
-| erase_non_removable_disks | wipe data out in all the non-removable physical disks connected          |
+| erase_non_removable_disks | wipe data out in all the non-removable physical disks connected         |
 | fde                     | setup and enable Full Disk Encryption                                     |
 | image2disk              | write images to a block device                                            |
 | kernelupgrd             | upgrade the kernel to the latest HWE version                              |
 | qemu_nbd_image2disk     | write image to block device using qemu-nbd and dd                         |
 | securebootflag          | check for secure boot                                                     |
-| tiberos_partition       | create partition for Tiber Microvisor                                     |
+| tibermicrovisor_partition | create partition for Tiber Microvisor                                   |
 | writefile               | write a file to a file system on a block device                           |
 
 ## Features

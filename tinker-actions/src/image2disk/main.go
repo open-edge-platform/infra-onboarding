@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
+// NOTICE: This file has been modified by Intel Corporation.
+// Original file can be found at https://github.com/tinkerbell/actions.
+
 package main
 
 import (

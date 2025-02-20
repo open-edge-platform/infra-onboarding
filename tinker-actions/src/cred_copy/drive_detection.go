@@ -13,10 +13,10 @@ import (
 )
 
 type DriveDetectionLsblkOutput struct {
-	BlockDevices []DriveInfo `json:"blockdevices`
+	BlockDevices []DriveInfo `json:"blockdevices"`
 }
 type RootPartitionDetectionLsblkOutput struct {
-	BlockDevices []PartitionInfo `json:"blockdevices`
+	BlockDevices []PartitionInfo `json:"blockdevices"`
 }
 type DriveInfo struct {
 	Name        string `json:"name"`

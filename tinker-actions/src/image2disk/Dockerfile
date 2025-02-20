@@ -1,14 +1,14 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+# NOTICE: This file has been modified by Intel Corporation.
+# Original file can be found at https://github.com/tinkerbell/actions.
+
 FROM golang:1.23-alpine AS image2disk
 RUN apk add --no-cache git ca-certificates gcc linux-headers musl-dev
 WORKDIR /src/
 COPY . /src/
-#go.mod go.sum /src/
-#RUN go mod download
-#ENV GO111MODULE=on
-#COPY . /src
+
 RUN CGO_ENABLED=1 GOOS=linux go build -a -ldflags "-linkmode external -extldflags '-static' -s -w" -o image2disk
 
 FROM alpine:3.20.3

@@ -3,31 +3,6 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-
-#####################################################################################
-# #check if current boot was pxe if so then we are still in Device setup and device initialization
-# out=$(grep "OS_MODE=provision" /proc/cmdline)
-# if [ $? -ne 0 ];
-# then
-#     sleep 20
-#     exit
-# fi
-
-####################################################################################
-# drive detection
-#source drive_detection.sh
-#driveDetection
-#if [ -z "$disk" ]; then
-#    exit
-#fi
-#DRIVE=$disk
-
-
-#####################################################################################
-#move the nvme or the sda/sdb to the top of the boot orders
-#source change_boot_order.sh
-#configure_boot_order $DRIVE
-
 ####################################################################################
 #delete the pile up HOOK OS partitions from bootMenu
 while IFS= read -r boot_part_number; do

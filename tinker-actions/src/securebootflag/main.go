@@ -12,9 +12,8 @@ import (
 )
 
 const (
-	address            = "localhost:50054" // Onboarding Manager server address
-	SecureBootDisabled = "1"               // Failure case
-	SecureBootEnabled  = "0"               // Success case
+	SecureBootDisabled = "1" // Failure case
+	SecureBootEnabled  = "0" // Success case
 )
 
 func main() {

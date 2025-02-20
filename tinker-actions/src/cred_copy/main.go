@@ -16,7 +16,7 @@ import (
 const mountAction = "/mountAction"
 
 func main() {
-	fmt.Printf("creds_copy - Copy folder\n------------------------\n")
+	fmt.Printf("cred_copy - Copy folder\n------------------------\n")
 
 	// Parse the environment variables that are passed into the action
 	blockDevice := os.Getenv("BLOCK_DEVICE")

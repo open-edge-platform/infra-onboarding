@@ -1,5 +1,8 @@
 # Writefile
 
+NOTICE: This file has been modified by Intel Corporation.
+Original file can be found at [github.com/tinkerbell/actions](https://github.com/tinkerbell/actions).
+
 slug: writefile
 name: writefile
 tags: disk

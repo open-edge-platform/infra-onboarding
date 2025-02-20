@@ -13,7 +13,7 @@ import (
 )
 
 type LsblkOutput struct {
-	BlockDevices []DriveInfo `json:"blockdevices`
+	BlockDevices []DriveInfo `json:"blockdevices"`
 }
 type DriveInfo struct {
 	Name        string `json:"name"`

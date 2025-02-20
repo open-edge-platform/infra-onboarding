@@ -47,14 +47,8 @@ run_enable_fde()
     echo "DEST_DISK set as $DEST_DISK"
     suffix=$(get_partition_suffix "$DEST_DISK")
 
-    # mkdir -p /mnt
-    # mount $disk_device /mnt
-    # grep -iq "ubuntu" /mnt/etc/os-release
-    # ubuntu_found=$?
-    # umount /mnt
-
     # assuming that partition 1 for ubuntu is always rootfs
-    # assuming that part 1 for tiberOS (mariner ) will be efi part
+    # assuming that part 1 for Tiber Microvisor will be efi part
 
     echo "checking ${DEST_DISK}${suffix}1"
 

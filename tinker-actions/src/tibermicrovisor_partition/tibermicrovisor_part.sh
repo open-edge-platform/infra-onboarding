@@ -299,7 +299,7 @@ else
 
 #######@main
 
-echo "--------Starting the SWAP and LVM partition on TiberOS---------"
+echo "--------Starting the SWAP and LVM partition on Tiber Micorvisor---------"
 
 #get the rootfs partition from the disk
 
