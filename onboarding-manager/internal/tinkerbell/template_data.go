@@ -71,34 +71,34 @@ const (
 	defaultTinkerImageVersion = "v1.0.0"
 
 	envTinkActionEraseNonRemovableDiskImage = "TINKER_ERASE_NON_REMOVABLE_DISK_IMAGE"
-	defaultEraseNonRemovableDiskImage       = "localhost:7443/one-intel-edge/edge-node/tinker-actions/erase_non_removable_disks"
+	defaultEraseNonRemovableDiskImage       = "localhost:7443/edge-orch/infra/tinker-actions/erase_non_removable_disks"
 
 	envTinkActionSecurebootFlagReadImage     = "TINKER_SECUREBOOTFLAGREAD_IMAGE"
-	defaultTinkActionSecurebootFlagReadImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/securebootflag"
+	defaultTinkActionSecurebootFlagReadImage = "localhost:7443/edge-orch/infra/tinker-actions/securebootflag"
 
 	envTinkActionWriteFileImage     = "TINKER_WRITEFILE_IMAGE"
-	defaultTinkActionWriteFileImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/writefile"
+	defaultTinkActionWriteFileImage = "localhost:7443/edge-orch/infra/tinker-actions/writefile"
 
 	envTinkActionCexecImage     = "TINKER_CEXEC_IMAGE"
-	defaultTinkActionCexecImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/cexec"
+	defaultTinkActionCexecImage = "localhost:7443/edge-orch/infra/tinker-actions/cexec"
 
 	envTinkActionDiskImage     = "TINKER_DISK_IMAGE"
-	defaultTinkActionDiskImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/image2disk"
+	defaultTinkActionDiskImage = "localhost:7443/edge-orch/infra/tinker-actions/image2disk"
 
 	envTinkActionEfibootImage     = "TINKER_EFIBOOT_IMAGE"
-	defaultTinkActionEfibootImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/efibootset"
+	defaultTinkActionEfibootImage = "localhost:7443/edge-orch/infra/tinker-actions/efibootset"
 
 	envTinkActionFdeImage     = "TINKER_FDE_IMAGE"
-	defaultTinkActionFdeImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/fde"
+	defaultTinkActionFdeImage = "localhost:7443/edge-orch/infra/tinker-actions/fde"
 
 	envTinkActionKerenlUpgradeImage     = "TINKER_KERNELUPGRD_IMAGE"
-	defaultTinkActionKernelUpgradeImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/kernelupgrd"
+	defaultTinkActionKernelUpgradeImage = "localhost:7443/edge-orch/infra/tinker-actions/kernelupgrd"
 
 	envTinkActionTiberOSPartitionImage     = "TINKER_TIBEROS_IMAGE_PARTITION"
-	defaultTinkActionTiberOSPartitionImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/tiberos_partition"
+	defaultTinkActionTiberOSPartitionImage = "localhost:7443/edge-orch/infra/tinker-actions/tiberos_partition"
 
 	envTinkActionQemuNbdImage2DiskImage     = "TINKER_QEMU_NBD_IMAGE2DISK_IMAGE"
-	defaultTinkActionQemuNbdImage2DiskImage = "localhost:7443/one-intel-edge/edge-node/tinker-actions/qemu_nbd_image2disk"
+	defaultTinkActionQemuNbdImage2DiskImage = "localhost:7443/edge-orch/infra/tinker-actions/qemu_nbd_image2disk"
 
 	envDkamDevMode = "dev"
 )
