@@ -32,7 +32,7 @@ RBAC       := "$(OUT_DIR)/rego/authz.rego"
 # Docker variables
 DOCKER_ENV              := DOCKER_BUILDKIT=1
 DOCKER_REGISTRY         ?= 080137407410.dkr.ecr.us-west-2.amazonaws.com
-DOCKER_REPOSITORY       ?= edge-orch
+DOCKER_REPOSITORY       ?= edge-orch/infra
 DOCKER_TAG              ?= $(DOCKER_REGISTRY)/$(DOCKER_REPOSITORY)/$(IMG_NAME):$(VERSION)
 DOCKER_TAG_BRANCH	    ?= $(DOCKER_REGISTRY)/$(DOCKER_REPOSITORY)/$(IMG_NAME):$(IMG_VERSION)
 # Decides if we shall push image tagged with the branch name or not.
