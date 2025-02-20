@@ -63,12 +63,6 @@ func (osr *OsReconciler) reconcileOs(
 	id := osinst.GetResourceId()
 	zlogOs.InfraSec().Info().Msgf("Reconciling OS instance with ID : %s", id)
 	fmt.Printf("Received AType: %v\n", osinst.OsType)
-	// Download OS image
-	downloadErr := dkammgr.DownloadOS(ctx, osinst)
-	if downloadErr != nil {
-		zlogOs.Err(downloadErr).Msgf("Error downloading and converting OS image")
-		return request.Ack()
-	}
 
 	curationErr := dkammgr.GetCuratedScript(ctx, osinst)
 	if curationErr != nil {

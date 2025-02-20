@@ -16,10 +16,7 @@ import (
 	"github.com/intel/infra-onboarding/dkam/pkg/util"
 )
 
-var (
-	zlog = logging.GetLogger("DKAM-Mgr")
-	file string
-)
+var zlog = logging.GetLogger("DKAM-Mgr")
 
 func DownloadArtifacts(ctx context.Context) error {
 	MODE := GetMODE()
@@ -89,39 +86,4 @@ func BuildSignIpxe() (bool, error) {
 
 func GetMODE() string {
 	return os.Getenv("MODE")
-}
-
-func DownloadOS(ctx context.Context, osRes *osv1.OperatingSystemResource) error {
-	zlog.Info().Msgf("Inside DownloadOS...")
-
-	if osRes.GetOsProvider() != osv1.OsProviderKind_OS_PROVIDER_KIND_INFRA {
-		zlog.Debug().Msgf("Skipping OS download for %s due to OS provider kind: %s",
-			osRes.GetResourceId(), osRes.GetOsProvider().String())
-		return nil
-	}
-	if osRes.GetOsType() == osv1.OsType_OS_TYPE_IMMUTABLE {
-		zlog.Debug().Msgf("Skipping OS download for OS type: %s", osRes.GetOsType())
-		return nil
-	}
-
-	imageURL := osRes.GetImageUrl()
-	zlog.Info().Msgf("imageURL %s", imageURL)
-	targetDir := config.PVC
-
-	zlog.Info().Msgf("Download Ubuntu OS")
-
-	file = util.GetOSImageLocation(osRes, targetDir)
-	// Check if the compressed raw image file already exists
-	if _, err := os.Stat(file); os.IsNotExist(err) {
-		// Download the image
-		if err := download.DownloadUbuntuImage(ctx, osRes, targetDir); err != nil {
-			zlog.InfraSec().Error().Err(err).Msgf("Error downloading image:%v", err)
-			return err
-		}
-	} else {
-		zlog.InfraSec().Info().Msgf("Compressed raw image file already exists: %s", file)
-	}
-
-	zlog.InfraSec().Info().Msg("OS Image downloaded and move to PVC")
-	return nil
 }

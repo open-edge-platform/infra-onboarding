@@ -16,41 +16,6 @@ import (
 
 var zlog = logging.GetLogger("DKAMUtil")
 
-// getOSImageLocation generates a relative, standard path based on user inputs.
-// fileName should also include file extension (e.g., someFileName.raw.gz).
-func getOSImageLocation(osResource *osv1.OperatingSystemResource, rootDir, fileName string) string {
-	return rootDir + "/OSImage/" + osResource.GetSha256() + "/" + fileName
-}
-
-// GetOSImageLocation generates a relative, standard path where OS image is stored.
-// File name is generated based on the OperatingSystemResource.
-func GetOSImageLocation(osResource *osv1.OperatingSystemResource, rootDir string) string {
-	// Immutable OS images will be downloaded directly from RS, so return the same path.
-	// FIXME: commented out for now, because we still use PV for immutable OS images in M2 demo.
-	// if os.GetOsType() == osv1.OsType_OS_TYPE_IMMUTABLE {
-	//	return os.GetRepoUrl()
-	//}
-
-	fileName := osResource.GetProfileName()
-
-	switch osResource.GetOsType() {
-	case osv1.OsType_OS_TYPE_IMMUTABLE:
-		zlog.InfraSec().Info().Msgf("OS image URL: %v", rootDir+osResource.GetImageUrl())
-		return rootDir + osResource.GetImageUrl()
-	case osv1.OsType_OS_TYPE_MUTABLE:
-		fileName += ".raw.gz"
-	default:
-		zlog.InfraSec().Error().Msgf("Unsupported OS type %v, may result in wrong OS image path", osResource.GetOsType())
-	}
-
-	return getOSImageLocation(osResource, rootDir, fileName)
-}
-
-// GetOSImageLocationWithCustomFilename returns a relative, standard path where OS image is stored, using a custom filename.
-func GetOSImageLocationWithCustomFilename(osResource *osv1.OperatingSystemResource, rootDir, fileName string) string {
-	return getOSImageLocation(osResource, rootDir, fileName)
-}
-
 func GetLocalInstallerPath(osType osv1.OsType) (string, error) {
 	switch osType {
 	case osv1.OsType_OS_TYPE_MUTABLE:

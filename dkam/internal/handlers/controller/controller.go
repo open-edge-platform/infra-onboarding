@@ -57,7 +57,7 @@ func New(
 
 	osRcnl := reconcilers.NewOsReconciler(invClient, enableTracing)
 	osCtrl := rec_v2.NewController[reconcilers.ReconcilerID](
-		osRcnl.Reconcile, rec_v2.WithParallelism(parallelism), rec_v2.WithTimeout(timeOut5m))
+		osRcnl.Reconcile, rec_v2.WithParallelism(parallelism))
 	controllers[inv_v1.ResourceKind_RESOURCE_KIND_OS] = osCtrl
 	filters[inv_v1.ResourceKind_RESOURCE_KIND_OS] = osEventFilter
 

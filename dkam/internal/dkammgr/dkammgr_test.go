@@ -10,10 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
-
-	"github.com/intel/infra-onboarding/dkam/pkg/util"
 
 	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
 	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
@@ -219,42 +216,6 @@ func TestBuildSignIpxe1(t *testing.T) {
 	}
 }
 
-func TestDownloadOS(t *testing.T) {
-	osUrl := "https://cloud-images.ubuntu.com/releases/22.04/release-20240912/ubuntu-22.04-server-cloudimg-amd64.img"
-	sha256 := "5da0b3d37d02ca6c6760caa4041b4df14e08abc7bc9b2db39133eef8ee145f6d"
-	osr := &osv1.OperatingSystemResource{
-		ImageUrl:   osUrl,
-		OsType:     osv1.OsType_OS_TYPE_MUTABLE,
-		Sha256:     sha256,
-		OsProvider: osv1.OsProviderKind_OS_PROVIDER_KIND_INFRA,
-	}
-
-	expectedFilePath := util.GetOSImageLocation(osr, config.PVC)
-	err := os.MkdirAll(filepath.Dir(expectedFilePath), 0o755)
-	if err != nil {
-		t.Fatalf("Failed to create directories: %v", err)
-	}
-	file, err := os.Create(expectedFilePath)
-	if err != nil {
-		t.Fatalf("Failed to create file: %v", err)
-	}
-	file.Close()
-	defer func() {
-		err := os.Remove(expectedFilePath)
-		if err != nil && !os.IsNotExist(err) {
-			t.Fatalf("Failed to remove file: %v", err)
-		}
-		err = os.RemoveAll(filepath.Dir(expectedFilePath))
-		if err != nil {
-			t.Fatalf("Failed to clean up directories: %v", err)
-		}
-	}()
-
-	if err := DownloadOS(context.TODO(), osr); err != nil {
-		t.Errorf("Download failed: %v", err)
-	}
-}
-
 func TestDownloadArtifacts_Case(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 
@@ -424,118 +385,3 @@ func TestDownloadArtifacts_Case(t *testing.T) {
 		os.Remove(originalDir + "/hook/TEST_FILE")
 	}()
 }*/
-
-func TestDownloadOs(t *testing.T) {
-	osUrl := "repository/TiberOS/TiberOS-RT/tiber-readonly-rt-1.0.20241117.1004.raw.gz"
-	sha256 := "de04d58dc5ccc4b9671c3627fb8d626fe4a15810bc1fe3e724feea761965f666"
-	parts := strings.Split(osUrl, "/")
-	fileName := parts[len(parts)-1]
-	rawFileName := strings.TrimSuffix(fileName, ".img") + ".raw.gz"
-	expectedFilePath := config.PVC + "/OSImage/" + sha256 + "/" + rawFileName
-	err := os.MkdirAll(filepath.Dir(expectedFilePath), 0o755)
-	if err != nil {
-		t.Fatalf("Failed to create directories: %v", err)
-	}
-	file, err := os.Create(expectedFilePath)
-	if err != nil {
-		t.Fatalf("Failed to create file: %v", err)
-	}
-
-	path := config.DownloadPath + "/profile.raw.gz"
-	err = os.MkdirAll(filepath.Dir(path), 0o755)
-	if err != nil {
-		t.Fatalf("Failed to create directories: %v", err)
-	}
-	osfile, oserr := os.Create(path)
-	if oserr != nil {
-		t.Fatalf("Failed to create file: %v", oserr)
-	}
-	osfile.Close()
-	mux := http.NewServeMux()
-	mux.HandleFunc("/repository/TiberOS/TiberOS-RT/tiber-readonly-rt-1.0.20241117.1004.raw.gz", func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(exampleManifests))
-	})
-	svr := httptest.NewServer(mux)
-	defer svr.Close()
-
-	file.Close()
-	defer func() {
-		err := os.Remove(expectedFilePath)
-		if err != nil && !os.IsNotExist(err) {
-			t.Fatalf("Failed to remove file: %v", err)
-		}
-		err = os.RemoveAll(filepath.Dir(expectedFilePath))
-		if err != nil {
-			t.Fatalf("Failed to clean up directories: %v", err)
-		}
-		err = os.Remove(path)
-		if err != nil && !os.IsNotExist(err) {
-			t.Fatalf("Failed to remove file: %v", err)
-		}
-	}()
-	type args struct {
-		osRes *osv1.OperatingSystemResource
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
-			args: args{
-				osRes: &osv1.OperatingSystemResource{
-					ImageUrl: osUrl,
-					OsType:   0,
-					Sha256:   sha256,
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "Test Case With Os type",
-			args: args{
-				osRes: &osv1.OperatingSystemResource{
-					ImageUrl: osUrl,
-					OsType:   osv1.OsType_OS_TYPE_IMMUTABLE,
-					Sha256:   sha256,
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "Test Case With Os Immutable type",
-			args: args{
-				osRes: &osv1.OperatingSystemResource{
-					ProfileName: "profile",
-					ImageUrl:    osUrl,
-					OsType:      osv1.OsType_OS_TYPE_IMMUTABLE,
-					Sha256:      sha256,
-					OsProvider:  osv1.OsProviderKind_OS_PROVIDER_KIND_INFRA,
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "Test Case With dummy url",
-			args: args{
-				osRes: &osv1.OperatingSystemResource{
-					ProfileName: "profile",
-					ImageUrl:    "osUrl",
-					OsType:      osv1.OsType_OS_TYPE_IMMUTABLE,
-					Sha256:      sha256,
-					OsProvider:  osv1.OsProviderKind_OS_PROVIDER_KIND_INFRA,
-				},
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := DownloadOS(context.TODO(), tt.args.osRes); (err != nil) != tt.wantErr {
-				t.Errorf("DownloadOS() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}

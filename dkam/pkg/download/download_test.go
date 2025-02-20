@@ -5,16 +5,13 @@ package download
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
-	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
 	as "github.com/intel/infra-core/inventory/v2/pkg/artifactservice"
 	"github.com/intel/infra-onboarding/dkam/pkg/config"
 	"github.com/intel/infra-onboarding/dkam/pkg/util"
@@ -82,34 +79,6 @@ func TestMain(m *testing.M) {
 
 	run := m.Run()
 	os.Exit(run)
-}
-
-func TestDownloadUbuntuImage(t *testing.T) {
-	randBytes := make([]byte, 20)
-	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Assert expected header
-		w.WriteHeader(http.StatusOK)
-		// Return random bytes
-		w.Write(randBytes)
-	}))
-	defer svr.Close()
-
-	tmpFolderPath, err := os.MkdirTemp("/tmp", "test_download_ubuntu")
-	require.NoError(t, err)
-	defer os.RemoveAll(tmpFolderPath)
-
-	hasher := sha256.New()
-	_, err = hasher.Write(randBytes)
-	require.NoError(t, err)
-
-	testSha256 := fmt.Sprintf("%x", hasher.Sum(nil))
-	err = DownloadUbuntuImage(context.TODO(), &osv1.OperatingSystemResource{
-		ImageUrl:    svr.URL,
-		Sha256:      testSha256,
-		ProfileName: "test-profile",
-		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
-	}, config.DownloadPath)
-	require.NoError(t, err)
 }
 
 func TestPathExists(t *testing.T) {
@@ -196,75 +165,6 @@ func TestDownloadMicroOS(t *testing.T) {
 	})
 }
 
-func Test_downloadImage(t *testing.T) {
-	sercv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, "responseBody")
-	}))
-	defer sercv.Close()
-	type args struct {
-		url       string
-		fileName  string
-		targetDir string
-		ctx       context.Context
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
-			args: args{
-				url: "",
-				ctx: context.TODO(),
-			},
-			wantErr: true,
-		},
-		{
-			name: "Test Case",
-			args: args{
-				url: "https://www.google.com/",
-				ctx: context.TODO(),
-			},
-			wantErr: true,
-		},
-		{
-			name: "Valid URL",
-			args: args{
-				url:       sercv.URL,
-				fileName:  "testfile.jpg",
-				targetDir: t.TempDir(),
-				ctx:       context.TODO(),
-			},
-			wantErr: false,
-		},
-
-		{
-			name: "Invalid context",
-			args: args{
-				ctx: nil,
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.args.targetDir != "" {
-				err := os.MkdirAll(tt.args.targetDir, 0o755)
-				require.NoError(t, err)
-			}
-			if err := downloadImage(tt.args.ctx, tt.args.url, tt.args.targetDir+tt.args.fileName); (err != nil) != tt.wantErr {
-				t.Errorf("downloadImage() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func Test_installPackage(t *testing.T) {
-	installPackage("")
-}
-
 func TestDownloadMicroOS_Case1(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	expectedFileContent := "GOOD TEST!"
@@ -348,144 +248,6 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 		//}()
 		returnWrongManifest = true
 	})
-}
-
-func TestDownloadUbuntuImage_Negative(t *testing.T) {
-	sercv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, "responseBody")
-	}))
-	defer sercv.Close()
-	type args struct {
-		targetDir string
-		osr       *osv1.OperatingSystemResource
-	}
-
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Negative",
-			args: args{
-				targetDir: config.PVC,
-				osr: &osv1.OperatingSystemResource{
-					ImageUrl:    "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img",
-					ProfileName: "test-profile-name",
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "Negative test case",
-			args: args{
-				targetDir: config.PVC,
-				osr: &osv1.OperatingSystemResource{
-					ImageUrl:    "raw.gz",
-					ProfileName: "test-profile-name",
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "Negative test case_1",
-			args: args{
-				targetDir: t.TempDir(),
-				osr: &osv1.OperatingSystemResource{
-					ImageUrl:    sercv.URL,
-					ProfileName: "test-profile-name",
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "Negative test case_2",
-			args: args{
-				targetDir: t.TempDir(),
-				osr: &osv1.OperatingSystemResource{
-					ImageUrl:    "://example.com",
-					ProfileName: "test-profile-name",
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "Negative test case_3",
-			args: args{
-				targetDir: t.TempDir(),
-				osr: &osv1.OperatingSystemResource{
-					ImageUrl:    sercv.URL + "/raw.gz",
-					ProfileName: "test-profile-name",
-				},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			DownloadUbuntuImage(context.TODO(), tt.args.osr, tt.args.targetDir)
-		})
-	}
-}
-
-func Test_getSHA256Checksum(t *testing.T) {
-	type args struct {
-		filename string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
-		{
-			name: "Test Case",
-			args: args{
-				filename: t.TempDir(),
-			},
-			want:    "",
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := getSHA256Checksum(tt.args.filename)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("getSHA256Checksum() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("getSHA256Checksum() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestGetOSImageLocationWithCustomFilename(t *testing.T) {
-	type args struct {
-		os       *osv1.OperatingSystemResource
-		rootDir  string
-		fileName string
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			name: "GetOSImageLocationWithCustomFilename Test Case",
-			args: args{},
-			want: "/OSImage//",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := util.GetOSImageLocationWithCustomFilename(tt.args.os, tt.args.rootDir, tt.args.fileName); got != tt.want {
-				t.Errorf("GetOSImageLocationWithCustomFilename() = %v, want %v", got, tt.want)
-			}
-		})
-	}
 }
 
 func TestCreateFile(t *testing.T) {
