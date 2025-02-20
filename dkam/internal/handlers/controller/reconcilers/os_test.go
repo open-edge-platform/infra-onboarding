@@ -185,7 +185,7 @@ func TestOsReconciler_Reconcile(t *testing.T) {
 	testRequest := rec_v2.Request[ReconcilerID]{
 		ID: WrapReconcilerID(osre.TenantId, osre.ResourceId),
 	}
-	expectedFilePath := config.DownloadPath + "/" + "tiberos.raw.xz"
+	expectedFilePath := config.DownloadPath + "/" + "TiberMicrovisor.raw.xz"
 	err := os.MkdirAll(filepath.Dir(expectedFilePath), 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create directories: %v", err)

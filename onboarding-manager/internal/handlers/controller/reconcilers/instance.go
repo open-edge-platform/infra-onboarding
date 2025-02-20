@@ -258,7 +258,7 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		zlogInst.Debug().Msgf("Pulling %s image from %s", desiredOs.GetProfileName(), desiredOs.GetImageUrl())
 		osLocationURL = desiredOs.GetImageUrl()
 	} else {
-		// Tiber OS can be pulled drirectly from Release Server or CDN Server
+		// TiberMicrovisor can be pulled drirectly from Release Server or CDN Server
 		zlogInst.Debug().Msgf("Pulling %s image Pulling from CDN/RS Servers", desiredOs.GetProfileName())
 		osLocationURL = fmt.Sprintf("http://%s/%s", localHostIP, desiredOs.GetImageUrl())
 	}

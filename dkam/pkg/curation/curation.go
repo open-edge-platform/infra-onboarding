@@ -174,7 +174,7 @@ func GetCommonInfraTemplateVariables(infraConfig config.InfraConfig, osType osv1
 		"FIREWALL_RULES": firewallRules,
 
 		// TODO: keeping OS-dependence for now, but will be removed once we reach the final solution
-		"IS_TIBEROS": osType == osv1.OsType_OS_TYPE_IMMUTABLE,
+		"IS_TIBERMICROVISOR": osType == osv1.OsType_OS_TYPE_IMMUTABLE,
 	}
 
 	if osType == osv1.OsType_OS_TYPE_MUTABLE {

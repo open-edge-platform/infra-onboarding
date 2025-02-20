@@ -6,9 +6,9 @@
 package utils
 
 const (
-	ImgTypeUbuntu       = "ubuntu"
-	ImgTypeTiberOs      = "tiberos"
-	DefaultProviderName = "infra_onboarding"
+	ImgTypeUbuntu          = "ubuntu"
+	ImgTypeTiberMicrovisor = "tibermicrovisor"
+	DefaultProviderName    = "infra_onboarding"
 )
 
 type (
@@ -42,7 +42,7 @@ type (
 		Hostname string
 		// sha256 is used by EN to validate the SHA256 of OS image authenticity.
 		OsImageSHA256 string
-		// OS type differentiate bw Ubuntu Canonical and Tiber OS for now
+		// OS type differentiate bw Ubuntu Canonical and TiberMicrovisor for now
 		OsType string
 		// Tenant ID of resource
 		TenantID string

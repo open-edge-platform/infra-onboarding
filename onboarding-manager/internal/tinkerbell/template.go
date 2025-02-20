@@ -44,14 +44,14 @@ func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (
 		if err != nil {
 			return nil, err
 		}
-	case utils.ImgTypeTiberOs:
-		tmplData, err = NewTemplateDataProdTIBEROS(tmplName, deviceInfo)
+	case utils.ImgTypeTiberMicrovisor:
+		tmplData, err = NewTemplateDataProdTiberMicrovisor(tmplName, deviceInfo)
 		if err != nil {
 			return nil, err
 		}
 
 	default:
-		tmplData, err = NewTemplateDataProdTIBEROS(tmplName, deviceInfo)
+		tmplData, err = NewTemplateDataProdTiberMicrovisor(tmplName, deviceInfo)
 		if err != nil {
 			return nil, err
 		}

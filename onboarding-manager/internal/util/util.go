@@ -18,7 +18,7 @@ import (
 func GetImageTypeFromOsType(osType osv1.OsType) (string, error) {
 	switch osType {
 	case osv1.OsType_OS_TYPE_IMMUTABLE:
-		return utils.ImgTypeTiberOs, nil
+		return utils.ImgTypeTiberMicrovisor, nil
 	case osv1.OsType_OS_TYPE_MUTABLE:
 		return utils.ImgTypeUbuntu, nil
 	default:

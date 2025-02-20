@@ -19,7 +19,7 @@ const (
 	ActionEraseNonRemovableDisk      = "erase-non-removable-disk" //#nosec G101 -- ignore false positive.
 	ActionSecureBootStatusFlagRead   = "secure-boot-status-flag-read"
 	ActionStreamUbuntuImage          = "stream-ubuntu-image"
-	ActionStreamTiberOSImage         = "stream-tiberos-image"
+	ActionStreamTiberMicrovisorImage = "stream-tibermicrovisor-image"
 	ActionCopySecrets                = "copy-secrets"
 	ActionGrowPartitionInstallScript = "grow-partition-install-script"
 	ActionInstallOpenssl             = "install-openssl"
@@ -53,7 +53,7 @@ const (
 	ActionTenantID                   = "tenant-id"
 	ActionSystemdNetworkOptimize     = "systemd-network-online-optimize"
 	ActionDisableSnapdOptimize       = "systemd-snapd-disable-optimize"
-	ActionTiberOSPartition           = "tiber-os-partition"
+	ActionTiberMicrovisorPartition   = "tibermicrovisor-partition"
 	ActionCloudinitDsidentity        = "cloud-init-ds-identity"
 	ActionSetSeliuxRelabel           = "set-selinux-relabel-policy"
 )
@@ -94,8 +94,9 @@ const (
 	envTinkActionKerenlUpgradeImage     = "TINKER_KERNELUPGRD_IMAGE"
 	defaultTinkActionKernelUpgradeImage = "localhost:7443/edge-orch/infra/tinker-actions/kernelupgrd"
 
-	envTinkActionTiberOSPartitionImage     = "TINKER_TIBEROS_IMAGE_PARTITION"
-	defaultTinkActionTiberOSPartitionImage = "localhost:7443/edge-orch/infra/tinker-actions/tiberos_partition"
+	envTinkActionTiberMicrovisorPartitionImage     = "TINKER_TMV_IMAGE_PARTITION"
+	defaultTinkActionTiberMicrovisorPartitionImage = "localhost:7443/one-intel-edge/edge-node/" +
+		"tinker-actions/tibermicrovisor_partition"
 
 	envTinkActionQemuNbdImage2DiskImage     = "TINKER_QEMU_NBD_IMAGE2DISK_IMAGE"
 	defaultTinkActionQemuNbdImage2DiskImage = "localhost:7443/edge-orch/infra/tinker-actions/qemu_nbd_image2disk"
@@ -179,12 +180,12 @@ func tinkActionKernelupgradeImage(tinkerImageVersion string) string {
 	return fmt.Sprintf("%s:%s", defaultTinkActionKernelUpgradeImage, iv)
 }
 
-func tinkActionTiberOSPartitionImage(tinkerImageVersion string) string {
+func tinkActionTiberMicrovisorPartitionImage(tinkerImageVersion string) string {
 	iv := getTinkerImageVersion(tinkerImageVersion)
-	if v := os.Getenv(envTinkActionTiberOSPartitionImage); v != "" {
+	if v := os.Getenv(envTinkActionTiberMicrovisorPartitionImage); v != "" {
 		return fmt.Sprintf("%s:%s", v, iv)
 	}
-	return fmt.Sprintf("%s:%s", defaultTinkActionTiberOSPartitionImage, iv)
+	return fmt.Sprintf("%s:%s", defaultTinkActionTiberMicrovisorPartitionImage, iv)
 }
 
 func tinkActionQemuNbdImage2DiskImage(tinkerImageVersion string) string {
@@ -196,7 +197,7 @@ func tinkActionQemuNbdImage2DiskImage(tinkerImageVersion string) string {
 }
 
 //nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
-func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo) ([]byte, error) {
+func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo utils.DeviceInfo) ([]byte, error) {
 	// #nosec G115
 	securityFeatureTypeVar := osv1.SecurityFeature(deviceInfo.SecurityFeature)
 	securityFeatureStr := securityFeatureTypeVar.String()
@@ -226,7 +227,7 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo) ([]byt
 					},
 				},
 				{
-					Name:    ActionStreamTiberOSImage,
+					Name:    ActionStreamTiberMicrovisorImage,
 					Image:   tinkActionDiskImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutMax9800,
 					Environment: map[string]string{
@@ -238,8 +239,8 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo) ([]byt
 				},
 
 				{
-					Name:    ActionTiberOSPartition,
-					Image:   tinkActionTiberOSPartitionImage(deviceInfo.TinkerVersion),
+					Name:    ActionTiberMicrovisorPartition,
+					Image:   tinkActionTiberMicrovisorPartitionImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg560,
 				},
 
@@ -399,7 +400,7 @@ func NewTemplateDataProdTIBEROS(name string, deviceInfo utils.DeviceInfo) ([]byt
 		osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION {
 		for i, task := range wf.Tasks {
 			for j, action := range task.Actions {
-				if action.Name == ActionTiberOSPartition {
+				if action.Name == ActionStreamTiberMicrovisorImage {
 					// Remove the action from the slice
 					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
 				}
