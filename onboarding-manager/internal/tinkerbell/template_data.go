@@ -95,7 +95,7 @@ const (
 	defaultTinkActionKernelUpgradeImage = "localhost:7443/edge-orch/infra/tinker-actions/kernelupgrd"
 
 	envTinkActionTiberMicrovisorPartitionImage     = "TINKER_TMV_IMAGE_PARTITION"
-	defaultTinkActionTiberMicrovisorPartitionImage = "localhost:7443/one-intel-edge/edge-node/" +
+	defaultTinkActionTiberMicrovisorPartitionImage = "localhost:7443/edge-orch/infra/" +
 		"tinker-actions/tibermicrovisor_partition"
 
 	envTinkActionQemuNbdImage2DiskImage     = "TINKER_QEMU_NBD_IMAGE2DISK_IMAGE"
