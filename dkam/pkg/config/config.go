@@ -134,9 +134,11 @@ var (
 	PVC                   = "/data"
 	OrchCACertificateFile = "/etc/ssl/orch-ca-cert/ca.crt"
 	ScriptPath            = "/home/appuser/pkg/script"
-	ENManifestRepo        = "one-intel-edge/edge-node/en/manifest"
-	HookOSRepo            = "one-intel-edge/edge-node/file/provisioning-hook-os"
-	ProfileScriptRepo     = "one-intel-edge/edge-node/file/profile-scripts/"
+	// TO DO pass all hook os version and bare metal agent
+	// versions via configmap or override values to dkam.
+	ENManifestRepo    = "edge-orch/en/files/manifest"
+	HookOSRepo        = "edge-orch/en/files/provisioning-hook-os"
+	ProfileScriptRepo = "edge-orch/en/files/profile-scripts/"
 
 	FlagEnforceCloudInit = flag.Bool("enforceCloudInit", false,
 		"Set to true to always use cloud-init to provision Day0/Day1 EN configuration")

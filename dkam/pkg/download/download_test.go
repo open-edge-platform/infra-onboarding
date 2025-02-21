@@ -225,7 +225,7 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 					{
 						Description: "Dummy file 1",
 						Server:      "server1",
-						Path:        "one-intel-edge/edge-node/file/provisioning-hook-os",
+						Path:        "edge-orch/en/files/provisioning-hook-os",
 						Version:     "v1",
 					},
 				},
