@@ -719,8 +719,8 @@ github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:
 github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/intel/infra-core/inventory/v2 v2.17.0 h1:BTHf9COcpNa8M21FVmxDSApZL6ATLVPZO1basJIaJ38=
 github.com/intel/infra-core/inventory/v2 v2.17.0/go.mod h1:2QHCxWuwOr7TG4X6ebKNdWumAcUFjaH7BLmvHM0YQYo=
-github.com/intel/infra-onboarding/dkam v1.18.1 h1:HbixRTzZtLxmSCJcZCGknrAj4RPOdw1RGGR7s7p7TmQ=
-github.com/intel/infra-onboarding/dkam v1.18.1/go.mod h1:mzw3rGG69xXeM3NSYEOs6bnvqSZzmSCSH1E4/6b5HNA=
+github.com/intel/infra-onboarding/dkam v1.19.0 h1:un9n2CMPpcH077pUloTnTaPSPNUFRRRf+Pv/nymcgZc=
+github.com/intel/infra-onboarding/dkam v1.19.0/go.mod h1:mzw3rGG69xXeM3NSYEOs6bnvqSZzmSCSH1E4/6b5HNA=
 github.com/intel/orch-library/go v0.5.18 h1:VGzr5X1A54PkQkCuW9D+L+oH4TNlP2jBSkL/vwCKUwo=
 github.com/intel/orch-library/go v0.5.18/go.mod h1:mhDHd+eVkt552hgtK8tvBrMp1jj8I6lnU0T6mcBHgg0=
 github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=

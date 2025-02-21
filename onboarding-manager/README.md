@@ -116,7 +116,7 @@ The following is a list of makefile targets that support developer activities:
 - `test` to run the unit test
 - `go-tidy` to update the Go dependencies and regenerate the `go.sum` file
 - `build` to build the project and generate executable files
-- `docker-build` to build the Inventory Docker container
+- `docker-build` to build the onboarding-manager Docker container
 
 - For more information on how to onboard an edge node, refer to the
   [user guide on onboarding an edge node][user-guide-onboard-edge-node].
