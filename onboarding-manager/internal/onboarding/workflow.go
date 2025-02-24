@@ -50,7 +50,7 @@ func CheckStatusOrRunProdWorkflow(ctx context.Context,
 	}
 
 	prodWorkflowName := tinkerbell.GetProdWorkflowName(deviceInfo.GUID)
-	workflow, err := getWorkflow(ctx, kubeClient, prodWorkflowName)
+	workflow, err := getWorkflow(ctx, kubeClient, prodWorkflowName, instance.Host.ResourceId)
 	if err != nil && inv_errors.IsNotFound(err) {
 		// This may happen if:
 		// 1) workflow for Instance is not created yet -> proceed to runProdWorkflow()
@@ -131,7 +131,7 @@ func runProdWorkflow(
 }
 
 //nolint:cyclop // May effect the functionality, need to simplify this in future
-func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName string) (*tink.Workflow, error) {
+func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName, hostResourceId string) (*tink.Workflow, error) {
 	got := &tink.Workflow{}
 	clientErr := k8sCli.Get(ctx, types.NamespacedName{Namespace: env.K8sNamespace, Name: workflowName}, got)
 	if clientErr != nil && errors.IsNotFound(clientErr) {
@@ -189,22 +189,22 @@ func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName string)
 				for actionN, actionSuccessTime := range actionSuccessDuration {
 					if actionN == workflowName+"secure-boot-status-flag-read" {
 						msg := fmt.Sprintf(
-							"Instrumentation Info for workflow %s: action name %s pending to running time %.2f", workflowName,
-							"secure-boot-status-flag-read", actionRuning[workflowName+"secure-boot-status-flag-read"])
+							"Instrumentation Info for workflow %s: action name %s pending to running time %.2f, host resource ID: %s", workflowName,
+							"secure-boot-status-flag-read", actionRuning[workflowName+"secure-boot-status-flag-read"], hostResourceId)
 						zlog.Info().Msg(msg)
 						delete(actionStartTimes, actionN)
 						delete(actionRuning, actionN)
 					}
 					if strings.Contains(actionN, workflowName) {
 						totalDuration += actionSuccessTime
-						zlog.Info().Msgf("Instrumentation Info for workflow %s actionName %s time for running to success %d",
-							workflowName, strings.Split(actionN, workflowName)[1], actionSuccessTime)
+						zlog.Info().Msgf("Instrumentation Info for workflow %s actionName %s time for running to success %d ,for host resource ID: %s",
+							workflowName, strings.Split(actionN, workflowName)[1], actionSuccessTime, hostResourceId)
 						delete(actionSuccessDuration, actionN)
 						delete(actionStatusMap, actionN)
 					}
 				}
-				zlog.Info().Msgf("Instrumentation Info for workflow %s: Total Time for all TinkerActions %d",
-					workflowName, totalDuration)
+				zlog.Info().Msgf("Instrumentation Info for workflow %s, for host resource ID: %s: Total Time for all TinkerActions %d",
+					workflowName, totalDuration, hostResourceId)
 			}
 		}
 	}

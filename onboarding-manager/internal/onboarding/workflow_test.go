@@ -361,6 +361,7 @@ func Test_getWorkflow(t *testing.T) {
 		ctx          context.Context
 		k8sCli       client.Client
 		workflowName string
+		hostId       string
 	}
 	tests := []struct {
 		name    string
@@ -401,7 +402,7 @@ func Test_getWorkflow(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := getWorkflow(tt.args.ctx, tt.args.k8sCli, tt.args.workflowName)
+			_, err := getWorkflow(tt.args.ctx, tt.args.k8sCli, tt.args.workflowName, tt.args.hostId)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getWorkflow() error = %v, wantErr %v", err, tt.wantErr)
 				return
