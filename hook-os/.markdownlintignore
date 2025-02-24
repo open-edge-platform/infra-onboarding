@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+hook/
+venv_hook-os/
+artifacts/
+alpine_image/
+alpine_image_secureboot/
+cpio_build/
+gpg_key/
+grub_source/
+sb_keys/

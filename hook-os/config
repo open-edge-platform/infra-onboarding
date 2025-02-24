@@ -5,32 +5,8 @@
 # Provide the following inputs
 #####################################################################################
 
-#####################################################################################
-### Mandatory configurations
-### The Private interface needs to be onboard NIC.
-### If there are multiple NICs then 2nd NIC can be connected to a enterprise network
-### else use a usb-ethernet connecter
-#####################################################################################
-
-## Please provide the Public interface name on your system [eg. en01]
-pub_interface_name=""
-
-## Please provide pd ip from organizational dhcp
-## or private interface static IP when pd is on private network
-pd_host_ip=""
-
-## Please provide the Load Balancer interface IP
-load_balancer_ip=""
-
-## Provide the DNS extension of the deployment
-deployment_dns_extension=""
-
 #provide Keyclock url
 keycloak_url=""
-
-#provide harbor or docker registry where tinker_actions are hosted
-# example harbor_url_tinker_actions="amr-registry.caas.intel.com/one-intel-edge/edgenode/tinker-actions"
-harbor_url_tinker_actions=""
 
 # provide extra hosts needed to resolve domain names. example:
 # extra_hosts="10.114.181.238 api-proxy.kind.internal,10.114.181.238 app-orch.kind.internal,10.114.181.238 cluster-orch-edge-node.kind.internal"
@@ -60,19 +36,3 @@ external_proxy=""
 
 ## nameservers (external, organiational)
 nameserver=("" "" "")
-
-####################################################################################
-### Advanced configurations
-### Change only if needed and you know what to do.
-####################################################################################
-
-# Please provide the Private interface name on which you want to assign private IP,
-# replace `$pub_inerface_name` with second network interface They are same when no private network for SUT is  used.
-pri_interface_name=$pub_interface_name
-
-# Please provide the subnet values Ex: 192.168.1.0/24 for private networked SUT when private networked SUT
-subnet_ip=""
-
-# Please provide the stable tinkerbell charts branch id for clone , below one is the stable one
-#unless you need latest vesrion please do not change the below tag version
-tinkerbell_charts_stable_branch=v0.3.0

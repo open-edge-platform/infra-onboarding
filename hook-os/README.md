@@ -1,138 +1,118 @@
 # Hook microOS (Alpine Linuxkit)
 
-This repository holds the scripts needed to get a local copy of Tinkerbell
-HookOS which is built out of linuxkit yaml file.
+## Table of Contents
 
-Addition functions accomplished by these scripts are listed below.
+- [Overview](#overview)
+- [Features](#features)
+- [Get Started](#get-started)
+- [Contribute](#contribute)
+- [Community and Support](#community-and-support)
+- [License](#license)
 
-1. Updates the implementation of HookOS.
-2. Signing the HookOS
-3. Creating a grub needed to boot HookOS from disk and into RAM
+## Overview
 
-# Build pre-requisites
+Hook is the Tinkerbell Installation Environment for bare-metal. It runs in-memory, installs operating system,
+and handles deprovisioning. Its based on [LinuxKit](https://github.com/linuxkit/linuxkit).
 
-1. The build requires few containers to be embedded into the hook micro OS,
-   which are pulled from the actions repository.
+This repo is forked from the open source repo [github.com/tinkerbell/hook](https://github.com/tinkerbell/hook).
 
-   The version of these container will be specified by the file
-   `TINKER_ACTIONS_VERSION` in the root dir of this repo.
+This repository also holds the scripts needed to:
 
-2. The build requires these container image to be present before running the
-   build script. Verify that these containers are present by running
+1. Cryptographuc signing the HookOS
+2. Creating a grub needed to boot HookOS from disk and into RAM
 
-       docker images
+Following components have been added to the open source Hook OS for our specific purpose
 
-3. Optionally this can be automated by running the `prereqs.sh` script (see
-   step 4 below)
+1. Device Discovery: This service can read all the hardware data (serial number, UUID etc) and send out to the Edge Orchestrator
+while provisioning.
+2. Fluent Bit: This service helps us stream the logs of all important services to the Observability microservice
+of Edge Orchestrator.
+3. Caddy: This service is used as a proxy to communicate with the Edge Orchestrator securely.
 
-# Build steps for HookOS
+## Features
 
-1. update the config file with the correct configurations.
-   Essential configurations include
+- Lightweight OS: Size is less than 300MB.
+- Easy to customise: Services can be embedded within the OS using using individual docker containers and can be configured
+in a simple YAML file. Files can also be embedded similarly.
+- Device Discovery: This service can read all the hardware data (serial number, UUID etc) and send out to the Edge Orchestrator
+while provisioning.
 
-   http_proxy, https_proxy, ftp_proxy, socks_proxy, no_proxy, nameserver, and
-   deployment_dns_extension
+## Get Started
 
-   ```
-   Example:
-   http_proxy=http://xyz.com:911
-   https_proxy=https://xyz.com:911
-   ftp_proxy=ftp://xyz.com:911
-   socks_proxy=socks://xyz.com:911
-   no_proxy=localhost
-   nameserver=(192.168.1.1 192.168.1.2 192.168.1.3)
-   deployment_dns_extension=kind.internal
-   ```
+Instructions on how to build HookOS on your machine.
 
-2. Update Caddy runtime configurations according to Edge Orchestration deployment.
+### Develop the Hook OS
 
-   ```
-   Example:
-   fdo_manufacturer_svc="fdo-mfg.kind.internal"
-   fdo_owner_svc="fdo-owner.kind.internal"
-   release_svc="files.internal.ledgepark.intel.com"
-   logging_svc="logs-node.kind.internal"
-   oci_release_svc="registry-rs.internal.ledgepark.intel.com"
-   tink_stack_svc="tinkerbell-nginx.kind.internal"
-   tink_server_svc="tinkerbell-server.kind.internal"
-   ```
+There are several convenient `make` targets to support developer activities, you can use `help` to see a list of makefile
+targets. The following is a list of makefile targets that support developer activities:
 
-3. [Optional] Update host IP/FQDN mapping(comma separated) values in
-   `extra_hosts` if Edge Orchestration is deployed on Kind cluster, or in Coder.
+- `lint` to run a list of linting targets
+- `build` to build the compressed Hook OS image in tar.gz format
 
-   ```
-   Example:
-   extra_hosts="10.114.181.238 api-proxy.kind.internal,10.114.181.238 app-orch.kind.internal,10.114.181.238 cluster-orch-edge-node.kind.internal,10.114.181.238 fdo-mfg.kind.internal,10.114.181.238 fdo-owner.kind.internal,10.114.181.238 tinkerbell-nginx.kind.internal,10.114.181.238 tinkerbell-server.kind.internal,10.114.181.238 logs-node.kind.internal"
-   ```
+#### Builds Component
 
-4. [Optional] Create Intel-specific certificate chain
+```bash
+make <COMPONENT NAME>
+```
 
-   Run the cert_prep.sh script
+Components can be device_discovery, fluent-bit, caddy, hook_dind
 
-   ```
-   bash cert_prep.sh
-   ```
+Example
 
-   This downloads and creates the `client_auth/files/ca.pem` file with
-   Intel internal CAs certs and that of the deployment Vault.
+```bash
+make device_discovery
+```
 
-5. [Optional] Pull all tinker action containers
+#### Builds all the docker image components to be embedded
 
-   Run the `prereq.sh` script to download the tinker action images from a
-   docker registry.
+```bash
+make components
+```
 
-   ```
-   bash prereq.sh
-   ```
+#### Pulls pre-built kernel container image
 
-6. Run the build hookOS.
+```bash
+make pull-kernel
+```
 
-   ```
-   bash build_hookos.sh
-   ```
+#### Builds hook OS binaries
 
-   This will perform the build and create a `hook_x86_64.tar.gz` in both
-   the `alpine_image/` and `alpine_image_secureboot/` directories.
+```bash
+make build
+```
 
+## Publish HookOS binaries as OCI artifacts
 
-7. [Optional] Upload the signed HookOS onto the deployment
+```bash
+make artifact-publish
+```
 
-   If you run the copy_to_nginx.sh script, the secure version of the HookOS will
-   be uploaded to othe `tink-stack` pod's nginx public dir and decompressed:
+## Contribute
 
-   ```
-   bash copy_to_nginx.sh
-   ```
+To learn how to contribute to the project, see the [contributor's guide][contributors-guide-url].
 
-   NOTE: This expects that a K8s config and credentials already exist on the
-   local system, as it uses `kubectl` to identify the `tink-stack` pod.
+## Community and Support
 
-8. [Optional] Copy signing keys
+To learn more about the project, its community, and governance, visit
+the [Edge Orchestrator Community](https://community.intel.com/).
 
-   The HookOS signing keys are located in the `sb_keys/` directory.  You will want
-   to install the `db.der` file on the target machine to be able to verify the signed
-   images.
+For support, start with [troubleshooting][troubleshooting-url] or [contact us](mailto:adreanne.bertrand@intel.com).
 
-   This is also included in the secure version of the `hook_x86_64.tar.gz` archive,
-   renamed to be `hookos_db.der`.
+## License
 
-Once this is done, you need to add the secure boot keys to the target machine
-being booted, then attempt to boot it from the image.
+Edge Orchestrator is licensed under [Apache License
+2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
-## Customization of builds
+- For more information on how to onboard an edge node, refer to the [user guide on onboarding an edge node][user-guide-onboard-edge-node].
+- To get started, check out the [user guide][user-guide-url].
+- For the infrastructure manager development guide, visit the [infrastructure manager development guide][inframanager-dev-guide-url].
+- If you are contributing, please read the [contributors guide][contributors-guide-url].
+- For troubleshooting, see the [troubleshooting guide][troubleshooting-url].
 
-1. `secure_hookos.sh` will create gpg keys and uses it from folder gpg_keys and
-   public portion is boot.key If this folder is kept in the root of the folder
-   no new gpg keys will be created.  If you need to use a custom gpg key
-   replace the gpg_keys and boot.key.
+[user-guide-onboard-edge-node]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/set_up_edge_infra/edge_node_onboard.html
+[user-guide-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/get_started_guide/gsg_content.html
+[inframanager-dev-guide-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/get_started_guide/gsg_content.html
+[contributors-guide-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/index.html
+[troubleshooting-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/troubleshooting/troubleshooting.html
 
-2. `secure_hookos.sh` will create secure boot keys and uses it from folder
-   sb_keys.  If this folder is kept in the root of the folder no new secureboot
-   keys will be created.  If you need to use a custom secureboot key replace
-   the sb_keys.
-
-# Outputs
-
-1. Alpine Linux based HookOS will be placed in alpine_image folder.
-
-2. A signed alpine Linux based HookOS will be placed in alpine_image_secureboot folder.
+Last Updated Date: February 20, 2025

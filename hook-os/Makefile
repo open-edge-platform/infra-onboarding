@@ -1,4 +1,4 @@
-# Edge Orchestration-I API Makefile
+# HookOS Makefile
 
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
@@ -7,65 +7,67 @@
 .PHONY: build test lint license help generate
 
 ##### Variables #####
-
-# Defining the shell, users and groups
-SHELL       := bash -e -o pipefail
-CURRENT_UID := $(shell id -u)
-CURRENT_GID := $(shell id -g)
-
 # Project variables
 PROJECT_NAME := hook-os
 BINARY_NAME  := hook-os
 
 # Code versions, tags, and so on
-VERSION       ?= $(shell cat VERSION)
-VERSION_MAJOR ?= $(shell cut -c 1 VERSION)
-IMG_NAME      ?= ${PROJECT_NAME}
+VERSION       := $(shell cat VERSION)
+VERSION_MAJOR := $(shell cut -c 1 VERSION)
+IMG_NAME      := provisioning-hook-os
 IMG_VERSION   ?= $(VERSION)
 GIT_COMMIT    ?= $(shell git rev-parse HEAD)
-DOCKER_ENV              := DOCKER_BUILDKIT=1
-DOCKER_REGISTRY         ?= amr-registry.caas.intel.com
-DOCKER_REPOSITORY       ?= one-intel-edge/maestro-i
-DOCKER_TAG              := ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}
+BRANCH_NAME   ?= $(shell git rev-parse --abbrev-ref HEAD)
+OCI_REPOSITORY := edge-orch/en/files/${IMG_NAME}
+HOOK_KERNEL_REPOSITORY  := open-registry.espdprod.infra-host.com/edge-orch/edge-node/hook-kernel
+HOOK_KERNEL_VERSION 	:= 5.10.228-e0637f99-dm-xz
 
-# Create the virtualenv with python tools installed
-VENV_NAME = venv_hookos
+DIR_TO_CLEAN  := alpine_*
 
-$(VENV_NAME): requirements.txt
-	echo "Creating virtualenv $@"
-	python3 -m venv $@;\
-	. ./$@/bin/activate; set -u;\
-	python3 -m pip install --upgrade pip;\
-	python3 -m pip install -r requirements.txt
+# Include shared makefile
+include ../common.mk
+
+OCI_PATH	:= ${OCI_REGISTRY}/${OCI_REPOSITORY}
+OUT_DIR 	:= alpine_image
+COMPONENTS	:= device_discovery fluent-bit caddy hook_dind
+.PHONY: $(COMPONENTS)
 
 all:
 	@# Help: Runs build, lint, test stages
 	build lint test
 
-build:
+$(COMPONENTS):
+	cd $@ && \
+	chmod +x build.sh && bash build.sh
+	
+pull-kernel:
+	docker pull ${HOOK_KERNEL_REPOSITORY}:${HOOK_KERNEL_VERSION}
+	docker tag ${HOOK_KERNEL_REPOSITORY}:${HOOK_KERNEL_VERSION} quay.io/tinkerbell/hook-kernel:5.10.228-e0637f99
+
+components: $(COMPONENTS) pull-kernel
+
+configure:
+	echo 'http_proxy=$(http_proxy)' > config
+	echo 'https_proxy=$(http_proxy)' >> config
+	echo 'ftp_proxy=$(ftp_proxy)' >> config
+	echo 'socks_proxy=$(socks_proxy)' >> config
+	echo 'no_proxy=$(no_proxy)' >> config
+	echo 'keycloak_url=keycloak.example.com' >> config
+
+certs:
+	mkdir -p hook/files/idp
+	echo "" >> hook/files/idp/ca.pem
+	echo "" >> hook/files/idp/server_cert.pem
+
+build: certs components
 	@# Help: Runs build stage
 	@echo "---MAKEFILE BUILD---"
 	@echo "--Updated step below--"
-	chmod +x prereq.sh && bash prereq.sh
 	chmod +x build_hookos.sh && bash build_hookos.sh
+	git stash -- hook/linuxkit-templates/hook.template.yaml
 	@echo "---END MAKEFILE Build---"
 
-dev-build:
-	@# Help: Runs build stage
-	@echo "---MAKEFILE DEV BUILD---"
-	@echo "--Updated step below--"
-	chmod +x build_hookos.sh && bash -x build_hookos.sh
-	@echo "---END MAKEFILE Build---"
-
-lint-ci: license
-
-# Maintenance and lint targets
-license: $(VENV_NAME) ## Check licensing with the reuse tool.
-	. ./$</bin/activate; set -u;\
-	reuse --version;\
-	reuse --root . lint
-
-lint:
+lint: license mdlint
 	@# Help: Runs lint stage
 	@echo "---MAKEFILE LINT---"
 	echo $@
@@ -75,6 +77,14 @@ test:
 	@# Help: Runs test stage
 	@echo "---MAKEFILE TEST---"
 	echo $@
+	@echo "---END MAKEFILE TEST---"
+
+artifact-publish:
+	@echo "Publishing Hook OS binary to Production Release Service."
+	tar -zcvf $(OUT_DIR)/grub_source.tar.gz grub_source
+	cd $(OUT_DIR) && \
+	aws ecr create-repository --region us-west-2 --repository-name $(OCI_REPOSITORY) || true && \
+	oras push $(OCI_PATH):$(IMG_VERSION) --artifact-type application/vnd.intel.hookos.file hook_x86_64.tar.gz grub_source.tar.gz
 	@echo "---END MAKEFILE TEST---"
 
 coverage:
@@ -87,17 +97,20 @@ list:
 	@# Help: displays make targets
 	help
 
-clean:
-	@# Help: displays make targets
-	sudo rm -rf  out/*
-	rm -rf alpine_*
+dependency-check:
+	@# Help: Runs dependency-check stage
+	@echo "---MAKEFILE TEST---"
+	echo $@
+	@echo "---END MAKEFILE TEST---"
 
-help:
-	@printf "%-20s %s\n" "Target" "Description"
-	@printf "%-20s %s\n" "------" "-----------"
-	@make -pqR : 2>/dev/null \
-        | awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' \
-        | sort \
-        | egrep -v -e '^[^[:alnum:]]' -e '^$@$$' \
-        | xargs -I _ sh -c 'printf "%-20s " _; make _ -nB | (grep -i "^# Help:" || echo "") | tail -1 | sed "s/^# Help: //g"'
+helm-build:
+	@# Help: Runs helm-build stage
+	@echo "---MAKEFILE TEST---"
+	echo $@
+	@echo "---END MAKEFILE TEST---"
 
+docker-build:
+	@# Help: Runs docker-build stage
+	@echo "---MAKEFILE TEST---"
+	echo $@
+	@echo "---END MAKEFILE TEST---"

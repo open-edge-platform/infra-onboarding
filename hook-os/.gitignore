@@ -2,8 +2,9 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-venv_hookos
+venv_hook-os
 artifacts
+device_discovery/app
 
 
 alpine_image

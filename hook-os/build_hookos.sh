@@ -18,9 +18,6 @@ fi
 BASE_DIR=$PWD
 STORE_ALPINE_SECUREBOOT=$PWD/alpine_image_secureboot/
 STORE_ALPINE=$PWD/alpine_image/
-CLIENT_AUTH_LOCATION=$PWD/client_auth/container
-CLIENT_AUTH_SCRIPTS=$PWD/client_auth/scripts
-CLIENT_AUTH_FILES=$PWD/client_auth/files
 HOOKOS_IDP_FILES=$PWD/hook/files/idp/
 
 FLUENTBIT_FILES=$PWD/fluent-bit/files
@@ -36,17 +33,6 @@ SED_CMD=sed
 # CI requirements. This if-else block creates a new file TINKER_ACTIONS_VERSION from
 # versions and that is pulled when hook os is getting built.
 
-VERSION_FILE=$PWD/tinker-actions/VERSION
-
-if [ ! -f $VERSION_FILE ]; then
-
-    if [ ! -f $PWD/TINKER_ACTIONS_VERSION ]; then
-        cp $PWD/VERSION $PWD/TINKER_ACTIONS_VERSION
-    fi
-
-    VERSION_FILE=$PWD/TINKER_ACTIONS_VERSION
-fi
-
 copy_fluent_bit_files() {
 
     mkdir -p $HOOKOS_FLUENTBIT_FILES
@@ -59,21 +45,6 @@ copy_fluent_bit_files() {
     fi
 }
 
-get_client_auth() {
-
-    pushd $CLIENT_AUTH_SCRIPTS
-    bash get_certs.sh
-    popd
-
-    mkdir -p $HOOKOS_IDP_FILES
-
-    # if predefined files are needed place them in client_auth/files as ca.pem and server_cert.pem
-    cp $CLIENT_AUTH_FILES/* $HOOKOS_IDP_FILES
-    if [ $? -ne 0 ]; then
-        echo "Copy of the certificates to the hook/files folder failed"
-        exit 1
-    fi
-}
 
 get_caddy_conf() {
     mkdir -p $HOOKOS_CADDY_FILES
@@ -100,18 +71,6 @@ build_hook() {
 
     cp -rf hook.yaml hook/linuxkit-templates/hook.template.yaml
     pushd hook
-
-    ver=$(cat $VERSION_FILE)
-    # Iterate over the array and print each element
-    arrayof_images=($(cat linuxkit-templates/hook.template.yaml | grep -i ".*image:.*:.*$" | awk -F: '{print $2}'))
-    for image in "${arrayof_images[@]}"; do
-        temp=$(grep -i "/" <<<$image)
-        if [ $? -eq 0 ]; then
-            # Non harbor Image
-            continue
-        fi
-        $SED_CMD -i "s/$image:latest/$image:$ver/g" linuxkit-templates/hook.template.yaml
-    done
 
     # copy fluent-bit related files
     copy_fluent_bit_files
@@ -158,7 +117,6 @@ build_hook() {
     #$SED_CMD -i "s|quay.io/tinkerbell/hook-kernel:5.10.85-d1225df88208e5a732e820a182b75fb35c737bdd|quay.io/tinkerbell/hook-kernel:5.10.85-298651addd526baaf516da71f76997a3e7c8459d|g" hook.yaml
 
     $SED_CMD -i "s|dl-cdn.alpinelinux.org/alpine/edge/testing|dl-cdn.alpinelinux.org/alpine/edge/community|g" images/hook-docker/Dockerfile
-    $SED_CMD -i "s/hook_dind:latest/hook_dind:$ver/g" images/hook-docker/Dockerfile
 
     #update keycloak url
     $SED_CMD -i "s|update_idp_url|$keycloak_url|g" linuxkit-templates/hook.template.yaml
@@ -172,8 +130,6 @@ build_hook() {
         $SED_CMD -i "s|- EXTRA_HOSTS=update_extra_hosts||g" linuxkit-templates/hook.template.yaml
     fi
 
-    # get the client_auth files and container before running the hook os build.
-    get_client_auth
     get_caddy_conf
 
     if [ "$HOOK_KERNEL" == "6.6" ]; then
