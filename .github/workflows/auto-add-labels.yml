@@ -7,23 +7,12 @@ name: Labeler
 on:
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   label:
-    runs-on: ${{ github.repository_owner == 'intel' && 'intel-ubuntu-latest' || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Push labels to PR
-        id: push-labels
-        run: |
-          git fetch origin ${{ github.event.pull_request.base.ref }}
-          CHANGED_FOLDERS=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }} HEAD | grep '/' | cut -d '/' -f1 | sort -u | grep -v -E '.github|.reuse|LICENSES' || true)
-          echo "Changed folders: $CHANGED_FOLDERS"
-          LABELS=$(echo "$CHANGED_FOLDERS" | jq -R -s 'split("\n") | map(select(length > 0))')
-          echo "Labels to add: $LABELS"
-          curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels \
-            -d "{\"labels\":$LABELS}"
-         
+      - uses: actions/labeler@v5

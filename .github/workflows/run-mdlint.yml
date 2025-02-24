@@ -11,6 +11,9 @@ on:
       - release-*
     paths:
       - "*"
+      - ".github/**"
+      - "LICENSES/**"
+      - ".reuse/**"
   workflow_dispatch:
 
 concurrency:
