@@ -29,7 +29,7 @@ set initramfs_download_end ${unixtime}
 imgargs vmlinuz-${arch} tink_worker_image=${tink_worker_image} grpc_authority=${grpc_authority} tinkerbell_tls=false worker_id=${bootdevmac} \
 IP=${bootdevip} \
 ADDITIONAL_KERNEL_ARGS \
-modules=loop,squashfs,sd-mod,usb-storage intel_iommu=on iommu=pt initrd=initramfs-${arch} console=tty0 console=ttyS1,115200 \
+modules=loop,squashfs,sd-mod,usb-storage intel_iommu=on iommu=pt initrd=initramfs-${arch} console=tty0 console=ttyS1,115200 loglevel=2 \
 s_vmlinux_start=${vmlinuz_download_start} s_initramfs_start=${initramfs_download_start} s_initramfs_end=${initramfs_download_end} s_netconf_start=${network_scan_start} s_netconf_end=${network_scan_end}
 imgselect vmlinuz-${arch}
 echo "Download Hook OS Successful"

@@ -343,20 +343,11 @@ files:
 
   - path: etc/motd
     mode: "0644"
-    # This is ANSI Regular font
-    contents: |
-      Welcome to HookOS! Your Tinkerbell operating system installation environment.
+    contents: ""
 
-      ¦¦   ¦¦                   ¦¦       ¦¦¦¦¦¦  ¦¦¦¦¦¦¦
-      ¦¦   ¦¦  ¦¦¦¦¦¦   ¦¦¦¦¦¦  ¦¦  ¦¦  ¦¦    ¦¦ ¦¦
-      ¦¦¦¦¦¦¦ ¦¦    ¦¦ ¦¦    ¦¦ ¦¦¦¦¦   ¦¦    ¦¦ ¦¦¦¦¦¦¦
-      ¦¦   ¦¦ ¦¦    ¦¦ ¦¦    ¦¦ ¦¦  ¦¦  ¦¦    ¦¦      ¦¦
-      ¦¦   ¦¦  ¦¦¦¦¦¦   ¦¦¦¦¦¦  ¦¦   ¦¦  ¦¦¦¦¦¦  ¦¦¦¦¦¦¦
-
-      - Hook flavor ${HOOK_KERNEL_ID} version ${HOOK_VERSION} / Kernel version ${HOOK_KERNEL_VERSION}
-      - Use `docker` commands to access the tink worker/agent container and workflow action containers.
-      - Logs are located in the `/var/log/` directory.
-      - Use `docker logs tink-worker --follow` to watch the worker logs.
+  - path: etc/issue
+    mode: "0644"
+    contents: ""
 
   - path: etc/os-release
     mode: "0444"
