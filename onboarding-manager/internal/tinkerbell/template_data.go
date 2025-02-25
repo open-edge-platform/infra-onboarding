@@ -13,6 +13,7 @@ import (
 	"github.com/intel/infra-onboarding/dkam/pkg/config"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/env"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	"github.com/intel/infra-onboarding/onboarding-manager/pkg/cloudinit"
 )
 
 const (
@@ -28,6 +29,7 @@ const (
 	ActionDisableApparmor            = "disable-apparmor"
 	ActionInstallScriptDownload      = "profile-pkg-and-node-agents-install-script-download"
 	ActionCloudInitfileDownload      = "cloud-init-file-for-post-install-script-download"
+	ActionCloudInitInstall           = "install-cloud-init"
 	ActionInstallScript              = "service-script-for-profile-pkg-and-node-agents-install"
 	ActionInstallScriptEnable        = "enable-service-script-for-profile-pkg-node-agents"
 	ActionNetplan                    = "write-netplan"
@@ -202,6 +204,14 @@ func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo utils.DeviceInfo
 	securityFeatureTypeVar := osv1.SecurityFeature(deviceInfo.SecurityFeature)
 	securityFeatureStr := securityFeatureTypeVar.String()
 
+	cloudInitData, err := cloudinit.GenerateFromInfraConfig(cloudinit.CloudInitOptions{
+		Mode:   env.ENDkamMode,
+		OsType: deviceInfo.OsType,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -329,18 +339,18 @@ func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo utils.DeviceInfo
 				},
 
 				{
-					Name:    ActionCloudInitfileDownload,
-					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutAvg200,
+					Name:    ActionCloudInitInstall,
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE": fmt.Sprintf("curl -o /etc/cloud/cloud.cfg.d/installer.cfg %s;"+
-							"chmod +x /etc/cloud/cloud.cfg.d/installer.cfg",
-							deviceInfo.InstallerScriptURL),
+						"FS_TYPE":   "ext4",
+						"DEST_PATH": "/etc/cloud/cloud.cfg.d/infra.cfg",
+						"CONTENTS":  cloudInitData,
+						"UID":       "0",
+						"GID":       "0",
+						"MODE":      "0755",
+						"DIRMODE":   "0755",
 					},
-					Pid: "host",
 				},
 
 				{
@@ -855,6 +865,14 @@ netplan apply`, deviceInfo.HwIP, strings.Join(infraConfig.DNSServers, ", ")),
 
 	// flag shared with DKAM
 	if *config.FlagEnforceCloudInit {
+		cloudInitData, err := cloudinit.GenerateFromInfraConfig(cloudinit.CloudInitOptions{
+			Mode:   env.ENDkamMode,
+			OsType: deviceInfo.OsType,
+		})
+		if err != nil {
+			return nil, err
+		}
+
 		// Find the index of the "add-dns-namespace" action
 		dnsNamespaceIndex := -1
 		for i, action := range wf.Tasks[0].Actions {
@@ -868,20 +886,20 @@ netplan apply`, deviceInfo.HwIP, strings.Join(infraConfig.DNSServers, ", ")),
 			return nil, inv_errors.Errorf("action %s not found in the workflow", ActionAddDNSNamespace)
 		}
 
-		cloudInitPathForUbuntu := strings.ReplaceAll(deviceInfo.InstallerScriptURL, ".sh", ".cfg")
 		cloudInitActions := []Action{
 			{
-				Name:    ActionCloudInitfileDownload,
-				Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
-				Timeout: timeOutAvg200,
+				Name:    ActionCloudInitInstall,
+				Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+				Timeout: timeOutMin90,
 				Environment: map[string]string{
-					"FS_TYPE":             "ext4",
-					"CHROOT":              "y",
-					"DEFAULT_INTERPRETER": "/bin/sh -c",
-					"CMD_LINE": fmt.Sprintf("curl -o /etc/cloud/cloud.cfg.d/installer.cfg %s",
-						cloudInitPathForUbuntu),
+					"FS_TYPE":   "ext4",
+					"DEST_PATH": "/etc/cloud/cloud.cfg.d/infra.cfg",
+					"CONTENTS":  cloudInitData,
+					"UID":       "0",
+					"GID":       "0",
+					"MODE":      "0755",
+					"DIRMODE":   "0755",
 				},
-				Pid: "host",
 			},
 			{
 				Name:    ActionCloudinitDsidentity,

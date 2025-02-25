@@ -12,6 +12,7 @@ import (
 	"github.com/intel/infra-core/inventory/v2/pkg/tracing"
 	"github.com/intel/infra-onboarding/dkam/internal/dkammgr"
 	"github.com/intel/infra-onboarding/dkam/internal/invclient"
+	"github.com/intel/infra-onboarding/dkam/pkg/config"
 	rec_v2 "github.com/intel/orch-library/go/pkg/controller/v2"
 )
 
@@ -63,6 +64,11 @@ func (osr *OsReconciler) reconcileOs(
 	id := osinst.GetResourceId()
 	zlogOs.InfraSec().Info().Msgf("Reconciling OS instance with ID : %s", id)
 	fmt.Printf("Received AType: %v\n", osinst.OsType)
+
+	if osinst.GetOsType() == osv1.OsType_OS_TYPE_IMMUTABLE && *config.FlagEnforceCloudInit {
+		zlogOs.Info().Msgf("Skipping OS reconciliation for OS type %s", osinst.GetOsType())
+		return request.Ack()
+	}
 
 	curationErr := dkammgr.GetCuratedScript(ctx, osinst)
 	if curationErr != nil {

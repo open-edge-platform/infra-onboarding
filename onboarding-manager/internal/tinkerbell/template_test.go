@@ -9,14 +9,14 @@ import (
 	"reflect"
 	"testing"
 
+	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
 	"github.com/stretchr/testify/mock"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	error "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
 )
 
 func TestNewTemplate(t *testing.T) {
@@ -65,6 +65,8 @@ func TestNewTemplate(t *testing.T) {
 }
 
 func TestGenerateTemplateForProd(t *testing.T) {
+	dkam_testing.PrepareTestCaCertificateFile(t)
+	dkam_testing.PrepareTestInfraConfig(t)
 	type args struct {
 		k8sNamespace string
 		deviceInfo   utils.DeviceInfo
@@ -79,7 +81,7 @@ func TestGenerateTemplateForProd(t *testing.T) {
 			name:    "Test Case",
 			args:    args{},
 			want:    nil,
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name: "Test Case1",
@@ -94,13 +96,10 @@ func TestGenerateTemplateForProd(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GenerateTemplateForProd(tt.args.k8sNamespace, tt.args.deviceInfo)
+			_, err := GenerateTemplateForProd(tt.args.k8sNamespace, tt.args.deviceInfo)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GenerateTemplateForProd() error = %v, wantErr %v", err, tt.wantErr)
 				return
-			}
-			if reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GenerateTemplateForProd() = %v, want %v", got, tt.want)
 			}
 		})
 	}

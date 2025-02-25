@@ -5,6 +5,8 @@
 
 package utils
 
+import osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
+
 const (
 	ImgTypeUbuntu          = "ubuntu"
 	ImgTypeTiberMicrovisor = "tibermicrovisor"
@@ -43,7 +45,7 @@ type (
 		// sha256 is used by EN to validate the SHA256 of OS image authenticity.
 		OsImageSHA256 string
 		// OS type differentiate bw Ubuntu Canonical and TiberMicrovisor for now
-		OsType string
+		OsType osv1.OsType
 		// Tenant ID of resource
 		TenantID string
 	}

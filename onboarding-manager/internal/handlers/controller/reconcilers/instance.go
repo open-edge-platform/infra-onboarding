@@ -288,7 +288,7 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		OsImageSHA256:      desiredOs.GetSha256(),
 		InstallerScriptURL: installerScriptURL,
 		TinkerVersion:      tinkerVersion,
-		OsType:             desiredOs.GetOsType().String(),
+		OsType:             desiredOs.GetOsType(),
 	}
 
 	zlogInst.Debug().Msgf("DeviceInfo generated from OS resource (%s): %+v",

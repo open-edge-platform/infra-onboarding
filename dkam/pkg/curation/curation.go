@@ -220,6 +220,11 @@ func WritePlatformBundleToPV(ctx context.Context, osRes *osv1.OperatingSystemRes
 }
 
 func CurateScript(ctx context.Context, osRes *osv1.OperatingSystemResource) error {
+	if osRes.GetOsType() == osv1.OsType_OS_TYPE_IMMUTABLE {
+		zlog.InfraSec().Info().Msgf("Skipping script curation for immutable OS %s", osRes.GetResourceId())
+		return nil
+	}
+
 	installerScriptPath, err := util.GetInstallerLocation(osRes, config.PVC)
 	if err != nil {
 		return err

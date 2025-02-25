@@ -7,6 +7,7 @@ import (
 	"context"
 
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
+	"google.golang.org/grpc/codes"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,12 +50,9 @@ func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (
 		if err != nil {
 			return nil, err
 		}
-
 	default:
-		tmplData, err = NewTemplateDataProdTiberMicrovisor(tmplName, deviceInfo)
-		if err != nil {
-			return nil, err
-		}
+		return nil, inv_errors.Errorfc(codes.InvalidArgument,
+			"Unsupported OS type %s, image type %s", deviceInfo.OsType, deviceInfo.ImgType)
 	}
 
 	tmpl := NewTemplate(string(tmplData), tmplName, k8sNamespace)
