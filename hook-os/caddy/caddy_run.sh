@@ -43,6 +43,12 @@ fi
 
 export project_id=$(cat /dev/shm/project_id)
 
+export host_guid=$(cat /sys/class/dmi/id/product_uuid)
+if [ -z "$host_guid" ]; then
+    echo "Edge Node UUID is empty. exiting.."
+    exit 1
+fi
+
 source /etc/hook/env_config
 
 #update hosts if they were provided

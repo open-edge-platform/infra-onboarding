@@ -96,6 +96,9 @@ localhost:24224 {
         # add projectId for proper multi-tenancy handling
         header_up X-Scope-OrgID {$project_id}
 
+        # add hostGUID to identify the host
+        header_up hostGuid {$host_guid} 
+
         transport http {
             tls
             tls_server_name {$logging_svc}
