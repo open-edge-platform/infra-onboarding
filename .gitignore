@@ -11,6 +11,7 @@ out/
 vendor
 venv*
 *.iml
+ci/
 
 # Go workspace file
 go.work
