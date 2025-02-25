@@ -40,9 +40,9 @@ DIR_TO_CLEAN  := pkg/api/*
 #  TEST_TARGET='TestAuth.*' make test
 TEST_TARGET       ?= .
 # Default TEST_PKG, overwrite to select particular test pakages
-TEST_PKG          ?= $(shell go list ./... | grep -v "internal/env" | grep -v "internal/handlers/controller" |  grep -v "internal/handlers/southbound" | grep -v "internal/invclient" | grep -v "internal/onboardingmgr/onboarding" | grep -v "internal/onboardingmgr/onbworkflowclient" | grep -v "internal/onboardingmgr/utils" | grep -v "internal/tinkerbell" | grep -v "internal/util" | grep -v "pkg/status" | tr '\n' ,)
+TEST_PKG          ?= $(shell go list ./... | grep -v "internal/env" | grep -v "pkg/status" | tr '\n' ,)
 TEST_ARGS         := -globalLogLevel=error
-TEST_IGNORE_FILES := $(shell go list ./... | grep -v "api/grpc/onboardingmgr" | grep -v 'pkg/api' | grep -v 'internal/onboardingmgr/onboarding/onboardingmocks' | grep -v 'internal/testing' | grep -v 'cmd/onboardingmgr' | tr '\n' ,)
+TEST_IGNORE_FILES := $(shell go list ./... | grep -v 'pkg/api' | grep -v 'internal/onboardingmgr/onboarding/onboardingmocks' | grep -v 'internal/testing' | grep -v 'cmd/onboardingmgr' | tr '\n' ,)
 TEST_COVER        := atomic ./...
 TEST_USE_DB       := true
 GO_TEST_DEPS      := policy-build certificates

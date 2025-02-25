@@ -41,7 +41,7 @@ VENV_NAME := venv_$(PROJECT_NAME)
 #  TEST_TARGET='TestAuth.*' make test
 TEST_TARGET       ?= .
 # Default TEST_PKG, overwrite to select particular test pakages
-TEST_PKG          ?= $(shell go list ./... | grep -v "internal/dkammgr" | grep -v "internal/handlers/controller" |  grep -v "internal/handlers/controller/reconcilers" | grep -v "internal/invclient" | grep -v "pkg/curation" | grep -v "pkg/download" | grep -v "pkg/signing" | grep -v "pkg/util"  | tr '\n' ,)
+TEST_PKG          ?= $(shell go list ./... | grep -v "pkg/util"  | tr '\n' ,)
 TEST_ARGS         := -globalLogLevel=error
 TEST_IGNORE_FILES := $(shell go list ./... | grep -v "pkg/api/dkammgr/v1" | grep -v 'cmd' | grep -v 'testing' | tr '\n' ,)
 TEST_COVER        := atomic ./...
