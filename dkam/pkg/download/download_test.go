@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-package download
+package download_test
 
 import (
 	"context"
@@ -12,13 +12,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	as "github.com/intel/infra-core/inventory/v2/pkg/artifactservice"
-	"github.com/intel/infra-onboarding/dkam/pkg/config"
-	"github.com/intel/infra-onboarding/dkam/pkg/util"
-	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
+
+	as "github.com/intel/infra-core/inventory/v2/pkg/artifactservice"
+	"github.com/intel/infra-onboarding/dkam/pkg/config"
+	"github.com/intel/infra-onboarding/dkam/pkg/download"
+	"github.com/intel/infra-onboarding/dkam/pkg/util"
+	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
 )
 
 const (
@@ -26,7 +28,7 @@ const (
 	testFile   = "TEST_FILE"
 )
 
-// Manifest example from OCI repo, used by DKAM to gather the hookOS
+// Manifest example from OCI repo, used by DKAM to gather the hookOS.
 const exampleManifest = `
 		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
 		"config":{"mediaType":"application/vnd.intel.ensp.en",
@@ -39,7 +41,7 @@ const exampleManifest = `
 		}],
 		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
 
-// Manifest example with no Annotation in Layers
+// Manifest example with no Annotation in Layers.
 const exampleManifestWrong = `
 		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
 		"config":{"mediaType":"application/vnd.intel.ensp.en",
@@ -120,7 +122,7 @@ func TestDownloadMicroOS(t *testing.T) {
 	// Fake server to serve expected requests
 	mux := http.NewServeMux()
 	returnWrongManifest := false
-	mux.HandleFunc("/manifests/HOOK_OS_VERSION", func(w http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("/manifests/HOOK_OS_VERSION", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		if returnWrongManifest {
 			w.Write([]byte(exampleManifestWrong))
@@ -129,7 +131,7 @@ func TestDownloadMicroOS(t *testing.T) {
 		}
 	})
 	// Path comes from digest in the exampleManifest
-	mux.HandleFunc("/blobs/"+testDigest, func(w http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("/blobs/"+testDigest, func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(expectedFileContent))
 	})
@@ -139,12 +141,14 @@ func TestDownloadMicroOS(t *testing.T) {
 	// Override the RSProxy with test HTTP server
 	config.HookOSRepo = svr.URL + "/"
 	dir := config.PVC
-	os.MkdirAll(dir, 0o755)
+	mkdirerr := os.MkdirAll(dir, 0o755)
+	if mkdirerr != nil {
+		fmt.Println("Error creating dir:", mkdirerr)
+	}
 	// Test: No tmpFolderPath/hook dir
 	t.Run("Fail", func(t *testing.T) {
-		_, err = DownloadMicroOS(context.Background())
+		_, err = download.DownloadMicroOS(context.Background())
 		require.NoError(t, err)
-		// assert.Contains(t, err.Error(), "no such file or directory")
 	})
 
 	err = os.MkdirAll(dkamHookFolderPath, 0o755)
@@ -153,14 +157,14 @@ func TestDownloadMicroOS(t *testing.T) {
 	// Test: empty manifest
 	t.Run("NoAnnotationLayer", func(t *testing.T) {
 		returnWrongManifest = true
-		_, err = DownloadMicroOS(context.Background())
+		_, err = download.DownloadMicroOS(context.Background())
 		require.NoError(t, err)
 	})
 
 	// Test: successful, create tmpFolderPath/hook dir
 	t.Run("Success", func(t *testing.T) {
 		returnWrongManifest = false
-		_, err = DownloadMicroOS(context.Background())
+		_, err = download.DownloadMicroOS(context.Background())
 		require.NoError(t, err)
 	})
 }
@@ -178,7 +182,7 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 
 	mux := http.NewServeMux()
 	returnWrongManifest := false
-	mux.HandleFunc("/manifests/HOOK_OS_VERSION", func(w http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("/manifests/HOOK_OS_VERSION", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		if returnWrongManifest {
 			w.Write([]byte(exampleManifestWrong))
@@ -186,30 +190,27 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 			w.Write([]byte(exampleManifest1))
 		}
 	})
-	mux.HandleFunc("/blobs/"+testDigest, func(w http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("/blobs/"+testDigest, func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(expectedFileContent))
 	})
 	svr := httptest.NewServer(mux)
 	defer svr.Close()
 	config.HookOSRepo = svr.URL + "/"
-	t.Run("Fail", func(t *testing.T) {
-		_, err = DownloadMicroOS(context.Background())
-		// require.Error(t, err)
-		// assert.Contains(t, err.Error(), "no such file or directory")
+	t.Run("Fail", func(_ *testing.T) {
+		_, err = download.DownloadMicroOS(context.Background())
 	})
 
 	err = os.MkdirAll(dkamHookFolderPath, 0o755)
 	require.NoError(t, err)
 
 	// Test: empty manifest
-	t.Run("NoAnnotationLayer", func(t *testing.T) {
+	t.Run("NoAnnotationLayer", func(_ *testing.T) {
 		returnWrongManifest = true
-		_, err = DownloadMicroOS(context.Background())
-		// require.NoError(t, err)
+		_, err = download.DownloadMicroOS(context.Background())
 	})
 
-	t.Run("Success", func(t *testing.T) {
+	t.Run("Success", func(_ *testing.T) {
 		existingDir := config.PVC
 		subfolder := "tmp"
 		subfolderPath := filepath.Join(existingDir, subfolder)
@@ -225,7 +226,7 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 					{
 						Description: "Dummy file 1",
 						Server:      "server1",
-						Path:        "edge-orch/en/files/provisioning-hook-os",
+						Path:        "one-intel-edge/edge-node/file/provisioning-hook-os",
 						Version:     "v1",
 					},
 				},
@@ -233,19 +234,15 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 		}
 		yamlData, err := yaml.Marshal(&data)
 		if err != nil {
-			fmt.Printf("Error marshalling YAML: %v\n", err)
+			fmt.Printf("Error marshaling YAML: %v\n", err)
 			return
 		}
 		yamlFilePath := filepath.Join(subfolderPath, "latest-dev.yaml")
-		err = os.WriteFile(yamlFilePath, yamlData, 0o644)
+		err = os.WriteFile(yamlFilePath, yamlData, 0o600)
 		if err != nil {
 			fmt.Printf("Error writing YAML to file: %v\n", err)
 			return
 		}
-		//defer func() {
-		//	// ignore error, usually not exists
-		//	os.Remove(yamlFilePath)
-		//}()
 		returnWrongManifest = true
 	})
 }
@@ -268,7 +265,7 @@ func TestCreateFile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := CreateFile(tt.args.filePath, tt.args.artifact); (err != nil) != tt.wantErr {
+			if err := download.CreateFile(tt.args.filePath, tt.args.artifact); (err != nil) != tt.wantErr {
 				t.Errorf("CreateFile() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

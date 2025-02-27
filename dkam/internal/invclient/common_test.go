@@ -1,20 +1,23 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
-
+//
+//nolint:testpackage // Keeping the test in the same package due to dependencies on unexported fields.
 package invclient
 
 import (
 	"reflect"
 	"testing"
 
+	"google.golang.org/protobuf/proto"
+
 	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
 	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
 	network_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/network/v1"
 	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
 	provider_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/provider/v1"
-	"google.golang.org/protobuf/proto"
 )
 
+//nolint:funlen // it has required test cases.
 func Test_getInventoryResourceAndID(t *testing.T) {
 	type args struct {
 		resource proto.Message

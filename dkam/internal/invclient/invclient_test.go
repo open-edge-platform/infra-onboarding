@@ -1,23 +1,23 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-package invclient
+package invclient_test
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 
 	"github.com/google/uuid"
+
 	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
 	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
 	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
-	provider_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/provider/v1"
 	"github.com/intel/infra-core/inventory/v2/pkg/client"
 	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
+	"github.com/intel/infra-onboarding/dkam/internal/invclient"
 )
 
 func TestMain(m *testing.M) {
@@ -43,7 +43,7 @@ func TestWithInventoryAddress(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want Option
+		want invclient.Option
 	}{
 		{
 			name: "ProvidingInventoryAddress",
@@ -53,7 +53,7 @@ func TestWithInventoryAddress(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := WithInventoryAddress(tt.args.invAddr); reflect.DeepEqual(got, tt.want) {
+			if got := invclient.WithInventoryAddress(tt.args.invAddr); reflect.DeepEqual(got, tt.want) {
 				t.Errorf("WithInventoryAddress() = %v, want %v", got, tt.want)
 			}
 		})
@@ -62,12 +62,12 @@ func TestWithInventoryAddress(t *testing.T) {
 
 func TestNewDKAMInventoryClientWithOptions(t *testing.T) {
 	type args struct {
-		opts []Option
+		opts []invclient.Option
 	}
 	tests := []struct {
 		name    string
 		args    args
-		want    *DKAMInventoryClient
+		want    *invclient.DKAMInventoryClient
 		wantErr bool
 	}{
 		{
@@ -79,7 +79,7 @@ func TestNewDKAMInventoryClientWithOptions(t *testing.T) {
 		{
 			name: "WithOptions",
 			args: args{
-				opts: []Option{WithInventoryAddress("example.com")},
+				opts: []invclient.Option{invclient.WithInventoryAddress("example.com")},
 			},
 			want:    nil,
 			wantErr: true,
@@ -87,7 +87,7 @@ func TestNewDKAMInventoryClientWithOptions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewDKAMInventoryClientWithOptions(tt.args.opts...)
+			got, err := invclient.NewDKAMInventoryClientWithOptions(tt.args.opts...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewDKAMInventoryClientWithOptions() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -107,19 +107,19 @@ func TestNewDKAMInventoryClient(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    *DKAMInventoryClient
+		want    *invclient.DKAMInventoryClient
 		wantErr bool
 	}{
 		{
 			name:    "CreatingNewOnboardingInventoryClient",
 			args:    args{},
-			want:    &DKAMInventoryClient{},
+			want:    &invclient.DKAMInventoryClient{},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewDKAMInventoryClient(tt.args.invClient, tt.args.watcher)
+			got, err := invclient.NewDKAMInventoryClient(tt.args.invClient, tt.args.watcher)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewDKAMInventoryClient() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -313,7 +313,7 @@ func TestDKAMInventoryClient_FindAllInstances(t *testing.T) {
 func TestDKAMInventoryClient_GetOSResourceByResourceID(t *testing.T) {
 	CreateDkamClientForTesting(t)
 	invClient := DkamTestClient
-	os := inv_testing.CreateOs(t)
+	osRes := inv_testing.CreateOs(t)
 	type args struct {
 		ctx        context.Context
 		resourceID string
@@ -329,7 +329,7 @@ func TestDKAMInventoryClient_GetOSResourceByResourceID(t *testing.T) {
 			args: args{
 				ctx:        context.Background(),
 				resourceID: "",
-				tenantID:   os.GetTenantId(),
+				tenantID:   osRes.GetTenantId(),
 			},
 			wantErr: true,
 		},
@@ -337,8 +337,8 @@ func TestDKAMInventoryClient_GetOSResourceByResourceID(t *testing.T) {
 			name: "GetOSResourceByResourceID",
 			args: args{
 				ctx:        context.Background(),
-				resourceID: os.ResourceId,
-				tenantID:   os.GetTenantId(),
+				resourceID: osRes.ResourceId,
+				tenantID:   osRes.GetTenantId(),
 			},
 			wantErr: false,
 		},
@@ -543,7 +543,7 @@ func TestDKAMInventoryClient_GetProviderResources(t *testing.T) {
 func TestGetProviderResourceByName(t *testing.T) {
 	type args struct {
 		ctx  context.Context
-		c    *DKAMInventoryClient
+		c    *invclient.DKAMInventoryClient
 		name string
 	}
 	tests := []struct {
@@ -555,7 +555,7 @@ func TestGetProviderResourceByName(t *testing.T) {
 			name: "GetProviderResourceByName Failure",
 			args: args{
 				ctx:  context.Background(),
-				c:    &DKAMInventoryClient{},
+				c:    &invclient.DKAMInventoryClient{},
 				name: "",
 			},
 			wantErr: true,
@@ -563,68 +563,9 @@ func TestGetProviderResourceByName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := GetProviderResourceByName(tt.args.ctx, tt.args.c, tt.args.name)
+			_, err := invclient.GetProviderResourceByName(tt.args.ctx, tt.args.c, tt.args.name)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetProviderResourceByName() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-}
-
-func TestDKAMInventoryClient_listAndReturnProvider(t *testing.T) {
-	CreateDkamClientForTesting(t)
-	invClient := DkamTestClient
-	type args struct {
-		ctx    context.Context
-		filter *inv_v1.ResourceFilter
-	}
-	osr := inv_testing.CreateOs(t)
-	tests := []struct {
-		name    string
-		args    args
-		want    *provider_v1.ProviderResource
-		wantErr bool
-	}{
-		{
-			name: "listAndReturnProvider",
-			args: args{
-				ctx:    context.Background(),
-				filter: &inv_v1.ResourceFilter{},
-			},
-			want:    &provider_v1.ProviderResource{},
-			wantErr: true,
-		},
-		{
-			name: "listAndReturnProvider case",
-			args: args{
-				ctx: context.Background(),
-				filter: &inv_v1.ResourceFilter{
-					Resource: &inv_v1.Resource{Resource: &inv_v1.Resource_Os{}},
-					Filter:   fmt.Sprintf("%s = %q", osv1.OperatingSystemResourceFieldResourceId, osr.ResourceId),
-				},
-			},
-			want:    &provider_v1.ProviderResource{},
-			wantErr: true,
-		},
-		{
-			name: "listAndReturnProvider case with name",
-			args: args{
-				ctx: context.Background(),
-				filter: &inv_v1.ResourceFilter{
-					Resource: &inv_v1.Resource{Resource: &inv_v1.Resource_Os{}},
-					Filter:   fmt.Sprintf("%s = %q", provider_v1.ProviderResourceFieldName, "infra_onboarding"),
-				},
-			},
-			want:    &provider_v1.ProviderResource{},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := invClient.listAndReturnProvider(tt.args.ctx, tt.args.filter)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DKAMInventoryClient.listAndReturnProvider() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 		})
@@ -678,23 +619,23 @@ func TestWithEnableTracing(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want Options
+		want invclient.Options
 	}{
 		{
 			name: "EnablingTracing",
 			args: args{enableTracing: true},
-			want: Options{EnableTracing: true},
+			want: invclient.Options{EnableTracing: true},
 		},
 		{
 			name: "DisablingTracing",
 			args: args{enableTracing: false},
-			want: Options{EnableTracing: false},
+			want: invclient.Options{EnableTracing: false},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			options := &Options{}
-			got := WithEnableTracing(tt.args.enableTracing)
+			options := &invclient.Options{}
+			got := invclient.WithEnableTracing(tt.args.enableTracing)
 			got(options)
 			if !reflect.DeepEqual(*options, tt.want) {
 				t.Errorf("WithEnableTracing() = %v, want %v", *options, tt.want)
@@ -710,79 +651,28 @@ func TestWithClientKind(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want Options
+		want invclient.Options
 	}{
 		{
 			name: "EmptyClientKind",
 			args: args{},
-			want: Options{},
+			want: invclient.Options{},
 		},
 		{
 			name: "WithClientKind",
 			args: args{
 				clientKind: inv_v1.ClientKind_CLIENT_KIND_API,
 			},
-			want: Options{ClientKind: inv_v1.ClientKind_CLIENT_KIND_API},
+			want: invclient.Options{ClientKind: inv_v1.ClientKind_CLIENT_KIND_API},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			options := &Options{}
-			got := WithClientKind(tt.args.clientKind)
+			options := &invclient.Options{}
+			got := invclient.WithClientKind(tt.args.clientKind)
 			got(options)
 			if !reflect.DeepEqual(*options, tt.want) {
 				t.Errorf("WithClientKind() = %v, want %v", *options, tt.want)
-			}
-		})
-	}
-}
-
-func TestDKAMInventoryClient_listAndReturnHost(t *testing.T) {
-	CreateDkamClientForTesting(t)
-	invClient := DkamTestClient
-	type args struct {
-		ctx    context.Context
-		filter *inv_v1.ResourceFilter
-	}
-	osr := inv_testing.CreateOs(t)
-	filter := &inv_v1.ResourceFilter{}
-	tests := []struct {
-		name    string
-		args    args
-		want    *computev1.HostResource
-		wantErr bool
-	}{
-		{
-			name: "listAndReturnHost test case failure",
-			args: args{
-				ctx:    context.Background(),
-				filter: filter,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "listAndReturnHost case",
-			args: args{
-				ctx: context.Background(),
-				filter: &inv_v1.ResourceFilter{
-					Resource: &inv_v1.Resource{Resource: &inv_v1.Resource_Os{}},
-					Filter:   fmt.Sprintf("%s = %q", osv1.OperatingSystemResourceFieldResourceId, osr.ResourceId),
-				},
-			},
-			want:    nil,
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := invClient.listAndReturnHost(tt.args.ctx, tt.args.filter)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DKAMInventoryClient.listAndReturnHost() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("DKAMInventoryClient.listAndReturnHost() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -821,7 +711,7 @@ func TestDKAMInventoryClient_ListAllResources(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &DKAMInventoryClient{
+			c := &invclient.DKAMInventoryClient{
 				Client:  tt.fields.Client,
 				Watcher: tt.fields.Watcher,
 			}

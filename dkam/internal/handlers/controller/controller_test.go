@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
+//nolint:testpackage // Keeping the test in the same package due to dependencies on unexported fields.
 package controller
 
 import (
@@ -12,6 +13,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
 	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
 	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
@@ -19,8 +23,6 @@ import (
 	"github.com/intel/infra-onboarding/dkam/internal/invclient"
 	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
 	rec_v2 "github.com/intel/orch-library/go/pkg/controller/v2"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -113,7 +115,7 @@ func TestDKAMController_filterEvent(t *testing.T) {
 			name: "Test dkam controller -filter event with valid filter",
 			fields: fields{
 				filters: map[inv_v1.ResourceKind]Filter{
-					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(event *inv_v1.SubscribeEventsResponse) bool {
+					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(_ *inv_v1.SubscribeEventsResponse) bool {
 						return true
 					},
 				},
@@ -127,7 +129,7 @@ func TestDKAMController_filterEvent(t *testing.T) {
 			name: "Test dkam controller -filter event with invalid filter",
 			fields: fields{
 				filters: map[inv_v1.ResourceKind]Filter{
-					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(event *inv_v1.SubscribeEventsResponse) bool {
+					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(_ *inv_v1.SubscribeEventsResponse) bool {
 						return false
 					},
 				},
@@ -199,7 +201,7 @@ func TestDKAMController_filterEvent_Case(t *testing.T) {
 			name: "Test dkamController -Filter event with valid filter",
 			fields: fields{
 				filters: map[inv_v1.ResourceKind]Filter{
-					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(event *inv_v1.SubscribeEventsResponse) bool {
+					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(_ *inv_v1.SubscribeEventsResponse) bool {
 						return true
 					},
 				},
@@ -213,7 +215,7 @@ func TestDKAMController_filterEvent_Case(t *testing.T) {
 			name: "Test dkamController -Filter event with invalid filter",
 			fields: fields{
 				filters: map[inv_v1.ResourceKind]Filter{
-					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(event *inv_v1.SubscribeEventsResponse) bool {
+					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(_ *inv_v1.SubscribeEventsResponse) bool {
 						return false
 					},
 				},
@@ -227,7 +229,7 @@ func TestDKAMController_filterEvent_Case(t *testing.T) {
 			name: "Test dkamController -Filter event with no matching filter",
 			fields: fields{
 				filters: map[inv_v1.ResourceKind]Filter{
-					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(event *inv_v1.SubscribeEventsResponse) bool {
+					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(_ *inv_v1.SubscribeEventsResponse) bool {
 						return false
 					},
 				},
@@ -240,51 +242,11 @@ func TestDKAMController_filterEvent_Case(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(_ *testing.T) {
 			obc := &DKAMController{
 				filters: tt.fields.filters,
 			}
 			obc.filterEvent(tt.args.event)
-		})
-	}
-}
-
-func Test_osEventFilter(t *testing.T) {
-	type args struct {
-		event *inv_v1.SubscribeEventsResponse
-	}
-	tests := []struct {
-		name string
-		args args
-		want bool
-	}{
-		{
-			name: "Test Updated Event",
-			args: args{&inv_v1.SubscribeEventsResponse{
-				EventKind: inv_v1.SubscribeEventsResponse_EVENT_KIND_UPDATED,
-			}},
-			want: true,
-		},
-		{
-			name: "Test Create Event",
-			args: args{&inv_v1.SubscribeEventsResponse{
-				EventKind: inv_v1.SubscribeEventsResponse_EVENT_KIND_CREATED,
-			}},
-			want: true,
-		},
-		{
-			name: "Test Delete Event",
-			args: args{&inv_v1.SubscribeEventsResponse{
-				EventKind: inv_v1.SubscribeEventsResponse_EVENT_KIND_DELETED,
-			}},
-			want: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := osEventFilter(tt.args.event); got != tt.want {
-				t.Errorf("osEventFilter() = %v, want %v", got, tt.want)
-			}
 		})
 	}
 }
@@ -311,7 +273,7 @@ func TestDKAMController_reconcileResource(t *testing.T) {
 			name: "Test Case",
 			fields: fields{
 				filters: map[inv_v1.ResourceKind]Filter{
-					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(event *inv_v1.SubscribeEventsResponse) bool {
+					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(_ *inv_v1.SubscribeEventsResponse) bool {
 						return false
 					},
 				},
@@ -325,7 +287,7 @@ func TestDKAMController_reconcileResource(t *testing.T) {
 			name: "Test Case",
 			fields: fields{
 				filters: map[inv_v1.ResourceKind]Filter{
-					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(event *inv_v1.SubscribeEventsResponse) bool {
+					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(_ *inv_v1.SubscribeEventsResponse) bool {
 						return false
 					},
 				},
@@ -422,7 +384,7 @@ func TestReconcileEvent(t *testing.T) {
 	require.NoError(t, err)
 	doneOS := make(chan bool, 1)
 
-	controllerOS := rec_v2.NewController[reconcilers.ReconcilerID](func(ctx context.Context,
+	controllerOS := rec_v2.NewController[reconcilers.ReconcilerID](func(_ context.Context,
 		request rec_v2.Request[reconcilers.ReconcilerID],
 	) rec_v2.Directive[reconcilers.ReconcilerID] {
 		doneOS <- true

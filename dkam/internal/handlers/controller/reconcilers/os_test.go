@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
-
+//
+//nolint:testpackage // Keeping the test in the same package due to dependencies on unexported fields.
 package reconcilers
 
 import (
@@ -8,8 +9,11 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
 	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
@@ -17,7 +21,6 @@ import (
 	"github.com/intel/infra-onboarding/dkam/pkg/config"
 	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
 	rec_v2 "github.com/intel/orch-library/go/pkg/controller/v2"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -71,7 +74,7 @@ func TestNewOsReconciler(t *testing.T) {
 	}
 }
 
-/*func TestOsReconcilerReconcile(t *testing.T) {
+func TestOsReconcilerReconcile(t *testing.T) {
 	type fields struct {
 		invClient     *invclient.DKAMInventoryClient
 		enableTracing bool
@@ -84,12 +87,18 @@ func TestNewOsReconciler(t *testing.T) {
 	t.Cleanup(func() {
 		dkam_testing.DeleteInventoryDKAMClientForTesting()
 	})
-	osre := inv_testing.CreateOsWithArgs(t, "", "profile:profile", osv1.SecurityFeature_SECURITY_FEATURE_NONE, osv1.OsType_OS_TYPE_MUTABLE)
+	pvc := config.PVC
+	config.PVC = "data"
+	defer func() {
+		config.PVC = pvc
+	}()
+	osre := inv_testing.CreateOsWithArgs(t, "", "profile:profile",
+		osv1.SecurityFeature_SECURITY_FEATURE_NONE, osv1.OsType_OS_TYPE_MUTABLE)
 	testRequest := rec_v2.Request[ReconcilerID]{
-		ID: ReconcilerID(WrapReconcilerID(osre.TenantId, osre.ResourceId)),
+		ID: WrapReconcilerID(osre.TenantId, osre.ResourceId),
 	}
 	testRequest1 := rec_v2.Request[ReconcilerID]{
-		ID: ReconcilerID(WrapReconcilerID(osre.TenantId, "os-12345")),
+		ID: WrapReconcilerID(osre.TenantId, "os-12345"),
 	}
 	rawFileName := strings.TrimSuffix(osre.ProfileName, ".img") + ".raw.gz"
 	expectedFilePath := config.PVC + "/OSImage/" + osre.Sha256 + "/" + rawFileName
@@ -145,15 +154,6 @@ func TestNewOsReconciler(t *testing.T) {
 			},
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			osr := &OsReconciler{
-				invClient:     tt.fields.invClient,
-				enableTracing: tt.fields.enableTracing,
-			}
-			osr.Reconcile(tt.args.ctx, tt.args.request)
-		})
-	}
 	defer func() {
 		err := os.Remove(expectedFilePath)
 		if err != nil && !os.IsNotExist(err) {
@@ -166,7 +166,16 @@ func TestNewOsReconciler(t *testing.T) {
 		os.Remove(expectedFilePath)
 		os.Remove(dir + "/installer.sh")
 	}()
-}*/
+	for _, tt := range tests {
+		t.Run(tt.name, func(_ *testing.T) {
+			osr := &OsReconciler{
+				invClient:     tt.fields.invClient,
+				enableTracing: tt.fields.enableTracing,
+			}
+			osr.Reconcile(tt.args.ctx, tt.args.request)
+		})
+	}
+}
 
 func TestOsReconciler_Reconcile(t *testing.T) {
 	type fields struct {
@@ -181,11 +190,12 @@ func TestOsReconciler_Reconcile(t *testing.T) {
 	t.Cleanup(func() {
 		dkam_testing.DeleteInventoryDKAMClientForTesting()
 	})
-	osre := inv_testing.CreateOsWithArgs(t, "", "profile:profile", osv1.SecurityFeature_SECURITY_FEATURE_NONE, osv1.OsType_OS_TYPE_IMMUTABLE)
+	osre := inv_testing.CreateOsWithArgs(t, "", "profile:profile", osv1.SecurityFeature_SECURITY_FEATURE_NONE,
+		osv1.OsType_OS_TYPE_IMMUTABLE)
 	testRequest := rec_v2.Request[ReconcilerID]{
 		ID: WrapReconcilerID(osre.TenantId, osre.ResourceId),
 	}
-	expectedFilePath := config.DownloadPath + "/" + "TiberMicrovisor.raw.xz"
+	expectedFilePath := config.DownloadPath + "/" + "tiberos.raw.xz"
 	err := os.MkdirAll(filepath.Dir(expectedFilePath), 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create directories: %v", err)
@@ -223,6 +233,9 @@ func TestOsReconciler_Reconcile(t *testing.T) {
 			want: testRequest.Ack(),
 		},
 	}
+	defer func() {
+		os.RemoveAll(config.PVC)
+	}()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			osr := &OsReconciler{
@@ -234,9 +247,6 @@ func TestOsReconciler_Reconcile(t *testing.T) {
 			}
 		})
 	}
-	defer func() {
-		os.RemoveAll(config.PVC)
-	}()
 }
 
 func TestOsReconcilerReconcile_DownloadOs_Err(t *testing.T) {
@@ -252,9 +262,10 @@ func TestOsReconcilerReconcile_DownloadOs_Err(t *testing.T) {
 	t.Cleanup(func() {
 		dkam_testing.DeleteInventoryDKAMClientForTesting()
 	})
-	osre := inv_testing.CreateOsWithArgs(t, "", "profile:profile", osv1.SecurityFeature_SECURITY_FEATURE_NONE, osv1.OsType_OS_TYPE_MUTABLE)
+	osre := inv_testing.CreateOsWithArgs(t, "", "profile:profile", osv1.SecurityFeature_SECURITY_FEATURE_NONE,
+		osv1.OsType_OS_TYPE_MUTABLE)
 	testRequest := rec_v2.Request[ReconcilerID]{
-		ID: ReconcilerID(WrapReconcilerID(osre.TenantId, osre.ResourceId)),
+		ID: WrapReconcilerID(osre.TenantId, osre.ResourceId),
 	}
 	tests := []struct {
 		name   string
@@ -274,7 +285,7 @@ func TestOsReconcilerReconcile_DownloadOs_Err(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(_ *testing.T) {
 			osr := &OsReconciler{
 				invClient:     tt.fields.invClient,
 				enableTracing: tt.fields.enableTracing,
@@ -284,7 +295,7 @@ func TestOsReconcilerReconcile_DownloadOs_Err(t *testing.T) {
 	}
 }
 
-// Fuzz test
+// Fuzz test.
 func FuzzReconcileOs(f *testing.F) {
 	f.Add("ec426b10")
 
@@ -305,11 +316,11 @@ func FuzzReconcileOs(f *testing.F) {
 		defer cancel()
 
 		// mutex.Lock()
-		osre := inv_testing.CreateOsWithArgs(t, "", "profile:profile", osv1.SecurityFeature_SECURITY_FEATURE_NONE, osv1.OsType_OS_TYPE_MUTABLE)
-		//   mutex.Unlock()
+		osre := inv_testing.CreateOsWithArgs(t, "", "profile:profile",
+			osv1.SecurityFeature_SECURITY_FEATURE_NONE, osv1.OsType_OS_TYPE_MUTABLE)
 
 		request := rec_v2.Request[ReconcilerID]{
-			ID: ReconcilerID(WrapReconcilerID(tenant1, id)),
+			ID: WrapReconcilerID(tenant1, id),
 		}
 		osr := &OsReconciler{
 			invClient:     dkam_testing.InvClient,

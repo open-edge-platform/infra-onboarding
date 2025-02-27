@@ -1,31 +1,34 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-package reconcilers
+package reconcilers_test
 
 import (
 	"errors"
 	"testing"
+	"time"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/intel/infra-core/inventory/v2/pkg/client"
 	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
+	"github.com/intel/infra-onboarding/dkam/internal/handlers/controller/reconcilers"
 	rec_v2 "github.com/intel/orch-library/go/pkg/controller/v2"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func TestHandleInventoryError(t *testing.T) {
 	type args struct {
 		err     error
-		request rec_v2.Request[ReconcilerID]
+		request rec_v2.Request[reconcilers.ReconcilerID]
 	}
-	testRequest := rec_v2.Request[ReconcilerID]{
-		ID: WrapReconcilerID(client.FakeTenantID, "test-id"),
+	testRequest := rec_v2.Request[reconcilers.ReconcilerID]{
+		ID: reconcilers.WrapReconcilerID(client.FakeTenantID, "test-id"),
 	}
 	tests := []struct {
 		name string
 		args args
-		want rec_v2.Directive[ReconcilerID]
+		want rec_v2.Directive[reconcilers.ReconcilerID]
 	}{
 		{
 			name: "HandleInventoryError Test Case - Non-gRPC Error",
@@ -53,8 +56,8 @@ func TestHandleInventoryError(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			HandleInventoryError(tt.args.err, tt.args.request)
+		t.Run(tt.name, func(_ *testing.T) {
+			reconcilers.HandleInventoryError(tt.args.err, tt.args.request)
 		})
 	}
 }
@@ -62,15 +65,17 @@ func TestHandleInventoryError(t *testing.T) {
 func TestHandleProvisioningError(t *testing.T) {
 	type args struct {
 		err     error
-		request rec_v2.Request[ReconcilerID]
+		request rec_v2.Request[reconcilers.ReconcilerID]
 	}
-	testRequest := rec_v2.Request[ReconcilerID]{
-		ID: WrapReconcilerID(client.FakeTenantID, "test-id"),
+	testRequest := rec_v2.Request[reconcilers.ReconcilerID]{
+		ID: reconcilers.WrapReconcilerID(client.FakeTenantID, "test-id"),
 	}
+	retryMinDelay := 1 * time.Second
+	retryMaxDelay := 60 * time.Second
 	tests := []struct {
 		name string
 		args args
-		want rec_v2.Directive[ReconcilerID]
+		want rec_v2.Directive[reconcilers.ReconcilerID]
 	}{
 		{
 			name: "Non-gRPC Error",
@@ -94,7 +99,8 @@ func TestHandleProvisioningError(t *testing.T) {
 				err:     status.Error(codes.Internal, "internal error"),
 				request: testRequest,
 			},
-			want: testRequest.Retry(status.Error(codes.Internal, "internal error")).With(rec_v2.ExponentialBackoff(retryMinDelay, retryMaxDelay)),
+			want: testRequest.Retry(status.Error(codes.Internal, "internal error")).With(rec_v2.ExponentialBackoff(retryMinDelay,
+				retryMaxDelay)),
 		},
 		{
 			name: "No Error",
@@ -107,15 +113,16 @@ func TestHandleProvisioningError(t *testing.T) {
 		{
 			name: "HandleInventoryError Test Case - In Progress Error",
 			args: args{
-				err:     inv_errors.Errorfr(inv_errors.Reason_OPERATION_IN_PROGRESS, "Prod workflow started, waiting for it to complete"),
+				err: inv_errors.Errorfr(inv_errors.Reason_OPERATION_IN_PROGRESS,
+					"Prod workflow started, waiting for it to complete"),
 				request: testRequest,
 			},
 			want: testRequest.Ack(),
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			HandleProvisioningError(tt.args.err, tt.args.request)
+		t.Run(tt.name, func(_ *testing.T) {
+			reconcilers.HandleProvisioningError(tt.args.err, tt.args.request)
 		})
 	}
 }

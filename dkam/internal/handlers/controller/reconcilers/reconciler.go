@@ -31,7 +31,7 @@ func WrapReconcilerID(tenantID, resourceID string) ReconcilerID {
 	return ReconcilerID(tenantID + "/" + resourceID)
 }
 
-func UnwrapReconcilerID(id ReconcilerID) (string, string) {
+func UnwrapReconcilerID(id ReconcilerID) (tenantID, resourceID string) {
 	unwrapped := strings.Split(id.String(), "/")
 	return unwrapped[0], unwrapped[1]
 }

@@ -1,66 +1,29 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-package dkammgr
+package dkammgr_test
 
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
+	"github.com/intel/infra-core/inventory/v2/pkg/logging"
 	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
+	"github.com/intel/infra-onboarding/dkam/internal/dkammgr"
 	"github.com/intel/infra-onboarding/dkam/pkg/config"
 	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
-	"github.com/stretchr/testify/assert"
 )
 
-const (
-	testDigest      = "TEST_DIGEST"
-	testFile        = "TEST_FILE"
-	testImage       = "TEST_IMAGE.raw.xz"
-	exampleManifest = `
-		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
-		"config":{"mediaType":"application/vnd.intel.ensp.en",
-		"digest":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a","size":2},
-		"layers":[{
-			"mediaType":"application/vnd.oci.image.layer.v1.tar",
-			"digest":"` + testDigest + `",
-			"size":24800,
-			"annotations":{"org.opencontainers.image.title":"` + testFile + `"}
-		}],
-		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
+var (
+	projectRoot string
+	zlog        = logging.GetLogger("DKAM-Mgr")
 )
-
-// Manifest example with no Annotation in Layers
-const exampleManifestWrong = `
-		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
-		"config":{"mediaType":"application/vnd.intel.ensp.en",
-		"digest":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a","size":2},
-		"layers":[{
-			"mediaType":"application/vnd.oci.image.layer.v1.tar",
-			"digest":"` + testDigest + `",
-			"size":24800
-		}],
-		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
-
-const exampleManifests = `
-		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
-		"config":{"mediaType":"application/vnd.intel.ensp.en",
-		"digest":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a","size":2},
-		"layers":[{
-			"mediaType":"application/vnd.oci.image.layer.v1.tar",
-			"digest":"` + testDigest + `",
-			"size":24800,
-			"annotations":{"org.opencontainers.image.title":"` + testImage + `"}
-		}],
-		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
-
-var projectRoot string
 
 func TestMain(m *testing.M) {
 	wd, err := os.Getwd()
@@ -78,10 +41,10 @@ func TestMain(m *testing.M) {
 	migrationsDir := projectRoot + "/out"
 
 	cleanupFunc := dkam_testing.StartTestReleaseService("profile")
-	defer cleanupFunc()
 
 	inv_testing.StartTestingEnvironment(policyPath, "", migrationsDir)
 	run := m.Run()
+	cleanupFunc()
 	inv_testing.StopTestingEnvironment()
 
 	os.Exit(run)
@@ -91,7 +54,7 @@ func TestDownloadArtifacts(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	// Create a UploadBaseImageRequest
 
-	err := DownloadArtifacts(context.Background())
+	err := dkammgr.DownloadArtifacts(context.Background())
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -103,8 +66,14 @@ func TestGetCuratedScript(t *testing.T) {
 	dkam_testing.PrepareTestCaCertificateFile(t)
 
 	dir := config.PVC
-	os.MkdirAll(dir, 0o755)
-	os.MkdirAll(config.DownloadPath, 0o755)
+	mkdirerr := os.MkdirAll(dir, 0o755)
+	if mkdirerr != nil {
+		fmt.Println("Error creating dir:", mkdirerr)
+	}
+	mkdirerr = os.MkdirAll(config.DownloadPath, 0o755)
+	if mkdirerr != nil {
+		fmt.Println("Error creating dir:", mkdirerr)
+	}
 	currentDir, err := os.Getwd()
 	if err != nil {
 		zlog.InfraSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
@@ -118,7 +87,7 @@ func TestGetCuratedScript(t *testing.T) {
         install_intel_CAcertificates
 # Add your installation commands here
 `
-	err = os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0o755)
+	err = os.WriteFile(dir+"/installer.sh", []byte(dummyData), 0o600)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
@@ -131,7 +100,7 @@ func TestGetCuratedScript(t *testing.T) {
 		ProfileName: "profile",
 		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 	}
-	err = GetCuratedScript(context.TODO(), osr)
+	err = dkammgr.GetCuratedScript(context.TODO(), osr)
 
 	// Check if the returned filename matches the expected format
 	assert.NoError(t, err)
@@ -158,9 +127,9 @@ func TestGetMode(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set the test value for MODE
-			os.Setenv("MODE", tt.testMode)
+			t.Setenv("MODE", tt.testMode)
 
-			result := GetMODE()
+			result := dkammgr.GetMODE()
 			if result != tt.expectedMode {
 				t.Errorf("Expected %v, but got %v", tt.expectedMode, result)
 			}
@@ -168,6 +137,7 @@ func TestGetMode(t *testing.T) {
 	}
 }
 
+//nolint:dupl // this is for SignMicroOS.
 func TestSignMicroOS(t *testing.T) {
 	currentDir, err := os.Getwd()
 	if err != nil {
@@ -179,7 +149,7 @@ func TestSignMicroOS(t *testing.T) {
 	config.ScriptPath = parentDir + "/pkg/script"
 
 	// Call the function you want to test
-	result, err := SignMicroOS()
+	result, err := dkammgr.SignMicroOS()
 
 	// Check if the result matches the expected value
 	if result != true {
@@ -192,6 +162,7 @@ func TestSignMicroOS(t *testing.T) {
 	}
 }
 
+//nolint:dupl // this is for BuildSignIpxe.
 func TestBuildSignIpxe1(t *testing.T) {
 	currentDir, err := os.Getwd()
 	if err != nil {
@@ -203,7 +174,7 @@ func TestBuildSignIpxe1(t *testing.T) {
 	config.ScriptPath = parentDir + "/pkg/script"
 
 	// Call the function you want to test
-	result, err := BuildSignIpxe()
+	result, err := dkammgr.BuildSignIpxe()
 
 	// Check if the result matches the expected value
 	if result != true {
@@ -215,173 +186,3 @@ func TestBuildSignIpxe1(t *testing.T) {
 		t.Errorf("Expected error to be nil, got %v", err)
 	}
 }
-
-func TestDownloadArtifacts_Case(t *testing.T) {
-	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
-
-	// Fake server to serve expected requests
-	mux := http.NewServeMux()
-	returnWrongManifest := false
-	mux.HandleFunc("/manifests/HOOK_OS_VERSION", func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		if returnWrongManifest {
-			w.Write([]byte(exampleManifestWrong))
-		} else {
-			w.Write([]byte(exampleManifest))
-		}
-	})
-	svr := httptest.NewServer(mux)
-	defer svr.Close()
-	// Override the RSProxy with test HTTP server
-	config.HookOSRepo = svr.URL + "/"
-
-	// Create a UploadBaseImageRequest
-	os.Setenv("MODE", "preint")
-	err := DownloadArtifacts(context.Background())
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-	defer func() {
-		os.Unsetenv("MODE")
-	}()
-}
-
-// TODO- Error creating directory: mkdir /var/run/secrets: permission denied
-// To be fixed
-/*func TestDownloadArtifacts_Case1(t *testing.T) {
-	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
-	os.Setenv("KUBERNETES_SERVICE_HOST", "localhost")
-	os.Setenv("KUBERNETES_SERVICE_PORT", "2521")
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		fmt.Println("Failed to generate private key:", err)
-		return
-	}
-	template := x509.Certificate{
-		SerialNumber:          big.NewInt(1),
-		Subject:               pkix.Name{Organization: []string{"Dummy Org"}},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(1, 0, 0),
-		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
-		BasicConstraintsValid: true,
-		IsCA:                  true,
-	}
-	caCertBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
-	if err != nil {
-		fmt.Println("Failed to create CA certificate:", err)
-		return
-	}
-	path := "/var"
-	dummypath := "/run/secrets/kubernetes.io/serviceaccount/"
-	cerr := os.MkdirAll(path+dummypath, 0o755)
-	if cerr != nil {
-		t.Fatalf("Error creating directory: %v", cerr)
-	}
-	file, crErr := os.Create(path + dummypath + "token")
-	if crErr != nil {
-		t.Fatalf("Error creating file: %v", crErr)
-	}
-	defer func() {
-		remErr := os.RemoveAll("/run/secrets/kubernetes.io/serviceaccount/token")
-		if remErr != nil {
-			t.Fatalf("Error while removing file: %v", remErr)
-		}
-	}()
-	dummyData := "Thisissomedummydata"
-	_, err = file.WriteString(dummyData)
-	if err != nil {
-		fmt.Println("Error writing to file:", err)
-		return
-	}
-	certOut, cerrErr := os.Create(path + dummypath + "ca.crt")
-	if cerrErr != nil {
-		t.Fatalf("Error creating cert file: %v", cerrErr)
-	}
-	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: caCertBytes})
-	defer func() {
-		remErr := os.RemoveAll("/run/secrets/kubernetes.io/serviceaccount/ca.crt")
-		if remErr != nil {
-			t.Fatalf("Error while removing file: %v", remErr)
-		}
-	}()
-	file.Close()
-	certOut.Close()
-	testTag := "manifest"
-	testManifest := "testManifest"
-	exampleDownloadManifest := `{"layers":[{"digest":"` + testDigest + `"}]}`
-
-	mux := http.NewServeMux()
-	data := config.ENManifest{}
-	data.Provisioning.Files = append(data.Provisioning.Files, config.File{
-		Description: "Script file",
-		Server:      "example.com",
-		Path:        "",
-		Version:     "2.3",
-	})
-	yamlData, err := yaml.Marshal(&data)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-	mux.HandleFunc("/"+testTag+"/manifests/"+testManifest, func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(exampleDownloadManifest))
-	})
-	mux.HandleFunc("/"+testTag+"/blobs/"+testDigest, func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(yamlData))
-	})
-	svr := httptest.NewServer(mux)
-	defer svr.Close()
-	config.ENManifestRepo = svr.URL + "/"
-	_, filename, _, _ := runtime.Caller(0)
-	localPath := pa.Dir(filename)
-	expectedFileContent := "GOOD TEST!"
-	tmpFolderPath, err := os.MkdirTemp("/tmp", "test_download_microOS")
-	require.NoError(t, err)
-	defer os.RemoveAll(tmpFolderPath)
-	dkamTmpFolderPath := tmpFolderPath + "/tmp/"
-	dkamHookFolderPath := tmpFolderPath + "/hook/"
-	err = os.MkdirAll(dkamTmpFolderPath, 0o755)
-	require.NoError(t, err)
-	expectedManifestFilePath := dkamTmpFolderPath + config.ReleaseVersion + ".yaml"
-	fileData, filrErr := os.ReadFile(localPath + "/../../test/testdata/example-manifest-internal-rs.yaml")
-	require.NoError(t, filrErr)
-	os.WriteFile(expectedManifestFilePath, fileData, 0o755)
-	require.NoError(t, filrErr)
-	returnWrongManifest := false
-	mux.HandleFunc("/manifests/", func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		if returnWrongManifest {
-			w.Write([]byte(exampleManifestWrong))
-		} else {
-			w.Write([]byte(exampleManifest))
-		}
-	})
-	mux.HandleFunc("/blobs/"+testDigest, func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(expectedFileContent))
-	})
-	os.MkdirAll(dkamHookFolderPath, 0o755)
-	sver := httptest.NewServer(mux)
-	defer sver.Close()
-	config.ENManifestRepo = sver.URL + "/"
-	DownloadErr := DownloadArtifacts(context.Background())
-	if DownloadErr != nil {
-		t.Errorf("Unexpected error: %v", DownloadErr)
-	}
-	originalDir, _ := os.Getwd()
-	result := strings.Replace(originalDir, "script", "script/tmp", -1)
-	res := filepath.Join(result, "latest-dev.yaml")
-	if err := os.MkdirAll(filepath.Dir(res), 0o755); err != nil {
-		t.Fatalf("Failed to create directory: %v", err)
-	}
-	src := strings.Replace(originalDir, "curation", "script/latest-dev.yaml", -1)
-	dkam_testing.CopyFile(src, res)
-	defer func() {
-		dkam_testing.CopyFile(res, src)
-		os.Remove(res)
-		os.Remove(originalDir + "/hook/TEST_FILE")
-	}()
-}*/

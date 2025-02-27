@@ -130,6 +130,9 @@ linters-settings:
           - github.com/prometheus/client_golang/prometheus
           - github.com/fsnotify/fsnotify
           - github.com/spf13/viper
+          - github.com/pkg/errors
+          - github.com/google/uuid
+          - github.com/Masterminds/sprig/v3
       Test:
         files:
           - $test
@@ -151,45 +154,6 @@ issues:
     - Error return value of `.*Write` is not checked
     - Error return value of `.*Stop` is not checked
   exclude-rules:
-    - path: ".*_test\\.go"
-      linters:
-        - gci
-        - dupl
-        - gocritic
-        - gosec
-        - lll
-        - revive
-        - staticcheck
-        - funlen
-        - errcheck
-        - govet
-        - tenv
-        - testpackage
-        - godot
-        - cyclop
-        - unconvert
-        - dogsled
-        - stylecheck
-        - unconvert
-        - misspell
-        - goconst
-        - unused
-    - path: cmd/dkammgr/main.go
-      linters:
-        - depguard
-    - path: internal/handlers/controller/controller.go
-      linters:
-        - depguard
-    - path: internal/handlers/controller/reconcilers/reconciler.go
-      linters:
-        - gocritic
-    - path: internal/invclient/invclient.go
-      linters:
-        - depguard
-        - dupl
-    - path: pkg/curation/curation.go
-      linters:
-        - depguard
 
 output:
   formats: colored-line-number:stdout,html:out/golangci-lint_report.html

@@ -9,18 +9,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
 
 	"github.com/intel/infra-onboarding/dkam/pkg/config"
 	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
-	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
 	cleanupFunc := dkam_testing.StartTestReleaseService("profile")
-	defer cleanupFunc()
 
 	run := m.Run()
+	cleanupFunc()
 	os.Exit(run)
 }
 

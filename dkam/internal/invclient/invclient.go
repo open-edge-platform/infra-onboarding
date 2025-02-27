@@ -175,6 +175,7 @@ func (c *DKAMInventoryClient) getResourceByID(
 	return getresresp, nil
 }
 
+//nolint:dupl // this is for to find and return a host.
 func (c *DKAMInventoryClient) listAndReturnHost(
 	ctx context.Context,
 	filter *inv_v1.ResourceFilter,
@@ -362,6 +363,7 @@ func (c *DKAMInventoryClient) GetProviderResources(ctx context.Context) ([]*prov
 	return util.GetSpecificResourceList[*provider_v1.ProviderResource](resources)
 }
 
+//nolint:dupl // this is for to find and return a provider.
 func (c *DKAMInventoryClient) listAndReturnProvider(
 	ctx context.Context,
 	filter *inv_v1.ResourceFilter,

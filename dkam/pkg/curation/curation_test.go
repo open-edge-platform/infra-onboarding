@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-package curation
+package curation_test
 
 import (
 	"context"
@@ -11,16 +11,22 @@ import (
 	"strings"
 	"testing"
 
-	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
 	"github.com/intel/infra-onboarding/dkam/pkg/config"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/intel/infra-onboarding/dkam/pkg/curation"
+	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
 )
 
 const (
 	testOSProfileName = "test-profile"
+	dummyData         = `#!/bin/bash
+	enable_netipplan
+        install_intel_CAcertificates
+# Add your installation commands here
+`
 )
 
 var (
@@ -35,23 +41,23 @@ func TestMain(m *testing.M) {
 	}
 	projectRoot = filepath.Dir(filepath.Dir(wd))
 	currentDir = wd
-	config.ScriptPath = strings.Replace(currentDir, "curation", "script", -1)
+	config.ScriptPath = strings.ReplaceAll(currentDir, "curation", "script")
 	config.PVC, err = os.MkdirTemp(os.TempDir(), "test_pvc")
 	if err != nil {
 		panic(fmt.Sprintf("Error creating temp directory: %v", err))
 	}
 
 	cleanupFunc := dkam_testing.StartTestReleaseService(testOSProfileName)
-	defer cleanupFunc()
 
 	run := m.Run()
+	cleanupFunc()
 	os.Exit(run)
 }
 
 func Test_ParseJSONUfwRules(t *testing.T) {
 	tests := map[string]struct {
 		jsonUfw     string
-		expectedUfw []FirewallRule
+		expectedUfw []curation.FirewallRule
 		valid       bool
 	}{
 		"wrongStringUfw": {
@@ -60,17 +66,17 @@ func Test_ParseJSONUfwRules(t *testing.T) {
 		},
 		"emptyStringUfw": {
 			jsonUfw:     "",
-			expectedUfw: make([]FirewallRule, 0),
+			expectedUfw: make([]curation.FirewallRule, 0),
 			valid:       true,
 		},
 		"emptyListUfw": {
 			jsonUfw:     "[]",
-			expectedUfw: make([]FirewallRule, 0),
+			expectedUfw: make([]curation.FirewallRule, 0),
 			valid:       true,
 		},
 		"singleUfwRule": {
 			jsonUfw: `[{"sourceIp":"kind.internal", "ipVer": "ipv4", "protocol": "tcp", "ports": "6443,10250"}]`,
-			expectedUfw: []FirewallRule{
+			expectedUfw: []curation.FirewallRule{
 				{
 					SourceIP: "kind.internal",
 					Ports:    "6443,10250",
@@ -86,7 +92,7 @@ func Test_ParseJSONUfwRules(t *testing.T) {
     {"sourceIp":"", "ipVer": "", "protocol": "", "ports": "7946"},
     {"sourceIp":"", "ipVer": "", "protocol": "udp", "ports": "123"}
 ]`,
-			expectedUfw: []FirewallRule{
+			expectedUfw: []curation.FirewallRule{
 				{
 					SourceIP: "",
 					IPVer:    "",
@@ -114,7 +120,7 @@ func Test_ParseJSONUfwRules(t *testing.T) {
     {"ports": "7946"},
     {"protocol": "udp", "ports": "123"}
 ]`,
-			expectedUfw: []FirewallRule{
+			expectedUfw: []curation.FirewallRule{
 				{
 					SourceIP: "",
 					IPVer:    "",
@@ -140,7 +146,7 @@ func Test_ParseJSONUfwRules(t *testing.T) {
 
 	for tcname, tc := range tests {
 		t.Run(tcname, func(t *testing.T) {
-			parsedRules, err := ParseJSONFirewallRules(tc.jsonUfw)
+			parsedRules, err := curation.ParseJSONFirewallRules(tc.jsonUfw)
 			if !tc.valid {
 				require.Error(t, err)
 			} else {
@@ -153,24 +159,26 @@ func Test_ParseJSONUfwRules(t *testing.T) {
 
 func Test_GenerateUFWCommand(t *testing.T) {
 	tests := map[string]struct {
-		ufwRule            FirewallRule
+		ufwRule            curation.FirewallRule
 		expectedUfwCommand []string
 	}{
 		"empty": {
-			ufwRule:            FirewallRule{},
+			ufwRule:            curation.FirewallRule{},
 			expectedUfwCommand: []string{},
 		},
 		"rule1": {
-			ufwRule: FirewallRule{
+			ufwRule: curation.FirewallRule{
 				SourceIP: "kind.internal",
 				Ports:    "6443,10250",
 				IPVer:    "ipv4",
 				Protocol: "tcp",
 			},
-			expectedUfwCommand: []string{"ufw allow from $(dig +short kind.internal | tail -n1) to any port 6443,10250 proto tcp"},
+			expectedUfwCommand: []string{
+				"ufw allow from $(dig +short kind.internal | tail -n1) to any port 6443,10250 proto tcp",
+			},
 		},
 		"rule2": {
-			ufwRule: FirewallRule{
+			ufwRule: curation.FirewallRule{
 				SourceIP: "",
 				IPVer:    "",
 				Protocol: "tcp",
@@ -179,7 +187,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 			expectedUfwCommand: []string{"ufw allow in to any port 2379,2380,6443,9345,10250,5473 proto tcp"},
 		},
 		"rule3": {
-			ufwRule: FirewallRule{
+			ufwRule: curation.FirewallRule{
 				SourceIP: "",
 				IPVer:    "",
 				Protocol: "",
@@ -188,7 +196,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 			expectedUfwCommand: []string{"ufw allow in to any port 7946"},
 		},
 		"rule4": {
-			ufwRule: FirewallRule{
+			ufwRule: curation.FirewallRule{
 				SourceIP: "",
 				IPVer:    "",
 				Protocol: "udp",
@@ -197,7 +205,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 			expectedUfwCommand: []string{"ufw allow in to any port 123 proto udp"},
 		},
 		"rule5": {
-			ufwRule: FirewallRule{
+			ufwRule: curation.FirewallRule{
 				SourceIP: "kind.internal",
 				Ports:    "",
 				IPVer:    "ipv4",
@@ -206,7 +214,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 			expectedUfwCommand: []string{"ufw allow from $(dig +short kind.internal | tail -n1) proto tcp"},
 		},
 		"rule6": {
-			ufwRule: FirewallRule{
+			ufwRule: curation.FirewallRule{
 				SourceIP: "kind.internal",
 				Ports:    "",
 				IPVer:    "ipv4",
@@ -215,7 +223,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 			expectedUfwCommand: []string{"ufw allow from $(dig +short kind.internal | tail -n1)"},
 		},
 		"rule7": {
-			ufwRule: FirewallRule{
+			ufwRule: curation.FirewallRule{
 				SourceIP: "kind.internal",
 				Ports:    "1234",
 				IPVer:    "ipv4",
@@ -224,7 +232,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 			expectedUfwCommand: []string{"ufw allow from $(dig +short kind.internal | tail -n1) to any port 1234"},
 		},
 		"rule8": {
-			ufwRule: FirewallRule{
+			ufwRule: curation.FirewallRule{
 				SourceIP: "",
 				IPVer:    "",
 				Protocol: "abc",
@@ -233,7 +241,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 			expectedUfwCommand: []string{},
 		},
 		"rule9": {
-			ufwRule: FirewallRule{
+			ufwRule: curation.FirewallRule{
 				SourceIP: "0000:000::00",
 				Ports:    "6443,10250",
 				IPVer:    "ipv4",
@@ -244,7 +252,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 	}
 	for tcname, tc := range tests {
 		t.Run(tcname, func(t *testing.T) {
-			ufwCommands := GenerateUFWCommands(tc.ufwRule)
+			ufwCommands := curation.GenerateUFWCommands(tc.ufwRule)
 			assert.Equal(t, tc.expectedUfwCommand, ufwCommands)
 		})
 	}
@@ -255,13 +263,7 @@ func Test_GetCuratedScript(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	dkam_testing.PrepareTestCaCertificateFile(t)
 
-	dummyData := `#!/bin/bash
-	enable_netipplan
-        install_intel_CAcertificates
-# Add your installation commands here
-`
-
-	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0o755)
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0o600)
 	require.NoError(t, err)
 	defer func() {
 		os.Remove(config.PVC + "/installer.sh")
@@ -272,7 +274,7 @@ func Test_GetCuratedScript(t *testing.T) {
 		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 	}
 
-	err = CurateScript(context.TODO(), osr)
+	err = curation.CurateScript(context.TODO(), osr)
 	require.NoError(t, err)
 }
 
@@ -280,32 +282,23 @@ func Test_GetCuratedScript_Case(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	dkam_testing.PrepareTestCaCertificateFile(t)
 
-	os.MkdirAll(config.DownloadPath, 0o755)
+	mkdirerr := os.MkdirAll(config.DownloadPath, 0o755)
+	if mkdirerr != nil {
+		fmt.Println("Error creating dir:", mkdirerr)
+	}
 
-	os.Setenv("MODE", "dev")
-	os.Setenv("EN_HTTP_PROXY", "proxy")
-	os.Setenv("EN_HTTPS_PROXY", "proxy")
-	os.Setenv("EN_NO_PROXY", "proxy")
-	os.Setenv("EN_FTP_PROXY", "proxy")
-	os.Setenv("EN_SOCKS_PROXY", "proxy")
-	os.Setenv("ORCH_CLUSTER", "kind.internal")
-	defer func() {
-		os.Unsetenv("ORCH_CLUSTER")
-		os.Unsetenv("MODE")
-		os.Unsetenv("EN_HTTP_PROXY")
-		os.Unsetenv("EN_HTTPS_PROXY")
-		os.Unsetenv("EN_NO_PROXY")
-		os.Unsetenv("EN_FTP_PROXY")
-		os.Unsetenv("EN_SOCKS_PROXY")
-		os.Unsetenv("MODE")
-		os.Unsetenv("FIREWALL_REQ_ALLOW")
-	}()
-
+	t.Setenv("MODE", "dev")
+	t.Setenv("EN_HTTP_PROXY", "proxy")
+	t.Setenv("EN_HTTPS_PROXY", "proxy")
+	t.Setenv("EN_NO_PROXY", "proxy")
+	t.Setenv("EN_FTP_PROXY", "proxy")
+	t.Setenv("EN_SOCKS_PROXY", "proxy")
+	t.Setenv("ORCH_CLUSTER", "kind.internal")
 	osr := &osv1.OperatingSystemResource{
 		ProfileName: testOSProfileName,
 		OsType:      osv1.OsType_OS_TYPE_IMMUTABLE,
 	}
-	os.Setenv("FIREWALL_REQ_ALLOW", `[
+	t.Setenv("FIREWALL_REQ_ALLOW", `[
     {
         "sourceIp": "192.168.1.1",
         "ports": "80",
@@ -381,7 +374,7 @@ func Test_GetCuratedScript_Case(t *testing.T) {
 ]
 `)
 
-	err := CurateScript(context.TODO(), osr)
+	err := curation.CurateScript(context.TODO(), osr)
 	assert.NoError(t, err)
 }
 
@@ -389,161 +382,162 @@ func Test_GetCuratedScript_Case1(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	dkam_testing.PrepareTestCaCertificateFile(t)
 
-	os.Setenv("ORCH_CLUSTER", "kind.internal")
-	os.MkdirAll(config.DownloadPath, 0o755)
+	t.Setenv("ORCH_CLUSTER", "kind.internal")
+	mkdirerr := os.MkdirAll(config.DownloadPath, 0o755)
+	if mkdirerr != nil {
+		fmt.Println("Error creating dir:", mkdirerr)
+	}
 
-	dummyData := `#!/bin/bash
-	enable_netipplan
-        install_intel_CAcertificates
-# Add your installation commands here
-`
-	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0o755)
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0o600)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
 
-	os.Setenv("ORCH_CLUSTER", "kind.internal")
+	t.Setenv("ORCH_CLUSTER", "kind.internal")
 	defer os.Unsetenv("ORCH_CLUSTER")
 	osr := &osv1.OperatingSystemResource{
 		ProfileName: testOSProfileName,
 		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 	}
-	err = CurateScript(context.TODO(), osr)
-
-	assert.NoError(t, err)
 	defer func() {
 		os.Unsetenv("ORCH_CLUSTER")
 		os.Remove(config.PVC + "/installer.sh")
 	}()
+	err = curation.CurateScript(context.TODO(), osr)
+	assert.NoError(t, err)
 }
 
 func Test_GetCuratedScript_Case2(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	dkam_testing.PrepareTestCaCertificateFile(t)
 
-	os.Setenv("SOCKS_PROXY", "proxy")
-	os.MkdirAll(config.DownloadPath, 0o755)
+	t.Setenv("SOCKS_PROXY", "proxy")
+	mkdirerr := os.MkdirAll(config.DownloadPath, 0o755)
+	if mkdirerr != nil {
+		fmt.Println("Error creating dir:", mkdirerr)
+	}
 
-	dummyData := `#!/bin/bash
-	enable_netipplan
-        install_intel_CAcertificates
-# Add your installation commands here
-`
-	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0o755)
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0o600)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
 
-	os.Setenv("ORCH_CLUSTER", "kind.internal")
-	defer os.Unsetenv("ORCH_CLUSTER")
+	t.Setenv("ORCH_CLUSTER", "kind.internal")
 	osr := &osv1.OperatingSystemResource{
 		ProfileName: testOSProfileName,
 		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 	}
-	err = CurateScript(context.TODO(), osr)
-
-	assert.NoError(t, err)
-
 	defer func() {
-		os.Unsetenv("SOCKS_PROXY")
 		os.Remove(config.PVC + "/installer.sh")
 	}()
+	err = curation.CurateScript(context.TODO(), osr)
+	assert.NoError(t, err)
 }
 
 func Test_GetCuratedScript_Case3(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	dkam_testing.PrepareTestCaCertificateFile(t)
 
-	os.MkdirAll(config.DownloadPath, 0o755)
+	mkdirerr := os.MkdirAll(config.DownloadPath, 0o755)
+	if mkdirerr != nil {
+		fmt.Println("Error creating dir:", mkdirerr)
+	}
 
-	dummyData := `#!/bin/bash
-	enable_netipplan
-        install_intel_CAcertificates
-# Add your installation commands here
-`
-	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0o755)
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0o600)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
-	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
+	result := strings.ReplaceAll(currentDir, "curation", "script/tmp")
 	res := filepath.Join(result, "latest-dev.yaml")
-	if err := os.MkdirAll(filepath.Dir(res), 0o755); err != nil {
+	if err = os.MkdirAll(filepath.Dir(res), 0o755); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
-	src := strings.Replace(currentDir, "curation", "script/latest-dev.yaml", -1)
-	dkam_testing.CopyFile(src, res)
-	os.Setenv("NETIP", "static")
-	os.Setenv("ORCH_CLUSTER", "kind.internal")
-	defer os.Unsetenv("ORCH_CLUSTER")
+	src := strings.ReplaceAll(currentDir, "curation", "script/latest-dev.yaml")
+	copyFileErr := dkam_testing.CopyFile(src, res)
+	if copyFileErr != nil {
+		fmt.Println("Error copying file:", copyFileErr)
+	}
+	t.Setenv("NETIP", "static")
+	t.Setenv("ORCH_CLUSTER", "kind.internal")
 	osr := &osv1.OperatingSystemResource{
 		ProfileName: testOSProfileName,
 		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 	}
-	err = CurateScript(context.TODO(), osr)
-
-	assert.NoError(t, err)
 	defer func() {
-		os.Unsetenv("NETIP")
-		dkam_testing.CopyFile(res, src)
+		copyFileErr = dkam_testing.CopyFile(res, src)
+		if copyFileErr != nil {
+			fmt.Println("Error copying file:", copyFileErr)
+		}
 		os.Remove(res)
 		os.Remove(config.PVC + "/installer.sh")
 	}()
+	err = curation.CurateScript(context.TODO(), osr)
+	assert.NoError(t, err)
 }
 
 func Test_GetCuratedScript_Case4(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	dkam_testing.PrepareTestCaCertificateFile(t)
 
-	os.MkdirAll(config.DownloadPath, 0o755)
+	mkdirerr := os.MkdirAll(config.DownloadPath, 0o755)
+	if mkdirerr != nil {
+		fmt.Println("Error creating dir:", mkdirerr)
+	}
 
-	dummyData := `#!/bin/bash
-	enable_netipplan
-        install_intel_CAcertificates
-# Add your installation commands here
-`
-	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0o755)
+	err := os.WriteFile(config.PVC+"/installer.sh", []byte(dummyData), 0o600)
 	if err != nil {
 		fmt.Println("Error creating file:", err)
 		os.Exit(1)
 	}
 
-	result := strings.Replace(currentDir, "curation", "script/tmp", -1)
+	result := strings.ReplaceAll(currentDir, "curation", "script/tmp")
 	res := filepath.Join(result, "latest-dev.yaml")
-	if err := os.MkdirAll(filepath.Dir(res), 0o755); err != nil {
+	if err = os.MkdirAll(filepath.Dir(res), 0o755); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
-	src := strings.Replace(currentDir, "curation", "script/latest-dev.yaml", -1)
-	dkam_testing.CopyFile(src, res)
-	os.Setenv("NETIP", "static")
+	src := strings.ReplaceAll(currentDir, "curation", "script/latest-dev.yaml")
+	copyFileErr := dkam_testing.CopyFile(src, res)
+	if copyFileErr != nil {
+		fmt.Println("Error copying file:", copyFileErr)
+	}
+	t.Setenv("NETIP", "static")
 	direc := config.PVC + "/tmp/"
-	os.MkdirAll(direc, 0o755)
-	os.Create(direc + "latest-dev.yaml")
-	dkam_testing.CopyFile(src, direc+"latest-dev.yaml")
-	os.Setenv("ORCH_CLUSTER", "kind.internal")
-	defer os.Unsetenv("ORCH_CLUSTER")
+	mkdirerr = os.MkdirAll(direc, 0o755)
+	if mkdirerr != nil {
+		fmt.Println("Error creating dir:", mkdirerr)
+	}
+	_, creationErr := os.Create(direc + "latest-dev.yaml")
+	if creationErr != nil {
+		fmt.Println("Error copying file:", creationErr)
+	}
+	copyFileErr = dkam_testing.CopyFile(src, direc+"latest-dev.yaml")
+	if copyFileErr != nil {
+		fmt.Println("Error copying file:", copyFileErr)
+	}
+	t.Setenv("ORCH_CLUSTER", "kind.internal")
 	osr := &osv1.OperatingSystemResource{
 		ProfileName: testOSProfileName,
 		OsType:      osv1.OsType_OS_TYPE_MUTABLE,
 	}
-	err = CurateScript(context.TODO(), osr)
-
-	assert.NoError(t, err)
 	defer func() {
-		os.Unsetenv("NETIP")
-		dkam_testing.CopyFile(res, src)
+		copyFileErr = dkam_testing.CopyFile(res, src)
+		if copyFileErr != nil {
+			fmt.Println("Error copying file:", copyFileErr)
+		}
 		os.Remove(res)
 		os.Remove(config.PVC + "/installer.sh")
 	}()
+	err = curation.CurateScript(context.TODO(), osr)
+	assert.NoError(t, err)
 }
 
 func TestGetCuratedScript(t *testing.T) {
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	dkam_testing.PrepareTestCaCertificateFile(t)
-	os.Setenv("ORCH_CLUSTER", "kind.internal")
-	defer os.Unsetenv("ORCH_CLUSTER")
+	t.Setenv("ORCH_CLUSTER", "kind.internal")
 
 	type args struct {
 		profile string
@@ -560,6 +554,7 @@ func TestGetCuratedScript(t *testing.T) {
 			args: args{
 				profile: testOSProfileName,
 				sha256:  "",
+				osType:  osv1.OsType_OS_TYPE_MUTABLE,
 			},
 			wantErr: false,
 		},
@@ -568,9 +563,9 @@ func TestGetCuratedScript(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			osr := &osv1.OperatingSystemResource{
 				ProfileName: tt.args.profile,
-				OsType:      osv1.OsType_OS_TYPE_MUTABLE,
+				OsType:      tt.args.osType,
 			}
-			if err := CurateScript(context.TODO(), osr); (err != nil) != tt.wantErr {
+			if err := curation.CurateScript(context.TODO(), osr); (err != nil) != tt.wantErr {
 				t.Errorf("CurateScript() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -584,18 +579,18 @@ func TestCurateScriptFromTemplate(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
-		got, err := CurateFromTemplate("{{ .TEST_1 }} {{ .TEST_2 }}", templateVars)
+		got, err := curation.CurateFromTemplate("{{ .TEST_1 }} {{ .TEST_2 }}", templateVars)
 		require.NoError(t, err)
 		require.Equal(t, "test test", got)
 	})
 
 	t.Run("Failed_MissingVariable", func(t *testing.T) {
-		_, err := CurateFromTemplate("{{ .TEST_1 }} {{ .TEST_3 }}", templateVars)
+		_, err := curation.CurateFromTemplate("{{ .TEST_1 }} {{ .TEST_3 }}", templateVars)
 		require.Error(t, err)
 	})
 
 	t.Run("Failed_InvalidTemplate", func(t *testing.T) {
-		_, err := CurateFromTemplate("{{ .TEST_1", templateVars)
+		_, err := curation.CurateFromTemplate("{{ .TEST_1", templateVars)
 		require.Error(t, err)
 	})
 }
