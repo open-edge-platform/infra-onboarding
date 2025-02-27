@@ -214,14 +214,18 @@ func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName string)
 }
 
 // TODO (ITEP-1865).
-func createENCredentialsIfNotExists(ctx context.Context, tenantID string, deviceInfo utils.DeviceInfo) (string, string, error) {
+func createENCredentialsIfNotExists(
+	ctx context.Context,
+	tenantID string,
+	deviceInfo utils.DeviceInfo,
+) (clientID, clientSecret string, err error) {
 	authService, err := auth.AuthServiceFactory(ctx)
 	if err != nil {
 		return "", "", err
 	}
 	defer authService.Logout(ctx)
 
-	clientID, clientSecret, err := authService.GetCredentialsByUUID(ctx, tenantID, deviceInfo.GUID)
+	clientID, clientSecret, err = authService.GetCredentialsByUUID(ctx, tenantID, deviceInfo.GUID)
 	if err != nil && inv_errors.IsNotFound(err) {
 		return authService.CreateCredentialsWithUUID(ctx, tenantID, deviceInfo.GUID)
 	}

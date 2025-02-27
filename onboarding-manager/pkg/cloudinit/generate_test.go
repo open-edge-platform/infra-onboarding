@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-package cloudinit
+package cloudinit_test
 
 import (
 	"fmt"
@@ -10,11 +10,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/intel/infra-onboarding/dkam/pkg/config"
 	"github.com/stretchr/testify/require"
 
 	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
+	"github.com/intel/infra-onboarding/dkam/pkg/config"
 	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
+	"github.com/intel/infra-onboarding/onboarding-manager/pkg/cloudinit"
 )
 
 var (
@@ -31,19 +32,20 @@ func TestMain(m *testing.M) {
 	currentDir = wd
 
 	cleanupFunc := dkam_testing.StartTestReleaseService("test-profile")
-	defer cleanupFunc()
 
 	run := m.Run()
+	cleanupFunc()
 	os.Exit(run)
 }
 
+//nolint:funlen // it consists of required test cases.
 func TestGenerateFromInfraConfig(t *testing.T) {
 	dkam_testing.PrepareTestInfraConfig(t)
 	dkam_testing.PrepareTestCaCertificateFile(t)
 	baseConfig := config.GetInfraConfig()
 
 	type args struct {
-		options             CloudInitOptions
+		options             cloudinit.CloudInitOptions
 		infraConfigOverride func(config.InfraConfig) config.InfraConfig
 	}
 	tests := []struct {
@@ -55,7 +57,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 		{
 			name: "Success_Base_ImmutableOS",
 			args: args{
-				options: CloudInitOptions{
+				options: cloudinit.CloudInitOptions{
 					Mode:   "dev",
 					OsType: osv1.OsType_OS_TYPE_IMMUTABLE,
 				},
@@ -81,7 +83,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 		{
 			name: "Success_Base_MutableOS",
 			args: args{
-				options: CloudInitOptions{
+				options: cloudinit.CloudInitOptions{
 					Mode:   "dev",
 					OsType: osv1.OsType_OS_TYPE_MUTABLE,
 				},
@@ -107,7 +109,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 		{
 			name: "Success_NotKindInternal",
 			args: args{
-				options: CloudInitOptions{
+				options: cloudinit.CloudInitOptions{
 					Mode:   "dev",
 					OsType: osv1.OsType_OS_TYPE_IMMUTABLE,
 				},
@@ -119,7 +121,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 		{
 			name: "Success_ProdMode",
 			args: args{
-				options: CloudInitOptions{
+				options: cloudinit.CloudInitOptions{
 					Mode:   "prod",
 					OsType: osv1.OsType_OS_TYPE_IMMUTABLE,
 				},
@@ -130,7 +132,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 		{
 			name: "Success_ProdMode_MutableOS",
 			args: args{
-				options: CloudInitOptions{
+				options: cloudinit.CloudInitOptions{
 					Mode:   "prod",
 					OsType: osv1.OsType_OS_TYPE_MUTABLE,
 				},
@@ -141,7 +143,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 		{
 			name: "Success_NoProxies",
 			args: args{
-				options: CloudInitOptions{
+				options: cloudinit.CloudInitOptions{
 					Mode:   "prod",
 					OsType: osv1.OsType_OS_TYPE_MUTABLE,
 				},
@@ -161,7 +163,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 		{
 			name: "Success_SelectedProxies",
 			args: args{
-				options: CloudInitOptions{
+				options: cloudinit.CloudInitOptions{
 					Mode:   "prod",
 					OsType: osv1.OsType_OS_TYPE_IMMUTABLE,
 				},
@@ -184,7 +186,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 				config.SetInfraConfig(newCfg)
 			}
 
-			got, err := GenerateFromInfraConfig(tt.args.options)
+			got, err := cloudinit.GenerateFromInfraConfig(tt.args.options)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GenerateFromInfraConfig() error = %v, wantErr %v", err, tt.wantErr)
 				return

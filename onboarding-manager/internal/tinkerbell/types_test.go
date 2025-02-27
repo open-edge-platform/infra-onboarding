@@ -1,12 +1,14 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-package tinkerbell
+package tinkerbell_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/tinkerbell"
 )
 
 func TestMarshal(t *testing.T) {
@@ -31,15 +33,15 @@ func TestMarshal(t *testing.T) {
 		t.Errorf(`Got unexpected error: %v"`, err)
 	}
 
-	wf := &Workflow{
+	wf := &tinkerbell.Workflow{
 		Version:       "0.1",
 		Name:          "debian",
 		GlobalTimeout: 1800,
-		Tasks: []Task{{
+		Tasks: []tinkerbell.Task{{
 			Name:       "os-installation",
 			WorkerAddr: "{{.device_1}}",
 			Volumes:    []string{"/dev:/dev", "/dev/console:/dev/console"},
-			Actions: []Action{{
+			Actions: []tinkerbell.Action{{
 				Name:    "stream-image",
 				Image:   "quay.io/tinkerbell-actions/image2disk:v1.0.0",
 				Timeout: 600,

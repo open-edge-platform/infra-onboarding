@@ -12,18 +12,28 @@ import (
 	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
 )
 
+const errIndex = 2
+
 type authServiceMock struct {
 	mock.Mock
 }
 
-func (a *authServiceMock) CreateCredentialsWithUUID(ctx context.Context, tenantID, uuid string) (string, string, error) {
+func (a *authServiceMock) CreateCredentialsWithUUID(
+	ctx context.Context,
+	tenantID string,
+	uuid string,
+) (clientID, clientSecret string, err error) {
 	args := a.Called(ctx, tenantID, uuid)
-	return args.String(0), args.String(1), args.Error(2)
+	return args.String(0), args.String(1), args.Error(errIndex)
 }
 
-func (a *authServiceMock) GetCredentialsByUUID(ctx context.Context, tenantID, uuid string) (string, string, error) {
+func (a *authServiceMock) GetCredentialsByUUID(
+	ctx context.Context,
+	tenantID,
+	uuid string,
+) (clientID, clientSecret string, err error) {
 	args := a.Called(ctx, tenantID, uuid)
-	return args.String(0), args.String(1), args.Error(2)
+	return args.String(0), args.String(1), args.Error(errIndex)
 }
 
 func (a *authServiceMock) RevokeCredentialsByUUID(ctx context.Context, tenantID, uuid string) error {
@@ -31,15 +41,18 @@ func (a *authServiceMock) RevokeCredentialsByUUID(ctx context.Context, tenantID,
 	return args.Error(0)
 }
 
-func (a *authServiceMock) Logout(ctx context.Context) {
+func (a *authServiceMock) Logout(_ context.Context) {
 	a.Called()
 }
 
-func AuthServiceMockFactory(createShouldFail, getShouldFail, revokeShouldFail bool) func(ctx context.Context) (auth.AuthService, error) {
+func AuthServiceMockFactory(createShouldFail, getShouldFail,
+	revokeShouldFail bool,
+) func(ctx context.Context) (auth.AuthService, error) {
 	authMock := &authServiceMock{}
 
 	if createShouldFail {
-		authMock.On("CreateCredentialsWithUUID", mock.Anything, mock.Anything, mock.Anything).Return("", "", inv_errors.Errorf(""))
+		authMock.On("CreateCredentialsWithUUID", mock.Anything, mock.Anything, mock.Anything).
+			Return("", "", inv_errors.Errorf(""))
 	} else {
 		authMock.On("CreateCredentialsWithUUID", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	}
@@ -58,7 +71,7 @@ func AuthServiceMockFactory(createShouldFail, getShouldFail, revokeShouldFail bo
 
 	authMock.On("Logout", mock.Anything, mock.Anything).Return()
 
-	return func(ctx context.Context) (auth.AuthService, error) {
+	return func(_ context.Context) (auth.AuthService, error) {
 		return authMock, nil
 	}
 }

@@ -6,6 +6,7 @@ package testing
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -28,11 +29,14 @@ type k8sCliMock struct {
 	withInventory bool
 }
 
-func (k *k8sCliMock) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+func (k *k8sCliMock) Get(_ context.Context, key client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
 	args := k.Called()
 
 	if strings.HasPrefix(key.Name, "workflow-") {
-		workflow := obj.(*tink.Workflow)
+		workflow, ok := obj.(*tink.Workflow)
+		if !ok {
+			return args.Error(0)
+		}
 		workflow.Status.State = tink.WorkflowStateSuccess
 	}
 
@@ -46,11 +50,17 @@ func (k *k8sCliMock) Get(ctx context.Context, key client.ObjectKey, obj client.O
 
 		if k.withInventory {
 			hostUUID := strings.TrimPrefix(key.Name, "machine-")
-			host, _ := InvClient.Client.GetHostByUUID(context.Background(), inv_client.FakeTenantID, hostUUID)
+			host, err := InvClient.Client.GetHostByUUID(context.Background(), inv_client.FakeTenantID, hostUUID)
+			if err != nil {
+				fmt.Println(err)
+			}
 			osResourceID = host.GetInstance().GetDesiredOs().GetResourceId()
 		}
 
-		hardware := obj.(*tink.Hardware)
+		hardware, ok := obj.(*tink.Hardware)
+		if !ok {
+			return args.Error(0)
+		}
 		hardware.Spec.Metadata = &tink.HardwareMetadata{
 			Instance: &tink.MetadataInstance{
 				OperatingSystem: &tink.MetadataInstanceOperatingSystem{
@@ -63,32 +73,32 @@ func (k *k8sCliMock) Get(ctx context.Context, key client.ObjectKey, obj client.O
 	return args.Error(0)
 }
 
-func (k *k8sCliMock) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+func (k *k8sCliMock) List(_ context.Context, _ client.ObjectList, _ ...client.ListOption) error {
 	args := k.Called()
 	return args.Error(0)
 }
 
-func (k *k8sCliMock) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
+func (k *k8sCliMock) Create(_ context.Context, _ client.Object, _ ...client.CreateOption) error {
 	args := k.Called()
 	return args.Error(0)
 }
 
-func (k *k8sCliMock) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
+func (k *k8sCliMock) Delete(_ context.Context, _ client.Object, _ ...client.DeleteOption) error {
 	args := k.Called()
 	return args.Error(0)
 }
 
-func (k *k8sCliMock) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
+func (k *k8sCliMock) Update(_ context.Context, _ client.Object, _ ...client.UpdateOption) error {
 	args := k.Called()
 	return args.Error(0)
 }
 
-func (k *k8sCliMock) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
+func (k *k8sCliMock) Patch(_ context.Context, _ client.Object, _ client.Patch, _ ...client.PatchOption) error {
 	args := k.Called()
 	return args.Error(0)
 }
 
-func (k *k8sCliMock) DeleteAllOf(ctx context.Context, obj client.Object, opts ...client.DeleteAllOfOption) error {
+func (k *k8sCliMock) DeleteAllOf(_ context.Context, _ client.Object, _ ...client.DeleteAllOfOption) error {
 	args := k.Called()
 	return args.Error(0)
 }
@@ -98,7 +108,7 @@ func (k *k8sCliMock) Status() client.SubResourceWriter {
 	return args.Get(0).(client.SubResourceWriter)
 }
 
-func (k *k8sCliMock) SubResource(subResource string) client.SubResourceClient {
+func (k *k8sCliMock) SubResource(_ string) client.SubResourceClient {
 	args := k.Called()
 	return args.Get(0).(client.SubResourceClient)
 }
@@ -113,12 +123,12 @@ func (k *k8sCliMock) RESTMapper() meta.RESTMapper {
 	return args.Get(0).(meta.RESTMapper)
 }
 
-func (k *k8sCliMock) GroupVersionKindFor(obj runtime.Object) (schema.GroupVersionKind, error) {
+func (k *k8sCliMock) GroupVersionKindFor(_ runtime.Object) (schema.GroupVersionKind, error) {
 	args := k.Called()
 	return args.Get(0).(schema.GroupVersionKind), args.Error(1)
 }
 
-func (k *k8sCliMock) IsObjectNamespaced(obj runtime.Object) (bool, error) {
+func (k *k8sCliMock) IsObjectNamespaced(_ runtime.Object) (bool, error) {
 	args := k.Called()
 	return args.Get(0).(bool), args.Error(1)
 }

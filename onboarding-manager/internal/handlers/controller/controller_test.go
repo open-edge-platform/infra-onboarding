@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
-
+//
+//nolint:testpackage // Keeping the test in the same package due to dependencies on unexported fields.
 package controller
 
 import (
@@ -51,7 +52,7 @@ func TestReconcileEvent(t *testing.T) {
 
 	// Use a mock reconciler
 	doneHost := make(chan bool, 1)
-	controllerHost := rec_v2.NewController[reconcilers.ReconcilerID](func(ctx context.Context,
+	controllerHost := rec_v2.NewController[reconcilers.ReconcilerID](func(_ context.Context,
 		request rec_v2.Request[reconcilers.ReconcilerID],
 	) rec_v2.Directive[reconcilers.ReconcilerID] {
 		doneHost <- true
@@ -59,7 +60,7 @@ func TestReconcileEvent(t *testing.T) {
 	}, rec_v2.WithParallelism(1))
 	nbHandler.controllers[inv_v1.ResourceKind_RESOURCE_KIND_HOST] = controllerHost
 	doneInstance := make(chan bool, 1)
-	controllerInstance := rec_v2.NewController[reconcilers.ReconcilerID](func(ctx context.Context,
+	controllerInstance := rec_v2.NewController[reconcilers.ReconcilerID](func(_ context.Context,
 		request rec_v2.Request[reconcilers.ReconcilerID],
 	) rec_v2.Directive[reconcilers.ReconcilerID] {
 		doneInstance <- true
@@ -115,7 +116,7 @@ func TestReconcileAll(t *testing.T) {
 
 	// Use a mock reconciler
 	doneHost := make(chan bool, 1)
-	controllerHost := rec_v2.NewController[reconcilers.ReconcilerID](func(ctx context.Context,
+	controllerHost := rec_v2.NewController[reconcilers.ReconcilerID](func(_ context.Context,
 		request rec_v2.Request[reconcilers.ReconcilerID],
 	) rec_v2.Directive[reconcilers.ReconcilerID] {
 		doneHost <- true
@@ -124,7 +125,7 @@ func TestReconcileAll(t *testing.T) {
 	nbHandler.controllers[inv_v1.ResourceKind_RESOURCE_KIND_HOST] = controllerHost
 
 	doneInstance := make(chan bool, 1)
-	controllerInstance := rec_v2.NewController[reconcilers.ReconcilerID](func(ctx context.Context,
+	controllerInstance := rec_v2.NewController[reconcilers.ReconcilerID](func(_ context.Context,
 		request rec_v2.Request[reconcilers.ReconcilerID],
 	) rec_v2.Directive[reconcilers.ReconcilerID] {
 		doneInstance <- true
@@ -193,7 +194,7 @@ func TestReconcileNoControllers(t *testing.T) {
 
 	// Use a mock reconciler
 	doneHost := make(chan bool, 1)
-	controllerHost := rec_v2.NewController[reconcilers.ReconcilerID](func(ctx context.Context,
+	controllerHost := rec_v2.NewController[reconcilers.ReconcilerID](func(_ context.Context,
 		request rec_v2.Request[reconcilers.ReconcilerID],
 	) rec_v2.Directive[reconcilers.ReconcilerID] {
 		doneHost <- true
@@ -202,7 +203,7 @@ func TestReconcileNoControllers(t *testing.T) {
 	nbHandler.controllers[inv_v1.ResourceKind_RESOURCE_KIND_HOST] = controllerHost
 
 	doneInstance := make(chan bool, 1)
-	controllerInstance := rec_v2.NewController[reconcilers.ReconcilerID](func(ctx context.Context,
+	controllerInstance := rec_v2.NewController[reconcilers.ReconcilerID](func(_ context.Context,
 		request rec_v2.Request[reconcilers.ReconcilerID],
 	) rec_v2.Directive[reconcilers.ReconcilerID] {
 		doneInstance <- true
@@ -318,7 +319,7 @@ func TestOnboardingController_Stop(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(_ *testing.T) {
 			obc := &OnboardingController{
 				invClient:   tt.fields.invClient,
 				filters:     tt.fields.filters,
@@ -426,7 +427,7 @@ func TestOnboardingController_filterEvent(t *testing.T) {
 			name: "Test onboarding controller -filter event with valid filter",
 			fields: fields{
 				filters: map[inv_v1.ResourceKind]Filter{
-					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(event *inv_v1.SubscribeEventsResponse) bool {
+					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(_ *inv_v1.SubscribeEventsResponse) bool {
 						return true
 					},
 				},
@@ -440,7 +441,7 @@ func TestOnboardingController_filterEvent(t *testing.T) {
 			name: "Test onboarding controller -filter event with invalid filter",
 			fields: fields{
 				filters: map[inv_v1.ResourceKind]Filter{
-					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(event *inv_v1.SubscribeEventsResponse) bool {
+					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(_ *inv_v1.SubscribeEventsResponse) bool {
 						return false
 					},
 				},
@@ -513,7 +514,7 @@ func TestOnboardingController_filterEvent_Case(t *testing.T) {
 			name: "Test OnboardingController -Filter event with valid filter",
 			fields: fields{
 				filters: map[inv_v1.ResourceKind]Filter{
-					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(event *inv_v1.SubscribeEventsResponse) bool {
+					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(_ *inv_v1.SubscribeEventsResponse) bool {
 						return true
 					},
 				},
@@ -527,7 +528,7 @@ func TestOnboardingController_filterEvent_Case(t *testing.T) {
 			name: "Test OnboardingController -Filter event with invalid filter",
 			fields: fields{
 				filters: map[inv_v1.ResourceKind]Filter{
-					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(event *inv_v1.SubscribeEventsResponse) bool {
+					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(_ *inv_v1.SubscribeEventsResponse) bool {
 						return false
 					},
 				},
@@ -541,7 +542,7 @@ func TestOnboardingController_filterEvent_Case(t *testing.T) {
 			name: "Test OnboardingController -Filter event with no matching filter",
 			fields: fields{
 				filters: map[inv_v1.ResourceKind]Filter{
-					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(event *inv_v1.SubscribeEventsResponse) bool {
+					inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE: func(_ *inv_v1.SubscribeEventsResponse) bool {
 						return false
 					},
 				},
@@ -552,7 +553,7 @@ func TestOnboardingController_filterEvent_Case(t *testing.T) {
 			want: false,
 		},
 	}
-
+	defer os.Remove("internal/handlers/controller/__debug_bin2723494166")
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			obc := &OnboardingController{
@@ -563,7 +564,4 @@ func TestOnboardingController_filterEvent_Case(t *testing.T) {
 			}
 		})
 	}
-	defer func() {
-		os.Remove("internal/handlers/controller/__debug_bin2723494166")
-	}()
 }

@@ -126,6 +126,28 @@ linters-settings:
           - github.com/intel
           - github.com/stretchr/testify/require
           - github.com/grpc-ecosystem/go-grpc-middleware
+          - entgo.io/ent
+          - github.com/goccy/go-json
+          - github.com/google
+          - github.com/grpc-ecosystem
+          - github.com/lib/pq
+          - github.com/mennanov/fmutils
+          - github.com/labstack/echo
+          - github.com/onosproject
+          - github.com/open-policy-agent
+          - github.com/pkg/errors
+          - github.com/rs/zerolog
+          - github.com/cenkalti/backoff
+          - github.com/spf13
+          - k8s.io/apimachinery
+          - k8s.io/client-go
+          - github.com/tinkerbell
+          - github.com/Nerzal/gocloak
+          - github.com/scylladb/gocqlx
+          - sigs.k8s.io/controller-runtime/pkg/client
+          - sigs.k8s.io/controller-runtime/pkg/log
+          - sigs.k8s.io/controller-runtime/pkg/log/zap
+          - github.com/stretchr/testify
           - github.com/prometheus/client_golang/prometheus
       Test:
         files:
@@ -134,9 +156,25 @@ linters-settings:
           - $gostd
           - github.com/intel
           - github.com/stretchr/testify/assert
+          - github.com/goccy/go-json
+          - github.com/google
+          - github.com/grpc-ecosystem
+          - github.com/mennanov/fmutils
+          - github.com/onosproject
+          - github.com/rs/zerolog
           - github.com/stretchr/testify/require
           - github.com/google/uuid
-
+          - github.com/grpc-ecosystem/go-grpc-middleware/util/metautils
+          - github.com/stretchr/testify/mock
+          - github.com/tinkerbell/tink/api/v1alpha1
+          - k8s.io/apimachinery/pkg/api/errors
+          - k8s.io/apimachinery/pkg/api/meta
+          - k8s.io/apimachinery/pkg/apis/meta/v1
+          - k8s.io/apimachinery/pkg/runtime
+          - k8s.io/apimachinery/pkg/runtime/schema
+          - sigs.k8s.io/controller-runtime/pkg/client
+          - sigs.k8s.io/controller-runtime/pkg/client/fake
+          - github.com/pkg/errors
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
@@ -148,60 +186,6 @@ issues:
     - Error return value of `.*Write` is not checked
     - Error return value of `.*Stop` is not checked
   exclude-rules:
-    - path: ".*_test\\.go"
-      linters:
-        - gci
-        - dupl
-        - gocritic
-        - gosec
-        - lll
-        - revive
-        - staticcheck
-        - funlen
-        - errcheck
-        - govet
-        - tenv
-        - testpackage
-        - godot
-        - cyclop
-        - unconvert
-        - dogsled
-        - stylecheck
-        - unconvert
-        - misspell
-        - goconst
-        - unused
-    - path: internal/testing/.*_mock\.go
-      linters:
-        - revive
-        - gocritic
-        - lll
-        - errcheck
-        - mnd
-    - path: internal/testing/testing_utils.go
-      linters:
-        - dupl
-    - path: internal/tinkerbell/template.go
-      linters:
-        - dupl
-    - path: internal/tinkerbell/template_test.go
-      linters:
-        - predeclared
-    - path: internal/tinkerbell/workflow.go
-      linters:
-        - dupl
-    - path: internal/invclient/invclient.go
-      linters:
-        - dupl
-    - path: internal/onboardingmgr/onbworkflowclient/workflow.go
-      linters:
-        - gocritic
-    - path: internal/onboardingmgr/utils/common.go
-      linters:
-        - gocritic
-    - path: internal/tinkerbell/workflow_test.go
-      linters:
-        - predeclared
 output:
   formats: colored-line-number:stdout,html:out/golangci-lint_report.html
   print-linter-name: true

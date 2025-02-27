@@ -429,7 +429,7 @@ func (s *NonInteractiveOnboardingService) getHostResource(req *pb.OnboardStreamR
 	return hostResource, nil
 }
 
-//nolint:funlen,cyclop // reason: function is long due to necessary logic; cyclomatic complexity is high due to necessary handling
+//nolint:cyclop,funlen // reason: cyclomatic complexity is high due to necessary handling
 func (s *NonInteractiveOnboardingService) OnboardNodeStream(
 	stream pb.NonInteractiveOnboardingService_OnboardNodeStreamServer,
 ) error {

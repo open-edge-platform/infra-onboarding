@@ -238,6 +238,7 @@ func (c *OnboardingInventoryClient) UpdateInvResourceFields(ctx context.Context,
 	return err
 }
 
+//nolint:dupl // This is to return host.
 func (c *OnboardingInventoryClient) listAndReturnHost(
 	ctx context.Context,
 	filter *inv_v1.ResourceFilter,
@@ -700,6 +701,7 @@ func (c *OnboardingInventoryClient) DeleteIPAddress(ctx context.Context, tenantI
 	return err
 }
 
+//nolint:dupl // This is to return provider.
 func (c *OnboardingInventoryClient) listAndReturnProvider(
 	ctx context.Context,
 	filter *inv_v1.ResourceFilter,

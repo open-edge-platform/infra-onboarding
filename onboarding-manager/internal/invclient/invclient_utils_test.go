@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-package invclient
+package invclient_test
 
 import (
 	"testing"
@@ -9,6 +9,7 @@ import (
 	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
 	"github.com/intel/infra-core/inventory/v2/pkg/logging"
 	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
 )
 
 const (
@@ -18,7 +19,7 @@ const (
 
 var (
 	zlogTest             = logging.GetLogger(loggerName)
-	OnboardingTestClient *OnboardingInventoryClient
+	OnboardingTestClient *invclient.OnboardingInventoryClient
 )
 
 func CreateOnboardingClientForTesting(tb testing.TB) {
@@ -34,7 +35,7 @@ func CreateOnboardingClientForTesting(tb testing.TB) {
 		zlogTest.Fatal().Err(err).Msg("Cannot create onboarding invclient client")
 	}
 
-	OnboardingTestClient, err = NewOnboardingInventoryClient(
+	OnboardingTestClient, err = invclient.NewOnboardingInventoryClient(
 		inv_testing.TestClients[testClientName].GetTenantAwareInventoryClient(), inv_testing.TestClientsEvents[testClientName])
 	if err != nil {
 		zlogTest.Fatal().Err(err).Msg("Cannot create onboarding invclient client")

@@ -8,152 +8,125 @@ import (
 	"context"
 
 	"github.com/stretchr/testify/mock"
-	"google.golang.org/protobuf/types/known/fieldmaskpb"
+	"google.golang.org/grpc/metadata"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
-	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
-	"github.com/intel/infra-core/inventory/v2/pkg/client/cache"
+	pb "github.com/intel/infra-onboarding/onboarding-manager/pkg/api"
 )
 
-type MockInventoryClient struct {
+type MockNonInteractiveOnboardingServiceOnboardNodeStreamServer struct {
 	mock.Mock
 }
 
-func (m *MockInventoryClient) Close() error {
-	args := m.Called()
+func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) Send(response *pb.OnboardStreamResponse) error {
+	args := m.Called(response)
 	return args.Error(0)
 }
 
-func (m *MockInventoryClient) List(ctx context.Context, filter *inv_v1.ResourceFilter) (*inv_v1.ListResourcesResponse, error) {
-	args := m.Called(ctx, filter)
-	return args.Get(0).(*inv_v1.ListResourcesResponse), args.Error(1)
+func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) Recv() (*pb.OnboardStreamRequest, error) {
+	args := m.Called()
+	return args.Get(0).(*pb.OnboardStreamRequest), args.Error(1)
 }
 
-func (m *MockInventoryClient) ListAll(ctx context.Context, filter *inv_v1.ResourceFilter) ([]*inv_v1.Resource, error) {
-	args := m.Called(ctx, filter)
-	return args.Get(0).([]*inv_v1.Resource), args.Error(1)
-}
-
-func (m *MockInventoryClient) Find(ctx context.Context, filter *inv_v1.ResourceFilter) (*inv_v1.FindResourcesResponse, error) {
-	args := m.Called(ctx, filter)
-	return args.Get(0).(*inv_v1.FindResourcesResponse), args.Error(1)
-}
-
-func (m *MockInventoryClient) FindAll(ctx context.Context, filter *inv_v1.ResourceFilter) ([]string, error) {
-	args := m.Called(ctx, filter)
-	return args.Get(0).([]string), args.Error(1)
-}
-
-func (m *MockInventoryClient) Get(ctx context.Context, id string) (*inv_v1.GetResourceResponse, error) {
-	args := m.Called(ctx, id)
-	return args.Get(0).(*inv_v1.GetResourceResponse), args.Error(1)
-}
-
-func (m *MockInventoryClient) Create(ctx context.Context, resource *inv_v1.Resource) (*inv_v1.Resource, error) {
-	args := m.Called(ctx, resource)
-	return args.Get(0).(*inv_v1.Resource), args.Error(1)
-}
-
-func (m *MockInventoryClient) Update(ctx context.Context, id string,
-	mask *fieldmaskpb.FieldMask, resource *inv_v1.Resource,
-) (*inv_v1.Resource, error) {
-	args := m.Called(ctx, id, mask, resource)
-	return args.Get(0).(*inv_v1.Resource), args.Error(1)
-}
-
-func (m *MockInventoryClient) Delete(ctx context.Context, id string) (*inv_v1.DeleteResourceResponse, error) {
-	args := m.Called(ctx, id)
-	return args.Get(0).(*inv_v1.DeleteResourceResponse), args.Error(1)
-}
-
-func (m *MockInventoryClient) UpdateSubscriptions(ctx context.Context, kinds []inv_v1.ResourceKind) error {
-	args := m.Called(ctx, kinds)
+func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) SetHeader(md metadata.MD) error {
+	args := m.Called(md)
 	return args.Error(0)
 }
 
-func (m *MockInventoryClient) ListInheritedTelemetryProfiles(ctx context.Context,
-	inheritBy *inv_v1.ListInheritedTelemetryProfilesRequest_InheritBy,
-	filter string,
-	orderBy string,
-	limit, offset uint32,
-) (*inv_v1.ListInheritedTelemetryProfilesResponse, error) {
-	args := m.Called(ctx, inheritBy, filter, orderBy, limit, offset)
-	return args.Get(0).(*inv_v1.ListInheritedTelemetryProfilesResponse), args.Error(1)
+func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) SendHeader(md metadata.MD) error {
+	args := m.Called(md)
+	return args.Error(0)
 }
 
-func (m *MockInventoryClient) GetHostByUUID(ctx context.Context, uuid string) (*computev1.HostResource, error) {
-	args := m.Called(ctx, uuid)
-	return args.Get(0).(*computev1.HostResource), args.Error(1)
+func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) SetTrailer(md metadata.MD) {
+	m.Called(md)
 }
 
-func (m *MockInventoryClient) TestingOnlySetClient(client inv_v1.InventoryServiceClient) {
-	m.Called(client)
+func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) Context() context.Context {
+	args := m.Called()
+	return args.Get(0).(context.Context)
 }
 
-func (m *MockInventoryClient) TestGetClientCache() *cache.InventoryCache {
-	m.Called()
-	return nil
+func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) SendMsg(msg interface{}) error {
+	args := m.Called(msg)
+	return args.Error(0)
 }
 
-func (m *MockInventoryClient) TestGetClientCacheUUID() *cache.InventoryCache {
-	m.Called()
-	return nil
+func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) RecvMsg(msg interface{}) error {
+	args := m.Called(msg)
+	return args.Error(0)
 }
 
-type MockInvClient struct {
+type MockClient struct {
 	mock.Mock
 }
 
-type MockDeviceInfo struct {
-	mock.Mock
-}
+//
 
-func (m *MockDeviceInfo) HwIP() string {
+func (m *MockClient) Scheme() *runtime.Scheme {
 	args := m.Called()
-	return args.String(0)
+	return args.Get(0).(*runtime.Scheme)
 }
 
-func (m *MockDeviceInfo) HwSerialID() string {
+func (m *MockClient) RESTMapper() meta.RESTMapper {
 	args := m.Called()
-	return args.String(0)
+	return args.Get(0).(meta.RESTMapper)
 }
 
-func (m *MockDeviceInfo) ProvisionerIP() string {
+func (m *MockClient) GroupVersionKindFor(obj runtime.Object) (schema.GroupVersionKind, error) {
+	args := m.Called(obj)
+	return args.Get(0).(schema.GroupVersionKind), args.Error(1)
+}
+
+func (m *MockClient) IsObjectNamespaced(obj runtime.Object) (bool, error) {
+	args := m.Called(obj)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *MockClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+	args := m.Called(ctx, key, obj, opts)
+	return args.Error(0)
+}
+
+func (m *MockClient) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+	args := m.Called(ctx, list, opts)
+	return args.Error(0)
+}
+
+func (m *MockClient) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
+	args := m.Called(ctx, obj, opts)
+	return args.Error(0)
+}
+
+func (m *MockClient) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
+	args := m.Called(ctx, obj, opts)
+	return args.Error(0)
+}
+
+func (m *MockClient) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
+	args := m.Called(ctx, obj, opts)
+	return args.Error(0)
+}
+
+func (m *MockClient) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
+	args := m.Called(ctx, obj, patch, opts)
+	return args.Error(0)
+}
+
+func (m *MockClient) DeleteAllOf(ctx context.Context, obj client.Object, opts ...client.DeleteAllOfOption) error {
+	args := m.Called(ctx, obj, opts)
+	return args.Error(0)
+}
+
+func (m *MockClient) Status() client.SubResourceWriter {
 	args := m.Called()
-	return args.String(0)
+	return args.Get(0).(client.SubResourceWriter)
 }
 
-func (m *MockDeviceInfo) GUID() string {
-	args := m.Called()
-	return args.String(0)
-}
-
-func (m *MockDeviceInfo) SetGUID(guid string) {
-	m.Called(guid)
-}
-
-// type MockMakeGETRequestWithRetry struct {
-// 	mock.Mock
-// }
-
-// func (m *MockMakeGETRequestWithRetry) Call(deviceInfo *utils.DeviceInfo, caCertPath, certPath string) error {
-// 	args := m.Called(deviceInfo.HwSerialID, deviceInfo.ProvisionerIp, caCertPath, certPath, deviceInfo.Guid)
-// 	return args.Error(0)
-// }
-
-type MockHTTPUtils struct {
-	mock.Mock
-}
-
-func (m *MockHTTPUtils) MakeHTTPGETRequest(pdip, guid, caCertPath, certPath string) ([]byte, error) {
-	args := m.Called(pdip, guid, caCertPath, certPath)
-	return args.Get(0).([]byte), args.Error(1)
-}
-
-type MockController struct {
-	mock.Mock
-}
-
-func (m *MockController) Stop() {
-	m.Called()
+func (m *MockClient) SubResource(subResource string) client.SubResourceClient {
+	args := m.Called(subResource)
+	return args.Get(0).(client.SubResourceClient)
 }

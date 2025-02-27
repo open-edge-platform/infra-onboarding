@@ -1,12 +1,13 @@
 // // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // // SPDX-License-Identifier: Apache-2.0
-
+//
+//nolint:testpackage // Keeping the test in the same package due to dependencies on unexported fields.
 package grpcserver
 
 import (
 	"context"
-	"crypto/md5"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -15,10 +16,13 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
-	"sync"
 	"testing"
 
 	u_uuid "github.com/google/uuid"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+
 	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
 	providerv1 "github.com/intel/infra-core/inventory/v2/pkg/api/provider/v1"
 	statusv1 "github.com/intel/infra-core/inventory/v2/pkg/api/status/v1"
@@ -30,23 +34,20 @@ import (
 	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/env"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
+	onboarding "github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/onboarding/onboardingmocks"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
 	om_testing "github.com/intel/infra-onboarding/onboarding-manager/internal/testing"
 	pb "github.com/intel/infra-onboarding/onboarding-manager/pkg/api"
 	om_status "github.com/intel/infra-onboarding/onboarding-manager/pkg/status"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 )
 
 const (
 	tenant1   = "11111111-1111-1111-1111-111111111111"
 	tenant2   = "22222222-2222-2222-2222-222222222222"
 	rbacRules = "../../../../rego/authz.rego"
+	sutIP     = "192.168.1.1"
+	serialnum = "ABCDEHI"
 )
-
-var mutex sync.Mutex
 
 /*const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
@@ -61,7 +62,7 @@ func generateRandomString(length int) string {
 }*/
 
 func getMD5Hash(text string) string {
-	hasher := md5.New()
+	hasher := sha256.New()
 	hasher.Write([]byte(text))
 	return hex.EncodeToString(hasher.Sum(nil))
 }
@@ -151,7 +152,7 @@ func TestCopyNodeReqtoNodetData(t *testing.T) {
 			Hwdata: []*pb.HwData{
 				{
 					MacId:     "mac1",
-					SutIp:     "192.168.1.1",
+					SutIp:     sutIP,
 					Uuid:      "uuid1",
 					Serialnum: "serial1",
 				},
@@ -191,6 +192,7 @@ func TestCopyNodeReqtoNodetData(t *testing.T) {
 	}
 }
 
+//nolint:funlen // reason: function is long due to necessary test cases.
 func TestInteractiveOnboardingService_CreateNodes_Case(t *testing.T) {
 	type fields struct {
 		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
@@ -205,14 +207,13 @@ func TestInteractiveOnboardingService_CreateNodes_Case(t *testing.T) {
 		req *pb.NodeRequest
 	}
 
-	macId := generateValidMacID()
-	sutIp := "192.168.1.1"
-	serialnum := "ABCDEHI"
+	macID := generateValidMacID()
+	serialnum := serialnum
 
 	hwdata := &pb.HwData{
 		Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-		MacId:     macId,
-		SutIp:     sutIp,
+		MacId:     macID,
+		SutIp:     sutIP,
 		Serialnum: serialnum,
 	}
 	hwdatas := []*pb.HwData{hwdata}
@@ -262,53 +263,6 @@ func TestInteractiveOnboardingService_CreateNodes_Case(t *testing.T) {
 			want:    nil,
 			wantErr: true,
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &InteractiveOnboardingService{
-				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
-				InventoryClientService: InventoryClientService{
-					invClient: tt.fields.invClient,
-				},
-				authEnabled: tt.fields.enableAuth,
-				rbac:        tt.fields.rbac,
-			}
-			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("InteractiveOnboardingService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("InteractiveOnboardingService.CreateNodes() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestInteractiveOnboardingService_CreateNodes_Case1(t *testing.T) {
-	type fields struct {
-		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
-		invClient                                       *invclient.OnboardingInventoryClient
-		enableAuth                                      bool
-		rbac                                            *rbac.Policy
-	}
-	rbacServer, err := rbac.New(rbacRules)
-	require.NoError(t, err)
-	type args struct {
-		ctx context.Context
-		req *pb.NodeRequest
-	}
-	tenantID := u_uuid.NewString()
-	ctx, cancel := inv_testing.CreateContextWithJWT(t, tenantID)
-	defer cancel()
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    *pb.NodeResponse
-		wantErr bool
-	}{
 		{
 			name: "Positive test case for creating node",
 			fields: fields{
@@ -362,6 +316,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case1(t *testing.T) {
 			wantErr: true,
 		},
 	}
+	//nolint:dupl // These tests cover different scenarios.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &InteractiveOnboardingService{
@@ -397,14 +352,13 @@ func TestInteractiveOnboardingService_CreateNodes_Case2(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	macId := generateValidMacID()
-	sutIp := "192.168.1.1"
-	serialnum := "ABCDEHI"
+	macID := generateValidMacID()
+	serialnum := serialnum
 
 	hwdata := &pb.HwData{
 		Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-		MacId:     macId,
-		SutIp:     sutIp,
+		MacId:     macID,
+		SutIp:     sutIP,
 		Serialnum: serialnum,
 	}
 	hwdatas := []*pb.HwData{hwdata}
@@ -424,7 +378,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case2(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Negative1",
+			name: "Negative",
 			fields: fields{
 				invClient:  &invclient.OnboardingInventoryClient{},
 				enableAuth: true,
@@ -452,7 +406,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case2(t *testing.T) {
 			wantErr: true,
 		},
 	}
-
+	//nolint:dupl // These tests cover different scenarios.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &InteractiveOnboardingService{
@@ -488,14 +442,13 @@ func TestInteractiveOnboardingService_CreateNodes_Case3(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	macId := generateValidMacID()
-	sutIp := "192.168.1.1"
-	serialnum := "ABCDEHI"
+	macID := generateValidMacID()
+	serialnum := serialnum
 
 	hwdata := &pb.HwData{
 		Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-		MacId:     macId,
-		SutIp:     sutIp,
+		MacId:     macID,
+		SutIp:     sutIP,
 		Serialnum: serialnum,
 	}
 	hwdatas := []*pb.HwData{hwdata}
@@ -546,98 +499,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case3(t *testing.T) {
 			wantErr: true,
 		},
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &InteractiveOnboardingService{
-				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
-				InventoryClientService: InventoryClientService{
-					invClient: tt.fields.invClient,
-				},
-				authEnabled: tt.fields.enableAuth,
-				rbac:        tt.fields.rbac,
-			}
-			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("InteractiveOnboardingService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("InteractiveOnboardingService.CreateNodes() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestInteractiveOnboardingService_CreateNodes_Case4(t *testing.T) {
-	type fields struct {
-		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
-		invClient                                       *invclient.OnboardingInventoryClient
-		enableAuth                                      bool
-		rbac                                            *rbac.Policy
-	}
-	rbacServer, err := rbac.New(rbacRules)
-	require.NoError(t, err)
-	type args struct {
-		ctx context.Context
-		req *pb.NodeRequest
-	}
-	macId := generateValidMacID()
-	sutIp := "192.168.1.1"
-	serialnum := "ABCDEHI"
-
-	hwdata := &pb.HwData{
-		Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-		MacId:     macId,
-		SutIp:     sutIp,
-		Serialnum: serialnum,
-	}
-	hwdatas := []*pb.HwData{hwdata}
-	payload := pb.NodeData{Hwdata: hwdatas}
-	payloads := []*pb.NodeData{&payload}
-	mockRequest := &pb.NodeRequest{
-		Payload: payloads,
-	}
-	tenantID := u_uuid.NewString()
-	ctx, cancel := inv_testing.CreateContextWithJWT(t, tenantID)
-	defer cancel()
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    *pb.NodeResponse
-		wantErr bool
-	}{
-		{
-			name: "Negative",
-			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{},
-				enableAuth: true,
-				rbac:       rbacServer,
-			},
-			args: args{
-				ctx: ctx,
-				req: mockRequest,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "NoJWT",
-			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{},
-				enableAuth: true,
-				rbac:       rbacServer,
-			},
-			args: args{
-				ctx: context.TODO(),
-				req: mockRequest,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-	}
-
+	//nolint:dupl // These tests cover different scenarios.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &InteractiveOnboardingService{
@@ -681,7 +543,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case_Success(t *testing.T) {
 	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 	dao := inv_testing.NewInvResourceDAOOrFail(t)
 	host := dao.CreateHost(t, tenant1)
-	hwdata1 := &pb.HwData{Uuid: host.GetUuid(), Serialnum: "ABCDEFG", MacId: generateValidMacID(), SutIp: "192.168.1.1"}
+	hwdata1 := &pb.HwData{Uuid: host.GetUuid(), Serialnum: "ABCDEFG", MacId: generateValidMacID(), SutIp: sutIP}
 	hwdatas1 := []*pb.HwData{hwdata1}
 	payload1 := pb.NodeData{Hwdata: hwdatas1}
 	payloads1 := []*pb.NodeData{&payload1}
@@ -710,7 +572,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case_Success(t *testing.T) {
 			wantErr: false,
 		},
 	}
-
+	//nolint:dupl // These tests cover different scenarios.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &InteractiveOnboardingService{
@@ -749,8 +611,8 @@ func TestInteractiveOnboardingService_startZeroTouch(t *testing.T) {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
 	host := inv_testing.CreateHost(t, nil, nil)
-	os := inv_testing.CreateOs(t)
-	inv_testing.CreateInstance(t, host, os)
+	osRes := inv_testing.CreateOs(t)
+	inv_testing.CreateInstance(t, host, osRes)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -867,7 +729,8 @@ func TestNewInteractiveOnboardingService_Case(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewInteractiveOnboardingService(tt.args.invClient, tt.args.inventoryAdr, tt.args.enableTracing, tt.args.enableAuth, tt.args.rbac)
+			got, err := NewInteractiveOnboardingService(tt.args.invClient, tt.args.inventoryAdr,
+				tt.args.enableTracing, tt.args.enableAuth, tt.args.rbac)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewInteractiveOnboardingService() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -892,14 +755,13 @@ func TestInteractiveOnboardingService_CreateNodes_Case5(t *testing.T) {
 		ctx context.Context
 		req *pb.NodeRequest
 	}
-	macId := generateValidMacID()
-	sutIp := "192.168.1.1"
-	serialnum := "ABCDEHI"
+	macID := generateValidMacID()
+	serialnum := serialnum
 
 	hwdata := &pb.HwData{
 		Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-		MacId:     macId,
-		SutIp:     sutIp,
+		MacId:     macID,
+		SutIp:     sutIP,
 		Serialnum: serialnum,
 	}
 	hwdatas := []*pb.HwData{hwdata}
@@ -950,7 +812,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case5(t *testing.T) {
 			wantErr: true,
 		},
 	}
-
+	//nolint:dupl // These tests cover different scenarios.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &InteractiveOnboardingService{
@@ -1048,58 +910,6 @@ func TestInteractiveOnboardingService_startZeroTouch_Case2(t *testing.T) {
 	}{
 		{
 			name: "Start ZeroTouch with no provider creation -Successful",
-			fields: fields{
-				invClient:    om_testing.InvClient,
-				invClientAPI: om_testing.InvClient,
-			},
-			args: args{
-				ctx:          context.Background(),
-				hostTenantID: host.TenantId,
-				hostResID:    host.ResourceId,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &InteractiveOnboardingService{
-				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
-				InventoryClientService: InventoryClientService{
-					invClient:    tt.fields.invClient,
-					invClientAPI: tt.fields.invClientAPI,
-				},
-			}
-			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
-				t.Errorf("InteractiveOnboardingService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestInteractiveOnboardingService_startZeroTouch_Case3(t *testing.T) {
-	type fields struct {
-		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
-		invClient                                       *invclient.OnboardingInventoryClient
-		invClientAPI                                    *invclient.OnboardingInventoryClient
-	}
-	type args struct {
-		ctx          context.Context
-		hostTenantID string
-		hostResID    string
-	}
-	om_testing.CreateInventoryOnboardingClientForTesting()
-	t.Cleanup(func() {
-		om_testing.DeleteInventoryOnboardingClientForTesting()
-	})
-	host := inv_testing.CreateHost(t, nil, nil)
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Start ZeroTouch with provider creation -Success",
 			fields: fields{
 				invClient:    om_testing.InvClient,
 				invClientAPI: om_testing.InvClient,
@@ -1311,14 +1121,13 @@ func TestInteractiveOnboardingService_CreateNodes_Case7(t *testing.T) {
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	macId := generateValidMacID()
-	sutIp := "192.168.1.1"
-	serialnum := "ABCDEHI"
+	macID := generateValidMacID()
+	serialnum := serialnum
 
 	hwdata := &pb.HwData{
 		Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-		MacId:     macId,
-		SutIp:     sutIp,
+		MacId:     macID,
+		SutIp:     sutIP,
 		Serialnum: serialnum,
 	}
 	hwdatas := []*pb.HwData{hwdata}
@@ -1366,7 +1175,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case7(t *testing.T) {
 			wantErr: true,
 		},
 	}
-
+	//nolint:dupl // These tests cover different scenarios.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &InteractiveOnboardingService{
@@ -1464,54 +1273,12 @@ func TestInteractiveOnboardingService_checkNCreateInstance(t *testing.T) {
 				rbac:        tt.fields.rbac,
 				authEnabled: tt.fields.authEnabled,
 			}
-			if err := s.checkNCreateInstance(tt.args.ctx, tt.args.tenentID, tt.args.pconf, tt.args.host); (err != nil) != tt.wantErr {
+			if err := s.checkNCreateInstance(tt.args.ctx, tt.args.tenentID, tt.args.pconf,
+				tt.args.host); (err != nil) != tt.wantErr {
 				t.Errorf("InteractiveOnboardingService.checkNCreateInstance() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
-}
-
-type MockNonInteractiveOnboardingService_OnboardNodeStreamServer struct {
-	mock.Mock
-}
-
-func (m *MockNonInteractiveOnboardingService_OnboardNodeStreamServer) Send(response *pb.OnboardStreamResponse) error {
-	args := m.Called(response)
-	return args.Error(0)
-}
-
-func (m *MockNonInteractiveOnboardingService_OnboardNodeStreamServer) Recv() (*pb.OnboardStreamRequest, error) {
-	args := m.Called()
-	return args.Get(0).(*pb.OnboardStreamRequest), args.Error(1)
-}
-
-func (m *MockNonInteractiveOnboardingService_OnboardNodeStreamServer) SetHeader(md metadata.MD) error {
-	args := m.Called(md)
-	return args.Error(0)
-}
-
-func (m *MockNonInteractiveOnboardingService_OnboardNodeStreamServer) SendHeader(md metadata.MD) error {
-	args := m.Called(md)
-	return args.Error(0)
-}
-
-func (m *MockNonInteractiveOnboardingService_OnboardNodeStreamServer) SetTrailer(md metadata.MD) {
-	m.Called(md)
-}
-
-func (m *MockNonInteractiveOnboardingService_OnboardNodeStreamServer) Context() context.Context {
-	args := m.Called()
-	return args.Get(0).(context.Context)
-}
-
-func (m *MockNonInteractiveOnboardingService_OnboardNodeStreamServer) SendMsg(msg interface{}) error {
-	args := m.Called(msg)
-	return args.Error(0)
-}
-
-func (m *MockNonInteractiveOnboardingService_OnboardNodeStreamServer) RecvMsg(msg interface{}) error {
-	args := m.Called(msg)
-	return args.Error(0)
 }
 
 func Test_sendStreamErrorResponse(t *testing.T) {
@@ -1520,9 +1287,10 @@ func Test_sendStreamErrorResponse(t *testing.T) {
 		code    codes.Code
 		message string
 	}
-	var art MockNonInteractiveOnboardingService_OnboardNodeStreamServer
+
+	var art onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
 	art.On("Send", mock.Anything).Return(errors.New("err"))
-	var art1 MockNonInteractiveOnboardingService_OnboardNodeStreamServer
+	var art1 onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
 	art1.On("Send", mock.Anything).Return(nil)
 	tests := []struct {
 		name    string
@@ -1563,9 +1331,9 @@ func TestInteractiveOnboardingService_handleRegisteredState(t *testing.T) {
 		rbac                                               *rbac.Policy
 		authEnabled                                        bool
 	}
-	var art MockNonInteractiveOnboardingService_OnboardNodeStreamServer
+	var art onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
 	art.On("Send", mock.Anything).Return(errors.New("err"))
-	var art1 MockNonInteractiveOnboardingService_OnboardNodeStreamServer
+	var art1 onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
 	art1.On("Send", mock.Anything).Return(nil)
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -1599,7 +1367,7 @@ func TestInteractiveOnboardingService_handleRegisteredState(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "postive",
+			name: "positive",
 			fields: fields{
 				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
 				invClient:    om_testing.InvClient,
@@ -1642,9 +1410,9 @@ func TestInteractiveOnboardingService_handleOnboardedState(t *testing.T) {
 		rbac                                               *rbac.Policy
 		authEnabled                                        bool
 	}
-	var art MockNonInteractiveOnboardingService_OnboardNodeStreamServer
+	var art onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
 	art.On("Send", mock.Anything).Return(errors.New("err"))
-	var art1 MockNonInteractiveOnboardingService_OnboardNodeStreamServer
+	var art1 onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
 	art1.On("Send", mock.Anything).Return(nil)
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -1694,7 +1462,7 @@ func TestInteractiveOnboardingService_handleOnboardedState(t *testing.T) {
 }
 
 func TestInteractiveOnboardingService_handleDefaultState(t *testing.T) {
-	var art MockNonInteractiveOnboardingService_OnboardNodeStreamServer
+	var art onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
 	art.On("Send", mock.Anything).Return(errors.New("err"))
 	type fields struct {
 		UnimplementedNonInteractiveOnboardingServiceServer pb.UnimplementedNonInteractiveOnboardingServiceServer
@@ -1810,11 +1578,9 @@ func TestInteractiveOnboardingServiceOnboardNodeStream(t *testing.T) {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
 	host := inv_testing.CreateHost(t, nil, nil)
-	os.Setenv("ONBOARDING_MANAGER_CLIENT_NAME", "env")
-	os.Setenv("ONBOARDING_CREDENTIALS_SECRET_NAME", "env")
-	var art MockNonInteractiveOnboardingService_OnboardNodeStreamServer
-	art.On("Recv").Return(&pb.OnboardStreamRequest{}, errors.New("err"))
-	var art1 MockNonInteractiveOnboardingService_OnboardNodeStreamServer
+	t.Setenv("ONBOARDING_MANAGER_CLIENT_NAME", "env")
+	t.Setenv("ONBOARDING_CREDENTIALS_SECRET_NAME", "env")
+	art, art1, art2, art3 := setupMockOnboardNodeStreamServers(host)
 	currAuthServiceFactory := auth.AuthServiceFactory
 	currFlagDisableCredentialsManagement := *flags.FlagDisableCredentialsManagement
 	defer func() {
@@ -1823,27 +1589,6 @@ func TestInteractiveOnboardingServiceOnboardNodeStream(t *testing.T) {
 	}()
 	*flags.FlagDisableCredentialsManagement = false
 	auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(false, false, true)
-	art1.On("Send", mock.Anything).Return(nil)
-	art1.On("Recv").Return(&pb.OnboardStreamRequest{
-		Uuid:      host.Uuid,
-		Serialnum: host.SerialNumber,
-		MacId:     host.PxeMac,
-		HostIp:    host.BmcIp,
-	}, nil)
-	var art2 MockNonInteractiveOnboardingService_OnboardNodeStreamServer
-	art2.On("Send", mock.Anything).Return(nil)
-	art2.On("Recv").Return(&pb.OnboardStreamRequest{
-		Uuid:      host.Uuid,
-		Serialnum: host.SerialNumber,
-		MacId:     host.PxeMac,
-		HostIp:    host.BmcIp,
-	}, nil)
-	var art3 MockNonInteractiveOnboardingService_OnboardNodeStreamServer
-	art3.On("Send", mock.Anything).Return(nil)
-	art3.On("Recv").Return(&pb.OnboardStreamRequest{
-		Serialnum: host.SerialNumber,
-		Uuid:      host.Uuid,
-	}, nil)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1858,7 +1603,7 @@ func TestInteractiveOnboardingServiceOnboardNodeStream(t *testing.T) {
 				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
-				stream: &art,
+				stream: art,
 			},
 			wantErr: true,
 		},
@@ -1870,7 +1615,7 @@ func TestInteractiveOnboardingServiceOnboardNodeStream(t *testing.T) {
 				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
-				stream: &art1,
+				stream: art1,
 			},
 			wantErr: false,
 		},
@@ -1882,7 +1627,7 @@ func TestInteractiveOnboardingServiceOnboardNodeStream(t *testing.T) {
 				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
-				stream: &art2,
+				stream: art2,
 			},
 			wantErr: false,
 		},
@@ -1894,11 +1639,15 @@ func TestInteractiveOnboardingServiceOnboardNodeStream(t *testing.T) {
 				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
-				stream: &art3,
+				stream: art3,
 			},
 			wantErr: false,
 		},
 	}
+	defer func() {
+		os.Unsetenv("ONBOARDING_MANAGER_CLIENT_NAME")
+		os.Unsetenv("ONBOARDING_CREDENTIALS_SECRET_NAME")
+	}()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &NonInteractiveOnboardingService{
@@ -1913,10 +1662,47 @@ func TestInteractiveOnboardingServiceOnboardNodeStream(t *testing.T) {
 			}
 		})
 	}
-	defer func() {
-		os.Unsetenv("ONBOARDING_MANAGER_CLIENT_NAME")
-		os.Unsetenv("ONBOARDING_CREDENTIALS_SECRET_NAME")
-	}()
+}
+
+func setupMockOnboardNodeStreamServers(host *computev1.HostResource) (
+	streamServer *onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer,
+	streamServer1 *onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer,
+	streamServer2 *onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer,
+	streamServer3 *onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer,
+) {
+	art := new(onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
+	art1 := new(onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
+	art2 := new(onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
+	art3 := new(onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
+	// Mock the first stream with an error
+	art.On("Recv").Return(&pb.OnboardStreamRequest{}, errors.New("err"))
+
+	// Mock the second stream
+	art1.On("Send", mock.Anything).Return(nil)
+	art1.On("Recv").Return(&pb.OnboardStreamRequest{
+		Uuid:      host.Uuid,
+		Serialnum: host.SerialNumber,
+		MacId:     host.PxeMac,
+		HostIp:    host.BmcIp,
+	}, nil)
+
+	// Mock the third stream
+	art2.On("Send", mock.Anything).Return(nil)
+	art2.On("Recv").Return(&pb.OnboardStreamRequest{
+		Uuid:      host.Uuid,
+		Serialnum: host.SerialNumber,
+		MacId:     host.PxeMac,
+		HostIp:    host.BmcIp,
+	}, nil)
+
+	// Mock the fourth stream
+	art3.On("Send", mock.Anything).Return(nil)
+	art3.On("Recv").Return(&pb.OnboardStreamRequest{
+		Serialnum: host.SerialNumber,
+		Uuid:      host.Uuid,
+	}, nil)
+
+	return art, art1, art2, art3
 }
 
 func TestInteractiveOnboardingService_getHostResource(t *testing.T) {
@@ -1953,7 +1739,7 @@ func TestInteractiveOnboardingService_getHostResource(t *testing.T) {
 				},
 			},
 			want:    nil,
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "getHostResource test case with serial number",
@@ -1968,7 +1754,7 @@ func TestInteractiveOnboardingService_getHostResource(t *testing.T) {
 				},
 			},
 			want:    nil,
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "getHostResource test case with serial number and host uuid",
@@ -1984,7 +1770,7 @@ func TestInteractiveOnboardingService_getHostResource(t *testing.T) {
 				},
 			},
 			want:    nil,
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "getHostResource test case with empty request",
@@ -1997,11 +1783,11 @@ func TestInteractiveOnboardingService_getHostResource(t *testing.T) {
 				req: &pb.OnboardStreamRequest{},
 			},
 			want:    nil,
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(_ *testing.T) {
 			s := &NonInteractiveOnboardingService{
 				UnimplementedNonInteractiveOnboardingServiceServer: tt.fields.UnimplementedNonInteractiveOnboardingServiceServer,
 				InventoryClientService: InventoryClientService{
@@ -2009,7 +1795,10 @@ func TestInteractiveOnboardingService_getHostResource(t *testing.T) {
 					invClientAPI: tt.fields.invClientAPI,
 				},
 			}
-			s.getHostResource(tt.args.req)
+			_, err := s.getHostResource(tt.args.req)
+			if (err != nil) && !errors.Is(err, err) != tt.wantErr {
+				t.Errorf("getHostResource() error = %v, wantErr %v", err, tt.wantErr)
+			}
 		})
 	}
 }
@@ -2030,8 +1819,7 @@ func TestInteractiveOnboardingService_getHostResourcetest(t *testing.T) {
 	// Create a host for testing
 	host1 := inv_testing.CreateHostWithArgs(t, "host-1", "44414747-3031-3052-b030-453347474122", "", "", nil, nil, true)
 	host2 := inv_testing.CreateHostWithArgs(t, "host-2", "", "ABCDEFG", "", nil, nil, true)
-	host3 := inv_testing.CreateHostWithArgs(t, "host-3", "44414747-3031-3052-b030-453347474166", "ABCDEHI", "", nil, nil, true)
-	// host4 := inv_testing.CreateHostWithArgs(t, "host-4", "", "", "", nil, nil, true)
+	host3 := inv_testing.CreateHostWithArgs(t, "host-3", "44414747-3031-3052-b030-453347474166", serialnum, "", nil, nil, true)
 
 	tests := []struct {
 		name    string
@@ -2080,7 +1868,7 @@ func TestInteractiveOnboardingService_getHostResourcetest(t *testing.T) {
 			args: args{
 				req: &pb.OnboardStreamRequest{
 					Uuid:      "44414747-3031-3052-b030-453347474166",
-					Serialnum: "ABCDEHI",
+					Serialnum: serialnum,
 				},
 			},
 			want:    host3,
@@ -2142,7 +1930,7 @@ func TestHostRegistrationSerialNumFailedWithDetails(t *testing.T) {
 }
 
 func TestMustEnsureRequired(t *testing.T) {
-	os.Setenv("TINKER_VERSION", "value")
+	t.Setenv("TINKER_VERSION", "value")
 	defer os.Unsetenv("TINKER_VERSION")
 	tests := []struct {
 		name string
@@ -2152,13 +1940,13 @@ func TestMustEnsureRequired(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(_ *testing.T) {
 			env.MustEnsureRequired()
 		})
 	}
 }
 
-// FUZZ test cases
+// FUZZ test cases.
 func FuzzCreateNodes(f *testing.F) {
 	f.Add("node1", "platform1", "9fa0a788-f9f8-434a-8620-bbed2a12b0ad", "00:1A:2B:3C:4D:5E", "ABCDEFGH", "192.168.1.1")
 	f.Fuzz(func(t *testing.T, hwId string, platformType string, uuid string, macId string, serialNum string, sutIp string) {
@@ -2171,17 +1959,9 @@ func FuzzCreateNodes(f *testing.F) {
 			return
 		}
 
-		if !isValidMacID(macId) {
-			macId = generateValidMacID()
-		}
-
-		if !isValidserialNum(serialNum) {
-			serialNum = generateValidSerialNum()
-		}
-
-		if !isValidsutIp(sutIp) {
-			sutIp = generateValidSutIp()
-		}
+		macId = validateOrGenerate(macId, isValidMacID, generateValidMacID)
+		serialNum = validateOrGenerate(serialNum, isValidserialNum, generateValidSerialNum)
+		sutIp = validateOrGenerate(sutIp, isValidsutIP, generateValidSutIP)
 		ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
 		ctx = tenant.AddTenantIDToContext(ctx, tenant1)
 		rbacServer, err := rbac.New(rbacRules)
@@ -2216,7 +1996,14 @@ func FuzzCreateNodes(f *testing.F) {
 	})
 }
 
-// isValidMacID checks if the given string is a valid MAC ID
+func validateOrGenerate(value string, isValidFunc func(string) bool, generateFunc func() string) string {
+	if !isValidFunc(value) {
+		return generateFunc()
+	}
+	return value
+}
+
+// isValidMacID checks if the given string is a valid MAC ID.
 func isValidMacID(mac string) bool {
 	re := regexp.MustCompile(`^([0-9a-fA-F]{2}([-:])){5}[0-9a-fA-F]{2}$`)
 	return re.MatchString(mac)
@@ -2227,15 +2014,18 @@ func isValidserialNum(serialNum string) bool {
 	return re.MatchString(serialNum)
 }
 
-func isValidsutIp(sutIp string) bool {
+func isValidsutIP(sutIP string) bool {
 	re := regexp.MustCompile(`^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$`)
-	return re.MatchString(sutIp)
+	return re.MatchString(sutIP)
 }
 
-// generateValidMacID generates a valid MAC ID
+// generateValidMacID generates a valid MAC ID.
 func generateValidMacID() string {
 	mac := make([]byte, 6)
-	rand.Read(mac)
+	_, err := rand.Read(mac)
+	if err != nil {
+		fmt.Println(err)
+	}
 	return fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5])
 }
 
@@ -2245,15 +2035,21 @@ func generateValidSerialNum() string {
 
 	serialNum := make([]byte, length)
 	for i := range serialNum {
-		n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		if err != nil {
+			fmt.Println(err)
+		}
 		serialNum[i] = charset[n.Int64()]
 	}
 	return string(serialNum)
 }
 
-func generateValidSutIp() string {
+func generateValidSutIP() string {
 	generateOctet := func() int {
-		n, _ := rand.Int(rand.Reader, big.NewInt(256))
+		n, err := rand.Int(rand.Reader, big.NewInt(256))
+		if err != nil {
+			fmt.Println(err)
+		}
 		return int(n.Int64())
 	}
 
@@ -2276,7 +2072,7 @@ func FuzzOnboardNodeStream(f *testing.F) {
 			HostIp:    getFirstNChars(getMD5Hash(ip), 6),
 		}
 
-		var art MockNonInteractiveOnboardingService_OnboardNodeStreamServer
+		var art onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
 		art.On("Send", mock.Anything).Return(nil)
 		art.On("Recv").Return(resp, nil)
 

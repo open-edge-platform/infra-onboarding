@@ -1,11 +1,12 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
-
+//
+//nolint:testpackage // Keeping the test in the same package due to dependencies on unexported fields.
 package reconcilers
 
 import (
 	"context"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"os"
@@ -13,11 +14,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	om_status "github.com/intel/infra-onboarding/onboarding-manager/pkg/status"
-
-	statusv1 "github.com/intel/infra-core/inventory/v2/pkg/api/status/v1"
-	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,20 +23,23 @@ import (
 	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
 	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
 	providerv1 "github.com/intel/infra-core/inventory/v2/pkg/api/provider/v1"
+	statusv1 "github.com/intel/infra-core/inventory/v2/pkg/api/status/v1"
 	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
+	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
 	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
 	"github.com/intel/infra-core/inventory/v2/pkg/util"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
 	om_testing "github.com/intel/infra-onboarding/onboarding-manager/internal/testing"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/tinkerbell"
+	om_status "github.com/intel/infra-onboarding/onboarding-manager/pkg/status"
 	rec_v2 "github.com/intel/orch-library/go/pkg/controller/v2"
 )
 
 const tenantID = "11111111-1111-1111-1111-111111111111"
 
 func getMD5Hash(text string) string {
-	hasher := md5.New()
+	hasher := sha256.New()
 	hasher.Write([]byte(text))
 	return hex.EncodeToString(hasher.Sum(nil))
 }
@@ -52,7 +51,7 @@ func getFirstNChars(hash string, n int) string {
 	return hash[:n]
 }
 
-// FIXME: remove and use Inventory helper once RepoURL is made configurable in the Inv library
+// FIXME: remove and use Inventory helper once RepoURL is made configurable in the Inv library.
 func createOsWithArgs(tb testing.TB, doCleanup bool,
 ) (osr *osv1.OperatingSystemResource) {
 	tb.Helper()
@@ -82,13 +81,13 @@ func createOsWithArgs(tb testing.TB, doCleanup bool,
 }
 
 func createProviderWithArgs(tb testing.TB, doCleanup bool,
-	resourceId, name string, providerKind providerv1.ProviderKind,
+	resourceID, name string, providerKind providerv1.ProviderKind,
 ) (provider *providerv1.ProviderResource) {
 	tb.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	str := "{\"defaultOs\":\"osID\",\"autoProvision\":true}"
-	str = strings.Replace(str, "osID", resourceId, 1)
+	str = strings.Replace(str, "osID", resourceID, 1)
 	provider = &providerv1.ProviderResource{
 		ProviderKind:   providerKind,
 		Name:           name,
@@ -107,8 +106,8 @@ func createProviderWithArgs(tb testing.TB, doCleanup bool,
 }
 
 // This TC verifies the case, when an event with Instance with pre-defined custom Provider (e.g., Lenovo) is obtained.
-// In this case, no reconciliation should be performed for such Instance (the reconciliation should happen in the Provider-specific RM,
-// e.g., LOC-A RM).
+// In this case, no reconciliation should be performed for such Instance
+// (the reconciliation should happen in the Provider-specific RM,e.g., LOC-A RM).
 func TestReconcileInstanceWithProvider(t *testing.T) {
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -187,23 +186,8 @@ func TestReconcileInstanceNonEIM(t *testing.T) {
 	instance := inv_testing.CreateInstance(t, host, osRes) // Instance should not be assigned to the Provider.
 	instanceID := instance.GetResourceId()
 
-	runReconcilationFunc := func() {
-		select {
-		case ev, ok := <-om_testing.InvClient.Watcher:
-			require.True(t, ok, "No events received")
-			expectedKind, err := util.GetResourceKindFromResourceID(ev.Event.ResourceId)
-			require.NoError(t, err)
-			if expectedKind == inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE {
-				err = instanceController.Reconcile(NewReconcilerID(instance.GetTenantId(), ev.Event.ResourceId))
-				assert.NoError(t, err, "Reconciliation failed")
-			}
-		case <-time.After(1 * time.Second):
-			t.Fatalf("No events received within timeout")
-		}
-		time.Sleep(1 * time.Second)
-	}
+	runReconcilationFuncInstance(t, instanceController, instance)
 
-	runReconcilationFunc()
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
@@ -228,7 +212,7 @@ func TestReconcileInstanceNonEIM(t *testing.T) {
 	_, err := inv_testing.TestClients[inv_testing.APIClient].Update(ctx, instanceID, &fmk, res)
 	require.NoError(t, err)
 
-	runReconcilationFunc()
+	runReconcilationFuncInstance(t, instanceController, instance)
 
 	// Instance should not move into the RUNNING state as OS provisioning should be skipped
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
@@ -258,27 +242,14 @@ func TestReconcileInstance(t *testing.T) {
 
 	host := inv_testing.CreateHost(t, nil, nil)
 	osRes := createOsWithArgs(t, true)
-	_ = createProviderWithArgs(t, true, osRes.ResourceId, utils.DefaultProviderName, providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL) // Creating Provider profile which would be fetched by the reconciler.
-	instance := inv_testing.CreateInstanceNoCleanup(t, host, osRes)                                                                   // Instance should not be assigned to the Provider.
+	// Creating Provider profile which would be fetched by the reconciler.
+	_ = createProviderWithArgs(t, true, osRes.ResourceId, utils.DefaultProviderName,
+		providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL)
+	// Instance should not be assigned to the Provider.
+	instance := inv_testing.CreateInstanceNoCleanup(t, host, osRes)
 	instanceID := instance.GetResourceId()
 
-	runReconcilationFunc := func() {
-		select {
-		case ev, ok := <-om_testing.InvClient.Watcher:
-			require.True(t, ok, "No events received")
-			expectedKind, err := util.GetResourceKindFromResourceID(ev.Event.ResourceId)
-			require.NoError(t, err)
-			if expectedKind == inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE {
-				err = instanceController.Reconcile(NewReconcilerID(instance.GetTenantId(), ev.Event.ResourceId))
-				assert.NoError(t, err, "Reconciliation failed")
-			}
-		case <-time.After(1 * time.Second):
-			t.Fatalf("No events received within timeout")
-		}
-		time.Sleep(1 * time.Second)
-	}
-
-	runReconcilationFunc()
+	runReconcilationFuncInstance(t, instanceController, instance)
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
@@ -303,7 +274,7 @@ func TestReconcileInstance(t *testing.T) {
 	_, err := inv_testing.TestClients[inv_testing.APIClient].Update(ctx, instanceID, &fmk, res)
 	require.NoError(t, err)
 
-	runReconcilationFunc()
+	runReconcilationFuncInstance(t, instanceController, instance)
 
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
@@ -311,7 +282,7 @@ func TestReconcileInstance(t *testing.T) {
 		om_status.ProvisioningStatusDone)
 
 	// run again, current_state == desired_state
-	runReconcilationFunc()
+	runReconcilationFuncInstance(t, instanceController, instance)
 
 	// move into the error state
 	res = &inv_v1.Resource{
@@ -326,7 +297,7 @@ func TestReconcileInstance(t *testing.T) {
 		&fieldmaskpb.FieldMask{Paths: []string{computev1.InstanceResourceFieldCurrentState}}, res)
 	require.NoError(t, err)
 
-	runReconcilationFunc()
+	runReconcilationFuncInstance(t, instanceController, instance)
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_ERROR,
@@ -344,12 +315,35 @@ func TestReconcileInstance(t *testing.T) {
 	_, err = inv_testing.TestClients[inv_testing.APIClient].Update(ctx, instanceID, &fmk, res)
 	require.NoError(t, err)
 
-	runReconcilationFunc()
+	runReconcilationFuncInstance(t, instanceController, instance)
 
 	_, err = inv_testing.TestClients[inv_testing.APIClient].Get(ctx, instanceID)
 	require.True(t, inv_errors.IsNotFound(err))
 }
 
+func runReconcilationFuncInstance(t *testing.T, instanceController *rec_v2.Controller[ReconcilerID],
+	instance *computev1.InstanceResource,
+) {
+	t.Helper()
+	runReconcilationFunc := func() {
+		select {
+		case ev, ok := <-om_testing.InvClient.Watcher:
+			require.True(t, ok, "No events received")
+			expectedKind, err := util.GetResourceKindFromResourceID(ev.Event.ResourceId)
+			require.NoError(t, err)
+			if expectedKind == inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE {
+				err = instanceController.Reconcile(NewReconcilerID(instance.GetTenantId(), ev.Event.ResourceId))
+				assert.NoError(t, err, "Reconciliation failed")
+			}
+		case <-time.After(1 * time.Second):
+			t.Fatalf("No events received within timeout")
+		}
+		time.Sleep(1 * time.Second)
+	}
+	runReconcilationFunc()
+}
+
+//nolint:dupl // These tests are for different reconcilers but have a similar structure.
 func TestNewInstanceReconciler(t *testing.T) {
 	type args struct {
 		c *invclient.OnboardingInventoryClient
@@ -453,7 +447,10 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			want: testRequest.Ack(),
 		},
 	}
-	originalDir, _ := os.Getwd()
+	originalDir, getwdErr := os.Getwd()
+	if getwdErr != nil {
+		t.Fatalf("Failed to  working directory : %v", getwdErr)
+	}
 	err := os.Chdir(originalDir)
 	if err != nil {
 		t.Fatalf("Failed to change working directory back to original: %v", err)

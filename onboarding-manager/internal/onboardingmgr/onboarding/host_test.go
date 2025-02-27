@@ -3,7 +3,7 @@ Copyright (C) 2023 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
 */
 
-package onboarding
+package onboarding_test
 
 import (
 	"context"
@@ -15,6 +15,7 @@ import (
 	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
 	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/onboarding"
 	om_testing "github.com/intel/infra-onboarding/onboarding-manager/internal/testing"
 	om_status "github.com/intel/infra-onboarding/onboarding-manager/pkg/status"
 )
@@ -80,7 +81,7 @@ func TestUpdateHostStatusByHostGuid(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := UpdateHostStatusByHostGUID(tt.args.ctx, tt.args.tenantID, tt.args.invClient, tt.args.hostUUID,
+			if err := onboarding.UpdateHostStatusByHostGUID(tt.args.ctx, tt.args.tenantID, tt.args.invClient, tt.args.hostUUID,
 				tt.args.statusDetails, tt.args.onboardingStatus); (err != nil) != tt.wantErr {
 				t.Errorf("UpdateHostStatusByHostGUID() error = %v, wantErr %v", err, tt.wantErr)
 			}

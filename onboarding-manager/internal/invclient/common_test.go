@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 //
 // SPDX-License-Identifier: Apache-2.0
-
+//
+//nolint:testpackage // Keeping the test in the same package due to dependencies on unexported fields.
 package invclient
 
 import (
@@ -20,20 +21,6 @@ func Test_getInventoryResourceAndID(t *testing.T) {
 	type args struct {
 		resource proto.Message
 	}
-	hostResource := &computev1.HostResource{}
-	hostResCopy := proto.Clone(hostResource)
-	hostStorageResource := &computev1.HoststorageResource{}
-	hostStorageResCopy := proto.Clone(hostStorageResource)
-	hostSubResource := &computev1.HostusbResource{}
-	hostSubResCopy := proto.Clone(hostSubResource)
-	hostNicResource := &computev1.HostnicResource{}
-	hostNicResCopy := proto.Clone(hostNicResource)
-	hostgpuResource := &computev1.HostgpuResource{}
-	hostgpuResourceCopy := proto.Clone(hostgpuResource)
-	networkResource := &network_v1.IPAddressResource{}
-	networkResourceCopy := proto.Clone(networkResource)
-	operatingSystemResource := &osv1.OperatingSystemResource{}
-	operatingSystemResourceCopy := proto.Clone(operatingSystemResource)
 	tests := []struct {
 		name    string
 		args    args
@@ -51,7 +38,7 @@ func Test_getInventoryResourceAndID(t *testing.T) {
 		{
 			name: "Host Resource Test",
 			args: args{
-				resource: hostResCopy,
+				resource: proto.Clone(&computev1.HostResource{}),
 			},
 			want:    &inv_v1.Resource{},
 			want1:   "",
@@ -60,7 +47,7 @@ func Test_getInventoryResourceAndID(t *testing.T) {
 		{
 			name: "Host Storage Resource Test",
 			args: args{
-				resource: hostStorageResCopy,
+				resource: proto.Clone(&computev1.HoststorageResource{}),
 			},
 			want:    &inv_v1.Resource{},
 			want1:   "",
@@ -69,7 +56,7 @@ func Test_getInventoryResourceAndID(t *testing.T) {
 		{
 			name: "Host USB Resource Test",
 			args: args{
-				resource: hostSubResCopy,
+				resource: proto.Clone(&computev1.HostusbResource{}),
 			},
 			want:    &inv_v1.Resource{},
 			want1:   "",
@@ -78,7 +65,7 @@ func Test_getInventoryResourceAndID(t *testing.T) {
 		{
 			name: "Host GPU Resource Test",
 			args: args{
-				resource: hostgpuResourceCopy,
+				resource: proto.Clone(&computev1.HostgpuResource{}),
 			},
 			want:    &inv_v1.Resource{},
 			want1:   "",
@@ -87,7 +74,7 @@ func Test_getInventoryResourceAndID(t *testing.T) {
 		{
 			name: "Network Resource Test",
 			args: args{
-				resource: networkResourceCopy,
+				resource: proto.Clone(&network_v1.IPAddressResource{}),
 			},
 			want:    &inv_v1.Resource{},
 			want1:   "",
@@ -96,7 +83,7 @@ func Test_getInventoryResourceAndID(t *testing.T) {
 		{
 			name: "Operating System Resource Test",
 			args: args{
-				resource: operatingSystemResourceCopy,
+				resource: proto.Clone(&osv1.OperatingSystemResource{}),
 			},
 			want:    &inv_v1.Resource{},
 			want1:   "",
@@ -105,7 +92,7 @@ func Test_getInventoryResourceAndID(t *testing.T) {
 		{
 			name: "hostNic Resource Test",
 			args: args{
-				resource: hostNicResCopy,
+				resource: proto.Clone(&computev1.HostnicResource{}),
 			},
 			want:    &inv_v1.Resource{},
 			want1:   "",

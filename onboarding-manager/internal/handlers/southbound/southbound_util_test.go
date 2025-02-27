@@ -1,5 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
+//
+//nolint:testpackage // Keeping the test in the same package due to dependencies on unexported fields.
 package southbound
 
 import (
@@ -19,12 +21,15 @@ func TestSBHandler_Stop(t *testing.T) {
 		t.Fatalf("Failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
+	//nolint:staticcheck // Ignoring SA2002 and SA1019 as these are valid in this test scenario.
 	go func() {
 		defer lis.Close()
 		if err := grpcServer.Serve(lis); err != nil {
+			//nolint:staticcheck,govet // Ignoring SA2002 and SA1019 as these are valid in this test scenario.
 			t.Fatalf("Failed to serve: %v", err)
 		}
 	}()
+	//nolint:staticcheck // Ignoring SA2002 and SA1019 as these are valid in this test scenario.
 	conn, conErr := grpc.Dial("localhost:13051", grpc.WithInsecure())
 	if conErr != nil {
 		t.Fatalf("Failed to dial server: %v", conErr)
@@ -52,7 +57,7 @@ func TestSBHandler_Stop(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(_ *testing.T) {
 			sbh := &SBHandler{
 				invClient: tt.fields.invClient,
 				cfg:       tt.fields.cfg,

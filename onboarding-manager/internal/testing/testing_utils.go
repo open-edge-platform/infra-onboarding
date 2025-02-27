@@ -58,6 +58,7 @@ func DeleteInventoryOnboardingClientForTesting() {
 	delete(inv_testing.TestClientsEvents, clientName)
 }
 
+//nolint:dupl // This is for AssertHost.
 func AssertHost(
 	tb testing.TB,
 	tenantID string,
@@ -93,6 +94,7 @@ func AssertHostOnboardingStatus(tb testing.TB, resID string, expectedOnboardingS
 	assert.Equal(tb, expectedOnboardingStatus.StatusIndicator, host.GetOnboardingStatusIndicator())
 }
 
+//nolint:dupl // This is for AssertHost.
 func AssertInstance(
 	tb testing.TB,
 	tenantID string,

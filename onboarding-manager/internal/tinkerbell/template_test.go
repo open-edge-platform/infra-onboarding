@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-package tinkerbell
+package tinkerbell_test
 
 import (
 	"context"
@@ -9,14 +9,17 @@ import (
 	"reflect"
 	"testing"
 
-	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
 	"github.com/stretchr/testify/mock"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
-	error "k8s.io/apimachinery/pkg/api/errors"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
+	onboarding "github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/onboarding/onboardingmocks"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/tinkerbell"
 )
 
 func TestNewTemplate(t *testing.T) {
@@ -57,7 +60,7 @@ func TestNewTemplate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewTemplate(tt.args.tpData, tt.args.name, tt.args.ns); !reflect.DeepEqual(got, tt.want) {
+			if got := tinkerbell.NewTemplate(tt.args.tpData, tt.args.name, tt.args.ns); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewTemplate() = %v, want %v", got, tt.want)
 			}
 		})
@@ -96,7 +99,7 @@ func TestGenerateTemplateForProd(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := GenerateTemplateForProd(tt.args.k8sNamespace, tt.args.deviceInfo)
+			_, err := tinkerbell.GenerateTemplateForProd(tt.args.k8sNamespace, tt.args.deviceInfo)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GenerateTemplateForProd() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -111,9 +114,9 @@ func TestCreateTemplateIfNotExists(t *testing.T) {
 		k8sCli   client.Client
 		template *tink.Template
 	}
-	mockClient := MockClient{}
+	mockClient := onboarding.MockClient{}
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	mockClient1 := MockClient{}
+	mockClient1 := onboarding.MockClient{}
 	mockClient1.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
 	tests := []struct {
 		name    string
@@ -124,7 +127,7 @@ func TestCreateTemplateIfNotExists(t *testing.T) {
 			name: "Test Case",
 			args: args{
 				ctx:      context.Background(),
-				k8sCli:   mockClient,
+				k8sCli:   &mockClient,
 				template: &tink.Template{},
 			},
 		},
@@ -132,7 +135,7 @@ func TestCreateTemplateIfNotExists(t *testing.T) {
 			name: "Test Case1",
 			args: args{
 				ctx:      context.Background(),
-				k8sCli:   mockClient1,
+				k8sCli:   &mockClient1,
 				template: &tink.Template{},
 			},
 			wantErr: true,
@@ -140,28 +143,32 @@ func TestCreateTemplateIfNotExists(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := CreateTemplateIfNotExists(tt.args.ctx, tt.args.k8sCli, tt.args.template); (err != nil) != tt.wantErr {
+			if err := tinkerbell.CreateTemplateIfNotExists(tt.args.ctx, tt.args.k8sCli,
+				tt.args.template); (err != nil) != tt.wantErr {
 				t.Errorf("CreateTemplateIfNotExists() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
+//nolint:dupl //this is with tink.Template as args.
 func TestCreateTemplateIfNotExists_Case(t *testing.T) {
 	type args struct {
 		ctx      context.Context
 		k8sCli   client.Client
 		template *tink.Template
 	}
-	mockClient := MockClient{}
+	mockClient := onboarding.MockClient{}
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	mockClient1 := MockClient{}
+	mockClient1 := onboarding.MockClient{}
 	mockClient1.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
-	mockClient2 := MockClient{}
-	mockClient2.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(error.NewNotFound(schema.GroupResource{Group: "example.com", Resource: "myresource"}, "resource-name"))
+	mockClient2 := onboarding.MockClient{}
+	mockClient2.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(k8sErrors.NewNotFound(schema.GroupResource{Group: "example.com", Resource: "myresource"}, "resource-name"))
 	mockClient2.On("Create", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	mockClient3 := MockClient{}
-	mockClient3.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(error.NewNotFound(schema.GroupResource{Group: "example.com", Resource: "myresource"}, "resource-name"))
+	mockClient3 := onboarding.MockClient{}
+	mockClient3.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(k8sErrors.NewNotFound(schema.GroupResource{Group: "example.com", Resource: "myresource"}, "resource-name"))
 	mockClient3.On("Create", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
 	tests := []struct {
 		name    string
@@ -172,7 +179,7 @@ func TestCreateTemplateIfNotExists_Case(t *testing.T) {
 			name: "Test Case",
 			args: args{
 				ctx:      context.Background(),
-				k8sCli:   mockClient,
+				k8sCli:   &mockClient,
 				template: &tink.Template{},
 			},
 		},
@@ -180,7 +187,7 @@ func TestCreateTemplateIfNotExists_Case(t *testing.T) {
 			name: "Test Case1",
 			args: args{
 				ctx:      context.Background(),
-				k8sCli:   mockClient1,
+				k8sCli:   &mockClient1,
 				template: &tink.Template{},
 			},
 			wantErr: true,
@@ -189,7 +196,7 @@ func TestCreateTemplateIfNotExists_Case(t *testing.T) {
 			name: "Test Case2",
 			args: args{
 				ctx:      context.Background(),
-				k8sCli:   mockClient2,
+				k8sCli:   &mockClient2,
 				template: &tink.Template{},
 			},
 			wantErr: false,
@@ -198,7 +205,7 @@ func TestCreateTemplateIfNotExists_Case(t *testing.T) {
 			name: "Test Case3",
 			args: args{
 				ctx:      context.Background(),
-				k8sCli:   mockClient3,
+				k8sCli:   &mockClient3,
 				template: &tink.Template{},
 			},
 			wantErr: true,
@@ -206,7 +213,8 @@ func TestCreateTemplateIfNotExists_Case(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := CreateTemplateIfNotExists(tt.args.ctx, tt.args.k8sCli, tt.args.template); (err != nil) != tt.wantErr {
+			if err := tinkerbell.CreateTemplateIfNotExists(tt.args.ctx, tt.args.k8sCli,
+				tt.args.template); (err != nil) != tt.wantErr {
 				t.Errorf("CreateTemplateIfNotExists() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

@@ -1,13 +1,14 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-package util
+package util_test
 
 import (
 	"testing"
 
 	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
 	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/util"
 )
 
 func TestPopulateHostStatus(t *testing.T) {
@@ -31,8 +32,8 @@ func TestPopulateHostStatus(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			PopulateHostOnboardingStatus(tt.args.instance, tt.args.onboardingStatus)
+		t.Run(tt.name, func(_ *testing.T) {
+			util.PopulateHostOnboardingStatus(tt.args.instance, tt.args.onboardingStatus)
 		})
 	}
 }
@@ -55,8 +56,8 @@ func TestPopulateInstanceStatusAndCurrentState(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			PopulateInstanceStatusAndCurrentState(tt.args.instance, tt.args.currentState, tt.args.provisioningStatus)
+		t.Run(tt.name, func(_ *testing.T) {
+			util.PopulateInstanceStatusAndCurrentState(tt.args.instance, tt.args.currentState, tt.args.provisioningStatus)
 		})
 	}
 }

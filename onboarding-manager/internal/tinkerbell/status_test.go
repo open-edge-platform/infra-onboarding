@@ -1,33 +1,37 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-package tinkerbell
+package tinkerbell_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
+	"gopkg.in/yaml.v2"
+
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/tinkerbell"
 )
 
 func TestWorkflowActionToStatusDetail(t *testing.T) {
-	prodBkcWorkflow, err := NewTemplateDataUbuntu("test-prod-bkc", utils.DeviceInfo{})
+	prodBkcWorkflow, err := tinkerbell.NewTemplateDataUbuntu("test-prod-bkc", utils.DeviceInfo{})
 	require.NoError(t, err)
 
 	prodBkcWorkflowInstance, err := unmarshalWorkflow(prodBkcWorkflow)
 	require.NoError(t, err)
 
-	workflows := []*Workflow{
+	workflows := []*tinkerbell.Workflow{
 		prodBkcWorkflowInstance,
 	}
 
 	for _, wf := range workflows {
 		t.Run(wf.Name, func(t *testing.T) {
 			for _, action := range wf.Tasks[0].Actions {
-				_, exists := WorkflowStepToStatusDetail[action.Name]
+				_, exists := tinkerbell.WorkflowStepToStatusDetail[action.Name]
 				assert.True(t, exists)
 				if !exists {
 					t.Errorf("No status detail for action %q", action.Name)
@@ -37,323 +41,159 @@ func TestWorkflowActionToStatusDetail(t *testing.T) {
 	}
 }
 
-func TestGenerateStatusDetailFromWorkflowState(t *testing.T) {
-	type args struct {
-		workflow *tink.Workflow
+func unmarshalWorkflow(yamlContent []byte) (*tinkerbell.Workflow, error) {
+	var workflow tinkerbell.Workflow
+
+	if err := yaml.Unmarshal(yamlContent, &workflow); err != nil {
+		return &tinkerbell.Workflow{}, errors.Wrap(err, "parsing yaml data")
 	}
-	tests := []struct {
+	return &workflow, nil
+}
+
+func TestGenerateStatusDetailFromWorkflowState(t *testing.T) {
+	tests := getStaticWorkflowTests()           // Static test cases
+	tests = append(tests, getDynamicTests()...) // Dynamic test cases
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, tinkerbell.GenerateStatusDetailFromWorkflowState(tt.args.workflow),
+				"GenerateStatusDetailFromWorkflowState(%v)", tt.args.workflow)
+		})
+	}
+}
+
+// getStaticWorkflowTests returns predefined test cases.
+func getStaticWorkflowTests() []struct {
+	name string
+	args struct{ workflow *tink.Workflow }
+	want string
+} {
+	return []struct {
 		name string
-		args args
+		args struct{ workflow *tink.Workflow }
 		want string
 	}{
+		{"Workflow nil", struct{ workflow *tink.Workflow }{nil}, ""},
+		{"No workflow tasks", struct{ workflow *tink.Workflow }{&tink.Workflow{}}, ""},
 		{
-			name: "Workflow nil",
-			args: args{
-				workflow: nil,
+			"No workflow actions",
+			struct{ workflow *tink.Workflow }{
+				&tink.Workflow{Status: tink.WorkflowStatus{Tasks: []tink.Task{{}}}},
 			},
-			want: "",
+			"",
 		},
 		{
-			name: "No workflow tasks",
-			args: args{
-				workflow: &tink.Workflow{Status: tink.WorkflowStatus{}},
+			"Empty action",
+			struct{ workflow *tink.Workflow }{
+				&tink.Workflow{Status: tink.WorkflowStatus{Tasks: []tink.Task{{Actions: []tink.Action{}}}}},
 			},
-			want: "",
+			"",
 		},
 		{
-			name: "No workflow actions",
-			args: args{
-				workflow: &tink.Workflow{Status: tink.WorkflowStatus{
-					Tasks: []tink.Task{
-						{
-							Actions: []tink.Action{
-								{},
-							},
-						},
-					},
+			"Successful workflow",
+			struct{ workflow *tink.Workflow }{
+				&tink.Workflow{Status: tink.WorkflowStatus{
+					State: tink.WorkflowStateSuccess, Tasks: []tink.Task{{Actions: []tink.Action{{}}}},
 				}},
 			},
-			want: "",
+			"",
 		},
 		{
-			name: "Empty action",
-			args: args{
-				workflow: &tink.Workflow{Status: tink.WorkflowStatus{
-					Tasks: []tink.Task{
-						{
-							Actions: []tink.Action{},
-						},
-					},
+			"SingleAction_Success",
+			struct{ workflow *tink.Workflow }{
+				&tink.Workflow{Status: tink.WorkflowStatus{
+					Tasks: []tink.Task{{Actions: []tink.Action{{
+						Name:   tinkerbell.ActionReboot,
+						Status: tink.WorkflowStateSuccess,
+					}}}},
 				}},
 			},
-			want: "",
+			fmt.Sprintf("1/1: %s", tinkerbell.WorkflowStepToStatusDetail[tinkerbell.ActionReboot]),
 		},
 		{
-			name: "Successful workflow",
-			args: args{
-				workflow: &tink.Workflow{Status: tink.WorkflowStatus{
-					State: tink.WorkflowStateSuccess,
-					Tasks: []tink.Task{
-						{
-							Actions: []tink.Action{
-								{},
-							},
+			"Multiple actions - workflow not completed",
+			struct{ workflow *tink.Workflow }{
+				&tink.Workflow{Status: tink.WorkflowStatus{
+					Tasks: []tink.Task{{
+						Actions: []tink.Action{
+							{Name: tinkerbell.ActionFdeEncryption, Status: tink.WorkflowStateSuccess},
+							{Name: tinkerbell.ActionAddAptProxy, Status: tink.WorkflowStateSuccess},
+							{Name: tinkerbell.ActionReboot, Status: tink.WorkflowStateRunning},
 						},
-					},
+					}},
 				}},
 			},
-			want: "",
+			fmt.Sprintf("3/3: %s", tinkerbell.WorkflowStepToStatusDetail[tinkerbell.ActionReboot]),
 		},
 		{
-			name: "SingleAction_Success",
-			args: args{
-				workflow: &tink.Workflow{Status: tink.WorkflowStatus{
-					Tasks: []tink.Task{
-						{
-							Actions: []tink.Action{
-								{
-									Name:   ActionReboot,
-									Status: tink.WorkflowStateSuccess,
-								},
-							},
-						},
-					},
+			"Failed action with message",
+			struct{ workflow *tink.Workflow }{
+				&tink.Workflow{Status: tink.WorkflowStatus{
+					Tasks: []tink.Task{{Actions: []tink.Action{
+						{Name: tinkerbell.ActionFdeEncryption, Status: tink.WorkflowStateSuccess},
+						{Name: tinkerbell.ActionAddAptProxy, Status: tink.WorkflowStateFailed, Message: "some message"},
+					}}},
 				}},
 			},
-			want: fmt.Sprintf("1/1: %s", WorkflowStepToStatusDetail[ActionReboot]),
+			fmt.Sprintf("2/2: %s failed: some message", tinkerbell.WorkflowStepToStatusDetail[tinkerbell.ActionAddAptProxy]),
 		},
 		{
-			name: "Multiple actions - workflow not completed 0",
-			args: args{
-				workflow: &tink.Workflow{Status: tink.WorkflowStatus{
-					Tasks: []tink.Task{
-						{
-							Actions: []tink.Action{
-								{
-									Name:   ActionAddAptProxy,
-									Status: "",
-								},
-								{
-									Name:   ActionReboot,
-									Status: "",
-								},
-							},
-						},
-					},
+			"Failed action without message",
+			struct{ workflow *tink.Workflow }{
+				&tink.Workflow{Status: tink.WorkflowStatus{
+					Tasks: []tink.Task{{Actions: []tink.Action{
+						{Name: tinkerbell.ActionFdeEncryption, Status: tink.WorkflowStateSuccess},
+						{Name: tinkerbell.ActionAddAptProxy, Status: tink.WorkflowStateFailed},
+					}}},
 				}},
 			},
-			want: fmt.Sprintf("1/2: %s", WorkflowStepToStatusDetail[ActionAddAptProxy]),
+			fmt.Sprintf("2/2: %s failed", tinkerbell.WorkflowStepToStatusDetail[tinkerbell.ActionAddAptProxy]),
 		},
 		{
-			name: "Multiple actions - workflow not completed 1",
-			args: args{
-				workflow: &tink.Workflow{Status: tink.WorkflowStatus{
-					Tasks: []tink.Task{
-						{
-							Actions: []tink.Action{
-								{
-									Name:   ActionFdeEncryption,
-									Status: tink.WorkflowStateSuccess,
-								},
-								{
-									Name:   ActionAddAptProxy,
-									Status: tink.WorkflowStateSuccess,
-								},
-								{
-									Name:   ActionReboot,
-									Status: "",
-								},
-							},
-						},
-					},
+			"Timed out action",
+			struct{ workflow *tink.Workflow }{
+				&tink.Workflow{Status: tink.WorkflowStatus{
+					Tasks: []tink.Task{{Actions: []tink.Action{
+						{Name: tinkerbell.ActionFdeEncryption, Status: tink.WorkflowStateSuccess},
+						{Name: tinkerbell.ActionAddAptProxy, Status: tink.WorkflowStateTimeout, Message: "some message"},
+					}}},
 				}},
 			},
-			want: fmt.Sprintf("3/3: %s", WorkflowStepToStatusDetail[ActionReboot]),
-		},
-		{
-			name: "Multiple actions - workflow not completed 2",
-			args: args{
-				workflow: &tink.Workflow{Status: tink.WorkflowStatus{
-					Tasks: []tink.Task{
-						{
-							Actions: []tink.Action{
-								{
-									Name:   ActionFdeEncryption,
-									Status: tink.WorkflowStateSuccess,
-								},
-								{
-									Name:   ActionAddAptProxy,
-									Status: tink.WorkflowStateSuccess,
-								},
-								{
-									Name:   ActionReboot,
-									Status: tink.WorkflowStateRunning,
-								},
-							},
-						},
-					},
-				}},
-			},
-			want: fmt.Sprintf("3/3: %s", WorkflowStepToStatusDetail[ActionReboot]),
-		},
-		{
-			name: "Multiple actions - workflow not completed 3",
-			args: args{
-				workflow: &tink.Workflow{Status: tink.WorkflowStatus{
-					Tasks: []tink.Task{
-						{
-							Actions: []tink.Action{
-								{
-									Name:   ActionFdeEncryption,
-									Status: tink.WorkflowStateSuccess,
-								},
-								{
-									Name:   ActionAddAptProxy,
-									Status: tink.WorkflowStateSuccess,
-								},
-								{
-									Name:   ActionReboot,
-									Status: tink.WorkflowStatePending,
-								},
-							},
-						},
-					},
-				}},
-			},
-			want: fmt.Sprintf("3/3: %s", WorkflowStepToStatusDetail[ActionReboot]),
-		},
-		{
-			name: "Unknown action",
-			args: args{
-				workflow: &tink.Workflow{Status: tink.WorkflowStatus{
-					Tasks: []tink.Task{
-						{
-							Actions: []tink.Action{
-								{
-									Name:   ActionFdeEncryption,
-									Status: tink.WorkflowStateSuccess,
-								},
-								{
-									Name:   "unknown-action",
-									Status: tink.WorkflowStateSuccess,
-								},
-								{
-									Name:   ActionReboot,
-									Status: tink.WorkflowStatePending,
-								},
-							},
-						},
-					},
-				}},
-			},
-			want: fmt.Sprintf("3/3: %s", WorkflowStepToStatusDetail[ActionReboot]),
-		},
-		{
-			name: "Failed action",
-			args: args{
-				workflow: &tink.Workflow{Status: tink.WorkflowStatus{
-					Tasks: []tink.Task{
-						{
-							Actions: []tink.Action{
-								{
-									Name:   ActionFdeEncryption,
-									Status: tink.WorkflowStateSuccess,
-								},
-								{
-									Name:    ActionAddAptProxy,
-									Status:  tink.WorkflowStateFailed,
-									Message: "some message",
-								},
-							},
-						},
-					},
-				}},
-			},
-			want: fmt.Sprintf("2/2: %s failed: some message", WorkflowStepToStatusDetail[ActionAddAptProxy]),
-		},
-		{
-			name: "First action failed",
-			args: args{
-				workflow: &tink.Workflow{Status: tink.WorkflowStatus{
-					Tasks: []tink.Task{
-						{
-							Actions: []tink.Action{
-								{
-									Name:   ActionFdeEncryption,
-									Status: tink.WorkflowStateFailed,
-								},
-								{
-									Name: ActionAddAptProxy,
-								},
-							},
-						},
-					},
-				}},
-			},
-			want: fmt.Sprintf("1/2: %s failed", WorkflowStepToStatusDetail[ActionFdeEncryption]),
-		},
-		{
-			name: "Failed action empty message",
-			args: args{
-				workflow: &tink.Workflow{Status: tink.WorkflowStatus{
-					Tasks: []tink.Task{
-						{
-							Actions: []tink.Action{
-								{
-									Name:   ActionFdeEncryption,
-									Status: tink.WorkflowStateSuccess,
-								},
-								{
-									Name:   ActionAddAptProxy,
-									Status: tink.WorkflowStateFailed,
-								},
-							},
-						},
-					},
-				}},
-			},
-			want: fmt.Sprintf("2/2: %s failed", WorkflowStepToStatusDetail[ActionAddAptProxy]),
-		},
-		{
-			name: "Timed out action",
-			args: args{
-				workflow: &tink.Workflow{Status: tink.WorkflowStatus{
-					Tasks: []tink.Task{
-						{
-							Actions: []tink.Action{
-								{
-									Name:   ActionFdeEncryption,
-									Status: tink.WorkflowStateSuccess,
-								},
-								{
-									Name:    ActionAddAptProxy,
-									Status:  tink.WorkflowStateTimeout,
-									Message: "some message",
-								},
-							},
-						},
-					},
-				}},
-			},
-			want: fmt.Sprintf("2/2: %s timeout", WorkflowStepToStatusDetail[ActionAddAptProxy]),
+			fmt.Sprintf("2/2: %s timeout", tinkerbell.WorkflowStepToStatusDetail[tinkerbell.ActionAddAptProxy]),
 		},
 	}
-	for action, detail := range WorkflowStepToStatusDetail {
+}
+
+func getDynamicTests() []struct {
+	name string
+	args struct {
+		workflow *tink.Workflow
+	}
+	want string
+} {
+	tests := make([]struct {
+		name string
+		args struct {
+			workflow *tink.Workflow
+		}
+		want string
+	}, 3)
+
+	for action, detail := range tinkerbell.WorkflowStepToStatusDetail {
 		tests = append(tests, struct {
 			name string
-			args args
+			args struct {
+				workflow *tink.Workflow
+			}
 			want string
 		}{
 			name: fmt.Sprintf("SingleAction_%s_Success", action),
-			args: args{
+			args: struct{ workflow *tink.Workflow }{
 				workflow: &tink.Workflow{Status: tink.WorkflowStatus{
 					Tasks: []tink.Task{
 						{
 							Actions: []tink.Action{
-								{
-									Name:   action,
-									Status: tink.WorkflowStateSuccess,
-								},
+								{Name: action, Status: tink.WorkflowStateSuccess},
 							},
 						},
 					},
@@ -362,10 +202,5 @@ func TestGenerateStatusDetailFromWorkflowState(t *testing.T) {
 			want: fmt.Sprintf("1/1: %s", detail),
 		})
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, GenerateStatusDetailFromWorkflowState(tt.args.workflow),
-				"GenerateStatusDetailFromWorkflowState(%v)", tt.args.workflow)
-		})
-	}
+	return tests
 }

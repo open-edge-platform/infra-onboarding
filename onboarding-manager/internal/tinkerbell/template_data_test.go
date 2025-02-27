@@ -1,13 +1,16 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-package tinkerbell
+package tinkerbell_test
 
 import (
 	"reflect"
 	"testing"
 
+	"gopkg.in/yaml.v2"
+
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/tinkerbell"
 )
 
 func TestNewTemplateDataProdBKC(t *testing.T) {
@@ -16,8 +19,11 @@ func TestNewTemplateDataProdBKC(t *testing.T) {
 		deviceInfo utils.DeviceInfo
 		enableDI   bool
 	}
-	wf := Workflow{}
-	want, _ := marshalWorkflow(&wf)
+	wf := tinkerbell.Workflow{}
+	want, marshalWorkflowError := marshalWorkflow(&wf)
+	if marshalWorkflowError != nil {
+		t.Errorf("marshalWorkflowError%v", marshalWorkflowError)
+	}
 	tests := []struct {
 		name    string
 		args    args
@@ -46,7 +52,7 @@ func TestNewTemplateDataProdBKC(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewTemplateDataUbuntu(tt.args.name, tt.args.deviceInfo)
+			got, err := tinkerbell.NewTemplateDataUbuntu(tt.args.name, tt.args.deviceInfo)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewTemplateDataUbuntu() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -56,4 +62,8 @@ func TestNewTemplateDataProdBKC(t *testing.T) {
 			}
 		})
 	}
+}
+
+func marshalWorkflow(wf *tinkerbell.Workflow) ([]byte, error) {
+	return yaml.Marshal(wf)
 }

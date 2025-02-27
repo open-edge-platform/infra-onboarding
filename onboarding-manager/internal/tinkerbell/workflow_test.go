@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-package tinkerbell
+package tinkerbell_test
 
 import (
 	"context"
@@ -9,13 +9,16 @@ import (
 	"reflect"
 	"testing"
 
-	om_testing "github.com/intel/infra-onboarding/onboarding-manager/internal/testing"
 	"github.com/stretchr/testify/mock"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
-	error "k8s.io/apimachinery/pkg/api/errors"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	onboarding "github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/onboarding/onboardingmocks"
+	om_testing "github.com/intel/infra-onboarding/onboarding-manager/internal/testing"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/tinkerbell"
 )
 
 func TestNewWorkflow(t *testing.T) {
@@ -57,28 +60,32 @@ func TestNewWorkflow(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewWorkflow(tt.args.name, tt.args.ns, tt.args.mac, tt.args.hardwareRef, tt.args.templateRef); !reflect.DeepEqual(got, tt.want) {
+			if got := tinkerbell.NewWorkflow(tt.args.name, tt.args.ns, tt.args.mac, tt.args.hardwareRef,
+				tt.args.templateRef); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewWorkflow() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
+//nolint:dupl //this is with tink.Workflow as args.
 func TestCreateWorkflowIfNotExists(t *testing.T) {
 	type args struct {
 		ctx      context.Context
 		k8sCli   client.Client
 		workflow *tink.Workflow
 	}
-	mockClient := MockClient{}
+	mockClient := onboarding.MockClient{}
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	mockClient1 := MockClient{}
+	mockClient1 := onboarding.MockClient{}
 	mockClient1.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
-	mockClient2 := MockClient{}
-	mockClient2.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(error.NewNotFound(schema.GroupResource{Group: "example.com", Resource: "myresource"}, "resource-name"))
+	mockClient2 := onboarding.MockClient{}
+	mockClient2.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(k8sErrors.NewNotFound(schema.GroupResource{Group: "example.com", Resource: "myresource"}, "resource-name"))
 	mockClient2.On("Create", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	mockClient3 := MockClient{}
-	mockClient3.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(error.NewNotFound(schema.GroupResource{Group: "example.com", Resource: "myresource"}, "resource-name"))
+	mockClient3 := onboarding.MockClient{}
+	mockClient3.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(k8sErrors.NewNotFound(schema.GroupResource{Group: "example.com", Resource: "myresource"}, "resource-name"))
 	mockClient3.On("Create", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
 	tests := []struct {
 		name    string
@@ -89,7 +96,7 @@ func TestCreateWorkflowIfNotExists(t *testing.T) {
 			name: "CreateWorkflow_Success",
 			args: args{
 				ctx:      context.Background(),
-				k8sCli:   mockClient,
+				k8sCli:   &mockClient,
 				workflow: &tink.Workflow{},
 			},
 		},
@@ -97,7 +104,7 @@ func TestCreateWorkflowIfNotExists(t *testing.T) {
 			name: "CreateWorkflow_ClientError",
 			args: args{
 				ctx:      context.Background(),
-				k8sCli:   mockClient1,
+				k8sCli:   &mockClient1,
 				workflow: &tink.Workflow{},
 			},
 			wantErr: true,
@@ -106,7 +113,7 @@ func TestCreateWorkflowIfNotExists(t *testing.T) {
 			name: "CreateWorkflow_WorkflowNotFound",
 			args: args{
 				ctx:      context.Background(),
-				k8sCli:   mockClient2,
+				k8sCli:   &mockClient2,
 				workflow: &tink.Workflow{},
 			},
 			wantErr: false,
@@ -115,7 +122,7 @@ func TestCreateWorkflowIfNotExists(t *testing.T) {
 			name: "CreateWorkflow_CreateError",
 			args: args{
 				ctx:      context.Background(),
-				k8sCli:   mockClient3,
+				k8sCli:   &mockClient3,
 				workflow: &tink.Workflow{},
 			},
 			wantErr: true,
@@ -123,7 +130,8 @@ func TestCreateWorkflowIfNotExists(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := CreateWorkflowIfNotExists(tt.args.ctx, tt.args.k8sCli, tt.args.workflow); (err != nil) != tt.wantErr {
+			if err := tinkerbell.CreateWorkflowIfNotExists(tt.args.ctx, tt.args.k8sCli,
+				tt.args.workflow); (err != nil) != tt.wantErr {
 				t.Errorf("CreateWorkflowIfNotExists() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -151,7 +159,8 @@ func TestDeleteProdWorkflowResourcesIfExist(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := DeleteProdWorkflowResourcesIfExist(tt.args.ctx, tt.args.k8sNamespace, tt.args.hostUUID); (err != nil) != tt.wantErr {
+			if err := tinkerbell.DeleteProdWorkflowResourcesIfExist(tt.args.ctx, tt.args.k8sNamespace,
+				tt.args.hostUUID); (err != nil) != tt.wantErr {
 				t.Errorf("DeleteProdWorkflowResourcesIfExist() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -159,11 +168,11 @@ func TestDeleteProdWorkflowResourcesIfExist(t *testing.T) {
 }
 
 func TestDeleteProdWorkflowResourcesIfExist_Case(t *testing.T) {
-	currK8sClientFactory := K8sClientFactory
+	currK8sClientFactory := tinkerbell.K8sClientFactory
 	defer func() {
-		K8sClientFactory = currK8sClientFactory
+		tinkerbell.K8sClientFactory = currK8sClientFactory
 	}()
-	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
 	type args struct {
 		ctx          context.Context
 		k8sNamespace string
@@ -184,7 +193,8 @@ func TestDeleteProdWorkflowResourcesIfExist_Case(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := DeleteProdWorkflowResourcesIfExist(tt.args.ctx, tt.args.k8sNamespace, tt.args.hostUUID); (err != nil) != tt.wantErr {
+			if err := tinkerbell.DeleteProdWorkflowResourcesIfExist(tt.args.ctx, tt.args.k8sNamespace,
+				tt.args.hostUUID); (err != nil) != tt.wantErr {
 				t.Errorf("DeleteProdWorkflowResourcesIfExist() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

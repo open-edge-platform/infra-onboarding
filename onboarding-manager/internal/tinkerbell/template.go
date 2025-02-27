@@ -62,6 +62,8 @@ func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (
 // TODO (ITEP-1865): We can probably optimize it.
 //
 //	Instead of doing GET+CREATE we can try CREATE and check if resource already exists.
+//
+//nolint:dupl // This is for creating template if not exists.
 func CreateTemplateIfNotExists(ctx context.Context, k8sCli client.Client, template *tink.Template) error {
 	got := &tink.Template{}
 	err := k8sCli.Get(ctx, client.ObjectKeyFromObject(template), got)

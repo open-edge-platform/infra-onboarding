@@ -3,12 +3,13 @@ Copyright (C) 2023 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
 */
 
-package onboarding
+package onboarding_test
 
 import (
 	"testing"
 
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/onboarding"
 )
 
 const rbacRules = "../../../rego/authz.rego"
@@ -43,8 +44,8 @@ func TestInitOnboarding(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			InitOnboarding(tt.args.invClient, tt.args.dkamAddr, tt.args.enableAuth, tt.args.rbac)
+		t.Run(tt.name, func(_ *testing.T) {
+			onboarding.InitOnboarding(tt.args.invClient, tt.args.dkamAddr, tt.args.enableAuth, tt.args.rbac)
 		})
 	}
 }

@@ -23,7 +23,6 @@ PROTOCGENENTVERSION_REQ        := 0.6.0
 PROTOCGENVALIDATEGOVERSION_REQ := 1.0.1
 POSTGRES_VERSION               := 16.4
 
-
 dependency-check: go-dependency-check ## Check versions of installed tools against recommended versions
 
 dependency: go-dependency ## Install all the dependency

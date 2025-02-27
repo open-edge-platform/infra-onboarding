@@ -44,6 +44,8 @@ func NewWorkflow(name, ns, mac, hardwareRef, templateRef string) *tink.Workflow 
 
 // TODO (ITEP-1865): We can probably optimize it.
 // Instead of doing GET+CREATE we can try CREATE and check if resource already exists.
+//
+//nolint:dupl // This is for creating workflow if not exists.
 func CreateWorkflowIfNotExists(ctx context.Context, k8sCli client.Client, workflow *tink.Workflow) error {
 	got := &tink.Workflow{}
 	err := k8sCli.Get(ctx, client.ObjectKeyFromObject(workflow), got)

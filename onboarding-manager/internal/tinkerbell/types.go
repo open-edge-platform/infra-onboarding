@@ -4,7 +4,6 @@
 package tinkerbell
 
 import (
-	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -40,13 +39,4 @@ type Action struct {
 
 func marshalWorkflow(wf *Workflow) ([]byte, error) {
 	return yaml.Marshal(wf)
-}
-
-func unmarshalWorkflow(yamlContent []byte) (*Workflow, error) {
-	var workflow Workflow
-
-	if err := yaml.Unmarshal(yamlContent, &workflow); err != nil {
-		return &Workflow{}, errors.Wrap(err, "parsing yaml data")
-	}
-	return &workflow, nil
 }

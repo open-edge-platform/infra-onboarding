@@ -13,25 +13,24 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/test/bufconn"
+
 	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
 	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
 	"github.com/intel/infra-core/inventory/v2/pkg/logging"
-	"github.com/intel/infra-core/inventory/v2/pkg/policy/rbac"
 	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
 	"github.com/intel/infra-core/inventory/v2/pkg/util"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/handlers/southbound"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
 	om_testing "github.com/intel/infra-onboarding/onboarding-manager/internal/testing"
 	pb "github.com/intel/infra-onboarding/onboarding-manager/pkg/api"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/test/bufconn"
 )
 
 var (
-	defaultTimeout = 120 * time.Second
-	zlog           = logging.GetLogger("Onboarding-Manager-Southbound-Testing")
+	zlog = logging.GetLogger("Onboarding-Manager-Southbound-Testing")
 
 	SBHandler        *southbound.SBHandler
 	OMTestClient     pb.InteractiveOnboardingServiceClient
@@ -44,18 +43,11 @@ var (
 // Internal parameters for bufconn testing.
 const bufferSize = util.Megabyte
 
-func createOutgoingContextWithENJWT(t *testing.T) context.Context {
-	t.Helper()
-	_, jwtToken, err := inv_testing.CreateENJWT(t)
-	require.NoError(t, err)
-	return rbac.AddJWTToTheOutgoingContext(context.Background(), jwtToken)
-}
-
 func CreateSouthboundOMClient(target string,
 	bufconnLis *bufconn.Listener,
 ) (pb.InteractiveOnboardingServiceClient, *grpc.ClientConn, error) {
 	opts := []grpc.DialOption{
-		grpc.WithBlock(),
+		// grpc.WithBlock(),
 	}
 
 	if bufconnLis != nil {
@@ -66,10 +58,7 @@ func CreateSouthboundOMClient(target string,
 	dialOpt := grpc.WithTransportCredentials(insecure.NewCredentials())
 	opts = append(opts, dialOpt)
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
-
-	conn, err := grpc.DialContext(ctx, target, opts...)
+	conn, err := grpc.NewClient(target, opts...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -172,6 +161,7 @@ func GetHostbyUUID(tb testing.TB, hostUUID string) *computev1.HostResource {
 	return host
 }
 
+//nolint:dupl //this is with TestNewSBHandler.
 func TestNewSBHandler(t *testing.T) {
 	type args struct {
 		invClient *invclient.OnboardingInventoryClient
@@ -243,6 +233,7 @@ func FuzzNewSBHandler(f *testing.F) {
 	})
 }
 
+//nolint:dupl //this is with TestNewSBNioHandler.
 func TestNewSBNioHandler(t *testing.T) {
 	type args struct {
 		invClient *invclient.OnboardingInventoryClient
@@ -290,6 +281,12 @@ func TestNewSBNioHandler(t *testing.T) {
 }
 
 func TestSBNioHandler_Start(t *testing.T) {
-	sbNioHandler, _ := southbound.NewSBNioHandler(om_testing.InvClient, southbound.SBHandlerNioConfig{})
-	sbNioHandler.Start()
+	sbNioHandler, err := southbound.NewSBNioHandler(om_testing.InvClient, southbound.SBHandlerNioConfig{})
+	if err != nil {
+		fmt.Println(err)
+	}
+	startErr := sbNioHandler.Start()
+	if startErr != nil {
+		t.Errorf("sbNioHandler.Start() = %v", startErr)
+	}
 }

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
-
+//
+//nolint:testpackage // Keeping the test in the same package due to dependencies on unexported fields.
 package reconcilers
 
 import (
@@ -14,8 +15,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
+
 	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
 	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
+	network_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/network/v1"
 	providerv1 "github.com/intel/infra-core/inventory/v2/pkg/api/provider/v1"
 	statusv1 "github.com/intel/infra-core/inventory/v2/pkg/api/status/v1"
 	"github.com/intel/infra-core/inventory/v2/pkg/auth"
@@ -28,9 +34,6 @@ import (
 	om_testing "github.com/intel/infra-onboarding/onboarding-manager/internal/testing"
 	om_status "github.com/intel/infra-onboarding/onboarding-manager/pkg/status"
 	rec_v2 "github.com/intel/orch-library/go/pkg/controller/v2"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 func TestMain(m *testing.M) {
@@ -151,41 +154,12 @@ func TestReconcileHostDeletion(t *testing.T) {
 	hostController := rec_v2.NewController[ReconcilerID](hostReconciler.Reconcile, rec_v2.WithParallelism(1))
 	// do not Stop() to avoid races, should be safe in tests
 
-	host := inv_testing.CreateHostNoCleanup(t, nil, nil)
-	hostNic := inv_testing.CreateHostNicNoCleanup(t, host)
-	hostStorage := inv_testing.CreateHostStorageNoCleanup(t, host)
-	hostUsb := inv_testing.CreateHostusbNoCleanup(t, host)
-	hostGpu := inv_testing.CreatHostGPUNoCleanup(t, host)
-	nicIP := inv_testing.CreateIPAddress(t, hostNic, false)
-	osRes := inv_testing.CreateOs(t)
-	instance := inv_testing.CreateInstanceNoCleanup(t, host, osRes)
+	hostSetup := createTestHostSetup(t)
 
-	hostID := host.GetResourceId()
+	hostID := hostSetup.Host.GetResourceId()
 
-	runReconcilationFunc := func() {
-		defer func() {
-			time.Sleep(1 * time.Second)
-		}()
-		for {
-			select {
-			case ev, ok := <-inv_testing.TestClientsEvents[inv_testing.RMClient]:
-				require.True(t, ok, "No events received")
-				resKind, err := util.GetResourceKindFromResourceID(ev.Event.ResourceId)
-				require.NoError(t, err)
-				if resKind != inv_v1.ResourceKind_RESOURCE_KIND_HOST {
-					continue
-				}
-				err = hostController.Reconcile(NewReconcilerID(host.GetTenantId(), ev.Event.ResourceId))
-				assert.NoError(t, err, "Reconciliation failed")
-				return
-			case <-time.After(1 * time.Second):
-				t.Fatalf("No events received within timeout")
-			}
-		}
-	}
-
-	runReconcilationFunc() // CREATED event
-	om_testing.AssertHost(t, host.GetTenantId(), hostID,
+	runReconcilationFunc(t, hostController, hostSetup.Host) // CREATED event
+	om_testing.AssertHost(t, hostSetup.Host.GetTenantId(), hostID,
 		computev1.HostState_HOST_STATE_ONBOARDED,
 		computev1.HostState_HOST_STATE_UNSPECIFIED,
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
@@ -206,17 +180,17 @@ func TestReconcileHostDeletion(t *testing.T) {
 	_, err := inv_testing.TestClients[inv_testing.APIClient].Update(ctx, hostID, &fmk, res)
 	require.NoError(t, err)
 
-	runReconcilationFunc() // UPDATED event (desired state to DELETED)
-	runReconcilationFunc() // UPDATED event (status update)
+	runReconcilationFunc(t, hostController, hostSetup.Host) // UPDATED event (desired state to DELETED)
+	runReconcilationFunc(t, hostController, hostSetup.Host) // UPDATED event (status update)
 
-	expectedDetails := fmt.Sprintf("waiting on %s deletion", instance.GetResourceId())
-	om_testing.AssertHost(t, host.GetTenantId(), hostID,
+	expectedDetails := fmt.Sprintf("waiting on %s deletion", hostSetup.Instance.GetResourceId())
+	om_testing.AssertHost(t, hostSetup.Host.GetTenantId(), hostID,
 		computev1.HostState_HOST_STATE_DELETED,
 		computev1.HostState_HOST_STATE_UNSPECIFIED,
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 	om_testing.AssertHostOnboardingStatus(t, hostID, om_status.ModernHostStatusDeletingWithDetails(expectedDetails))
 
-	inv_testing.HardDeleteInstance(t, instance.GetResourceId())
+	inv_testing.HardDeleteInstance(t, hostSetup.Instance.GetResourceId())
 
 	// delete, attempt will fail but check if providerStatusDetail has changed
 	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
@@ -233,9 +207,9 @@ func TestReconcileHostDeletion(t *testing.T) {
 	_, err = inv_testing.TestClients[inv_testing.APIClient].Update(ctx, hostID, &fmk, res)
 	require.NoError(t, err)
 
-	runReconcilationFunc()
+	runReconcilationFunc(t, hostController, hostSetup.Host)
 
-	om_testing.AssertHost(t, host.GetTenantId(), hostID,
+	om_testing.AssertHost(t, hostSetup.Host.GetTenantId(), hostID,
 		computev1.HostState_HOST_STATE_DELETED,
 		computev1.HostState_HOST_STATE_UNSPECIFIED,
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
@@ -246,29 +220,83 @@ func TestReconcileHostDeletion(t *testing.T) {
 	_, err = inv_testing.TestClients[inv_testing.APIClient].Update(ctx, hostID, &fmk, res)
 	require.NoError(t, err)
 
+	runReconcilationFunc(t, hostController, hostSetup.Host)
+	assertResourceNotFound(ctx, t,
+		hostSetup.Host.GetResourceId(),
+		hostSetup.HostNic.GetResourceId(),
+		hostSetup.HostStorage.GetResourceId(),
+		hostSetup.HostUsb.GetResourceId(),
+		hostSetup.HostGpu.GetResourceId(),
+		hostSetup.NicIP.GetResourceId(),
+	)
+}
+
+func runReconcilationFunc(t *testing.T, hostController *rec_v2.Controller[ReconcilerID], host *computev1.HostResource) {
+	t.Helper()
+	runReconcilationFunc := func() {
+		defer time.Sleep(1 * time.Second)
+		for {
+			select {
+			case ev, ok := <-inv_testing.TestClientsEvents[inv_testing.RMClient]:
+				require.True(t, ok, "No events received")
+				resKind, err := util.GetResourceKindFromResourceID(ev.Event.ResourceId)
+				require.NoError(t, err)
+				if resKind != inv_v1.ResourceKind_RESOURCE_KIND_HOST {
+					continue
+				}
+				err = hostController.Reconcile(NewReconcilerID(host.GetTenantId(), ev.Event.ResourceId))
+				assert.NoError(t, err, "Reconciliation failed")
+				return
+			case <-time.After(1 * time.Second):
+				t.Fatalf("No events received within timeout")
+			}
+		}
+	}
 	runReconcilationFunc()
+}
 
-	_, err = inv_testing.TestClients[inv_testing.APIClient].Get(ctx, host.GetResourceId())
-	require.True(t, inv_errors.IsNotFound(err))
+type TestHostSetup struct {
+	Host        *computev1.HostResource
+	HostNic     *computev1.HostnicResource
+	HostStorage *computev1.HoststorageResource
+	HostUsb     *computev1.HostusbResource
+	HostGpu     *computev1.HostgpuResource
+	NicIP       *network_v1.IPAddressResource
+	Instance    *computev1.InstanceResource
+}
 
-	_, err = inv_testing.TestClients[inv_testing.APIClient].Get(ctx, hostNic.GetResourceId())
-	require.True(t, inv_errors.IsNotFound(err))
+func createTestHostSetup(t *testing.T) *TestHostSetup {
+	t.Helper()
+	host := inv_testing.CreateHostNoCleanup(t, nil, nil)
+	hostNic := inv_testing.CreateHostNicNoCleanup(t, host)
+	hostStorage := inv_testing.CreateHostStorageNoCleanup(t, host)
+	hostUsb := inv_testing.CreateHostusbNoCleanup(t, host)
+	hostGpu := inv_testing.CreatHostGPUNoCleanup(t, host)
+	nicIP := inv_testing.CreateIPAddress(t, hostNic, false)
+	osRes := inv_testing.CreateOs(t)
+	instance := inv_testing.CreateInstanceNoCleanup(t, host, osRes)
 
-	_, err = inv_testing.TestClients[inv_testing.APIClient].Get(ctx, hostStorage.GetResourceId())
-	require.True(t, inv_errors.IsNotFound(err))
+	return &TestHostSetup{
+		Host:        host,
+		HostNic:     hostNic,
+		HostStorage: hostStorage,
+		HostUsb:     hostUsb,
+		HostGpu:     hostGpu,
+		NicIP:       nicIP,
+		Instance:    instance,
+	}
+}
 
-	_, err = inv_testing.TestClients[inv_testing.APIClient].Get(ctx, hostUsb.GetResourceId())
-	require.True(t, inv_errors.IsNotFound(err))
-
-	_, err = inv_testing.TestClients[inv_testing.APIClient].Get(ctx, hostGpu.GetResourceId())
-	require.True(t, inv_errors.IsNotFound(err))
-
-	_, err = inv_testing.TestClients[inv_testing.APIClient].Get(ctx, nicIP.GetResourceId())
-	require.True(t, inv_errors.IsNotFound(err))
+func assertResourceNotFound(ctx context.Context, t *testing.T, resourceIDs ...string) {
+	t.Helper()
+	for _, resourceID := range resourceIDs {
+		_, err := inv_testing.TestClients[inv_testing.APIClient].Get(ctx, resourceID)
+		require.True(t, inv_errors.IsNotFound(err), "Expected resource %s to be not found", resourceID)
+	}
 }
 
 // This TC verifies the case, when an event with Host with pre-defined custom Provider (e.g., Lenovo) is obtained.
-// In this case, no reconciliation should be performed for such Host (the reconciliation should happen in the Provider-specific RM,
+// In this case, no reconciliation should be performed for such Host(the reconciliation should happen in the Provider-specific RM
 // e.g., LOC-A RM).
 func TestReconcileHostWithProvider(t *testing.T) {
 	om_testing.CreateInventoryOnboardingClientForTesting()
@@ -317,6 +345,7 @@ func TestReconcileHostWithProvider(t *testing.T) {
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 }
 
+//nolint:dupl // These tests are for different reconcilers but have a similar structure.
 func TestNewHostReconciler(t *testing.T) {
 	type args struct {
 		c *invclient.OnboardingInventoryClient
@@ -485,6 +514,7 @@ func TestHostReconciler_deleteHost(t *testing.T) {
 	}
 }
 
+//nolint:dupl//nolint:dupl //this is with deleteHostGpuByHost.
 func TestHostReconciler_deleteHostGpuByHost(t *testing.T) {
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -541,6 +571,7 @@ func TestHostReconciler_deleteHostGpuByHost(t *testing.T) {
 	}
 }
 
+//nolint:dupl //this is with deleteHostNicByHost.
 func TestHostReconciler_deleteHostNicByHost(t *testing.T) {
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -654,6 +685,7 @@ func TestHostReconciler_deleteIPsByHostNic(t *testing.T) {
 	}
 }
 
+//nolint:dupl //this is with deleteHostStorageByHost.
 func TestHostReconciler_deleteHostStorageByHost(t *testing.T) {
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -710,6 +742,7 @@ func TestHostReconciler_deleteHostStorageByHost(t *testing.T) {
 	}
 }
 
+//nolint:dupl //this is with deleteHostUsbByHost.
 func TestHostReconciler_deleteHostUsbByHost(t *testing.T) {
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -884,6 +917,9 @@ func TestHostReconciler_deleteHost_Case(t *testing.T) {
 			wantErr: true,
 		},
 	}
+	defer func() {
+		flags.FlagDisableCredentialsManagement = flag.Bool("n", false, "")
+	}()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			hr := &HostReconciler{
@@ -894,9 +930,6 @@ func TestHostReconciler_deleteHost_Case(t *testing.T) {
 			}
 		})
 	}
-	defer func() {
-		flags.FlagDisableCredentialsManagement = flag.Bool("n", false, "")
-	}()
 }
 
 func TestHostReconciler_deleteHost_Case1(t *testing.T) {
@@ -937,6 +970,9 @@ func TestHostReconciler_deleteHost_Case1(t *testing.T) {
 			wantErr: true,
 		},
 	}
+	defer func() {
+		flags.FlagDisableCredentialsManagement = flag.Bool("j", false, "")
+	}()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			hr := &HostReconciler{
@@ -947,9 +983,6 @@ func TestHostReconciler_deleteHost_Case1(t *testing.T) {
 			}
 		})
 	}
-	defer func() {
-		flags.FlagDisableCredentialsManagement = flag.Bool("j", false, "")
-	}()
 }
 
 func TestHostReconciler_deleteHost_Case2(t *testing.T) {
@@ -995,6 +1028,9 @@ func TestHostReconciler_deleteHost_Case2(t *testing.T) {
 			wantErr: true,
 		},
 	}
+	defer func() {
+		flags.FlagDisableCredentialsManagement = flag.Bool("k", false, "")
+	}()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			hr := &HostReconciler{
@@ -1005,9 +1041,6 @@ func TestHostReconciler_deleteHost_Case2(t *testing.T) {
 			}
 		})
 	}
-	defer func() {
-		flags.FlagDisableCredentialsManagement = flag.Bool("k", false, "")
-	}()
 }
 
 func TestHostReconciler_deleteHost_Case3(t *testing.T) {
@@ -1059,6 +1092,9 @@ func TestHostReconciler_deleteHost_Case3(t *testing.T) {
 			wantErr: true,
 		},
 	}
+	defer func() {
+		flags.FlagDisableCredentialsManagement = flag.Bool("l", false, "")
+	}()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			hr := &HostReconciler{
@@ -1069,9 +1105,6 @@ func TestHostReconciler_deleteHost_Case3(t *testing.T) {
 			}
 		})
 	}
-	defer func() {
-		flags.FlagDisableCredentialsManagement = flag.Bool("l", false, "")
-	}()
 }
 
 func TestHostReconciler_deleteHostNicByHost_Case(t *testing.T) {

@@ -48,7 +48,8 @@ func TestCheckStatusOrRunProdWorkflow(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := onbworkflowclient.CheckStatusOrRunProdWorkflow(tt.args.ctx, tt.args.deviceInfo, tt.args.instance); (err != nil) != tt.wantErr {
+			if err := onbworkflowclient.CheckStatusOrRunProdWorkflow(tt.args.ctx, tt.args.deviceInfo,
+				tt.args.instance); (err != nil) != tt.wantErr {
 				t.Errorf("CheckStatusOrRunProdWorkflow() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

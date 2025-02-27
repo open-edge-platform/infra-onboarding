@@ -2,15 +2,22 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package invclient
+package invclient_test
 
 import (
 	"context"
+	"math"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
 	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
@@ -20,12 +27,8 @@ import (
 	"github.com/intel/infra-core/inventory/v2/pkg/client"
 	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
 	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
 	om_status "github.com/intel/infra-onboarding/onboarding-manager/pkg/status"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -56,7 +59,7 @@ func TestWithInventoryAddress(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want Option
+		want invclient.Option
 	}{
 		{
 			name: "ProvidingInventoryAddress",
@@ -66,7 +69,7 @@ func TestWithInventoryAddress(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := WithInventoryAddress(tt.args.invAddr); reflect.DeepEqual(got, tt.want) {
+			if got := invclient.WithInventoryAddress(tt.args.invAddr); reflect.DeepEqual(got, tt.want) {
 				t.Errorf("WithInventoryAddress() = %v, want %v", got, tt.want)
 			}
 		})
@@ -80,7 +83,7 @@ func TestWithEnableTracing(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want Option
+		want invclient.Option
 	}{
 		{
 			name: "EnablingTracing",
@@ -90,7 +93,7 @@ func TestWithEnableTracing(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := WithEnableTracing(tt.args.enableTracing); reflect.DeepEqual(got, tt.want) {
+			if got := invclient.WithEnableTracing(tt.args.enableTracing); reflect.DeepEqual(got, tt.want) {
 				t.Errorf("WithEnableTracing() = %v, want %v", got, tt.want)
 			}
 		})
@@ -99,12 +102,12 @@ func TestWithEnableTracing(t *testing.T) {
 
 func TestNewOnboardingInventoryClientWithOptions(t *testing.T) {
 	type args struct {
-		opts []Option
+		opts []invclient.Option
 	}
 	tests := []struct {
 		name    string
 		args    args
-		want    *OnboardingInventoryClient
+		want    *invclient.OnboardingInventoryClient
 		wantErr bool
 	}{
 		{
@@ -116,7 +119,7 @@ func TestNewOnboardingInventoryClientWithOptions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewOnboardingInventoryClientWithOptions(tt.args.opts...)
+			got, err := invclient.NewOnboardingInventoryClientWithOptions(tt.args.opts...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewOnboardingInventoryClientWithOptions() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -136,19 +139,19 @@ func TestNewOnboardingInventoryClient(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    *OnboardingInventoryClient
+		want    *invclient.OnboardingInventoryClient
 		wantErr bool
 	}{
 		{
 			name:    "CreatingNewOnboardingInventoryClient",
 			args:    args{},
-			want:    &OnboardingInventoryClient{},
+			want:    &invclient.OnboardingInventoryClient{},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewOnboardingInventoryClient(tt.args.invClient, tt.args.watcher)
+			got, err := invclient.NewOnboardingInventoryClient(tt.args.invClient, tt.args.watcher)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewOnboardingInventoryClient() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -526,7 +529,10 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			invClient.SetHostOnboardingStatus(ctx, tt.args.tenantID, tt.args.hostID, tt.args.onboardingStatus)
+			err := invClient.SetHostOnboardingStatus(ctx, tt.args.tenantID, tt.args.hostID, tt.args.onboardingStatus)
+			if err != nil {
+				t.Log(err)
+			}
 			if !t.Failed() && tt.valid {
 				hostInv, err := invClient.GetHostResourceByUUID(ctx, host.GetTenantId(), host.Uuid)
 				require.NoError(t, err)
@@ -603,6 +609,7 @@ func TestOnboardingInventoryClient_DeleteHostResource(t *testing.T) {
 	}
 }
 
+//nolint:dupl // this is for SetHostStatus.
 func TestOnboardingInventoryClient_SetHostStatus(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
@@ -655,7 +662,12 @@ func TestOnboardingInventoryClient_SetHostStatus(t *testing.T) {
 					t.FailNow()
 				}
 			}
-
+			var timeBeforeUpdateSafe uint64
+			if timeBeforeUpdate >= 0 {
+				timeBeforeUpdateSafe = uint64(timeBeforeUpdate)
+			} else {
+				timeBeforeUpdateSafe = 0
+			}
 			// only get/delete if valid test and hasn't failed otherwise may segfault
 			if !t.Failed() && tt.valid {
 				hostInv, err := invClient.GetHostResourceByUUID(ctx, host.GetTenantId(), host.Uuid)
@@ -664,12 +676,13 @@ func TestOnboardingInventoryClient_SetHostStatus(t *testing.T) {
 
 				assert.Equal(t, tt.args.onboardingStatus.Status, hostInv.GetOnboardingStatus())
 				assert.Equal(t, tt.args.onboardingStatus.StatusIndicator, hostInv.GetOnboardingStatusIndicator())
-				assert.LessOrEqual(t, uint64(timeBeforeUpdate), hostInv.GetOnboardingStatusTimestamp())
+				assert.LessOrEqual(t, timeBeforeUpdateSafe, hostInv.GetOnboardingStatusTimestamp())
 			}
 		})
 	}
 }
 
+//nolint:dupl //this is with SetHostStatusDetail.
 func TestOnboardingInventoryClient_SetHostStatusDetail(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
@@ -722,7 +735,12 @@ func TestOnboardingInventoryClient_SetHostStatusDetail(t *testing.T) {
 					t.FailNow()
 				}
 			}
-
+			var timeBeforeUpdateSafe uint64
+			if timeBeforeUpdate >= 0 {
+				timeBeforeUpdateSafe = uint64(timeBeforeUpdate)
+			} else {
+				timeBeforeUpdateSafe = 0
+			}
 			// only get/delete if valid test and hasn't failed otherwise may segfault
 			if !t.Failed() && tt.valid {
 				hostInv, err := invClient.GetHostResourceByUUID(ctx, host.GetTenantId(), host.Uuid)
@@ -731,7 +749,7 @@ func TestOnboardingInventoryClient_SetHostStatusDetail(t *testing.T) {
 
 				assert.Equal(t, tt.args.status.Status, hostInv.GetOnboardingStatus())
 				assert.Equal(t, tt.args.status.StatusIndicator, hostInv.GetOnboardingStatusIndicator())
-				assert.LessOrEqual(t, uint64(timeBeforeUpdate), hostInv.GetOnboardingStatusTimestamp())
+				assert.LessOrEqual(t, timeBeforeUpdateSafe, hostInv.GetOnboardingStatusTimestamp())
 			}
 		})
 	}
@@ -784,10 +802,10 @@ func TestOnboardingInventoryClient_GetInstanceResourceByResourceID(t *testing.T)
 	invClient := OnboardingTestClient
 
 	host := inv_testing.CreateHost(t, nil, nil)
-	os := inv_testing.CreateOs(t)
-	inst := inv_testing.CreateInstance(t, host, os)
-	inst.DesiredOs = os
-	inst.CurrentOs = os
+	osRes := inv_testing.CreateOs(t)
+	inst := inv_testing.CreateInstance(t, host, osRes)
+	inst.DesiredOs = osRes
+	inst.CurrentOs = osRes
 	inst.Host = host
 	type args struct {
 		tenantID         string
@@ -916,7 +934,8 @@ func TestOnboardingInventoryClient_DeleteInstanceResource(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.DeleteInstanceResource(tt.args.ctx, tt.args.tenantID, tt.args.resourceID); (err != nil) != tt.wantErr {
+			if err := invClient.DeleteInstanceResource(tt.args.ctx, tt.args.tenantID,
+				tt.args.resourceID); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.DeleteInstanceResource() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1055,6 +1074,7 @@ func TestOnboardingInventoryClient_GetOSResourceByResourceID(t *testing.T) {
 	}
 }
 
+//nolint:dupl // These tests cover different scenarios.
 func TestOnboardingInventoryClient_GetOSResources(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
@@ -1184,7 +1204,8 @@ func TestOnboardingInventoryClient_UpdateInvResourceFields(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.UpdateInvResourceFields(tt.args.ctx, tt.args.tenantID, tt.args.resource, tt.args.fields); (err != nil) != tt.wantErr {
+			if err := invClient.UpdateInvResourceFields(tt.args.ctx, tt.args.tenantID,
+				tt.args.resource, tt.args.fields); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.UpdateInvResourceFields() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1243,13 +1264,13 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-
+			hostStatusTimestamp := uint64(math.Max(0, float64(tt.args.updateTimestamp)))
 			hostUp := &computev1.HostResource{
 				ResourceId:          tt.args.hostID,
 				CurrentState:        tt.args.hostCurrentState,
 				HostStatus:          tt.args.runtimeHostStatus.Status,
 				HostStatusIndicator: tt.args.runtimeHostStatus.StatusIndicator,
-				HostStatusTimestamp: uint64(tt.args.updateTimestamp),
+				HostStatusTimestamp: hostStatusTimestamp,
 			}
 
 			err := OnboardingTestClient.UpdateHostStateAndRuntimeStatus(ctx, tt.args.tenantID, hostUp)
@@ -1267,6 +1288,7 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 
 			// only get/delete if valid test and hasn't failed otherwise may segfault
 			if !t.Failed() && tt.valid {
+				hostStatusTimestamp := uint64(math.Max(0, float64(tt.args.updateTimestamp)))
 				hostInv, hostErr := OnboardingTestClient.GetHostResourceByUUID(ctx, host.GetTenantId(), host.Uuid)
 				require.NoError(t, hostErr)
 				require.NotNil(t, hostInv)
@@ -1274,7 +1296,7 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 				assert.Equal(t, tt.args.hostCurrentState, hostInv.GetCurrentState())
 				assert.Equal(t, tt.args.runtimeHostStatus.Status, hostInv.GetHostStatus())
 				assert.Equal(t, tt.args.runtimeHostStatus.StatusIndicator, hostInv.GetHostStatusIndicator())
-				assert.LessOrEqual(t, uint64(tt.args.updateTimestamp), hostInv.GetHostStatusTimestamp())
+				assert.LessOrEqual(t, hostStatusTimestamp, hostInv.GetHostStatusTimestamp())
 			}
 
 			if !tt.valid {
@@ -1341,6 +1363,12 @@ func TestOnboardingInventoryClient_SetInstanceStatus(t *testing.T) {
 				}
 			}
 
+			var timeBeforeUpdateSafe uint64
+			if timeBeforeUpdate >= 0 {
+				timeBeforeUpdateSafe = uint64(timeBeforeUpdate)
+			} else {
+				timeBeforeUpdateSafe = 0
+			}
 			// only get/delete if valid test and hasn't failed otherwise may segfault
 			if !t.Failed() && tt.valid {
 				hostInv, err := invClient.GetHostResourceByUUID(ctx, host.GetTenantId(), host.Uuid)
@@ -1350,7 +1378,7 @@ func TestOnboardingInventoryClient_SetInstanceStatus(t *testing.T) {
 				instInv := hostInv.Instance
 				assert.Equal(t, tt.args.provisioningStatus.Status, instInv.GetProvisioningStatus())
 				assert.Equal(t, tt.args.provisioningStatus.StatusIndicator, instInv.GetProvisioningStatusIndicator())
-				assert.LessOrEqual(t, uint64(timeBeforeUpdate), instInv.GetProvisioningStatusTimestamp())
+				assert.LessOrEqual(t, timeBeforeUpdateSafe, instInv.GetProvisioningStatusTimestamp())
 			}
 		})
 	}
@@ -1363,7 +1391,7 @@ func TestWithClientKind(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want Option
+		want invclient.Option
 	}{
 		{
 			name: "TestWithClientKind_NoInputKind",
@@ -1373,7 +1401,7 @@ func TestWithClientKind(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := WithClientKind(tt.args.clientKind); reflect.DeepEqual(got, tt.want) {
+			if got := invclient.WithClientKind(tt.args.clientKind); reflect.DeepEqual(got, tt.want) {
 				t.Errorf("WithClientKind() = %v, want %v", got, tt.want)
 			}
 		})
@@ -1382,19 +1410,19 @@ func TestWithClientKind(t *testing.T) {
 
 func TestNewOnboardingInventoryClientWithOptions_Case(t *testing.T) {
 	type args struct {
-		opts []Option
+		opts []invclient.Option
 	}
 
 	tests := []struct {
 		name    string
 		args    args
-		want    *OnboardingInventoryClient
+		want    *invclient.OnboardingInventoryClient
 		wantErr bool
 	}{
 		{
 			name: "TestNewOnboardingInventoryClientWithOptions_WithInventoryAddress",
 			args: args{
-				opts: []Option{WithInventoryAddress("example.com")},
+				opts: []invclient.Option{invclient.WithInventoryAddress("example.com")},
 			},
 			want:    nil,
 			wantErr: true,
@@ -1402,7 +1430,7 @@ func TestNewOnboardingInventoryClientWithOptions_Case(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewOnboardingInventoryClientWithOptions(tt.args.opts...)
+			got, err := invclient.NewOnboardingInventoryClientWithOptions(tt.args.opts...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewOnboardingInventoryClientWithOptions() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1440,13 +1468,15 @@ func TestOnboardingInventoryClient_UpdateInvResourceFields_Case(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.UpdateInvResourceFields(tt.args.ctx, tt.args.tenantID, tt.args.resource, tt.args.fields); (err != nil) != tt.wantErr {
+			if err := invClient.UpdateInvResourceFields(tt.args.ctx, tt.args.tenantID,
+				tt.args.resource, tt.args.fields); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.UpdateInvResourceFields() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
+//nolint:dupl //this is with EndpointResource.
 func TestOnboardingInventoryClient_UpdateInvResourceFields_Case1(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
@@ -1474,13 +1504,15 @@ func TestOnboardingInventoryClient_UpdateInvResourceFields_Case1(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.UpdateInvResourceFields(tt.args.ctx, tt.args.tenantID, tt.args.resource, tt.args.fields); (err != nil) != tt.wantErr {
+			if err := invClient.UpdateInvResourceFields(tt.args.ctx, tt.args.tenantID,
+				tt.args.resource, tt.args.fields); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.UpdateInvResourceFields() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
+//nolint:dupl //this is with HostResource.
 func TestOnboardingInventoryClient_UpdateInvResourceFields_Case3(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
@@ -1508,13 +1540,15 @@ func TestOnboardingInventoryClient_UpdateInvResourceFields_Case3(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.UpdateInvResourceFields(tt.args.ctx, tt.args.tenantID, tt.args.resource, tt.args.fields); (err != nil) != tt.wantErr {
+			if err := invClient.UpdateInvResourceFields(tt.args.ctx, tt.args.tenantID,
+				tt.args.resource, tt.args.fields); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.UpdateInvResourceFields() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
+//nolint:dupl //this is with GetInstanceResourceByResourceID.
 func TestOnboardingInventoryClient_GetInstanceResourceByResourceID_Case(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
@@ -1564,6 +1598,7 @@ func TestOnboardingInventoryClient_GetInstanceResourceByResourceID_Case(t *testi
 	}
 }
 
+//nolint:dupl // These tests cover different scenarios.
 func TestOnboardingInventoryClient_GetInstanceResources_Case(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
@@ -1594,6 +1629,7 @@ func TestOnboardingInventoryClient_GetInstanceResources_Case(t *testing.T) {
 	}
 }
 
+//nolint:dupl //this is with GetOSResourceByResourceID.
 func TestOnboardingInventoryClient_GetOSResourceByResourceID_Case(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	invClient := OnboardingTestClient
@@ -1781,39 +1817,9 @@ func TestOnboardingInventoryClient_SetInstanceStatusAndCurrentState(t *testing.T
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.UpdateInstance(tt.args.ctx, tt.args.tenantID, tt.args.instanceID, tt.args.currentState, tt.args.provisioningStatus, tt.args.currentOS); (err != nil) != tt.wantErr {
+			if err := invClient.UpdateInstance(tt.args.ctx, tt.args.tenantID, tt.args.instanceID, tt.args.currentState,
+				tt.args.provisioningStatus, tt.args.currentOS); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.UpdateInstance() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestOnboardingInventoryClient_listAndReturnProvider(t *testing.T) {
-	CreateOnboardingClientForTesting(t)
-	invClient := OnboardingTestClient
-	type args struct {
-		ctx    context.Context
-		filter *inv_v1.ResourceFilter
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "",
-			args: args{
-				ctx: context.Background(),
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := invClient.listAndReturnProvider(tt.args.ctx, tt.args.filter)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("OnboardingInventoryClient.listAndReturnProvider() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 		})
 	}
@@ -1823,7 +1829,7 @@ func TestGetProviderResourceByName(t *testing.T) {
 	type args struct {
 		ctx      context.Context
 		tenantID string
-		c        *OnboardingInventoryClient
+		c        *invclient.OnboardingInventoryClient
 		name     string
 	}
 	tests := []struct {
@@ -1836,7 +1842,7 @@ func TestGetProviderResourceByName(t *testing.T) {
 			args: args{
 				ctx:      context.Background(),
 				tenantID: tenant1,
-				c:        &OnboardingInventoryClient{},
+				c:        &invclient.OnboardingInventoryClient{},
 				name:     "",
 			},
 			wantErr: true,
@@ -1844,7 +1850,7 @@ func TestGetProviderResourceByName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := GetProviderResourceByName(tt.args.ctx, tt.args.tenantID, tt.args.c, tt.args.name)
+			_, err := invclient.GetProviderResourceByName(tt.args.ctx, tt.args.tenantID, tt.args.c, tt.args.name)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetProviderResourceByName() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1859,13 +1865,14 @@ func TestGetProviderResourceByName_MultiTenant(t *testing.T) {
 	provider := inv_testing.CreateProvider(t, "Test Provider")
 
 	t.Run("Valid_TenantId", func(t *testing.T) {
-		providerInv, err := GetProviderResourceByName(context.Background(), provider.GetTenantId(), invClient, provider.GetName())
+		providerInv, err := invclient.GetProviderResourceByName(context.Background(), provider.GetTenantId(),
+			invClient, provider.GetName())
 		require.NoError(t, err)
 		require.NotNil(t, providerInv)
 	})
 
 	t.Run("Invalid_TenantId", func(t *testing.T) {
-		providerInv, err := GetProviderResourceByName(context.Background(), tenant1, invClient, provider.GetName())
+		providerInv, err := invclient.GetProviderResourceByName(context.Background(), tenant1, invClient, provider.GetName())
 		require.Error(t, err)
 		require.Nil(t, providerInv)
 	})
@@ -1948,7 +1955,9 @@ func TestOnboardingInventoryClient_UpdateHostRegState(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := invClient.UpdateHostRegState(tt.args.ctx, tt.args.tenantID, tt.args.host.ResourceId, computev1.HostState_HOST_STATE_REGISTERED, "", "", om_status.HostRegistrationDone); (err != nil) != tt.wantErr {
+			if err := invClient.UpdateHostRegState(tt.args.ctx, tt.args.tenantID, tt.args.host.ResourceId,
+				computev1.HostState_HOST_STATE_REGISTERED, "", "",
+				om_status.HostRegistrationDone); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.updateHostMacID() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -1989,7 +1998,7 @@ func TestOnboardingInventoryClient_GetHostResource(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &OnboardingInventoryClient{
+			c := &invclient.OnboardingInventoryClient{
 				Client:  tt.fields.Client,
 				Watcher: tt.fields.Watcher,
 			}
