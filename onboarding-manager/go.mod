@@ -9,7 +9,7 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v1.1.0
 	github.com/google/uuid v1.6.0
 	github.com/intel/infra-core/inventory/v2 v2.17.0
-	github.com/intel/infra-onboarding/dkam v1.19.1-0.20250225080734-5e5ab96118db
+	github.com/intel/infra-onboarding/dkam v1.20.0
 	github.com/intel/orch-library/go v0.5.18
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.20.5
