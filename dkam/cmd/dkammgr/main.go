@@ -21,6 +21,7 @@ import (
 	"github.com/intel/infra-core/inventory/v2/pkg/oam"
 	"github.com/intel/infra-core/inventory/v2/pkg/tracing"
 	"github.com/intel/infra-onboarding/dkam/internal/dkammgr"
+	"github.com/intel/infra-onboarding/dkam/internal/env"
 	"github.com/intel/infra-onboarding/dkam/internal/handlers/controller"
 	"github.com/intel/infra-onboarding/dkam/internal/invclient"
 	"github.com/intel/infra-onboarding/dkam/pkg/config"
@@ -67,6 +68,7 @@ func main() {
 	// Print a summary of the build
 	printSummary()
 	flag.Parse()
+	env.MustEnsureRequired()
 	if err := config.Read(); err != nil {
 		zlog.InfraSec().Fatal().Err(err).Msgf("Failed to read config")
 	}

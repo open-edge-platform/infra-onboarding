@@ -10,21 +10,15 @@ import (
 )
 
 const (
-	envK8sNamespace  = "DEFAULT_K8S_NAMESPACE"
-	envDkamMode      = "EN_DKAMMODE"
-	envUserName      = "EN_USERNAME"
-	envPassWord      = "EN_PASSWORD"
-	envTinkerVersion = "TINKER_VERSION"
+	envProfileScriptsRepo = "RS_PROFILE_SCRIPTS_REPO"
+	envHookOSRepo         = "RS_HOOK_OS_REPO"
 )
 
 var (
-	ENDkamMode = os.Getenv(envDkamMode)
-	ENUserName = os.Getenv(envUserName)
-	ENPassWord = os.Getenv(envPassWord)
-
-	K8sNamespace = os.Getenv(envK8sNamespace)
-
-	TinkerActionVersion = os.Getenv(envTinkerVersion)
+	// TODO: pass all hook os version and bare metal agent
+	//  versions via configmap or override values to dkam.
+	HookOSRepo        = os.Getenv(envHookOSRepo)
+	ProfileScriptRepo = os.Getenv(envProfileScriptsRepo)
 )
 
 var zlog = logging.GetLogger("Env")
@@ -41,6 +35,6 @@ func MustGetEnv(key string) string {
 }
 
 func MustEnsureRequired() {
-	TinkerActionVersion = MustGetEnv(envTinkerVersion)
-	K8sNamespace = MustGetEnv(envK8sNamespace)
+	HookOSRepo = MustGetEnv(envHookOSRepo)
+	ProfileScriptRepo = MustGetEnv(envProfileScriptsRepo)
 }

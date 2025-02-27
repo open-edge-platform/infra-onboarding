@@ -12,6 +12,7 @@ import (
 	as "github.com/intel/infra-core/inventory/v2/pkg/artifactservice"
 	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
 	"github.com/intel/infra-core/inventory/v2/pkg/logging"
+	"github.com/intel/infra-onboarding/dkam/internal/env"
 	"github.com/intel/infra-onboarding/dkam/pkg/config"
 	"github.com/intel/infra-onboarding/dkam/pkg/util"
 )
@@ -28,7 +29,7 @@ func DownloadMicroOS(ctx context.Context) (bool, error) {
 
 	zlog.InfraSec().Info().Msgf("Hook OS version %s", version)
 
-	repo := config.HookOSRepo
+	repo := env.HookOSRepo
 	zlog.InfraSec().Info().Msgf("Hook OS repo URL is %s", repo)
 	artifacts, err := as.DownloadArtifacts(ctx, repo, version)
 	if err != nil {
@@ -57,7 +58,7 @@ func getHookOSVersion() string {
 	infraConfig := config.GetInfraConfig()
 
 	for _, file := range infraConfig.ENManifest.Provisioning.Files {
-		if file.Path == config.HookOSRepo {
+		if file.Path == env.HookOSRepo {
 			zlog.InfraSec().Info().Msgf("Version for hook os:%s", file.Version)
 			return file.Version
 		}

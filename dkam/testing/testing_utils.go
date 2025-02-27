@@ -21,6 +21,7 @@ import (
 	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
 	"github.com/intel/infra-core/inventory/v2/pkg/logging"
 	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
+	"github.com/intel/infra-onboarding/dkam/internal/env"
 	"github.com/intel/infra-onboarding/dkam/internal/invclient"
 	"github.com/intel/infra-onboarding/dkam/pkg/config"
 )
@@ -28,6 +29,7 @@ import (
 const (
 	fileMode = 0o755
 
+	TestManifestRepo       = "test-manifest-repo"
 	CorrectTestManifestTag = "correct"
 	EmptyTestManifestTag   = "empty"
 )
@@ -55,8 +57,11 @@ func exampleManifest(digest string, fileLen int) string {
 
 func StartTestReleaseService(testProfileName string) func() {
 	config.SetInfraConfig(config.InfraConfig{
-		ENManifestTag: CorrectTestManifestTag,
+		ENManifestRepo: TestManifestRepo,
+		ENManifestTag:  CorrectTestManifestTag,
 	})
+	infraConfig := config.GetInfraConfig()
+
 	expectedFileContent := "GOOD TEST!"
 	expectedTestManifest := `
 metadata:
@@ -102,38 +107,38 @@ metadata:
 	testManifestDigestEmpty := "TEST_MANIFEST_DIGEST_EMPTY"
 	testProfileManifest := "TEST_PROFILE_MANIFEST"
 
-	mux.HandleFunc("/v2/"+config.ENManifestRepo+"/manifests/"+CorrectTestManifestTag,
+	mux.HandleFunc("/v2/"+infraConfig.ENManifestRepo+"/manifests/"+CorrectTestManifestTag,
 		func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			// return example manifest
 			w.Write([]byte(exampleManifest(testManifestDigestCorrect, len(expectedTestManifest))))
 		})
-	mux.HandleFunc("/v2/"+config.ENManifestRepo+"/blobs/"+testManifestDigestCorrect,
+	mux.HandleFunc("/v2/"+infraConfig.ENManifestRepo+"/blobs/"+testManifestDigestCorrect,
 		func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(expectedTestManifest))
 		})
 
-	mux.HandleFunc("/v2/"+config.ENManifestRepo+"/manifests/"+EmptyTestManifestTag,
+	mux.HandleFunc("/v2/"+infraConfig.ENManifestRepo+"/manifests/"+EmptyTestManifestTag,
 		func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			// return example manifest
 			w.Write([]byte(exampleManifest(testManifestDigestEmpty, 1)))
 		})
-	mux.HandleFunc("/v2/"+config.ENManifestRepo+"/blobs/"+testManifestDigestEmpty,
+	mux.HandleFunc("/v2/"+infraConfig.ENManifestRepo+"/blobs/"+testManifestDigestEmpty,
 		func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			// empty data
 		})
 
 	// test handlers for profile script
-	mux.HandleFunc("/v2/"+config.ProfileScriptRepo+testProfileName+"/manifests/1.0.2",
+	mux.HandleFunc("/v2/"+env.ProfileScriptRepo+testProfileName+"/manifests/1.0.2",
 		func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			// return example manifest
 			w.Write([]byte(exampleManifest(testProfileManifest, len(expectedFileContent))))
 		})
-	mux.HandleFunc("/v2/"+config.ProfileScriptRepo+testProfileName+"/blobs/"+testProfileManifest,
+	mux.HandleFunc("/v2/"+env.ProfileScriptRepo+testProfileName+"/blobs/"+testProfileManifest,
 		func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(expectedFileContent))

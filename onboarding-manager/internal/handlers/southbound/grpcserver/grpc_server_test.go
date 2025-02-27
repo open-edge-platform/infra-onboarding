@@ -1930,8 +1930,9 @@ func TestHostRegistrationSerialNumFailedWithDetails(t *testing.T) {
 }
 
 func TestMustEnsureRequired(t *testing.T) {
+	t.Setenv("DEFAULT_K8S_NAMESPACE", "test")
 	t.Setenv("TINKER_VERSION", "value")
-	defer os.Unsetenv("TINKER_VERSION")
+
 	tests := []struct {
 		name string
 	}{

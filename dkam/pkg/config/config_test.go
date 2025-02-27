@@ -38,8 +38,9 @@ func TestRead(t *testing.T) {
 	})
 
 	testConfig := config.InfraConfig{
-		ENManifestTag: dkam_testing.CorrectTestManifestTag,
-		ENProxyHTTP:   "test",
+		ENManifestRepo: dkam_testing.TestManifestRepo,
+		ENManifestTag:  dkam_testing.CorrectTestManifestTag,
+		ENProxyHTTP:    "test",
 	}
 	f, err := os.CreateTemp(os.TempDir(), "infraconfig_*.yaml")
 	require.NoError(t, err)
@@ -83,13 +84,13 @@ func TestRead(t *testing.T) {
 
 func TestDownloadENManifest(t *testing.T) {
 	t.Run("InvalidTag", func(t *testing.T) {
-		got, err := config.DownloadENManifest("invalidTag")
+		got, err := config.DownloadENManifest(dkam_testing.TestManifestRepo, "invalidTag")
 		require.Error(t, err)
 		require.Nil(t, got)
 	})
 
 	t.Run("Success", func(t *testing.T) {
-		got, err := config.DownloadENManifest(dkam_testing.CorrectTestManifestTag)
+		got, err := config.DownloadENManifest(dkam_testing.TestManifestRepo, dkam_testing.CorrectTestManifestTag)
 		require.NoError(t, err)
 		require.NotEmpty(t, got)
 	})

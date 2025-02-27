@@ -20,6 +20,7 @@ import (
 	as "github.com/intel/infra-core/inventory/v2/pkg/artifactservice"
 	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
 	"github.com/intel/infra-core/inventory/v2/pkg/logging"
+	"github.com/intel/infra-onboarding/dkam/internal/env"
 	"github.com/intel/infra-onboarding/dkam/pkg/config"
 	"github.com/intel/infra-onboarding/dkam/pkg/util"
 )
@@ -325,7 +326,7 @@ func FetchAndAppendProfileScript(ctx context.Context, profileName, originalScrip
 	// FIXME: hardcode profile script version for now, will be addressed in https://jira.devtools.intel.com/browse/NEX-11556
 	profileScriptVersion := "1.0.2"
 
-	repo := config.ProfileScriptRepo + profileName
+	repo := env.ProfileScriptRepo + profileName
 	zlog.InfraSec().Info().Msgf("Profile script repo URL is:%s", repo)
 
 	artifacts, err := as.DownloadArtifacts(ctx, repo, profileScriptVersion)

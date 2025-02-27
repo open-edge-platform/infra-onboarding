@@ -17,6 +17,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	as "github.com/intel/infra-core/inventory/v2/pkg/artifactservice"
+	"github.com/intel/infra-onboarding/dkam/internal/env"
 	"github.com/intel/infra-onboarding/dkam/pkg/config"
 	"github.com/intel/infra-onboarding/dkam/pkg/download"
 	"github.com/intel/infra-onboarding/dkam/pkg/util"
@@ -139,7 +140,7 @@ func TestDownloadMicroOS(t *testing.T) {
 	defer svr.Close()
 
 	// Override the RSProxy with test HTTP server
-	config.HookOSRepo = svr.URL + "/"
+	env.HookOSRepo = svr.URL + "/"
 	dir := config.PVC
 	mkdirerr := os.MkdirAll(dir, 0o755)
 	if mkdirerr != nil {
@@ -196,7 +197,7 @@ func TestDownloadMicroOS_Case1(t *testing.T) {
 	})
 	svr := httptest.NewServer(mux)
 	defer svr.Close()
-	config.HookOSRepo = svr.URL + "/"
+	env.HookOSRepo = svr.URL + "/"
 	t.Run("Fail", func(_ *testing.T) {
 		_, err = download.DownloadMicroOS(context.Background())
 	})

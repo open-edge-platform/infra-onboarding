@@ -11,6 +11,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
+	"google.golang.org/grpc/codes"
 	"gopkg.in/yaml.v3"
 
 	as "github.com/intel/infra-core/inventory/v2/pkg/artifactservice"
@@ -28,7 +29,8 @@ const (
 
 //nolint:tagliatelle // field names must be in line with charts values
 type InfraConfig struct {
-	ENManifestTag string `mapstructure:"enManifestTag"`
+	ENManifestRepo string `mapstructure:"enManifestRepo"`
+	ENManifestTag  string `mapstructure:"enManifestTag"`
 
 	InfraURL                string `mapstructure:"orchInfra"`
 	ClusterURL              string `mapstructure:"orchCluster"`
@@ -134,11 +136,6 @@ var (
 	PVC                   = "/data"
 	OrchCACertificateFile = "/etc/ssl/orch-ca-cert/ca.crt"
 	ScriptPath            = "/home/appuser/pkg/script"
-	// TO DO pass all hook os version and bare metal agent
-	// versions via configmap or override values to dkam.
-	ENManifestRepo    = "edge-orch/en/files/manifest"
-	HookOSRepo        = "edge-orch/en/files/provisioning-hook-os"
-	ProfileScriptRepo = "edge-orch/en/files/profile-scripts/"
 
 	FlagEnforceCloudInit = flag.Bool("enforceCloudInit", false,
 		"Set to true to always use cloud-init to provision Day0/Day1 EN configuration")
@@ -160,7 +157,13 @@ func Read() error {
 			return err
 		}
 
-		enManifestData, err := DownloadENManifest(config.ENManifestTag)
+		if config.ENManifestRepo == "" || config.ENManifestTag == "" {
+			argErr := inv_errors.Errorfc(codes.InvalidArgument, "Missing EN manifest repo or tag")
+			zlog.Error().Err(argErr).Msg("")
+			return argErr
+		}
+
+		enManifestData, err := DownloadENManifest(config.ENManifestRepo, config.ENManifestTag)
 		if err != nil {
 			return err
 		}
@@ -192,11 +195,11 @@ func Read() error {
 	return nil
 }
 
-func DownloadENManifest(manifestTag string) ([]byte, error) {
+func DownloadENManifest(manifestRepo, manifestTag string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 
-	artifacts, err := as.DownloadArtifacts(ctx, ENManifestRepo, manifestTag)
+	artifacts, err := as.DownloadArtifacts(ctx, manifestRepo, manifestTag)
 	if err != nil {
 		invErr := inv_errors.Errorf("Error downloading EN Manifest file for tag %s: %s", manifestTag, err)
 		zlog.Err(invErr).Msg("")
