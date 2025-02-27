@@ -197,7 +197,7 @@ func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName, hostRe
 					}
 					if strings.Contains(actionN, workflowName) {
 						totalDuration += actionSuccessTime
-						zlog.Info().Msgf("Instrumentation Info for workflow %s actionName %s time for running to success %d ,for host resource ID: %s",
+						zlog.Info().Msgf("Instrumentation Info for workflow %s actionName %s time for running to success %d, for host resource ID: %s",
 							workflowName, strings.Split(actionN, workflowName)[1], actionSuccessTime, hostResourceId)
 						delete(actionSuccessDuration, actionN)
 						delete(actionStatusMap, actionN)
