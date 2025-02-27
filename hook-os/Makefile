@@ -22,13 +22,11 @@ OCI_REPOSITORY := edge-orch/en/files/${IMG_NAME}
 HOOK_KERNEL_REPOSITORY  := open-registry.espdprod.infra-host.com/edge-orch/edge-node/hook-kernel
 HOOK_KERNEL_VERSION 	:= 5.10.228-e0637f99-dm-xz
 
-DIR_TO_CLEAN  := alpine_*
 
 # Include shared makefile
 include ../common.mk
 
 OCI_PATH	:= ${OCI_REGISTRY}/${OCI_REPOSITORY}
-OUT_DIR 	:= alpine_image
 COMPONENTS	:= device_discovery fluent-bit caddy hook_dind
 .PHONY: $(COMPONENTS)
 
@@ -59,7 +57,7 @@ certs:
 	echo "" >> hook/files/idp/ca.pem
 	echo "" >> hook/files/idp/server_cert.pem
 
-build: certs components
+build: configure certs components
 	@# Help: Runs build stage
 	@echo "---MAKEFILE BUILD---"
 	@echo "--Updated step below--"
@@ -81,10 +79,9 @@ test:
 
 artifact-publish:
 	@echo "Publishing Hook OS binary to Production Release Service."
-	tar -zcvf $(OUT_DIR)/grub_source.tar.gz grub_source
 	cd $(OUT_DIR) && \
 	aws ecr create-repository --region us-west-2 --repository-name $(OCI_REPOSITORY) || true && \
-	oras push $(OCI_PATH):$(IMG_VERSION) --artifact-type application/vnd.intel.hookos.file hook_x86_64.tar.gz grub_source.tar.gz
+	oras push $(OCI_PATH):$(IMG_VERSION) --artifact-type application/vnd.intel.hookos.file hook_x86_64.tar.gz
 	@echo "---END MAKEFILE TEST---"
 
 coverage:

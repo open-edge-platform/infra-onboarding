@@ -6,7 +6,6 @@
 set -x
 
 source ./config
-source ./secure_hookos.sh
 
 export HOOK_KERNEL=${HOOK_KERNEL:-5.10}
 
@@ -15,10 +14,7 @@ if [ "$HOOK_KERNEL" == "5.10" ]; then
     export KERNEL_POINT_RELEASE_CONFIG=228
 fi
 
-BASE_DIR=$PWD
-STORE_ALPINE_SECUREBOOT=$PWD/alpine_image_secureboot/
-STORE_ALPINE=$PWD/alpine_image/
-HOOKOS_IDP_FILES=$PWD/hook/files/idp/
+OUT_DIR=$PWD/out/
 
 FLUENTBIT_FILES=$PWD/fluent-bit/files
 HOOKOS_FLUENTBIT_FILES=$PWD/hook/files/fluent-bit
@@ -53,17 +49,9 @@ get_caddy_conf() {
         echo "Copy of the Caddyfile to the hook/files folder failed"
         exit 1
     fi
-
-    # Update NGINX runtime configs in hook.yaml
-    $SED_CMD -i "s|update_tink_stack_svc|$tink_stack_svc|g" linuxkit-templates/hook.template.yaml
-    $SED_CMD -i "s|update_tink_server_svc|$tink_server_svc|g" linuxkit-templates/hook.template.yaml
-    $SED_CMD -i "s|update_onboarding_manager_svc|$onboarding_manager_svc|g" linuxkit-templates/hook.template.yaml
-    $SED_CMD -i "s|update_onboarding_stream_svc|$onboarding_stream_svc|g" linuxkit-templates/hook.template.yaml
-    $SED_CMD -i "s|update_release_svc|$release_svc|g" linuxkit-templates/hook.template.yaml
-    $SED_CMD -i "s|update_oci_release_svc|$oci_release_svc|g" linuxkit-templates/hook.template.yaml
-    $SED_CMD -i "s|update_logging_svc|$logging_svc|g" linuxkit-templates/hook.template.yaml
-
 }
+
+
 
 build_hook() {
 
@@ -72,8 +60,6 @@ build_hook() {
     cp -rf hook.yaml hook/linuxkit-templates/hook.template.yaml
     pushd hook
 
-    # copy fluent-bit related files
-    copy_fluent_bit_files
     echo "starting to build kernel...................................................."
 
     if [ "$HOOK_KERNEL" == "6.6" ]; then
@@ -113,13 +99,15 @@ build_hook() {
         fi
     fi
 
-    #update the hook.yaml file to point to new kernel
-    #$SED_CMD -i "s|quay.io/tinkerbell/hook-kernel:5.10.85-d1225df88208e5a732e820a182b75fb35c737bdd|quay.io/tinkerbell/hook-kernel:5.10.85-298651addd526baaf516da71f76997a3e7c8459d|g" hook.yaml
-
-    $SED_CMD -i "s|dl-cdn.alpinelinux.org/alpine/edge/testing|dl-cdn.alpinelinux.org/alpine/edge/community|g" images/hook-docker/Dockerfile
-
-    #update keycloak url
+    # Update runtime configs in hook.template.yaml
     $SED_CMD -i "s|update_idp_url|$keycloak_url|g" linuxkit-templates/hook.template.yaml
+    $SED_CMD -i "s|update_tink_stack_svc|$tink_stack_svc|g" linuxkit-templates/hook.template.yaml
+    $SED_CMD -i "s|update_tink_server_svc|$tink_server_svc|g" linuxkit-templates/hook.template.yaml
+    $SED_CMD -i "s|update_onboarding_manager_svc|$onboarding_manager_svc|g" linuxkit-templates/hook.template.yaml
+    $SED_CMD -i "s|update_onboarding_stream_svc|$onboarding_stream_svc|g" linuxkit-templates/hook.template.yaml
+    $SED_CMD -i "s|update_release_svc|$release_svc|g" linuxkit-templates/hook.template.yaml
+    $SED_CMD -i "s|update_oci_release_svc|$oci_release_svc|g" linuxkit-templates/hook.template.yaml
+    $SED_CMD -i "s|update_logging_svc|$logging_svc|g" linuxkit-templates/hook.template.yaml
 
     #update extra hosts needed?
     if [ -n "$extra_hosts" ]; then
@@ -130,6 +118,8 @@ build_hook() {
         $SED_CMD -i "s|- EXTRA_HOSTS=update_extra_hosts||g" linuxkit-templates/hook.template.yaml
     fi
 
+    # copy fluent-bit and caddy related files
+    copy_fluent_bit_files
     get_caddy_conf
 
     if [ "$HOOK_KERNEL" == "6.6" ]; then
@@ -140,29 +130,16 @@ build_hook() {
 
     popd # out of hook dir
 
-    mkdir -p $STORE_ALPINE
-    mkdir -p $STORE_ALPINE_SECUREBOOT
+    mkdir -p $OUT_DIR
 
     if [ "$HOOK_KERNEL" == "6.6" ]; then
         mv $PWD/hook/out/hook_latest-lts-x86_64.tar.gz $PWD/hook/out/hook_x86_64.tar.gz
     fi
-    cp $PWD/hook/out/hook_x86_64.tar.gz $STORE_ALPINE
+    cp $PWD/hook/out/hook_x86_64.tar.gz $OUT_DIR
 
     if [ $? -ne 0 ]; then
         echo "Build of HookOS failed!"
         exit 1
-    fi
-
-    cp $PWD/hook/out/hook_x86_64.tar.gz $STORE_ALPINE_SECUREBOOT
-
-    #copy to the downloaded location of nginx
-    if [ -d /opt/hook ]; then
-        sudo cp $PWD/hook/out/hook_x86_64.tar.gz /opt/hook/
-
-        pushd /opt/hook/
-        sudo tar -xzvf hook_x86_64.tar.gz 2 >/dev/null &>1
-        sudo rm hook_x86_64.tar.gz
-        popd
     fi
 
     echo "Build of HookOS succeeded!"
@@ -173,8 +150,6 @@ main() {
     sudo apt install -y build-essential bison flex
 
     build_hook
-
-    secure_hookos
 }
 
 main

@@ -16,11 +16,6 @@ and handles deprovisioning. Its based on [LinuxKit](https://github.com/linuxkit/
 
 This repo is forked from the open source repo [github.com/tinkerbell/hook](https://github.com/tinkerbell/hook).
 
-This repository also holds the scripts needed to:
-
-1. Cryptographuc signing the HookOS
-2. Creating a grub needed to boot HookOS from disk and into RAM
-
 Following components have been added to the open source Hook OS for our specific purpose
 
 1. Device Discovery: This service can read all the hardware data (serial number, UUID etc) and send out to the Edge Orchestrator
@@ -115,4 +110,4 @@ Edge Orchestrator is licensed under [Apache License
 [contributors-guide-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/index.html
 [troubleshooting-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/troubleshooting/troubleshooting.html
 
-Last Updated Date: February 20, 2025
+Last Updated Date: February 25, 2025

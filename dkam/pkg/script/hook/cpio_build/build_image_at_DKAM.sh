@@ -17,8 +17,6 @@ source ./secure_hookos.sh
 STORE_ALPINE="$STORE_ALPINE_SECUREBOOT"/../alpine_image
 mkdir -p "$STORE_ALPINE_SECUREBOOT"
 mkdir -p "$STORE_ALPINE"
-tar -xf "$data_dir"/grub_source.tar.gz
-rm -rf "$data_dir"/grub_source.tar.gz
 mv "$data_dir"/hook_x86_64.tar.gz "$STORE_ALPINE"
 
 popd || exit

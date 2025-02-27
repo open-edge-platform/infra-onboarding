@@ -5,7 +5,7 @@
 # Provide the following inputs
 #####################################################################################
 
-#provide Keyclock url
+# provide Keyclock url
 keycloak_url=""
 
 # provide extra hosts needed to resolve domain names. example:
@@ -21,7 +21,7 @@ tink_server_svc=""
 onboarding_manager_svc=""
 onboarding_stream_svc=""
 
-## Organizationonal proxy config (default is intel)
+## organizationonal proxy config (default is intel)
 http_proxy=""
 https_proxy=""
 ftp_proxy=""
@@ -36,3 +36,6 @@ external_proxy=""
 
 ## nameservers (external, organiational)
 nameserver=("" "" "")
+
+## kernel configuration
+HOOK_KERNEL=5.10

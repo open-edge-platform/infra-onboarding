@@ -13,62 +13,13 @@ set -xuo pipefail
 GPG_KEY_DIR=$PWD/gpg_key
 SB_KEYS_DIR=$PWD/../sb_keys
 SERVER_CERT_DIR=$PWD/../server_certs
-PROXY=1
 public_gpg_key=$PWD/boot.key
 STORE_ALPINE_SECUREBOOT=$PWD/alpine_image_secureboot/
-GRUB_CFG_LOC=${PWD}/grub.cfg
-GRUB_SRC=$PWD/grub_source
-BOOTX_LOC=$PWD/BOOTX64.efi
 RSA_KEY_SIZE=4096
 HASH_SIZE=512
-tinkerbell_owner=${load_balancer_ip:-localhost}
 en_http_proxy="${en_http_proxy:-}"
 en_https_proxy="${en_https_proxy:-}"
 en_no_proxy="${en_no_proxy:-}"
-#mac_address_current_device=$(cat /proc/cmdline | grep -o "instance_id=..:..:..:..:..:.. " | awk ' {split($0,a,"="); print a[2]} ')
-#
-mac_address_current_device="net_default_mac_user"
-
-MODULES="fat ext2 part_gpt normal
-linux ls boot echo reboot search
-search_label help signature_test pgp crypto gcry_dsa gcry_rsa gcry_sha1 gcry_sha512 gcry_sha256
-configfile net loadenv"
-
-EXTRA_TINK_OPTIONS="tinkerbell=http://$tinkerbell_owner syslog_host=$tinkerbell_owner packet_action=workflow console=ttyS1,11520 tink_worker_image=quay.io/tinkerbell/tink-worker:v0.8.0 grpc_authority=$tinkerbell_owner:42113 packet_base_url=http://$tinkerbell_owner:8080/workflow tinkerbell_tls=false instance_id=\${$mac_address_current_device} worker_id=\${$mac_address_current_device} packet_bootdev_mac=\${$mac_address_current_device} facility=sandbox"
-
-EXTRA_TINK_OPTIONS_PROXY="http_proxy=$en_http_proxy https_proxy=$en_https_proxy no_proxy=$en_no_proxy HTTP_PROXY=$en_http_proxy HTTPS_PROXY=$en_https_proxy NO_PROXY=$en_no_proxy"
-######
-
-create_grub_image() {
-    # make grub-image from the newly compiled grub.
-    #shellcheck disable=SC2086
-    $GRUB_SRC/grub-mkimage -O x86_64-efi --disable-shim-lock --pubkey $public_gpg_key -p "/EFI/hook/" -o $BOOTX_LOC $MODULES -d $GRUB_SRC/grub-lib/grub/x86_64-efi
-    echo "created BOOTX64.efi"
-    if [ ! -f "$BOOTX_LOC" ] ;
-    then
-	echo "Failed to generate a signed grub because grub source is missing or gpg key is missing"
-	exit 1
-    fi
-}
-
-
-compile_grub() {
-
-    if [ -f "$GRUB_SRC"/grub-lib/bin/grub-mkimage ];
-    then
-        echo "Grub seems to be already built; delete grub$GRUB_SRC to recompile"
-        return
-    fi
-
-    git clone https://git.savannah.gnu.org/git/grub.git "$GRUB_SRC"
-    pushd "$GRUB_SRC" || exit
-    ./bootstrap
-    ./configure --with-platform=efi --libdir="$GRUB_SRC"/grub-lib --prefix="$GRUB_SRC"/grub-lib
-    make -j
-    make install
-    popd || exit
-}
-
 
 create_gpg_key() {
     if [ -f "$public_gpg_key" ];
@@ -124,21 +75,12 @@ sign_all_components() {
 
     KEY_ID=$(gpg --homedir "$GPG_KEY_DIR" --list-secret-keys --keyid-format LONG | grep sec | awk '{print $2}' | cut -d '/' -f2)
 
-    #grub.cfg
-    cp "$GRUB_CFG_LOC" .
-    rm -rf grub.cfg.sig
-    
-    if ! gpg --batch  --homedir "$GPG_KEY_DIR" --local-user "$KEY_ID" --detach-sign grub.cfg;
-    then
-        echo "Failed to gpg sign grub.cfg"
-        exit
-    fi
 
     #vmlinuz
 
     #########
     # need to UEFI sb sign before gpg takes its signature.
-    uefi_sign_grub_vmlinuz
+    uefi_sign_vmlinuz
     #########
 
     rm -rf vmlinuz-x86_64.sig
@@ -170,14 +112,7 @@ sign_all_components() {
     cp "$SB_KEYS_DIR"/db.der "$STORE_ALPINE_SECUREBOOT"/hook_sign_temp/hookos_db.der
 }
 
-uefi_sign_grub_vmlinuz() {
-
-    if ! sbsign --key "$SB_KEYS_DIR"/db.key --cert "$SB_KEYS_DIR"/db.crt --output "$STORE_ALPINE_SECUREBOOT"/hook_sign_temp/BOOTX64.efi "$BOOTX_LOC";
-    then
-        echo "Failed to sign grub image"
-        exit
-    fi
-
+uefi_sign_vmlinuz() {
     
     if ! sbsign --key "$SB_KEYS_DIR"/db.key --cert "$SB_KEYS_DIR"/db.crt --output "$STORE_ALPINE_SECUREBOOT"/hook_sign_temp/vmlinuz-x86_64 "$STORE_ALPINE_SECUREBOOT"/hook_sign_temp/vmlinuz-x86_64;
     then
@@ -249,18 +184,6 @@ package_signed_hookOS(){
 
 }
 
-create_grub_cfg() {
-    cp "$PWD"/grub_template.cfg "${PWD}"/grub.cfg
-
-    if [ $PROXY == 1 ]; then
-        echo "Ensure that the correct proxy is configured in the script: Else it will cause failure at the node"
-        EXTRA_TINK_OPTIONS="$EXTRA_TINK_OPTIONS $EXTRA_TINK_OPTIONS_PROXY"
-    fi
-
-    sed -i "s+EXTRA_TINK_OPTIONS+$EXTRA_TINK_OPTIONS+g" "${PWD}"/grub.cfg
-
-}
-
 secure_hookos() {
 
     echo "in secure_hookos()"
@@ -270,10 +193,7 @@ secure_hookos() {
     #container/host setup done
 
     mkdir -p "$STORE_ALPINE_SECUREBOOT"
-    create_grub_cfg
-    compile_grub
     create_gpg_key
-    create_grub_image
     generate_pk_kek_db
 
     sign_all_components
@@ -290,16 +210,8 @@ resign_hookos() {
 	exit 1
     fi
 
-    if [ ! -f "$GRUB_SRC"/grub-mkimage ] ;
-    then
-	echo "Place the grub source $PWD/grub_source to proceed."
-	exit 1
-    fi
 
-    create_grub_cfg
     create_gpg_key
-    create_grub_image
-    #generate_pk_kek_db
 
     sign_all_components
     package_signed_hookOS
@@ -308,11 +220,6 @@ resign_hookos() {
     rm -rf "$SERVER_CERT_DIR"
     rm -rf "$public_gpg_key"
     rm -rf "$STORE_ALPINE"
-    rm -rf "$GRUB_SRC"
-    rm -rf "$BOOTX_LOC"
 
     echo "Save db.der file on a FAT volume to enroll inside UEFI bios"
 }
-
-#secure_hookos
-#resign_hookos
