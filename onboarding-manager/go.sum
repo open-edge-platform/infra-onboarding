@@ -735,6 +735,10 @@ github.com/intel/infra-onboarding/dkam v1.19.1-0.20250225080734-5e5ab96118db h1:
 github.com/intel/infra-onboarding/dkam v1.19.1-0.20250225080734-5e5ab96118db/go.mod h1:mzw3rGG69xXeM3NSYEOs6bnvqSZzmSCSH1E4/6b5HNA=
 github.com/intel/infra-onboarding/dkam v1.20.0 h1:+jSyRGb9ulUYQite80PUlihniBGr7cmdYcl9jeWchE8=
 github.com/intel/infra-onboarding/dkam v1.20.0/go.mod h1:mzw3rGG69xXeM3NSYEOs6bnvqSZzmSCSH1E4/6b5HNA=
+github.com/intel/infra-onboarding/dkam v1.20.1-0.20250227154024-4448dffc4a8e h1:IYVtxk0JhIXdXI4yqnPjoq1WsKJLNES/5O4FSE4z4CI=
+github.com/intel/infra-onboarding/dkam v1.20.1-0.20250227154024-4448dffc4a8e/go.mod h1:mzw3rGG69xXeM3NSYEOs6bnvqSZzmSCSH1E4/6b5HNA=
+github.com/intel/infra-onboarding/dkam v1.20.1-0.20250227162350-d0f43d2c201c h1:G2fUxVCobgMeow9I6Sq5wQDHZ6YDnHG76VgFwnyEnPM=
+github.com/intel/infra-onboarding/dkam v1.20.1-0.20250227162350-d0f43d2c201c/go.mod h1:mzw3rGG69xXeM3NSYEOs6bnvqSZzmSCSH1E4/6b5HNA=
 github.com/intel/orch-library/go v0.5.18 h1:VGzr5X1A54PkQkCuW9D+L+oH4TNlP2jBSkL/vwCKUwo=
 github.com/intel/orch-library/go v0.5.18/go.mod h1:mhDHd+eVkt552hgtK8tvBrMp1jj8I6lnU0T6mcBHgg0=
 github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=

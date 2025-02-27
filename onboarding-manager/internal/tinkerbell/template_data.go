@@ -73,37 +73,50 @@ const (
 	defaultTinkerImageVersion = "v1.0.0"
 
 	envTinkActionEraseNonRemovableDiskImage = "TINKER_ERASE_NON_REMOVABLE_DISK_IMAGE"
-	defaultEraseNonRemovableDiskImage       = "localhost:7443/edge-orch/infra/tinker-actions/erase_non_removable_disks"
 
-	envTinkActionSecurebootFlagReadImage     = "TINKER_SECUREBOOTFLAGREAD_IMAGE"
-	defaultTinkActionSecurebootFlagReadImage = "localhost:7443/edge-orch/infra/tinker-actions/securebootflag"
+	envTinkActionSecurebootFlagReadImage = "TINKER_SECUREBOOTFLAGREAD_IMAGE"
 
-	envTinkActionWriteFileImage     = "TINKER_WRITEFILE_IMAGE"
-	defaultTinkActionWriteFileImage = "localhost:7443/edge-orch/infra/tinker-actions/writefile"
+	envTinkActionWriteFileImage = "TINKER_WRITEFILE_IMAGE"
 
-	envTinkActionCexecImage     = "TINKER_CEXEC_IMAGE"
-	defaultTinkActionCexecImage = "localhost:7443/edge-orch/infra/tinker-actions/cexec"
+	envTinkActionCexecImage = "TINKER_CEXEC_IMAGE"
 
-	envTinkActionDiskImage     = "TINKER_DISK_IMAGE"
-	defaultTinkActionDiskImage = "localhost:7443/edge-orch/infra/tinker-actions/image2disk"
+	envTinkActionDiskImage = "TINKER_DISK_IMAGE"
 
-	envTinkActionEfibootImage     = "TINKER_EFIBOOT_IMAGE"
-	defaultTinkActionEfibootImage = "localhost:7443/edge-orch/infra/tinker-actions/efibootset"
+	envTinkActionEfibootImage = "TINKER_EFIBOOT_IMAGE"
 
-	envTinkActionFdeImage     = "TINKER_FDE_IMAGE"
-	defaultTinkActionFdeImage = "localhost:7443/edge-orch/infra/tinker-actions/fde"
+	envTinkActionFdeImage = "TINKER_FDE_IMAGE"
 
-	envTinkActionKerenlUpgradeImage     = "TINKER_KERNELUPGRD_IMAGE"
-	defaultTinkActionKernelUpgradeImage = "localhost:7443/edge-orch/infra/tinker-actions/kernelupgrd"
+	envTinkActionKerenlUpgradeImage = "TINKER_KERNELUPGRD_IMAGE"
 
-	envTinkActionTiberMicrovisorPartitionImage     = "TINKER_TMV_IMAGE_PARTITION"
-	defaultTinkActionTiberMicrovisorPartitionImage = "localhost:7443/edge-orch/infra/" +
-		"tinker-actions/tibermicrovisor_partition"
+	envTinkActionTiberMicrovisorPartitionImage = "TINKER_TMV_IMAGE_PARTITION"
 
-	envTinkActionQemuNbdImage2DiskImage     = "TINKER_QEMU_NBD_IMAGE2DISK_IMAGE"
-	defaultTinkActionQemuNbdImage2DiskImage = "localhost:7443/edge-orch/infra/tinker-actions/qemu_nbd_image2disk"
+	envTinkActionQemuNbdImage2DiskImage = "TINKER_QEMU_NBD_IMAGE2DISK_IMAGE"
 
 	envDkamDevMode = "dev"
+
+	tinkerActionEraseNonRemovableDisks   = "erase_non_removable_disks"
+	tinkerActionCexec                    = "cexec"
+	tinkerActionFDE                      = "fde"
+	tinkerActionTiberMicrovisorPartition = "tibermicrovisor_partition"
+	tinkerActionQemuNbdImage2Disk        = "qemu_nbd_image2disk"
+	tinkerActionKernelUpgrade            = "kernelupgrd"
+	tinkerActionEfibootset               = "efibootset"
+	tinkerActionImage2Disk               = "image2disk"
+	tinkerActionWritefile                = "writefile"
+	tinkerActionSecurebootflag           = "securebootflag"
+)
+
+var (
+	defaultEraseNonRemovableDiskImage              = getTinkerActionImage(tinkerActionEraseNonRemovableDisks)
+	defaultTinkActionSecurebootFlagReadImage       = getTinkerActionImage(tinkerActionSecurebootflag)
+	defaultTinkActionWriteFileImage                = getTinkerActionImage(tinkerActionWritefile)
+	defaultTinkActionCexecImage                    = getTinkerActionImage(tinkerActionCexec)
+	defaultTinkActionDiskImage                     = getTinkerActionImage(tinkerActionImage2Disk)
+	defaultTinkActionEfibootImage                  = getTinkerActionImage(tinkerActionEfibootset)
+	defaultTinkActionFdeImage                      = getTinkerActionImage(tinkerActionFDE)
+	defaultTinkActionKernelUpgradeImage            = getTinkerActionImage(tinkerActionKernelUpgrade)
+	defaultTinkActionTiberMicrovisorPartitionImage = getTinkerActionImage(tinkerActionTiberMicrovisorPartition)
+	defaultTinkActionQemuNbdImage2DiskImage        = getTinkerActionImage(tinkerActionQemuNbdImage2Disk)
 )
 
 // if `tinkerImageVersion` is non-empty, its value is returned,
@@ -116,6 +129,10 @@ func getTinkerImageVersion(tinkerImageVersion string) string {
 		return v
 	}
 	return defaultTinkerImageVersion
+}
+
+func getTinkerActionImage(imageName string) string {
+	return fmt.Sprintf("localhost:7443/%s/%s", env.TinkerArtifactName, imageName)
 }
 
 func tinkActionEraseNonRemovableDisk(tinkerImageVersion string) string {

@@ -43,6 +43,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 	dkam_testing.PrepareTestInfraConfig(t)
 	dkam_testing.PrepareTestCaCertificateFile(t)
 	baseConfig := config.GetInfraConfig()
+	baseConfig.ENDebianPackagesRepo = "test.deb"
 
 	type args struct {
 		options             cloudinit.CloudInitOptions

@@ -10,11 +10,12 @@ import (
 )
 
 const (
-	envK8sNamespace  = "DEFAULT_K8S_NAMESPACE"
-	envDkamMode      = "EN_DKAMMODE"
-	envUserName      = "EN_USERNAME"
-	envPassWord      = "EN_PASSWORD"
-	envTinkerVersion = "TINKER_VERSION"
+	envK8sNamespace       = "DEFAULT_K8S_NAMESPACE"
+	envDkamMode           = "EN_DKAMMODE"
+	envUserName           = "EN_USERNAME"
+	envPassWord           = "EN_PASSWORD"
+	envTinkerVersion      = "TINKER_VERSION"
+	envTinkerArtifactName = "TINKER_ARTIFACT_NAME"
 )
 
 var (
@@ -25,6 +26,7 @@ var (
 	K8sNamespace = os.Getenv(envK8sNamespace)
 
 	TinkerActionVersion = os.Getenv(envTinkerVersion)
+	TinkerArtifactName  = os.Getenv(envTinkerArtifactName)
 )
 
 var zlog = logging.GetLogger("Env")
@@ -42,5 +44,6 @@ func MustGetEnv(key string) string {
 
 func MustEnsureRequired() {
 	TinkerActionVersion = MustGetEnv(envTinkerVersion)
+	TinkerArtifactName = MustGetEnv(envTinkerArtifactName)
 	K8sNamespace = MustGetEnv(envK8sNamespace)
 }
