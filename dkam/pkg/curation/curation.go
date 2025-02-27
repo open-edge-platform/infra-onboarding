@@ -156,6 +156,7 @@ func GetCommonInfraTemplateVariables(infraConfig config.InfraConfig, osType osv1
 		"FILE_SERVER":                    strings.Split(infraConfig.FileServerURL, ":")[0],
 		"IMG_REGISTRY_URL":               strings.Split(infraConfig.RegistryURL, ":")[0],
 		"NTP_SERVERS":                    strings.Join(infraConfig.NTPServers, ","),
+		"DEB_PACKAGES_REPO":              infraConfig.ENDebianPackagesRepo,
 
 		"EN_HTTP_PROXY":  infraConfig.ENProxyHTTP,
 		"EN_HTTPS_PROXY": infraConfig.ENProxyHTTPS,

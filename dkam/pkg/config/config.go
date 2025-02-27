@@ -29,6 +29,8 @@ const (
 
 //nolint:tagliatelle // field names must be in line with charts values
 type InfraConfig struct {
+	ENDebianPackagesRepo string `mapstructure:"enDebianPackagesRepo"`
+
 	ENManifestRepo string `mapstructure:"enManifestRepo"`
 	ENManifestTag  string `mapstructure:"enManifestTag"`
 

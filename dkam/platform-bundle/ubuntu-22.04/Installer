@@ -194,7 +194,7 @@ install_node_agent(){
 
         echo "download caddy deb package..."
         CADDY_PKGFILE="./caddy_${CADDY_VERSION}_linux_amd64.deb"
-        echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/edge-orch/en/deb/caddy:$CADDY_VERSION" --password-stdin
+        echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/caddy:$CADDY_VERSION" --password-stdin
 
         if [ ! -f "${CADDY_PKGFILE}" ]; then
             echo "caddy debian package could not be downloaded. Aborting installation"
@@ -213,7 +213,7 @@ install_node_agent(){
         PKGFILE="./node-agent_${NODE_AGENT_VERSION}_amd64.deb"
 
         echo "download node agent"
-        echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/edge-orch/en/deb/node-agent:$NODE_AGENT_VERSION" --password-stdin
+        echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/node-agent:$NODE_AGENT_VERSION" --password-stdin
 
         if [ ! -f "${PKGFILE}" ]; then
             echo "node agent debian could not be downloaded. Aborting installation"

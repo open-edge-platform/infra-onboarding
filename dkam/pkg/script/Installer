@@ -81,6 +81,7 @@ CADDY_APT_PROXY_URL={{ .FILE_SERVER }}
 CADDY_APT_PROXY_PORT={{ .ORCH_APT_PORT }}
 CADDY_REGISTRY_PROXY_URL={{ .IMG_REGISTRY_URL }}
 CADDY_REGISTRY_PROXY_PORT={{ .ORCH_IMG_PORT }}
+DEB_PACKAGES_REPO={{ .DEB_PACKAGES_REPO }}
 
 CLUSTER_ORCH_URL={{ .ORCH_CLUSTER }}
 HW_INVENTORY_URL={{ .ORCH_INFRA }}
@@ -280,7 +281,7 @@ install_node_agent(){
         echo "download caddy deb package..."
         CADDY_VERSION={{ index . "caddy-VERSION" }}
         CADDY_PKGFILE="./caddy_${CADDY_VERSION}_linux_amd64.deb"
-        echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/one-intel-edge/edge-node/deb/caddy:$CADDY_VERSION" --password-stdin
+        echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/caddy:$CADDY_VERSION" --password-stdin
 
         if [ ! -f "${CADDY_PKGFILE}" ]; then
             echo "caddy debian package could not be downloaded. Aborting installation"
@@ -300,7 +301,7 @@ install_node_agent(){
         PKGFILE="./node-agent_${VERSION}_amd64.deb"
 
         echo "download node agent"
-        echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/one-intel-edge/edge-node/deb/node-agent:$VERSION" --password-stdin
+        echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/node-agent:$VERSION" --password-stdin
 
         if [ ! -f "${PKGFILE}" ]; then
             echo "node agent debian could not be downloaded. Aborting installation"
