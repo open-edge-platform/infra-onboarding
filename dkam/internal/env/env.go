@@ -12,6 +12,7 @@ import (
 const (
 	envProfileScriptsRepo = "RS_PROFILE_SCRIPTS_REPO"
 	envHookOSRepo         = "RS_HOOK_OS_REPO"
+	envHookOSVersion      = "HOOK_OS_VERSION"
 )
 
 var (
@@ -19,6 +20,7 @@ var (
 	//  versions via configmap or override values to dkam.
 	HookOSRepo        = os.Getenv(envHookOSRepo)
 	ProfileScriptRepo = os.Getenv(envProfileScriptsRepo)
+	HookOSVersion     = os.Getenv(envHookOSVersion)
 )
 
 var zlog = logging.GetLogger("Env")
@@ -37,4 +39,5 @@ func MustGetEnv(key string) string {
 func MustEnsureRequired() {
 	HookOSRepo = MustGetEnv(envHookOSRepo)
 	ProfileScriptRepo = MustGetEnv(envProfileScriptsRepo)
+	HookOSVersion = MustGetEnv(envHookOSVersion)
 }

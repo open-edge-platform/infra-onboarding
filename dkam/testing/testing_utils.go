@@ -284,9 +284,6 @@ func PrepareTestInfraConfig(_ *testing.T) {
 					},
 				},
 			},
-			Provisioning: config.Provisioning{
-				Images: []config.Image{},
-			},
 			Metadata: struct {
 				//nolint:tagliatelle // test file
 				DebianRepositories []struct {

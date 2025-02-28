@@ -24,16 +24,13 @@ const fileMode = 0o755
 //nolint:revive // Keeping the function name for clarity and consistency.
 func DownloadMicroOS(ctx context.Context) (bool, error) {
 	zlog.Info().Msgf("Inside Download and sign artifact... %s", config.DownloadPath)
-
-	version := getHookOSVersion()
-
-	zlog.InfraSec().Info().Msgf("Hook OS version %s", version)
-
 	repo := env.HookOSRepo
-	zlog.InfraSec().Info().Msgf("Hook OS repo URL is %s", repo)
-	artifacts, err := as.DownloadArtifacts(ctx, repo, version)
+	hookOSVersion := env.HookOSVersion
+	zlog.InfraSec().Info().Msgf("Hook OS repo URL is %s and HookOS version is %s",
+		repo, hookOSVersion)
+	artifacts, err := as.DownloadArtifacts(ctx, repo, hookOSVersion)
 	if err != nil {
-		invErr := inv_errors.Errorf("Error downloading HookOS for tag %s", version)
+		invErr := inv_errors.Errorf("Error downloading HookOS for tag %s", hookOSVersion)
 		zlog.Err(invErr).Msg("")
 	}
 
@@ -52,18 +49,6 @@ func DownloadMicroOS(ctx context.Context) (bool, error) {
 
 	zlog.InfraSec().Info().Msg("File downloaded")
 	return true, nil
-}
-
-func getHookOSVersion() string {
-	infraConfig := config.GetInfraConfig()
-
-	for _, file := range infraConfig.ENManifest.Provisioning.Files {
-		if file.Path == env.HookOSRepo {
-			zlog.InfraSec().Info().Msgf("Version for hook os:%s", file.Version)
-			return file.Version
-		}
-	}
-	return ""
 }
 
 func CreateFile(filePath string, artifact *as.Artifact) error {

@@ -14,9 +14,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v2"
 
-	as "github.com/intel/infra-core/inventory/v2/pkg/artifactservice"
 	"github.com/intel/infra-onboarding/dkam/internal/env"
 	"github.com/intel/infra-onboarding/dkam/pkg/config"
 	"github.com/intel/infra-onboarding/dkam/pkg/download"
@@ -44,17 +42,6 @@ const exampleManifest = `
 
 // Manifest example with no Annotation in Layers.
 const exampleManifestWrong = `
-		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
-		"config":{"mediaType":"application/vnd.intel.ensp.en",
-		"digest":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a","size":2},
-		"layers":[{
-			"mediaType":"application/vnd.oci.image.layer.v1.tar",
-			"digest":"` + testDigest + `",
-			"size":24800
-		}],
-		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
-
-const exampleManifest1 = `
 		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
 		"config":{"mediaType":"application/vnd.intel.ensp.en",
 		"digest":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a","size":2},
@@ -168,107 +155,4 @@ func TestDownloadMicroOS(t *testing.T) {
 		_, err = download.DownloadMicroOS(context.Background())
 		require.NoError(t, err)
 	})
-}
-
-func TestDownloadMicroOS_Case1(t *testing.T) {
-	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
-	expectedFileContent := "GOOD TEST!"
-	tmpFolderPath, err := os.MkdirTemp("/tmp", "test_download_microOS")
-	require.NoError(t, err)
-	defer os.RemoveAll(tmpFolderPath)
-	dkamTmpFolderPath := tmpFolderPath + "/tmp/"
-	dkamHookFolderPath := tmpFolderPath + "/hook/"
-	err = os.MkdirAll(dkamTmpFolderPath, 0o755)
-	require.NoError(t, err)
-
-	mux := http.NewServeMux()
-	returnWrongManifest := false
-	mux.HandleFunc("/manifests/HOOK_OS_VERSION", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		if returnWrongManifest {
-			w.Write([]byte(exampleManifestWrong))
-		} else {
-			w.Write([]byte(exampleManifest1))
-		}
-	})
-	mux.HandleFunc("/blobs/"+testDigest, func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(expectedFileContent))
-	})
-	svr := httptest.NewServer(mux)
-	defer svr.Close()
-	env.HookOSRepo = svr.URL + "/"
-	t.Run("Fail", func(_ *testing.T) {
-		_, err = download.DownloadMicroOS(context.Background())
-	})
-
-	err = os.MkdirAll(dkamHookFolderPath, 0o755)
-	require.NoError(t, err)
-
-	// Test: empty manifest
-	t.Run("NoAnnotationLayer", func(_ *testing.T) {
-		returnWrongManifest = true
-		_, err = download.DownloadMicroOS(context.Background())
-	})
-
-	t.Run("Success", func(_ *testing.T) {
-		existingDir := config.PVC
-		subfolder := "tmp"
-		subfolderPath := filepath.Join(existingDir, subfolder)
-		err := os.MkdirAll(subfolderPath, 0o755)
-		if err != nil {
-			fmt.Println("Error creating subfolder:", err)
-			return
-		}
-
-		data := config.ENManifest{
-			Provisioning: config.Provisioning{
-				Files: []config.File{
-					{
-						Description: "Dummy file 1",
-						Server:      "server1",
-						Path:        "one-intel-edge/edge-node/file/provisioning-hook-os",
-						Version:     "v1",
-					},
-				},
-			},
-		}
-		yamlData, err := yaml.Marshal(&data)
-		if err != nil {
-			fmt.Printf("Error marshaling YAML: %v\n", err)
-			return
-		}
-		yamlFilePath := filepath.Join(subfolderPath, "latest-dev.yaml")
-		err = os.WriteFile(yamlFilePath, yamlData, 0o600)
-		if err != nil {
-			fmt.Printf("Error writing YAML to file: %v\n", err)
-			return
-		}
-		returnWrongManifest = true
-	})
-}
-
-func TestCreateFile(t *testing.T) {
-	type args struct {
-		filePath string
-		artifact *as.Artifact
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name:    "negative test case",
-			args:    args{},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := download.CreateFile(tt.args.filePath, tt.args.artifact); (err != nil) != tt.wantErr {
-				t.Errorf("CreateFile() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
 }

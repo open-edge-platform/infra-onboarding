@@ -81,11 +81,6 @@ type AgentsVersion struct {
 	Version string `yaml:"version"`
 }
 
-type Provisioning struct {
-	Images []Image `yaml:"images"`
-	Files  []File  `yaml:"files"`
-}
-
 type ENManifest struct {
 	Packages struct {
 		Debians []string `yaml:"deb_packages"`
@@ -93,8 +88,7 @@ type ENManifest struct {
 	BMA struct {
 		Debs []AgentsVersion `yaml:"debs"`
 	} `yaml:"bma"`
-	Provisioning Provisioning `yaml:"provisioning"`
-	Metadata     struct {
+	Metadata struct {
 		//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
 		DebianRepositories []struct {
 			Name         string `yaml:"name"`
@@ -110,20 +104,6 @@ type ENManifest struct {
 			AuthType string `yaml:"authType"`
 		} `yaml:"debianRepositories"`
 	} `yaml:"metadata"`
-}
-
-type Image struct {
-	Description string `yaml:"description"`
-	Registry    string `yaml:"registry"`
-	Image       string `yaml:"image"`
-	Version     string `yaml:"version"`
-}
-
-type File struct {
-	Description string `yaml:"description"`
-	Server      string `yaml:"server"`
-	Path        string `yaml:"path"`
-	Version     string `yaml:"version"`
 }
 
 // As a variable to allow changes in tests.
