@@ -16,6 +16,7 @@ log_file="/var/log/onboot/client-auth.log"
 mkdir -p /var/log/onboot
 touch "$log_file"
 
+# shellcheck disable=SC2016
 enable_tty0() {
     echo 'False' > /tty0_status_user
     echo 'False' > /tty0_status_pass
@@ -38,6 +39,7 @@ enable_tty0() {
     fi
 }
 
+# shellcheck disable=SC2016
 enable_ttyS0() {
     echo 'False' > /ttys0_status_user
     echo 'False' > /ttys0_status_pass
@@ -63,6 +65,7 @@ enable_ttyS0() {
     setsid /bin/sh -c "echo 'here-3' <> /dev/ttyS0 >&0 2>&1"
 }
 
+# shellcheck disable=SC2016
 enable_ttyS1() {
     echo 'False' > /ttys1_status_user
     echo 'False' > /ttys1_status_pass
@@ -87,12 +90,13 @@ enable_ttyS1() {
 
 main() {
 
-    source /etc/hook/env_config
+    # shellcheck source=/dev/null
+    . /etc/hook/env_config
 
     while [ $a -lt 3 ];
     do
 	finished_read='False'
-	a=`expr $a + 1`
+	a=$((a + 1))
 	echo "Attempt $a to read username and password" >> "$log_file"
 
 	enable_ttyS0 &
@@ -100,13 +104,13 @@ main() {
 	enable_ttyS1 &
 
 	check=0
-	while [ ${finished_read} != 'True' ]
+	while [ "${finished_read}" != 'True' ]
 	do
 	    sleep 5
 	    finished_read=$(cat "$pipe")
 	    echo "${finished_read}"
-	    check=`expr $check + 1`
-	    if [ $check -gt 10 ];
+		check=$((check + 1))
+	    if [ "$check" -gt 10 ];
 	    then
 		break
 	    fi
@@ -115,10 +119,11 @@ main() {
 	username=$(cat /idp_username)
 	password=$(cat /idp_password)
 
-	username=$(echo $username | tr -d " "  | tr -d "\n" | tr -d ";")
-	password=$(echo $password | tr -d " "  | tr -d "\n" | tr -d ";")
+	username=$(echo "$username" | tr -d " "  | tr -d "\n" | tr -d ";")
+	password=$(echo "$password" | tr -d " "  | tr -d "\n" | tr -d ";")
 
 	#username and password checks are done at keycloak this is just to ensure that there was some valid input received
+	# shellcheck disable=SC3037,SC2086
 	if [ "$(echo -n $username | wc -c)" -lt 3 ] || [ "$(echo -n $password | wc -c)" -lt 3 ]; then
 		echo "Incorrect username password" >> "$log_file"
 		continue
@@ -134,14 +139,14 @@ main() {
 	update-ca-certificates
 
 	#update hosts if they were provided
-	extra_hosts_needed=$(echo $EXTRA_HOSTS | sed "s|,|\n|g")
-	echo -e "$extra_hosts_needed" >> /etc/hosts
+	extra_hosts_needed=$(echo "$EXTRA_HOSTS" | sed "s|,|\n|g")
+	echo "$extra_hosts_needed" >> /etc/hosts
 	echo "adding extras completed" >> "$log_file"
 
 	#login to IDP keycloak
 	# proxy if not set then the code will not be able to invoke curl.
 
-	access_token=$(curl --cacert /usr/local/share/ca-certificates/IDP_keyclock.crt -X POST https://$KEYCLOAK_URL/realms/master/protocol/openid-connect/token \
+	access_token=$(curl --cacert /usr/local/share/ca-certificates/IDP_keyclock.crt -X POST https://"$KEYCLOAK_URL"/realms/master/protocol/openid-connect/token \
 			    -d "username=$username" \
 			    -d "password=$password" \
 			    -d "grant_type=password" \
@@ -165,8 +170,8 @@ main() {
 	
 	printf "%s" "$access_token" > "$idp_folder/idp_access_token"
 
-	release_server_url=$(echo $KEYCLOAK_URL | sed "s/keycloak/release/g" )
-	release_token=$(curl --cacert /usr/local/share/ca-certificates/IDP_keyclock.crt -X GET https://$release_server_url/token -H "Authorization: Bearer $access_token")
+	release_server_url=$(echo "$KEYCLOAK_URL" | sed "s/keycloak/release/g" )
+	release_token=$(curl --cacert /usr/local/share/ca-certificates/IDP_keyclock.crt -X GET https://"$release_server_url"/token -H "Authorization: Bearer $access_token")
 	printf "%s" "$release_token" > "$idp_folder/release_token"
 	echo "Authentication successful, tokens saved" >> "$log_file"
     else

@@ -10,20 +10,23 @@
 # export http_proxy=http://proxy-ip:proxy-port
 # export https_proxy=http://proxy-ip:proxy-port
 
-#source ../../config
+# Ensure environment variables are assigned
+http_proxy=${http_proxy:-}
+https_proxy=${https_proxy:-}
+no_proxy=${no_proxy:-}
 
 ver=latest
 
 ## # Build the container
 
 docker build -f Dockerfile --no-cache \
-	--build-arg HTTP_PROXY=$http_proxy \
-	--build-arg HTTPS_PROXY=$http_proxy \
-	--build-arg NO_PROXY="$no_proxy" \
-	--build-arg http_proxy=$http_proxy \
-	--build-arg https_proxy=$http_proxy \
-	--build-arg no_proxy="$no_proxy" \
+    --build-arg HTTP_PROXY="$http_proxy" \
+    --build-arg HTTPS_PROXY="$https_proxy" \
+    --build-arg NO_PROXY="$no_proxy" \
+    --build-arg http_proxy="$http_proxy" \
+    --build-arg https_proxy="$https_proxy" \
+    --build-arg no_proxy="$no_proxy" \
 	-t hook_dind:$ver .
 
 # Save the Docker image
-printf "\rSaved the Docker image for hook_dind as  hook_dind:$ver\n"
+printf "\rSaved the Docker image for hook_dind as hook_dind:%s\n" "$ver"

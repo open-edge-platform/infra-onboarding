@@ -61,7 +61,7 @@ $(VENV_NAME): requirements.txt
 
 #### Lint and Validator Targets ####
 # https://github.com/koalaman/shellcheck
-SH_FILES := $(shell find . -type f \( -name '*.sh' \) -print )
+SH_FILES := $(shell git ls-files | grep '\.sh$$')
 shellcheck: ## lint shell scripts with shellcheck
 	shellcheck --version;
 	@if [ -n "$(SH_FILES)" ]; then \

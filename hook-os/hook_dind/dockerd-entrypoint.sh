@@ -6,7 +6,7 @@
 set -eu
 
 _tls_ensure_private() {
-	local f="$1"; shift
+	f="$1"; shift
 	[ -s "$f" ] || openssl genrsa -out "$f" 4096
 }
 _tls_san() {
@@ -23,7 +23,7 @@ _tls_san() {
 	} | sort -u | xargs printf '%s,' | sed "s/,\$//"
 }
 _tls_generate_certs() {
-	local dir="$1"; shift
+	dir="$1"; shift
 
 	# if server/{ca,key,cert}.pem && !ca/key.pem, do NOTHING except verify (user likely managing CA themselves)
 	# if ca/key.pem || !ca/cert.pem, generate CA public if necessary
@@ -37,7 +37,7 @@ _tls_generate_certs() {
 	fi
 
 	# https://github.com/FiloSottile/mkcert/issues/174
-	local certValidDays='825'
+	certValidDays='825'
 
 	if [ -s "$dir/ca/key.pem" ] || [ ! -s "$dir/ca/cert.pem" ]; then
 		# if we either have a CA private key or do *not* have a CA public key, then we should create/manage the CA
@@ -222,7 +222,7 @@ if [ "$1" = 'dockerd' ]; then
 			--port-driver=builtin \
 			--copy-up=/etc \
 			--copy-up=/run \
-			${DOCKERD_ROOTLESS_ROOTLESSKIT_FLAGS:-} \
+			"${DOCKERD_ROOTLESS_ROOTLESSKIT_FLAGS:-}" \
 			"$@"
 	elif [ -x '/usr/local/bin/dind' ]; then
 		# if we have the (mostly defunct now) Docker-in-Docker wrapper script, use it

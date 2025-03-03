@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 .DEFAULT_GOAL := help
-.PHONY: build test lint license help generate
+.PHONY: build test lint license help generate shellcheck
 
 ##### Variables #####
 # Project variables
@@ -65,7 +65,8 @@ build: configure certs components
 	git stash -- hook/linuxkit-templates/hook.template.yaml
 	@echo "---END MAKEFILE Build---"
 
-lint: license mdlint
+SH_FILES := $(shell git ls-files | grep '\.sh$$' | grep -v '^hook/')
+lint: license shellcheck mdlint
 	@# Help: Runs lint stage
 	@echo "---MAKEFILE LINT---"
 	echo $@

@@ -11,7 +11,7 @@ if [ -z "$UUID" ]; then
 fi
 
 echo "UUID: $UUID"
-export EDGENODE_UUID=$UUID
+export EDGENODE_UUID="$UUID"
 
 echo "starting fluentbit container.."
 /fluent-bit/bin/fluent-bit -c /fluent-bit/etc/fluent-bit.yaml
