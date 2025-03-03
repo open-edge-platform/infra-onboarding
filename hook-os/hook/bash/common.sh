@@ -9,10 +9,8 @@ function log() {
 	shift
 	[[ "${level}" == "debug" && "${DEBUG}" != "yes" ]] && return # Skip debugs unless DEBUG=yes is set in the environment
 	# If running on GitHub Actions, and level exists in log_gha_levels...
-	if [[ -n "${log_gha_levels[${level}]}" ]]; then
-	    if [[ -n "${GITHUB_ACTIONS}" || -n "${IS_JENKINS_BUILD}" ]]; then
-	        echo "::${log_gha_levels[${level}]} ::${*}" >&2
-	    fi
+	if [[ -n "${GITHUB_ACTIONS}" && -n "${log_gha_levels[${level}]}" ]]; then
+		echo "::${log_gha_levels[${level}]} ::${*}" >&2
 	fi
 	# Normal output
 	declare color="\033[${log_colors[${level}]}m"

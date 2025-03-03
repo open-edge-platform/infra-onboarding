@@ -36,7 +36,7 @@ declare -g -r CACHE_DIR="${CACHE_DIR:-"cache"}"
 
 # Type of --progress passed to invocations of `docker buildx build`; 'plain' includes all container output; 'tty' is more concise
 # If debugging, or under GitHub Actions, always use plain progress so all output is shown
-if [[ -n "${GITHUB_ACTIONS}" || -n "${IS_JENKINS_BUILD}" || "${DEBUG}" == "yes" ]]; then
+if [[ -n "${GITHUB_ACTIONS}" || "${DEBUG}" == "yes" ]]; then
 	declare -g DOCKER_BUILDX_PROGRESS_TYPE="plain"
 else # otherwise default to tty, but allow override
 	declare -g DOCKER_BUILDX_PROGRESS_TYPE="${DOCKER_BUILDX_PROGRESS_TYPE:-"tty"}"

@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       filtered_projects: ${{ steps.filter-changes.outputs.filtered_projects }}
+    env:
+      GITHUB_ACTIONS: true
     steps:
       - uses: actions/checkout@v4
       - name: "Verify Branch Name"
