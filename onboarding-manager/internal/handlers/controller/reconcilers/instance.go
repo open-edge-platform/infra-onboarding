@@ -21,8 +21,8 @@ import (
 	dkam_util "github.com/intel/infra-onboarding/dkam/pkg/util"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/env"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/onbworkflowclient"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding"
+	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/util"
 	om_status "github.com/intel/infra-onboarding/onboarding-manager/pkg/status"
 	rec_v2 "github.com/intel/orch-library/go/pkg/controller/v2"
@@ -30,8 +30,6 @@ import (
 
 const (
 	instanceReconcilerLoggerName = "InstanceReconciler"
-	checkInvURLLength            = 2
-	ClientImgName                = "jammy-server-cloudimg-amd64.raw.gz"
 
 	TinkStackURLTemplate = "http://%s/tink-stack"
 )
@@ -237,12 +235,12 @@ func (ir *InstanceReconciler) reconcileInstance(
 }
 
 func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
-) (utils.DeviceInfo, error) {
+) (onboarding_types.DeviceInfo, error) {
 	host := instance.GetHost() // eager-loaded
 
 	if instance.GetDesiredOs() == nil {
 		// this should not happen but just in case
-		return utils.DeviceInfo{}, inv_errors.Errorfc(codes.InvalidArgument,
+		return onboarding_types.DeviceInfo{}, inv_errors.Errorfc(codes.InvalidArgument,
 			"Instance %s doesn't have any OS associated", instance.GetResourceId())
 	}
 
@@ -267,23 +265,17 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 	// Installer script or Cloud init file download
 	installerScriptURL, err := dkam_util.GetInstallerLocation(instance.GetDesiredOs(), proxyURL)
 	if err != nil {
-		return utils.DeviceInfo{}, err
+		return onboarding_types.DeviceInfo{}, err
 	}
 	tinkerVersion := env.TinkerActionVersion
 
-	imgType, err := util.GetImageTypeFromOsType(desiredOs.GetOsType())
-	if err != nil {
-		return utils.DeviceInfo{}, err
-	}
-
-	deviceInfo := utils.DeviceInfo{
+	deviceInfo := onboarding_types.DeviceInfo{
 		GUID:               host.GetUuid(),
 		HwSerialID:         host.GetSerialNumber(),
 		HwMacID:            host.GetPxeMac(),
 		HwIP:               host.GetBmcIp(),
 		Hostname:           host.GetResourceId(),                  // we use resource ID as hostname to uniquely identify a host
 		SecurityFeature:    uint32(instance.GetSecurityFeature()), // #nosec G115
-		ImgType:            imgType,
 		OSImageURL:         osLocationURL,
 		OsImageSHA256:      desiredOs.GetSha256(),
 		InstallerScriptURL: installerScriptURL,
@@ -336,7 +328,7 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 	}()
 
 	// Check status of Prod Workflow and initiate if it's not running.
-	if err := onbworkflowclient.CheckStatusOrRunProdWorkflow(ctx, deviceInfo, instance); err != nil {
+	if err := onboarding.CheckStatusOrRunProdWorkflow(ctx, deviceInfo, instance); err != nil {
 		zlogInst.InfraSec().Err(err).Msgf("Failed CheckStatusOrRunProdWorkflow - Instance %s with Host UUID %s",
 			instance.GetResourceId(), instance.GetHost().GetUuid())
 		return err
@@ -354,9 +346,9 @@ func (ir *InstanceReconciler) cleanupProvisioningResources(
 ) error {
 	zlogInst.Debug().Msgf("Cleaning up all provisioning resources for host %s", instance.GetHost().GetUuid())
 
-	if err := onbworkflowclient.DeleteProdWorkflowResourcesIfExist(ctx, instance.GetHost().GetUuid()); err != nil {
+	if err := onboarding.DeleteProdWorkflowResourcesIfExist(ctx, instance.GetHost().GetUuid()); err != nil {
 		return err
 	}
 
-	return onbworkflowclient.DeleteTinkHardwareForHostIfExist(ctx, instance.GetHost().GetUuid())
+	return onboarding.DeleteTinkHardwareForHostIfExist(ctx, instance.GetHost().GetUuid())
 }

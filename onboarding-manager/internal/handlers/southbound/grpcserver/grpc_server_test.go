@@ -22,6 +22,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 
 	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
 	providerv1 "github.com/intel/infra-core/inventory/v2/pkg/api/provider/v1"
@@ -34,8 +35,7 @@ import (
 	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/env"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
-	onboarding "github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/onboarding/onboardingmocks"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	om_testing "github.com/intel/infra-onboarding/onboarding-manager/internal/testing"
 	pb "github.com/intel/infra-onboarding/onboarding-manager/pkg/api"
 	om_status "github.com/intel/infra-onboarding/onboarding-manager/pkg/status"
@@ -60,6 +60,49 @@ func generateRandomString(length int) string {
 	}
 	return string(b)
 }*/
+
+type MockNonInteractiveOnboardingServiceOnboardNodeStreamServer struct {
+	mock.Mock
+}
+
+func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) Send(response *pb.OnboardStreamResponse) error {
+	args := m.Called(response)
+	return args.Error(0)
+}
+
+func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) Recv() (*pb.OnboardStreamRequest, error) {
+	args := m.Called()
+	return args.Get(0).(*pb.OnboardStreamRequest), args.Error(1)
+}
+
+func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) SetHeader(md metadata.MD) error {
+	args := m.Called(md)
+	return args.Error(0)
+}
+
+func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) SendHeader(md metadata.MD) error {
+	args := m.Called(md)
+	return args.Error(0)
+}
+
+func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) SetTrailer(md metadata.MD) {
+	m.Called(md)
+}
+
+func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) Context() context.Context {
+	args := m.Called()
+	return args.Get(0).(context.Context)
+}
+
+func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) SendMsg(msg interface{}) error {
+	args := m.Called(msg)
+	return args.Error(0)
+}
+
+func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) RecvMsg(msg interface{}) error {
+	args := m.Called(msg)
+	return args.Error(0)
+}
 
 func getMD5Hash(text string) string {
 	hasher := sha256.New()
@@ -956,7 +999,7 @@ func TestInteractiveOnboardingService_startZeroTouch_Case4(t *testing.T) {
 	host := inv_testing.CreateHost(t, nil, nil)
 	osRes := inv_testing.CreateOs(t)
 	inv_testing.CreateInstance(t, host, osRes)
-	inv_testing.CreateProvider(t, utils.DefaultProviderName)
+	inv_testing.CreateProvider(t, onboarding_types.DefaultProviderName)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1002,9 +1045,9 @@ func TestInteractiveOnboardingService_startZeroTouch_MultiTenant(t *testing.T) {
 	dao := inv_testing.NewInvResourceDAOOrFail(t)
 
 	// Create two providers with the same name but with different tenants
-	dao.CreateProvider(t, tenant1, utils.DefaultProviderName,
+	dao.CreateProvider(t, tenant1, onboarding_types.DefaultProviderName,
 		inv_testing.ProviderKind(providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL))
-	dao.CreateProvider(t, tenant2, utils.DefaultProviderName,
+	dao.CreateProvider(t, tenant2, onboarding_types.DefaultProviderName,
 		inv_testing.ProviderKind(providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL))
 
 	host := dao.CreateHost(t, tenant1)
@@ -1288,9 +1331,9 @@ func Test_sendStreamErrorResponse(t *testing.T) {
 		message string
 	}
 
-	var art onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
+	var art MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
 	art.On("Send", mock.Anything).Return(errors.New("err"))
-	var art1 onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
+	var art1 MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
 	art1.On("Send", mock.Anything).Return(nil)
 	tests := []struct {
 		name    string
@@ -1331,9 +1374,9 @@ func TestInteractiveOnboardingService_handleRegisteredState(t *testing.T) {
 		rbac                                               *rbac.Policy
 		authEnabled                                        bool
 	}
-	var art onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
+	var art MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
 	art.On("Send", mock.Anything).Return(errors.New("err"))
-	var art1 onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
+	var art1 MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
 	art1.On("Send", mock.Anything).Return(nil)
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -1410,9 +1453,9 @@ func TestInteractiveOnboardingService_handleOnboardedState(t *testing.T) {
 		rbac                                               *rbac.Policy
 		authEnabled                                        bool
 	}
-	var art onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
+	var art MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
 	art.On("Send", mock.Anything).Return(errors.New("err"))
-	var art1 onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
+	var art1 MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
 	art1.On("Send", mock.Anything).Return(nil)
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -1462,7 +1505,7 @@ func TestInteractiveOnboardingService_handleOnboardedState(t *testing.T) {
 }
 
 func TestInteractiveOnboardingService_handleDefaultState(t *testing.T) {
-	var art onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
+	var art MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
 	art.On("Send", mock.Anything).Return(errors.New("err"))
 	type fields struct {
 		UnimplementedNonInteractiveOnboardingServiceServer pb.UnimplementedNonInteractiveOnboardingServiceServer
@@ -1665,15 +1708,15 @@ func TestInteractiveOnboardingServiceOnboardNodeStream(t *testing.T) {
 }
 
 func setupMockOnboardNodeStreamServers(host *computev1.HostResource) (
-	streamServer *onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer,
-	streamServer1 *onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer,
-	streamServer2 *onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer,
-	streamServer3 *onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer,
+	streamServer *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer,
+	streamServer1 *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer,
+	streamServer2 *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer,
+	streamServer3 *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer,
 ) {
-	art := new(onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
-	art1 := new(onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
-	art2 := new(onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
-	art3 := new(onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
+	art := new(MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
+	art1 := new(MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
+	art2 := new(MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
+	art3 := new(MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
 	// Mock the first stream with an error
 	art.On("Recv").Return(&pb.OnboardStreamRequest{}, errors.New("err"))
 
@@ -2074,7 +2117,7 @@ func FuzzOnboardNodeStream(f *testing.F) {
 			HostIp:    getFirstNChars(getMD5Hash(ip), 6),
 		}
 
-		var art onboarding.MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
+		var art MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
 		art.On("Send", mock.Anything).Return(nil)
 		art.On("Recv").Return(resp, nil)
 

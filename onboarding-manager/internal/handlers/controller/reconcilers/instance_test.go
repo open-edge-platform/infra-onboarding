@@ -29,7 +29,7 @@ import (
 	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
 	"github.com/intel/infra-core/inventory/v2/pkg/util"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	om_testing "github.com/intel/infra-onboarding/onboarding-manager/internal/testing"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/tinkerbell"
 	om_status "github.com/intel/infra-onboarding/onboarding-manager/pkg/status"
@@ -243,7 +243,7 @@ func TestReconcileInstance(t *testing.T) {
 	host := inv_testing.CreateHost(t, nil, nil)
 	osRes := createOsWithArgs(t, true)
 	// Creating Provider profile which would be fetched by the reconciler.
-	_ = createProviderWithArgs(t, true, osRes.ResourceId, utils.DefaultProviderName,
+	_ = createProviderWithArgs(t, true, osRes.ResourceId, onboarding_types.DefaultProviderName,
 		providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL)
 	// Instance should not be assigned to the Provider.
 	instance := inv_testing.CreateInstanceNoCleanup(t, host, osRes)
@@ -561,7 +561,7 @@ func Test_convertInstanceToDeviceInfo(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    utils.DeviceInfo
+		want    onboarding_types.DeviceInfo
 		wantErr bool
 	}{
 		{
@@ -578,13 +578,13 @@ func Test_convertInstanceToDeviceInfo(t *testing.T) {
 					},
 				},
 			},
-			want: utils.DeviceInfo{
+			want: onboarding_types.DeviceInfo{
 				OSImageURL:         "http://some-url.raw.gz",
 				InstallerScriptURL: "http://some-url-2",
 				TinkerVersion:      "v0.7.4",
 				HwIP:               "0.0.0.0",
 				Gateway:            "", // note that this is not valid and temporary
-				ImgType:            utils.ImgTypeUbuntu,
+				OsType:             osv1.OsType_OS_TYPE_MUTABLE,
 			},
 			wantErr: false,
 		},
@@ -601,7 +601,7 @@ func Test_convertInstanceToDeviceInfo(t *testing.T) {
 					},
 				},
 			},
-			want:    utils.DeviceInfo{},
+			want:    onboarding_types.DeviceInfo{},
 			wantErr: true,
 		},
 		{
@@ -614,7 +614,7 @@ func Test_convertInstanceToDeviceInfo(t *testing.T) {
 					SecurityFeature: osv1.SecurityFeature_SECURITY_FEATURE_UNSPECIFIED,
 				},
 			},
-			want:    utils.DeviceInfo{},
+			want:    onboarding_types.DeviceInfo{},
 			wantErr: true,
 		},
 	}

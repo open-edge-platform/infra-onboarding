@@ -22,14 +22,14 @@ import (
 	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
 )
 
-type k8sCliMock struct {
+type MockK8sClient struct {
 	mock.Mock
 
 	// withInventory use real Inventory client to get current OS to fill in the Tink Hardware CRD object
 	withInventory bool
 }
 
-func (k *k8sCliMock) Get(_ context.Context, key client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
+func (k *MockK8sClient) Get(_ context.Context, key client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
 	args := k.Called()
 
 	if strings.HasPrefix(key.Name, "workflow-") {
@@ -73,68 +73,68 @@ func (k *k8sCliMock) Get(_ context.Context, key client.ObjectKey, obj client.Obj
 	return args.Error(0)
 }
 
-func (k *k8sCliMock) List(_ context.Context, _ client.ObjectList, _ ...client.ListOption) error {
+func (k *MockK8sClient) List(_ context.Context, _ client.ObjectList, _ ...client.ListOption) error {
 	args := k.Called()
 	return args.Error(0)
 }
 
-func (k *k8sCliMock) Create(_ context.Context, _ client.Object, _ ...client.CreateOption) error {
+func (k *MockK8sClient) Create(_ context.Context, _ client.Object, _ ...client.CreateOption) error {
 	args := k.Called()
 	return args.Error(0)
 }
 
-func (k *k8sCliMock) Delete(_ context.Context, _ client.Object, _ ...client.DeleteOption) error {
+func (k *MockK8sClient) Delete(_ context.Context, _ client.Object, _ ...client.DeleteOption) error {
 	args := k.Called()
 	return args.Error(0)
 }
 
-func (k *k8sCliMock) Update(_ context.Context, _ client.Object, _ ...client.UpdateOption) error {
+func (k *MockK8sClient) Update(_ context.Context, _ client.Object, _ ...client.UpdateOption) error {
 	args := k.Called()
 	return args.Error(0)
 }
 
-func (k *k8sCliMock) Patch(_ context.Context, _ client.Object, _ client.Patch, _ ...client.PatchOption) error {
+func (k *MockK8sClient) Patch(_ context.Context, _ client.Object, _ client.Patch, _ ...client.PatchOption) error {
 	args := k.Called()
 	return args.Error(0)
 }
 
-func (k *k8sCliMock) DeleteAllOf(_ context.Context, _ client.Object, _ ...client.DeleteAllOfOption) error {
+func (k *MockK8sClient) DeleteAllOf(_ context.Context, _ client.Object, _ ...client.DeleteAllOfOption) error {
 	args := k.Called()
 	return args.Error(0)
 }
 
-func (k *k8sCliMock) Status() client.SubResourceWriter {
+func (k *MockK8sClient) Status() client.SubResourceWriter {
 	args := k.Called()
 	return args.Get(0).(client.SubResourceWriter)
 }
 
-func (k *k8sCliMock) SubResource(_ string) client.SubResourceClient {
+func (k *MockK8sClient) SubResource(_ string) client.SubResourceClient {
 	args := k.Called()
 	return args.Get(0).(client.SubResourceClient)
 }
 
-func (k *k8sCliMock) Scheme() *runtime.Scheme {
+func (k *MockK8sClient) Scheme() *runtime.Scheme {
 	args := k.Called()
 	return args.Get(0).(*runtime.Scheme)
 }
 
-func (k *k8sCliMock) RESTMapper() meta.RESTMapper {
+func (k *MockK8sClient) RESTMapper() meta.RESTMapper {
 	args := k.Called()
 	return args.Get(0).(meta.RESTMapper)
 }
 
-func (k *k8sCliMock) GroupVersionKindFor(_ runtime.Object) (schema.GroupVersionKind, error) {
+func (k *MockK8sClient) GroupVersionKindFor(_ runtime.Object) (schema.GroupVersionKind, error) {
 	args := k.Called()
 	return args.Get(0).(schema.GroupVersionKind), args.Error(1)
 }
 
-func (k *k8sCliMock) IsObjectNamespaced(_ runtime.Object) (bool, error) {
+func (k *MockK8sClient) IsObjectNamespaced(_ runtime.Object) (bool, error) {
 	args := k.Called()
 	return args.Get(0).(bool), args.Error(1)
 }
 
 func K8sCliMockFactory(createShouldFail, getShouldFail, deleteShouldFail, useRealInventory bool) func() (client.Client, error) {
-	k8sMock := &k8sCliMock{
+	k8sMock := &MockK8sClient{
 		withInventory: useRealInventory,
 	}
 

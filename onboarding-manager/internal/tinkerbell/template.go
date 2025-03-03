@@ -12,8 +12,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
 	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
 )
 
 func NewTemplate(tpData, name, ns string) *tink.Template {
@@ -33,26 +34,26 @@ func NewTemplate(tpData, name, ns string) *tink.Template {
 	return tp
 }
 
-func GenerateTemplateForProd(k8sNamespace string, deviceInfo utils.DeviceInfo) (*tink.Template, error) {
+func GenerateTemplateForProd(k8sNamespace string, deviceInfo onboarding_types.DeviceInfo) (*tink.Template, error) {
 	var (
 		tmplName = GetProdTemplateName(deviceInfo.GUID)
 		tmplData []byte
 		err      error
 	)
-	switch deviceInfo.ImgType {
-	case utils.ImgTypeUbuntu:
+	switch deviceInfo.OsType {
+	case osv1.OsType_OS_TYPE_MUTABLE:
 		tmplData, err = NewTemplateDataUbuntu(tmplName, deviceInfo)
 		if err != nil {
 			return nil, err
 		}
-	case utils.ImgTypeTiberMicrovisor:
+	case osv1.OsType_OS_TYPE_IMMUTABLE:
 		tmplData, err = NewTemplateDataProdTiberMicrovisor(tmplName, deviceInfo)
 		if err != nil {
 			return nil, err
 		}
 	default:
 		return nil, inv_errors.Errorfc(codes.InvalidArgument,
-			"Unsupported OS type %s, image type %s", deviceInfo.OsType, deviceInfo.ImgType)
+			"Unsupported OS type %s", deviceInfo.OsType)
 	}
 
 	tmpl := NewTemplate(string(tmplData), tmplName, k8sNamespace)

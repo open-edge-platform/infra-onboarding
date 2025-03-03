@@ -12,7 +12,7 @@ import (
 	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
 	"github.com/intel/infra-onboarding/dkam/pkg/config"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/env"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	"github.com/intel/infra-onboarding/onboarding-manager/pkg/cloudinit"
 )
 
@@ -216,7 +216,7 @@ func tinkActionQemuNbdImage2DiskImage(tinkerImageVersion string) string {
 }
 
 //nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
-func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo utils.DeviceInfo) ([]byte, error) {
+func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo onboarding_types.DeviceInfo) ([]byte, error) {
 	// #nosec G115
 	securityFeatureTypeVar := osv1.SecurityFeature(deviceInfo.SecurityFeature)
 	securityFeatureStr := securityFeatureTypeVar.String()
@@ -466,7 +466,7 @@ func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo utils.DeviceInfo
 }
 
 //nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
-func NewTemplateDataUbuntu(name string, deviceInfo utils.DeviceInfo) ([]byte, error) {
+func NewTemplateDataUbuntu(name string, deviceInfo onboarding_types.DeviceInfo) ([]byte, error) {
 	// #nosec G115
 	securityFeatureTypeVar := osv1.SecurityFeature(deviceInfo.SecurityFeature)
 	securityFeatureStr := securityFeatureTypeVar.String()

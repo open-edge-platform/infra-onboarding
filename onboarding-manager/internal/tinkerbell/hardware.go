@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
 )
 
 func NewHardware(name, ns, id, ip, gateway, osResourceID string) *tink.Hardware {
@@ -69,7 +69,7 @@ func NewHardware(name, ns, id, ip, gateway, osResourceID string) *tink.Hardware 
 // TODO (ITEP-1865): We can probably optimize it.
 // Instead of doing GET+CREATE we can try CREATE and check if resource already exists.
 func CreateHardwareIfNotExists(ctx context.Context, k8sCli client.Client, k8sNamespace string,
-	deviceInfo utils.DeviceInfo, osResourceID string,
+	deviceInfo onboarding_types.DeviceInfo, osResourceID string,
 ) error {
 	hwInfo := NewHardware(
 		GetTinkHardwareName(deviceInfo.GUID),

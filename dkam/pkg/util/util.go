@@ -6,7 +6,6 @@ package util
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
 	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
@@ -68,24 +67,4 @@ func PathExists(path string) (bool, error) {
 		return false, nil // path does not exist
 	}
 	return false, err // an error occurred (other than not existing)
-}
-
-func GetReleaseFilePathIfExists() (string, error) {
-	releaseFilePath := filepath.Join(config.DownloadPath, "tmp", config.ReleaseVersion+".yaml")
-	exists, err := PathExists(releaseFilePath)
-	if err != nil {
-		invErr := inv_errors.Errorf("Failed to check if path %s exists: %s", releaseFilePath, err)
-		zlog.InfraSec().Err(invErr).Msg("")
-		return "", invErr
-	}
-
-	if !exists {
-		invErr := inv_errors.Errorf("The release file not found under path %s", releaseFilePath)
-		zlog.InfraSec().Err(invErr).Msg("")
-		return "", invErr
-	}
-
-	zlog.InfraSec().Debug().Msgf("Release file found under path %s", releaseFilePath)
-
-	return releaseFilePath, nil
 }

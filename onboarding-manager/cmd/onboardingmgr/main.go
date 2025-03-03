@@ -27,7 +27,6 @@ import (
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/handlers/controller"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/handlers/southbound"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/onboarding"
 )
 
 const envNameOnboardingCredentialsSecretName = "ONBOARDING_CREDENTIALS_SECRET_NAME"
@@ -40,7 +39,6 @@ var (
 	name = "InfraOnboarding"
 	zlog = logging.GetLogger(name + "Main")
 
-	dkamAddr         = flag.String("dkamaddr", "localhost:5581", "DKAM server address to connect to")
 	serverAddress    = flag.String(flags.ServerAddress, "0.0.0.0:50054", flags.ServerAddressDescription)
 	serverAddressNio = flag.String(ServerAddressNio, "0.0.0.0:50055", "grpc server address for nio")
 	inventoryAddress = flag.String(client.InventoryAddress, "localhost:50051", client.InventoryAddressDescription)
@@ -136,8 +134,6 @@ func main() {
 	if err != nil {
 		zlog.InfraSec().Fatal().Err(err).Msgf("Unable to start onboarding inventory client")
 	}
-
-	onboarding.InitOnboarding(invClient, *dkamAddr, *enableAuth, *rbacRules)
 
 	onboardingCredentialsSecretName := os.Getenv(envNameOnboardingCredentialsSecretName)
 	if onboardingCredentialsSecretName == "" {

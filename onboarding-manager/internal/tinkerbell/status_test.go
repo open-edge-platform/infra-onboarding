@@ -13,12 +13,12 @@ import (
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	"gopkg.in/yaml.v2"
 
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/tinkerbell"
 )
 
 func TestWorkflowActionToStatusDetail(t *testing.T) {
-	prodBkcWorkflow, err := tinkerbell.NewTemplateDataUbuntu("test-prod-bkc", utils.DeviceInfo{})
+	prodBkcWorkflow, err := tinkerbell.NewTemplateDataUbuntu("test-prod-bkc", onboarding_types.DeviceInfo{})
 	require.NoError(t, err)
 
 	prodBkcWorkflowInstance, err := unmarshalWorkflow(prodBkcWorkflow)

@@ -3,7 +3,7 @@ Copyright (C) 2023 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
 */
 
-package onbworkflowclient
+package onboarding
 
 import (
 	"context"
@@ -23,7 +23,7 @@ import (
 	"github.com/intel/infra-core/inventory/v2/pkg/logging"
 	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/env"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/tinkerbell"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/util"
 	om_status "github.com/intel/infra-onboarding/onboarding-manager/pkg/status"
@@ -39,7 +39,7 @@ var (
 )
 
 func CheckStatusOrRunProdWorkflow(ctx context.Context,
-	deviceInfo utils.DeviceInfo,
+	deviceInfo onboarding_types.DeviceInfo,
 	instance *computev1.InstanceResource,
 ) error {
 	zlog.Debug().Msgf("Checking status of Prod workflow for host %s", deviceInfo.GUID)
@@ -79,7 +79,7 @@ func CheckStatusOrRunProdWorkflow(ctx context.Context,
 }
 
 func runProdWorkflow(
-	ctx context.Context, k8sCli client.Client, deviceInfo utils.DeviceInfo, instance *computev1.InstanceResource,
+	ctx context.Context, k8sCli client.Client, deviceInfo onboarding_types.DeviceInfo, instance *computev1.InstanceResource,
 ) error {
 	zlog.Debug().Msgf("Creating prod workflow for host %s", deviceInfo.GUID)
 
@@ -122,13 +122,6 @@ func runProdWorkflow(
 	zlog.Debug().Msgf("Prod workflow %s for host %s created successfully", prodWorkflow.Name, deviceInfo.GUID)
 
 	return nil
-}
-
-func formatDuration(d time.Duration) string {
-	remainingDuration := d % time.Hour // Remainder after subtracting hours
-	remainingDuration %= time.Minute   // Remainder after subtracting minutes
-	seconds := remainingDuration / time.Second
-	return fmt.Sprintf("%02d", seconds)
 }
 
 //nolint:cyclop // May effect the functionality, need to simplify this in future
@@ -217,7 +210,7 @@ func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName string)
 func createENCredentialsIfNotExists(
 	ctx context.Context,
 	tenantID string,
-	deviceInfo utils.DeviceInfo,
+	deviceInfo onboarding_types.DeviceInfo,
 ) (clientID, clientSecret string, err error) {
 	authService, err := auth.AuthServiceFactory(ctx)
 	if err != nil {

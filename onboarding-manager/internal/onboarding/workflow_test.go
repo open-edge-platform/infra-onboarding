@@ -4,7 +4,7 @@ SPDX-License-Identifier: Apache-2.0
 */
 
 //nolint:testpackage // Keeping the test in the same package due to dependencies on unexported fields.
-package onbworkflowclient
+package onboarding
 
 import (
 	"context"
@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
@@ -30,16 +29,21 @@ import (
 	statusv1 "github.com/intel/infra-core/inventory/v2/pkg/api/status/v1"
 	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/env"
-	onboarding "github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/onboarding/onboardingmocks"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	om_testing "github.com/intel/infra-onboarding/onboarding-manager/internal/testing"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/tinkerbell"
 )
 
 func TestCheckStatusOrRunProdWorkflow(t *testing.T) {
+	currK8sClientFactory := tinkerbell.K8sClientFactory
+	defer func() {
+		tinkerbell.K8sClientFactory = currK8sClientFactory
+	}()
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, true, false, false)
+
 	type args struct {
 		ctx        context.Context
-		deviceInfo utils.DeviceInfo
+		deviceInfo onboarding_types.DeviceInfo
 		instance   *computev1.InstanceResource
 	}
 	tests := []struct {
@@ -52,6 +56,19 @@ func TestCheckStatusOrRunProdWorkflow(t *testing.T) {
 			args: args{
 				ctx:      context.Background(),
 				instance: &computev1.InstanceResource{},
+			},
+			wantErr: true,
+		},
+		{
+			name: "CheckStatusOrRunWorkflow",
+			args: args{
+				ctx: context.Background(),
+				instance: &computev1.InstanceResource{
+					Host: &computev1.HostResource{
+						ResourceId: "host-084d9b08",
+					},
+					DesiredOs: &osv1.OperatingSystemResource{},
+				},
 			},
 			wantErr: true,
 		},
@@ -264,11 +281,11 @@ func Test_runProdWorkflow(t *testing.T) {
 	type args struct {
 		ctx        context.Context
 		k8sCli     client.Client
-		deviceInfo utils.DeviceInfo
+		deviceInfo onboarding_types.DeviceInfo
 	}
-	mockClient := &onboarding.MockClient{}
+	mockClient := &om_testing.MockK8sClient{}
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	mockClient1 := &onboarding.MockClient{}
+	mockClient1 := &om_testing.MockK8sClient{}
 	mockClient1.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
 	tests := []struct {
 		name    string
@@ -330,38 +347,12 @@ func Test_handleWorkflowStatus_Case3(t *testing.T) {
 	}
 }
 
-func Test_formatDuration(t *testing.T) {
-	type args struct {
-		d time.Duration
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			name: "Success",
-			args: args{},
-			want: "00",
-		},
-	}
-	utils.Init("")
-	utils.TimeStamp("")
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := formatDuration(tt.args.d); got != tt.want {
-				t.Errorf("formatDuration() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func Test_getWorkflow(t *testing.T) {
-	mockClient := onboarding.MockClient{}
+	mockClient := om_testing.MockK8sClient{}
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	mockClient1 := onboarding.MockClient{}
+	mockClient1 := om_testing.MockK8sClient{}
 	mockClient1.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
-	mockClient2 := onboarding.MockClient{}
+	mockClient2 := om_testing.MockK8sClient{}
 	mockClient2.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(kubeErr.NewNotFound(schema.GroupResource{Group: "example.com", Resource: "myresource"}, "resource-name"))
 	t.Setenv("ENABLE_ACTION_TIMESTAMPS", "true")

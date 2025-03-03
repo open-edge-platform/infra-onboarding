@@ -3,14 +3,13 @@
    SPDX-License-Identifier: Apache-2.0
 */
 
-package utils
+//nolint:stylecheck,revive // use underscore for onboarding_types
+package onboarding_types
 
 import osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
 
 const (
-	ImgTypeUbuntu          = "ubuntu"
-	ImgTypeTiberMicrovisor = "tibermicrovisor"
-	DefaultProviderName    = "infra_onboarding"
+	DefaultProviderName = "infra_onboarding"
 )
 
 type (

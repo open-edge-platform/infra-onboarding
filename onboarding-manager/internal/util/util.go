@@ -4,27 +4,11 @@
 package util
 
 import (
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/fieldmaskpb"
-
 	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
 	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
-	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
+	_ "github.com/intel/infra-core/inventory/v2/pkg/logging" // include to pass tests with -globalLogLevel
 	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
-	"github.com/intel/infra-core/inventory/v2/pkg/util"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
 )
-
-func GetImageTypeFromOsType(osType osv1.OsType) (string, error) {
-	switch osType {
-	case osv1.OsType_OS_TYPE_IMMUTABLE:
-		return utils.ImgTypeTiberMicrovisor, nil
-	case osv1.OsType_OS_TYPE_MUTABLE:
-		return utils.ImgTypeUbuntu, nil
-	default:
-		return "", inv_errors.Errorf("Unknown OS type %T", osType)
-	}
-}
 
 func IsSameHostStatus(
 	oldHost *computev1.HostResource,
@@ -60,22 +44,6 @@ func PopulateInstanceStatusAndCurrentState(
 	instance.CurrentState = currentState
 	instance.ProvisioningStatus = provisioningStatus.Status
 	instance.ProvisioningStatusIndicator = provisioningStatus.StatusIndicator
-}
-
-func IsSameHost(
-	originalHostres *computev1.HostResource,
-	updatedHostres *computev1.HostResource,
-	fieldmask *fieldmaskpb.FieldMask,
-) (bool, error) {
-	// firstly, cloning Host resource to avoid changing its content
-	clonedHostres := proto.Clone(originalHostres)
-	// with the fieldmask we are filtering out the fields we don't need
-	err := util.ValidateMaskAndFilterMessage(clonedHostres, fieldmask, true)
-	if err != nil {
-		return false, err
-	}
-
-	return proto.Equal(clonedHostres, updatedHostres), nil
 }
 
 func PopulateCurrentOS(instance *computev1.InstanceResource, osResourceID string) {

@@ -23,7 +23,8 @@ import (
 	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
 	inv_tenant "github.com/intel/infra-core/inventory/v2/pkg/tenant"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding"
+	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	pb "github.com/intel/infra-onboarding/onboarding-manager/pkg/api"
 	om_status "github.com/intel/infra-onboarding/onboarding-manager/pkg/status"
 )
@@ -250,7 +251,7 @@ func (s *NonInteractiveOnboardingService) handleRegisteredState(stream pb.NonInt
 func (s *NonInteractiveOnboardingService) handleOnboardedState(stream pb.NonInteractiveOnboardingService_OnboardNodeStreamServer,
 	hostInv *computev1.HostResource, req *pb.OnboardStreamRequest,
 ) error {
-	clientID, clientSecret, err := utils.FetchClientSecret(context.Background(), hostInv.GetTenantId(), hostInv.Uuid)
+	clientID, clientSecret, err := onboarding.FetchClientSecret(context.Background(), hostInv.GetTenantId(), hostInv.Uuid)
 	if err != nil {
 		zlog.Error().Err(err).Msg("Failed to fetch client id and secret from keycloak")
 		return err
@@ -654,7 +655,7 @@ func (s *InventoryClientService) startZeroTouch(ctx context.Context, tenantID, h
 	}
 
 	// TODO : Passing default provider name while trying to provision, need to change according to provider name and compare.
-	pconf, err := s.invClient.GetProviderConfig(ctx, tenantID, utils.DefaultProviderName)
+	pconf, err := s.invClient.GetProviderConfig(ctx, tenantID, onboarding_types.DefaultProviderName)
 	if err != nil {
 		zlog.Err(err).Msgf("Failed to get provider configuration")
 		return nil

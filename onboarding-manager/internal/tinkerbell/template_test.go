@@ -16,9 +16,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
 	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
-	onboarding "github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/onboarding/onboardingmocks"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
+	om_testing "github.com/intel/infra-onboarding/onboarding-manager/internal/testing"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/tinkerbell"
 )
 
@@ -72,7 +73,7 @@ func TestGenerateTemplateForProd(t *testing.T) {
 	dkam_testing.PrepareTestInfraConfig(t)
 	type args struct {
 		k8sNamespace string
-		deviceInfo   utils.DeviceInfo
+		deviceInfo   onboarding_types.DeviceInfo
 	}
 	tests := []struct {
 		name    string
@@ -89,8 +90,8 @@ func TestGenerateTemplateForProd(t *testing.T) {
 		{
 			name: "Test Case1",
 			args: args{
-				deviceInfo: utils.DeviceInfo{
-					ImgType: utils.ImgTypeUbuntu,
+				deviceInfo: onboarding_types.DeviceInfo{
+					OsType: osv1.OsType_OS_TYPE_MUTABLE,
 				},
 			},
 			want:    nil,
@@ -114,9 +115,9 @@ func TestCreateTemplateIfNotExists(t *testing.T) {
 		k8sCli   client.Client
 		template *tink.Template
 	}
-	mockClient := onboarding.MockClient{}
+	mockClient := om_testing.MockK8sClient{}
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	mockClient1 := onboarding.MockClient{}
+	mockClient1 := om_testing.MockK8sClient{}
 	mockClient1.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
 	tests := []struct {
 		name    string
@@ -158,15 +159,15 @@ func TestCreateTemplateIfNotExists_Case(t *testing.T) {
 		k8sCli   client.Client
 		template *tink.Template
 	}
-	mockClient := onboarding.MockClient{}
+	mockClient := om_testing.MockK8sClient{}
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	mockClient1 := onboarding.MockClient{}
+	mockClient1 := om_testing.MockK8sClient{}
 	mockClient1.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
-	mockClient2 := onboarding.MockClient{}
+	mockClient2 := om_testing.MockK8sClient{}
 	mockClient2.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(k8sErrors.NewNotFound(schema.GroupResource{Group: "example.com", Resource: "myresource"}, "resource-name"))
 	mockClient2.On("Create", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	mockClient3 := onboarding.MockClient{}
+	mockClient3 := om_testing.MockK8sClient{}
 	mockClient3.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(k8sErrors.NewNotFound(schema.GroupResource{Group: "example.com", Resource: "myresource"}, "resource-name"))
 	mockClient3.On("Create", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))

@@ -9,14 +9,14 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboardingmgr/utils"
+	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/tinkerbell"
 )
 
 func TestNewTemplateDataProdBKC(t *testing.T) {
 	type args struct {
 		name       string
-		deviceInfo utils.DeviceInfo
+		deviceInfo onboarding_types.DeviceInfo
 		enableDI   bool
 	}
 	wf := tinkerbell.Workflow{}
@@ -34,7 +34,7 @@ func TestNewTemplateDataProdBKC(t *testing.T) {
 			name: "Success - DI disabled",
 			args: args{
 				name:       "TestWorkflow",
-				deviceInfo: utils.DeviceInfo{},
+				deviceInfo: onboarding_types.DeviceInfo{},
 				enableDI:   false,
 			},
 			want:    want,
@@ -44,7 +44,7 @@ func TestNewTemplateDataProdBKC(t *testing.T) {
 			name: "Success - DI enabled",
 			args: args{
 				name:       "TestWorkflow",
-				deviceInfo: utils.DeviceInfo{},
+				deviceInfo: onboarding_types.DeviceInfo{},
 			},
 			want:    want,
 			wantErr: false,
