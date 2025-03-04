@@ -15,6 +15,7 @@ import (
 
 	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
 	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
+	"github.com/intel/infra-core/inventory/v2/pkg/client"
 	"github.com/intel/infra-core/inventory/v2/pkg/logging"
 	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
 	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
@@ -43,7 +44,7 @@ func CreateInventoryOnboardingClientForTesting() {
 	}
 
 	InvClient, err = invclient.NewOnboardingInventoryClient(inv_testing.TestClients[clientName].GetTenantAwareInventoryClient(),
-		inv_testing.TestClientsEvents[clientName])
+		inv_testing.TestClientsEvents[clientName], make(chan *client.ResourceTenantIDCarrier))
 	if err != nil {
 		zlog.Fatal().Err(err).Msg("Cannot create Inventory OnboardingRM client")
 	}

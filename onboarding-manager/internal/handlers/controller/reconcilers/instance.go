@@ -82,7 +82,26 @@ func (ir *InstanceReconciler) Reconcile(ctx context.Context,
 		return directive
 	}
 
+	if directive := ir.handleHostOnboarded(instance, request); directive != nil {
+		return directive
+	}
+
 	return ir.reconcileInstance(ctx, request, instance)
+}
+
+func (ir *InstanceReconciler) handleHostOnboarded(instance *computev1.InstanceResource, request rec_v2.Request[ReconcilerID],
+) rec_v2.Directive[ReconcilerID] {
+	if instance.GetDesiredState() != computev1.InstanceState_INSTANCE_STATE_RUNNING ||
+		instance.GetHost().GetCurrentState() == computev1.HostState_HOST_STATE_ONBOARDED {
+		// Proceed with provisioning only if the host is already onboarded.
+		return nil
+	}
+	zlogInst.Info().Msgf("Host is not yet onboarded. Reconciliation will be skipped until the host is onboarded. hostUUID=%s",
+		instance.GetHost().GetUuid(),
+	)
+	// TODO: currently we ack the request, but we should consider retrying the reconciliation, for example for a fixed
+	//  amount of times.
+	return request.Ack()
 }
 
 func (ir *InstanceReconciler) handleErrorState(instance *computev1.InstanceResource, request rec_v2.Request[ReconcilerID],

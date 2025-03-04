@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
+	"github.com/intel/infra-core/inventory/v2/pkg/client"
 	"github.com/intel/infra-core/inventory/v2/pkg/logging"
 	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
@@ -34,9 +35,11 @@ func CreateOnboardingClientForTesting(tb testing.TB) {
 	if err != nil {
 		zlogTest.Fatal().Err(err).Msg("Cannot create onboarding invclient client")
 	}
-
 	OnboardingTestClient, err = invclient.NewOnboardingInventoryClient(
-		inv_testing.TestClients[testClientName].GetTenantAwareInventoryClient(), inv_testing.TestClientsEvents[testClientName])
+		inv_testing.TestClients[testClientName].GetTenantAwareInventoryClient(),
+		inv_testing.TestClientsEvents[testClientName],
+		make(chan *client.ResourceTenantIDCarrier),
+	)
 	if err != nil {
 		zlogTest.Fatal().Err(err).Msg("Cannot create onboarding invclient client")
 	}

@@ -76,10 +76,14 @@ func createBufConn() {
 
 // Helper function to create a southbound gRPC server for host manager.
 func createOnboardingManagerSouthboundAPI() {
-	sbHandler := southbound.NewSBHandlerWithListener(BufconnLis, om_testing.InvClient, southbound.SBHandlerConfig{
-		EnableTracing: false, // be explicit
-		RBAC:          rbacRules,
-	})
+	sbHandler := southbound.NewSBHandlerWithListener(
+		BufconnLis,
+		om_testing.InvClient,
+		southbound.SBHandlerConfig{
+			EnableTracing: false, // be explicit
+			RBAC:          rbacRules,
+		},
+	)
 	err := sbHandler.Start()
 	if err != nil {
 		zlog.Fatal().Err(err).Msg("Cannot create Inventory OnboardingRM client")

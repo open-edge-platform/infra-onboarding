@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 
 	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
+	"github.com/intel/infra-core/inventory/v2/pkg/client"
 	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
 	"github.com/intel/infra-core/inventory/v2/pkg/logging"
 	"github.com/intel/infra-core/inventory/v2/pkg/util"
@@ -65,7 +66,6 @@ func New(
 		instRcnl.Reconcile, rec_v2.WithParallelism(parallelism))
 	controllers[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instCtrl
 	filters[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instanceEventFilter
-
 	return &OnboardingController{
 		invClient:   invClient,
 		filters:     filters,
@@ -107,18 +107,14 @@ func (obc *OnboardingController) controlLoop() {
 				zlog.InfraSec().Fatal().Msg("gRPC stream with inventory closed")
 				return
 			}
-			if !obc.filterEvent(ev.Event) {
-				zlog.Debug().Msgf("Event %v is not allowed by filter", ev.Event)
+			obc.handleInventoryEvent(ev)
+		case ev, ok := <-obc.invClient.InternalWatcher:
+			if !ok {
+				zlog.InfraSec().Fatal().Msg("internal events channel closed")
 				continue
 			}
-			tID, resID, err := util.GetResourceKeyFromResource(ev.Event.GetResource())
-			if err != nil {
-				zlog.InfraSec().Err(err).Msgf("Failed to get resource key from event: event=%v", ev.Event)
-				continue
-			}
-			if err := obc.reconcileResource(tID, resID); err != nil {
-				zlog.InfraSec().InfraErr(err).Msgf("reconciliation resource failed")
-			}
+			obc.handleInternalEvent(ev)
+
 		case <-ticker.C:
 			if err := obc.reconcileAll(); err != nil {
 				zlog.InfraSec().InfraErr(err).Msgf("full reconciliation failed")
@@ -127,6 +123,32 @@ func (obc *OnboardingController) controlLoop() {
 			obc.wg.Done()
 			return
 		}
+	}
+}
+
+func (obc *OnboardingController) handleInternalEvent(event *client.ResourceTenantIDCarrier) {
+	zlog.Debug().Msgf("Internal event [tenantID=%s, resourceID=%s]", event.TenantId, event.ResourceId)
+
+	// Propagate the even directly to the reconciler, we don't filter any event, we don't have.
+	if err := obc.reconcileResource(event.TenantId, event.ResourceId); err != nil {
+		zlog.InfraSec().InfraErr(err).Msgf("reconciliation resource failed")
+	}
+}
+
+func (obc *OnboardingController) handleInventoryEvent(event *client.WatchEvents) {
+	zlog.Debug().Msgf("Inventory event: event=%v", event.Event)
+
+	if !obc.filterEvent(event.Event) {
+		zlog.Debug().Msgf("Event %v is not allowed by filter", event.Event)
+		return
+	}
+	tID, resID, err := util.GetResourceKeyFromResource(event.Event.GetResource())
+	if err != nil {
+		zlog.InfraSec().Err(err).Msgf("Failed to get resource key from event: event=%v", event.Event)
+		return
+	}
+	if err := obc.reconcileResource(tID, resID); err != nil {
+		zlog.InfraSec().InfraErr(err).Msgf("reconciliation resource failed")
 	}
 }
 

@@ -17,8 +17,10 @@ import (
 	"reflect"
 	"regexp"
 	"testing"
+	"time"
 
 	u_uuid "github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -28,6 +30,8 @@ import (
 	providerv1 "github.com/intel/infra-core/inventory/v2/pkg/api/provider/v1"
 	statusv1 "github.com/intel/infra-core/inventory/v2/pkg/api/status/v1"
 	"github.com/intel/infra-core/inventory/v2/pkg/auth"
+	"github.com/intel/infra-core/inventory/v2/pkg/client"
+	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
 	"github.com/intel/infra-core/inventory/v2/pkg/flags"
 	"github.com/intel/infra-core/inventory/v2/pkg/policy/rbac"
 	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
@@ -639,57 +643,103 @@ func TestInteractiveOnboardingService_CreateNodes_Case_Success(t *testing.T) {
 }
 
 func TestInteractiveOnboardingService_startZeroTouch(t *testing.T) {
-	type fields struct {
-		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
-		invClient                                       *invclient.OnboardingInventoryClient
-		invClientAPI                                    *invclient.OnboardingInventoryClient
-	}
-	type args struct {
-		ctx          context.Context
-		hostTenantID string
-		hostResID    string
-	}
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
 	host := inv_testing.CreateHost(t, nil, nil)
 	osRes := inv_testing.CreateOs(t)
-	inv_testing.CreateInstance(t, host, osRes)
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Start zeroTouch host deleted -Success",
-			fields: fields{
-				invClient:    om_testing.InvClient,
-				invClientAPI: om_testing.InvClient,
-			},
-			args: args{
-				ctx:          context.Background(),
-				hostTenantID: host.TenantId,
-				hostResID:    host.ResourceId,
-			},
-			wantErr: false,
+	dao := inv_testing.NewInvResourceDAOOrFail(t)
+
+	s := &InteractiveOnboardingService{
+		InventoryClientService: InventoryClientService{
+			invClient:    om_testing.InvClient,
+			invClientAPI: om_testing.InvClient,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &InteractiveOnboardingService{
-				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
-				InventoryClientService: InventoryClientService{
-					invClient:    tt.fields.invClient,
-					invClientAPI: tt.fields.invClientAPI,
-				},
-			}
-			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
-				t.Errorf("InteractiveOnboardingService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
-			}
+
+	t.Run("ZeroTouch without Provider", func(t *testing.T) {
+		if err := s.startZeroTouch(context.Background(), host.TenantId, host.ResourceId); err != nil {
+			t.Errorf("InteractiveOnboardingService.startZeroTouch() error = %v", err)
+		}
+	})
+
+	t.Run("ZeroTouch with provider and AutoProvision false", func(t *testing.T) {
+		providerConfig := fmt.Sprintf(`{"defaultOs":%q,"autoProvision":false}`, osRes.GetResourceId())
+		dao.CreateProvider(t, host.GetTenantId(), onboarding_types.DefaultProviderName,
+			inv_testing.ProviderConfig(providerConfig),
+			inv_testing.ProviderKind(providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL),
+		)
+		if err := s.startZeroTouch(context.Background(), host.TenantId, host.ResourceId); err != nil {
+			t.Errorf("InteractiveOnboardingService.startZeroTouch() error = %v", err)
+		}
+	})
+
+	t.Run("ZeroTouch with pre-provisioned instance", func(t *testing.T) {
+		instance := inv_testing.CreateInstance(t, host, osRes)
+		// Ensure internal channel is empty before staring the actual test.
+		cleanupInternalWatcher()
+
+		assertInternalEvent(t, &client.ResourceTenantIDCarrier{
+			TenantId:   instance.GetTenantId(),
+			ResourceId: instance.GetResourceId(),
 		})
+		if err := s.startZeroTouch(context.Background(), host.TenantId, host.ResourceId); err != nil {
+			t.Errorf("InteractiveOnboardingService.startZeroTouch() error = %v", err)
+		}
+	})
+}
+
+func TestInteractiveOnboardingService_startZeroTouch_AutoProvision(t *testing.T) {
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	host := inv_testing.CreateHost(t, nil, nil)
+	osRes := inv_testing.CreateOs(t)
+	dao := inv_testing.NewInvResourceDAOOrFail(t)
+
+	s := &InteractiveOnboardingService{
+		InventoryClientService: InventoryClientService{
+			invClient:    om_testing.InvClient,
+			invClientAPI: om_testing.InvClient,
+		},
 	}
+
+	providerConfig := fmt.Sprintf(`{"defaultOs":%q,"autoProvision":true}`, osRes.GetResourceId())
+	dao.CreateProvider(t, host.GetTenantId(), onboarding_types.DefaultProviderName,
+		inv_testing.ProviderConfig(providerConfig),
+		inv_testing.ProviderKind(providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL),
+	)
+
+	if err := s.startZeroTouch(context.Background(), host.GetTenantId(), host.GetResourceId()); err != nil {
+		t.Errorf("InteractiveOnboardingService.startZeroTouch() error = %v", err)
+	}
+	instances, err := om_testing.InvClient.GetInstanceResources(context.Background())
+	require.NoError(t, err)
+	require.Len(t, instances, 1, "Wrong number of expected instances for autoProvision")
+	autoProvInst := instances[0]
+	assert.Equal(t, host.GetResourceId(), autoProvInst.GetHost().GetResourceId(), "Instance host resource id mismatch")
+
+	dao.HardDeleteInstance(t, autoProvInst.GetTenantId(), autoProvInst.GetResourceId())
+}
+
+func TestInteractiveOnboardingService_startZeroTouch_WrongProvider(t *testing.T) {
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	host := inv_testing.CreateHost(t, nil, nil)
+	inv_testing.CreateProvider(t, onboarding_types.DefaultProviderName)
+
+	s := &InteractiveOnboardingService{
+		InventoryClientService: InventoryClientService{
+			invClient:    om_testing.InvClient,
+			invClientAPI: om_testing.InvClient,
+		},
+	}
+	err := s.startZeroTouch(context.Background(), host.GetTenantId(), host.GetResourceId())
+	require.NoError(t, err)
 }
 
 func TestInteractiveOnboardingService_startZeroTouch_Case(t *testing.T) {
@@ -878,57 +928,6 @@ func TestInteractiveOnboardingService_CreateNodes_Case5(t *testing.T) {
 	}
 }
 
-func TestInteractiveOnboardingService_startZeroTouch_Case1(t *testing.T) {
-	type fields struct {
-		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
-		invClient                                       *invclient.OnboardingInventoryClient
-		invClientAPI                                    *invclient.OnboardingInventoryClient
-	}
-	type args struct {
-		ctx          context.Context
-		hostTenantID string
-		hostResID    string
-	}
-	om_testing.CreateInventoryOnboardingClientForTesting()
-	t.Cleanup(func() {
-		om_testing.DeleteInventoryOnboardingClientForTesting()
-	})
-	host := inv_testing.CreateHost(t, nil, nil)
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Start ZeroTouch with provider -Successful",
-			fields: fields{
-				invClient:    om_testing.InvClient,
-				invClientAPI: om_testing.InvClient,
-			},
-			args: args{
-				ctx:          context.Background(),
-				hostTenantID: host.TenantId,
-				hostResID:    host.ResourceId,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &InteractiveOnboardingService{
-				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
-				InventoryClientService: InventoryClientService{
-					invClient: tt.fields.invClient,
-				},
-			}
-			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
-				t.Errorf("InteractiveOnboardingService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestInteractiveOnboardingService_startZeroTouch_Case2(t *testing.T) {
 	type fields struct {
 		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
@@ -953,61 +952,6 @@ func TestInteractiveOnboardingService_startZeroTouch_Case2(t *testing.T) {
 	}{
 		{
 			name: "Start ZeroTouch with no provider creation -Successful",
-			fields: fields{
-				invClient:    om_testing.InvClient,
-				invClientAPI: om_testing.InvClient,
-			},
-			args: args{
-				ctx:          context.Background(),
-				hostTenantID: host.TenantId,
-				hostResID:    host.ResourceId,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &InteractiveOnboardingService{
-				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
-				InventoryClientService: InventoryClientService{
-					invClient:    tt.fields.invClient,
-					invClientAPI: tt.fields.invClientAPI,
-				},
-			}
-			if err := s.startZeroTouch(tt.args.ctx, tt.args.hostTenantID, tt.args.hostResID); (err != nil) != tt.wantErr {
-				t.Errorf("InteractiveOnboardingService.startZeroTouch() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestInteractiveOnboardingService_startZeroTouch_Case4(t *testing.T) {
-	type fields struct {
-		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
-		invClient                                       *invclient.OnboardingInventoryClient
-		invClientAPI                                    *invclient.OnboardingInventoryClient
-	}
-	type args struct {
-		ctx          context.Context
-		hostTenantID string
-		hostResID    string
-	}
-	om_testing.CreateInventoryOnboardingClientForTesting()
-	t.Cleanup(func() {
-		om_testing.DeleteInventoryOnboardingClientForTesting()
-	})
-	host := inv_testing.CreateHost(t, nil, nil)
-	osRes := inv_testing.CreateOs(t)
-	inv_testing.CreateInstance(t, host, osRes)
-	inv_testing.CreateProvider(t, onboarding_types.DefaultProviderName)
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Start ZeroTouch with provider creation -Error",
 			fields: fields{
 				invClient:    om_testing.InvClient,
 				invClientAPI: om_testing.InvClient,
@@ -1446,62 +1390,59 @@ func TestInteractiveOnboardingService_handleRegisteredState(t *testing.T) {
 }
 
 func TestInteractiveOnboardingService_handleOnboardedState(t *testing.T) {
-	type fields struct {
-		UnimplementedNonInteractiveOnboardingServiceServer pb.UnimplementedNonInteractiveOnboardingServiceServer
-		invClient                                          *invclient.OnboardingInventoryClient
-		invClientAPI                                       *invclient.OnboardingInventoryClient
-		rbac                                               *rbac.Policy
-		authEnabled                                        bool
-	}
-	var art MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
-	art.On("Send", mock.Anything).Return(errors.New("err"))
-	var art1 MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
-	art1.On("Send", mock.Anything).Return(nil)
+	var nioMock MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
+	nioMock.On("Send", mock.Anything).Return(nil)
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	type args struct {
-		stream  pb.NonInteractiveOnboardingService_OnboardNodeStreamServer
-		hostInv *computev1.HostResource
-		req     *pb.OnboardStreamRequest
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "negative",
-			fields: fields{
-				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
-				invClient:    &invclient.OnboardingInventoryClient{},
-				invClientAPI: &invclient.OnboardingInventoryClient{},
-				rbac:         &rbac.Policy{},
-				authEnabled:  false,
-			},
-			args: args{
-				stream:  &art,
-				hostInv: &computev1.HostResource{},
-				req: &pb.OnboardStreamRequest{
-					Uuid: "f9f8-434a-8620-bbed2a12b0ad",
-				},
-			},
-			wantErr: true,
+
+	s := &NonInteractiveOnboardingService{
+		InventoryClientService: InventoryClientService{
+			invClient:    om_testing.InvClient,
+			invClientAPI: om_testing.InvClient,
 		},
-		// TODO: Add test cases.
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &NonInteractiveOnboardingService{
-				UnimplementedNonInteractiveOnboardingServiceServer: tt.fields.UnimplementedNonInteractiveOnboardingServiceServer,
-			}
-			if err := s.handleOnboardedState(tt.args.stream, tt.args.hostInv, tt.args.req); (err != nil) != tt.wantErr {
-				t.Errorf("InteractiveOnboardingService.handleOnboardedState() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
+
+	dao := inv_testing.NewInvResourceDAOOrFail(t)
+	host := dao.CreateHost(t, tenant1)
+	fakeHost := &computev1.HostResource{
+		TenantId:   tenant1,
+		Uuid:       u_uuid.NewString(),
+		ResourceId: "host-12345678",
 	}
+
+	// Ensure to restore AuthServiceFactory after the test.
+	currAuthServiceFactory := auth.AuthServiceFactory
+	t.Cleanup(func() {
+		auth.AuthServiceFactory = currAuthServiceFactory
+	})
+
+	t.Run("Failing Create Credentials", func(t *testing.T) {
+		auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(true, true, false)
+		err := s.handleOnboardedState(&nioMock, fakeHost, &pb.OnboardStreamRequest{Uuid: fakeHost.GetUuid()})
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "Failed to check if EN credentials for host exist.")
+	})
+
+	auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(false, false, false)
+
+	t.Run("Non existing host", func(t *testing.T) {
+		err := s.handleOnboardedState(&nioMock, fakeHost, &pb.OnboardStreamRequest{Uuid: fakeHost.GetUuid()})
+		require.Error(t, err)
+		assert.True(t, inv_errors.IsNotFound(err))
+	})
+
+	t.Run("Positive", func(t *testing.T) {
+		err := s.handleOnboardedState(&nioMock, host, &pb.OnboardStreamRequest{Uuid: host.GetUuid()})
+		assert.NoError(t, err)
+		time.Sleep(100 * time.Millisecond)
+		om_testing.AssertHost(t, host.GetTenantId(), host.GetResourceId(),
+			computev1.HostState_HOST_STATE_ONBOARDED,
+			computev1.HostState_HOST_STATE_ONBOARDED,
+			inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED),
+		)
+	})
 }
 
 func TestInteractiveOnboardingService_handleDefaultState(t *testing.T) {
@@ -1621,15 +1562,16 @@ func TestInteractiveOnboardingServiceOnboardNodeStream(t *testing.T) {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
 	host := inv_testing.CreateHost(t, nil, nil)
+
 	t.Setenv("ONBOARDING_MANAGER_CLIENT_NAME", "env")
 	t.Setenv("ONBOARDING_CREDENTIALS_SECRET_NAME", "env")
 	art, art1, art2, art3 := setupMockOnboardNodeStreamServers(host)
 	currAuthServiceFactory := auth.AuthServiceFactory
 	currFlagDisableCredentialsManagement := *flags.FlagDisableCredentialsManagement
-	defer func() {
+	t.Cleanup(func() {
 		auth.AuthServiceFactory = currAuthServiceFactory
 		*flags.FlagDisableCredentialsManagement = currFlagDisableCredentialsManagement
-	}()
+	})
 	*flags.FlagDisableCredentialsManagement = false
 	auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(false, false, true)
 	tests := []struct {
@@ -1707,6 +1649,47 @@ func TestInteractiveOnboardingServiceOnboardNodeStream(t *testing.T) {
 	}
 }
 
+func TestInteractiveOnboardingServiceOnboardNodeStream_WithInstance(t *testing.T) {
+	currAuthServiceFactory := auth.AuthServiceFactory
+	t.Cleanup(func() {
+		auth.AuthServiceFactory = currAuthServiceFactory
+	})
+	auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(false, false, false)
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+
+	dao := inv_testing.NewInvResourceDAOOrFail(t)
+	host := dao.CreateHost(t, tenant1)
+	osRes := dao.CreateOs(t, tenant1)
+	instance := dao.CreateInstance(t, tenant1, host, osRes)
+
+	var nioStreamMock MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
+	nioStreamMock.On("Send", mock.Anything).Return(nil)
+	nioStreamMock.On("Recv").Return(&pb.OnboardStreamRequest{
+		Uuid:      host.Uuid,
+		Serialnum: host.SerialNumber,
+		MacId:     host.PxeMac,
+		HostIp:    host.BmcIp,
+	}, nil)
+
+	s := &NonInteractiveOnboardingService{
+		InventoryClientService: InventoryClientService{
+			invClient:    om_testing.InvClient,
+			invClientAPI: om_testing.InvClient,
+		},
+	}
+	cleanupInternalWatcher()
+	assertInternalEvent(t, &client.ResourceTenantIDCarrier{
+		TenantId:   instance.GetTenantId(),
+		ResourceId: instance.GetResourceId(),
+	})
+
+	err := s.OnboardNodeStream(&nioStreamMock)
+	require.NoError(t, err)
+}
+
 func setupMockOnboardNodeStreamServers(host *computev1.HostResource) (
 	streamServer *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer,
 	streamServer1 *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer,
@@ -1728,7 +1711,6 @@ func setupMockOnboardNodeStreamServers(host *computev1.HostResource) (
 		MacId:     host.PxeMac,
 		HostIp:    host.BmcIp,
 	}, nil)
-
 	// Mock the third stream
 	art2.On("Send", mock.Anything).Return(nil)
 	art2.On("Recv").Return(&pb.OnboardStreamRequest{
@@ -2134,4 +2116,30 @@ func FuzzOnboardNodeStream(f *testing.F) {
 			t.Errorf("Error at OnboardNodeStram %v", err)
 		}
 	})
+}
+
+func cleanupInternalWatcher() {
+	go func() {
+		select {
+		case <-om_testing.InvClient.InternalWatcher:
+		default:
+		}
+	}()
+}
+
+func assertInternalEvent(t *testing.T, expectedEvent *client.ResourceTenantIDCarrier) {
+	t.Helper()
+	go func() {
+		select {
+		case ev, ok := <-om_testing.InvClient.InternalWatcher:
+			require.True(t, ok)
+			t.Logf("Got expected internal event")
+
+			if eq, diff := inv_testing.ProtoEqualOrDiff(ev, expectedEvent); !eq {
+				t.Errorf("Unexpected internal event content: %v", diff)
+			}
+		case <-time.After(1 * time.Second):
+			t.Errorf("Expected internal event not delivered!")
+		}
+	}()
 }

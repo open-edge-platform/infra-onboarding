@@ -81,6 +81,9 @@ func TestReconcileEvent(t *testing.T) {
 	assert.True(t, <-doneHost)
 	assert.True(t, <-doneInstance)
 
+	om_testing.InvClient.SendInternalEvent(inst.GetTenantId(), inst.GetResourceId())
+	assert.True(t, <-doneInstance)
+
 	// Do hard delete directly, the reconciler is fake and won't actually delete the resource
 	inv_testing.HardDeleteInstance(t, inst.ResourceId)
 	inv_testing.HardDeleteHost(t, host.ResourceId)
@@ -223,7 +226,9 @@ func TestReconcileNoControllers(t *testing.T) {
 	delete(nbHandler.controllers, inv_v1.ResourceKind_RESOURCE_KIND_OS)
 	newHost := inv_testing.CreateHost(t, nil, nil)
 	newOs := inv_testing.CreateOs(t)
-	inv_testing.CreateInstance(t, newHost, newOs)
+	newInst := inv_testing.CreateInstance(t, newHost, newOs)
+
+	om_testing.InvClient.SendInternalEvent(newInst.GetTenantId(), newInst.GetResourceId())
 
 	select {
 	case v := <-doneHost:

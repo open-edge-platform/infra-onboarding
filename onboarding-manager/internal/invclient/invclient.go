@@ -51,8 +51,9 @@ var (
 )
 
 type OnboardingInventoryClient struct {
-	Client  client.TenantAwareInventoryClient
-	Watcher chan *client.WatchEvents
+	Client          client.TenantAwareInventoryClient
+	Watcher         chan *client.WatchEvents
+	InternalWatcher chan *client.ResourceTenantIDCarrier // Channel to propagate internal events to the controller.
 }
 
 type Options struct {
@@ -132,15 +133,20 @@ func NewOnboardingInventoryClientWithOptions(opts ...Option) (*OnboardingInvento
 		return nil, err
 	}
 	zlog.InfraSec().Info().Msgf("Inventory client started")
-	return NewOnboardingInventoryClient(invClient, eventsWatcher)
+	// Define unbuffered channel for managing internal events.
+	internalWatchChannel := make(chan *client.ResourceTenantIDCarrier)
+	return NewOnboardingInventoryClient(invClient, eventsWatcher, internalWatchChannel)
 }
 
 func NewOnboardingInventoryClient(
-	invClient client.TenantAwareInventoryClient, watcher chan *client.WatchEvents,
+	invClient client.TenantAwareInventoryClient,
+	watcher chan *client.WatchEvents,
+	internalWatcher chan *client.ResourceTenantIDCarrier,
 ) (*OnboardingInventoryClient, error) {
 	cli := &OnboardingInventoryClient{
-		Client:  invClient,
-		Watcher: watcher,
+		Client:          invClient,
+		Watcher:         watcher,
+		InternalWatcher: internalWatcher,
 	}
 	return cli, nil
 }
@@ -881,4 +887,20 @@ func (c *OnboardingInventoryClient) UpdateHostResourceStatus(ctx context.Context
 		computev1.HostResourceFieldRegistrationStatusIndicator,
 		computev1.HostResourceFieldRegistrationStatusTimestamp,
 	})
+}
+
+func (c *OnboardingInventoryClient) SendInternalEvent(tenantID, resourceID string) {
+	eventMessage := client.ResourceTenantIDCarrier{
+		TenantId:   tenantID,
+		ResourceId: resourceID,
+	}
+	printEventDetails := fmt.Sprintf("tenantID=%s, resourceID=%s", eventMessage.TenantId, eventMessage.ResourceId)
+	// Avoid blocking the caller if there is no listener, but logs an error.
+	// Eventually, the reconcile all will kick in and reconcile the instance.
+	select {
+	case c.InternalWatcher <- &eventMessage:
+	default:
+		// This should never happen, it means that the instance controller is not listening for events.
+		zlog.Error().Msgf("No listener for internal events, no event sent: %s", printEventDetails)
+	}
 }

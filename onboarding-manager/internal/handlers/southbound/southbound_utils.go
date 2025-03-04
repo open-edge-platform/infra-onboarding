@@ -79,7 +79,8 @@ func NewSBHandlerWithListener(listener net.Listener,
 
 // Start IO server.
 func (sbh *SBHandler) Start() error {
-	interactiveOnboardingService, err := grpcserver.NewInteractiveOnboardingService(sbh.invClient,
+	interactiveOnboardingService, err := grpcserver.NewInteractiveOnboardingService(
+		sbh.invClient,
 		sbh.cfg.InventoryAddress, sbh.cfg.EnableTracing, sbh.cfg.EnableAuth, sbh.cfg.RBAC)
 	if err != nil {
 		return err

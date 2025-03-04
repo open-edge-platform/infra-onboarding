@@ -80,7 +80,8 @@ type (
 )
 
 // NewInteractiveOnboardingService to start the gRPC server - IO.
-func NewInteractiveOnboardingService(invClient *invclient.OnboardingInventoryClient, inventoryAdr string, enableTracing bool,
+func NewInteractiveOnboardingService(invClient *invclient.OnboardingInventoryClient,
+	inventoryAdr string, enableTracing bool,
 	enableAuth bool, rbacRules string,
 ) (*InteractiveOnboardingService, error) {
 	if invClient == nil {
@@ -236,9 +237,9 @@ func (s *NonInteractiveOnboardingService) handleRegisteredState(stream pb.NonInt
 	// Update the host details, state, and registration status
 	err := s.invClient.UpdateHostRegState(context.Background(),
 		hostInv.GetTenantId(),
-		hostInv.ResourceId,
-		computev1.HostState_HOST_STATE_REGISTERED, req.HostIp,
-		req.MacId,
+		hostInv.GetResourceId(),
+		computev1.HostState_HOST_STATE_REGISTERED, req.GetHostIp(),
+		req.GetMacId(),
 		inv_status.New(om_status.HostRegistrationDone.Status, om_status.HostRegistrationDone.StatusIndicator))
 	if err != nil {
 		zlog.Error().Err(err).Msgf("Update failed for host resource id %v", hostInv.ResourceId)
@@ -271,7 +272,7 @@ func (s *NonInteractiveOnboardingService) handleOnboardedState(stream pb.NonInte
 
 	// make the current state to ONBOARDED and onboarding status to ONBOARDED
 	errUpdatehostStatus := s.invClient.UpdateHostCurrentStateNOnboardStatus(context.Background(),
-		hostInv.GetTenantId(), hostInv.ResourceId, req.HostIp, req.MacId, computev1.HostState_HOST_STATE_ONBOARDED,
+		hostInv.GetTenantId(), hostInv.GetResourceId(), req.GetHostIp(), req.GetMacId(), computev1.HostState_HOST_STATE_ONBOARDED,
 		inv_status.New(om_status.OnboardingStatusDone.Status,
 			om_status.OnboardingStatusDone.StatusIndicator))
 	if errUpdatehostStatus != nil {
@@ -647,10 +648,19 @@ func (s *InventoryClientService) startZeroTouch(ctx context.Context, tenantID, h
 		return err // Return the error to the caller
 	}
 
-	// Check if an instance has already been created for the host
-	if host.Instance != nil {
+	// Check if an instance has already been created for the host, if so check if we need to trigger provisioning.
+	if host.GetInstance() != nil {
+		inst := host.GetInstance()
 		zlog.Debug().Msgf("An Instance (%s) is already created for a host %s ,tID=%s",
-			host.GetInstance().GetResourceId(), host.GetResourceId(), tenantID)
+			inst.GetResourceId(), host.GetResourceId(), tenantID)
+		if inst.GetCurrentState() != computev1.InstanceState_INSTANCE_STATE_RUNNING {
+			zlog.Info().Msgf(
+				"Host onboarded, instance not yet running, trigger provisioning: hostID=%s, instanceID=%s, tenantID=%s",
+				host.GetResourceId(), inst.GetResourceId(), tenantID,
+			)
+			// Trigger an internal event for the given instance.
+			s.invClient.SendInternalEvent(tenantID, inst.GetResourceId())
+		}
 		return nil
 	}
 

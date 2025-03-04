@@ -133,8 +133,9 @@ func TestNewOnboardingInventoryClientWithOptions(t *testing.T) {
 
 func TestNewOnboardingInventoryClient(t *testing.T) {
 	type args struct {
-		invClient client.TenantAwareInventoryClient
-		watcher   chan *client.WatchEvents
+		invClient       client.TenantAwareInventoryClient
+		watcher         chan *client.WatchEvents
+		internalWatcher chan *client.ResourceTenantIDCarrier
 	}
 	tests := []struct {
 		name    string
@@ -151,7 +152,7 @@ func TestNewOnboardingInventoryClient(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := invclient.NewOnboardingInventoryClient(tt.args.invClient, tt.args.watcher)
+			got, err := invclient.NewOnboardingInventoryClient(tt.args.invClient, tt.args.watcher, tt.args.internalWatcher)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewOnboardingInventoryClient() error = %v, wantErr %v", err, tt.wantErr)
 				return

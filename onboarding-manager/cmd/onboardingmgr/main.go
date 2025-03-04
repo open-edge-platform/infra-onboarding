@@ -160,15 +160,16 @@ func main() {
 	}
 
 	// SB handler for IO.
-	sbHandler, err := southbound.NewSBHandler(invClient, southbound.SBHandlerConfig{
-		ServerAddress:    *serverAddress,
-		EnableTracing:    *enableTracing,
-		EnableMetrics:    *enableMetrics,
-		MetricsAddress:   *metricsAddress,
-		InventoryAddress: *inventoryAddress,
-		EnableAuth:       *enableAuth,
-		RBAC:             *rbacRules,
-	})
+	sbHandler, err := southbound.NewSBHandler(invClient,
+		southbound.SBHandlerConfig{
+			ServerAddress:    *serverAddress,
+			EnableTracing:    *enableTracing,
+			EnableMetrics:    *enableMetrics,
+			MetricsAddress:   *metricsAddress,
+			InventoryAddress: *inventoryAddress,
+			EnableAuth:       *enableAuth,
+			RBAC:             *rbacRules,
+		})
 	if err != nil {
 		zlog.InfraSec().Fatal().Err(err).Msgf("Unable to create southbound handler")
 	}

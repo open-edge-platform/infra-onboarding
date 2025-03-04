@@ -221,6 +221,7 @@ func TestReconcileInstanceNonEIM(t *testing.T) {
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 }
 
+//nolint:funlen // it's a test
 func TestReconcileInstance(t *testing.T) {
 	currK8sClientFactory := tinkerbell.K8sClientFactory
 	defer func() {
@@ -241,6 +242,7 @@ func TestReconcileInstance(t *testing.T) {
 	// do not Stop() to avoid races, should be safe in tests
 
 	host := inv_testing.CreateHost(t, nil, nil)
+
 	osRes := createOsWithArgs(t, true)
 	// Creating Provider profile which would be fetched by the reconciler.
 	_ = createProviderWithArgs(t, true, osRes.ResourceId, onboarding_types.DefaultProviderName,
@@ -276,6 +278,36 @@ func TestReconcileInstance(t *testing.T) {
 
 	runReconcilationFuncInstance(t, instanceController, instance)
 
+	// Host is still not onboarded, so instance provisioning should not start.
+	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
+		computev1.InstanceState_INSTANCE_STATE_RUNNING,
+		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
+		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+
+	// Set host current state to ONBOARDED
+	res = &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: &computev1.HostResource{
+				ResourceId:   host.GetResourceId(),
+				CurrentState: computev1.HostState_HOST_STATE_ONBOARDED,
+			},
+		},
+	}
+	_, err = inv_testing.TestClients[inv_testing.RMClient].Update(ctx, host.GetResourceId(),
+		&fieldmaskpb.FieldMask{Paths: []string{computev1.HostResourceFieldCurrentState}}, res)
+	require.NoError(t, err)
+
+	// This case is handled with internal events, let's mock it by calling the reconciler again
+	err = instanceController.Reconcile(NewReconcilerID(instance.GetTenantId(), instanceID))
+	assert.NoError(t, err, "Reconciliation failed for internal events")
+
+	// Wait for reconciler to do its magic.
+	time.Sleep(500 * time.Millisecond)
+
+	// getting rid of the Host event
+	<-om_testing.InvClient.Watcher
+
+	// Now provisioning should have happened
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
@@ -314,6 +346,7 @@ func TestReconcileInstance(t *testing.T) {
 	}
 	_, err = inv_testing.TestClients[inv_testing.APIClient].Update(ctx, instanceID, &fmk, res)
 	require.NoError(t, err)
+	zlogInst.Debug().Msgf("Instance %s updated to DELETED", instanceID)
 
 	runReconcilationFuncInstance(t, instanceController, instance)
 
