@@ -35,6 +35,11 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 	defer resp.Body.Close()
 	log.Info("Successfully downloaded image")
 
+	// Check if the response status code is 200
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to download image, HTTP status code: %d", resp.StatusCode)
+	}
+
 	// Create a temp file for storing the cloud image in qcow2 format
 	tmpFile, err := os.CreateTemp("", "img-*.qcow2")
 	if err != nil {
