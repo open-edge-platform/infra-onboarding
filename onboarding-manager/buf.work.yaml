@@ -8,4 +8,4 @@
 
 version: v1
 directories:
-  - api
+  - api/grpc/onboardingmgr

@@ -1,5 +1,5 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 
-Files: VERSION Jenkinsfile README.md docs/cloud-init-os-compatibility.md pkg/cloudinit/testout/* pkg/cloudinit/infra.cfg go.sum artifacts/* .env.jenkins api/buf.lock docs/onboardingmgr.md pkg/api/onboardingmgr/v1/onboarding.pb.validate.go pkg/api/onboardingmgr/v1/onboarding_grpc.pb.go pkg/api/onboardingmgr/v1/onboarding.pb.go
+Files: VERSION Jenkinsfile README.md docs/cloud-init-os-compatibility.md pkg/cloudinit/testout/* pkg/cloudinit/infra.cfg go.sum artifacts/* .env.jenkins api/grpc/onboardingmgr/buf.lock docs/onboardingmgr.md pkg/api/onboarding.pb.validate.go pkg/api/onboarding_grpc.pb.go pkg/api/onboarding.pb.go
 Copyright: 2025 Intel Corporation
 License: Apache-2.0

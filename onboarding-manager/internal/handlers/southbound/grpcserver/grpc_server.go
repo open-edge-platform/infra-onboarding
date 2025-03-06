@@ -25,7 +25,7 @@ import (
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding"
 	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
-	pb "github.com/intel/infra-onboarding/onboarding-manager/pkg/api/onboardingmgr/v1"
+	pb "github.com/intel/infra-onboarding/onboarding-manager/pkg/api"
 	om_status "github.com/intel/infra-onboarding/onboarding-manager/pkg/status"
 )
 
@@ -183,19 +183,19 @@ func CopyNodeReqToNodeData(payload []*pb.NodeData, tenantID string) ([]*computev
 func sendStreamErrorResponse(stream pb.NonInteractiveOnboardingService_OnboardNodeStreamServer,
 	code codes.Code, message string,
 ) error {
-	response := &pb.OnboardNodeStreamResponse{
+	response := &pb.OnboardStreamResponse{
 		Status: &google_rpc.Status{
 			Code:    int32(code), // #nosec G115
 			Message: message,
 		},
-		NodeState: pb.OnboardNodeStreamResponse_NODE_STATE_UNSPECIFIED,
+		NodeState: pb.OnboardStreamResponse_UNSPECIFIED,
 	}
 	return sendOnboardStreamResponse(stream, response)
 }
 
 // sendOnboardStreamResponse send a response on the stream.
 func sendOnboardStreamResponse(stream pb.NonInteractiveOnboardingService_OnboardNodeStreamServer,
-	response *pb.OnboardNodeStreamResponse,
+	response *pb.OnboardStreamResponse,
 ) error {
 	if err := stream.Send(response); err != nil {
 		zlog.Error().Err(err).Msg("Failed to send response on the stream")
@@ -206,7 +206,7 @@ func sendOnboardStreamResponse(stream pb.NonInteractiveOnboardingService_Onboard
 
 // receiveFromStream receive a message from the stream.
 func (s *NonInteractiveOnboardingService) receiveFromStream(stream pb.NonInteractiveOnboardingService_OnboardNodeStreamServer) (
-	*pb.OnboardNodeStreamRequest, error,
+	*pb.OnboardStreamRequest, error,
 ) {
 	zlog.Info().Msgf("OnboardNodeStream started: receiveFromStream")
 	req, err := stream.Recv()
@@ -223,11 +223,11 @@ func (s *NonInteractiveOnboardingService) receiveFromStream(stream pb.NonInterac
 
 // handleRegisteredState  processes the REGISTERED state.
 func (s *NonInteractiveOnboardingService) handleRegisteredState(stream pb.NonInteractiveOnboardingService_OnboardNodeStreamServer,
-	hostInv *computev1.HostResource, req *pb.OnboardNodeStreamRequest,
+	hostInv *computev1.HostResource, req *pb.OnboardStreamRequest,
 ) error {
-	response := &pb.OnboardNodeStreamResponse{
+	response := &pb.OnboardStreamResponse{
 		Status:    &google_rpc.Status{Code: int32(codes.OK)},
-		NodeState: pb.OnboardNodeStreamResponse_NODE_STATE_REGISTERED,
+		NodeState: pb.OnboardStreamResponse_REGISTERED,
 		ProjectId: hostInv.GetTenantId(),
 	}
 	if err := sendOnboardStreamResponse(stream, response); err != nil {
@@ -250,7 +250,7 @@ func (s *NonInteractiveOnboardingService) handleRegisteredState(stream pb.NonInt
 
 // handleRegisteredState processes the ONBOARDED state.
 func (s *NonInteractiveOnboardingService) handleOnboardedState(stream pb.NonInteractiveOnboardingService_OnboardNodeStreamServer,
-	hostInv *computev1.HostResource, req *pb.OnboardNodeStreamRequest,
+	hostInv *computev1.HostResource, req *pb.OnboardStreamRequest,
 ) error {
 	clientID, clientSecret, err := onboarding.FetchClientSecret(context.Background(), hostInv.GetTenantId(), hostInv.Uuid)
 	if err != nil {
@@ -259,8 +259,8 @@ func (s *NonInteractiveOnboardingService) handleOnboardedState(stream pb.NonInte
 	}
 	zlog.Debug().Msgf("Host Desired state : %v\n, client ID: %v\n client secret: %v\n",
 		hostInv.DesiredState, clientID, clientSecret)
-	if err := sendOnboardStreamResponse(stream, &pb.OnboardNodeStreamResponse{
-		NodeState:    pb.OnboardNodeStreamResponse_NODE_STATE_ONBOARDED,
+	if err := sendOnboardStreamResponse(stream, &pb.OnboardStreamResponse{
+		NodeState:    pb.OnboardStreamResponse_ONBOARDED,
 		Status:       &google_rpc.Status{Code: int32(codes.OK)},
 		ClientId:     clientID,
 		ClientSecret: clientSecret,
@@ -289,17 +289,17 @@ func (s *NonInteractiveOnboardingService) handleOnboardedState(stream pb.NonInte
 func (s *NonInteractiveOnboardingService) handleDefaultState(
 	stream pb.NonInteractiveOnboardingService_OnboardNodeStreamServer,
 ) error {
-	return sendOnboardStreamResponse(stream, &pb.OnboardNodeStreamResponse{
+	return sendOnboardStreamResponse(stream, &pb.OnboardStreamResponse{
 		Status: &google_rpc.Status{
 			Code:    int32(codes.FailedPrecondition),
 			Message: "The node state is unspecified",
 		},
-		NodeState: pb.OnboardNodeStreamResponse_NODE_STATE_UNSPECIFIED,
+		NodeState: pb.OnboardStreamResponse_UNSPECIFIED,
 	})
 }
 
 //nolint:cyclop,funlen // reason: function is long due to necessary logic; cyclomatic complexity is high due to necessary handling
-func (s *NonInteractiveOnboardingService) getHostResource(req *pb.OnboardNodeStreamRequest) (*computev1.HostResource, error) {
+func (s *NonInteractiveOnboardingService) getHostResource(req *pb.OnboardStreamRequest) (*computev1.HostResource, error) {
 	var hostResource *computev1.HostResource
 	var serialNumberMatch, uuidMatch bool
 	var hostResourceByUUID, hostResourceBySN *computev1.HostResource
@@ -540,9 +540,7 @@ func (s *NonInteractiveOnboardingService) OnboardNodeStream(
 }
 
 //nolint:funlen,cyclop // reason: function is long due to necessary logic; cyclomatic complexity is high due to necessary handling
-func (s *InteractiveOnboardingService) CreateNodes(ctx context.Context, req *pb.CreateNodesRequest) (
-	*pb.CreateNodesResponse, error,
-) {
+func (s *InteractiveOnboardingService) CreateNodes(ctx context.Context, req *pb.NodeRequest) (*pb.NodeResponse, error) {
 	zlog.Info().Msgf("CreateNodes")
 	if validationErr := req.Validate(); validationErr != nil {
 		zlog.InfraSec().InfraErr(validationErr).Msgf("Request does not match the expected regex pattern %v", validationErr)
@@ -618,7 +616,7 @@ func (s *InteractiveOnboardingService) CreateNodes(ctx context.Context, req *pb.
 			zlog.InfraSec().InfraErr(ztErr).Msgf("startZeroTouch error: %v", ztErr)
 			return nil, ztErr
 		}
-		return &pb.CreateNodesResponse{Payload: req.Payload, ProjectId: hostInv.GetTenantId()}, nil
+		return &pb.NodeResponse{Payload: req.Payload, ProjectId: hostInv.GetTenantId()}, nil
 	case err != nil:
 		zlog.Debug().Msgf("Create op :Failed CreateNodes() for GUID %s tID=%s \n", host.Uuid, tenantID)
 		zlog.InfraSec().InfraErr(err).Msgf("Create op :Failed CreateNodes()\n")
@@ -637,7 +635,7 @@ func (s *InteractiveOnboardingService) CreateNodes(ctx context.Context, req *pb.
 		return nil, err
 	}
 
-	return &pb.CreateNodesResponse{Payload: req.Payload, ProjectId: hostInv.GetTenantId()}, nil
+	return &pb.NodeResponse{Payload: req.Payload, ProjectId: hostInv.GetTenantId()}, nil
 }
 
 func (s *InventoryClientService) startZeroTouch(ctx context.Context, tenantID, hostResID string) error {

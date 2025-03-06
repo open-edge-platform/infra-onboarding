@@ -26,7 +26,7 @@ import (
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/handlers/southbound"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
 	om_testing "github.com/intel/infra-onboarding/onboarding-manager/internal/testing"
-	pb "github.com/intel/infra-onboarding/onboarding-manager/pkg/api/onboardingmgr/v1"
+	pb "github.com/intel/infra-onboarding/onboarding-manager/pkg/api"
 )
 
 var (

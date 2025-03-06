@@ -15,7 +15,7 @@ import (
 	inv_tenant "github.com/intel/infra-core/inventory/v2/pkg/tenant"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/handlers/southbound/grpcserver"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
-	pb "github.com/intel/infra-onboarding/onboarding-manager/pkg/api/onboardingmgr/v1"
+	pb "github.com/intel/infra-onboarding/onboarding-manager/pkg/api"
 )
 
 // Misc variables.

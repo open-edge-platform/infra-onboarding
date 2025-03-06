@@ -3,30 +3,30 @@
 
 syntax = "proto3";
 
-package onboardingmgr.v1;
+package onboardingmgr;
 
 import "google/rpc/status.proto";
 import "validate/validate.proto";
 
-option go_package = "github.com/intel/infra-onboarding/onboarding-manager/pkg/api/onboardingmgr/v1;onboardingmgrv1";
+option go_package = "github.com/intel/infra-onboarding/onboarding-manager/tree/main/api/grpc/onboardingmgr;onboardingmgr";
 
 // Interactive Onboarding
 service InteractiveOnboardingService {
-  rpc CreateNodes(CreateNodesRequest) returns (CreateNodesResponse) {}
+  rpc CreateNodes(NodeRequest) returns (NodeResponse) {}
 }
 
 // Non Interactive Onboarding
 service NonInteractiveOnboardingService {
   // OnboardNodeStream establishes a bidirectional stream between the Edge Node and the Onboarding Manager
   // It allows Edge Node to send stream requests and receive responses
-  rpc OnboardNodeStream(stream OnboardNodeStreamRequest) returns (stream OnboardNodeStreamResponse) {}
+  rpc OnboardNodeStream(stream OnboardStreamRequest) returns (stream OnboardStreamResponse) {}
 }
 
-message CreateNodesRequest {
+message NodeRequest {
   repeated NodeData payload = 1; // Payload data
 }
 
-message CreateNodesResponse {
+message NodeResponse {
   repeated NodeData payload = 1; // Payload data
   string project_id = 2; // The project_id associated with the Edge Node, identifying the project to which the Edge Node belongs
 }
@@ -42,8 +42,8 @@ message HwData {
   string sut_ip = 4 [(validate.rules).string.pattern = "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"]; // sutip
 }
 
-// OnboardNodeStreamRequest represents a request sent from Edge Node to the Onboarding Manager
-message OnboardNodeStreamRequest {
+// OnboardStreamRequest represents a request sent from Edge Node to the Onboarding Manager
+message OnboardStreamRequest {
   // The UUID of the Edge Node being onboarded
   string uuid = 1 [(validate.rules).string.uuid = true];
   // The serial number of the Edge Node
@@ -54,14 +54,14 @@ message OnboardNodeStreamRequest {
   string host_ip = 4 [(validate.rules).string.pattern = "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"];
 }
 
-// OnboardNodeStreamResponse represents a response sent from the Onboarding Manager to a Edge Node
+// OnboardStreamResponse represents a response sent from the Onboarding Manager to a Edge Node
 // over the bidirectional stream
-message OnboardNodeStreamResponse {
+message OnboardStreamResponse {
   // NodeState represents state of the device as stored in Infra Inventory
   enum NodeState {
-    NODE_STATE_UNSPECIFIED = 0; // Edge Node state is unspecified or unknown
-    NODE_STATE_REGISTERED = 1; // Allow to retry, Node is registered but not yet onboarded
-    NODE_STATE_ONBOARDED = 2; // Edge Node successfully onboarded
+    UNSPECIFIED = 0; // Edge Node state is unspecified or unknown
+    REGISTERED = 1; // Allow to retry, Node is registered but not yet onboarded
+    ONBOARDED = 2; // Edge Node successfully onboarded
   }
   google.rpc.Status status = 1; // The status of the onboarding request
   NodeState node_state = 2; // The current state of the device as stored in Infra Inventory

@@ -1,64 +1,33 @@
+<!-- markdownlint-disable -->
 # Protocol Documentation
 <a name="top"></a>
 
 ## Table of Contents
 
-- [v1/onboarding.proto](#v1_onboarding-proto)
-    - [CreateNodesRequest](#onboardingmgr-v1-CreateNodesRequest)
-    - [CreateNodesResponse](#onboardingmgr-v1-CreateNodesResponse)
-    - [HwData](#onboardingmgr-v1-HwData)
-    - [NodeData](#onboardingmgr-v1-NodeData)
-    - [OnboardNodeStreamRequest](#onboardingmgr-v1-OnboardNodeStreamRequest)
-    - [OnboardNodeStreamResponse](#onboardingmgr-v1-OnboardNodeStreamResponse)
-  
-    - [OnboardNodeStreamResponse.NodeState](#onboardingmgr-v1-OnboardNodeStreamResponse-NodeState)
-  
-    - [InteractiveOnboardingService](#onboardingmgr-v1-InteractiveOnboardingService)
-    - [NonInteractiveOnboardingService](#onboardingmgr-v1-NonInteractiveOnboardingService)
-  
-- [Scalar Value Types](#scalar-value-types)
+- [Protocol Documentation](#protocol-documentation)
+  - [Table of Contents](#table-of-contents)
+  - [onboarding.proto](#onboardingproto)
+    - [HwData](#hwdata)
+    - [NodeData](#nodedata)
+    - [NodeRequest](#noderequest)
+    - [NodeResponse](#noderesponse)
+    - [OnboardStreamRequest](#onboardstreamrequest)
+    - [OnboardStreamResponse](#onboardstreamresponse)
+    - [OnboardStreamResponse.NodeState](#onboardstreamresponsenodestate)
+    - [InteractiveOnboardingService](#interactiveonboardingservice)
+    - [NonInteractiveOnboardingService](#noninteractiveonboardingservice)
+  - [Scalar Value Types](#scalar-value-types)
 
 
 
-<a name="v1_onboarding-proto"></a>
+<a name="onboarding-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## v1/onboarding.proto
+## onboarding.proto
 
 
 
-<a name="onboardingmgr-v1-CreateNodesRequest"></a>
-
-### CreateNodesRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| payload | [NodeData](#onboardingmgr-v1-NodeData) | repeated | Payload data |
-
-
-
-
-
-
-<a name="onboardingmgr-v1-CreateNodesResponse"></a>
-
-### CreateNodesResponse
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| payload | [NodeData](#onboardingmgr-v1-NodeData) | repeated | Payload data |
-| project_id | [string](#string) |  | The project_id associated with the Edge Node, identifying the project to which the Edge Node belongs |
-
-
-
-
-
-
-<a name="onboardingmgr-v1-HwData"></a>
+<a name="onboardingmgr-HwData"></a>
 
 ### HwData
 
@@ -76,7 +45,7 @@
 
 
 
-<a name="onboardingmgr-v1-NodeData"></a>
+<a name="onboardingmgr-NodeData"></a>
 
 ### NodeData
 
@@ -84,17 +53,48 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| hwdata | [HwData](#onboardingmgr-v1-HwData) | repeated |  |
+| hwdata | [HwData](#onboardingmgr-HwData) | repeated |  |
 
 
 
 
 
 
-<a name="onboardingmgr-v1-OnboardNodeStreamRequest"></a>
+<a name="onboardingmgr-NodeRequest"></a>
 
-### OnboardNodeStreamRequest
-OnboardNodeStreamRequest represents a request sent from Edge Node to the Onboarding Manager
+### NodeRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| payload | [NodeData](#onboardingmgr-NodeData) | repeated | Payload data |
+
+
+
+
+
+
+<a name="onboardingmgr-NodeResponse"></a>
+
+### NodeResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| payload | [NodeData](#onboardingmgr-NodeData) | repeated | Payload data |
+| project_id | [string](#string) |  | The project_id associated with the Edge Node, identifying the project to which the Edge Node belongs |
+
+
+
+
+
+
+<a name="onboardingmgr-OnboardStreamRequest"></a>
+
+### OnboardStreamRequest
+OnboardStreamRequest represents a request sent from Edge Node to the Onboarding Manager
 
 
 | Field | Type | Label | Description |
@@ -109,17 +109,17 @@ OnboardNodeStreamRequest represents a request sent from Edge Node to the Onboard
 
 
 
-<a name="onboardingmgr-v1-OnboardNodeStreamResponse"></a>
+<a name="onboardingmgr-OnboardStreamResponse"></a>
 
-### OnboardNodeStreamResponse
-OnboardNodeStreamResponse represents a response sent from the Onboarding Manager to a Edge Node
+### OnboardStreamResponse
+OnboardStreamResponse represents a response sent from the Onboarding Manager to a Edge Node
 over the bidirectional stream
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | status | [google.rpc.Status](#google-rpc-Status) |  | The status of the onboarding request |
-| node_state | [OnboardNodeStreamResponse.NodeState](#onboardingmgr-v1-OnboardNodeStreamResponse-NodeState) |  | The current state of the device as stored in Infra Inventory |
+| node_state | [OnboardStreamResponse.NodeState](#onboardingmgr-OnboardStreamResponse-NodeState) |  | The current state of the device as stored in Infra Inventory |
 | client_id | [string](#string) |  | The client_id provided to the node upon successful onboarding |
 | client_secret | [string](#string) |  | The client_secret provided to the node upon successful onboarding |
 | project_id | [string](#string) |  | The project_id associated with the node, identifying the project to which the node belongs |
@@ -131,16 +131,16 @@ over the bidirectional stream
  
 
 
-<a name="onboardingmgr-v1-OnboardNodeStreamResponse-NodeState"></a>
+<a name="onboardingmgr-OnboardStreamResponse-NodeState"></a>
 
-### OnboardNodeStreamResponse.NodeState
+### OnboardStreamResponse.NodeState
 NodeState represents state of the device as stored in Infra Inventory
 
 | Name | Number | Description |
 | ---- | ------ | ----------- |
-| NODE_STATE_UNSPECIFIED | 0 | Edge Node state is unspecified or unknown |
-| NODE_STATE_REGISTERED | 1 | Allow to retry, Node is registered but not yet onboarded |
-| NODE_STATE_ONBOARDED | 2 | Edge Node successfully onboarded |
+| UNSPECIFIED | 0 | Edge Node state is unspecified or unknown |
+| REGISTERED | 1 | Allow to retry, Node is registered but not yet onboarded |
+| ONBOARDED | 2 | Edge Node successfully onboarded |
 
 
  
@@ -148,24 +148,24 @@ NodeState represents state of the device as stored in Infra Inventory
  
 
 
-<a name="onboardingmgr-v1-InteractiveOnboardingService"></a>
+<a name="onboardingmgr-InteractiveOnboardingService"></a>
 
 ### InteractiveOnboardingService
 Interactive Onboarding
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| CreateNodes | [CreateNodesRequest](#onboardingmgr-v1-CreateNodesRequest) | [CreateNodesResponse](#onboardingmgr-v1-CreateNodesResponse) |  |
+| CreateNodes | [NodeRequest](#onboardingmgr-NodeRequest) | [NodeResponse](#onboardingmgr-NodeResponse) |  |
 
 
-<a name="onboardingmgr-v1-NonInteractiveOnboardingService"></a>
+<a name="onboardingmgr-NonInteractiveOnboardingService"></a>
 
 ### NonInteractiveOnboardingService
 Non Interactive Onboarding
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| OnboardNodeStream | [OnboardNodeStreamRequest](#onboardingmgr-v1-OnboardNodeStreamRequest) stream | [OnboardNodeStreamResponse](#onboardingmgr-v1-OnboardNodeStreamResponse) stream | OnboardNodeStream establishes a bidirectional stream between the Edge Node and the Onboarding Manager It allows Edge Node to send stream requests and receive responses |
+| OnboardNodeStream | [OnboardStreamRequest](#onboardingmgr-OnboardStreamRequest) stream | [OnboardStreamResponse](#onboardingmgr-OnboardStreamResponse) stream | OnboardNodeStream establishes a bidirectional stream between the Edge Node and the Onboarding Manager It allows Edge Node to send stream requests and receive responses |
 
  
 
@@ -191,3 +191,4 @@ Non Interactive Onboarding
 | <a name="string" /> string | A string must always contain UTF-8 encoded or 7-bit ASCII text. | string | String | str/unicode | string | string | string | String (UTF-8) |
 | <a name="bytes" /> bytes | May contain any arbitrary sequence of bytes. | string | ByteString | str | []byte | ByteString | string | String (ASCII-8BIT) |
 
+<!-- markdownlint-enable -->

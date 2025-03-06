@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             (unknown)
-// source: v1/onboarding.proto
+// source: onboarding.proto
 
-package onboardingmgrv1
+package onboardingmgr
 
 import (
 	context "context"
@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type InteractiveOnboardingServiceClient interface {
-	CreateNodes(ctx context.Context, in *CreateNodesRequest, opts ...grpc.CallOption) (*CreateNodesResponse, error)
+	CreateNodes(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error)
 }
 
 type interactiveOnboardingServiceClient struct {
@@ -33,9 +33,9 @@ func NewInteractiveOnboardingServiceClient(cc grpc.ClientConnInterface) Interact
 	return &interactiveOnboardingServiceClient{cc}
 }
 
-func (c *interactiveOnboardingServiceClient) CreateNodes(ctx context.Context, in *CreateNodesRequest, opts ...grpc.CallOption) (*CreateNodesResponse, error) {
-	out := new(CreateNodesResponse)
-	err := c.cc.Invoke(ctx, "/onboardingmgr.v1.InteractiveOnboardingService/CreateNodes", in, out, opts...)
+func (c *interactiveOnboardingServiceClient) CreateNodes(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error) {
+	out := new(NodeResponse)
+	err := c.cc.Invoke(ctx, "/onboardingmgr.InteractiveOnboardingService/CreateNodes", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -46,14 +46,14 @@ func (c *interactiveOnboardingServiceClient) CreateNodes(ctx context.Context, in
 // All implementations should embed UnimplementedInteractiveOnboardingServiceServer
 // for forward compatibility
 type InteractiveOnboardingServiceServer interface {
-	CreateNodes(context.Context, *CreateNodesRequest) (*CreateNodesResponse, error)
+	CreateNodes(context.Context, *NodeRequest) (*NodeResponse, error)
 }
 
 // UnimplementedInteractiveOnboardingServiceServer should be embedded to have forward compatible implementations.
 type UnimplementedInteractiveOnboardingServiceServer struct {
 }
 
-func (UnimplementedInteractiveOnboardingServiceServer) CreateNodes(context.Context, *CreateNodesRequest) (*CreateNodesResponse, error) {
+func (UnimplementedInteractiveOnboardingServiceServer) CreateNodes(context.Context, *NodeRequest) (*NodeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateNodes not implemented")
 }
 
@@ -69,7 +69,7 @@ func RegisterInteractiveOnboardingServiceServer(s grpc.ServiceRegistrar, srv Int
 }
 
 func _InteractiveOnboardingService_CreateNodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateNodesRequest)
+	in := new(NodeRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -78,10 +78,10 @@ func _InteractiveOnboardingService_CreateNodes_Handler(srv interface{}, ctx cont
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/onboardingmgr.v1.InteractiveOnboardingService/CreateNodes",
+		FullMethod: "/onboardingmgr.InteractiveOnboardingService/CreateNodes",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InteractiveOnboardingServiceServer).CreateNodes(ctx, req.(*CreateNodesRequest))
+		return srv.(InteractiveOnboardingServiceServer).CreateNodes(ctx, req.(*NodeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -90,7 +90,7 @@ func _InteractiveOnboardingService_CreateNodes_Handler(srv interface{}, ctx cont
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var InteractiveOnboardingService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "onboardingmgr.v1.InteractiveOnboardingService",
+	ServiceName: "onboardingmgr.InteractiveOnboardingService",
 	HandlerType: (*InteractiveOnboardingServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -99,7 +99,7 @@ var InteractiveOnboardingService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "v1/onboarding.proto",
+	Metadata: "onboarding.proto",
 }
 
 // NonInteractiveOnboardingServiceClient is the client API for NonInteractiveOnboardingService service.
@@ -120,7 +120,7 @@ func NewNonInteractiveOnboardingServiceClient(cc grpc.ClientConnInterface) NonIn
 }
 
 func (c *nonInteractiveOnboardingServiceClient) OnboardNodeStream(ctx context.Context, opts ...grpc.CallOption) (NonInteractiveOnboardingService_OnboardNodeStreamClient, error) {
-	stream, err := c.cc.NewStream(ctx, &NonInteractiveOnboardingService_ServiceDesc.Streams[0], "/onboardingmgr.v1.NonInteractiveOnboardingService/OnboardNodeStream", opts...)
+	stream, err := c.cc.NewStream(ctx, &NonInteractiveOnboardingService_ServiceDesc.Streams[0], "/onboardingmgr.NonInteractiveOnboardingService/OnboardNodeStream", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -129,8 +129,8 @@ func (c *nonInteractiveOnboardingServiceClient) OnboardNodeStream(ctx context.Co
 }
 
 type NonInteractiveOnboardingService_OnboardNodeStreamClient interface {
-	Send(*OnboardNodeStreamRequest) error
-	Recv() (*OnboardNodeStreamResponse, error)
+	Send(*OnboardStreamRequest) error
+	Recv() (*OnboardStreamResponse, error)
 	grpc.ClientStream
 }
 
@@ -138,12 +138,12 @@ type nonInteractiveOnboardingServiceOnboardNodeStreamClient struct {
 	grpc.ClientStream
 }
 
-func (x *nonInteractiveOnboardingServiceOnboardNodeStreamClient) Send(m *OnboardNodeStreamRequest) error {
+func (x *nonInteractiveOnboardingServiceOnboardNodeStreamClient) Send(m *OnboardStreamRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *nonInteractiveOnboardingServiceOnboardNodeStreamClient) Recv() (*OnboardNodeStreamResponse, error) {
-	m := new(OnboardNodeStreamResponse)
+func (x *nonInteractiveOnboardingServiceOnboardNodeStreamClient) Recv() (*OnboardStreamResponse, error) {
+	m := new(OnboardStreamResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -183,8 +183,8 @@ func _NonInteractiveOnboardingService_OnboardNodeStream_Handler(srv interface{},
 }
 
 type NonInteractiveOnboardingService_OnboardNodeStreamServer interface {
-	Send(*OnboardNodeStreamResponse) error
-	Recv() (*OnboardNodeStreamRequest, error)
+	Send(*OnboardStreamResponse) error
+	Recv() (*OnboardStreamRequest, error)
 	grpc.ServerStream
 }
 
@@ -192,12 +192,12 @@ type nonInteractiveOnboardingServiceOnboardNodeStreamServer struct {
 	grpc.ServerStream
 }
 
-func (x *nonInteractiveOnboardingServiceOnboardNodeStreamServer) Send(m *OnboardNodeStreamResponse) error {
+func (x *nonInteractiveOnboardingServiceOnboardNodeStreamServer) Send(m *OnboardStreamResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *nonInteractiveOnboardingServiceOnboardNodeStreamServer) Recv() (*OnboardNodeStreamRequest, error) {
-	m := new(OnboardNodeStreamRequest)
+func (x *nonInteractiveOnboardingServiceOnboardNodeStreamServer) Recv() (*OnboardStreamRequest, error) {
+	m := new(OnboardStreamRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -208,7 +208,7 @@ func (x *nonInteractiveOnboardingServiceOnboardNodeStreamServer) Recv() (*Onboar
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var NonInteractiveOnboardingService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "onboardingmgr.v1.NonInteractiveOnboardingService",
+	ServiceName: "onboardingmgr.NonInteractiveOnboardingService",
 	HandlerType: (*NonInteractiveOnboardingServiceServer)(nil),
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
@@ -219,5 +219,5 @@ var NonInteractiveOnboardingService_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "v1/onboarding.proto",
+	Metadata: "onboarding.proto",
 }
