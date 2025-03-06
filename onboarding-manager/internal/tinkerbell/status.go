@@ -46,6 +46,7 @@ var WorkflowStepToStatusDetail = map[string]string{
 	ActionDisableSnapdOptimize:       "Disabling Snapd service for optimization",
 	ActionKernelupgrade:              "Setting kernel-upgrade",
 	ActionCloudInitInstall:           "Installing cloud-init",
+	ActionCloudinitDsidentity:        "Setting up cloud-init",
 }
 
 func GenerateStatusDetailFromWorkflowState(workflow *tink.Workflow) string {

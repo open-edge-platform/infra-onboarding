@@ -293,8 +293,8 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		HwSerialID:         host.GetSerialNumber(),
 		HwMacID:            host.GetPxeMac(),
 		HwIP:               host.GetBmcIp(),
-		Hostname:           host.GetResourceId(),                  // we use resource ID as hostname to uniquely identify a host
-		SecurityFeature:    uint32(instance.GetSecurityFeature()), // #nosec G115
+		Hostname:           host.GetResourceId(), // we use resource ID as hostname to uniquely identify a host
+		SecurityFeature:    instance.GetSecurityFeature(),
 		OSImageURL:         osLocationURL,
 		OsImageSHA256:      desiredOs.GetSha256(),
 		InstallerScriptURL: installerScriptURL,

@@ -32,7 +32,7 @@ type (
 		// GUID UUID identifier of a host
 		GUID string
 		// SecurityFeature security flags for a host
-		SecurityFeature uint32
+		SecurityFeature osv1.SecurityFeature
 		// AuthClientID a client ID of a host used by authorization service (e.g., Keycloak)
 		AuthClientID string
 		// AuthClientSecret a client secret of a host used to by authorization service (e.g., Keycloak)
@@ -43,7 +43,7 @@ type (
 		Hostname string
 		// sha256 is used by EN to validate the SHA256 of OS image authenticity.
 		OsImageSHA256 string
-		// OS type differentiate bw Ubuntu Canonical and TiberMicrovisor for now
+		// OsType differentiates between mutable and immutable OS
 		OsType osv1.OsType
 		// Tenant ID of resource
 		TenantID string

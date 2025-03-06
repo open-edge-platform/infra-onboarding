@@ -9,15 +9,19 @@ import (
 
 	"gopkg.in/yaml.v2"
 
+	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
+	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
 	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/tinkerbell"
 )
 
-func TestNewTemplateDataProdBKC(t *testing.T) {
+func TestNewTemplateDataUbuntu(t *testing.T) {
+	dkam_testing.PrepareTestCaCertificateFile(t)
+	dkam_testing.PrepareTestInfraConfig(t)
+
 	type args struct {
 		name       string
 		deviceInfo onboarding_types.DeviceInfo
-		enableDI   bool
 	}
 	wf := tinkerbell.Workflow{}
 	want, marshalWorkflowError := marshalWorkflow(&wf)
@@ -31,20 +35,12 @@ func TestNewTemplateDataProdBKC(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Success - DI disabled",
+			name: "Success",
 			args: args{
-				name:       "TestWorkflow",
-				deviceInfo: onboarding_types.DeviceInfo{},
-				enableDI:   false,
-			},
-			want:    want,
-			wantErr: false,
-		},
-		{
-			name: "Success - DI enabled",
-			args: args{
-				name:       "TestWorkflow",
-				deviceInfo: onboarding_types.DeviceInfo{},
+				name: "TestWorkflow",
+				deviceInfo: onboarding_types.DeviceInfo{
+					OsType: osv1.OsType_OS_TYPE_MUTABLE,
+				},
 			},
 			want:    want,
 			wantErr: false,

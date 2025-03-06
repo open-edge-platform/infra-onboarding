@@ -61,6 +61,7 @@ func TestDownloadArtifacts(t *testing.T) {
 }
 
 func TestGetCuratedScript(t *testing.T) {
+	dkam_testing.EnableLegacyModeForTesting(t)
 	dkam_testing.PrepareTestInfraConfig(t)
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	dkam_testing.PrepareTestCaCertificateFile(t)

@@ -259,6 +259,7 @@ func Test_GenerateUFWCommand(t *testing.T) {
 }
 
 func Test_GetCuratedScript(t *testing.T) {
+	dkam_testing.EnableLegacyModeForTesting(t)
 	dkam_testing.PrepareTestInfraConfig(t)
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	dkam_testing.PrepareTestCaCertificateFile(t)
@@ -279,6 +280,7 @@ func Test_GetCuratedScript(t *testing.T) {
 }
 
 func Test_GetCuratedScript_Case(t *testing.T) {
+	dkam_testing.EnableLegacyModeForTesting(t)
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	dkam_testing.PrepareTestCaCertificateFile(t)
 
@@ -379,6 +381,7 @@ func Test_GetCuratedScript_Case(t *testing.T) {
 }
 
 func Test_GetCuratedScript_Case1(t *testing.T) {
+	dkam_testing.EnableLegacyModeForTesting(t)
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	dkam_testing.PrepareTestCaCertificateFile(t)
 
@@ -409,6 +412,7 @@ func Test_GetCuratedScript_Case1(t *testing.T) {
 }
 
 func Test_GetCuratedScript_Case2(t *testing.T) {
+	dkam_testing.EnableLegacyModeForTesting(t)
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	dkam_testing.PrepareTestCaCertificateFile(t)
 
@@ -437,6 +441,7 @@ func Test_GetCuratedScript_Case2(t *testing.T) {
 }
 
 func Test_GetCuratedScript_Case3(t *testing.T) {
+	dkam_testing.EnableLegacyModeForTesting(t)
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	dkam_testing.PrepareTestCaCertificateFile(t)
 
@@ -479,6 +484,7 @@ func Test_GetCuratedScript_Case3(t *testing.T) {
 }
 
 func Test_GetCuratedScript_Case4(t *testing.T) {
+	dkam_testing.EnableLegacyModeForTesting(t)
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	dkam_testing.PrepareTestCaCertificateFile(t)
 
@@ -535,6 +541,7 @@ func Test_GetCuratedScript_Case4(t *testing.T) {
 }
 
 func TestGetCuratedScript(t *testing.T) {
+	dkam_testing.EnableLegacyModeForTesting(t)
 	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	dkam_testing.PrepareTestCaCertificateFile(t)
 	t.Setenv("ORCH_CLUSTER", "kind.internal")

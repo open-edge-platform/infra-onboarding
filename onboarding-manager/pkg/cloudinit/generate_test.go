@@ -187,7 +187,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 				config.SetInfraConfig(newCfg)
 			}
 
-			got, err := cloudinit.GenerateFromInfraConfig(tt.args.options)
+			got, err := cloudinit.GenerateFromInfraConfig(config.GetInfraConfig(), tt.args.options)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GenerateFromInfraConfig() error = %v, wantErr %v", err, tt.wantErr)
 				return

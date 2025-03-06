@@ -21,6 +21,7 @@ import (
 	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
 	"github.com/intel/infra-core/inventory/v2/pkg/logging"
 	"github.com/intel/infra-onboarding/dkam/internal/env"
+	"github.com/intel/infra-onboarding/dkam/internal/flag"
 	"github.com/intel/infra-onboarding/dkam/pkg/config"
 	"github.com/intel/infra-onboarding/dkam/pkg/util"
 )
@@ -232,7 +233,7 @@ func CurateScript(ctx context.Context, osRes *osv1.OperatingSystemResource) erro
 		return err
 	}
 
-	if osRes.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE && *config.FlagEnforceCloudInit {
+	if osRes.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE && !*flag.LegacyMode {
 		return WritePlatformBundleToPV(ctx, osRes, installerScriptPath)
 	}
 

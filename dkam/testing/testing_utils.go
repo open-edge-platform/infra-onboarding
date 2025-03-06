@@ -22,6 +22,7 @@ import (
 	"github.com/intel/infra-core/inventory/v2/pkg/logging"
 	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
 	"github.com/intel/infra-onboarding/dkam/internal/env"
+	"github.com/intel/infra-onboarding/dkam/internal/flag"
 	"github.com/intel/infra-onboarding/dkam/internal/invclient"
 	"github.com/intel/infra-onboarding/dkam/pkg/config"
 )
@@ -53,6 +54,14 @@ func exampleManifest(digest string, fileLen int) string {
 			"annotations":{"org.opencontainers.image.title":"`+digest+`"}
 		}],
 		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`, fileLen)
+}
+
+func EnableLegacyModeForTesting(t *testing.T) {
+	t.Helper()
+	*flag.LegacyMode = true
+	t.Cleanup(func() {
+		*flag.LegacyMode = false // restore default mode
+	})
 }
 
 func StartTestReleaseService(testProfileName string) func() {

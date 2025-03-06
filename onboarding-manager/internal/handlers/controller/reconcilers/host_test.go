@@ -32,6 +32,7 @@ import (
 	"github.com/intel/infra-core/inventory/v2/pkg/util"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
 	om_testing "github.com/intel/infra-onboarding/onboarding-manager/internal/testing"
+	"github.com/intel/infra-onboarding/onboarding-manager/internal/tinkerbell"
 	om_status "github.com/intel/infra-onboarding/onboarding-manager/pkg/status"
 	rec_v2 "github.com/intel/orch-library/go/pkg/controller/v2"
 )
@@ -45,6 +46,8 @@ func TestMain(m *testing.M) {
 	projectRoot := filepath.Dir(filepath.Dir(filepath.Dir(filepath.Dir(wd))))
 	policyPath := projectRoot + "/out"
 	migrationsDir := projectRoot + "/out"
+
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, true)
 
 	inv_testing.StartTestingEnvironment(policyPath, "", migrationsDir)
 	run := m.Run() // run all tests

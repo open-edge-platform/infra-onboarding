@@ -158,13 +158,6 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 }
 
 func TestReconcileInstanceNonEIM(t *testing.T) {
-	currK8sClientFactory := tinkerbell.K8sClientFactory
-	defer func() {
-		tinkerbell.K8sClientFactory = currK8sClientFactory
-	}()
-
-	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, true)
-
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()

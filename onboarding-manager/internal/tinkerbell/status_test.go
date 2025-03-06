@@ -13,15 +13,22 @@ import (
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	"gopkg.in/yaml.v2"
 
+	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
+	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
 	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/tinkerbell"
 )
 
 func TestWorkflowActionToStatusDetail(t *testing.T) {
-	prodBkcWorkflow, err := tinkerbell.NewTemplateDataUbuntu("test-prod-bkc", onboarding_types.DeviceInfo{})
+	dkam_testing.PrepareTestCaCertificateFile(t)
+	dkam_testing.PrepareTestInfraConfig(t)
+
+	wf, err := tinkerbell.NewTemplateDataUbuntu("test-wf", onboarding_types.DeviceInfo{
+		OsType: osv1.OsType_OS_TYPE_MUTABLE,
+	})
 	require.NoError(t, err)
 
-	prodBkcWorkflowInstance, err := unmarshalWorkflow(prodBkcWorkflow)
+	prodBkcWorkflowInstance, err := unmarshalWorkflow(wf)
 	require.NoError(t, err)
 
 	workflows := []*tinkerbell.Workflow{

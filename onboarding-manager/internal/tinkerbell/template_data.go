@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
-	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
 	"github.com/intel/infra-onboarding/dkam/pkg/config"
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/env"
 	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
@@ -217,14 +216,12 @@ func tinkActionQemuNbdImage2DiskImage(tinkerImageVersion string) string {
 
 //nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
 func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo onboarding_types.DeviceInfo) ([]byte, error) {
-	// #nosec G115
-	securityFeatureTypeVar := osv1.SecurityFeature(deviceInfo.SecurityFeature)
-	securityFeatureStr := securityFeatureTypeVar.String()
-
-	cloudInitData, err := cloudinit.GenerateFromInfraConfig(cloudinit.CloudInitOptions{
-		Mode:   env.ENDkamMode,
-		OsType: deviceInfo.OsType,
-	})
+	infraConfig := config.GetInfraConfig()
+	cloudInitData, err := cloudinit.GenerateFromInfraConfig(infraConfig,
+		cloudinit.CloudInitOptions{
+			Mode:   env.ENDkamMode,
+			OsType: deviceInfo.OsType,
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +244,7 @@ func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo onboarding_types
 					Image:   tinkActionSecurebootFlagReadImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg560,
 					Environment: map[string]string{
-						"SECURITY_FEATURE_FLAG": securityFeatureStr,
+						"SECURITY_FEATURE_FLAG": deviceInfo.SecurityFeature.String(),
 					},
 					Volumes: []string{
 						"/:/host:rw",
@@ -423,7 +420,7 @@ func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo onboarding_types
 
 	// FDE removal if security feature flag is not set for FDE
 	// #nosec G115
-	if osv1.SecurityFeature(deviceInfo.SecurityFeature) ==
+	if deviceInfo.SecurityFeature ==
 		osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION {
 		for i, task := range wf.Tasks {
 			for j, action := range task.Actions {
@@ -437,7 +434,7 @@ func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo onboarding_types
 				}
 			}
 		}
-	} else if osv1.SecurityFeature(deviceInfo.SecurityFeature) ==
+	} else if deviceInfo.SecurityFeature ==
 		osv1.SecurityFeature_SECURITY_FEATURE_NONE {
 		for i, task := range wf.Tasks {
 			for j, action := range task.Actions {
@@ -465,13 +462,17 @@ func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo onboarding_types
 	return marshalWorkflow(&wf)
 }
 
-//nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
+//nolint:funlen // May effect the functionality, need to simplify this in future
 func NewTemplateDataUbuntu(name string, deviceInfo onboarding_types.DeviceInfo) ([]byte, error) {
-	// #nosec G115
-	securityFeatureTypeVar := osv1.SecurityFeature(deviceInfo.SecurityFeature)
-	securityFeatureStr := securityFeatureTypeVar.String()
-
 	infraConfig := config.GetInfraConfig()
+	cloudInitData, err := cloudinit.GenerateFromInfraConfig(infraConfig,
+		cloudinit.CloudInitOptions{
+			Mode:   env.ENDkamMode,
+			OsType: deviceInfo.OsType,
+		})
+	if err != nil {
+		return nil, err
+	}
 
 	wf := Workflow{
 		Version:       "0.1",
@@ -491,7 +492,7 @@ func NewTemplateDataUbuntu(name string, deviceInfo onboarding_types.DeviceInfo) 
 					Image:   tinkActionSecurebootFlagReadImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg560,
 					Environment: map[string]string{
-						"SECURITY_FEATURE_FLAG": securityFeatureStr,
+						"SECURITY_FEATURE_FLAG": deviceInfo.SecurityFeature.String(),
 					},
 					Volumes: []string{
 						"/:/host:rw",
@@ -599,7 +600,34 @@ func NewTemplateDataUbuntu(name string, deviceInfo onboarding_types.DeviceInfo) 
 						"DIRMODE": "0755",
 					},
 				},
-
+				{
+					Name:    ActionCloudInitInstall,
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":   "ext4",
+						"DEST_PATH": "/etc/cloud/cloud.cfg.d/infra.cfg",
+						"CONTENTS":  cloudInitData,
+						"UID":       "0",
+						"GID":       "0",
+						"MODE":      "0755",
+						"DIRMODE":   "0755",
+					},
+				},
+				{
+					Name:    ActionCloudinitDsidentity,
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":   "ext4",
+						"DEST_PATH": "/etc/cloud/ds-identify.cfg",
+						"CONTENTS":  `datasource: NoCloud`,
+						"UID":       "0",
+						"GID":       "0",
+						"MODE":      "0600",
+						"DIRMODE":   "0700",
+					},
+				},
 				{
 					Name:    ActionCreateSecretsDirectory,
 					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
@@ -880,68 +908,9 @@ netplan apply`, deviceInfo.HwIP, strings.Join(infraConfig.DNSServers, ", ")),
 		}},
 	}
 
-	// flag shared with DKAM
-	if *config.FlagEnforceCloudInit {
-		cloudInitData, err := cloudinit.GenerateFromInfraConfig(cloudinit.CloudInitOptions{
-			Mode:   env.ENDkamMode,
-			OsType: deviceInfo.OsType,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		// Find the index of the "add-dns-namespace" action
-		dnsNamespaceIndex := -1
-		for i, action := range wf.Tasks[0].Actions {
-			if action.Name == ActionAddDNSNamespace {
-				dnsNamespaceIndex = i
-				break
-			}
-		}
-
-		if dnsNamespaceIndex == -1 || dnsNamespaceIndex > len(wf.Tasks[0].Actions) {
-			return nil, inv_errors.Errorf("action %s not found in the workflow", ActionAddDNSNamespace)
-		}
-
-		cloudInitActions := []Action{
-			{
-				Name:    ActionCloudInitInstall,
-				Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-				Timeout: timeOutMin90,
-				Environment: map[string]string{
-					"FS_TYPE":   "ext4",
-					"DEST_PATH": "/etc/cloud/cloud.cfg.d/infra.cfg",
-					"CONTENTS":  cloudInitData,
-					"UID":       "0",
-					"GID":       "0",
-					"MODE":      "0755",
-					"DIRMODE":   "0755",
-				},
-			},
-			{
-				Name:    ActionCloudinitDsidentity,
-				Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-				Timeout: timeOutMin90,
-				Environment: map[string]string{
-					"FS_TYPE":   "ext4",
-					"DEST_PATH": "/etc/cloud/ds-identify.cfg",
-					"CONTENTS":  `datasource: NoCloud`,
-					"UID":       "0",
-					"GID":       "0",
-					"MODE":      "0600",
-					"DIRMODE":   "0700",
-				},
-			},
-		}
-
-		// Insert the new actions after the "add-dns-namespace" action
-		wf.Tasks[0].Actions = append(wf.Tasks[0].Actions[:dnsNamespaceIndex+1],
-			append(cloudInitActions, wf.Tasks[0].Actions[dnsNamespaceIndex+1:]...)...)
-	}
-
 	// FDE removal if security feature flag is not set for FDE
 	// #nosec G115
-	if osv1.SecurityFeature(deviceInfo.SecurityFeature) !=
+	if deviceInfo.SecurityFeature !=
 		osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION {
 		for i, task := range wf.Tasks {
 			for j, action := range task.Actions {

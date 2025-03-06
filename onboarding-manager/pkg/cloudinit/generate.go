@@ -6,15 +6,22 @@ package cloudinit
 import (
 	_ "embed"
 
+	"github.com/intel/infra-core/inventory/v2/pkg/logging"
 	"github.com/intel/infra-onboarding/dkam/pkg/config"
 	"github.com/intel/infra-onboarding/dkam/pkg/curation"
 )
 
-//go:embed infra.cfg
-var cloudInitTemplate string
+var (
+	//go:embed infra.cfg
+	cloudInitTemplate string
 
-func GenerateFromInfraConfig(options CloudInitOptions) (string, error) {
-	tmplVariables, err := curation.GetCommonInfraTemplateVariables(config.GetInfraConfig(), options.OsType)
+	zlog = logging.GetLogger("CloudInitGenerator")
+)
+
+func GenerateFromInfraConfig(infraConfig config.InfraConfig, options CloudInitOptions) (string, error) {
+	zlog.InfraSec().Info().Msgf("Generating cloud init with options: %+v", options)
+
+	tmplVariables, err := curation.GetCommonInfraTemplateVariables(infraConfig, options.OsType)
 	if err != nil {
 		return "", err
 	}
