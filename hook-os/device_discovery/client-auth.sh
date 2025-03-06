@@ -9,8 +9,11 @@ mkfifo "$pipe"
 finished_read='false'
 a=0
 password_authenticated=0
-idp_folder=/dev/shm
-log_file="/var/log/onboot/client-auth.log"
+
+readonly idp_folder=/dev/shm
+readonly log_file="/var/log/onboot/client-auth.log"
+readonly HTTP_OK=200
+readonly HTTP_NO_CONTENT=204
 
 # Ensure the log directory exists
 mkdir -p /var/log/onboot
@@ -165,21 +168,38 @@ main() {
     done
 
 
-    if [ $password_authenticated -ne 0 ];
-    then
+    if [ $password_authenticated -ne 0 ]; then
 	
-	printf "%s" "$access_token" > "$idp_folder/idp_access_token"
+		printf "%s" "$access_token" > "$idp_folder/idp_access_token"
+		echo "Authentication successful, IDP Access token saved" >> "$log_file"
 
-	release_server_url=$(echo "$KEYCLOAK_URL" | sed "s/keycloak/release/g" )
-	release_token=$(curl --cacert /usr/local/share/ca-certificates/IDP_keyclock.crt -X GET https://"$release_server_url"/token -H "Authorization: Bearer $access_token")
-	printf "%s" "$release_token" > "$idp_folder/release_token"
-	echo "Authentication successful, tokens saved" >> "$log_file"
+		release_server_url=$(echo "$KEYCLOAK_URL" | sed "s/keycloak/release/g" )
+
+		response_body=$(mktemp)
+
+		status_code=$(curl --cacert /usr/local/share/ca-certificates/IDP_keyclock.crt -X GET "https://$release_server_url/token" -H "Authorization: Bearer $access_token" -w "%{http_code}" -o "$response_body")
+		release_token=$(cat "$response_body")
+
+		rm "$response_body"
+
+		# Check for status code 200
+		if [ "$status_code" -eq $HTTP_OK ]; then
+			echo "Successfully retrieved release token."
+			printf "%s" "$release_token" > "$idp_folder/release_token"
+		# Check for status code 204
+		elif [ "$status_code" -eq $HTTP_NO_CONTENT ]; then
+			echo "No release token exists. Creating an empty file."
+			: > "$idp_folder/release_token"
+		else
+			echo "Failed to retrieve release token. HTTP status code: $status_code"
+			exit 1
+		fi
     else
-	echo "Incorrect username and password provided." >> "$log_file"
-	setsid /bin/sh -c "echo -e '\nIncorrect username and password provided.' <> /dev/ttyS1 >&0 2>&1"
-	setsid /bin/sh -c "echo -e '\nIncorrect username and password provided.' <> /dev/ttyS0 >&0 2>&1"
-	setsid /bin/sh -c "echo -e '\nIncorrect username and password provided.' <> /dev/tty0 >&0 2>&1"
-	sleep 5
+		echo "Incorrect username and password provided." >> "$log_file"
+		setsid /bin/sh -c "echo -e '\nIncorrect username and password provided.' <> /dev/ttyS1 >&0 2>&1"
+		setsid /bin/sh -c "echo -e '\nIncorrect username and password provided.' <> /dev/ttyS0 >&0 2>&1"
+		setsid /bin/sh -c "echo -e '\nIncorrect username and password provided.' <> /dev/tty0 >&0 2>&1"
+		sleep 5
     fi
 }
 
