@@ -41,7 +41,7 @@ import (
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
 	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	om_testing "github.com/intel/infra-onboarding/onboarding-manager/internal/testing"
-	pb "github.com/intel/infra-onboarding/onboarding-manager/pkg/api"
+	pb "github.com/intel/infra-onboarding/onboarding-manager/pkg/api/onboardingmgr/v1"
 	om_status "github.com/intel/infra-onboarding/onboarding-manager/pkg/status"
 )
 
@@ -69,14 +69,14 @@ type MockNonInteractiveOnboardingServiceOnboardNodeStreamServer struct {
 	mock.Mock
 }
 
-func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) Send(response *pb.OnboardStreamResponse) error {
+func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) Send(response *pb.OnboardNodeStreamResponse) error {
 	args := m.Called(response)
 	return args.Error(0)
 }
 
-func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) Recv() (*pb.OnboardStreamRequest, error) {
+func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) Recv() (*pb.OnboardNodeStreamRequest, error) {
 	args := m.Called()
-	return args.Get(0).(*pb.OnboardStreamRequest), args.Error(1)
+	return args.Get(0).(*pb.OnboardNodeStreamRequest), args.Error(1)
 }
 
 func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) SetHeader(md metadata.MD) error {
@@ -251,7 +251,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case(t *testing.T) {
 	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
-		req *pb.NodeRequest
+		req *pb.CreateNodesRequest
 	}
 
 	macID := generateValidMacID()
@@ -266,7 +266,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case(t *testing.T) {
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
-	mockRequest := &pb.NodeRequest{
+	mockRequest := &pb.CreateNodesRequest{
 		Payload: payloads,
 	}
 	om_testing.CreateInventoryOnboardingClientForTesting()
@@ -279,7 +279,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    *pb.NodeResponse
+		want    *pb.CreateNodesResponse
 		wantErr bool
 	}{
 		{
@@ -293,7 +293,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case(t *testing.T) {
 				ctx: ctx,
 				req: mockRequest,
 			},
-			want:    &pb.NodeResponse{Payload: payloads},
+			want:    &pb.CreateNodesResponse{Payload: payloads},
 			wantErr: false,
 		},
 		{
@@ -319,7 +319,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case(t *testing.T) {
 			},
 			args: args{
 				ctx: ctx,
-				req: &pb.NodeRequest{
+				req: &pb.CreateNodesRequest{
 					Payload: []*pb.NodeData{
 						{
 							Hwdata: []*pb.HwData{
@@ -345,7 +345,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case(t *testing.T) {
 			},
 			args: args{
 				ctx: context.TODO(),
-				req: &pb.NodeRequest{
+				req: &pb.CreateNodesRequest{
 					Payload: []*pb.NodeData{
 						{
 							Hwdata: []*pb.HwData{
@@ -397,7 +397,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case2(t *testing.T) {
 	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
-		req *pb.NodeRequest
+		req *pb.CreateNodesRequest
 	}
 	macID := generateValidMacID()
 	serialnum := serialnum
@@ -411,7 +411,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case2(t *testing.T) {
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
-	mockRequest := &pb.NodeRequest{
+	mockRequest := &pb.CreateNodesRequest{
 		Payload: payloads,
 	}
 	tenantID := u_uuid.NewString()
@@ -421,7 +421,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case2(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    *pb.NodeResponse
+		want    *pb.CreateNodesResponse
 		wantErr bool
 	}{
 		{
@@ -487,7 +487,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case3(t *testing.T) {
 	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
-		req *pb.NodeRequest
+		req *pb.CreateNodesRequest
 	}
 	macID := generateValidMacID()
 	serialnum := serialnum
@@ -501,7 +501,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case3(t *testing.T) {
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
-	mockRequest := &pb.NodeRequest{
+	mockRequest := &pb.CreateNodesRequest{
 		Payload: payloads,
 	}
 	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
@@ -514,7 +514,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case3(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    *pb.NodeResponse
+		want    *pb.CreateNodesResponse
 		wantErr bool
 	}{
 		{
@@ -528,7 +528,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case3(t *testing.T) {
 				ctx: ctx,
 				req: mockRequest,
 			},
-			want:    &pb.NodeResponse{Payload: payloads, ProjectId: tenant1},
+			want:    &pb.CreateNodesResponse{Payload: payloads, ProjectId: tenant1},
 			wantErr: false,
 		},
 		{
@@ -580,7 +580,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case_Success(t *testing.T) {
 	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
-		req *pb.NodeRequest
+		req *pb.CreateNodesRequest
 	}
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -594,14 +594,14 @@ func TestInteractiveOnboardingService_CreateNodes_Case_Success(t *testing.T) {
 	hwdatas1 := []*pb.HwData{hwdata1}
 	payload1 := pb.NodeData{Hwdata: hwdatas1}
 	payloads1 := []*pb.NodeData{&payload1}
-	mockRequest1 := &pb.NodeRequest{
+	mockRequest1 := &pb.CreateNodesRequest{
 		Payload: payloads1,
 	}
 	tests := []struct {
 		name    string
 		fields  fields
 		args    args
-		want    *pb.NodeResponse
+		want    *pb.CreateNodesResponse
 		wantErr bool
 	}{
 		{
@@ -615,7 +615,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case_Success(t *testing.T) {
 				ctx: ctx,
 				req: mockRequest1,
 			},
-			want:    &pb.NodeResponse{Payload: payloads1, ProjectId: tenant1},
+			want:    &pb.CreateNodesResponse{Payload: payloads1, ProjectId: tenant1},
 			wantErr: false,
 		},
 	}
@@ -846,7 +846,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case5(t *testing.T) {
 	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
-		req *pb.NodeRequest
+		req *pb.CreateNodesRequest
 	}
 	macID := generateValidMacID()
 	serialnum := serialnum
@@ -860,7 +860,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case5(t *testing.T) {
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
-	mockRequest := &pb.NodeRequest{
+	mockRequest := &pb.CreateNodesRequest{
 		Payload: payloads,
 	}
 	om_testing.CreateInventoryOnboardingClientForTesting()
@@ -873,7 +873,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case5(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    *pb.NodeResponse
+		want    *pb.CreateNodesResponse
 		wantErr bool
 	}{
 		{
@@ -1020,13 +1020,13 @@ func TestInteractiveOnboardingService_CreateNodes_Case6(t *testing.T) {
 	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
-		req *pb.NodeRequest
+		req *pb.CreateNodesRequest
 	}
 	hwdata := &pb.HwData{Uuid: "9fa8a788-f9f8-434a-8620-bbed2a12b0a"}
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
-	mockRequest := &pb.NodeRequest{
+	mockRequest := &pb.CreateNodesRequest{
 		Payload: payloads,
 	}
 	om_testing.CreateInventoryOnboardingClientForTesting()
@@ -1039,7 +1039,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case6(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    *pb.NodeResponse
+		want    *pb.CreateNodesResponse
 		wantErr bool
 	}{
 		{
@@ -1053,7 +1053,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case6(t *testing.T) {
 				ctx: ctx,
 				req: mockRequest,
 			},
-			want:    &pb.NodeResponse{Payload: payloads},
+			want:    &pb.CreateNodesResponse{Payload: payloads},
 			wantErr: true,
 		},
 		{
@@ -1102,7 +1102,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case7(t *testing.T) {
 	require.NoError(t, err)
 	type args struct {
 		ctx context.Context
-		req *pb.NodeRequest
+		req *pb.CreateNodesRequest
 	}
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -1120,7 +1120,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case7(t *testing.T) {
 	hwdatas := []*pb.HwData{hwdata}
 	payload := pb.NodeData{Hwdata: hwdatas}
 	payloads := []*pb.NodeData{&payload}
-	mockRequest := &pb.NodeRequest{
+	mockRequest := &pb.CreateNodesRequest{
 		Payload: payloads,
 	}
 
@@ -1130,7 +1130,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case7(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    *pb.NodeResponse
+		want    *pb.CreateNodesResponse
 		wantErr bool
 	}{
 		{
@@ -1330,7 +1330,7 @@ func TestInteractiveOnboardingService_handleRegisteredState(t *testing.T) {
 	type args struct {
 		stream  pb.NonInteractiveOnboardingService_OnboardNodeStreamServer
 		hostInv *computev1.HostResource
-		req     *pb.OnboardStreamRequest
+		req     *pb.OnboardNodeStreamRequest
 	}
 	tests := []struct {
 		name    string
@@ -1365,7 +1365,7 @@ func TestInteractiveOnboardingService_handleRegisteredState(t *testing.T) {
 			args: args{
 				stream:  &art1,
 				hostInv: host,
-				req: &pb.OnboardStreamRequest{
+				req: &pb.OnboardNodeStreamRequest{
 					Uuid: "f9f8-434a-8620-bbed2a12b0ad",
 				},
 			},
@@ -1420,7 +1420,7 @@ func TestInteractiveOnboardingService_handleOnboardedState(t *testing.T) {
 
 	t.Run("Failing Create Credentials", func(t *testing.T) {
 		auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(true, true, false)
-		err := s.handleOnboardedState(&nioMock, fakeHost, &pb.OnboardStreamRequest{Uuid: fakeHost.GetUuid()})
+		err := s.handleOnboardedState(&nioMock, fakeHost, &pb.OnboardNodeStreamRequest{Uuid: fakeHost.GetUuid()})
 		require.Error(t, err)
 		assert.ErrorContains(t, err, "Failed to check if EN credentials for host exist.")
 	})
@@ -1428,13 +1428,13 @@ func TestInteractiveOnboardingService_handleOnboardedState(t *testing.T) {
 	auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(false, false, false)
 
 	t.Run("Non existing host", func(t *testing.T) {
-		err := s.handleOnboardedState(&nioMock, fakeHost, &pb.OnboardStreamRequest{Uuid: fakeHost.GetUuid()})
+		err := s.handleOnboardedState(&nioMock, fakeHost, &pb.OnboardNodeStreamRequest{Uuid: fakeHost.GetUuid()})
 		require.Error(t, err)
 		assert.True(t, inv_errors.IsNotFound(err))
 	})
 
 	t.Run("Positive", func(t *testing.T) {
-		err := s.handleOnboardedState(&nioMock, host, &pb.OnboardStreamRequest{Uuid: host.GetUuid()})
+		err := s.handleOnboardedState(&nioMock, host, &pb.OnboardNodeStreamRequest{Uuid: host.GetUuid()})
 		assert.NoError(t, err)
 		time.Sleep(100 * time.Millisecond)
 		om_testing.AssertHost(t, host.GetTenantId(), host.GetResourceId(),
@@ -1667,7 +1667,7 @@ func TestInteractiveOnboardingServiceOnboardNodeStream_WithInstance(t *testing.T
 
 	var nioStreamMock MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
 	nioStreamMock.On("Send", mock.Anything).Return(nil)
-	nioStreamMock.On("Recv").Return(&pb.OnboardStreamRequest{
+	nioStreamMock.On("Recv").Return(&pb.OnboardNodeStreamRequest{
 		Uuid:      host.Uuid,
 		Serialnum: host.SerialNumber,
 		MacId:     host.PxeMac,
@@ -1701,11 +1701,11 @@ func setupMockOnboardNodeStreamServers(host *computev1.HostResource) (
 	art2 := new(MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
 	art3 := new(MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
 	// Mock the first stream with an error
-	art.On("Recv").Return(&pb.OnboardStreamRequest{}, errors.New("err"))
+	art.On("Recv").Return(&pb.OnboardNodeStreamRequest{}, errors.New("err"))
 
 	// Mock the second stream
 	art1.On("Send", mock.Anything).Return(nil)
-	art1.On("Recv").Return(&pb.OnboardStreamRequest{
+	art1.On("Recv").Return(&pb.OnboardNodeStreamRequest{
 		Uuid:      host.Uuid,
 		Serialnum: host.SerialNumber,
 		MacId:     host.PxeMac,
@@ -1713,7 +1713,7 @@ func setupMockOnboardNodeStreamServers(host *computev1.HostResource) (
 	}, nil)
 	// Mock the third stream
 	art2.On("Send", mock.Anything).Return(nil)
-	art2.On("Recv").Return(&pb.OnboardStreamRequest{
+	art2.On("Recv").Return(&pb.OnboardNodeStreamRequest{
 		Uuid:      host.Uuid,
 		Serialnum: host.SerialNumber,
 		MacId:     host.PxeMac,
@@ -1722,7 +1722,7 @@ func setupMockOnboardNodeStreamServers(host *computev1.HostResource) (
 
 	// Mock the fourth stream
 	art3.On("Send", mock.Anything).Return(nil)
-	art3.On("Recv").Return(&pb.OnboardStreamRequest{
+	art3.On("Recv").Return(&pb.OnboardNodeStreamRequest{
 		Serialnum: host.SerialNumber,
 		Uuid:      host.Uuid,
 	}, nil)
@@ -1737,7 +1737,7 @@ func TestInteractiveOnboardingService_getHostResource(t *testing.T) {
 		invClientAPI                                       *invclient.OnboardingInventoryClient
 	}
 	type args struct {
-		req *pb.OnboardStreamRequest
+		req *pb.OnboardNodeStreamRequest
 	}
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -1759,7 +1759,7 @@ func TestInteractiveOnboardingService_getHostResource(t *testing.T) {
 				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
-				req: &pb.OnboardStreamRequest{
+				req: &pb.OnboardNodeStreamRequest{
 					Uuid: "f9f8-434a-8620-bbed2a12b0ad",
 				},
 			},
@@ -1774,7 +1774,7 @@ func TestInteractiveOnboardingService_getHostResource(t *testing.T) {
 				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
-				req: &pb.OnboardStreamRequest{
+				req: &pb.OnboardNodeStreamRequest{
 					Serialnum: "12345",
 				},
 			},
@@ -1789,7 +1789,7 @@ func TestInteractiveOnboardingService_getHostResource(t *testing.T) {
 				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
-				req: &pb.OnboardStreamRequest{
+				req: &pb.OnboardNodeStreamRequest{
 					Uuid:      host.Uuid,
 					Serialnum: "12345",
 				},
@@ -1805,7 +1805,7 @@ func TestInteractiveOnboardingService_getHostResource(t *testing.T) {
 				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
-				req: &pb.OnboardStreamRequest{},
+				req: &pb.OnboardNodeStreamRequest{},
 			},
 			want:    nil,
 			wantErr: false,
@@ -1835,7 +1835,7 @@ func TestInteractiveOnboardingService_getHostResourcetest(t *testing.T) {
 		invClientAPI                                       *invclient.OnboardingInventoryClient
 	}
 	type args struct {
-		req *pb.OnboardStreamRequest
+		req *pb.OnboardNodeStreamRequest
 	}
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -1861,7 +1861,7 @@ func TestInteractiveOnboardingService_getHostResourcetest(t *testing.T) {
 				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
-				req: &pb.OnboardStreamRequest{
+				req: &pb.OnboardNodeStreamRequest{
 					Uuid: "44414747-3031-3052-b030-453347474122",
 				},
 			},
@@ -1876,7 +1876,7 @@ func TestInteractiveOnboardingService_getHostResourcetest(t *testing.T) {
 				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
-				req: &pb.OnboardStreamRequest{
+				req: &pb.OnboardNodeStreamRequest{
 					Serialnum: "ABCDEFG",
 				},
 			},
@@ -1891,7 +1891,7 @@ func TestInteractiveOnboardingService_getHostResourcetest(t *testing.T) {
 				invClientAPI: &invclient.OnboardingInventoryClient{},
 			},
 			args: args{
-				req: &pb.OnboardStreamRequest{
+				req: &pb.OnboardNodeStreamRequest{
 					Uuid:      "44414747-3031-3052-b030-453347474166",
 					Serialnum: serialnum,
 				},
@@ -2013,7 +2013,7 @@ func FuzzCreateNodes(f *testing.F) {
 		hwdatas := []*pb.HwData{hwdata}
 		payload1 := pb.NodeData{Hwdata: hwdatas}
 		payloads := []*pb.NodeData{&payload1}
-		mockRequest := &pb.NodeRequest{
+		mockRequest := &pb.CreateNodesRequest{
 			Payload: payloads,
 		}
 		_, err = s.CreateNodes(ctx, mockRequest)
@@ -2092,7 +2092,7 @@ func generateValidSutIP() string {
 func FuzzOnboardNodeStream(f *testing.F) {
 	f.Add("hostip")
 	f.Fuzz(func(t *testing.T, ip string) {
-		resp := &pb.OnboardStreamRequest{
+		resp := &pb.OnboardNodeStreamRequest{
 			Uuid:      u_uuid.New().String(),
 			Serialnum: getFirstNChars(getMD5Hash(ip), 8),
 			MacId:     "",

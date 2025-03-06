@@ -8,7 +8,6 @@
 version: v1
 
 plugins:
-
   # go - https://pkg.go.dev/google.golang.org/protobuf
   - plugin: go
     out: pkg/api

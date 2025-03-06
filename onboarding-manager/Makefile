@@ -63,7 +63,7 @@ generate: buf-gen
 
 build: go-build
 
-lint: license yamllint go-lint hadolint mdlint
+lint: license yamllint go-lint hadolint mdlint buf-lint
 
 test: go-test
 
