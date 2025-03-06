@@ -427,7 +427,7 @@ func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo onboarding_types
 		osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION {
 		for i, task := range wf.Tasks {
 			for j, action := range task.Actions {
-				if action.Name == ActionStreamTiberMicrovisorImage {
+				if action.Name == ActionTiberMicrovisorPartition {
 					// Remove the action from the slice
 					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
 				}
