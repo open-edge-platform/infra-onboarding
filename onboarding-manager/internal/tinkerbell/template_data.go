@@ -28,7 +28,6 @@ const (
 	ActionEnableSSH                  = "enable-ssh"
 	ActionDisableApparmor            = "disable-apparmor"
 	ActionInstallScriptDownload      = "profile-pkg-and-node-agents-install-script-download"
-	ActionCloudInitfileDownload      = "cloud-init-file-for-post-install-script-download"
 	ActionCloudInitInstall           = "install-cloud-init"
 	ActionInstallScript              = "service-script-for-profile-pkg-and-node-agents-install"
 	ActionInstallScriptEnable        = "enable-service-script-for-profile-pkg-node-agents"
@@ -218,11 +217,15 @@ func tinkActionQemuNbdImage2DiskImage(tinkerImageVersion string) string {
 //nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
 func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo onboarding_types.DeviceInfo) ([]byte, error) {
 	infraConfig := config.GetInfraConfig()
-	cloudInitData, err := cloudinit.GenerateFromInfraConfig(infraConfig,
-		cloudinit.CloudInitOptions{
-			Mode:   env.ENDkamMode,
-			OsType: deviceInfo.OsType,
-		})
+	opts := []cloudinit.Option{
+		cloudinit.WithOSType(deviceInfo.OsType),
+	}
+
+	if env.ENDkamMode == envDkamDevMode {
+		opts = append(opts, cloudinit.WithDevMode(env.ENUserName, env.ENPassWord))
+	}
+
+	cloudInitData, err := cloudinit.GenerateFromInfraConfig(infraConfig, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -269,6 +272,7 @@ func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo onboarding_types
 					Timeout: timeOutAvg560,
 				},
 
+				// TODO: remove this action once ITEP-21015 is done
 				{
 					Name:    ActionCreateUser,
 					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
@@ -448,7 +452,7 @@ func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo onboarding_types
 		}
 	}
 
-	// Creat the User credentials only for dev mode and remove the action for production mode
+	// Create the User credentials only for dev mode and remove the action for production mode
 	if env.ENDkamMode != envDkamDevMode {
 		for i, task := range wf.Tasks {
 			for j, action := range task.Actions {
@@ -466,11 +470,15 @@ func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo onboarding_types
 //nolint:funlen // May effect the functionality, need to simplify this in future
 func NewTemplateDataUbuntu(name string, deviceInfo onboarding_types.DeviceInfo) ([]byte, error) {
 	infraConfig := config.GetInfraConfig()
-	cloudInitData, err := cloudinit.GenerateFromInfraConfig(infraConfig,
-		cloudinit.CloudInitOptions{
-			Mode:   env.ENDkamMode,
-			OsType: deviceInfo.OsType,
-		})
+	opts := []cloudinit.Option{
+		cloudinit.WithOSType(deviceInfo.OsType),
+	}
+
+	if env.ENDkamMode == envDkamDevMode {
+		opts = append(opts, cloudinit.WithDevMode(env.ENUserName, env.ENPassWord))
+	}
+
+	cloudInitData, err := cloudinit.GenerateFromInfraConfig(infraConfig, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -668,20 +676,6 @@ func NewTemplateDataUbuntu(name string, deviceInfo onboarding_types.DeviceInfo) 
 						"DIRMODE":   "0755",
 					},
 				},
-
-				{
-					Name:    ActionCreateUser,
-					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE": fmt.Sprintf("useradd -p $(openssl passwd -1 %s) -s /bin/bash -d /home/%s/ -m -G sudo %s",
-							env.ENPassWord, env.ENUserName, env.ENUserName),
-					},
-				},
-
 				{
 					Name:    ActionInstallScriptDownload,
 					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
@@ -917,18 +911,6 @@ netplan apply`, deviceInfo.HwIP, strings.Join(infraConfig.DNSServers, ", ")),
 			for j, action := range task.Actions {
 				if action.Name == ActionFdeEncryption {
 					// Remove the action from the slice
-					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
-					break
-				}
-			}
-		}
-	}
-	//  Creat the User credentials only for dev mode and remove the action for production mode
-	if env.ENDkamMode != envDkamDevMode {
-		for i, task := range wf.Tasks {
-			for j, action := range task.Actions {
-				if action.Name == ActionCreateUser {
-					// Remove the create user  from the slice
 					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
 					break
 				}

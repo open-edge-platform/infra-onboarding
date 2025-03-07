@@ -46,7 +46,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 	baseConfig.ENDebianPackagesRepo = "test.deb"
 
 	type args struct {
-		options             cloudinit.CloudInitOptions
+		options             []cloudinit.Option
 		infraConfigOverride func(config.InfraConfig) config.InfraConfig
 	}
 	tests := []struct {
@@ -58,9 +58,9 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 		{
 			name: "Success_Base_ImmutableOS",
 			args: args{
-				options: cloudinit.CloudInitOptions{
-					Mode:   "dev",
-					OsType: osv1.OsType_OS_TYPE_IMMUTABLE,
+				options: []cloudinit.Option{
+					cloudinit.WithDevMode("user", "pass"),
+					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
 				},
 				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
 					newCfg := infraConfig
@@ -84,9 +84,9 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 		{
 			name: "Success_Base_MutableOS",
 			args: args{
-				options: cloudinit.CloudInitOptions{
-					Mode:   "dev",
-					OsType: osv1.OsType_OS_TYPE_MUTABLE,
+				options: []cloudinit.Option{
+					cloudinit.WithDevMode("user", "pass"),
+					cloudinit.WithOSType(osv1.OsType_OS_TYPE_MUTABLE),
 				},
 				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
 					newCfg := infraConfig
@@ -110,9 +110,9 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 		{
 			name: "Success_NotKindInternal",
 			args: args{
-				options: cloudinit.CloudInitOptions{
-					Mode:   "dev",
-					OsType: osv1.OsType_OS_TYPE_IMMUTABLE,
+				options: []cloudinit.Option{
+					cloudinit.WithDevMode("user", "pass"),
+					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
 				},
 				// cluster.test by default
 			},
@@ -122,9 +122,8 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 		{
 			name: "Success_ProdMode",
 			args: args{
-				options: cloudinit.CloudInitOptions{
-					Mode:   "prod",
-					OsType: osv1.OsType_OS_TYPE_IMMUTABLE,
+				options: []cloudinit.Option{
+					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
 				},
 			},
 			expectedOutputFileName: "expected-installer-04.cfg",
@@ -133,9 +132,8 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 		{
 			name: "Success_ProdMode_MutableOS",
 			args: args{
-				options: cloudinit.CloudInitOptions{
-					Mode:   "prod",
-					OsType: osv1.OsType_OS_TYPE_MUTABLE,
+				options: []cloudinit.Option{
+					cloudinit.WithOSType(osv1.OsType_OS_TYPE_MUTABLE),
 				},
 			},
 			expectedOutputFileName: "expected-installer-05.cfg",
@@ -144,9 +142,8 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 		{
 			name: "Success_NoProxies",
 			args: args{
-				options: cloudinit.CloudInitOptions{
-					Mode:   "prod",
-					OsType: osv1.OsType_OS_TYPE_MUTABLE,
+				options: []cloudinit.Option{
+					cloudinit.WithOSType(osv1.OsType_OS_TYPE_MUTABLE),
 				},
 				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
 					newCfg := infraConfig
@@ -164,9 +161,8 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 		{
 			name: "Success_SelectedProxies",
 			args: args{
-				options: cloudinit.CloudInitOptions{
-					Mode:   "prod",
-					OsType: osv1.OsType_OS_TYPE_IMMUTABLE,
+				options: []cloudinit.Option{
+					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
 				},
 				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
 					newCfg := infraConfig
@@ -187,7 +183,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 				config.SetInfraConfig(newCfg)
 			}
 
-			got, err := cloudinit.GenerateFromInfraConfig(config.GetInfraConfig(), tt.args.options)
+			got, err := cloudinit.GenerateFromInfraConfig(config.GetInfraConfig(), tt.args.options...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GenerateFromInfraConfig() error = %v, wantErr %v", err, tt.wantErr)
 				return

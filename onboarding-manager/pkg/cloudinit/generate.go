@@ -18,7 +18,30 @@ var (
 	zlog = logging.GetLogger("CloudInitGenerator")
 )
 
-func GenerateFromInfraConfig(infraConfig config.InfraConfig, options CloudInitOptions) (string, error) {
+func templateVariablesFromOptions(options cloudInitOptions) map[string]interface{} {
+	extraVars := make(map[string]interface{}, 0)
+
+	extraVars["DEV_MODE"] = false
+	if options.useDevMode {
+		extraVars["DEV_MODE"] = true
+		extraVars["DEV_USER"] = options.devUsername
+		extraVars["DEV_USER_PASSWD"] = options.devUserPasswd
+	}
+
+	return extraVars
+}
+
+func GenerateFromInfraConfig(infraConfig config.InfraConfig, opts ...Option) (string, error) {
+	options := defaultCloudInitOptions()
+	for _, opt := range opts {
+		opt(&options)
+	}
+
+	if err := options.validate(); err != nil {
+		zlog.Error().Err(err).Msgf("")
+		return "", err
+	}
+
 	zlog.InfraSec().Info().Msgf("Generating cloud init with options: %+v", options)
 
 	tmplVariables, err := curation.GetCommonInfraTemplateVariables(infraConfig, options.OsType)
@@ -26,7 +49,10 @@ func GenerateFromInfraConfig(infraConfig config.InfraConfig, options CloudInitOp
 		return "", err
 	}
 
-	tmplVariables["MODE"] = options.Mode
+	extraVars := templateVariablesFromOptions(options)
+	for key, value := range extraVars {
+		tmplVariables[key] = value
+	}
 
 	return curation.CurateFromTemplate(cloudInitTemplate, tmplVariables)
 }
