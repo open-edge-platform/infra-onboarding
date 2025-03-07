@@ -4,7 +4,6 @@
 package signing
 
 import (
-	"errors"
 	"io"
 	"os"
 	"os/exec"
@@ -51,9 +50,13 @@ func SignHookOS() (bool, error) {
 		return false, modeErr
 	}
 	zlog.Info().Msgf("Script output: %s", string(result))
-	mode, buildErr := validateAndSetMode(buildScriptPath)
-	if buildErr != nil {
-		return false, buildErr
+	cpioPath := buildScriptPath + "/cpio_build"
+	zlog.InfraSec().Info().Msgf("cpioPath dir %s", cpioPath)
+
+	errcpio := os.Chdir(cpioPath)
+	if errcpio != nil {
+		zlog.InfraSec().Fatal().Err(errcpio).Msgf("Error changing working directory: %v\n", errcpio)
+		return false, errcpio
 	}
 	mdCmd := exec.Command("chmod", "+x", "build_image_at_DKAM.sh")
 	mdresult, mdErr := mdCmd.CombinedOutput()
@@ -62,7 +65,8 @@ func SignHookOS() (bool, error) {
 		return false, mdErr
 	}
 	zlog.Info().Msgf("Script output: %s", string(mdresult))
-	buildCmd := exec.Command("bash", "./build_image_at_DKAM.sh", mode, config.DownloadPath)
+	//nolint:gosec // The script and arguments are trusted and validated before execution.
+	buildCmd := exec.Command("bash", "./build_image_at_DKAM.sh", config.DownloadPath)
 	output, buildErr := buildCmd.CombinedOutput()
 	if buildErr != nil {
 		zlog.InfraSec().Fatal().Err(buildErr).Msgf("Failed to sign microOS script %v", buildErr)
@@ -98,30 +102,6 @@ func setupHookDirectories() (string, error) {
 	}
 
 	return buildScriptPath, nil
-}
-
-func validateAndSetMode(buildScriptPath string) (string, error) {
-	cpioPath := buildScriptPath + "/cpio_build"
-	zlog.InfraSec().Info().Msgf("cpioPath dir %s", cpioPath)
-
-	errcpio := os.Chdir(cpioPath)
-	if errcpio != nil {
-		zlog.InfraSec().Fatal().Err(errcpio).Msgf("Error changing working directory: %v\n", errcpio)
-		return "", errcpio
-	}
-
-	mode := os.Getenv("MODE")
-	if mode == "" {
-		mode = "prod"
-	}
-
-	allowedValues := []string{"dev", "prod"}
-	if !contains(allowedValues, mode) {
-		zlog.InfraSec().Fatal().Err(errcpio).Msg("Invalid MODE")
-		err := errors.New("invalid mode input")
-		return "", err
-	}
-	return mode, nil
 }
 
 func replaceConfigPlaceholders(content []byte) string {

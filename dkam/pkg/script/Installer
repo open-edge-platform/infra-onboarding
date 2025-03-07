@@ -154,32 +154,6 @@ install_fws(){
     fi
 }
 
-{{- if eq .MODE "dev" }}
-# 3. Install Intel CA certificates
-install_intel_CAcertificates() {
-    if grep -q "install_intel_CAcertificates done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_intel_CAcertificates"
-    else
-        echo "Install intel CA certificates."
-        export no_proxy=$no_proxy,{{ .FILE_SERVER }}
-        export NO_PROXY=$no_proxy,{{ .FILE_SERVER }}
-        sudo apt-get install -y unzip
-        ca_bundle_list="Intel%20Root%20Certificate%20Chain%20Base64.zip \
-                    Public%20Root%20Certificate%20Chain%20Base64.zip \
-                    IntelSHA2RootChain-Base64.zip \
-                    PublicSHA2RootChain-Base64.zip"
-
-        for bundle in $ca_bundle_list; do
-            wget -O- -O /usr/local/share/ca-certificates/tmp.zip "http://certificates.intel.com/repository/certificates/$bundle"
-            unzip /usr/local/share/ca-certificates/tmp.zip -d /usr/local/share/ca-certificates
-            rm /usr/local/share/ca-certificates/tmp.zip
-        done
-        update-ca-certificates
-        echo "install_intel_CAcertificates done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-{{- end }}
-
 # 6. Get Token
 install_cleanup() {
     if grep -q "install_cleanup done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
@@ -959,14 +933,6 @@ enable_netipplan 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_dependencies 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 
 install_fws 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-
-{{- if eq .MODE "dev" }}
-if [ ! -f /usr/local/share/ca-certificates/IntelCA7B-Base64.crt ]; then
-    echo "File not present"
-    install_intel_CAcertificates 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-fi
-{{- end }}
-
 enable_kernel_config 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 enable_NTP 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_syslogrotate_job 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME

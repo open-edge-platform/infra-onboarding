@@ -6,8 +6,7 @@
 #set -x
 
 set -xuo pipefail
-mode=$1
-data_dir=$2
+data_dir=$1
 pushd ../
 
 # shellcheck source=/dev/null
@@ -111,25 +110,7 @@ get_cert(){
 
 	#Boots certificates
 	echo "" >> "$IDP"/ca.pem
-	cat /etc/ssl/boots-ca-cert/ca.crt >> "$IDP"/ca.pem
-
-	#Intel CA
-	echo "$mode"
-	if [ "$mode" == "dev" ]; then
-		#echo "no proxy is: ${no_proxy}"
-		echo "mode:"
-		echo "" >> "$IDP"/ca.pem
-		mkdir temp
-		curl -o tmp.zip http://certificates.intel.com/repository/certificates/IntelSHA2RootChain-Base64.zip
-		unzip tmp.zip -d temp
-		for file in temp/*; do
-			if [ -f "$file" ]; then
-				cat "$file" >> "$IDP"/ca.pem
-			fi
-		done
-		rm tmp.zip
-		rm -rf temp
-	fi
+	cat /etc/ssl/boots-ca-cert/ca.crt >> "$IDP"/ca.pem	
 }
 #######################################################################################################
 #
