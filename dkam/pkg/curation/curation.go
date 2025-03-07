@@ -21,7 +21,6 @@ import (
 	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
 	"github.com/intel/infra-core/inventory/v2/pkg/logging"
 	"github.com/intel/infra-onboarding/dkam/internal/env"
-	"github.com/intel/infra-onboarding/dkam/internal/flag"
 	"github.com/intel/infra-onboarding/dkam/pkg/config"
 	"github.com/intel/infra-onboarding/dkam/pkg/util"
 )
@@ -200,28 +199,6 @@ func GetCommonInfraTemplateVariables(infraConfig config.InfraConfig, osType osv1
 	return templateVariables, nil
 }
 
-func WritePlatformBundleToPV(ctx context.Context, osRes *osv1.OperatingSystemResource, installerScriptPath string) error {
-	// FIXME: hardcoded path for now. Will be fixed once we integrate EEF Platform Bundle coming from RS
-	platformBundleScriptData, err := os.ReadFile(config.ScriptPath + "/platform-bundle/ubuntu-22.04/Installer")
-	if err != nil {
-		return err
-	}
-	platformBundleScript := string(platformBundleScriptData)
-
-	platformBundleScript, err = FetchAndAppendProfileScript(ctx, osRes.GetProfileName(), platformBundleScript)
-	if err != nil {
-		return err
-	}
-
-	writeErr := WriteFileToPath(installerScriptPath, []byte(platformBundleScript))
-	if writeErr != nil {
-		zlog.InfraSec().Error().Err(writeErr).Msgf("Failed to write file to path %s", installerScriptPath)
-		return writeErr
-	}
-
-	return nil
-}
-
 func CurateScript(ctx context.Context, osRes *osv1.OperatingSystemResource) error {
 	if osRes.GetOsType() == osv1.OsType_OS_TYPE_IMMUTABLE {
 		zlog.InfraSec().Info().Msgf("Skipping script curation for immutable OS %s", osRes.GetResourceId())
@@ -231,10 +208,6 @@ func CurateScript(ctx context.Context, osRes *osv1.OperatingSystemResource) erro
 	installerScriptPath, err := util.GetInstallerLocation(osRes, config.PVC)
 	if err != nil {
 		return err
-	}
-
-	if osRes.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE && !*flag.LegacyMode {
-		return WritePlatformBundleToPV(ctx, osRes, installerScriptPath)
 	}
 
 	localInstallerPath, err := util.GetLocalInstallerPath(osRes.GetOsType())

@@ -13,6 +13,7 @@ import (
 	"github.com/intel/infra-onboarding/onboarding-manager/internal/env"
 	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	"github.com/intel/infra-onboarding/onboarding-manager/pkg/cloudinit"
+	platformbundleubuntu2204 "github.com/intel/infra-onboarding/onboarding-manager/pkg/platformbundle/ubuntu-22.04"
 )
 
 const (
@@ -683,17 +684,17 @@ func NewTemplateDataUbuntu(name string, deviceInfo onboarding_types.DeviceInfo) 
 
 				{
 					Name:    ActionInstallScriptDownload,
-					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutAvg200,
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
 					Environment: map[string]string{
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE": fmt.Sprintf("mkdir -p /home/postinstall/Setup;chown %s:%s /home/postinstall/Setup;"+
-							"wget -P /home/postinstall/Setup %s; chmod 755 /home/postinstall/Setup/installer.sh",
-							env.ENUserName, env.ENUserName, deviceInfo.InstallerScriptURL),
+						"FS_TYPE":   "ext4",
+						"DEST_PATH": "/home/postinstall/Setup/installer.sh",
+						"CONTENTS":  platformbundleubuntu2204.Installer,
+						"UID":       "0",
+						"GID":       "0",
+						"MODE":      "0755",
+						"DIRMODE":   "0755",
 					},
-					Pid: "host",
 				},
 				{
 					Name:    ActionInstallScript,

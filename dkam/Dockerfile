@@ -20,7 +20,6 @@ COPY cmd/ /go/src/github.com/intel/infra-onboarding/dkam/cmd/
 COPY internal/ /go/src/github.com/intel/infra-onboarding/dkam/internal/
 COPY pkg/ /go/src/github.com/intel/infra-onboarding/dkam/pkg/
 COPY vendor/ /go/src/github.com/intel/infra-onboarding/dkam/vendor/
-COPY platform-bundle/ /go/src/github.com/intel/infra-onboarding/dkam/pkg/script/platform-bundle/
 
 WORKDIR /go/src/github.com/intel/infra-onboarding/dkam
 
