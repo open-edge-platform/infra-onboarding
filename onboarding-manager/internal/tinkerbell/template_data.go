@@ -21,37 +21,25 @@ const (
 	ActionSecureBootStatusFlagRead   = "secure-boot-status-flag-read"
 	ActionStreamUbuntuImage          = "stream-ubuntu-image"
 	ActionStreamTiberMicrovisorImage = "stream-tibermicrovisor-image"
-	ActionCopySecrets                = "copy-secrets"
 	ActionGrowPartitionInstallScript = "grow-partition-install-script"
-	ActionInstallOpenssl             = "install-openssl"
 	ActionCreateUser                 = "create-user"
-	ActionEnableSSH                  = "enable-ssh"
-	ActionDisableApparmor            = "disable-apparmor"
 	ActionInstallScriptDownload      = "profile-pkg-and-node-agents-install-script-download"
 	ActionCloudInitInstall           = "install-cloud-init"
 	ActionInstallScript              = "service-script-for-profile-pkg-and-node-agents-install"
 	ActionInstallScriptEnable        = "enable-service-script-for-profile-pkg-node-agents"
 	ActionNetplan                    = "write-netplan"
 	ActionNetplanConfigure           = "update-netplan-to-make-ip-static"
-	ActionGrowPartitionService       = "service-script-for-grow-partion-installer"
-	ActionGrowPartitionServiceEnable = "enable-grow-partinstall-service-script"
 	ActionNetplanService             = "service-script-for-netplan-update"
 	ActionNetplanServiceEnable       = "enable-update-netplan.service-script"
 	ActionEfibootset                 = "efibootset-for-diskboot"
 	ActionFdeEncryption              = "fde-encryption"
 	ActionKernelupgrade              = "kernel-upgrade"
 	ActionReboot                     = "reboot"
-	ActionCopyENSecrets              = "copy-ensp-node-secrets" //#nosec G101 -- ignore false positive.
-	ActionStoringAlpine              = "store-Alpine"
-	ActionAddEnvProxy                = "add-env-proxy"
 	ActionAddAptProxy                = "add-apt-proxy"
-	ActionAddDNSNamespace            = "add-dns-namespace"
-	ActionCreateSecretsDirectory     = "create-ensp-node-directory" //#nosec G101 -- ignore false positive.
+	ActionCreateSecretsDirectory     = "create-node-directory" //#nosec G101 -- ignore false positive.
 	ActionWriteClientID              = "write-client-id"
 	ActionWriteClientSecret          = "write-client-secret"
 	ActionWriteHostname              = "write-hostname"
-	ActionWriteEtcHosts              = "Write-Hosts-etc"
-	ActionTenantID                   = "tenant-id"
 	ActionSystemdNetworkOptimize     = "systemd-network-online-optimize"
 	ActionDisableSnapdOptimize       = "systemd-snapd-disable-optimize"
 	ActionTiberMicrovisorPartition   = "tibermicrovisor-partition"
@@ -219,6 +207,8 @@ func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo onboarding_types
 	infraConfig := config.GetInfraConfig()
 	opts := []cloudinit.Option{
 		cloudinit.WithOSType(deviceInfo.OsType),
+		cloudinit.WithTenantID(deviceInfo.TenantID),
+		cloudinit.WithHostname(deviceInfo.Hostname),
 	}
 
 	if env.ENDkamMode == envDkamDevMode {
@@ -272,7 +262,7 @@ func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo onboarding_types
 					Timeout: timeOutAvg560,
 				},
 
-				// TODO: remove this action once ITEP-21015 is done
+				// TODO: remove create user and write hostname actions once ITEP-21015 is done
 				{
 					Name:    ActionCreateUser,
 					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
@@ -285,22 +275,6 @@ func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo onboarding_types
 							env.ENPassWord, env.ENUserName, env.ENUserName),
 					},
 				},
-
-				{
-					Name:    ActionTenantID,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/intel_edge_node/tenantId",
-						"CONTENTS":  fmt.Sprintf("TENANT_ID=%s", deviceInfo.TenantID),
-						"UID":       "0",
-						"GID":       "0",
-						"MODE":      "0755",
-						"DIRMODE":   "0755",
-					},
-				},
-
 				{
 					Name:    ActionWriteHostname,
 					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
@@ -316,7 +290,6 @@ func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo onboarding_types
 						"DIRMODE": "0755",
 					},
 				},
-
 				{
 					Name:    ActionCreateSecretsDirectory,
 					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
@@ -472,6 +445,8 @@ func NewTemplateDataUbuntu(name string, deviceInfo onboarding_types.DeviceInfo) 
 	infraConfig := config.GetInfraConfig()
 	opts := []cloudinit.Option{
 		cloudinit.WithOSType(deviceInfo.OsType),
+		cloudinit.WithTenantID(deviceInfo.TenantID),
+		cloudinit.WithHostname(deviceInfo.Hostname),
 	}
 
 	if env.ENDkamMode == envDkamDevMode {
@@ -526,88 +501,6 @@ func NewTemplateDataUbuntu(name string, deviceInfo onboarding_types.DeviceInfo) 
 						"NO_PROXY":    infraConfig.ENProxyNoProxy,
 					},
 					Pid: "host",
-				},
-
-				{
-					Name:    ActionAddEnvProxy,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/environment",
-						"CONTENTS": fmt.Sprintf(`
-						http_proxy=%s
-						https_proxy=%s
-						no_proxy=%s`, infraConfig.ENProxyHTTP, infraConfig.ENProxyHTTPS, infraConfig.ENProxyNoProxy),
-						"UID":     "0",
-						"GID":     "0",
-						"MODE":    "0755",
-						"DIRMODE": "0755",
-					},
-				},
-
-				{
-					Name:    ActionAddAptProxy,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/apt/apt.conf",
-						"CONTENTS": fmt.Sprintf(`
-						Acquire::http::Proxy "%s";
-						Acquire::https::Proxy "%s";`, infraConfig.ENProxyHTTP, infraConfig.ENProxyHTTPS),
-						"UID":     "0",
-						"GID":     "0",
-						"MODE":    "0755",
-						"DIRMODE": "0755",
-					},
-				},
-				{
-					Name:    ActionWriteHostname,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/hostname",
-						"CONTENTS": fmt.Sprintf(`
-%s`, deviceInfo.Hostname),
-						"UID":     "0",
-						"GID":     "0",
-						"MODE":    "0755",
-						"DIRMODE": "0755",
-					},
-				},
-				{
-					Name:    ActionWriteEtcHosts,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/hosts",
-						"CONTENTS": fmt.Sprintf(`
-127.0.0.1 %s
-            `, deviceInfo.Hostname),
-						"UID":     "0",
-						"GID":     "0",
-						"MODE":    "0755",
-						"DIRMODE": "0755",
-					},
-				},
-				{
-					Name:    ActionAddDNSNamespace,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/systemd/resolved.conf",
-						"CONTENTS": fmt.Sprintf(`
-						[Resolve]
-						DNS "%s"`, strings.Join(infraConfig.DNSServers, " ")),
-						"UID":     "0",
-						"GID":     "0",
-						"MODE":    "0755",
-						"DIRMODE": "0755",
-					},
 				},
 				{
 					Name:    ActionCloudInitInstall,
@@ -834,20 +727,6 @@ netplan apply`, deviceInfo.HwIP, strings.Join(infraConfig.DNSServers, ", ")),
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
 						"CMD_LINE":            "systemctl enable update-netplan.service",
-					},
-				},
-				{
-					Name:    ActionTenantID,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/intel_edge_node/tenantId",
-						"CONTENTS":  fmt.Sprintf("TENANT_ID=%s", deviceInfo.TenantID),
-						"UID":       "0",
-						"GID":       "0",
-						"MODE":      "0755",
-						"DIRMODE":   "0755",
 					},
 				},
 				{

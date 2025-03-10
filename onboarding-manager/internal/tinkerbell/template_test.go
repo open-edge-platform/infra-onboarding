@@ -91,7 +91,9 @@ func TestGenerateTemplateForProd(t *testing.T) {
 			name: "Test Case1",
 			args: args{
 				deviceInfo: onboarding_types.DeviceInfo{
-					OsType: osv1.OsType_OS_TYPE_MUTABLE,
+					OsType:   osv1.OsType_OS_TYPE_MUTABLE,
+					TenantID: "test-tenantid",
+					Hostname: "test-hostname",
 				},
 			},
 			want:    nil,

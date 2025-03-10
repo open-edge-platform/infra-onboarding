@@ -39,7 +39,9 @@ func TestNewTemplateDataUbuntu(t *testing.T) {
 			args: args{
 				name: "TestWorkflow",
 				deviceInfo: onboarding_types.DeviceInfo{
-					OsType: osv1.OsType_OS_TYPE_MUTABLE,
+					OsType:   osv1.OsType_OS_TYPE_MUTABLE,
+					TenantID: "test-tenantid",
+					Hostname: "test-hostname",
 				},
 			},
 			want:    want,

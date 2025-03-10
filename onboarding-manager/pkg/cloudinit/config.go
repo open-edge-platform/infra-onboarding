@@ -22,6 +22,11 @@ type cloudInitOptions struct {
 	devUsername string
 	// userPasswd defines a password for local admin user, must be provided if useDevMode is set
 	devUserPasswd string
+
+	// tenantID specifies UUID of tenant that Host belongs to
+	tenantID string
+	// hostname specifies host name to be set on Host
+	hostname string
 }
 
 func defaultCloudInitOptions() cloudInitOptions {
@@ -35,6 +40,14 @@ func defaultCloudInitOptions() cloudInitOptions {
 func (opts cloudInitOptions) validate() error {
 	if opts.OsType == osv1.OsType_OS_TYPE_UNSPECIFIED {
 		return inv_errors.Errorfc(codes.InvalidArgument, "Unsupported OS type: %s", opts.OsType.String())
+	}
+
+	if opts.tenantID == "" {
+		return inv_errors.Errorfc(codes.InvalidArgument, "Tenant ID must be provided")
+	}
+
+	if opts.hostname == "" {
+		return inv_errors.Errorfc(codes.InvalidArgument, "Hostname must be provided")
 	}
 
 	if opts.useDevMode && (opts.devUsername == "" || opts.devUserPasswd == "") {
@@ -56,5 +69,17 @@ func WithDevMode(username, password string) Option {
 func WithOSType(osType osv1.OsType) Option {
 	return func(options *cloudInitOptions) {
 		options.OsType = osType
+	}
+}
+
+func WithTenantID(tenantID string) Option {
+	return func(options *cloudInitOptions) {
+		options.tenantID = tenantID
+	}
+}
+
+func WithHostname(hostname string) Option {
+	return func(options *cloudInitOptions) {
+		options.hostname = hostname
 	}
 }

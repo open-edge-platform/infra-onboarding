@@ -5,6 +5,7 @@ package cloudinit
 
 import (
 	_ "embed"
+	"strings"
 
 	"github.com/intel/infra-core/inventory/v2/pkg/logging"
 	"github.com/intel/infra-onboarding/dkam/pkg/config"
@@ -28,6 +29,9 @@ func templateVariablesFromOptions(options cloudInitOptions) map[string]interface
 		extraVars["DEV_USER_PASSWD"] = options.devUserPasswd
 	}
 
+	extraVars["TENANT_ID"] = options.tenantID
+	extraVars["HOSTNAME"] = options.hostname
+
 	return extraVars
 }
 
@@ -48,6 +52,7 @@ func GenerateFromInfraConfig(infraConfig config.InfraConfig, opts ...Option) (st
 	if err != nil {
 		return "", err
 	}
+	tmplVariables["DNS_SERVERS"] = strings.Join(infraConfig.DNSServers, " ")
 
 	extraVars := templateVariablesFromOptions(options)
 	for key, value := range extraVars {

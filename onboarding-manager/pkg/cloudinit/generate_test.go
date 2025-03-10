@@ -44,6 +44,10 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 	dkam_testing.PrepareTestCaCertificateFile(t)
 	baseConfig := config.GetInfraConfig()
 	baseConfig.ENDebianPackagesRepo = "test.deb"
+	baseConfig.DNSServers = []string{"1.1.1.1", "2.2.2.2"}
+
+	const testHostname = "test-hostname"
+	const testTenantID = "test-tenantid"
 
 	type args struct {
 		options             []cloudinit.Option
@@ -61,6 +65,8 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 				options: []cloudinit.Option{
 					cloudinit.WithDevMode("user", "pass"),
 					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
+					cloudinit.WithHostname(testHostname),
+					cloudinit.WithTenantID(testTenantID),
 				},
 				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
 					newCfg := infraConfig
@@ -87,6 +93,8 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 				options: []cloudinit.Option{
 					cloudinit.WithDevMode("user", "pass"),
 					cloudinit.WithOSType(osv1.OsType_OS_TYPE_MUTABLE),
+					cloudinit.WithHostname(testHostname),
+					cloudinit.WithTenantID(testTenantID),
 				},
 				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
 					newCfg := infraConfig
@@ -113,6 +121,8 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 				options: []cloudinit.Option{
 					cloudinit.WithDevMode("user", "pass"),
 					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
+					cloudinit.WithHostname(testHostname),
+					cloudinit.WithTenantID(testTenantID),
 				},
 				// cluster.test by default
 			},
@@ -124,6 +134,8 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 			args: args{
 				options: []cloudinit.Option{
 					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
+					cloudinit.WithHostname(testHostname),
+					cloudinit.WithTenantID(testTenantID),
 				},
 			},
 			expectedOutputFileName: "expected-installer-04.cfg",
@@ -134,6 +146,8 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 			args: args{
 				options: []cloudinit.Option{
 					cloudinit.WithOSType(osv1.OsType_OS_TYPE_MUTABLE),
+					cloudinit.WithHostname(testHostname),
+					cloudinit.WithTenantID(testTenantID),
 				},
 			},
 			expectedOutputFileName: "expected-installer-05.cfg",
@@ -144,6 +158,8 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 			args: args{
 				options: []cloudinit.Option{
 					cloudinit.WithOSType(osv1.OsType_OS_TYPE_MUTABLE),
+					cloudinit.WithHostname(testHostname),
+					cloudinit.WithTenantID(testTenantID),
 				},
 				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
 					newCfg := infraConfig
@@ -163,6 +179,8 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 			args: args{
 				options: []cloudinit.Option{
 					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
+					cloudinit.WithHostname(testHostname),
+					cloudinit.WithTenantID(testTenantID),
 				},
 				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
 					newCfg := infraConfig
@@ -173,6 +191,66 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 			},
 			expectedOutputFileName: "expected-installer-07.cfg",
 			wantErr:                false,
+		},
+		{
+			name: "Success_NoDNSServers",
+			args: args{
+				options: []cloudinit.Option{
+					cloudinit.WithOSType(osv1.OsType_OS_TYPE_MUTABLE),
+					cloudinit.WithHostname(testHostname),
+					cloudinit.WithTenantID(testTenantID),
+				},
+				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
+					newCfg := infraConfig
+					newCfg.DNSServers = []string{}
+					return newCfg
+				},
+			},
+			expectedOutputFileName: "expected-installer-08.cfg",
+			wantErr:                false,
+		},
+		{
+			name: "Failed_MissingTenantID",
+			args: args{
+				options: []cloudinit.Option{
+					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
+					cloudinit.WithHostname(testHostname),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Failed_MissingHostname",
+			args: args{
+				options: []cloudinit.Option{
+					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
+					cloudinit.WithTenantID(testTenantID),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Failed_InvalidOSType",
+			args: args{
+				options: []cloudinit.Option{
+					cloudinit.WithOSType(osv1.OsType_OS_TYPE_UNSPECIFIED),
+					cloudinit.WithTenantID(testTenantID),
+					cloudinit.WithHostname(testHostname),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Failed_DevModeNoUser",
+			args: args{
+				options: []cloudinit.Option{
+					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
+					cloudinit.WithTenantID(testTenantID),
+					cloudinit.WithHostname(testHostname),
+					cloudinit.WithDevMode("", ""),
+				},
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
