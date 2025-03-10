@@ -242,9 +242,11 @@ func finalizeCuratedScript(ctx context.Context, osRes *osv1.OperatingSystemResou
 ) error {
 	// Append profile script, to be removed once Platform Bundle is integrated
 	var err error
-	curatedScriptData, err = FetchAndAppendProfileScript(ctx, osRes.GetProfileName(), curatedScriptData)
-	if err != nil {
-		return err
+	if osRes.GetOsProvider() == osv1.OsProviderKind_OS_PROVIDER_KIND_INFRA {
+		curatedScriptData, err = FetchAndAppendProfileScript(ctx, osRes.GetProfileName(), curatedScriptData)
+		if err != nil {
+			return err
+		}
 	}
 
 	writeErr := WriteFileToPath(installerScriptPath, []byte(curatedScriptData))
