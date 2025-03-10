@@ -22,6 +22,7 @@ import (
 	"github.com/intel/infra-core/inventory/v2/pkg/tracing"
 	"github.com/intel/infra-onboarding/dkam/internal/dkammgr"
 	"github.com/intel/infra-onboarding/dkam/internal/env"
+	_ "github.com/intel/infra-onboarding/dkam/internal/flag"
 	"github.com/intel/infra-onboarding/dkam/internal/handlers/controller"
 	"github.com/intel/infra-onboarding/dkam/internal/invclient"
 	"github.com/intel/infra-onboarding/dkam/pkg/config"

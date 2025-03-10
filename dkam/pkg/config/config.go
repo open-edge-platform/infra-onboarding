@@ -118,9 +118,6 @@ var (
 	PVC                   = "/data"
 	OrchCACertificateFile = "/etc/ssl/orch-ca-cert/ca.crt"
 	ScriptPath            = "/home/appuser/pkg/script"
-
-	FlagEnforceCloudInit = flag.Bool("enforceCloudInit", false,
-		"Set to true to always use cloud-init to provision Day0/Day1 EN configuration")
 )
 
 func Read() error {
