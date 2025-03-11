@@ -33,6 +33,7 @@ RBAC       := "$(OUT_DIR)/rego/authz.rego"
 DOCKER_ENV              := DOCKER_BUILDKIT=1
 DOCKER_REGISTRY         ?= 080137407410.dkr.ecr.us-west-2.amazonaws.com
 OCI_REGISTRY         	?= 080137407410.dkr.ecr.us-west-2.amazonaws.com
+RELEASE_SVC_URL         ?= registry-rs.edgeorchestration.intel.com
 DOCKER_REPOSITORY       ?= edge-orch/infra
 DOCKER_TAG              ?= $(DOCKER_REGISTRY)/$(DOCKER_REPOSITORY)/$(IMG_NAME):$(VERSION)
 DOCKER_TAG_BRANCH	    ?= $(DOCKER_REGISTRY)/$(DOCKER_REPOSITORY)/$(IMG_NAME):$(IMG_VERSION)

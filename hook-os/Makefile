@@ -19,7 +19,7 @@ IMG_VERSION   ?= $(VERSION)
 GIT_COMMIT    ?= $(shell git rev-parse HEAD)
 BRANCH_NAME   ?= $(shell git rev-parse --abbrev-ref HEAD)
 OCI_REPOSITORY := edge-orch/en/files/${IMG_NAME}
-HOOK_KERNEL_REPOSITORY  := open-registry.espdprod.infra-host.com/edge-orch/edge-node/hook-kernel
+HOOK_KERNEL_REPOSITORY  := edge-orch/edge-node/hook-kernel
 HOOK_KERNEL_VERSION 	:= 5.10.228-e0637f99-dm-xz
 
 
@@ -39,8 +39,8 @@ $(COMPONENTS):
 	chmod +x build.sh && bash build.sh
 	
 pull-kernel:
-	docker pull ${HOOK_KERNEL_REPOSITORY}:${HOOK_KERNEL_VERSION}
-	docker tag ${HOOK_KERNEL_REPOSITORY}:${HOOK_KERNEL_VERSION} quay.io/tinkerbell/hook-kernel:5.10.228-e0637f99
+	docker pull ${RELEASE_SVC_URL}/${HOOK_KERNEL_REPOSITORY}:${HOOK_KERNEL_VERSION}
+	docker tag ${RELEASE_SVC_URL}/${HOOK_KERNEL_REPOSITORY}:${HOOK_KERNEL_VERSION} quay.io/tinkerbell/hook-kernel:5.10.228-e0637f99
 
 components: $(COMPONENTS) pull-kernel
 
