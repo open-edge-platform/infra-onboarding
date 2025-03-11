@@ -8,7 +8,6 @@
 version: v1
 
 plugins:
-
   # go - https://pkg.go.dev/google.golang.org/protobuf
   - plugin: go
     out: pkg/api
@@ -31,6 +30,6 @@ plugins:
 
   # docs - https://github.com/pseudomuto/protoc-gen-doc
   - plugin: doc
-    out: docs
+    out: docs/api
     opt: markdown,onboardingmgr.md
     strategy: all
