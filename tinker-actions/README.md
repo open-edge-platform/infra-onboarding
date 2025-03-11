@@ -25,7 +25,6 @@ Following is the list of tinker actions maintained:
 | Action Name             | Description                                                               |
 |-------------------------|---------------------------------------------------------------------------|
 | cexec                   | chroot and execute binaries                                               |
-| cred_copy               | copy folder from a source path to a destination path on the mounted device|
 | efibootset              | modify the boot order to prioritize the installed OS disk after a restart |
 | erase_non_removable_disks | wipe data out in all the non-removable physical disks connected         |
 | fde                     | setup and enable Full Disk Encryption                                     |
