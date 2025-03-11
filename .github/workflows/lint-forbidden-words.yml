@@ -21,6 +21,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run lint
-        uses: intel-tiber/orch-utils/.github/actions/lint-forbidden-words@main
+        uses: open-edge-platform/orch-utils/.github/actions/lint-forbidden-words@main
         with:
           fail_on_match: "false"

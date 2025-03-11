@@ -21,10 +21,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: "Verify Branch Name"
-        uses: intel-tiber/orch-ci/verify-branch-name@main
+        uses: open-edge-platform/orch-ci/verify-branch-name@main
       - name: "Discover Changed Subfolders"
         id: discover-changes
-        uses: intel-tiber/orch-ci/discover-changed-subfolders@main
+        uses: open-edge-platform/orch-ci/discover-changed-subfolders@main
       - name: "Filter Out Unwanted Changed Subfolders"
         id: filter-changes
         run: |
@@ -39,7 +39,7 @@ jobs:
       fail-fast: false
       matrix:
         project_folder: ${{ fromJson(needs.pre-checks.outputs.filtered_projects) }}
-    uses: intel-tiber/orch-ci/.github/workflows/pre-merge.yml@main
+    uses: open-edge-platform/orch-ci/.github/workflows/pre-merge.yml@main
     with:
       run_security_scans: true
       run_version_check: true
