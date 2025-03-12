@@ -104,36 +104,40 @@ install_node_agent(){
 		echo "Skipping install_node_agent"
     else
         rm -f /etc/apt/sources.list.d/edge-node.list
-        # Temp file to store response
-        tempfile=$(mktemp)
+        if [ "$RS_TYPE" == "auth" ]; then
+            # Temp file to store response
+            tempfile=$(mktemp)
 
-        echo "get access token from orchestrator"
-        # Save the response to the temporary file
-        curl -X POST -u "$CLIENT_ID:$CLIENT_SECRET" -d "grant_type=client_credentials" https://${KEYCLOAK_FQDN}/realms/master/protocol/openid-connect/token -o "$tempfile"
+            echo "get access token from orchestrator"
+            # Save the response to the temporary file
+            curl -X POST -u "$CLIENT_ID:$CLIENT_SECRET" -d "grant_type=client_credentials" https://${KEYCLOAK_FQDN}/realms/master/protocol/openid-connect/token -o "$tempfile"
 
-        # Check the exit status of curl
-        if [ ! -s "$tempfile" ]; then
-            echo "error in getting Keycloak token"
+            # Check the exit status of curl
+            if [ ! -s "$tempfile" ]; then
+                echo "error in getting Keycloak token"
+                rm "$tempfile"
+                exit 1
+            fi
+
+            # Parse the response with jq
+            AT=$(jq -r '.access_token' "$tempfile")
             rm "$tempfile"
-            exit 1
-        fi
 
-        # Parse the response with jq
-        AT=$(jq -r '.access_token' "$tempfile")
-        rm "$tempfile"
+            # Get RS token now
+            tempfile=$(mktemp)
+            curl -XGET https://${RELEASE_FQDN}/token -H "Authorization: Bearer $AT" -o "$tempfile"
 
-        # Get RS token now
-        tempfile=$(mktemp)
-        curl -XGET https://${RELEASE_FQDN}/token -H "Authorization: Bearer $AT" -o "$tempfile"
+            if [ ! -s "$tempfile" ]; then
+                echo "error in getting Release Service token"
+                rm "$tempfile"
+                exit 1
+            fi
 
-        if [ ! -s "$tempfile" ]; then
-            echo "error in getting Release Service token"
+            RS_AT=$(cat "$tempfile")
             rm "$tempfile"
-            exit 1
+        else
+            echo "RS_TYPE is not auth"
         fi
-
-        RS_AT=$(cat "$tempfile")
-        rm "$tempfile"
 
         echo "setup oras"
         ORAS_VERSION="1.1.0"
@@ -178,7 +182,11 @@ install_node_agent(){
 
         echo "download caddy deb package..."
         CADDY_PKGFILE="./caddy_${CADDY_VERSION}_linux_amd64.deb"
-        echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/caddy:$CADDY_VERSION" --password-stdin
+         if [ "$RS_TYPE" == "auth" ]; then
+            echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/caddy:$CADDY_VERSION" --password-stdin
+        else
+            oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/caddy:$CADDY_VERSION"
+        fi
 
         if [ ! -f "${CADDY_PKGFILE}" ]; then
             echo "caddy debian package could not be downloaded. Aborting installation"
@@ -197,7 +205,11 @@ install_node_agent(){
         PKGFILE="./node-agent_${NODE_AGENT_VERSION}_amd64.deb"
 
         echo "download node agent"
-        echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/node-agent:$NODE_AGENT_VERSION" --password-stdin
+         if [ "$RS_TYPE" == "auth" ]; then
+            echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/node-agent:$NODE_AGENT_VERSION" --password-stdin
+        else
+            oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/node-agent:$NODE_AGENT_VERSION"
+        fi
 
         if [ ! -f "${PKGFILE}" ]; then
             echo "node agent debian could not be downloaded. Aborting installation"

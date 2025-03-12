@@ -263,7 +263,7 @@ install_node_agent(){
         echo "download caddy deb package..."
         CADDY_VERSION={{ index . "caddy-VERSION" }}
         CADDY_PKGFILE="./caddy_${CADDY_VERSION}_linux_amd64.deb"
-        if [ "$RS_TYPE" = "auth" ]; then
+        if [ "$RS_TYPE" == "auth" ]; then
             echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/caddy:$CADDY_VERSION" --password-stdin
         else
             oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/caddy:$CADDY_VERSION"
@@ -286,7 +286,7 @@ install_node_agent(){
         PKGFILE="./node-agent_${VERSION}_amd64.deb"
 
         echo "download node agent"
-        if [ "$RS_TYPE" = "auth" ]; then
+        if [ "$RS_TYPE" == "auth" ]; then
             echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/node-agent:$VERSION" --password-stdin
         else
             oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/node-agent:$VERSION"
