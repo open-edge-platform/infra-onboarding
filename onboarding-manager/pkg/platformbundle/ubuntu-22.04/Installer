@@ -99,25 +99,6 @@ install_dependencies() {
     fi
 }
 
-install_cleanup() {
-    if grep -q "install_cleanup done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_cleanup"
-    else
-        echo "Agents cleanup."
-        apt-get -y purge node-agent caddy || true
-        apt-get -y purge cluster-agent || true
-        apt-get -y purge hardware-discovery-agent || true
-        apt-get -y purge ensp-ke-installer || true
-
-        apt-get -y purge ensp-orch-installer || true
-        apt-get purge -y platform-observability-agent || true
-        apt-get -y purge platform-update-agent || true
-        apt-get autoremove -y
-        rm -rf /etc/intel_edge_node/tokens /etc/intel_edge_node/certs /etc/intel_edge_node/.keys
-        echo "install_cleanup done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
 install_node_agent(){
     if grep -q "install_node_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping install_node_agent"
@@ -250,175 +231,38 @@ install_node_agent(){
     fi
 }
 
-install_cluster_agent(){
-    if grep -q "install_cluster_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_cluster_agent"
-    else
-        echo "Install Cluster agent..."
-        echo $CLUSTER_AGENT_VERSION
-        echo "cluster-agent cluster-agent/cluster-orchestrator-url string ${CLUSTER_ORCH_URL}" | debconf-set-selections
-        apt-get install -y -o Dpkg::Options::="--force-confnew" cluster-agent="$CLUSTER_AGENT_VERSION"
-        systemctl status -l --no-pager cluster-agent
-        echo "install_cluster_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
+install_other_agents() {
+  if grep -q "install_other_agents done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+  		echo "Skipping install_other_agents"
+  else
+      echo "Install bare-metal agents..."
+      echo "cluster-agent cluster-agent/cluster-orchestrator-url string ${CLUSTER_ORCH_URL}" | debconf-set-selections
+      echo "hardware-discovery-agent hardware-discovery-agent/onboarding.serviceURL string ${HW_INVENTORY_URL}" | debconf-set-selections
+      echo "platform-observability-agent platform-observability-agent/host string $OBSERVABILITY_LOGGING_URL" | debconf-set-selections
+      echo "platform-observability-agent platform-observability-agent/port string $OBSERVABILITY_LOGGING_PORT" | debconf-set-selections
+      echo "platform-observability-agent platform-observability-agent/metrics-host string $OBSERVABILITY_METRICS_URL" | debconf-set-selections
+      echo "platform-observability-agent platform-observability-agent/metrics-port string $OBSERVABILITY_METRICS_PORT" | debconf-set-selections
+      echo "platform-update-agent platform-update-agent/enaDebURL string ${CADDY_APT_PROXY_URL}" | debconf-set-selections
+      echo "platform-update-agent platform-update-agent/updateServiceURL string ${UPDATE_SERVICE_URL}" | debconf-set-selections
+      echo "telemetry-agent telemetry-agent/telemetrymanager.serviceURL string ${TELEMETRY_MANAGER_URL}" | debconf-set-selections
 
-install_hardware_discovery_agent(){
-    if grep -q "install_hardware_discovery_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_hardware_discovery_agent"
-    else
-        echo "Install Hardware discovery agent..."
-        echo $HARDWARE_DISCOVERY_AGENT_VERSION
-        echo "hardware-discovery-agent hardware-discovery-agent/onboarding.serviceURL string ${HW_INVENTORY_URL}" | debconf-set-selections
-        apt-get install -y -o Dpkg::Options::="--force-confnew" hardware-discovery-agent="$HARDWARE_DISCOVERY_AGENT_VERSION"
-        systemctl status -l --no-pager hardware-discovery-agent
-        echo "install_hardware_discovery_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
-install_platform_observability_agent(){
-    if grep -q "install_platform_observability_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_platform_observability_agent"
-    else
-        echo "install platform-observability-agent"
-        echo $PLATFORM_OBSERVABILITY_AGENT_VERSION
-        echo "platform-observability-agent platform-observability-agent/host string $OBSERVABILITY_LOGGING_URL" | debconf-set-selections
-        echo "platform-observability-agent platform-observability-agent/port string $OBSERVABILITY_LOGGING_PORT" | debconf-set-selections
-        echo "platform-observability-agent platform-observability-agent/metrics-host string $OBSERVABILITY_METRICS_URL" | debconf-set-selections
-        echo "platform-observability-agent platform-observability-agent/metrics-port string $OBSERVABILITY_METRICS_PORT" | debconf-set-selections
-        apt-get install -y -o Dpkg::Options::="--force-confnew" platform-observability-agent="$PLATFORM_OBSERVABILITY_AGENT_VERSION"
-        systemctl status -l --no-pager platform-observability-logging platform-observability-health-check platform-observability-metrics platform-observability-collector
-        echo "install_platform_observability_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
-install_trtl(){
-    if grep -q "install_trtl done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_trtl"
-    else
-        echo "Install TRTL..."
-        echo $TRTL_VERSION
-        apt-get -y install trtl="$TRTL_VERSION"
-        echo "install_trtl done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
-install_inbm_cloudadapter_agent(){
-    if grep -q "install_inbm_cloudadapter_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_inbm_cloudadapter_agent"
-    else
-        echo "Install inbm-cloudadapter-agent..."
-        echo $INBM_CLOUDADAPTER_AGENT_VERSION
-        apt-get -y install inbm-cloudadapter-agent="$INBM_CLOUDADAPTER_AGENT_VERSION"
-        echo "install_inbm_cloudadapter_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
-install_inbm_dispatcher_agent(){
-    if grep -q "install_inbm_dispatcher_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_inbm_dispatcher_agent"
-    else
-        echo "Install inbm-dispatcher-agent..."
-        echo $INBM_DISPATCHER_AGENT_VERSION
-        apt-get -y install inbm-dispatcher-agent="$INBM_DISPATCHER_AGENT_VERSION"
-        echo "install_inbm_dispatcher_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-
-}
-
-install_inbm_configuration_agent(){
-    if grep -q "install_inbm_configuration_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_inbm_configuration_agent"
-    else
-        echo "Install inbm-configuration-agent..."
-        echo $INBM_CONFIGURATION_AGENT_VERSION
-        apt-get -y install inbm-configuration-agent="$INBM_CONFIGURATION_AGENT_VERSION"
-        echo "install_inbm_configuration_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-
-}
-
-install_inbm_telemetry_agent(){
-    if grep -q "install_inbm_telemetry_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_inbm_telemetry_agent"
-    else
-        echo "Install inbm-telemetry-agent..."
-        echo $INBM_TELEMETRY_AGENT_VERSION
-        apt-get -y install inbm-telemetry-agent="$INBM_TELEMETRY_AGENT_VERSION"
-        echo "install_inbm_telemetry_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
-install_inbm_diagnostic_agent(){
-    if grep -q "install_inbm_diagnostic_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_inbm_diagnostic_agent"
-    else
-        echo "Install inbm-diagnostic-agent..."
-        echo $INBM_DIAGNOSTIC_AGENT_VERSION
-        apt-get -y install inbm-diagnostic-agent="$INBM_DIAGNOSTIC_AGENT_VERSION"
-        echo "install_inbm_diagnostic_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
-install_mqtt(){
-    if grep -q "install_mqtt done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_mqtt"
-    else
-        echo "Install mqtt..."
-        echo $MQTT_VERSION
-        apt-get -y install mqtt="$MQTT_VERSION"
-        echo "install_mqtt done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
-install_tpm_provision(){
-    if grep -q "install_tpm_provision done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_tpm_provision"
-    else
-        echo "Install tpm-provision..."
-        echo $TPM_PROVISION_VERSION
-        apt-get -y install tpm-provision="$TPM_PROVISION_VERSION"
-        echo "install_tpm_provision done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
-install_inbc_program(){
-    if grep -q "install_inbc_program done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_inbc_program"
-    else
-        echo "Install inbc-program..."
-        echo $INBC_PROGRAM_VERSION
-        apt-get -y install inbc-program="$INBC_PROGRAM_VERSION"
-        echo "install_inbc_program done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
-install_platform_update_agent(){
-    if grep -q "install_platform_update_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_platform_update_agent"
-    else
-        echo "Install Platform Update agent..."
-        echo $PLATFORM_UPDATE_AGENT_VERSION
-
-        echo "platform-update-agent platform-update-agent/enaDebURL string ${CADDY_APT_PROXY_URL}" | debconf-set-selections
-        echo "platform-update-agent platform-update-agent/updateServiceURL string ${UPDATE_SERVICE_URL}" | debconf-set-selections
-        apt-get -y install platform-update-agent="$PLATFORM_UPDATE_AGENT_VERSION"
-        systemctl status -l --no-pager platform-update-agent
-        echo "install_platform_update_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
-install_platform_telemetry_agent(){
-    if grep -q "install_platform_telemetry_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_platform_telemetry_agent"
-    else
-        echo "install platform-telemetry-agent"
-        echo $PLATFORM_TELEMETRY_AGENT_VERSION
-        echo "telemetry-agent telemetry-agent/telemetrymanager.serviceURL string ${TELEMETRY_MANAGER_URL}" | debconf-set-selections
-        apt install -y -o Dpkg::Options::="--force-confnew" platform-telemetry-agent="$PLATFORM_TELEMETRY_AGENT_VERSION"
-        systemctl status -l --no-pager platform-telemetry-agent
-        echo "install_platform_telemetry_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
+      apt-get install -y -o Dpkg::Options::="--force-confnew" \
+        cluster-agent="$CLUSTER_AGENT_VERSION" \
+        hardware-discovery-agent="$HARDWARE_DISCOVERY_AGENT_VERSION" \
+        platform-observability-agent="$PLATFORM_OBSERVABILITY_AGENT_VERSION" \
+        trtl="$TRTL_VERSION" \
+        inbm-cloudadapter-agent="$INBM_CLOUDADAPTER_AGENT_VERSION" \
+        inbm-configuration-agent="$INBM_CONFIGURATION_AGENT_VERSION" \
+        inbm-dispatcher-agent="$INBM_DISPATCHER_AGENT_VERSION" \
+        inbm-telemetry-agent="$INBM_TELEMETRY_AGENT_VERSION" \
+        inbm-diagnostic-agent="$INBM_DIAGNOSTIC_AGENT_VERSION" \
+        mqtt="$MQTT_VERSION" \
+        tpm-provision="$TPM_PROVISION_VERSION" \
+        inbc-program="$INBC_PROGRAM_VERSION" \
+        platform-update-agent="$PLATFORM_UPDATE_AGENT_VERSION" \
+        platform-telemetry-agent="$PLATFORM_TELEMETRY_AGENT_VERSION"
+      echo "install_other_agents done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
+  fi
 }
 
 install_syslogrotate_job(){
@@ -579,22 +423,6 @@ disable_unattended_upgrade(){
     fi
 }
 
-enable_inactive_boot_numbers(){
-    if grep -q "enable_inactive_boot_numbers done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping enable_inactive_boot_numbers"
-    else
-        echo "Activating inactive boot numbers..."
-        while IFS= read -r boot_part_number; do
-            last_char="${boot_part_number: -1}"
-            # Check if the last character is not an asterisk ,make it activate
-            if [ "$last_char" != "*" ]; then
-                efibootmgr -b "$boot_part_number" -a
-            fi
-        done < <(efibootmgr | grep "Boot" | grep -i -v -E "BootCurrent|BootOrder" | awk '{print $1}' | cut -c 5-9)
-        echo "enable_inactive_boot_numbers done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
 creat_lvm_partition(){
     if grep -q "creat_lvm_partition done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
                 echo "Skipping creat_lvm_partition"
@@ -679,7 +507,6 @@ creat_lvm_partition(){
             fi
 	done
 
-        #vgcreate
         if echo "y" | vgcreate lvmvg "${disks[@]}"; then
             echo "Successfuly done vgcreate"
         else
@@ -777,22 +604,8 @@ install_dependencies 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 enable_kernel_config 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_syslogrotate_job 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 echo "Install agents..........................."
-install_cleanup 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_node_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_cluster_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_hardware_discovery_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_platform_observability_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_trtl 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_inbm_cloudadapter_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_inbm_dispatcher_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_inbm_configuration_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_inbm_telemetry_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_inbm_diagnostic_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_mqtt 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_tpm_provision 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_inbc_program 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_platform_update_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_platform_telemetry_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_other_agents 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_syslogrotate_ufw 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 disable_unattended_upgrade 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 echo "Installation completed Successfuly on EdgeNode!!!!" > /dev/tty1
