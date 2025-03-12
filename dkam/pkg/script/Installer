@@ -100,6 +100,8 @@ KERNEL_CONFIG_KERNEL_PANIC={{ .KERNEL_CONFIG_KERNEL_PANIC }}
 KERNEL_CONFIG_PANIC_ON_OOPS={{ .KERNEL_CONFIG_PANIC_ON_OOPS }}
 KERNEL_CONFIG_MAX_USER_INSTANCE={{ .KERNEL_CONFIG_MAX_USER_INSTANCE }}
 
+RS_TYPE={{ .RS_TYPE }}
+
 # 1. Install dependencies
 install_dependencies() {
     if grep -q "install_dependencies done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
@@ -180,36 +182,41 @@ install_node_agent(){
 		echo "Skipping install_node_agent"
     else
         rm -f /etc/apt/sources.list.d/edge-node.list
-        # Temp file to store response
-        tempfile=$(mktemp)
 
-        echo "get access token from orchestrator"
-        # Save the response to the temporary file
-        curl -X POST -u "$CLIENT_ID:$CLIENT_SECRET" -d "grant_type=client_credentials" https://${KEYCLOAK_FQDN}/realms/master/protocol/openid-connect/token -o "$tempfile"
+        if [ "$RS_TYPE" == "auth" ]; then
+            # Temp file to store response
+            tempfile=$(mktemp)
 
-        # Check the exit status of curl
-        if [ ! -s "$tempfile" ]; then
-            echo "error in getting Keycloak token"
+            echo "get access token from orchestrator"
+            # Save the response to the temporary file
+            curl -X POST -u "$CLIENT_ID:$CLIENT_SECRET" -d "grant_type=client_credentials" https://${KEYCLOAK_FQDN}/realms/master/protocol/openid-connect/token -o "$tempfile"
+
+            # Check the exit status of curl
+            if [ ! -s "$tempfile" ]; then
+                echo "error in getting Keycloak token"
+                rm "$tempfile"
+                exit 1
+            fi
+
+            # Parse the response with jq
+            AT=$(jq -r '.access_token' "$tempfile")
             rm "$tempfile"
-            exit 1
-        fi
 
-        # Parse the response with jq
-        AT=$(jq -r '.access_token' "$tempfile")
-        rm "$tempfile"
+            # Get RS token now
+            tempfile=$(mktemp)
+            curl -XGET https://${RELEASE_FQDN}/token -H "Authorization: Bearer $AT" -o "$tempfile"
 
-        # Get RS token now
-        tempfile=$(mktemp)
-        curl -XGET https://${RELEASE_FQDN}/token -H "Authorization: Bearer $AT" -o "$tempfile"
+            if [ ! -s "$tempfile" ]; then
+                echo "error in getting Release Service token"
+                rm "$tempfile"
+                exit 1
+            fi
 
-        if [ ! -s "$tempfile" ]; then
-            echo "error in getting Release Service token"
+            RS_AT=$(cat "$tempfile")
             rm "$tempfile"
-            exit 1
+        else
+            echo "RS_TYPE is not auth"
         fi
-
-        RS_AT=$(cat "$tempfile")
-        rm "$tempfile"
 
         echo "setup oras"
         ORAS_VERSION="1.1.0"
@@ -249,14 +256,18 @@ install_node_agent(){
         echo "node-agent node-agent/proxy.aptSourceProxyPort string ${CADDY_APT_PROXY_PORT}" | debconf-set-selections
         echo "node-agent node-agent/proxy.imgRegistryURL string ${CADDY_REGISTRY_PROXY_URL}" | debconf-set-selections
         echo "node-agent node-agent/proxy.imgRegistryProxyPort string ${CADDY_REGISTRY_PROXY_PORT}" | debconf-set-selections
+        echo "node-agent node-agent/auth.RSType string ${RS_TYPE}" | debconf-set-selections
 
         echo "Install caddy for node agent..."
 
         echo "download caddy deb package..."
         CADDY_VERSION={{ index . "caddy-VERSION" }}
         CADDY_PKGFILE="./caddy_${CADDY_VERSION}_linux_amd64.deb"
-        echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/caddy:$CADDY_VERSION" --password-stdin
-
+        if [ "$RS_TYPE" = "auth" ]; then
+            echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/caddy:$CADDY_VERSION" --password-stdin
+        else
+            oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/caddy:$CADDY_VERSION"
+        fi
         if [ ! -f "${CADDY_PKGFILE}" ]; then
             echo "caddy debian package could not be downloaded. Aborting installation"
             exit 1
@@ -275,7 +286,11 @@ install_node_agent(){
         PKGFILE="./node-agent_${VERSION}_amd64.deb"
 
         echo "download node agent"
-        echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/node-agent:$VERSION" --password-stdin
+        if [ "$RS_TYPE" = "auth" ]; then
+            echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/node-agent:$VERSION" --password-stdin
+        else
+            oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/node-agent:$VERSION"
+        fi
 
         if [ ! -f "${PKGFILE}" ]; then
             echo "node agent debian could not be downloaded. Aborting installation"

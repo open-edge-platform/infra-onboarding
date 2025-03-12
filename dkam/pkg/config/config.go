@@ -44,6 +44,7 @@ type InfraConfig struct {
 	TelemetryURL            string `mapstructure:"orchTelemetry"`
 	RegistryURL             string `mapstructure:"orchRegistry"`
 	FileServerURL           string `mapstructure:"orchFileServer"`
+	RSType                  string `mapstructure:"rsType"`
 
 	ProvisioningService string `mapstructure:"provisioningSvc"`
 	// ProvisioningServerURL full URL to the provisioning server, including prefixes and subpaths
