@@ -6,8 +6,9 @@
 
 FROM golang:1.23-alpine AS image2disk
 RUN apk add --no-cache git ca-certificates gcc linux-headers musl-dev
-WORKDIR /src/
-COPY . /src/
+COPY . /src/image2disk
+COPY pkg /pkg/
+WORKDIR /src/image2disk
 
 RUN CGO_ENABLED=1 GOOS=linux go build -a -ldflags "-linkmode external -extldflags '-static' -s -w" -o image2disk
 

@@ -5,9 +5,10 @@
 # Original file can be found at https://github.com/tinkerbell/actions.
 
 # Build stream
-FROM golang:1.23.2-alpine3.20 as writefile
+FROM golang:1.23.2-alpine3.20 AS writefile
 RUN apk add --no-cache git ca-certificates gcc musl-dev 
 COPY . /go/src/github.com/tinkerbell/hub/actions/writefile/v1
+COPY pkg /go/src/github.com/tinkerbell/hub/actions/pkg
 WORKDIR /go/src/github.com/tinkerbell/hub/actions/writefile/v1
 ENV GO111MODULE=on
 RUN --mount=type=cache,sharing=locked,id=gomod,target=/go/pkg/mod/cache \

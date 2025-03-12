@@ -19,6 +19,8 @@ import (
 
 	"qemu-nbd-img2disk/image"
 
+	dd "github.com/intel-tiber/infra-onboarding/tinker-actions/pkg/drive_detection"
+
 	"github.com/cenkalti/backoff"
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
@@ -54,12 +56,12 @@ func main() {
 	// Check if a string is empty
 	if len(disk) == 0 {
 		// Get a list of drives
-		drives, err := image.GetDrives()
+		drives, err := dd.GetDrives()
 		if err != nil {
 			log.Error("Get Drive Error", "err", err)
 			os.Exit(1)
 		}
-		detectedDisk, err := image.DriveDetection(drives)
+		detectedDisk, err := dd.DriveDetection(drives)
 		if err != nil {
 			log.Error("Drive detection Error", "err", err)
 			os.Exit(1)

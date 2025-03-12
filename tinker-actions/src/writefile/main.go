@@ -16,6 +16,7 @@ import (
 	"strings"
 	"syscall"
 
+	dd "github.com/intel-tiber/infra-onboarding/tinker-actions/pkg/drive_detection"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -30,17 +31,17 @@ func main() {
 	// Check if a string is empty
 	if len(blockDevice) == 0 {
 		// Get a list of drives
-		drives, err := GetDrives()
+		drives, err := dd.GetDrives()
 		if err != nil {
 			log.Fatal(err)
 		}
-		detectedDisk, err := DriveDetection(drives)
+		detectedDisk, err := dd.DriveDetection(drives)
 		if err != nil {
 			log.Fatal(err)
 		}
 		log.Infof("Detected drive: [%s] ", detectedDisk)
 		driveName = detectedDisk
-		blockDevice, err = findRootPartitionForDisk(driveName)
+		blockDevice, err = dd.FindRootPartitionForDisk(driveName)
 		if err != nil {
 			log.Fatal(err)
 		}

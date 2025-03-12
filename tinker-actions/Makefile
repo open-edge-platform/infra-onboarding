@@ -34,6 +34,7 @@ all:
 	lint docker-build docker-push
 
 $(ACTIONS): 
+	cp -r pkg/ src/$@/pkg/ 
 	docker build src/$@ -f src/$@/Dockerfile \
 		-t $@:latest \
 		--rm \

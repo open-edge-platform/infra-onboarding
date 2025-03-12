@@ -19,6 +19,7 @@ import (
 	"strings"
 	"syscall"
 
+	dd "github.com/intel-tiber/infra-onboarding/tinker-actions/pkg/drive_detection"
 	"github.com/peterbourgon/ff/v3"
 )
 
@@ -59,18 +60,18 @@ func main() {
 	blockDevice := s.blockDevice
 	if len(blockDevice) == 0 {
 		// Get a list of drives
-		drives, err := GetDrives()
+		drives, err := dd.GetDrives()
 		if err != nil {
 			logger.Error("Get Drive Error", "err", err)
 			os.Exit(1)
 		}
-		detectedDisk, err := DriveDetection(drives)
+		detectedDisk, err := dd.DriveDetection(drives)
 		if err != nil {
 			logger.Error("Drive detection Error", "err", err)
 			os.Exit(1)
 		}
 		logger.Info("Detected drive:", "detectedDisk", detectedDisk)
-		blockDevice, err = findRootPartitionForDisk(detectedDisk)
+		blockDevice, err = dd.FindRootPartitionForDisk(detectedDisk)
 		if err != nil {
 			logger.Error("Root partition find Error", "err", err)
 			os.Exit(1)

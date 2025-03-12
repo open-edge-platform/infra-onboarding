@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-package main
+package drive_detection
 
 import (
 	"encoding/json"
@@ -148,7 +148,7 @@ func (a byPriorityAndSize) Less(i, j int) bool {
 
 // findRootPartitionForDisk finds the root partition for a given disk by
 // detecting rootfs tag or finding the first partition with ext4 filesystem type
-func findRootPartitionForDisk(disk string) (string, error) {
+func FindRootPartitionForDisk(disk string) (string, error) {
 	// If filesystem type is not provided, default to ext4
 	const rootPartitionTag = "rootfs"
 	const defaultFsType = "ext4"
