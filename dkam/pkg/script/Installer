@@ -485,7 +485,7 @@ install_platform_update_agent(){
         VERSION={{ index . "platform-update-agent-VERSION" }}
         echo $VERSION
 
-        echo "platform-update-agent platform-update-agent/bmaDebURL string ${CADDY_APT_PROXY_URL}" | debconf-set-selections
+        echo "platform-update-agent platform-update-agent/enaDebURL string ${CADDY_APT_PROXY_URL}" | debconf-set-selections
         echo "platform-update-agent platform-update-agent/updateServiceURL string ${UPDATE_SERVICE_URL}" | debconf-set-selections
         apt-get -y install platform-update-agent="$VERSION"
         systemctl status -l --no-pager platform-update-agent
