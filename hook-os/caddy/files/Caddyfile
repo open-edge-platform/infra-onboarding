@@ -60,7 +60,7 @@ localhost:7443 {
             tls_server_name {$tink_stack_svc}
         }
     }
-    reverse_proxy /repository/* {$release_svc}:443 {
+    reverse_proxy /files-edge-orch/repository/* {$release_svc}:443 {
         header_up Authorization "Bearer {$release_token}"
         header_up Host {upstream_hostport}
 

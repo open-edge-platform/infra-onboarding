@@ -13,7 +13,7 @@ import (
 	"time"
 
 	// pb "stream-test/api"
-	pb "github.com/intel/infra-onboarding/onboarding-manager/pkg/api"
+	pb "github.com/intel/infra-onboarding/onboarding-manager/pkg/api/onboardingmgr/v1"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -69,7 +69,7 @@ func grpcStreamClient(ctx context.Context, address string, port int, mac string,
 	defer stream.CloseSend()
 
 	// Send a request over the stream
-	request := &pb.OnboardStreamRequest{
+	request := &pb.OnboardNodeStreamRequest{
 		MacId:     mac,
 		Uuid:      uuid,
 		Serialnum: serial,
@@ -105,7 +105,7 @@ func grpcStreamClient(ctx context.Context, address string, port int, mac string,
 		// Handle different node states
 		if resp.Status.Code == int32(codes.OK) {
 			switch resp.NodeState {
-			case pb.OnboardStreamResponse_REGISTERED:
+			case pb.OnboardNodeStreamResponse_NODE_STATE_REGISTERED:
 				fmt.Println("Edge node registered. Waiting for the edge node to become ready for onboarding...")
 
 				// Sleep for a randomized backoff duration
@@ -117,7 +117,7 @@ func grpcStreamClient(ctx context.Context, address string, port int, mac string,
 					backoff = 2 * time.Second
 				}
 
-			case pb.OnboardStreamResponse_ONBOARDED:
+			case pb.OnboardNodeStreamResponse_NODE_STATE_ONBOARDED:
 				clientID := resp.ClientId
 				clientSecret := resp.ClientSecret
 				projectID := resp.ProjectId
@@ -138,7 +138,7 @@ func grpcStreamClient(ctx context.Context, address string, port int, mac string,
 				}
 				return clientID, clientSecret, nil, fallback
 
-			case pb.OnboardStreamResponse_UNSPECIFIED:
+			case pb.OnboardNodeStreamResponse_NODE_STATE_UNSPECIFIED:
 				return "", "", fmt.Errorf("edge node state is unspecified or unknown"), fallback
 
 			default:

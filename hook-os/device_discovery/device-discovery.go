@@ -18,7 +18,7 @@ import (
 	"syscall"
 	"time"
 
-	pb_om "github.com/intel/infra-onboarding/onboarding-manager/pkg/api"
+	pb_om "github.com/intel/infra-onboarding/onboarding-manager/pkg/api/onboardingmgr/v1"
 	"golang.org/x/oauth2"
 
 	"google.golang.org/grpc"
@@ -178,11 +178,11 @@ func grpcMaestroOnboardNodeJWT(ctx context.Context, address string, port int, ma
 		},
 	}
 	// Create a NodeRequest object and set the Payload field
-	nodeRequest := &pb_om.NodeRequest{
+	nodeRequest := &pb_om.CreateNodesRequest{
 		Payload: []*pb_om.NodeData{nodeData},
 	}
 	// Call the gRPC endpoint with the NodeRequest
-	var nodeResponse *pb_om.NodeResponse
+	var nodeResponse *pb_om.CreateNodesResponse
 	nodeResponse, err = cli.CreateNodes(ctx, nodeRequest)
 	if err != nil {
 		return fmt.Errorf("could not call gRPC endpoint for server %s: %v", target, err)
