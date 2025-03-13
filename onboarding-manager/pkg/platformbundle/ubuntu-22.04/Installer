@@ -6,10 +6,6 @@
 exec &> >(tee >(systemd-cat -t /home/postinstall/Setup/installer.sh))
 set -euo pipefail
 
-if [ -f /etc/apt/apt.conf ]; then
-    rm /etc/apt/apt.conf
-fi
-
 . /etc/environment
 export http_proxy https_proxy ftp_proxy socks_server no_proxy;
 

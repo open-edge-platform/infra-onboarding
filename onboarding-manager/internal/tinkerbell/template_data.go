@@ -502,6 +502,24 @@ func NewTemplateDataUbuntu(name string, deviceInfo onboarding_types.DeviceInfo) 
 					},
 					Pid: "host",
 				},
+
+				// TODO: Required for kernel-upgrd, we should find a way to pass env variable to kernel-upgrd action directly
+				{
+					Name:    ActionAddAptProxy,
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":   "ext4",
+						"DEST_PATH": "/etc/apt/apt.conf",
+						"CONTENTS": fmt.Sprintf(`
+						Acquire::http::Proxy "%s";
+						Acquire::https::Proxy "%s";`, infraConfig.ENProxyHTTP, infraConfig.ENProxyHTTPS),
+						"UID":     "0",
+						"GID":     "0",
+						"MODE":    "0755",
+						"DIRMODE": "0755",
+					},
+				},
 				{
 					Name:    ActionCloudInitInstall,
 					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
