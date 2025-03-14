@@ -33,6 +33,9 @@ grep -qF "no_proxy" /etc/environment || echo no_proxy={{ .EN_NO_PROXY }} >> /etc
 {{- end }}
 . /etc/environment
 export http_proxy https_proxy ftp_proxy socks_server no_proxy;
+# TODO: Investigate and find the root cause of the issue with the HOME environment variable not found.
+# Set the HOME environment variable if not already set
+export HOME=/root
 
 SETUP_STATUS_FILENAME="install_pkgs_status"
 STATUS_FILENAME=".success_install_status"
@@ -316,7 +319,11 @@ install_node_agent(){
         done
 
         echo "setup apt source"
-        curl -kfsSL "https://$CADDY_APT_PROXY_URL/edge-node.asc" -H "Authorization: Bearer $RS_AT" -o /etc/apt/trusted.gpg.d/edge-node.asc
+        if [ "$RS_TYPE" == "auth" ]; then
+            curl -kfsSL "https://$CADDY_APT_PROXY_URL/edge-node.asc" -H "Authorization: Bearer $RS_AT" -o /etc/apt/trusted.gpg.d/edge-node.asc
+        else
+            curl -kfsSL "https://$CADDY_APT_PROXY_URL/edge-node.asc" -o /etc/apt/trusted.gpg.d/edge-node.asc
+        fi
         echo "deb https://localhost:$CADDY_APT_PROXY_PORT/repository ${APT_DISTRO} main" | tee /etc/apt/sources.list.d/edge-node.list
 
         apt-get update

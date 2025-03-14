@@ -8,6 +8,9 @@ set -euo pipefail
 
 . /etc/environment
 export http_proxy https_proxy ftp_proxy socks_server no_proxy;
+# TODO: Investigate and find the root cause of the issue with the HOME environment variable not found.
+# Set the HOME environment variable if not already set
+export HOME=/root
 
 SETUP_STATUS_FILENAME="install_pkgs_status"
 STATUS_FILENAME=".success_install_status"
@@ -173,6 +176,7 @@ install_node_agent(){
         echo "node-agent node-agent/proxy.aptSourceProxyPort string ${CADDY_APT_PROXY_PORT}" | debconf-set-selections
         echo "node-agent node-agent/proxy.imgRegistryURL string ${CADDY_REGISTRY_PROXY_URL}" | debconf-set-selections
         echo "node-agent node-agent/proxy.imgRegistryProxyPort string ${CADDY_REGISTRY_PROXY_PORT}" | debconf-set-selections
+        echo "node-agent node-agent/auth.RSType string ${RS_TYPE}" | debconf-set-selections
 
         echo "Install caddy for node agent..."
 
@@ -231,7 +235,11 @@ install_node_agent(){
         done
 
         echo "setup apt source"
-        curl -kfsSL "https://$CADDY_APT_PROXY_URL/edge-node.asc" -H "Authorization: Bearer $RS_AT" -o /etc/apt/trusted.gpg.d/edge-node.asc
+        if [ "$RS_TYPE" == "auth" ]; then
+            curl -kfsSL "https://$CADDY_APT_PROXY_URL/edge-node.asc" -H "Authorization: Bearer $RS_AT" -o /etc/apt/trusted.gpg.d/edge-node.asc
+        else
+            curl -kfsSL "https://$CADDY_APT_PROXY_URL/edge-node.asc" -o /etc/apt/trusted.gpg.d/edge-node.asc
+        fi
         echo "deb https://localhost:$CADDY_APT_PROXY_PORT/repository ${APT_DISTRO} main" | tee /etc/apt/sources.list.d/edge-node.list
 
         apt-get update
