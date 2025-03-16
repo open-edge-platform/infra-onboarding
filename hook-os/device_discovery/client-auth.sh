@@ -11,12 +11,12 @@ a=0
 password_authenticated=0
 
 readonly idp_folder=/dev/shm
-readonly log_file="/var/log/onboot/client-auth.log"
+readonly log_file="/var/log/client-auth/client-auth.log"
 readonly HTTP_OK=200
 readonly HTTP_NO_CONTENT=204
 
 # Ensure the log directory exists
-mkdir -p /var/log/onboot
+mkdir -p /var/log/client-auth
 touch "$log_file"
 
 # shellcheck disable=SC2016
