@@ -15,11 +15,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/intel/infra-onboarding/dkam/internal/env"
-	"github.com/intel/infra-onboarding/dkam/pkg/config"
-	"github.com/intel/infra-onboarding/dkam/pkg/download"
-	"github.com/intel/infra-onboarding/dkam/pkg/util"
-	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
+	"github.com/open-edge-platform/infra-onboarding/dkam/internal/env"
+	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
+	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/download"
+	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/util"
+	dkam_testing "github.com/open-edge-platform/infra-onboarding/dkam/testing"
 )
 
 const (

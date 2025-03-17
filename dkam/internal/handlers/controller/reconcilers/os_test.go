@@ -15,12 +15,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
-	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
-	"github.com/intel/infra-onboarding/dkam/internal/invclient"
-	"github.com/intel/infra-onboarding/dkam/pkg/config"
-	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
-	rec_v2 "github.com/intel/orch-library/go/pkg/controller/v2"
+	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
+	inv_testing "github.com/open-edge-platform/infra-core/inventory/v2/pkg/testing"
+	"github.com/open-edge-platform/infra-onboarding/dkam/internal/invclient"
+	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
+	dkam_testing "github.com/open-edge-platform/infra-onboarding/dkam/testing"
+	rec_v2 "github.com/open-edge-platform/orch-library/go/pkg/controller/v2"
 )
 
 const (

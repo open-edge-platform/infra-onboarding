@@ -18,8 +18,8 @@ require (
 )
 
 require (
-	github.com/intel-tiber/infra-onboarding/tinker-actions/pkg/drive_detection v0.0.0-20250311120014-fe933a9e83cb
+	github.com/open-edge-platform/infra-onboarding/tinker-actions/pkg/drive_detection v0.0.0-20250311120014-fe933a9e83cb
 	github.com/sirupsen/logrus v1.9.3 // indirect
 )
 
-replace github.com/intel-tiber/infra-onboarding/tinker-actions/pkg/drive_detection => ../../pkg/drive_detection
+replace github.com/open-edge-platform/infra-onboarding/tinker-actions/pkg/drive_detection => ../../pkg/drive_detection

@@ -14,7 +14,7 @@
 #### Go Targets ####
 
 # Set GOPRIVATE to deal with private innersource repos
-GOCMD := GOPRIVATE="github.com/intel/*,github.com/intel-tiber/*" go
+GOCMD := GOPRIVATE="github.com/intel/*,github.com/intel-tiber/*,github.com/open-edge-platform/*" go
 
 #### Variables ####
 GOARCH	:= $(shell go env GOARCH)

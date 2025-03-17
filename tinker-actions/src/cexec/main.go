@@ -19,7 +19,7 @@ import (
 	"strings"
 	"syscall"
 
-	dd "github.com/intel-tiber/infra-onboarding/tinker-actions/pkg/drive_detection"
+	dd "github.com/open-edge-platform/infra-onboarding/tinker-actions/pkg/drive_detection"
 	"github.com/peterbourgon/ff/v3"
 )
 

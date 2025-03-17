@@ -14,9 +14,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"gopkg.in/yaml.v3"
 
-	as "github.com/intel/infra-core/inventory/v2/pkg/artifactservice"
-	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
-	"github.com/intel/infra-core/inventory/v2/pkg/logging"
+	as "github.com/open-edge-platform/infra-core/inventory/v2/pkg/artifactservice"
+	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
 )
 
 const (

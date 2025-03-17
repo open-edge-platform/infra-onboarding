@@ -14,14 +14,14 @@ ARG VERSION
 ARG REVISION
 ARG BUILD_DATE
 
-COPY common.mk version.mk common_go.mk /go/src/github.com/intel/infra-onboarding/
-COPY Makefile requirements.txt VERSION go.mod go.sum /go/src/github.com/intel/infra-onboarding/dkam/
-COPY cmd/ /go/src/github.com/intel/infra-onboarding/dkam/cmd/
-COPY internal/ /go/src/github.com/intel/infra-onboarding/dkam/internal/
-COPY pkg/ /go/src/github.com/intel/infra-onboarding/dkam/pkg/
-COPY vendor/ /go/src/github.com/intel/infra-onboarding/dkam/vendor/
+COPY common.mk version.mk common_go.mk /go/src/github.com/open-edge-platform/infra-onboarding/
+COPY Makefile requirements.txt VERSION go.mod go.sum /go/src/github.com/open-edge-platform/infra-onboarding/dkam/
+COPY cmd/ /go/src/github.com/open-edge-platform/infra-onboarding/dkam/cmd/
+COPY internal/ /go/src/github.com/open-edge-platform/infra-onboarding/dkam/internal/
+COPY pkg/ /go/src/github.com/open-edge-platform/infra-onboarding/dkam/pkg/
+COPY vendor/ /go/src/github.com/open-edge-platform/infra-onboarding/dkam/vendor/
 
-WORKDIR /go/src/github.com/intel/infra-onboarding/dkam
+WORKDIR /go/src/github.com/open-edge-platform/infra-onboarding/dkam
 
 RUN CGO_ENABLED=0 LABEL_REPO_URL=${REPO_URL} LABEL_VERSION=${VERSION} LABEL_REVISION=${REVISION} LABEL_BUILD_DATE=${BUILD_DATE} make ${MAKE_TARGET}
 
@@ -51,8 +51,8 @@ LABEL org.opencontainers.image.version=${VERSION} \
 
 WORKDIR /home/$USERNAME
 
-COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/intel/infra-onboarding/dkam/out/dkammgr /usr/local/bin/dkammgr
-COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/intel/infra-onboarding/dkam/pkg /home/$USERNAME/pkg
+COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/open-edge-platform/infra-onboarding/dkam/out/dkammgr /usr/local/bin/dkammgr
+COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/open-edge-platform/infra-onboarding/dkam/pkg /home/$USERNAME/pkg
 
 RUN chown -R $USERNAME:$USERNAME /home/$USERNAME
 RUN chmod +x pkg/script/build_sign_ipxe.sh

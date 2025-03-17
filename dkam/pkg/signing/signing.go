@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/intel/infra-core/inventory/v2/pkg/logging"
-	"github.com/intel/infra-onboarding/dkam/pkg/config"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
+	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
 )
 
 var zlog = logging.GetLogger("InfraDKAMAuth")

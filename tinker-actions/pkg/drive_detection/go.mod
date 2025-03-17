@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-module github.com/intel-tiber/infra-onboarding/tinker-actions/pkg/drive_detection
+module github.com/open-edge-platform/infra-onboarding/tinker-actions/pkg/drive_detection
 
 go 1.23.0
 

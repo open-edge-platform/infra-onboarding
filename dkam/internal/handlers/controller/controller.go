@@ -11,14 +11,14 @@ import (
 
 	"github.com/pkg/errors"
 
-	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
-	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
-	"github.com/intel/infra-core/inventory/v2/pkg/logging"
-	"github.com/intel/infra-core/inventory/v2/pkg/util"
-	"github.com/intel/infra-core/inventory/v2/pkg/validator"
-	"github.com/intel/infra-onboarding/dkam/internal/handlers/controller/reconcilers"
-	"github.com/intel/infra-onboarding/dkam/internal/invclient"
-	rec_v2 "github.com/intel/orch-library/go/pkg/controller/v2"
+	inv_v1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/inventory/v1"
+	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/util"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/validator"
+	"github.com/open-edge-platform/infra-onboarding/dkam/internal/handlers/controller/reconcilers"
+	"github.com/open-edge-platform/infra-onboarding/dkam/internal/invclient"
+	rec_v2 "github.com/open-edge-platform/orch-library/go/pkg/controller/v2"
 )
 
 var (

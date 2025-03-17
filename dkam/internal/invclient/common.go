@@ -7,11 +7,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 
-	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
-	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
-	network_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/network/v1"
-	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
-	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
+	computev1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/compute/v1"
+	inv_v1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/inventory/v1"
+	network_v1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/network/v1"
+	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
+	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 )
 
 func getInventoryResourceAndID(resource proto.Message) (*inv_v1.Resource, string, error) {

@@ -9,12 +9,12 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	as "github.com/intel/infra-core/inventory/v2/pkg/artifactservice"
-	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
-	"github.com/intel/infra-core/inventory/v2/pkg/logging"
-	"github.com/intel/infra-onboarding/dkam/internal/env"
-	"github.com/intel/infra-onboarding/dkam/pkg/config"
-	"github.com/intel/infra-onboarding/dkam/pkg/util"
+	as "github.com/open-edge-platform/infra-core/inventory/v2/pkg/artifactservice"
+	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
+	"github.com/open-edge-platform/infra-onboarding/dkam/internal/env"
+	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
+	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/util"
 )
 
 var zlog = logging.GetLogger("InfraDKAMDownload")

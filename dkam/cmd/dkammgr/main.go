@@ -15,17 +15,17 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/intel/infra-core/inventory/v2/pkg/client"
-	"github.com/intel/infra-core/inventory/v2/pkg/logging"
-	"github.com/intel/infra-core/inventory/v2/pkg/metrics"
-	"github.com/intel/infra-core/inventory/v2/pkg/oam"
-	"github.com/intel/infra-core/inventory/v2/pkg/tracing"
-	"github.com/intel/infra-onboarding/dkam/internal/dkammgr"
-	"github.com/intel/infra-onboarding/dkam/internal/env"
-	_ "github.com/intel/infra-onboarding/dkam/internal/flag"
-	"github.com/intel/infra-onboarding/dkam/internal/handlers/controller"
-	"github.com/intel/infra-onboarding/dkam/internal/invclient"
-	"github.com/intel/infra-onboarding/dkam/pkg/config"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/client"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/metrics"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/oam"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/tracing"
+	"github.com/open-edge-platform/infra-onboarding/dkam/internal/dkammgr"
+	"github.com/open-edge-platform/infra-onboarding/dkam/internal/env"
+	_ "github.com/open-edge-platform/infra-onboarding/dkam/internal/flag"
+	"github.com/open-edge-platform/infra-onboarding/dkam/internal/handlers/controller"
+	"github.com/open-edge-platform/infra-onboarding/dkam/internal/invclient"
+	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
 )
 
 var (
@@ -46,7 +46,7 @@ var (
 
 var (
 	Project   = "infra-onboarding/dkam"
-	RepoURL   = fmt.Sprintf("https://github.com/intel/%s.git", Project)
+	RepoURL   = fmt.Sprintf("https://github.com/open-edge-platform/%s.git", Project)
 	Version   = "<unset>"
 	Revision  = "<unset>"
 	BuildDate = "<unset>"

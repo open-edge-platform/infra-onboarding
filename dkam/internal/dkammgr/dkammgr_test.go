@@ -12,12 +12,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
-	"github.com/intel/infra-core/inventory/v2/pkg/logging"
-	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
-	"github.com/intel/infra-onboarding/dkam/internal/dkammgr"
-	"github.com/intel/infra-onboarding/dkam/pkg/config"
-	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
+	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
+	inv_testing "github.com/open-edge-platform/infra-core/inventory/v2/pkg/testing"
+	"github.com/open-edge-platform/infra-onboarding/dkam/internal/dkammgr"
+	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
+	dkam_testing "github.com/open-edge-platform/infra-onboarding/dkam/testing"
 )
 
 var (

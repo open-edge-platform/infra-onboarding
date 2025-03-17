@@ -14,10 +14,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
-	"github.com/intel/infra-onboarding/dkam/pkg/config"
-	"github.com/intel/infra-onboarding/dkam/pkg/curation"
-	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
+	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
+	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
+	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/curation"
+	dkam_testing "github.com/open-edge-platform/infra-onboarding/dkam/testing"
 )
 
 const (

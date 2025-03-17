@@ -8,11 +8,11 @@ module cexec
 go 1.23.1
 
 require (
-	github.com/intel-tiber/infra-onboarding/tinker-actions/pkg/drive_detection v0.0.0-20250311115705-95b2f028cf7f
+	github.com/open-edge-platform/infra-onboarding/tinker-actions/pkg/drive_detection v0.0.0
 	github.com/peterbourgon/ff/v3 v3.4.0
 )
 
-replace github.com/intel-tiber/infra-onboarding/tinker-actions/pkg/drive_detection => ../../pkg/drive_detection
+replace github.com/open-edge-platform/infra-onboarding/tinker-actions/pkg/drive_detection => ../../pkg/drive_detection
 
 require (
 	github.com/sirupsen/logrus v1.9.3 // indirect

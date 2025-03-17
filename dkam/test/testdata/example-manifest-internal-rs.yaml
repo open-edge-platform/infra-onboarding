@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # From: https://github.com/intel-innersource/frameworks.edge.one-intel-edge.edge-node-deployment/blob/v24.03.0-rc4/manifest/24.03.0-rc4.yaml
 # but with one-intel-edge/edge-node/file/provisioning-hook-os version changes to HOOK_OS_VERSION for easier testing
+# TODO: UPDATE and remove unwanted names
 metadata:
   schemaVersion: 0.2.1
   release: 24.03.0-rc4

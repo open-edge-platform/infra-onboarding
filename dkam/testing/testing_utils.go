@@ -18,13 +18,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
-	"github.com/intel/infra-core/inventory/v2/pkg/logging"
-	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
-	"github.com/intel/infra-onboarding/dkam/internal/env"
-	"github.com/intel/infra-onboarding/dkam/internal/flag"
-	"github.com/intel/infra-onboarding/dkam/internal/invclient"
-	"github.com/intel/infra-onboarding/dkam/pkg/config"
+	inv_v1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/inventory/v1"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
+	inv_testing "github.com/open-edge-platform/infra-core/inventory/v2/pkg/testing"
+	"github.com/open-edge-platform/infra-onboarding/dkam/internal/env"
+	"github.com/open-edge-platform/infra-onboarding/dkam/internal/flag"
+	"github.com/open-edge-platform/infra-onboarding/dkam/internal/invclient"
+	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
 )
 
 const (

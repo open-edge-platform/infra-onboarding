@@ -11,10 +11,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/intel/infra-core/inventory/v2/pkg/client"
-	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
-	"github.com/intel/infra-onboarding/dkam/internal/handlers/controller/reconcilers"
-	rec_v2 "github.com/intel/orch-library/go/pkg/controller/v2"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/client"
+	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
+	"github.com/open-edge-platform/infra-onboarding/dkam/internal/handlers/controller/reconcilers"
+	rec_v2 "github.com/open-edge-platform/orch-library/go/pkg/controller/v2"
 )
 
 func TestHandleInventoryError(t *testing.T) {
