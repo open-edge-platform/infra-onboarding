@@ -89,7 +89,7 @@ linters-settings:
     sections:
       - standard
       - default
-      - prefix(github.com/intel)
+      - prefix(github.com/open-edge-platform)
   gocritic:
     enabled-tags:
       - diagnostic
@@ -123,7 +123,7 @@ linters-settings:
           - "!$test"
         allow:
           - $gostd
-          - github.com/intel
+          - github.com/open-edge-platform
           - github.com/stretchr/testify/require
           - github.com/grpc-ecosystem/go-grpc-middleware
           - entgo.io/ent
@@ -154,7 +154,7 @@ linters-settings:
           - $test
         allow:
           - $gostd
-          - github.com/intel
+          - github.com/open-edge-platform
           - github.com/stretchr/testify/assert
           - github.com/goccy/go-json
           - github.com/google

@@ -16,8 +16,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	om_testing "github.com/intel/infra-onboarding/onboarding-manager/internal/testing"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/tinkerbell"
+	om_testing "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/testing"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell"
 )
 
 func TestNewWorkflow(t *testing.T) {

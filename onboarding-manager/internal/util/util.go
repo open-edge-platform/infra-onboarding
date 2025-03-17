@@ -4,10 +4,10 @@
 package util
 
 import (
-	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
-	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
-	_ "github.com/intel/infra-core/inventory/v2/pkg/logging" // include to pass tests with -globalLogLevel
-	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
+	computev1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/compute/v1"
+	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
+	_ "github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging" // include to pass tests with -globalLogLevel
+	inv_status "github.com/open-edge-platform/infra-core/inventory/v2/pkg/status"
 )
 
 func IsSameHostStatus(

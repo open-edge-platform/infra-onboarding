@@ -12,21 +12,21 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/intel/infra-core/inventory/v2/pkg/auth"
-	"github.com/intel/infra-core/inventory/v2/pkg/client"
-	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
-	"github.com/intel/infra-core/inventory/v2/pkg/flags"
-	"github.com/intel/infra-core/inventory/v2/pkg/logging"
-	"github.com/intel/infra-core/inventory/v2/pkg/metrics"
-	"github.com/intel/infra-core/inventory/v2/pkg/oam"
-	"github.com/intel/infra-core/inventory/v2/pkg/policy/rbac"
-	"github.com/intel/infra-core/inventory/v2/pkg/secretprovider"
-	"github.com/intel/infra-core/inventory/v2/pkg/tracing"
-	"github.com/intel/infra-onboarding/dkam/pkg/config"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/env"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/handlers/controller"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/handlers/southbound"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/auth"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/client"
+	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/flags"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/metrics"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/oam"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/policy/rbac"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/secretprovider"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/tracing"
+	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/env"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/handlers/controller"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/handlers/southbound"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/invclient"
 )
 
 const envNameOnboardingCredentialsSecretName = "ONBOARDING_CREDENTIALS_SECRET_NAME"
@@ -59,7 +59,7 @@ var (
 
 var (
 	Project   = "infra-onboarding"
-	RepoURL   = fmt.Sprintf("https://github.com/intel/%s.git", Project)
+	RepoURL   = fmt.Sprintf("https://github.com/open-edge-platform/%s.git", Project)
 	Version   = "<unset>"
 	Revision  = "<unset>"
 	BuildDate = "<unset>"

@@ -52,9 +52,9 @@ generates Tinkerbell workflows for provisioning, which are executed by the Tink 
   non-interactive onboarding.
 
 The relevant API definitions can be found in
-[this API directory](https://github.com/intel-tiber/infra-onboarding/tree/main/onboarding-manager/api/grpc/onboardingmgr)
+[this API directory](https://github.com/open-edge-platform/infra-onboarding/tree/main/onboarding-manager/api/grpc/onboardingmgr)
 and
-[this API package](https://github.com/intel-tiber/infra-onboarding/tree/main/onboarding-manager/pkg/api).
+[this API package](https://github.com/open-edge-platform/infra-onboarding/tree/main/onboarding-manager/pkg/api).
 
 ## Get Started
 

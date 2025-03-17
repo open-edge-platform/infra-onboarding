@@ -6,9 +6,9 @@ package util_test
 import (
 	"testing"
 
-	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
-	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/util"
+	computev1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/compute/v1"
+	inv_status "github.com/open-edge-platform/infra-core/inventory/v2/pkg/status"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/util"
 )
 
 func TestPopulateHostStatus(t *testing.T) {

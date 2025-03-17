@@ -16,8 +16,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
-	om_testing "github.com/intel/infra-onboarding/onboarding-manager/internal/testing"
+	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
+	om_testing "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/testing"
 )
 
 func TestNewHardware(t *testing.T) {

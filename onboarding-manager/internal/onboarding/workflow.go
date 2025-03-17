@@ -17,16 +17,16 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
-	"github.com/intel/infra-core/inventory/v2/pkg/auth"
-	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
-	"github.com/intel/infra-core/inventory/v2/pkg/logging"
-	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/env"
-	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/tinkerbell"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/util"
-	om_status "github.com/intel/infra-onboarding/onboarding-manager/pkg/status"
+	computev1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/compute/v1"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/auth"
+	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
+	inv_status "github.com/open-edge-platform/infra-core/inventory/v2/pkg/status"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/env"
+	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/util"
+	om_status "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/status"
 )
 
 var (

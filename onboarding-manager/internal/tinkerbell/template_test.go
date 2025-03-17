@@ -16,11 +16,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
-	dkam_testing "github.com/intel/infra-onboarding/dkam/testing"
-	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
-	om_testing "github.com/intel/infra-onboarding/onboarding-manager/internal/testing"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/tinkerbell"
+	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
+	dkam_testing "github.com/open-edge-platform/infra-onboarding/dkam/testing"
+	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
+	om_testing "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/testing"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell"
 )
 
 func TestNewTemplate(t *testing.T) {

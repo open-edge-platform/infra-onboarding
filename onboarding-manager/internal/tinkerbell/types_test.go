@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/tinkerbell"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell"
 )
 
 func TestMarshal(t *testing.T) {

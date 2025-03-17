@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"time"
 
-	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
-	kk_auth "github.com/intel/infra-core/inventory/v2/pkg/auth"
-	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
-	"github.com/intel/infra-core/inventory/v2/pkg/logging"
-	"github.com/intel/infra-core/inventory/v2/pkg/tracing"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
-	om_status "github.com/intel/infra-onboarding/onboarding-manager/pkg/status"
-	rec_v2 "github.com/intel/orch-library/go/pkg/controller/v2"
+	computev1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/compute/v1"
+	kk_auth "github.com/open-edge-platform/infra-core/inventory/v2/pkg/auth"
+	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/tracing"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/invclient"
+	om_status "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/status"
+	rec_v2 "github.com/open-edge-platform/orch-library/go/pkg/controller/v2"
 )
 
 const loggerName = "HostReconciler"

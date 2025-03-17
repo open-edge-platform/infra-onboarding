@@ -8,12 +8,12 @@ import (
 	"os"
 	"strings"
 
-	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
-	"github.com/intel/infra-onboarding/dkam/pkg/config"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/env"
-	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
-	"github.com/intel/infra-onboarding/onboarding-manager/pkg/cloudinit"
-	platformbundleubuntu2204 "github.com/intel/infra-onboarding/onboarding-manager/pkg/platformbundle/ubuntu-22.04"
+	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
+	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/env"
+	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/cloudinit"
+	platformbundleubuntu2204 "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/platformbundle/ubuntu-22.04"
 )
 
 const (

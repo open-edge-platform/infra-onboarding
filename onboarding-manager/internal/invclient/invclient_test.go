@@ -19,16 +19,16 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
-	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
-	inv_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/inventory/v1"
-	network_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/network/v1"
-	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
-	provider_v1 "github.com/intel/infra-core/inventory/v2/pkg/api/provider/v1"
-	"github.com/intel/infra-core/inventory/v2/pkg/client"
-	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
-	inv_testing "github.com/intel/infra-core/inventory/v2/pkg/testing"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
-	om_status "github.com/intel/infra-onboarding/onboarding-manager/pkg/status"
+	computev1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/compute/v1"
+	inv_v1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/inventory/v1"
+	network_v1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/network/v1"
+	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
+	provider_v1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/provider/v1"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/client"
+	inv_status "github.com/open-edge-platform/infra-core/inventory/v2/pkg/status"
+	inv_testing "github.com/open-edge-platform/infra-core/inventory/v2/pkg/testing"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/invclient"
+	om_status "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/status"
 )
 
 const (

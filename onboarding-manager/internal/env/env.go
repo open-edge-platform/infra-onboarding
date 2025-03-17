@@ -6,7 +6,7 @@ package env
 import (
 	"os"
 
-	"github.com/intel/infra-core/inventory/v2/pkg/logging"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
 )
 
 const (

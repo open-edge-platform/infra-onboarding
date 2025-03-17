@@ -11,8 +11,8 @@ import (
 	"google.golang.org/grpc/codes"
 	grpc_status "google.golang.org/grpc/status"
 
-	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
-	rec_v2 "github.com/intel/orch-library/go/pkg/controller/v2"
+	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
+	rec_v2 "github.com/open-edge-platform/orch-library/go/pkg/controller/v2"
 )
 
 const (

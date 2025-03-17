@@ -6,7 +6,7 @@
 //nolint:stylecheck,revive // use underscore for onboarding_types
 package onboarding_types
 
-import osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
+import osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 
 const (
 	DefaultProviderName = "infra_onboarding"

@@ -24,14 +24,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	computev1 "github.com/intel/infra-core/inventory/v2/pkg/api/compute/v1"
-	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
-	statusv1 "github.com/intel/infra-core/inventory/v2/pkg/api/status/v1"
-	inv_status "github.com/intel/infra-core/inventory/v2/pkg/status"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/env"
-	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
-	om_testing "github.com/intel/infra-onboarding/onboarding-manager/internal/testing"
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/tinkerbell"
+	computev1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/compute/v1"
+	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
+	statusv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/status/v1"
+	inv_status "github.com/open-edge-platform/infra-core/inventory/v2/pkg/status"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/env"
+	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
+	om_testing "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/testing"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell"
 )
 
 func TestCheckStatusOrRunProdWorkflow(t *testing.T) {

@@ -75,8 +75,7 @@ install_dependencies() {
         echo -e "\e[32m[install git python3-pip]\e[0m"
         sudo apt-get install -y curl wget unzip apparmor iptables lvm2 cryptsetup lxc mosquitto tpm2-abrmd tpm2-tools software-properties-common python3-venv git jq libpq5 python3-pip ca-certificates gnupg dmidecode
 
-        # IMPORTANT: These hardcoded uid/gid must be aligned to that in TiberMicrovisor specified in
-        # https://github.com/intel-innersource/os.linux.TiberMicrovisor.tiberlinuxos/blob/main/SPECS/cluster-agent/cluster-agent.conf.
+        # IMPORTANT: These hardcoded uid/gid must be aligned to that in TiberMicrovisor specified in cluster-agent.conf.
         # If additional new users or groups need to be created by DKAM, they MUST be added after the users and group created below to
         # avoid those users or groups being assigned to IDs that are reserved. A list of the reserved UID and GID values are below:
         #

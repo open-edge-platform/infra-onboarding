@@ -10,7 +10,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/intel/infra-onboarding/onboarding-manager/internal/invclient"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/invclient"
 )
 
 const rbacRules = "../../../rego/authz.rego"

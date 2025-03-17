@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	"github.com/intel/infra-core/inventory/v2/pkg/auth"
-	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/auth"
+	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 )
 
 const errIndex = 2

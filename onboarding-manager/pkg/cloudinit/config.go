@@ -6,8 +6,8 @@ package cloudinit
 import (
 	"google.golang.org/grpc/codes"
 
-	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
-	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
+	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
+	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 )
 
 type Option func(*cloudInitOptions)

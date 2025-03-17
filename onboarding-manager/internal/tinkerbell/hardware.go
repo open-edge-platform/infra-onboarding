@@ -11,8 +11,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
-	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
+	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
+	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
 )
 
 func NewHardware(name, ns, id, ip, gateway, osResourceID string) *tink.Hardware {

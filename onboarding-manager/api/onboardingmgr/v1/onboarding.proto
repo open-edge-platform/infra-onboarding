@@ -8,7 +8,7 @@ package onboardingmgr.v1;
 import "google/rpc/status.proto";
 import "validate/validate.proto";
 
-option go_package = "github.com/intel/infra-onboarding/onboarding-manager/pkg/api/onboardingmgr/v1;onboardingmgrv1";
+option go_package = "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/api/onboardingmgr/v1;onboardingmgrv1";
 
 // Interactive Onboarding
 service InteractiveOnboardingService {

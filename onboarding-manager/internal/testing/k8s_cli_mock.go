@@ -18,8 +18,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	inv_client "github.com/intel/infra-core/inventory/v2/pkg/client"
-	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
+	inv_client "github.com/open-edge-platform/infra-core/inventory/v2/pkg/client"
+	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 )
 
 type MockK8sClient struct {

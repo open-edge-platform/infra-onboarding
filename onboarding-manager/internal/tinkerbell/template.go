@@ -12,9 +12,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	osv1 "github.com/intel/infra-core/inventory/v2/pkg/api/os/v1"
-	inv_errors "github.com/intel/infra-core/inventory/v2/pkg/errors"
-	onboarding_types "github.com/intel/infra-onboarding/onboarding-manager/internal/onboarding/types"
+	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
+	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
+	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
 )
 
 func NewTemplate(tpData, name, ns string) *tink.Template {
