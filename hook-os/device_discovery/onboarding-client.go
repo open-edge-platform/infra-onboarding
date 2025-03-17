@@ -13,7 +13,7 @@ import (
 	"time"
 
 	// pb "stream-test/api"
-	pb "github.com/intel/infra-onboarding/onboarding-manager/pkg/api/onboardingmgr/v1"
+	pb "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/api/onboardingmgr/v1"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

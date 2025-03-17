@@ -18,7 +18,7 @@ import (
 	"syscall"
 	"time"
 
-	pb_om "github.com/intel/infra-onboarding/onboarding-manager/pkg/api/onboardingmgr/v1"
+	pb_om "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/api/onboardingmgr/v1"
 	"golang.org/x/oauth2"
 
 	"google.golang.org/grpc"

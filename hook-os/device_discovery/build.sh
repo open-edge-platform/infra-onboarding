@@ -24,7 +24,7 @@ CGO_ENABLED=0
 export CGO_ENABLED
 export GOOS=linux
 export GOARCH=amd64
-export GOPRIVATE="github.com/intel/*,github.com/intel-tiber/*"
+export GOPRIVATE="github.com/open-edge-platform/*"
 
 go build -v -o app
 
