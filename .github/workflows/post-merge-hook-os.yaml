@@ -27,6 +27,5 @@ jobs:
       run_artifact: true
       prefix_tag_separator: "/"
       project_folder: "hook-os"
-      orch_ci_repo_ref: "0.0.2"
     secrets: inherit
 
