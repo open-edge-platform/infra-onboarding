@@ -17,6 +17,7 @@ import (
 	computev1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/compute/v1"
 	inventoryv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/inventory/v1"
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
+	statusv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/status/v1"
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/policy/rbac"
@@ -487,10 +488,10 @@ func (s *NonInteractiveOnboardingService) OnboardNodeStream(
 			return nil // Close the stream
 		}
 
-		// 2. If the UUID is found but the current state is ONBOARDED or ERROR,
+		// 2. If the UUID is found but the current state is ONBOARDED,
 		// the OM sends a FAILED_PRECONDITION
 		if hostInv.CurrentState == computev1.HostState_HOST_STATE_ONBOARDED ||
-			hostInv.CurrentState == computev1.HostState_HOST_STATE_ERROR {
+			hostInv.RegistrationStatusIndicator == statusv1.StatusIndication_STATUS_INDICATION_ERROR {
 			zlog.Debug().Msgf("Node already exists for UUID %v and node current state %v",
 				req.Uuid, hostInv.CurrentState)
 			// Send a failure response indicating the node is already onboarded or provisioned.

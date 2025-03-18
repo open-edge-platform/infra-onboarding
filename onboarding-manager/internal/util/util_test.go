@@ -38,6 +38,29 @@ func TestPopulateHostStatus(t *testing.T) {
 	}
 }
 
+func TestPopulateInstanceProvisioningStatus(t *testing.T) {
+	type args struct {
+		instance           *computev1.InstanceResource
+		provisioningStatus inv_status.ResourceStatus
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "TestPopulateInstanceProvisioningStatus_WithInstance",
+			args: args{
+				instance: &computev1.InstanceResource{},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(_ *testing.T) {
+			util.PopulateInstanceProvisioningStatus(tt.args.instance, tt.args.provisioningStatus)
+		})
+	}
+}
+
 func TestPopulateInstanceStatusAndCurrentState(t *testing.T) {
 	type args struct {
 		instance           *computev1.InstanceResource

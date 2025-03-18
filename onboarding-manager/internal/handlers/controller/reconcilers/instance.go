@@ -106,15 +106,15 @@ func (ir *InstanceReconciler) handleHostOnboarded(instance *computev1.InstanceRe
 
 func (ir *InstanceReconciler) handleErrorState(instance *computev1.InstanceResource, request rec_v2.Request[ReconcilerID],
 ) rec_v2.Directive[ReconcilerID] {
-	if instance.CurrentState == computev1.InstanceState_INSTANCE_STATE_ERROR &&
+	if instance.GetProvisioningStatusIndicator() == om_status.ProvisioningStatusFailed.StatusIndicator &&
 		instance.DesiredState != computev1.InstanceState_INSTANCE_STATE_DELETED {
-		// current_state set to ERROR by previous reconciliation cycles
+		// ProvisioningStatusIndicator is set to ERROR by previous reconciliation cycles
 		// We don't have auto-recovery mechanisms. The previous reconciliation cycle should
 		// set providerStatusDetail to provide feedback to user.
 		// ATM I (Tomasz) believe that a user should delete via UI and re-configure host again,
 		// once the issue is fixed (e.g., wrong BIOS settings, etc.)
 		zlogInst.Warn().Msgf(
-			"Current state of Instance is ERROR. Reconciliation won't happen until the Instance is re-created.")
+			"Provisioning status is failed. Reconciliation won't happen until the Instance is re-created.")
 		return request.Ack()
 	}
 	return nil
@@ -335,9 +335,10 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 		instance.GetResourceId(), instance.GetDesiredOs().GetName())
 
 	defer func() {
-		// if unrecoverable error, set current_state to ERROR
+		// if unrecoverable error, report error provisioning status
 		if grpc_status.Convert(err).Code() == codes.Aborted {
-			instance.CurrentState = computev1.InstanceState_INSTANCE_STATE_ERROR
+			// report error
+			util.PopulateInstanceProvisioningStatus(instance, om_status.ProvisioningStatusFailed)
 		}
 		// should be safe to not return an error
 		// if the inventory client fails, this will be eventually fixed in the next reconciliation cycle

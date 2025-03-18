@@ -309,24 +309,30 @@ func TestReconcileInstance(t *testing.T) {
 	// run again, current_state == desired_state
 	runReconcilationFuncInstance(t, instanceController, instance)
 
-	// move into the error state
+	// report error status
 	res = &inv_v1.Resource{
 		Resource: &inv_v1.Resource_Instance{
 			Instance: &computev1.InstanceResource{
-				ResourceId:   instanceID,
-				CurrentState: computev1.InstanceState_INSTANCE_STATE_ERROR,
+				ResourceId:                  instanceID,
+				ProvisioningStatus:          om_status.ProvisioningStatusFailed.Status,
+				ProvisioningStatusIndicator: om_status.ProvisioningStatusFailed.StatusIndicator,
 			},
 		},
 	}
-	_, err = inv_testing.TestClients[inv_testing.RMClient].Update(ctx, instanceID,
-		&fieldmaskpb.FieldMask{Paths: []string{computev1.InstanceResourceFieldCurrentState}}, res)
+
+	fmk = fieldmaskpb.FieldMask{Paths: []string{
+		computev1.InstanceResourceFieldProvisioningStatus,
+		computev1.InstanceResourceFieldProvisioningStatusIndicator,
+	}}
+	_, err = inv_testing.TestClients[inv_testing.RMClient].Update(ctx, instanceID, &fmk, res)
 	require.NoError(t, err)
 
+	// state shall be not change, but status is ERROR
 	runReconcilationFuncInstance(t, instanceController, instance)
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
-		computev1.InstanceState_INSTANCE_STATE_ERROR,
-		om_status.ProvisioningStatusDone)
+		computev1.InstanceState_INSTANCE_STATE_RUNNING,
+		om_status.ProvisioningStatusFailed)
 
 	// delete
 	res = &inv_v1.Resource{
@@ -337,6 +343,7 @@ func TestReconcileInstance(t *testing.T) {
 			},
 		},
 	}
+	fmk = fieldmaskpb.FieldMask{Paths: []string{computev1.InstanceResourceFieldDesiredState}}
 	_, err = inv_testing.TestClients[inv_testing.APIClient].Update(ctx, instanceID, &fmk, res)
 	require.NoError(t, err)
 	zlogInst.Debug().Msgf("Instance %s updated to DELETED", instanceID)

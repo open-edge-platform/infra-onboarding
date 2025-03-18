@@ -281,8 +281,8 @@ func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.W
 	case tink.WorkflowStateFailed, tink.WorkflowStateTimeout:
 		ProvisioningStatusFailed := om_status.NewStatusWithDetails(onFailureProvisioningStatus,
 			intermediateWorkflowState)
-		util.PopulateInstanceStatusAndCurrentState(instance, computev1.InstanceState_INSTANCE_STATE_ERROR,
-			ProvisioningStatusFailed)
+		// report error provisioning status
+		util.PopulateInstanceProvisioningStatus(instance, ProvisioningStatusFailed)
 		return inv_errors.Errorfc(codes.Aborted, "Workflow failed or timed out")
 	case "", tink.WorkflowStateRunning, tink.WorkflowStatePending:
 		ProvisioningStatusInProgress := om_status.NewStatusWithDetails(om_status.ProvisioningStatusInProgress,

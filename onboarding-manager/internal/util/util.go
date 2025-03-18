@@ -36,6 +36,14 @@ func PopulateHostOnboardingStatus(
 	host.OnboardingStatusIndicator = onboardingStatus.StatusIndicator
 }
 
+func PopulateInstanceProvisioningStatus(
+	instance *computev1.InstanceResource,
+	provisioningStatus inv_status.ResourceStatus,
+) {
+	instance.ProvisioningStatus = provisioningStatus.Status
+	instance.ProvisioningStatusIndicator = provisioningStatus.StatusIndicator
+}
+
 func PopulateInstanceStatusAndCurrentState(
 	instance *computev1.InstanceResource,
 	currentState computev1.InstanceState,
