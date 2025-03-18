@@ -150,11 +150,12 @@ main() {
 	# proxy if not set then the code will not be able to invoke curl.
 
 	access_token=$(curl --cacert /usr/local/share/ca-certificates/IDP_keyclock.crt -X POST https://"$KEYCLOAK_URL"/realms/master/protocol/openid-connect/token \
-			    -d "username=$username" \
-			    -d "password=$password" \
-			    -d "grant_type=password" \
-			    -d "client_id=system-client" \
-			    -d "scope=openid" | jq -r '.access_token')
+			    -H "Content-Type: application/x-www-form-urlencoded" \
+			    --data-urlencode "username=$username" \
+			    --data-urlencode "password=$password" \
+			    --data-urlencode "grant_type=password" \
+			    --data-urlencode "client_id=system-client" \
+			    --data-urlencode "scope=openid" | jq -r '.access_token')
 
 	if [ "$access_token" = 'null' ]; then
 	    echo "Error login - retry" >> "$log_file"
