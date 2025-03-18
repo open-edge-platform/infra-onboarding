@@ -16,7 +16,7 @@ get_partition_suffix() {
 }
 
 #####################################################################################
-#top level script to check and run fde for ubuntu or tiber
+#top level script to check and run fde for ubuntu or Edge Microvisor Toolkit
 run_enable_fde()
 {
     disk_device=""
@@ -48,7 +48,7 @@ run_enable_fde()
     suffix=$(get_partition_suffix "$DEST_DISK")
 
     # assuming that partition 1 for ubuntu is always rootfs
-    # assuming that part 1 for Tiber Microvisor will be efi part
+    # assuming that part 1 for Edge Microvisor Toolkit will be efi part
 
     echo "checking ${DEST_DISK}${suffix}1"
 
@@ -61,9 +61,20 @@ run_enable_fde()
 	echo "Ubuntu detected. running enable_fde."
 	bash enable_fde.sh
     else
-	# fde for tiber
-	echo "tiber detected. running enable_fde_tiber."
-	bash enable_fde_tiber.sh
+
+	if [ -z "${ENABLE_ONLY_DMVERITY+x}" ] || [ "$ENABLE_ONLY_DMVERITY" = "false" ];
+	then
+	    # fde for Edge Microvisor Toolkit
+	    echo "Edge Microvisor Toolkit detected. running enable_fde_emt."
+	    bash enable_fde_emt.sh
+	else
+	    if [ "$ENABLE_ONLY_DMVERITY" = "true" ]; then
+		echo "Edge Microvisor Toolkit detected. running enable_dmv_emt."
+		bash enable_dmv_emt.sh
+	    else
+		echo "Edge Microvisor Toolkit detected. but invalid env arg."
+	    fi
+	fi
     fi
 }
 

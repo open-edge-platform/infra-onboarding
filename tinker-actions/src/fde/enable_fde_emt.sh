@@ -22,7 +22,7 @@ if $COMPLETE_FDE_DMVERITY;
 then
     boot_partition=1
     rootfs_partition=2
-    tiber_persistent_partition=3
+    emt_persistent_partition=3
 
     #efi_partition=15
 
@@ -38,7 +38,7 @@ then
 else
     boot_partition=1
     rootfs_partition=2
-    tiber_persistent_partition=3
+    emt_persistent_partition=3
 
     rootfs_b_partition=4
 
@@ -226,7 +226,7 @@ make_partition() {
 	root_hashmap_b_start=$(( $rootfs_b_start - $rootfs_hashmap_size ))
 	root_hashmap_a_start=$(( $root_hashmap_b_start - $rootfs_hashmap_size ))
 
-	tiber_persistent_end=$root_hashmap_a_start
+	emt_persistent_end=$root_hashmap_a_start
     else
 	reserved_start=$(( $total_size_disk - $reserved_size ))
 	tep_start=$(( $reserved_start - $tep_size ))
@@ -234,13 +234,13 @@ make_partition() {
 
 	rootfs_b_start=$(( $swap_start - $rootfs_size ))
 
-	tiber_persistent_end=$rootfs_b_start
+	emt_persistent_end=$rootfs_b_start
     fi
     #####
 
-    #save this size of tiber persistent before partition
+    #save this size of emt persistent before partition
     suffix=$(fix_partition_suffix)
-    export tiber_persistent_dd_count=$(fdisk -l ${DEST_DISK} | grep "${DEST_DISK}${suffix}${tiber_persistent_partition}" | awk '{print int( ($4/2048/4) + 0.999999) }')
+    export emt_persistent_dd_count=$(fdisk -l ${DEST_DISK} | grep "${DEST_DISK}${suffix}${emt_persistent_partition}" | awk '{print int( ($4/2048/4) + 0.999999) }')
     #####
     # logging needed to understand the block splits
     echo "DEST_DISK ${DEST_DISK}"
@@ -269,9 +269,9 @@ make_partition() {
     then
 	#this cmd only resizes parition. if there is an error this should handle it.
 	printf 'Fix\n' | parted ---pretend-input-tty ${DEST_DISK} \
-	       resizepart $tiber_persistent_partition $(convert_mb_to_sectors "${tiber_persistent_end}" 1)s
+	       resizepart $emt_persistent_partition $(convert_mb_to_sectors "${emt_persistent_end}" 1)s
 
-	check_return_value $? "Failed to resize tiber persistent paritions"
+	check_return_value $? "Failed to resize emt persistent paritions"
 
 	#this cmd only creates new partitions.
 	parted -s ${DEST_DISK} \
@@ -287,7 +287,7 @@ make_partition() {
 	check_return_value $? "Failed to create paritions"
     else
 	parted -s ${DEST_DISK} \
-	       resizepart $tiber_persistent_partition "${tiber_persistent_end}MB" \
+	       resizepart $emt_persistent_partition "${emt_persistent_end}MB" \
 	       mkpart rootfs_b ext4 "${rootfs_b_start}MB" "${swap_start}MB" \
 	       mkpart swap linux-swap "${swap_start}MB" "${tep_start}MB" \
 	       mkpart tep ext4 "${tep_start}MB"  "${reserved_start}MB" \
@@ -649,36 +649,36 @@ enable_luks(){
 	luks_format_verity_part $luks_key
     fi
 
-    ###luks for tiber_persistent_partition
+    ###luks for emt_persistent_partition
     if $COMPLETE_FDE_DMVERITY;
     then
 
-	echo "$tiber_persistent_dd_count tiber_persistent_dd_count"
+	echo "$emt_persistent_dd_count emt_persistent_dd_count"
 	##############	
 	#save using dd
-	dd if="${DEST_DISK}${suffix}${tiber_persistent_partition}" of="${DEST_DISK}${suffix}${reserved_partition}" bs=4M status=progress conv=sparse count=$tiber_persistent_dd_count
+	dd if="${DEST_DISK}${suffix}${emt_persistent_partition}" of="${DEST_DISK}${suffix}${reserved_partition}" bs=4M status=progress conv=sparse count=$emt_persistent_dd_count
 	sync
 	##############
 
-	luksformat_helper $luks_key "${DEST_DISK}${suffix}${tiber_persistent_partition}" "tiber_persistent"
+	luksformat_helper $luks_key "${DEST_DISK}${suffix}${emt_persistent_partition}" "emt_persistent"
 
-	mkfs.ext4 -F /dev/mapper/tiber_persistent
+	mkfs.ext4 -F /dev/mapper/emt_persistent
 	check_return_value $? "Failed to make mkfs ext4 on rootfs"
 
 	###############
 	# Get the total number of blocks
-	total_blocks=$(dumpe2fs -h /dev/mapper/tiber_persistent | grep 'Block count' | awk '{print $3}')
+	total_blocks=$(dumpe2fs -h /dev/mapper/emt_persistent | grep 'Block count' | awk '{print $3}')
 
 	#backup using dd
-	dd if="${DEST_DISK}${suffix}${reserved_partition}" of=/dev/mapper/tiber_persistent bs=4M status=progress conv=sparse count=$tiber_persistent_dd_count
+	dd if="${DEST_DISK}${suffix}${reserved_partition}" of=/dev/mapper/emt_persistent bs=4M status=progress conv=sparse count=$emt_persistent_dd_count
 	sync
 	###############
 
-	# Resize the filesystem on tiber persistent because we cant increase a size beyond the phy blocks
-	e2fsck -fy  /dev/mapper/tiber_persistent
-	check_return_value $? "Failed to check fs on reserved for tiber persistent"
+	# Resize the filesystem on emt persistent because we cant increase a size beyond the phy blocks
+	e2fsck -fy  /dev/mapper/emt_persistent
+	check_return_value $? "Failed to check fs on reserved for emt persistent"
 
-	resize2fs -f /dev/mapper/tiber_persistent $total_blocks
+	resize2fs -f /dev/mapper/emt_persistent $total_blocks
 	check_return_value $? "Failed to resize2fs reserved for rootfs"
 
     fi
@@ -729,7 +729,7 @@ enable_luks(){
 
     chroot /mnt /bin/bash <<EOT
 
-    #inside installed Tiber Microvisor
+    #inside installed Edge Microvisor Toolkit
 
     export TPM2TOOLS_TCTI="device:/dev/tpmrm0"
 
@@ -856,9 +856,9 @@ EOT
 
 
 #####################################################################################
-tiber_main() {
+emt_main() {
 
-    echo "Tiber Microvisor detected"
+    echo "Edege Microvisor toolkit detected"
     get_dest_disk
 
     is_single_hdd
@@ -871,5 +871,5 @@ tiber_main() {
 }
 
 
-tiber_main
+emt_main
 #####################################################################################
