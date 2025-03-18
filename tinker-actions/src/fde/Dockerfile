@@ -9,11 +9,13 @@ RUN apt-get update && apt-get install -y lvm2 procps
 RUN apt-get update && apt-get install -y file fdisk 
 
 COPY enable_fde.sh /
-COPY enable_fde_tiber.sh /
+COPY enable_fde_emt.sh /
+COPY enable_dmv_emt.sh /
 COPY os_selection.sh /
 
 RUN chmod +x enable_fde.sh
-RUN chmod +x enable_fde_tiber.sh
+RUN chmod +x enable_fde_emt.sh
+RUN chmod +x enable_dmv_emt.sh
 RUN chmod +x os_selection.sh
 
 # Health check
