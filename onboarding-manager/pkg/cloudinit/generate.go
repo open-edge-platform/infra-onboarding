@@ -31,6 +31,8 @@ func templateVariablesFromOptions(options cloudInitOptions) map[string]interface
 
 	extraVars["TENANT_ID"] = options.tenantID
 	extraVars["HOSTNAME"] = options.hostname
+	extraVars["CLIENT_ID"] = options.clientID
+	extraVars["CLIENT_SECRET"] = options.clientSecret
 
 	return extraVars
 }

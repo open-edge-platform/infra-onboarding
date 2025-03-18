@@ -209,6 +209,7 @@ func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo onboarding_types
 		cloudinit.WithOSType(deviceInfo.OsType),
 		cloudinit.WithTenantID(deviceInfo.TenantID),
 		cloudinit.WithHostname(deviceInfo.Hostname),
+		cloudinit.WithClientCredentials(deviceInfo.AuthClientID, deviceInfo.AuthClientSecret),
 	}
 
 	if env.ENDkamMode == envDkamDevMode {
@@ -288,45 +289,6 @@ func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo onboarding_types
 						"GID":     "0",
 						"MODE":    "0755",
 						"DIRMODE": "0755",
-					},
-				},
-				{
-					Name:    ActionCreateSecretsDirectory,
-					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "mkdir -p /etc/intel_edge_node/client-credentials/",
-					},
-				},
-				{
-					Name:    ActionWriteClientID,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_id",
-						"CONTENTS":  deviceInfo.AuthClientID,
-						"UID":       "0",
-						"GID":       "0",
-						"MODE":      "0600",
-						"DIRMODE":   "0755",
-					},
-				},
-				{
-					Name:    ActionWriteClientSecret,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_secret",
-						"CONTENTS":  deviceInfo.AuthClientSecret,
-						"UID":       "0",
-						"GID":       "0",
-						"MODE":      "0600",
-						"DIRMODE":   "0755",
 					},
 				},
 
@@ -447,6 +409,7 @@ func NewTemplateDataUbuntu(name string, deviceInfo onboarding_types.DeviceInfo) 
 		cloudinit.WithOSType(deviceInfo.OsType),
 		cloudinit.WithTenantID(deviceInfo.TenantID),
 		cloudinit.WithHostname(deviceInfo.Hostname),
+		cloudinit.WithClientCredentials(deviceInfo.AuthClientID, deviceInfo.AuthClientSecret),
 	}
 
 	if env.ENDkamMode == envDkamDevMode {
@@ -546,45 +509,6 @@ func NewTemplateDataUbuntu(name string, deviceInfo onboarding_types.DeviceInfo) 
 						"GID":       "0",
 						"MODE":      "0600",
 						"DIRMODE":   "0700",
-					},
-				},
-				{
-					Name:    ActionCreateSecretsDirectory,
-					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "mkdir -p /etc/intel_edge_node/client-credentials/",
-					},
-				},
-				{
-					Name:    ActionWriteClientID,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_id",
-						"CONTENTS":  deviceInfo.AuthClientID,
-						"UID":       "0",
-						"GID":       "0",
-						"MODE":      "0600",
-						"DIRMODE":   "0755",
-					},
-				},
-				{
-					Name:    ActionWriteClientSecret,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/intel_edge_node/client-credentials/client_secret",
-						"CONTENTS":  deviceInfo.AuthClientSecret,
-						"UID":       "0",
-						"GID":       "0",
-						"MODE":      "0600",
-						"DIRMODE":   "0755",
 					},
 				},
 				{

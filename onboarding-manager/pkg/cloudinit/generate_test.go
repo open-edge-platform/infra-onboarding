@@ -48,6 +48,8 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 
 	const testHostname = "test-hostname"
 	const testTenantID = "test-tenantid"
+	const testClientID = "test-client-id"
+	const testClientSecret = "test-client-secret"
 
 	type args struct {
 		options             []cloudinit.Option
@@ -67,6 +69,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
 					cloudinit.WithHostname(testHostname),
 					cloudinit.WithTenantID(testTenantID),
+					cloudinit.WithClientCredentials(testClientID, testClientSecret),
 				},
 				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
 					newCfg := infraConfig
@@ -95,6 +98,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 					cloudinit.WithOSType(osv1.OsType_OS_TYPE_MUTABLE),
 					cloudinit.WithHostname(testHostname),
 					cloudinit.WithTenantID(testTenantID),
+					cloudinit.WithClientCredentials(testClientID, testClientSecret),
 				},
 				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
 					newCfg := infraConfig
@@ -123,6 +127,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
 					cloudinit.WithHostname(testHostname),
 					cloudinit.WithTenantID(testTenantID),
+					cloudinit.WithClientCredentials(testClientID, testClientSecret),
 				},
 				// cluster.test by default
 			},
@@ -136,6 +141,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
 					cloudinit.WithHostname(testHostname),
 					cloudinit.WithTenantID(testTenantID),
+					cloudinit.WithClientCredentials(testClientID, testClientSecret),
 				},
 			},
 			expectedOutputFileName: "expected-installer-04.cfg",
@@ -148,6 +154,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 					cloudinit.WithOSType(osv1.OsType_OS_TYPE_MUTABLE),
 					cloudinit.WithHostname(testHostname),
 					cloudinit.WithTenantID(testTenantID),
+					cloudinit.WithClientCredentials(testClientID, testClientSecret),
 				},
 			},
 			expectedOutputFileName: "expected-installer-05.cfg",
@@ -160,6 +167,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 					cloudinit.WithOSType(osv1.OsType_OS_TYPE_MUTABLE),
 					cloudinit.WithHostname(testHostname),
 					cloudinit.WithTenantID(testTenantID),
+					cloudinit.WithClientCredentials(testClientID, testClientSecret),
 				},
 				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
 					newCfg := infraConfig
@@ -181,6 +189,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
 					cloudinit.WithHostname(testHostname),
 					cloudinit.WithTenantID(testTenantID),
+					cloudinit.WithClientCredentials(testClientID, testClientSecret),
 				},
 				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
 					newCfg := infraConfig
@@ -199,6 +208,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 					cloudinit.WithOSType(osv1.OsType_OS_TYPE_MUTABLE),
 					cloudinit.WithHostname(testHostname),
 					cloudinit.WithTenantID(testTenantID),
+					cloudinit.WithClientCredentials(testClientID, testClientSecret),
 				},
 				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
 					newCfg := infraConfig
@@ -215,6 +225,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 				options: []cloudinit.Option{
 					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
 					cloudinit.WithHostname(testHostname),
+					cloudinit.WithClientCredentials(testClientID, testClientSecret),
 				},
 			},
 			wantErr: true,
@@ -225,6 +236,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 				options: []cloudinit.Option{
 					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
 					cloudinit.WithTenantID(testTenantID),
+					cloudinit.WithClientCredentials(testClientID, testClientSecret),
 				},
 			},
 			wantErr: true,
@@ -236,6 +248,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 					cloudinit.WithOSType(osv1.OsType_OS_TYPE_UNSPECIFIED),
 					cloudinit.WithTenantID(testTenantID),
 					cloudinit.WithHostname(testHostname),
+					cloudinit.WithClientCredentials(testClientID, testClientSecret),
 				},
 			},
 			wantErr: true,
@@ -248,6 +261,18 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 					cloudinit.WithTenantID(testTenantID),
 					cloudinit.WithHostname(testHostname),
 					cloudinit.WithDevMode("", ""),
+					cloudinit.WithClientCredentials(testClientID, testClientSecret),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Failed_NoClientCredentials",
+			args: args{
+				options: []cloudinit.Option{
+					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
+					cloudinit.WithHostname(testHostname),
+					cloudinit.WithTenantID(testTenantID),
 				},
 			},
 			wantErr: true,

@@ -24,9 +24,11 @@ func TestWorkflowActionToStatusDetail(t *testing.T) {
 	dkam_testing.PrepareTestInfraConfig(t)
 
 	wf, err := tinkerbell.NewTemplateDataUbuntu("test-wf", onboarding_types.DeviceInfo{
-		OsType:   osv1.OsType_OS_TYPE_MUTABLE,
-		TenantID: "test-tenantid",
-		Hostname: "test-hostname",
+		OsType:           osv1.OsType_OS_TYPE_MUTABLE,
+		TenantID:         "test-tenantid",
+		Hostname:         "test-hostname",
+		AuthClientID:     "test-client-id",
+		AuthClientSecret: "test-client-secret",
 	})
 	require.NoError(t, err)
 

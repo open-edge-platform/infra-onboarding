@@ -27,6 +27,11 @@ type cloudInitOptions struct {
 	tenantID string
 	// hostname specifies host name to be set on Host
 	hostname string
+
+	// clientID specifies client ID used to obtain JWT token for authorization
+	clientID string
+	// clientSecret specifies client secret used to obtain JWT token for authorization
+	clientSecret string
 }
 
 func defaultCloudInitOptions() cloudInitOptions {
@@ -48,6 +53,10 @@ func (opts cloudInitOptions) validate() error {
 
 	if opts.hostname == "" {
 		return inv_errors.Errorfc(codes.InvalidArgument, "Hostname must be provided")
+	}
+
+	if opts.clientID == "" || opts.clientSecret == "" {
+		return inv_errors.Errorfc(codes.InvalidArgument, "Client credentials must be provided")
 	}
 
 	if opts.useDevMode && (opts.devUsername == "" || opts.devUserPasswd == "") {
@@ -81,5 +90,12 @@ func WithTenantID(tenantID string) Option {
 func WithHostname(hostname string) Option {
 	return func(options *cloudInitOptions) {
 		options.hostname = hostname
+	}
+}
+
+func WithClientCredentials(clientID, clientSecret string) Option {
+	return func(options *cloudInitOptions) {
+		options.clientID = clientID
+		options.clientSecret = clientSecret
 	}
 }
