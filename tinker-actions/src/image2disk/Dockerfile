@@ -16,7 +16,7 @@ FROM alpine:3.20.3
 RUN apk add --no-cache lsblk
 # Add Certificates into the image, for anything that does HTTPS calls
 COPY --from=image2disk /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY --from=image2disk /src/image2disk /usr/bin/image2disk
+COPY --from=image2disk /src/image2disk/image2disk /usr/bin/image2disk
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:50054/healthz || exit 1

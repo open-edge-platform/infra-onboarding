@@ -18,7 +18,7 @@ RUN --mount=type=cache,sharing=locked,id=gomod,target=/go/pkg/mod/cache \
 # Build final image
 FROM alpine:3.20.3
 RUN apk add --no-cache lsblk
-COPY --from=cexec /src/cexec /usr/bin/cexec
+COPY --from=cexec /src/cexec/cexec /usr/bin/cexec
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
