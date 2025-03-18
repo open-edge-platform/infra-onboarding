@@ -5,11 +5,32 @@
 
 set -x
 
+# Sync file system
+function sync_file_system(){
+rootfs_part=$1
+# Check if the partition available 
+count=0
+while [ ! -b "$rootfs_part" ]; do
+    sleep 1
+    count=$((count+1))
+    if [ "$count" -ge 15 ]; then
+         echo "Partition table not synced,exiting the installation"
+	 exit 1
+    fi
+done
+}
 #upgrade the kernel version to latest HWE kernel
 function update_kernel_image(){
 #Mount the all required partitions for kernel upgrade
 rootfs_part=$1
 efiboot_part=$2
+# Wait until the partition is available
+sync_file_system "$rootfs_part"
+if [ "$?" -ne 0 ]; then
+    echo "file sync for $rootfs_part failed, please check!!"
+    exit 1
+fi
+
 mount $rootfs_part /mnt
 if echo "$rootfs_part" | grep -q "rootfs_crypt"; then
     boot_part=$3
@@ -20,6 +41,7 @@ mount --bind /dev /mnt/dev
 mount --bind /dev/pts /mnt/dev/pts
 mount --bind /proc /mnt/proc
 mount --bind /sys /mnt/sys
+mount --bind /run /mnt/run
 
 #resolve DNS in container
 rm /mnt/etc/resolv.conf
@@ -27,18 +49,31 @@ touch /mnt/etc/resolv.conf
 mount --bind /etc/resolv.conf /mnt/etc/resolv.conf
 
 mv /mnt/etc/apt/apt.conf.d/99needrestart /mnt/etc/apt/apt.conf.d/99needrestart.bkp 
-#Enter into Ubuntu OS for the HWE kernel instalation
+
+#Get the Latest canonical 6.8 kerner version 
+export kernel_version=$(chroot /mnt /bin/bash -c "apt-cache search linux-image | grep 'linux-image-6.8.*-generic' | tail -1 | awk '{print \$1}' | grep -oP '(?<=linux-image-)[0-9]+\.[0-9]+\.[0-9]+-[0-9]+'")
+
+if [ -z "kernel_version" ]; then
+    echo "Unable to get the kernel version,please check !!!!"
+    exit 1
+fi
+
+#Enter into Ubuntu OS for the latest 6.x kernel instalation
 chroot /mnt /bin/bash <<EOT
 
 apt update
-#install HWE kernel with all recommended packages
-apt install -y --install-recommends linux-image-generic linux-headers-generic
-if [ $? -eq 0 ]; then
-    echo "Successfully Installed HWE kernel"
+
+#install 6.x kernel with all recommended packages and kernel modules
+apt install -y  linux-image-\${kernel_version}-generic linux-headers-\${kernel_version}-generic
+apt install -y --install-recommends linux-modules-extra-\${kernel_version}-generic
+
+if [ "$?" -eq 0 ]; then
+    echo "Successfully Installed 6.x kernel"
 else
-    echo "Something went wrong in HWE kernel installtion please check!!!"
+    echo "Something went wrong in 6.x kernel installtion please check!!!"
     exit 1
 fi
+
 update-initramfs -u -k all
 
 #update the latest kernel version and kernel command line parameters in grub config file
@@ -117,8 +152,17 @@ else
                 RESIZE_SIZE="100GB"
                 sgdisk -e "/dev/${os_disk}"
                 echo yes | parted ---pretend-input-tty "/dev/${os_disk}"  resizepart "${part_number}" "$RESIZE_SIZE"
+                partprobe "/dev/${os_disk}" 
+		# Wait until the partition is available
+                sync_file_system "$rootfs_part"
                 e2fsck -f "$rootfs_part"
+		# Before resize the partition 
+		sync_file_system "$rootfs_part"
                 resize2fs "$rootfs_part"
+		if [ "$?" -ne 0 ]; then
+		    echo "Resize of the $rootfs_part failed, please check!!"
+		    exit 1
+		fi
                 partprobe "/dev/${os_disk}"
                 parted "/dev/${os_disk}" --script mkpart primary ext4 $RESIZE_SIZE $NEW_PARTITION_SIZE
                 partprobe "/dev/${os_disk}"
@@ -126,11 +170,19 @@ else
         else
                 echo "Multiple Disks"
                 sgdisk -e "/dev/${os_disk}"
+                partprobe "/dev/${os_disk}"
                 e2fsck -f -y "$rootfs_part"
                 growpart "/dev/${os_disk}" "${part_number}"
 		partprobe "/dev/${os_disk}"
+                # Wait until the partition is available
+                sync_file_system "$rootfs_part"
                 sgdisk -e "/dev/${os_disk}"
+		sync_file_system "$rootfs_part"
                 resize2fs "$rootfs_part"
+		if [ "$?" -ne 0 ]; then
+                    echo "Resize of the $rootfs_part failed, please check!!"
+                    exit 1
+                fi
 		partprobe "/dev/${os_disk}"
         fi
 	sync
