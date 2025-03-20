@@ -162,7 +162,7 @@ make_partition() {
 
     #ram_size
     ram_size=$(free -g | grep -i mem | awk '{ print $2 }' )
-    swap_size=$(( $ram_size / 2 ))
+    swap_size=$(( ram_size / 2 ))
 
 
     # limit swap size to 128GB
@@ -182,7 +182,7 @@ make_partition() {
 	swap_size=$(echo "$ram_size" | awk '{printf ("%.0f\n", sqrt($1))}')
     fi
 
-    swap_size=$(( $swap_size * 1024 ))
+    swap_size=$(( swap_size * 1024 ))
 
     total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
 
@@ -195,20 +195,20 @@ make_partition() {
     #####
     if $COMPLETE_DMVERITY;
     then
-	swap_start=$(( $total_size_disk - $swap_size ))
+	swap_start=$(( total_size_disk - swap_size ))
 
-	roothash_start=$(( $swap_start - $rootfs_roothash_size ))
-	rootfs_b_start=$(( $roothash_start - $rootfs_size ))
-	root_hashmap_b_start=$(( $rootfs_b_start - $rootfs_hashmap_size ))
-	root_hashmap_a_start=$(( $root_hashmap_b_start - $rootfs_hashmap_size ))
+	roothash_start=$(( swap_start - rootfs_roothash_size ))
+	rootfs_b_start=$(( roothash_start - rootfs_size ))
+	root_hashmap_b_start=$(( rootfs_b_start - rootfs_hashmap_size ))
+	root_hashmap_a_start=$(( root_hashmap_b_start - rootfs_hashmap_size ))
 
 	emt_persistent_end=$root_hashmap_a_start
     else
-	reserved_start=$(( $total_size_disk - $reserved_size ))
-	tep_start=$(( $reserved_start - $tep_size ))
-	swap_start=$(( $tep_start - $swap_size ))
+	reserved_start=$(( total_size_disk - reserved_size ))
+	tep_start=$(( reserved_start - tep_size ))
+	swap_start=$(( tep_start - swap_size ))
 
-	rootfs_b_start=$(( $swap_start - $rootfs_size ))
+	rootfs_b_start=$(( swap_start - rootfs_size ))
 
 	emt_persistent_end=$rootfs_b_start
     fi
@@ -216,7 +216,8 @@ make_partition() {
 
     #save this size of emt persistent before partition
     suffix=$(fix_partition_suffix)
-    export emt_persistent_dd_count=$(fdisk -l ${DEST_DISK} | grep "${DEST_DISK}${suffix}${emt_persistent_partition}" | awk '{print int( ($4/2048/4) + 0.999999) }')
+    emt_persistent_dd_count=$(fdisk -l ${DEST_DISK} | grep "${DEST_DISK}${suffix}${emt_persistent_partition}" | awk '{print int( ($4/2048/4) + 0.999999) }')
+    export emt_persistent_dd_count
     #####
     # logging needed to understand the block splits
     echo "DEST_DISK ${DEST_DISK}"
@@ -241,17 +242,17 @@ make_partition() {
     then
 	#this cmd only resizes parition. if there is an error this should handle it.
 	printf 'Fix\n' | parted ---pretend-input-tty ${DEST_DISK} \
-	       resizepart $emt_persistent_partition $(convert_mb_to_sectors "${emt_persistent_end}" 1)s
+	       resizepart $emt_persistent_partition "$(convert_mb_to_sectors "${emt_persistent_end}" 1)"s
 
 	check_return_value $? "Failed to resize emt persistent paritions"
 
 	#this cmd only creates new partitions.
 	parted -s ${DEST_DISK} \
-	       mkpart hashmap_a ext4  $(convert_mb_to_sectors "${root_hashmap_a_start}" 0)s $(convert_mb_to_sectors "${root_hashmap_b_start}" 1)s \
-	       mkpart hashmap_b ext4  $(convert_mb_to_sectors "${root_hashmap_b_start}" 0)s $(convert_mb_to_sectors "${rootfs_b_start}" 1)s \
-	       mkpart rootfs_b ext4   $(convert_mb_to_sectors "${rootfs_b_start}" 0)s       $(convert_mb_to_sectors "${roothash_start}" 1)s \
-	       mkpart roothash ext4   $(convert_mb_to_sectors "${roothash_start}" 0)s       $(convert_mb_to_sectors "${swap_start}" 1)s \
-	       mkpart swap linux-swap $(convert_mb_to_sectors "${swap_start}" 0)s           $(convert_mb_to_sectors "${total_size_disk}" 1)s 
+	       mkpart hashmap_a ext4  "$(convert_mb_to_sectors "${root_hashmap_a_start}" 0)"s "$(convert_mb_to_sectors "${root_hashmap_b_start}" 1)"s \
+	       mkpart hashmap_b ext4  "$(convert_mb_to_sectors "${root_hashmap_b_start}" 0)"s "$(convert_mb_to_sectors "${rootfs_b_start}" 1)"s \
+	       mkpart rootfs_b ext4   "$(convert_mb_to_sectors "${rootfs_b_start}" 0)"s       "$(convert_mb_to_sectors "${roothash_start}" 1)"s \
+	       mkpart roothash ext4   "$(convert_mb_to_sectors "${roothash_start}" 0)"s       "$(convert_mb_to_sectors "${swap_start}" 1)"s \
+	       mkpart swap linux-swap "$(convert_mb_to_sectors "${swap_start}" 0)"s           "$(convert_mb_to_sectors "${total_size_disk}" 1)"s 
 
 
 	check_return_value $? "Failed to create paritions"
@@ -270,7 +271,7 @@ make_partition() {
     if [ $single_hdd -eq 0 ];
     then
 	parted -s ${DEST_DISK} \
-	       mkpart lvm ext4 $(convert_mb_to_sectors "${total_size_disk}" 0)s 100%
+	       mkpart lvm ext4 "$(convert_mb_to_sectors "${total_size_disk}" 0)"s 100%
 
 	check_return_value $? "Failed to create lvm parition"
     fi
@@ -333,15 +334,17 @@ block_disk_phy_block_disk() {
 	parted -s "/dev/${block_dev}" print | grep -i sector | grep -q 4098.$
 	if [ $? -eq 0 ];
 	then
-	    block_size_4k=$(( 1 + $block_size_4k ))
-	    export disk_4k="$disk_4k /dev/${block_dev}"
+	    block_size_4k=$(( 1 + block_size_4k ))
+	    disk_4k="$disk_4k /dev/${block_dev}"
+	    export disk_4k
 	fi
 
 	parted -s "/dev/${block_dev}" print | grep -i sector | grep -q 512.$
 	if [ $? -eq 0 ];
 	then
-	    block_size_512=$(( 1 + $block_size_512 ))
-	    export disk_512="$disk_512 /dev/${block_dev}"
+	    block_size_512=$(( 1 + block_size_512 ))
+	    disk_512="$disk_512 /dev/${block_dev}"
+	    export disk_512
 	fi
 	echo "512 $block_size_512"
     done
@@ -372,10 +375,10 @@ update_lvmvg() {
 	parted -s "${disk}" print | grep -i sector | grep -q 512.$
 	if [ $? -eq 0 ];
 	then
-	    size_512=$(( $size_512 + $size ))
+	    size_512=$(( size_512 + size ))
 	    list_of_lvmg_part_512+=" ${disk} "
 	else
-	    size_4k=$(( $size_4k + $size ))
+	    size_4k=$(( size_4k + size ))
 	    list_of_lvmg_part_4k+=" ${disk} "
 	fi
     done
@@ -527,9 +530,6 @@ enable_dmv(){
 
     chroot /mnt /bin/bash <<EOT
 
-    systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target systemd-logind
-    echo -e "root\nroot" | passwd root
-
     #inside installed Edge Microvisor Toolkit
 
     # selinux relabel all the files that were touched till now by provisioning
@@ -592,6 +592,7 @@ enable_dmv(){
     restorecon -R -v /etc/environment
     restorecon -R -v /etc/fstab
     restorecon -R -v /opt
+
 EOT
 
 
