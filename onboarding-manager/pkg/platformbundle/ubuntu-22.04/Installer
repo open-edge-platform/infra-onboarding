@@ -223,7 +223,7 @@ install_node_agent(){
 
         echo "wait for node agent and client proxy to start"
         while true; do
-            http_status=$(curl -s -o /dev/null -w "%{http_code}" "https://localhost:$CADDY_APT_PROXY_PORT/edge-node.asc")
+            http_status=$(curl -s -o /dev/null -w "%{http_code}" "https://localhost:$CADDY_APT_PROXY_PORT/${FILE_RS_ROOT}/edge-node.asc")
             if [ "$http_status" -eq 200 ]; then
                 echo "Client proxy is active"
                 break
@@ -235,11 +235,11 @@ install_node_agent(){
 
         echo "setup apt source"
         if [ "$RS_TYPE" == "auth" ]; then
-            curl -kfsSL "https://$CADDY_APT_PROXY_URL/edge-node.asc" -H "Authorization: Bearer $RS_AT" -o /etc/apt/trusted.gpg.d/edge-node.asc
+            curl -kfsSL "https://$CADDY_APT_PROXY_URL/${FILE_RS_ROOT}/edge-node.asc" -H "Authorization: Bearer $RS_AT" -o /etc/apt/trusted.gpg.d/edge-node.asc
         else
-            curl -kfsSL "https://$CADDY_APT_PROXY_URL/edge-node.asc" -o /etc/apt/trusted.gpg.d/edge-node.asc
+            curl -kfsSL "https://$CADDY_APT_PROXY_URL/${FILE_RS_ROOT}/edge-node.asc" -o /etc/apt/trusted.gpg.d/edge-node.asc
         fi
-        echo "deb https://localhost:$CADDY_APT_PROXY_PORT/repository ${APT_DISTRO} main" | tee /etc/apt/sources.list.d/edge-node.list
+        echo "deb https://localhost:$CADDY_APT_PROXY_PORT/${FILE_RS_ROOT}/repository ${APT_DISTRO} main" | tee /etc/apt/sources.list.d/edge-node.list
 
         apt-get update
         echo "install_node_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME

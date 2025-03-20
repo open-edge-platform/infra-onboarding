@@ -44,6 +44,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 	dkam_testing.PrepareTestCaCertificateFile(t)
 	baseConfig := config.GetInfraConfig()
 	baseConfig.ENDebianPackagesRepo = "test.deb"
+	baseConfig.ENFilesRsRoot = "test"
 	baseConfig.DNSServers = []string{"1.1.1.1", "2.2.2.2"}
 
 	const testHostname = "test-hostname"

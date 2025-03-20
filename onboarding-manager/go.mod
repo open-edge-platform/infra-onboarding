@@ -25,6 +25,8 @@ require (
 	sigs.k8s.io/controller-runtime v0.19.3
 )
 
+replace github.com/open-edge-platform/infra-onboarding/dkam => ../dkam
+
 require (
 	ariga.io/atlas v0.30.0 // indirect
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.33.0-20240401165935-b983156c5e99.1 // indirect

@@ -68,6 +68,10 @@ run:
   go: ""
 
 linters-settings:
+  gomoddirectives:
+    replace-local: true
+    replace-allow-list:
+      - github.com/open-edge-platform/infra-onboarding/dkam
   cyclop:
     max-complexity: 10
   dupl:
