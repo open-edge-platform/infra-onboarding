@@ -21,10 +21,6 @@ onboarding-manager:
   - changed-files:
     - any-glob-to-any-file: "onboarding-manager/**"
 
-pa-server:
-  - changed-files:
-    - any-glob-to-any-file: "pa-server/**"
-
 tinker-actions:
   - changed-files:
     - any-glob-to-any-file: "tinker-actions/**"
