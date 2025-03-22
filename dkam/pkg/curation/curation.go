@@ -47,9 +47,9 @@ type FirewallRule struct {
 func GetBMAgentsInfo() (agentsList []config.AgentsVersion, distribution string, err error) {
 	configs := config.GetInfraConfig().ENManifest
 
-	agentsList = configs.BMA.Debs
+	agentsList = configs.Packages
 
-	distribution = configs.Metadata.DebianRepositories[0].Distribution
+	distribution = configs.Repository.Codename
 
 	zlog.InfraSec().Info().Msgf("Agents List' %s", agentsList)
 
@@ -113,8 +113,8 @@ func getAgentsListTemplateVariables() (map[string]interface{}, error) {
 
 	templateVariables := make(map[string]interface{}, len(agentsList))
 	for _, agent := range agentsList {
-		zlog.InfraSec().Info().Msgf("Package: %s, Version: %s\n", agent.Package, agent.Version)
-		templateVariables[agent.Package+"-VERSION"] = agent.Version
+		zlog.InfraSec().Info().Msgf("Package: %s, Version: %s\n", agent.Name, agent.Version)
+		templateVariables[agent.Name+"-VERSION"] = agent.Version
 	}
 
 	templateVariables["APT_DISTRO"] = distro

@@ -38,9 +38,9 @@ func TestRead(t *testing.T) {
 	})
 
 	testConfig := config.InfraConfig{
-		ENManifestRepo: dkam_testing.TestManifestRepo,
-		ENManifestTag:  dkam_testing.CorrectTestManifestTag,
-		ENProxyHTTP:    "test",
+		ENManifestRepo:     dkam_testing.TestManifestRepo,
+		ENAgentManifestTag: dkam_testing.CorrectTestManifestTag,
+		ENProxyHTTP:        "test",
 	}
 	f, err := os.CreateTemp(os.TempDir(), "infraconfig_*.yaml")
 	require.NoError(t, err)
@@ -58,7 +58,7 @@ func TestRead(t *testing.T) {
 		require.NoError(t, err)
 
 		got := config.GetInfraConfig()
-		require.Equal(t, testConfig.ENManifestTag, got.ENManifestTag)
+		require.Equal(t, testConfig.ENAgentManifestTag, got.ENAgentManifestTag)
 		require.Equal(t, testConfig.ENProxyHTTP, got.ENProxyHTTP)
 		require.NotEmpty(t, got.ENManifest)
 	})
@@ -75,7 +75,7 @@ func TestRead(t *testing.T) {
 
 		got := config.GetInfraConfig()
 		fmt.Println(got)
-		require.Equal(t, testConfig.ENManifestTag, got.ENManifestTag)
+		require.Equal(t, testConfig.ENAgentManifestTag, got.ENAgentManifestTag)
 		require.Equal(t, testConfig.ENProxyHTTP, got.ENProxyHTTP)
 		require.Equal(t, testConfig.ENProxyHTTPS, got.ENProxyHTTPS)
 		require.NotEmpty(t, got.ENManifest)
@@ -98,7 +98,7 @@ func TestDownloadENManifest(t *testing.T) {
 
 func TestSetGetInfraConfig(t *testing.T) {
 	testInfraConfig := config.InfraConfig{
-		ENManifestTag: "test",
+		ENAgentManifestTag: "test",
 	}
 	config.SetInfraConfig(testInfraConfig)
 	got := config.GetInfraConfig()

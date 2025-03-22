@@ -66,50 +66,50 @@ func EnableLegacyModeForTesting(t *testing.T) {
 
 func StartTestReleaseService(testProfileName string) func() {
 	config.SetInfraConfig(config.InfraConfig{
-		ENManifestRepo: TestManifestRepo,
-		ENManifestTag:  CorrectTestManifestTag,
+		ENManifestRepo:     TestManifestRepo,
+		ENAgentManifestTag: CorrectTestManifestTag,
 	})
 	infraConfig := config.GetInfraConfig()
 
 	expectedFileContent := "GOOD TEST!"
 	expectedTestManifest := `
-metadata:
-  schemaVersion: 0.2.1
-  release: 3.0.0-dev
-  bma:
-  debs:
-    - description: Node Agent
-      repository: Release Service debian repository
-      package: node-agent
-      registry: Release Service OCI registry
-      ociArtifact: one-intel-edge/edge-node/deb/node-agent
-      version: 1.4.4
-      publishToRepo: true
-    - description: Cluster Agent
-      repository: Release Service debian repository
-      package: cluster-agent
-      registry: Release Service OCI registry
-      ociArtifact: one-intel-edge/edge-node/deb/cluster-agent
-      version: 1.3.11
-      publishToRepo: true
-    - description: Hardware Discovery Agent
-      repository: Release Service debian repository
-      package: hardware-discovery-agent
-      registry: Release Service OCI registry
-      ociArtifact: one-intel-edge/edge-node/deb/hardware-discovery-agent
-      version: 1.4.5
-  provisioning:
-  files:
-    - description: iPXE binary & script
-      server: Release Service OCI registry
-      path: one-intel-edge/edge-node/file/provisioning-ipxe-efi-app
-      version: 1.0.1
-    - description: MicroOS image
-      server: Release Service OCI registry
-      path: one-intel-edge/edge-node/file/provisioning-hook-os
-      version: 1.6.0
+repository:
+  codename: 3.0
+  component: main
+packages:
+  - name: cluster-agent
+    version: 1.5.8
+  - name: hardware-discovery-agent
+    version: 1.5.3
+  - name: node-agent
+    version: 1.5.8
+  - name: platform-observability-agent
+    version: 1.7.2
+  - name: platform-telemetry-agent
+    version: 1.2.4
+  - name: platform-update-agent
+    version: 1.3.4
+  - name: caddy
+    version: 2.7.6
+  - name: inbc-program
+    version: 4.2.8.2-1
+  - name: inbm-configuration-agent
+    version: 4.2.8.2-1
+  - name: inbm-cloudadapter-agent
+    version: 4.2.8.2-1
+  - name: inbm-diagnostic-agent
+    version: 4.2.8.2-1
+  - name: inbm-dispatcher-agent
+    version: 4.2.8.2-1
+  - name: inbm-telemetry-agent
+    version: 4.2.8.2-1
+  - name: mqtt
+    version: 4.2.8.2-1
+  - name: tpm-provision
+    version: 4.2.8.2-1
+  - name: trtl
+    version: 4.2.8.2-1
 `
-
 	mux := http.NewServeMux()
 
 	testManifestDigestCorrect := "TEST_MANIFEST_DIGEST_CORRECT"
@@ -187,7 +187,7 @@ func PrepareTestCaCertificateFile(t *testing.T) {
 //nolint:funlen // test helper
 func PrepareTestInfraConfig(_ *testing.T) {
 	testConfig := config.InfraConfig{
-		ENManifestTag:                         "latest-dev",
+		ENAgentManifestTag:                    "latest-dev",
 		InfraURL:                              "infra.test:443",
 		ClusterURL:                            "cluster.test:443",
 		UpdateURL:                             "update.test:443",
@@ -220,108 +220,74 @@ func PrepareTestInfraConfig(_ *testing.T) {
 		FirewallReqAllow:                      "",
 		FirewallCfgAllow:                      "",
 		ENManifest: config.ENManifest{
-			Packages: struct {
-				Debians []string `yaml:"deb_packages"`
-			}{},
-			BMA: struct {
-				Debs []config.AgentsVersion `yaml:"debs"`
-			}{
-				Debs: []config.AgentsVersion{
-					{
-						Package: "node-agent",
-						Version: "1.0.0",
-					},
-					{
-						Package: "caddy",
-						Version: "1.0.0",
-					},
-					{
-						Package: "hardware-discovery-agent",
-						Version: "1.0.0",
-					},
-					{
-						Package: "cluster-agent",
-						Version: "1.0.0",
-					},
-					{
-						Package: "platform-observability-agent",
-						Version: "1.0.0",
-					},
-					{
-						Package: "platform-telemetry-agent",
-						Version: "1.0.0",
-					},
-					{
-						Package: "trtl",
-						Version: "1.0.0",
-					},
-					{
-						Package: "inbm-cloudadapter-agent",
-						Version: "1.0.0",
-					},
-					{
-						Package: "inbm-dispatcher-agent",
-						Version: "1.0.0",
-					},
-					{
-						Package: "inbm-configuration-agent",
-						Version: "1.0.0",
-					},
-					{
-						Package: "inbm-telemetry-agent",
-						Version: "1.0.0",
-					},
-					{
-						Package: "inbm-diagnostic-agent",
-						Version: "1.0.0",
-					},
-					{
-						Package: "mqtt",
-						Version: "1.0.0",
-					},
-					{
-						Package: "tpm-provision",
-						Version: "1.0.0",
-					},
-					{
-						Package: "inbc-program",
-						Version: "1.0.0",
-					},
-					{
-						Package: "platform-update-agent",
-						Version: "1.0.0",
-					},
-				},
+			Repository: config.Repository{
+				Codename:  "1.0",
+				Component: "main",
 			},
-			Metadata: struct {
-				//nolint:tagliatelle // test file
-				DebianRepositories []struct {
-					Name         string `yaml:"name"`
-					URL          string `yaml:"url"`
-					Architecture string `yaml:"architecture"`
-					Key          string `yaml:"key"`
-					Section      string `yaml:"section"`
-					Distribution string `yaml:"distribution"`
-					Root         string `yaml:"root"`
-					ThirdParty   bool   `yaml:"thirdParty"`
-					AuthType     string `yaml:"authType"`
-				} `yaml:"debianRepositories"`
-			}{
-				//nolint:tagliatelle // test file
-				DebianRepositories: []struct {
-					Name         string `yaml:"name"`
-					URL          string `yaml:"url"`
-					Architecture string `yaml:"architecture"`
-					Key          string `yaml:"key"`
-					Section      string `yaml:"section"`
-					Distribution string `yaml:"distribution"`
-					Root         string `yaml:"root"`
-					ThirdParty   bool   `yaml:"thirdParty"`
-					AuthType     string `yaml:"authType"`
-				}{
-					{
-						Distribution: "test-distro",
-					},
+			Packages: []config.AgentsVersion{
+				{
+					Name:    "node-agent",
+					Version: "1.0.0",
+				},
+				{
+					Name:    "caddy",
+					Version: "1.0.0",
+				},
+				{
+					Name:    "hardware-discovery-agent",
+					Version: "1.0.0",
+				},
+				{
+					Name:    "cluster-agent",
+					Version: "1.0.0",
+				},
+				{
+					Name:    "platform-observability-agent",
+					Version: "1.0.0",
+				},
+				{
+					Name:    "platform-telemetry-agent",
+					Version: "1.0.0",
+				},
+				{
+					Name:    "trtl",
+					Version: "1.0.0",
+				},
+				{
+					Name:    "inbm-cloudadapter-agent",
+					Version: "1.0.0",
+				},
+				{
+					Name:    "inbm-dispatcher-agent",
+					Version: "1.0.0",
+				},
+				{
+					Name:    "inbm-configuration-agent",
+					Version: "1.0.0",
+				},
+				{
+					Name:    "inbm-telemetry-agent",
+					Version: "1.0.0",
+				},
+				{
+					Name:    "inbm-diagnostic-agent",
+					Version: "1.0.0",
+				},
+				{
+					Name:    "mqtt",
+					Version: "1.0.0",
+				},
+				{
+					Name:    "tpm-provision",
+					Version: "1.0.0",
+				},
+				{
+					Name:    "inbc-program",
+					Version: "1.0.0",
+				},
+				{
+					Name:    "platform-update-agent",
+					Version: "1.0.0",
 				},
 			},
 		},

@@ -32,8 +32,8 @@ type InfraConfig struct {
 	ENDebianPackagesRepo string `mapstructure:"enDebianPackagesRepo"`
 	ENFilesRsRoot        string `mapstructure:"enFilesRsRoot"`
 
-	ENManifestRepo string `mapstructure:"enManifestRepo"`
-	ENManifestTag  string `mapstructure:"enManifestTag"`
+	ENManifestRepo     string `mapstructure:"enManifestRepo"`
+	ENAgentManifestTag string `mapstructure:"enAgentManifestTag"`
 
 	InfraURL                string `mapstructure:"orchInfra"`
 	ClusterURL              string `mapstructure:"orchCluster"`
@@ -78,34 +78,20 @@ type InfraConfig struct {
 	ENManifest ENManifest
 }
 
-type AgentsVersion struct {
-	Package string `yaml:"package"`
-	Version string `yaml:"version"`
+// Edge Node Agents release manifest.
+type ENManifest struct {
+	Repository Repository      `yaml:"repository"`
+	Packages   []AgentsVersion `yaml:"packages"`
 }
 
-type ENManifest struct {
-	Packages struct {
-		Debians []string `yaml:"deb_packages"`
-	} `yaml:"packages"`
-	BMA struct {
-		Debs []AgentsVersion `yaml:"debs"`
-	} `yaml:"bma"`
-	Metadata struct {
-		//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
-		DebianRepositories []struct {
-			Name         string `yaml:"name"`
-			URL          string `yaml:"url"`
-			Architecture string `yaml:"architecture"`
-			Key          string `yaml:"key"`
-			Section      string `yaml:"section"`
-			Distribution string `yaml:"distribution"`
-			Root         string `yaml:"root"`
-			//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
-			ThirdParty bool `yaml:"thirdParty"`
-			//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
-			AuthType string `yaml:"authType"`
-		} `yaml:"debianRepositories"`
-	} `yaml:"metadata"`
+type Repository struct {
+	Codename  string `yaml:"codename"`
+	Component string `yaml:"component"`
+}
+
+type AgentsVersion struct {
+	Name    string `yaml:"name"`
+	Version string `yaml:"version"`
 }
 
 // As a variable to allow changes in tests.
@@ -138,13 +124,13 @@ func Read() error {
 			return err
 		}
 
-		if config.ENManifestRepo == "" || config.ENManifestTag == "" {
+		if config.ENManifestRepo == "" || config.ENAgentManifestTag == "" {
 			argErr := inv_errors.Errorfc(codes.InvalidArgument, "Missing EN manifest repo or tag")
 			zlog.Error().Err(argErr).Msg("")
 			return argErr
 		}
 
-		enManifestData, err := DownloadENManifest(config.ENManifestRepo, config.ENManifestTag)
+		enManifestData, err := DownloadENManifest(config.ENManifestRepo, config.ENAgentManifestTag)
 		if err != nil {
 			return err
 		}
@@ -207,7 +193,7 @@ func GetInfraConfig() InfraConfig {
 
 func SetInfraConfig(config InfraConfig) {
 	zlog.InfraSec().Debug().Msgf("Setting infra configuration: %+v", config)
-	zlog.Info().Msgf("Using EN manifest tag: %q", config.ENManifestTag)
+	zlog.Info().Msgf("Using EN manifest tag: %q", config.ENAgentManifestTag)
 
 	configLock.Lock()
 	defer configLock.Unlock()

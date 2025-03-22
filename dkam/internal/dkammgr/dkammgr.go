@@ -21,7 +21,7 @@ var zlog = logging.GetLogger("DKAM-Mgr")
 func DownloadArtifacts(ctx context.Context) error {
 	MODE := GetMODE()
 	zlog.InfraSec().Info().Msgf("Mode of deployment: %s", MODE)
-	zlog.InfraSec().Info().Msgf("Manifest Tag: %s", config.GetInfraConfig().ENManifestTag)
+	zlog.InfraSec().Info().Msgf("Manifest Tag: %s", config.GetInfraConfig().ENAgentManifestTag)
 
 	zlog.InfraSec().Info().Msg("Download artifacts")
 
