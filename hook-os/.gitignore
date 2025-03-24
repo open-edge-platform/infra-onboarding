@@ -6,3 +6,4 @@ venv_hook-os
 artifacts
 device_discovery/app
 config
+binarybuilderr.log

@@ -79,8 +79,8 @@ build: configure certs components
 			$(MAKE) kernel && $(MAKE) binaries; \
 		else \
 			echo "Exit code is not 7"; \
+			exit 1; \
 		fi; \
-		rm binarybuilderr.log; \
 	}'
 
 SH_FILES := $(shell git ls-files | grep '\.sh$$' | grep -v '^hook/')
