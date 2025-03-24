@@ -110,8 +110,8 @@ push-kernel-ci:
 	@image_name=$(shell cat hook/hook.hook-default-amd64.yaml | yq .kernel.image) && \
 	tag_name=$(shell cat hook/hook.hook-default-amd64.yaml | yq .kernel.image | cut -d':' -f2) && \
 	echo "Kernel Tag:" $$tag_name && \
-	docker pull $$image_name || docker tag $$image_name ${OCI_REGISTRY}/${HOOK_KERNEL_REPOSITORY}:$$tag_name && \
-	docker push ${OCI_REGISTRY}/${HOOK_KERNEL_REPOSITORY}:$$tag_name
+	docker pull $$image_name || (docker tag $$image_name ${OCI_REGISTRY}/${HOOK_KERNEL_REPOSITORY}:$$tag_name && \
+	docker push ${OCI_REGISTRY}/${HOOK_KERNEL_REPOSITORY}:$$tag_name)
 
 artifact-publish: publish-binaries-ci push-kernel-ci
 
