@@ -16,33 +16,33 @@ and handles deprovisioning. Its based on [LinuxKit](https://github.com/linuxkit/
 
 This repo is forked from the open source repo [github.com/tinkerbell/hook](https://github.com/tinkerbell/hook).
 
-Following components have been added to the open source Hook OS for our specific purpose
+Following components have been added to the open source HookOS for our specific purpose
 
-1. Device Discovery: This service can read all the hardware data (serial number, UUID etc) and send out to the Edge Orchestrator
+- Device Discovery: This service can read all the hardware data (serial number, UUID etc) and send out to the Edge Orchestrator
 while provisioning.
-2. Fluent Bit: This service helps us stream the logs of all important services to the Observability microservice
+- Fluent Bit: This service helps us stream the logs of all important services to the Observability microservice
 of Edge Orchestrator.
-3. Caddy: This service is used as a proxy to communicate with the Edge Orchestrator securely.
+- Caddy: This service is used as a proxy to communicate with the Edge Orchestrator securely.
 
 ## Features
 
 - Lightweight OS: Size is less than 300MB.
-- Easy to customise: Services can be embedded within the OS using using individual docker containers and can be configured
-in a simple YAML file. Files can also be embedded similarly.
+- Easy to customise: Services can be embedded within the OS using individual container images and can be configured
+in a simple YAML file. Files can be embedded similarly.
 - Device Discovery: This service can read all the hardware data (serial number, UUID etc) and send out to the Edge Orchestrator
-while provisioning.
+for provisioning.
 
 ## Get Started
 
 Instructions on how to build HookOS on your machine.
 
-### Develop the Hook OS
+### Develop the HookOS
 
 There are several convenient `make` targets to support developer activities, you can use `help` to see a list of makefile
 targets. The following is a list of makefile targets that support developer activities:
 
 - `lint` to run a list of linting targets
-- `build` to build the compressed Hook OS image in tar.gz format
+- `build` to build the compressed HookOS image in `tar.gz` format
 
 #### Builds Component
 
@@ -50,7 +50,7 @@ targets. The following is a list of makefile targets that support developer acti
 make <COMPONENT NAME>
 ```
 
-Components can be device_discovery, fluent-bit, caddy, hook_dind
+Components can be `device_discovery`, `fluent-bit`, `caddy` or `hook_dind`
 
 Example
 
@@ -58,28 +58,107 @@ Example
 make device_discovery
 ```
 
-#### Builds all the docker image components to be embedded
+#### Builds container images of all the components to be embedded
 
 ```bash
 make components
 ```
 
-#### Pulls pre-built kernel container image
+#### Configures Edge Node and Edge Orchestrator parameters
 
 ```bash
-make pull-kernel
+make configure
 ```
 
-#### Builds hook OS binaries
+All the configurable parameter details can be found in [config.template](config.template)
+
+#### Creates placeholder for Edge Orchestrator SSL Certificates
+
+```bash
+make certs
+```
+
+#### Builds HookOS kernel container image
+
+**NOTE**:This target will build kernel container image even if another image with identical tag available locally
+or in the Production Release service.
+
+```bash
+make kernel
+```
+
+The container image tag is determined by
+
+1. Linux kernel version: For this project we currently support only `Linux 5.10`.
+Its a Long-Term Support (LTS) kernel which is deemed to receive security updates and bug fixes until end of 2026.
+2. Linux kernel point release: Extensive provisioning tests across various platforms have been
+successfully conducted using Kernel Point Release `228`, which is the current default point release.
+This can be modified by updating `HOOK_KERNEL_POINT_RELEASE` inside [Makefile](Makefile).
+3. `SHA256` hash of combined contents of [Dockerfile](hook-os/hook/kernel/Dockerfile) and
+[kernel parameters](hook-os/hook/kernel/configs/generic-5.10.y-x86_64):
+Any change to these files will lead to a different kernel tag.
+
+Example of a kernel tag: `5.10.228-95e4df98`
+
+**NOTE: It has been observed that building the kernel with identical parameters**
+**and environment variables results in a different container image SHA ID in every run.**
+
+#### Builds HookOS binaries
+
+**NOTE**:This target fails if the kernel container image is not available locally or in the Production Release service.
+So either run `make kernel` before executing this target or run `make build` to combine both.
+
+```bash
+make binaries
+```
+
+The output can be found in the `out/` directory.
+
+#### Builds the complete HookOS artifact
 
 ```bash
 make build
 ```
 
-## Publish HookOS binaries as OCI artifacts
+The output can be found in the `out/` directory.
+
+This process compiles all components, creates placeholders for certificates,
+builds the kernel (if necessary), generates the binaries, and packages everything into a `.tar.gz` archive file.
+
+The kernel image is built fresh locally only if the expected image tag is not available locally
+or in the Production Release service.
+
+#### Publish HookOS kernel as a container image to Production Release Service
+
+**NOTE**:This target is intended exclusively for use within the CI/CD pipeline.
+
+```bash
+make push-kernel-ci
+```
+
+This pushes the HookOS kernel image to the Release Service only if the image tag
+(not to be confused by image SHA ID) isn't already present in the Release Service.
+
+#### Publish HookOS as a OCI artifact to Production Release Service
+
+**NOTE**:This target is intended exclusively for use within the CI/CD pipeline.
+
+```bash
+make publish-binaries-ci
+```
+
+#### Publish both HookOS kernel container image and HookOS OCI artifact
+
+**NOTE**:This target is intended exclusively for use within the CI/CD pipeline.
 
 ```bash
 make artifact-publish
+```
+
+#### Lint for License, ShellCheck, and Markdown
+
+```bash
+make lint
 ```
 
 ## Contribute
@@ -110,4 +189,4 @@ Edge Orchestrator is licensed under [Apache License
 [contributors-guide-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/index.html
 [troubleshooting-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/troubleshooting/troubleshooting.html
 
-Last Updated Date: February 25, 2025
+Last Updated Date: March 24, 2025

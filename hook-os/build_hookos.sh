@@ -3,17 +3,16 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-set -x
+set -xe
 
 # shellcheck source=/dev/null
 source ./config
 
-export HOOK_KERNEL=${HOOK_KERNEL:-5.10}
+echo "KERNEL OCI SOURCE" "$HOOK_KERNEL_OCI_BASE"
+echo "KERNEL POINT RELEASE" "$KERNEL_POINT_RELEASE"
 
-if [ "$HOOK_KERNEL" == "5.10" ]; then
-    #Current validated kernel_point_version is 228
-    export KERNEL_POINT_RELEASE_CONFIG=228
-fi
+# enable below to see debug build logs
+# export DEBUG="yes"
 
 OUT_DIR=$PWD/out/
 
@@ -73,65 +72,14 @@ build_hook() {
 
     cp -rf hook.yaml hook/linuxkit-templates/hook.template.yaml
     pushd hook || exit 1
+        update_env_variables
+        copy_fluent_bit_files
+        get_caddy_conf
 
-    echo "starting to build kernel...................................................."
-
-    if [ "$HOOK_KERNEL" == "6.6" ]; then
-        if docker image inspect quay.io/tinkerbell/hook-kernel:6.6.52-2f1e89d8 >/dev/null 2>&1; then
-            echo "Rebuild of kernel not required, since its already present in docker images"
-        else
-            pushd kernel/ || exit 1
-            echo "Going to remove patches dir if any"
-            rm -rf patches-6.6.y
-            mkdir patches-6.6.y
-                pushd patches-6.6.y || exit 1
-            #download any patches
-                popd || exit 1
-            popd || exit 1
-
-            #hook-default-amd64
-            ./build.sh kernel hook-latest-lts-amd64
-        fi
-    else
-        if docker image inspect quay.io/tinkerbell/hook-kernel:5.10.228-e0637f99 >/dev/null 2>&1; then
-            echo "Rebuild of kernel not required, since its already present in docker images"
-        else
-            # i255 igc driver issue fix
-            pushd kernel/ || exit 1
-            echo "Going to remove patches DIR if any"
-            rm -rf patches-5.10.y
-            mkdir patches-5.10.y
-                pushd patches-5.10.y || exit 1
-                #download the igc i255 driver patch file
-                wget https://github.com/intel/linux-intel-lts/commit/170110adbecc1c603baa57246c15d38ef1faa0fa.patch
-                echo "Downloading kernel patches done"
-                popd || exit 1
-            popd || exit 1
-
-            #    ./build.sh kernel default
-            ./build.sh kernel
-        fi
-    fi
-
-    update_env_variables
-
-    # copy fluent-bit and caddy related files
-    copy_fluent_bit_files
-    get_caddy_conf
-
-    if [ "$HOOK_KERNEL" == "6.6" ]; then
-        ./build.sh build hook-latest-lts-amd64
-    else
-        ./build.sh
-    fi
-
+        ./build.sh build hook-default-amd64
     popd || exit 1 # out of hook dir
 
     mkdir -p "$OUT_DIR"
-
-    if [ "$HOOK_KERNEL" == "6.6" ]; then
-        mv "$PWD"/hook/out/hook_latest-lts-x86_64.tar.gz "$PWD"/hook/out/hook_x86_64.tar.gz
-    fi
 
     if ! cp "$PWD"/hook/out/hook_x86_64.tar.gz "$OUT_DIR"; then
         echo "Build of HookOS failed!"
@@ -141,11 +89,4 @@ build_hook() {
     echo "Build of HookOS succeeded!"
 }
 
-main() {
-
-    sudo apt install -y build-essential bison flex
-
-    build_hook
-}
-
-main
+build_hook

@@ -49,8 +49,6 @@ function calculate_kernel_version_default() {
 	declare -g KERNEL_POINT_RELEASE="${KERNEL_POINT_RELEASE:-""}"
 	resolve_latest_kernel_version_lts
 
-	KERNEL_POINT_RELEASE=${KERNEL_POINT_RELEASE_CONFIG:-$KERNEL_POINT_RELEASE}
-
 	# Calculate a version and hash for the OCI image
 	# Hash the Dockerfile and the input defconfig together
 	declare input_hash="" short_input_hash=""

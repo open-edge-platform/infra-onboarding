@@ -35,7 +35,6 @@ FROM kernel-source-unpacked as kernel-with-config
 ARG INPUT_DEFCONFIG
 ARG KERNEL_ARCH
 ARG KERNEL_CROSS_COMPILE
-ARG KERNEL_SERIES
 
 ENV KERNEL_ARCH=${KERNEL_ARCH}
 ENV ARCH=${KERNEL_ARCH}
@@ -47,16 +46,6 @@ ENV KBUILD_BUILD_HOST="tinkerbell"
 # Copy just the defconfig needed for this build
 WORKDIR /linux
 COPY /configs/${INPUT_DEFCONFIG} /linux/.config
-COPY /patches-${KERNEL_SERIES} /linux/patches-${KERNEL_SERIES}
-# Apply local specific patches if present
-RUN set -e && \
-    if  [ -d /patches-${KERNEL_SERIES} ]; then \
-       for patch in /patches-${KERNEL_SERIES}/*.patch; do \
-            echo "Applying $patch"; \
-            patch -t -F0 -N -u -p1 < "$patch"; \
-       done; \
-    fi
-
 
 # Kernel config; copy the correct defconfig as .config, and run olddefconfig
 RUN set -x && make "ARCH=${KERNEL_ARCH}" olddefconfig
