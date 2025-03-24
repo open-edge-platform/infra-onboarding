@@ -6,7 +6,7 @@ toolchain go1.22.6
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/docker/docker v26.1.0+incompatible
+	github.com/docker/docker v26.1.5+incompatible
 	github.com/go-logr/logr v1.4.1
 	github.com/go-logr/zerologr v1.2.3
 	github.com/rs/zerolog v1.30.0
