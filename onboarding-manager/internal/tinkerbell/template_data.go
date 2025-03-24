@@ -17,34 +17,34 @@ import (
 )
 
 const (
-	ActionEraseNonRemovableDisk      = "erase-non-removable-disk" //#nosec G101 -- ignore false positive.
-	ActionSecureBootStatusFlagRead   = "secure-boot-status-flag-read"
-	ActionStreamUbuntuImage          = "stream-ubuntu-image"
-	ActionStreamTiberMicrovisorImage = "stream-tibermicrovisor-image"
-	ActionGrowPartitionInstallScript = "grow-partition-install-script"
-	ActionCreateUser                 = "create-user"
-	ActionInstallScriptDownload      = "profile-pkg-and-node-agents-install-script-download"
-	ActionCloudInitInstall           = "install-cloud-init"
-	ActionInstallScript              = "service-script-for-profile-pkg-and-node-agents-install"
-	ActionInstallScriptEnable        = "enable-service-script-for-profile-pkg-node-agents"
-	ActionNetplan                    = "write-netplan"
-	ActionNetplanConfigure           = "update-netplan-to-make-ip-static"
-	ActionNetplanService             = "service-script-for-netplan-update"
-	ActionNetplanServiceEnable       = "enable-update-netplan.service-script"
-	ActionEfibootset                 = "efibootset-for-diskboot"
-	ActionFdeEncryption              = "fde-encryption"
-	ActionKernelupgrade              = "kernel-upgrade"
-	ActionReboot                     = "reboot"
-	ActionAddAptProxy                = "add-apt-proxy"
-	ActionCreateSecretsDirectory     = "create-node-directory" //#nosec G101 -- ignore false positive.
-	ActionWriteClientID              = "write-client-id"
-	ActionWriteClientSecret          = "write-client-secret"
-	ActionWriteHostname              = "write-hostname"
-	ActionSystemdNetworkOptimize     = "systemd-network-online-optimize"
-	ActionDisableSnapdOptimize       = "systemd-snapd-disable-optimize"
-	ActionTiberMicrovisorPartition   = "tibermicrovisor-partition"
-	ActionCloudinitDsidentity        = "cloud-init-ds-identity"
-	ActionSetSeliuxRelabel           = "set-selinux-relabel-policy"
+	ActionEraseNonRemovableDisk            = "erase-non-removable-disk" //#nosec G101 -- ignore false positive.
+	ActionSecureBootStatusFlagRead         = "secure-boot-status-flag-read"
+	ActionStreamUbuntuImage                = "stream-ubuntu-image"
+	ActionStreamEdgeMicrovisorToolKitImage = "stream-edge-microvisor-toolkit-image"
+	ActionGrowPartitionInstallScript       = "grow-partition-install-script"
+	ActionCreateUser                       = "create-user"
+	ActionInstallScriptDownload            = "profile-pkg-and-node-agents-install-script-download"
+	ActionCloudInitInstall                 = "install-cloud-init"
+	ActionInstallScript                    = "service-script-for-profile-pkg-and-node-agents-install"
+	ActionInstallScriptEnable              = "enable-service-script-for-profile-pkg-node-agents"
+	ActionNetplan                          = "write-netplan"
+	ActionNetplanConfigure                 = "update-netplan-to-make-ip-static"
+	ActionNetplanService                   = "service-script-for-netplan-update"
+	ActionNetplanServiceEnable             = "enable-update-netplan.service-script"
+	ActionEfibootset                       = "efibootset-for-diskboot"
+	ActionFdeEncryption                    = "fde-encryption"
+	ActionKernelupgrade                    = "kernel-upgrade"
+	ActionReboot                           = "reboot"
+	ActionAddAptProxy                      = "add-apt-proxy"
+	ActionCreateSecretsDirectory           = "create-node-directory" //#nosec G101 -- ignore false positive.
+	ActionWriteClientID                    = "write-client-id"
+	ActionWriteClientSecret                = "write-client-secret"
+	ActionWriteHostname                    = "write-hostname"
+	ActionSystemdNetworkOptimize           = "systemd-network-online-optimize"
+	ActionDisableSnapdOptimize             = "systemd-snapd-disable-optimize"
+	ActionEMTPartition                     = "emt-partition"
+	ActionCloudinitDsidentity              = "cloud-init-ds-identity"
+	ActionSetSeliuxRelabel                 = "set-selinux-relabel-policy"
 )
 
 const (
@@ -75,35 +75,35 @@ const (
 
 	envTinkActionKerenlUpgradeImage = "TINKER_KERNELUPGRD_IMAGE"
 
-	envTinkActionTiberMicrovisorPartitionImage = "TINKER_TMV_IMAGE_PARTITION"
+	envTinkActionEMTPartitionImage = "TINKER_EMT_IMAGE_PARTITION"
 
 	envTinkActionQemuNbdImage2DiskImage = "TINKER_QEMU_NBD_IMAGE2DISK_IMAGE"
 
 	envDkamDevMode = "dev"
 
-	tinkerActionEraseNonRemovableDisks   = "erase_non_removable_disks"
-	tinkerActionCexec                    = "cexec"
-	tinkerActionFDE                      = "fde"
-	tinkerActionTiberMicrovisorPartition = "tibermicrovisor_partition"
-	tinkerActionQemuNbdImage2Disk        = "qemu_nbd_image2disk"
-	tinkerActionKernelUpgrade            = "kernelupgrd"
-	tinkerActionEfibootset               = "efibootset"
-	tinkerActionImage2Disk               = "image2disk"
-	tinkerActionWritefile                = "writefile"
-	tinkerActionSecurebootflag           = "securebootflag"
+	tinkerActionEraseNonRemovableDisks = "erase_non_removable_disks"
+	tinkerActionCexec                  = "cexec"
+	tinkerActionFDE                    = "fde"
+	tinkerActionEMTPartition           = "emt_partition"
+	tinkerActionQemuNbdImage2Disk      = "qemu_nbd_image2disk"
+	tinkerActionKernelUpgrade          = "kernelupgrd"
+	tinkerActionEfibootset             = "efibootset"
+	tinkerActionImage2Disk             = "image2disk"
+	tinkerActionWritefile              = "writefile"
+	tinkerActionSecurebootflag         = "securebootflag"
 )
 
 var (
-	defaultEraseNonRemovableDiskImage              = getTinkerActionImage(tinkerActionEraseNonRemovableDisks)
-	defaultTinkActionSecurebootFlagReadImage       = getTinkerActionImage(tinkerActionSecurebootflag)
-	defaultTinkActionWriteFileImage                = getTinkerActionImage(tinkerActionWritefile)
-	defaultTinkActionCexecImage                    = getTinkerActionImage(tinkerActionCexec)
-	defaultTinkActionDiskImage                     = getTinkerActionImage(tinkerActionImage2Disk)
-	defaultTinkActionEfibootImage                  = getTinkerActionImage(tinkerActionEfibootset)
-	defaultTinkActionFdeImage                      = getTinkerActionImage(tinkerActionFDE)
-	defaultTinkActionKernelUpgradeImage            = getTinkerActionImage(tinkerActionKernelUpgrade)
-	defaultTinkActionTiberMicrovisorPartitionImage = getTinkerActionImage(tinkerActionTiberMicrovisorPartition)
-	defaultTinkActionQemuNbdImage2DiskImage        = getTinkerActionImage(tinkerActionQemuNbdImage2Disk)
+	defaultEraseNonRemovableDiskImage        = getTinkerActionImage(tinkerActionEraseNonRemovableDisks)
+	defaultTinkActionSecurebootFlagReadImage = getTinkerActionImage(tinkerActionSecurebootflag)
+	defaultTinkActionWriteFileImage          = getTinkerActionImage(tinkerActionWritefile)
+	defaultTinkActionCexecImage              = getTinkerActionImage(tinkerActionCexec)
+	defaultTinkActionDiskImage               = getTinkerActionImage(tinkerActionImage2Disk)
+	defaultTinkActionEfibootImage            = getTinkerActionImage(tinkerActionEfibootset)
+	defaultTinkActionFdeImage                = getTinkerActionImage(tinkerActionFDE)
+	defaultTinkActionKernelUpgradeImage      = getTinkerActionImage(tinkerActionKernelUpgrade)
+	defaultTinkActionEMTPartitionImage       = getTinkerActionImage(tinkerActionEMTPartition)
+	defaultTinkActionQemuNbdImage2DiskImage  = getTinkerActionImage(tinkerActionQemuNbdImage2Disk)
 )
 
 // if `tinkerImageVersion` is non-empty, its value is returned,
@@ -186,12 +186,12 @@ func tinkActionKernelupgradeImage(tinkerImageVersion string) string {
 	return fmt.Sprintf("%s:%s", defaultTinkActionKernelUpgradeImage, iv)
 }
 
-func tinkActionTiberMicrovisorPartitionImage(tinkerImageVersion string) string {
+func tinkActionEMTPartitionImage(tinkerImageVersion string) string {
 	iv := getTinkerImageVersion(tinkerImageVersion)
-	if v := os.Getenv(envTinkActionTiberMicrovisorPartitionImage); v != "" {
+	if v := os.Getenv(envTinkActionEMTPartitionImage); v != "" {
 		return fmt.Sprintf("%s:%s", v, iv)
 	}
-	return fmt.Sprintf("%s:%s", defaultTinkActionTiberMicrovisorPartitionImage, iv)
+	return fmt.Sprintf("%s:%s", defaultTinkActionEMTPartitionImage, iv)
 }
 
 func tinkActionQemuNbdImage2DiskImage(tinkerImageVersion string) string {
@@ -203,7 +203,7 @@ func tinkActionQemuNbdImage2DiskImage(tinkerImageVersion string) string {
 }
 
 //nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
-func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo onboarding_types.DeviceInfo) ([]byte, error) {
+func NewTemplateDataProdEdgeMicrovisorToolkit(name string, deviceInfo onboarding_types.DeviceInfo) ([]byte, error) {
 	infraConfig := config.GetInfraConfig()
 	opts := []cloudinit.Option{
 		cloudinit.WithOSType(deviceInfo.OsType),
@@ -246,7 +246,7 @@ func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo onboarding_types
 					},
 				},
 				{
-					Name:    ActionStreamTiberMicrovisorImage,
+					Name:    ActionStreamEdgeMicrovisorToolKitImage,
 					Image:   tinkActionDiskImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutMax9800,
 					Environment: map[string]string{
@@ -258,8 +258,8 @@ func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo onboarding_types
 				},
 
 				{
-					Name:    ActionTiberMicrovisorPartition,
-					Image:   tinkActionTiberMicrovisorPartitionImage(deviceInfo.TinkerVersion),
+					Name:    ActionEMTPartition,
+					Image:   tinkActionEMTPartitionImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg560,
 				},
 
@@ -364,7 +364,7 @@ func NewTemplateDataProdTiberMicrovisor(name string, deviceInfo onboarding_types
 		osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION {
 		for i, task := range wf.Tasks {
 			for j, action := range task.Actions {
-				if action.Name == ActionTiberMicrovisorPartition {
+				if action.Name == ActionEMTPartition {
 					// Remove the action from the slice
 					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
 				}

@@ -32,7 +32,7 @@ Following is the list of tinker actions maintained:
 | kernelupgrd             | upgrade the kernel to the latest HWE version                              |
 | qemu_nbd_image2disk     | write image to block device using qemu-nbd and dd                         |
 | securebootflag          | check for secure boot                                                     |
-| tibermicrovisor_partition | create partition for Tiber Microvisor                                   |
+| emt_partition           | create partition for Edge Microvisor Toolkit                              |
 | writefile               | write a file to a file system on a block device                           |
 
 ## Features
@@ -47,7 +47,7 @@ Following is the list of tinker actions maintained:
 
 Instructions on how to build tinker actions on your machine.
 
-### Develop the PA Server
+### Develop the Tinker Actions
 
 There are several convenient `make` targets to support developer activities, you can use `help` to see a list of makefile
 targets. The following is a list of makefile targets that support developer activities:
@@ -137,4 +137,4 @@ Edge Orchestrator is licensed under [Apache License
 [contributors-guide-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/index.html
 [troubleshooting-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/troubleshooting/troubleshooting.html
 
-Last Updated Date: February 18, 2025
+Last Updated Date: March 24, 2025

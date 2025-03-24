@@ -47,7 +47,7 @@ func GenerateTemplateForProd(k8sNamespace string, deviceInfo onboarding_types.De
 			return nil, err
 		}
 	case osv1.OsType_OS_TYPE_IMMUTABLE:
-		tmplData, err = NewTemplateDataProdTiberMicrovisor(tmplName, deviceInfo)
+		tmplData, err = NewTemplateDataProdEdgeMicrovisorToolkit(tmplName, deviceInfo)
 		if err != nil {
 			return nil, err
 		}
