@@ -15,6 +15,7 @@ Hook is the Tinkerbell Installation Environment for bare-metal. It runs in-memor
 and handles deprovisioning. Its based on [LinuxKit](https://github.com/linuxkit/linuxkit).
 
 This repo is forked from the open source repo [github.com/tinkerbell/hook](https://github.com/tinkerbell/hook).
+Summary of all the changes and contributions can be found [here](CHANGELOG.md)
 
 Following components have been added to the open source HookOS for our specific purpose
 
