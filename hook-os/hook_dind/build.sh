@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
@@ -9,6 +9,8 @@
 # details in the environment variable.
 # export http_proxy=http://proxy-ip:proxy-port
 # export https_proxy=http://proxy-ip:proxy-port
+
+set -e
 
 # Ensure environment variables are assigned
 http_proxy=${http_proxy:-}
