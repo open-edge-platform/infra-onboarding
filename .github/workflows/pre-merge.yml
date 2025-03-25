@@ -55,3 +55,9 @@ jobs:
       project_folder: ${{ matrix.project_folder }}
       orch_ci_repo_ref: "0.0.2"
     secrets: inherit
+  final-check:
+    needs: pre-merge-pipeline
+    runs-on: ubuntu-latest
+    steps:
+      - name: Final Status Check
+        run: echo "All pre-merge checks passed successfully."
