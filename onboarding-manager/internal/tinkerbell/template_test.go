@@ -72,6 +72,7 @@ func TestGenerateTemplateForProd(t *testing.T) {
 	dkam_testing.PrepareTestCaCertificateFile(t)
 	dkam_testing.PrepareTestInfraConfig(t)
 	type args struct {
+		ctx          context.Context
 		k8sNamespace string
 		deviceInfo   onboarding_types.DeviceInfo
 	}
@@ -97,6 +98,7 @@ func TestGenerateTemplateForProd(t *testing.T) {
 					AuthClientID:     "test-client-id",
 					AuthClientSecret: "test-client-secret",
 					HwMacID:          "aa:bb:cc:dd:ee:ff",
+					PlatformBundle:   "null",
 				},
 			},
 			want:    nil,
@@ -105,7 +107,7 @@ func TestGenerateTemplateForProd(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := tinkerbell.GenerateTemplateForProd(tt.args.k8sNamespace, tt.args.deviceInfo)
+			_, err := tinkerbell.GenerateTemplateForProd(tt.args.ctx, tt.args.k8sNamespace, tt.args.deviceInfo)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GenerateTemplateForProd() error = %v, wantErr %v", err, tt.wantErr)
 				return

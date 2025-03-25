@@ -54,6 +54,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 	const testHostMAC = "aa:bb:cc:dd:ee:ff"
 
 	type args struct {
+		template            string
 		options             []cloudinit.Option
 		infraConfigOverride func(config.InfraConfig) config.InfraConfig
 	}
@@ -79,14 +80,14 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 					newCfg.ClusterURL = "cluster.kind.internal"
 					newCfg.ExtraHosts = strings.Split("1.1.1.1 a.test,2.2.2.2 b.test", ",")
 					newCfg.FirewallCfgAllow = `
-[
-    {
-        "sourceIp": "",
-        "ports": "80,443",
-        "ipVer": "",
-        "protocol": "tcp"
-    }
-]`
+		[
+		    {
+		        "sourceIp": "",
+		        "ports": "80,443",
+		        "ipVer": "",
+		        "protocol": "tcp"
+		    }
+		]`
 					return newCfg
 				},
 			},
@@ -109,14 +110,14 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 					newCfg.ClusterURL = "cluster.kind.internal"
 					newCfg.ExtraHosts = strings.Split("1.1.1.1 a.test,2.2.2.2 b.test", ",")
 					newCfg.FirewallCfgAllow = `
-[
-    {
-        "sourceIp": "",
-        "ports": "80,443",
-        "ipVer": "",
-        "protocol": "tcp"
-    }
-]`
+		[
+		    {
+		        "sourceIp": "",
+		        "ports": "80,443",
+		        "ipVer": "",
+		        "protocol": "tcp"
+		    }
+		]`
 					return newCfg
 				},
 			},
@@ -334,6 +335,22 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "Dummy testTemplate",
+			args: args{
+				template: "test-template.cfg",
+				options: []cloudinit.Option{
+					cloudinit.WithDevMode("user", "pass"),
+					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
+					cloudinit.WithHostname(testHostname),
+					cloudinit.WithTenantID(testTenantID),
+					cloudinit.WithClientCredentials(testClientID, testClientSecret),
+					cloudinit.WithHostMACAddress(testHostMAC),
+				},
+			},
+			expectedOutputFileName: "test-template.cfg",
+			wantErr:                false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -343,7 +360,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 				config.SetInfraConfig(newCfg)
 			}
 
-			got, err := cloudinit.GenerateFromInfraConfig(config.GetInfraConfig(), tt.args.options...)
+			got, err := cloudinit.GenerateFromInfraConfig(tt.args.template, config.GetInfraConfig(), tt.args.options...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GenerateFromInfraConfig() error = %v, wantErr %v", err, tt.wantErr)
 				return

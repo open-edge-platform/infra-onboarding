@@ -44,7 +44,7 @@ func templateVariablesFromOptions(options cloudInitOptions) map[string]interface
 	return extraVars
 }
 
-func GenerateFromInfraConfig(infraConfig config.InfraConfig, opts ...Option) (string, error) {
+func GenerateFromInfraConfig(template string, infraConfig config.InfraConfig, opts ...Option) (string, error) {
 	options := defaultCloudInitOptions()
 	for _, opt := range opts {
 		opt(&options)
@@ -66,6 +66,11 @@ func GenerateFromInfraConfig(infraConfig config.InfraConfig, opts ...Option) (st
 	extraVars := templateVariablesFromOptions(options)
 	for key, value := range extraVars {
 		tmplVariables[key] = value
+	}
+
+	if template != "" {
+		zlog.InfraSec().Info().Msg("Using custom cloud-init template")
+		return curation.CurateFromTemplate(template, tmplVariables)
 	}
 
 	return curation.CurateFromTemplate(cloudInitTemplate, tmplVariables)

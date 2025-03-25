@@ -4,6 +4,7 @@
 package tinkerbell_test
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -20,6 +21,7 @@ func TestNewTemplateDataUbuntu(t *testing.T) {
 	dkam_testing.PrepareTestInfraConfig(t)
 
 	type args struct {
+		ctx        context.Context
 		name       string
 		deviceInfo onboarding_types.DeviceInfo
 	}
@@ -45,6 +47,7 @@ func TestNewTemplateDataUbuntu(t *testing.T) {
 					AuthClientID:     "test-client-id",
 					AuthClientSecret: "test-client-secret",
 					HwMacID:          "aa:bb:cc:dd:ee:ff",
+					PlatformBundle:   "null",
 				},
 			},
 			want:    want,
@@ -53,7 +56,7 @@ func TestNewTemplateDataUbuntu(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tinkerbell.NewTemplateDataUbuntu(tt.args.name, tt.args.deviceInfo)
+			got, err := tinkerbell.NewTemplateDataUbuntu(tt.args.ctx, tt.args.name, tt.args.deviceInfo)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewTemplateDataUbuntu() error = %v, wantErr %v", err, tt.wantErr)
 				return

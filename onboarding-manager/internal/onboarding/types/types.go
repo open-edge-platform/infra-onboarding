@@ -46,6 +46,7 @@ type (
 		// OsType differentiates between mutable and immutable OS
 		OsType osv1.OsType
 		// Tenant ID of resource
-		TenantID string
+		TenantID       string
+		PlatformBundle string
 	}
 )

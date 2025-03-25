@@ -98,7 +98,7 @@ func runProdWorkflow(
 		return createHwErr
 	}
 	deviceInfo.TenantID = instance.GetTenantId()
-	prodTemplate, err := tinkerbell.GenerateTemplateForProd(env.K8sNamespace, deviceInfo)
+	prodTemplate, err := tinkerbell.GenerateTemplateForProd(ctx, env.K8sNamespace, deviceInfo)
 	if err != nil {
 		zlog.InfraErr(err).Msg("")
 		return inv_errors.Errorf("Failed to generate Tinkerbell prod template for host %s", deviceInfo.GUID)

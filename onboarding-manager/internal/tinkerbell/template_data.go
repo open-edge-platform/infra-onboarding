@@ -4,6 +4,7 @@
 package tinkerbell
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/env"
 	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/cloudinit"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/platformbundle"
 	platformbundleubuntu2204 "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/platformbundle/ubuntu-22.04"
 )
 
@@ -199,7 +201,11 @@ func tinkActionQemuNbdImage2DiskImage(tinkerImageVersion string) string {
 }
 
 //nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
-func NewTemplateDataProdEdgeMicrovisorToolkit(name string, deviceInfo onboarding_types.DeviceInfo) ([]byte, error) {
+func NewTemplateDataProdEdgeMicrovisorToolkit(
+	ctx context.Context,
+	name string,
+	deviceInfo onboarding_types.DeviceInfo,
+) ([]byte, error) {
 	infraConfig := config.GetInfraConfig()
 	opts := []cloudinit.Option{
 		cloudinit.WithOSType(deviceInfo.OsType),
@@ -213,11 +219,15 @@ func NewTemplateDataProdEdgeMicrovisorToolkit(name string, deviceInfo onboarding
 		opts = append(opts, cloudinit.WithDevMode(env.ENUserName, env.ENPassWord))
 	}
 
+	platformBundleData, err := platformbundle.FetchPlatformBundleScripts(ctx, deviceInfo.PlatformBundle)
+	if err != nil {
+		return nil, err
+	}
+
 	if infraConfig.NetIP == netIPStatic {
 		opts = append(opts, cloudinit.WithPreserveIP(deviceInfo.HwIP, infraConfig.DNSServers))
 	}
-
-	cloudInitData, err := cloudinit.GenerateFromInfraConfig(infraConfig, opts...)
+	cloudInitData, err := cloudinit.GenerateFromInfraConfig(platformBundleData.CloudInitTemplate, infraConfig, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -395,7 +405,7 @@ func NewTemplateDataProdEdgeMicrovisorToolkit(name string, deviceInfo onboarding
 }
 
 //nolint:funlen // May effect the functionality, need to simplify this in future
-func NewTemplateDataUbuntu(name string, deviceInfo onboarding_types.DeviceInfo) ([]byte, error) {
+func NewTemplateDataUbuntu(ctx context.Context, name string, deviceInfo onboarding_types.DeviceInfo) ([]byte, error) {
 	infraConfig := config.GetInfraConfig()
 	opts := []cloudinit.Option{
 		cloudinit.WithOSType(deviceInfo.OsType),
@@ -409,11 +419,23 @@ func NewTemplateDataUbuntu(name string, deviceInfo onboarding_types.DeviceInfo) 
 		opts = append(opts, cloudinit.WithDevMode(env.ENUserName, env.ENPassWord))
 	}
 
+	platformBundleData, err := platformbundle.FetchPlatformBundleScripts(ctx, deviceInfo.PlatformBundle)
+	if err != nil {
+		return nil, err
+	}
+
+	var installerScript string
+	if platformBundleData.InstallerScript != "" {
+		installerScript = platformBundleData.InstallerScript
+	} else {
+		installerScript = platformbundleubuntu2204.Installer
+	}
+
 	if infraConfig.NetIP == netIPStatic {
 		opts = append(opts, cloudinit.WithPreserveIP(deviceInfo.HwIP, infraConfig.DNSServers))
 	}
 
-	cloudInitData, err := cloudinit.GenerateFromInfraConfig(infraConfig, opts...)
+	cloudInitData, err := cloudinit.GenerateFromInfraConfig(platformBundleData.CloudInitTemplate, infraConfig, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -515,7 +537,7 @@ func NewTemplateDataUbuntu(name string, deviceInfo onboarding_types.DeviceInfo) 
 					Environment: map[string]string{
 						"FS_TYPE":   "ext4",
 						"DEST_PATH": "/home/postinstall/Setup/installer.sh",
-						"CONTENTS":  platformbundleubuntu2204.Installer,
+						"CONTENTS":  installerScript,
 						"UID":       "0",
 						"GID":       "0",
 						"MODE":      "0755",

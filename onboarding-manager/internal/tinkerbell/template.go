@@ -34,7 +34,11 @@ func NewTemplate(tpData, name, ns string) *tink.Template {
 	return tp
 }
 
-func GenerateTemplateForProd(k8sNamespace string, deviceInfo onboarding_types.DeviceInfo) (*tink.Template, error) {
+func GenerateTemplateForProd(
+	ctx context.Context,
+	k8sNamespace string,
+	deviceInfo onboarding_types.DeviceInfo,
+) (*tink.Template, error) {
 	var (
 		tmplName = GetProdTemplateName(deviceInfo.GUID)
 		tmplData []byte
@@ -42,12 +46,12 @@ func GenerateTemplateForProd(k8sNamespace string, deviceInfo onboarding_types.De
 	)
 	switch deviceInfo.OsType {
 	case osv1.OsType_OS_TYPE_MUTABLE:
-		tmplData, err = NewTemplateDataUbuntu(tmplName, deviceInfo)
+		tmplData, err = NewTemplateDataUbuntu(ctx, tmplName, deviceInfo)
 		if err != nil {
 			return nil, err
 		}
 	case osv1.OsType_OS_TYPE_IMMUTABLE:
-		tmplData, err = NewTemplateDataProdEdgeMicrovisorToolkit(tmplName, deviceInfo)
+		tmplData, err = NewTemplateDataProdEdgeMicrovisorToolkit(ctx, tmplName, deviceInfo)
 		if err != nil {
 			return nil, err
 		}
