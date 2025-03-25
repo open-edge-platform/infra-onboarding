@@ -32,6 +32,15 @@ type cloudInitOptions struct {
 	clientID string
 	// clientSecret specifies client secret used to obtain JWT token for authorization
 	clientSecret string
+
+	// hostMAC sets MAC address of host's management interface to be provided to netplan to speed up network discovery process
+	hostMAC string
+	// preserveIP if enabled, preserves IP address that is initially auto-assigned by DHCP during uOS stage
+	preserveIP bool
+	// staticHostIP static IP address to configure on a Host
+	staticHostIP string
+	// staticDNS set of statically configured DNS servers, must be provided if preserveIP is true
+	staticDNS []string
 }
 
 func defaultCloudInitOptions() cloudInitOptions {
@@ -42,6 +51,7 @@ func defaultCloudInitOptions() cloudInitOptions {
 	}
 }
 
+//nolint:cyclop // we need complex validation logic
 func (opts cloudInitOptions) validate() error {
 	if opts.OsType == osv1.OsType_OS_TYPE_UNSPECIFIED {
 		return inv_errors.Errorfc(codes.InvalidArgument, "Unsupported OS type: %s", opts.OsType.String())
@@ -55,6 +65,10 @@ func (opts cloudInitOptions) validate() error {
 		return inv_errors.Errorfc(codes.InvalidArgument, "Hostname must be provided")
 	}
 
+	if opts.hostMAC == "" {
+		return inv_errors.Errorfc(codes.InvalidArgument, "Host's MAC address must be provided")
+	}
+
 	if opts.clientID == "" || opts.clientSecret == "" {
 		return inv_errors.Errorfc(codes.InvalidArgument, "Client credentials must be provided")
 	}
@@ -62,6 +76,11 @@ func (opts cloudInitOptions) validate() error {
 	if opts.useDevMode && (opts.devUsername == "" || opts.devUserPasswd == "") {
 		return inv_errors.Errorfc(codes.InvalidArgument,
 			"Username and password must be provided if dev mode is enabled")
+	}
+
+	if opts.preserveIP && (opts.staticHostIP == "" || len(opts.staticDNS) == 0) {
+		return inv_errors.Errorfc(codes.InvalidArgument,
+			"IP address to set must be provided if static IP enabled")
 	}
 
 	return nil
@@ -97,5 +116,19 @@ func WithClientCredentials(clientID, clientSecret string) Option {
 	return func(options *cloudInitOptions) {
 		options.clientID = clientID
 		options.clientSecret = clientSecret
+	}
+}
+
+func WithHostMACAddress(mac string) Option {
+	return func(options *cloudInitOptions) {
+		options.hostMAC = mac
+	}
+}
+
+func WithPreserveIP(hostIP string, dnsServers []string) Option {
+	return func(options *cloudInitOptions) {
+		options.preserveIP = true
+		options.staticHostIP = hostIP
+		options.staticDNS = dnsServers
 	}
 }

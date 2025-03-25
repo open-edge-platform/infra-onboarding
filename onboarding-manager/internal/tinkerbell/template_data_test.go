@@ -44,6 +44,7 @@ func TestNewTemplateDataUbuntu(t *testing.T) {
 					Hostname:         "test-hostname",
 					AuthClientID:     "test-client-id",
 					AuthClientSecret: "test-client-secret",
+					HwMacID:          "aa:bb:cc:dd:ee:ff",
 				},
 			},
 			want:    want,

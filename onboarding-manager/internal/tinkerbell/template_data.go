@@ -6,7 +6,6 @@ package tinkerbell
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
@@ -27,10 +26,6 @@ const (
 	ActionCloudInitInstall                 = "install-cloud-init"
 	ActionInstallScript                    = "service-script-for-profile-pkg-and-node-agents-install"
 	ActionInstallScriptEnable              = "enable-service-script-for-profile-pkg-node-agents"
-	ActionNetplan                          = "write-netplan"
-	ActionNetplanConfigure                 = "update-netplan-to-make-ip-static"
-	ActionNetplanService                   = "service-script-for-netplan-update"
-	ActionNetplanServiceEnable             = "enable-update-netplan.service-script"
 	ActionEfibootset                       = "efibootset-for-diskboot"
 	ActionFdeEncryption                    = "fde-encryption"
 	ActionKernelupgrade                    = "kernel-upgrade"
@@ -80,6 +75,7 @@ const (
 	envTinkActionQemuNbdImage2DiskImage = "TINKER_QEMU_NBD_IMAGE2DISK_IMAGE"
 
 	envDkamDevMode = "dev"
+	netIPStatic    = "static"
 
 	tinkerActionEraseNonRemovableDisks = "erase_non_removable_disks"
 	tinkerActionCexec                  = "cexec"
@@ -210,10 +206,15 @@ func NewTemplateDataProdEdgeMicrovisorToolkit(name string, deviceInfo onboarding
 		cloudinit.WithTenantID(deviceInfo.TenantID),
 		cloudinit.WithHostname(deviceInfo.Hostname),
 		cloudinit.WithClientCredentials(deviceInfo.AuthClientID, deviceInfo.AuthClientSecret),
+		cloudinit.WithHostMACAddress(deviceInfo.HwMacID),
 	}
 
 	if env.ENDkamMode == envDkamDevMode {
 		opts = append(opts, cloudinit.WithDevMode(env.ENUserName, env.ENPassWord))
+	}
+
+	if infraConfig.NetIP == netIPStatic {
+		opts = append(opts, cloudinit.WithPreserveIP(deviceInfo.HwIP, infraConfig.DNSServers))
 	}
 
 	cloudInitData, err := cloudinit.GenerateFromInfraConfig(infraConfig, opts...)
@@ -396,10 +397,15 @@ func NewTemplateDataUbuntu(name string, deviceInfo onboarding_types.DeviceInfo) 
 		cloudinit.WithTenantID(deviceInfo.TenantID),
 		cloudinit.WithHostname(deviceInfo.Hostname),
 		cloudinit.WithClientCredentials(deviceInfo.AuthClientID, deviceInfo.AuthClientSecret),
+		cloudinit.WithHostMACAddress(deviceInfo.HwMacID),
 	}
 
 	if env.ENDkamMode == envDkamDevMode {
 		opts = append(opts, cloudinit.WithDevMode(env.ENUserName, env.ENPassWord))
+	}
+
+	if infraConfig.NetIP == netIPStatic {
+		opts = append(opts, cloudinit.WithPreserveIP(deviceInfo.HwIP, infraConfig.DNSServers))
 	}
 
 	cloudInitData, err := cloudinit.GenerateFromInfraConfig(infraConfig, opts...)
@@ -550,111 +556,6 @@ func NewTemplateDataUbuntu(name string, deviceInfo onboarding_types.DeviceInfo) 
 						"CHROOT":              "y",
 						"DEFAULT_INTERPRETER": "/bin/sh -c",
 						"CMD_LINE":            "systemctl enable install-profile-pkgs-and-node-agent.service",
-					},
-				},
-				{
-					Name:    ActionNetplan,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/netplan/config.yaml",
-						"CONTENTS": `network:
-                  version: 2
-                  renderer: networkd
-                  ethernets:
-                    id0:
-                      match:
-                        name: en*
-                      dhcp4: yes`,
-						"UID":     "0",
-						"GID":     "0",
-						"MODE":    "0644",
-						"DIRMODE": "0755",
-					},
-				},
-
-				{
-					Name:    ActionNetplanConfigure,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutAvg200,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/home/postinstall/Setup/update_netplan_config.sh",
-						"CONTENTS": fmt.Sprintf(`#!/bin/bash
-while [ 1 ]
-do
-interface=$(ip route show default | awk '/default/ {print $5}')
-gateway=$(ip route show default | awk '/default/ {print $3}')
-sub_net=$(ip addr show | grep $interface | grep -E 'inet ./*' | awk '{print $2}' | awk -F'/' '{print $2}')
-if [ -z $interface ] || [ -z $gateway ] || [ -z $sub_net ]; then
-   sleep 2
-   continue
-else
-   break
-fi
-done
-# Define the network configuration in YAML format with variables
-config_yaml="
-network:
-  version: 2
-  renderer: networkd
-  ethernets:
-    id0:
-      match:
-        name: en*
-      dhcp4: no
-      addresses: [ %s/$sub_net ]
-      gateway4: $gateway
-      nameservers:
-        addresses: [ %s ]
-"
-# Write the YAML configuration to the file
-echo "$config_yaml" | tee /etc/netplan/config.yaml
-ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
-touch .netplan_update_done
-netplan apply`, deviceInfo.HwIP, strings.Join(infraConfig.DNSServers, ", ")),
-						"UID":     "0",
-						"GID":     "0",
-						"MODE":    "0755",
-						"DIRMODE": "0755",
-					},
-				},
-				{
-					Name:    ActionNetplanService,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutAvg200,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/systemd/system/update-netplan.service",
-						"CONTENTS": `
-                                                [Unit]
-                                                Description=update the netplan with to make static ip
-                                                After=network.target
-                                                ConditionPathExists = !/home/postinstall/Setup/.netplan_update_done
-
-                                                [Service]
-                                                WorkingDirectory=/home/postinstall/Setup
-                                                ExecStart=/home/postinstall/Setup/update_netplan_config.sh
-
-                                                [Install]
-                                                WantedBy=multi-user.target`,
-						"UID":     "0",
-						"GID":     "0",
-						"MODE":    "0644",
-						"DIRMODE": "0755",
-					},
-				},
-
-				{
-					Name:    ActionNetplanServiceEnable,
-					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutAvg200,
-					Environment: map[string]string{
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "systemctl enable update-netplan.service",
 					},
 				},
 				{

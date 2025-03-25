@@ -29,6 +29,7 @@ func TestWorkflowActionToStatusDetail(t *testing.T) {
 		Hostname:         "test-hostname",
 		AuthClientID:     "test-client-id",
 		AuthClientSecret: "test-client-secret",
+		HwMacID:          "aa:bb:cc:dd:ee:ff",
 	})
 	require.NoError(t, err)
 

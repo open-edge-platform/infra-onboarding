@@ -29,8 +29,15 @@ func templateVariablesFromOptions(options cloudInitOptions) map[string]interface
 		extraVars["DEV_USER_PASSWD"] = options.devUserPasswd
 	}
 
+	extraVars["WITH_PRESERVE_IP"] = false
+	if options.preserveIP {
+		extraVars["WITH_PRESERVE_IP"] = true
+		extraVars["HOST_IP"] = options.staticHostIP
+	}
+
 	extraVars["TENANT_ID"] = options.tenantID
 	extraVars["HOSTNAME"] = options.hostname
+	extraVars["HOST_MAC"] = options.hostMAC
 	extraVars["CLIENT_ID"] = options.clientID
 	extraVars["CLIENT_SECRET"] = options.clientSecret
 

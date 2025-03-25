@@ -371,36 +371,6 @@ echo "install_syslogrotate_ufw done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
 fi
 }
 
-# TODO: to be moved to cloud-init
-enable_netipplan() {
-    if grep -q "enable_netipplan done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping enable_netipplan"
-    else
-        echo "Enable NetIP"
-        # New values to update in the config.yaml file
-        new_values="network:
-                      version: 2
-                      renderer: networkd
-                      ethernets:
-                        id0:
-                          match:
-                            name: en*
-                          dhcp4: true"
-
-
-        # Update the content of the config.yaml file with new values
-        echo "$new_values" > /etc/netplan/config.yaml
-
-        # Apply the changes using the netplan apply command
-        netplan apply
-
-        echo "Config.yaml file updated successfully."
-        sed -i '/[Resolve]/d'  /etc/systemd/resolved.conf
-        sed -i '/DNS/d'  /etc/systemd/resolved.conf
-        echo "enable_netipplan done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
 enable_kernel_config(){
     if grep -q "enable_kernel_config done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping enable_kernel_config"
@@ -614,7 +584,6 @@ install_lvm_on_disk(){
 }
 
 install_lvm_on_disk 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-enable_netipplan 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_dependencies 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 enable_kernel_config 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_syslogrotate_job 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
