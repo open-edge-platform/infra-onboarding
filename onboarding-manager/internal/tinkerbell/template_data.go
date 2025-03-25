@@ -262,20 +262,7 @@ func NewTemplateDataProdEdgeMicrovisorToolkit(name string, deviceInfo onboarding
 					Image:   tinkActionEMTPartitionImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg560,
 				},
-
-				// TODO: remove create user and write hostname actions once ITEP-21015 is done
-				{
-					Name:    ActionCreateUser,
-					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE": fmt.Sprintf("useradd -p $(openssl passwd -1 %s) -s /bin/bash -d /home/%s/ -m -G sudo %s",
-							env.ENPassWord, env.ENUserName, env.ENUserName),
-					},
-				},
+				// TODO: remove write hostname actions once fixed in EMT image
 				{
 					Name:    ActionWriteHostname,
 					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
@@ -291,7 +278,6 @@ func NewTemplateDataProdEdgeMicrovisorToolkit(name string, deviceInfo onboarding
 						"DIRMODE": "0755",
 					},
 				},
-
 				{
 					Name:    ActionCloudInitInstall,
 					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
