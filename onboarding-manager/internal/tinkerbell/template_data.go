@@ -247,6 +247,11 @@ func NewTemplateDataProdEdgeMicrovisorToolkit(name string, deviceInfo onboarding
 					},
 				},
 				{
+					Name:    ActionEraseNonRemovableDisk,
+					Image:   tinkActionEraseNonRemovableDisk(deviceInfo.TinkerVersion),
+					Timeout: timeOutAvg560,
+				},
+				{
 					Name:    ActionStreamEdgeMicrovisorToolKitImage,
 					Image:   tinkActionDiskImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutMax9800,
