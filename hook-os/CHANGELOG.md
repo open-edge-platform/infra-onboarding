@@ -35,6 +35,8 @@ provided in the kernel arguments, instead of running DHCP on all `eth*` interfac
    - Replaced syslog port `514` with `5140`.
    - Added syslog format configuration `rfc3164`.
    - This change enables streaming data to fluent-bit.
+   - Added 3 second delay post detecting reboot trigger file to provide sufficient time for tink-worker to send workflow
+     execution success to tink controller
 
 7. **images/hook-mdev/Dockerfile**
    - Added a non-root user.
@@ -64,4 +66,4 @@ The following files have been updated based on shellcheck
 These changes have been made to tailor the Tinkerbell Actions to our specific requirements, improve performance,
 and enhance the overall functionality. We will continue to maintain and update this fork as needed.
 
-Last Updated Date: March 24, 2025
+Last Updated Date: March 25, 2025

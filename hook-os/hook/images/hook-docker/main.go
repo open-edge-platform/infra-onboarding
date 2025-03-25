@@ -132,6 +132,7 @@ func rebootWatch() {
 			cmd := exec.Command("/sbin/reboot")
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
+			time.Sleep(3 * time.Second)
 			err := cmd.Run()
 			if err != nil {
 				fmt.Printf("error calling /sbin/reboot: %v\n", err)
