@@ -27,6 +27,7 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	computev1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/compute/v1"
+	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 	providerv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/provider/v1"
 	statusv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/status/v1"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/auth"
@@ -2142,4 +2143,92 @@ func assertInternalEvent(t *testing.T, expectedEvent *client.ResourceTenantIDCar
 			t.Errorf("Expected internal event not delivered!")
 		}
 	}()
+}
+
+func TestInteractiveOnboardingService_startZeroTouch_OSSecurityFeatureDisable(t *testing.T) {
+	// Create inventory onboarding client for testing
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+
+	// Create test data Host and OS resources
+	host := inv_testing.CreateHost(t, nil, nil)
+	osRes := inv_testing.CreateOs(t)
+	dao := inv_testing.NewInvResourceDAOOrFail(t)
+
+	// Initialize the service with the test client
+	s := &InteractiveOnboardingService{
+		InventoryClientService: InventoryClientService{
+			invClient:    om_testing.InvClient,
+			invClientAPI: om_testing.InvClient,
+		},
+	}
+
+	// Prepare provider configuration with os security feature disable
+	providerConfig := fmt.Sprintf(`{"defaultOs":%q,"autoProvision":true,"OSSecurityFeatureEnable":false}`, osRes.GetResourceId())
+	dao.CreateProvider(t, host.GetTenantId(), onboarding_types.DefaultProviderName,
+		inv_testing.ProviderConfig(providerConfig),
+		inv_testing.ProviderKind(providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL),
+	)
+
+	err := s.startZeroTouch(context.Background(), host.GetTenantId(), host.GetResourceId())
+	require.NoError(t, err, "Expected no error during zero touch provisioning")
+
+	// Verify that an instance was created
+	instances, err := om_testing.InvClient.GetInstanceResources(context.Background())
+	require.NoError(t, err, "Failed to get instance resources")
+	require.Len(t, instances, 1, "Wrong number of expected instances for autoProvision")
+
+	// Verify the instance details
+	autoProvInst := instances[0]
+	assert.Equal(t, osv1.SecurityFeature_SECURITY_FEATURE_NONE, autoProvInst.GetSecurityFeature(), "OS security feature match")
+	// Delete the created instance
+	dao.HardDeleteInstance(t, autoProvInst.GetTenantId(), autoProvInst.GetResourceId())
+}
+
+func TestInteractiveOnboardingService_startZeroTouch_OSSecurityFeatureEnable(t *testing.T) {
+	// Create inventory onboarding client for testing
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+
+	// Create Host and OS resources
+	host := inv_testing.CreateHost(t, nil, nil)
+	osRes := inv_testing.CreateOsWithArgs(t, "", "profile:profile",
+		osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION, osv1.OsType_OS_TYPE_MUTABLE)
+	dao := inv_testing.NewInvResourceDAOOrFail(t)
+
+	// Initialize the service with the test client
+	s := &InteractiveOnboardingService{
+		InventoryClientService: InventoryClientService{
+			invClient:    om_testing.InvClient,
+			invClientAPI: om_testing.InvClient,
+		},
+	}
+
+	// Prepare provider configuration with security feature enabled
+	providerConfig := fmt.Sprintf(`{"defaultOs":%q,"autoProvision":true,"OSSecurityFeatureEnable":true}`, osRes.GetResourceId())
+	dao.CreateProvider(t, host.GetTenantId(), onboarding_types.DefaultProviderName,
+		inv_testing.ProviderConfig(providerConfig),
+		inv_testing.ProviderKind(providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL),
+	)
+
+	// Execute the function under test
+	err := s.startZeroTouch(context.Background(), host.GetTenantId(), host.GetResourceId())
+	require.NoError(t, err, "Expected no error during zero touch provisioning")
+
+	// Verify that an instance was created
+	instances, err := om_testing.InvClient.GetInstanceResources(context.Background())
+	require.NoError(t, err, "Failed to get instance resources")
+	require.Len(t, instances, 1, "Wrong number of expected instances for autoProvision")
+
+	// Verify the instance details
+	autoProvInst := instances[0]
+	assert.Equal(t, osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION, autoProvInst.GetSecurityFeature(),
+		"OS security feature match")
+
+	// Clean up: Delete the created instance
+	dao.HardDeleteInstance(t, autoProvInst.GetTenantId(), autoProvInst.GetResourceId())
 }

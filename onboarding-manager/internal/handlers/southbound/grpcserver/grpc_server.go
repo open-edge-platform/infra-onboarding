@@ -681,7 +681,22 @@ func (s *InventoryClientService) startZeroTouch(ctx context.Context, tenantID, h
 func (s *InventoryClientService) checkNCreateInstance(ctx context.Context, tenantID string,
 	pconf invclient.ProviderConfig, host *computev1.HostResource,
 ) error {
-	if pconf.AutoProvision {
+	if pconf.AutoProvision { // ZTP
+		var desiredSecurityFeature osv1.SecurityFeature
+		// Enable SB/FDE if security feature is enabled in provider config
+		if pconf.OSSecurityFeatureEnable {
+			osRes, err := s.invClientAPI.GetOSResourceByResourceID(ctx, tenantID, pconf.DefaultOs)
+			if err != nil {
+				zlog.Debug().Msgf("Failed to GetOSResourceByResourceID for host resource id %s)", host.ResourceId)
+				zlog.Err(err).Msgf("Failed to GetOSResourceByResourceID for host resource")
+				return err
+			}
+			desiredSecurityFeature = osRes.GetSecurityFeature()
+		} else {
+			// Disable SB/FDE by default if security feature is disabled in provider config
+			desiredSecurityFeature = osv1.SecurityFeature_SECURITY_FEATURE_NONE
+		}
+
 		instance := &computev1.InstanceResource{
 			TenantId: tenantID,
 
@@ -695,21 +710,13 @@ func (s *InventoryClientService) checkNCreateInstance(ctx context.Context, tenan
 			DesiredOs: &osv1.OperatingSystemResource{
 				ResourceId: pconf.DefaultOs,
 			},
+			SecurityFeature: desiredSecurityFeature,
 		}
-		osRes, err := s.invClientAPI.GetOSResourceByResourceID(ctx, tenantID, pconf.DefaultOs)
-		if err != nil {
-			zlog.Debug().Msgf("Failed to GetOSResourceByResourceID for host resource (uuid=%s)", hostResID)
-			zlog.Err(err).Msgf("Failed to GetOSResourceByResourceID for host resource")
-			return err
-		}
-		instance.SecurityFeature = osRes.GetSecurityFeature()
-
 		if _, err := s.invClientAPI.CreateInstanceResource(ctx, tenantID, instance); err != nil {
 			zlog.Debug().Msgf("Failed to CreateInstanceResource for host resource (uuid=%s),tID=%s", hostResID, tenantID)
 			zlog.Err(err).Msgf("Failed to CreateInstanceResource for host resource uuid,tID")
 			return err
 		}
 	}
-
 	return nil
 }

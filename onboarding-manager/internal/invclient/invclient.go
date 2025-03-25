@@ -754,8 +754,9 @@ func GetProviderResourceByName(
 
 //nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
 type ProviderConfig struct {
-	DefaultOs     string `json:"defaultOs"`
-	AutoProvision bool   `json:"autoProvision"`
+	DefaultOs               string `json:"defaultOs"`
+	AutoProvision           bool   `json:"autoProvision"`
+	OSSecurityFeatureEnable bool   `json:"osSecurityFeatureEnable"`
 }
 
 func (c *OnboardingInventoryClient) GetProviderConfig(
@@ -775,7 +776,6 @@ func (c *OnboardingInventoryClient) GetProviderConfig(
 		zlog.InfraErr(err).Msgf("failed to unmarshal ProviderConfig")
 		return nil, inv_errors.Wrap(err)
 	}
-
 	return &pconf, nil
 }
 
