@@ -123,30 +123,26 @@ func fetchReleaseToken(releaseServerURL string, accessToken string, caCertPath s
 	}
 	defer resp.Body.Close()
 
-	// Check the response status code
-	switch resp.StatusCode {
-	case http.StatusOK:
-		// Status 200: Successfully retrieved release token
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return "", fmt.Errorf("error reading response body: %v", err)
-		}
-		releaseToken := string(body)
-		if releaseToken == "null" || releaseToken == "" {
-			return "", fmt.Errorf("invalid token received")
-		}
-		fmt.Println("Successfully retrieved release token.")
-		return releaseToken, nil
-
-	case http.StatusNoContent:
-		// Status 204: No release token exists, create an empty file
-		fmt.Println("No release token exists. Creating an empty file.")
-		return "", nil
-
-	default:
-		// Other status codes: Failed to retrieve release token
-		return "", fmt.Errorf("failed to retrieve release token. HTTP status code: %d", resp.StatusCode)
+	// Check if the response status is 200 OK
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to get release token, status: %s", resp.Status)
 	}
+
+	// Read the response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("error reading response body: %v", err)
+	}
+
+	// Convert the response body to a string (the token)
+	token := string(body)
+
+	// Validate the received token
+	if token == "null" || token == "" {
+		return "", fmt.Errorf("invalid token received")
+	}
+
+	return token, nil
 }
 
 // clientAuth handles authentication and retrieves tokens

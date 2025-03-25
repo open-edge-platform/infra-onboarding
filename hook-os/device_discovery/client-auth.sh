@@ -13,7 +13,6 @@ password_authenticated=0
 readonly idp_folder=/dev/shm
 readonly log_file="/var/log/client-auth/client-auth.log"
 readonly HTTP_OK=200
-readonly HTTP_NO_CONTENT=204
 
 # Ensure the log directory exists
 mkdir -p /var/log/client-auth
@@ -185,12 +184,12 @@ main() {
 
 		# Check for status code 200
 		if [ "$status_code" -eq $HTTP_OK ]; then
+			if [ -z "$release_token" ] || [ "$release_token" = "null" ]; then
+				echo "Release token is empty. Exiting."
+				exit 1
+			fi
 			echo "Successfully retrieved release token."
 			printf "%s" "$release_token" > "$idp_folder/release_token"
-		# Check for status code 204
-		elif [ "$status_code" -eq $HTTP_NO_CONTENT ]; then
-			echo "No release token exists. Creating an empty file."
-			: > "$idp_folder/release_token"
 		else
 			echo "Failed to retrieve release token. HTTP status code: $status_code"
 			exit 1

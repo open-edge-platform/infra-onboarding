@@ -26,12 +26,9 @@ while true; do
     sleep $INTERVAL
 done
 
-no_auth_rs=false
 if [ ! -s "/dev/shm/release_token" ]; then
-    echo "Release service token file is empty, assuming no-auth RS"
-    no_auth_rs=true
-else
-    echo "Release service token file is present and non-empty."
+    echo "Release service token file is empty, exiting.."
+    exit 1
 fi
 
 access_token=$(cat /dev/shm/idp_access_token)
@@ -84,12 +81,5 @@ fi
 cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile2
 # Replace the log level in the Caddyfile
 sed -i "s/level .*/level $LOG_LEVEL/" /etc/caddy/Caddyfile2
-
-if [ "$no_auth_rs" = "true" ]; then
-    # Remove the header for release service token
-    # shellcheck disable=SC2016
-    sed -i '/header_up Authorization "Bearer {$release_token}"/d' /etc/caddy/Caddyfile2
-    echo "Removing the header for release service token"
-fi
 
 /usr/bin/caddy run --config /etc/caddy/Caddyfile2
