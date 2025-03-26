@@ -35,6 +35,7 @@ jobs:
           echo "filtered_projects=$filtered_projects" >> $GITHUB_OUTPUT
   pre-merge-pipeline:
     needs: pre-checks
+    if: ${{ needs.pre-checks.outputs.filtered_projects != '[]' }}
     strategy:
       fail-fast: false
       matrix:
@@ -56,8 +57,19 @@ jobs:
       orch_ci_repo_ref: "0.0.2"
     secrets: inherit
   final-check:
-    needs: pre-merge-pipeline
-    runs-on: ubuntu-latest
-    steps:
-      - name: Final Status Check
-        run: echo "All pre-merge checks passed successfully."
+      runs-on: ubuntu-latest
+      if: ${{ always() }}
+      needs: [pre-merge-pipeline]
+      steps:
+        - name: Final Status Check
+          run: |
+            pre_merge_pipeline_result="${{ needs.pre-merge-pipeline.result }}"
+            
+            echo "Pre-merge pipeline result: $pre_merge_pipeline_result"
+  
+            if [ "$pre_merge_pipeline_result" == "success" ] || [ "$pre_merge_pipeline_result" == "skipped" ]; then
+              echo "Pre-merge check passed successfully."
+            else
+              echo "Pre-merge checks failed. PR can't get merged"
+              exit 1
+            fi
