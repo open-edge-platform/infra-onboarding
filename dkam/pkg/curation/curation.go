@@ -5,34 +5,22 @@ package curation
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 	"strings"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
 
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
-	as "github.com/open-edge-platform/infra-core/inventory/v2/pkg/artifactservice"
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
-	"github.com/open-edge-platform/infra-onboarding/dkam/internal/env"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
-	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/util"
 )
 
-var zlog = logging.GetLogger("InfraDKAMAuth")
-
-const (
-	// file owner RW permissions.
-	writeMode = 0o600
-	// file owner RWX, other user RX permissions.
-	fileMode = 0o755
-)
+var zlog = logging.GetLogger("InfraCuration")
 
 // FirewallRule UFW Firewall structure in JSON, expected to be provided as environment variable.
 type FirewallRule struct {
@@ -56,9 +44,20 @@ func GetBMAgentsInfo() (agentsList []config.AgentsVersion, distribution string, 
 	return agentsList, distribution, nil
 }
 
+func pathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil // path exists
+	}
+	if os.IsNotExist(err) {
+		return false, nil // path does not exist
+	}
+	return false, err // an error occurred (other than not existing)
+}
+
 func getCaCert() (string, error) {
 	caPath := config.OrchCACertificateFile
-	caexists, err := util.PathExists(caPath)
+	caexists, err := pathExists(caPath)
 	if err != nil {
 		errMsg := "Failed to check if CA certificate path exists"
 		zlog.Error().Err(err).Msg(errMsg)
@@ -201,65 +200,6 @@ func GetCommonInfraTemplateVariables(infraConfig config.InfraConfig, osType osv1
 	return templateVariables, nil
 }
 
-func CurateScript(ctx context.Context, osRes *osv1.OperatingSystemResource) error {
-	if osRes.GetOsType() == osv1.OsType_OS_TYPE_IMMUTABLE {
-		zlog.InfraSec().Info().Msgf("Skipping script curation for immutable OS %s", osRes.GetResourceId())
-		return nil
-	}
-
-	installerScriptPath, err := util.GetInstallerLocation(osRes, config.PVC)
-	if err != nil {
-		return err
-	}
-
-	localInstallerPath, err := util.GetLocalInstallerPath(osRes.GetOsType())
-	if err != nil {
-		return err
-	}
-
-	templateVariables, err := GetCommonInfraTemplateVariables(config.GetInfraConfig(), osRes.GetOsType())
-	if err != nil {
-		zlog.InfraSec().Error().Err(err).Msg("Failed to get template variables for curation")
-		return err
-	}
-
-	tmplScript, err := os.ReadFile(localInstallerPath)
-	if err != nil {
-		zlog.InfraSec().Error().Err(err).Msgf(
-			"Failed to read template of installation script from path %v", localInstallerPath)
-		return err
-	}
-
-	curatedScriptData, createErr := CurateFromTemplate(string(tmplScript), templateVariables)
-	if createErr != nil {
-		zlog.InfraSec().Error().Msgf("Error checking path %v", createErr)
-		return createErr
-	}
-
-	return finalizeCuratedScript(ctx, osRes, installerScriptPath, curatedScriptData)
-}
-
-func finalizeCuratedScript(ctx context.Context, osRes *osv1.OperatingSystemResource,
-	installerScriptPath, curatedScriptData string,
-) error {
-	// Append profile script, to be removed once Platform Bundle is integrated
-	var err error
-	if osRes.GetOsProvider() == osv1.OsProviderKind_OS_PROVIDER_KIND_INFRA {
-		curatedScriptData, err = FetchAndAppendProfileScript(ctx, osRes.GetProfileName(), curatedScriptData)
-		if err != nil {
-			return err
-		}
-	}
-
-	writeErr := WriteFileToPath(installerScriptPath, []byte(curatedScriptData))
-	if writeErr != nil {
-		zlog.InfraSec().Error().Err(writeErr).Msgf("Failed to write file to path %s", installerScriptPath)
-		return writeErr
-	}
-
-	return nil
-}
-
 func CurateFromTemplate(tmpl string, templateVariables map[string]interface{}) (string, error) {
 	// Parse and execute the template
 	// We use sprig to extend basic Go's text/template with more powerful keywords
@@ -280,55 +220,6 @@ func CurateFromTemplate(tmpl string, templateVariables map[string]interface{}) (
 	}
 
 	return rendered.String(), nil
-}
-
-func WriteFileToPath(filePath string, content []byte) error {
-	zlog.Debug().Msgf("Writing data to path %s", filePath)
-
-	err := os.MkdirAll(filepath.Dir(filePath), fileMode)
-	if err != nil {
-		zlog.InfraSec().Error().Err(err).Msg("")
-		return inv_errors.Errorf("Failed to create sub-directories to save file")
-	}
-
-	err = os.WriteFile(filePath, content, writeMode)
-	if err != nil {
-		errMsg := "Failed save the data to output path"
-		zlog.Error().Err(err).Msg(errMsg)
-		return inv_errors.Errorf("%s", errMsg)
-	}
-
-	return nil
-}
-
-func FetchAndAppendProfileScript(ctx context.Context, profileName, originalScript string) (string, error) {
-	// FIXME: hardcode profile script version for now, will be addressed in https://jira.devtools.intel.com/browse/NEX-11556
-	profileScriptVersion := "1.0.2"
-
-	repo := env.ProfileScriptRepo + profileName
-	zlog.InfraSec().Info().Msgf("Profile script repo URL is:%s", repo)
-
-	artifacts, err := as.DownloadArtifacts(ctx, repo, profileScriptVersion)
-	if err != nil {
-		invErr := inv_errors.Errorf("Error downloading profile script for tag %s", profileScriptVersion)
-		zlog.Err(invErr).Msg("")
-		return "", invErr
-	}
-
-	if artifacts == nil {
-		invErr := inv_errors.Errorf("Unexpected nil data received for %s:%s", repo, profileScriptVersion)
-		zlog.Err(invErr).Msg("")
-		return "", invErr
-	}
-
-	if artifacts != nil && len(*artifacts) == 0 {
-		zlog.InfraSec().Debug().Msgf("No artifacts found for profile %s", profileName)
-		return originalScript, nil
-	}
-
-	profileScript := (*artifacts)[0].Data
-
-	return originalScript + string(profileScript), nil
 }
 
 // GenerateUFWCommands convert a FirewallRule into the corresponding ufw command.

@@ -22,7 +22,6 @@ import (
 const (
 	DefaultTimeout = 3 * time.Second
 
-	ReleaseVersion         = "latest-dev"
 	DownloadPath           = "/tmp"
 	BootsCaCertificateFile = "/etc/ssl/boots-ca-cert/ca.crt"
 )

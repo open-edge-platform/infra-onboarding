@@ -9,17 +9,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/open-edge-platform/infra-onboarding/dkam/internal/env"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/download"
-	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/util"
-	dkam_testing "github.com/open-edge-platform/infra-onboarding/dkam/testing"
 )
 
 const (
@@ -52,8 +48,6 @@ const exampleManifestWrong = `
 		}],
 		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
 
-var projectRoot string
-
 func TestMain(m *testing.M) {
 	var err error
 	config.PVC, err = os.MkdirTemp(os.TempDir(), "test_pvc")
@@ -61,41 +55,11 @@ func TestMain(m *testing.M) {
 		panic(fmt.Sprintf("Error creating temp directory: %v", err))
 	}
 
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(fmt.Sprintf("Error getting current directory: %v", err))
-	}
-	projectRoot = filepath.Dir(filepath.Dir(wd))
-
 	run := m.Run()
 	os.Exit(run)
 }
 
-func TestPathExists(t *testing.T) {
-	tmpFolderPath, err := os.MkdirTemp("/tmp", "test_path_exist")
-	require.NoError(t, err)
-	defer os.RemoveAll(tmpFolderPath)
-
-	expectedFilePath := tmpFolderPath + "/test"
-	_, err = os.Create(expectedFilePath)
-	require.NoError(t, err)
-
-	exists, err := util.PathExists(expectedFilePath)
-	require.NoError(t, err)
-	assert.True(t, exists)
-
-	exists, err = util.PathExists(tmpFolderPath + "/non_exist")
-	require.NoError(t, err)
-	assert.False(t, exists)
-
-	invalidPath := string([]byte{0x00})
-	exists, err = util.PathExists(invalidPath)
-	assert.Error(t, err)
-	assert.False(t, exists)
-}
-
 func TestDownloadMicroOS(t *testing.T) {
-	dkam_testing.PrepareTestReleaseFile(t, projectRoot)
 	expectedFileContent := "GOOD TEST!"
 
 	// Create temporary folder and expected files and folder required by the DownloadMicroOS function

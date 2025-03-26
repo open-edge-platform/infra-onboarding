@@ -15,16 +15,14 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/client"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/metrics"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/oam"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/tracing"
+	"github.com/open-edge-platform/infra-onboarding/dkam/internal/curation"
 	"github.com/open-edge-platform/infra-onboarding/dkam/internal/dkammgr"
 	"github.com/open-edge-platform/infra-onboarding/dkam/internal/env"
-	_ "github.com/open-edge-platform/infra-onboarding/dkam/internal/flag"
-	"github.com/open-edge-platform/infra-onboarding/dkam/internal/handlers/controller"
-	"github.com/open-edge-platform/infra-onboarding/dkam/internal/invclient"
+	dkamflag "github.com/open-edge-platform/infra-onboarding/dkam/internal/flag"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
 )
 
@@ -32,7 +30,6 @@ var (
 	name = "InfraDKAM"
 	zlog = logging.GetLogger(name + "Main")
 
-	inventoryAddress = flag.String(client.InventoryAddress, "localhost:50051", client.InventoryAddressDescription)
 	wg               = sync.WaitGroup{}
 	oamServerAddress = flag.String(oam.OamServerAddress, "", oam.OamServerAddressDescription)
 	enableTracing    = flag.Bool(tracing.EnableTracing, false, tracing.EnableTracingDescription)
@@ -91,36 +88,17 @@ func main() {
 		}
 	}()
 
-	invClient, err := invclient.NewDKAMInventoryClientWithOptions(
-		invclient.WithInventoryAddress(*inventoryAddress),
-		invclient.WithEnableTracing(*enableTracing),
-		invclient.WithEnableMetrics(*enableMetrics),
-	)
-	if err != nil {
-		zlog.InfraSec().Fatal().Err(err).Msgf("Unable to start onboarding inventory client")
-	}
-
-	dkamController, err := controller.New(invClient, *enableTracing)
-	if err != nil {
-		zlog.InfraSec().Fatal().Err(err).Msgf("Unable to create onboarding controller")
-	}
-
-	err = dkamController.Start()
-	if err != nil {
-		zlog.InfraSec().Fatal().Err(err).Msgf("Unable to start onboarding controller")
+	if *dkamflag.LegacyMode {
+		if err := curation.CurateLegacyScript(); err != nil {
+			zlog.InfraSec().Fatal().Err(err).Msg("Failed to curate Installer in the legacy mode")
+		}
 	}
 
 	setupOamServerAndSetReady(*enableTracing, *oamServerAddress)
 
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
 	<-sigChan // blocking
-
-	// Terminate Onboarding Manager when termination signal received
 	close(termChan)
-	dkamController.Stop()
-	invClient.Close()
-
-	// wg.Done()
 }
 
 func setupTracingIfEnabled() {

@@ -127,15 +127,6 @@ func replaceConfigPlaceholders(content []byte) string {
 	return modifiedConfig
 }
 
-func contains(slice []string, s string) bool {
-	for _, item := range slice {
-		if item == s {
-			return true
-		}
-	}
-	return false
-}
-
 func copyDir(src, dst string) error {
 	// Create the destination directory
 	if err := os.MkdirAll(dst, fileMode); err != nil {

@@ -6,20 +6,15 @@ package download
 import (
 	"context"
 	"os"
-	"os/exec"
-	"path/filepath"
 
 	as "github.com/open-edge-platform/infra-core/inventory/v2/pkg/artifactservice"
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
 	"github.com/open-edge-platform/infra-onboarding/dkam/internal/env"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
-	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/util"
 )
 
 var zlog = logging.GetLogger("InfraDKAMDownload")
-
-const fileMode = 0o755
 
 //nolint:revive // Keeping the function name for clarity and consistency.
 func DownloadMicroOS(ctx context.Context) (bool, error) {
@@ -63,37 +58,6 @@ func CreateFile(filePath string, artifact *as.Artifact) error {
 	if err != nil {
 		zlog.InfraSec().Error().Err(err).Msgf("Error writing to file:%v", err)
 		return err
-	}
-	return nil
-}
-
-func MoveFile(source, destination string) error {
-	exists, patherr := util.PathExists(source)
-	if patherr != nil {
-		zlog.InfraSec().Error().Err(patherr).Msgf("Error checking file path %v", source)
-		return patherr
-	}
-	//nolint:revive // Ignoring due to specific need for this structure
-	if exists {
-		destDir := filepath.Dir(destination)
-		if err := os.MkdirAll(destDir, fileMode); err != nil {
-			zlog.InfraSec().Error().Err(err).Msgf("Failed to create destination dir %s", destDir)
-			return err
-		}
-
-		cmd := exec.Command("mv", source, destination)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-
-		err := cmd.Run()
-		if err != nil {
-			zlog.InfraSec().Info().Msgf("error running 'mv' command: %v", err)
-			return err
-		} else {
-			zlog.InfraSec().Info().Msgf("File %s copied to %s", source, destination)
-		}
-	} else {
-		zlog.InfraSec().Debug().Msgf("Source file path %s does not exist", source)
 	}
 	return nil
 }
