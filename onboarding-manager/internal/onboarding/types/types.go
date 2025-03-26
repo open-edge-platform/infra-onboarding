@@ -25,8 +25,6 @@ type (
 		OSImageURL string
 		// Gateway IP gateway of a local subnet where a host is located.
 		Gateway string
-		// InstallerScriptURL a URL pointing to the location of OS Installer script on the EN's reverse proxy.
-		InstallerScriptURL string
 		// ImgType an OS image type used for a host
 		ImgType string
 		// GUID UUID identifier of a host
@@ -48,5 +46,9 @@ type (
 		// Tenant ID of resource
 		TenantID       string
 		PlatformBundle string
+		// local account username
+		LocalAccountUserName string
+		// SSh key
+		SSHKey string
 	}
 )

@@ -98,6 +98,12 @@ func runProdWorkflow(
 		return createHwErr
 	}
 	deviceInfo.TenantID = instance.GetTenantId()
+
+	if instance.GetLocalaccount() != nil {
+		deviceInfo.LocalAccountUserName = instance.GetLocalaccount().Username
+		deviceInfo.SSHKey = instance.GetLocalaccount().SshKey
+	}
+
 	prodTemplate, err := tinkerbell.GenerateTemplateForProd(ctx, env.K8sNamespace, deviceInfo)
 	if err != nil {
 		zlog.InfraErr(err).Msg("")

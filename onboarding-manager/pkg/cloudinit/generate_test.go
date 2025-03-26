@@ -52,6 +52,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 	const testClientID = "test-client-id"
 	const testClientSecret = "test-client-secret"
 	const testHostMAC = "aa:bb:cc:dd:ee:ff"
+	const clusterURL = "cluster.kind.internal"
 
 	type args struct {
 		template            string
@@ -77,7 +78,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 				},
 				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
 					newCfg := infraConfig
-					newCfg.ClusterURL = "cluster.kind.internal"
+					newCfg.ClusterURL = clusterURL
 					newCfg.ExtraHosts = strings.Split("1.1.1.1 a.test,2.2.2.2 b.test", ",")
 					newCfg.FirewallCfgAllow = `
 		[
@@ -107,7 +108,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 				},
 				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
 					newCfg := infraConfig
-					newCfg.ClusterURL = "cluster.kind.internal"
+					newCfg.ClusterURL = clusterURL
 					newCfg.ExtraHosts = strings.Split("1.1.1.1 a.test,2.2.2.2 b.test", ",")
 					newCfg.FirewallCfgAllow = `
 		[
@@ -349,6 +350,67 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 				},
 			},
 			expectedOutputFileName: "test-template.cfg",
+			wantErr:                false,
+		},
+		{
+			name: "Success_Base_ImmutableOS_WithLocal",
+			args: args{
+				options: []cloudinit.Option{
+					cloudinit.WithLocalAccount("user", "sshkey"),
+					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
+					cloudinit.WithHostname(testHostname),
+					cloudinit.WithTenantID(testTenantID),
+					cloudinit.WithClientCredentials(testClientID, testClientSecret),
+					cloudinit.WithHostMACAddress(testHostMAC),
+				},
+				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
+					newCfg := infraConfig
+					newCfg.ClusterURL = clusterURL
+					newCfg.ExtraHosts = strings.Split("1.1.1.1 a.test,2.2.2.2 b.test", ",")
+					newCfg.FirewallCfgAllow = `
+[
+    {
+        "sourceIp": "",
+        "ports": "80,443",
+        "ipVer": "",
+        "protocol": "tcp"
+    }
+]`
+					return newCfg
+				},
+			},
+			expectedOutputFileName: "expected-installer-11.cfg",
+			wantErr:                false,
+		},
+		{
+			name: "Success_Base_ImmutableOS_WithLocal_And_DevAccount",
+			args: args{
+				options: []cloudinit.Option{
+					cloudinit.WithDevMode("user", "pass"),
+					cloudinit.WithLocalAccount("user", "sshkey"),
+					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
+					cloudinit.WithHostname(testHostname),
+					cloudinit.WithTenantID(testTenantID),
+					cloudinit.WithClientCredentials(testClientID, testClientSecret),
+					cloudinit.WithHostMACAddress(testHostMAC),
+				},
+				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
+					newCfg := infraConfig
+					newCfg.ClusterURL = clusterURL
+					newCfg.ExtraHosts = strings.Split("1.1.1.1 a.test,2.2.2.2 b.test", ",")
+					newCfg.FirewallCfgAllow = `
+[
+    {
+        "sourceIp": "",
+        "ports": "80,443",
+        "ipVer": "",
+        "protocol": "tcp"
+    }
+]`
+					return newCfg
+				},
+			},
+			expectedOutputFileName: "expected-installer-12.cfg",
 			wantErr:                false,
 		},
 	}

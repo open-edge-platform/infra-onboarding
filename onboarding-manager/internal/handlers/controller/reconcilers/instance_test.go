@@ -612,12 +612,11 @@ func Test_convertInstanceToDeviceInfo(t *testing.T) {
 				},
 			},
 			want: onboarding_types.DeviceInfo{
-				OSImageURL:         "http://some-url.raw.gz",
-				InstallerScriptURL: "http://some-url-2",
-				TinkerVersion:      "v0.7.4",
-				HwIP:               "0.0.0.0",
-				Gateway:            "", // note that this is not valid and temporary
-				OsType:             osv1.OsType_OS_TYPE_MUTABLE,
+				OSImageURL:    "http://some-url.raw.gz",
+				TinkerVersion: "v0.7.4",
+				HwIP:          "0.0.0.0",
+				Gateway:       "", // note that this is not valid and temporary
+				OsType:        osv1.OsType_OS_TYPE_MUTABLE,
 			},
 			wantErr: false,
 		},

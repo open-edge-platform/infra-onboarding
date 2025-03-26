@@ -714,8 +714,17 @@ func TestInteractiveOnboardingService_startZeroTouch_AutoProvision(t *testing.T)
 			invClientAPI: om_testing.InvClient,
 		},
 	}
-
-	providerConfig := fmt.Sprintf(`{"defaultOs":%q,"autoProvision":true}`, osRes.GetResourceId())
+	localAccount := inv_testing.CreateLocalAccount(t, "user", "ssh-ed25519 AAAAC3NzaC1lZDI1")
+	providerConfig := fmt.Sprintf(
+		`{
+			"defaultOs": %q,
+			"autoProvision": true,
+			"OSSecurityFeatureEnable": false,
+			"defaultLocalAccount": %q
+		}`,
+		osRes.GetResourceId(),
+		localAccount.GetResourceId(),
+	)
 	dao.CreateProvider(t, host.GetTenantId(), onboarding_types.DefaultProviderName,
 		inv_testing.ProviderConfig(providerConfig),
 		inv_testing.ProviderKind(providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL),
@@ -2174,7 +2183,13 @@ func TestInteractiveOnboardingService_startZeroTouch_OSSecurityFeatureDisable(t 
 	}
 
 	// Prepare provider configuration with os security feature disable
-	providerConfig := fmt.Sprintf(`{"defaultOs":%q,"autoProvision":true,"OSSecurityFeatureEnable":false}`, osRes.GetResourceId())
+	localAccount := inv_testing.CreateLocalAccount(t, "user", "ssh-ed25519 AAAAC3NzaC1lZDI1")
+	providerConfig := fmt.Sprintf(
+		`{"defaultOs":%q, "autoProvision":true, "OSSecurityFeatureEnable":false, 
+		"defaultLocalAccount":%q}`,
+		osRes.GetResourceId(),
+		localAccount.GetResourceId(),
+	)
 	dao.CreateProvider(t, host.GetTenantId(), onboarding_types.DefaultProviderName,
 		inv_testing.ProviderConfig(providerConfig),
 		inv_testing.ProviderKind(providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL),
@@ -2217,7 +2232,13 @@ func TestInteractiveOnboardingService_startZeroTouch_OSSecurityFeatureEnable(t *
 	}
 
 	// Prepare provider configuration with security feature enabled
-	providerConfig := fmt.Sprintf(`{"defaultOs":%q,"autoProvision":true,"OSSecurityFeatureEnable":true}`, osRes.GetResourceId())
+	localAccount := inv_testing.CreateLocalAccount(t, "user", "ssh-ed25519 AAAAC3NzaC1lZDI1")
+	providerConfig := fmt.Sprintf(
+		`{"defaultOs":%q, "autoProvision":true, "OSSecurityFeatureEnable":true, 
+		"defaultLocalAccount":%q}`,
+		osRes.GetResourceId(),
+		localAccount.GetResourceId(),
+	)
 	dao.CreateProvider(t, host.GetTenantId(), onboarding_types.DefaultProviderName,
 		inv_testing.ProviderConfig(providerConfig),
 		inv_testing.ProviderKind(providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL),

@@ -219,6 +219,10 @@ func NewTemplateDataProdEdgeMicrovisorToolkit(
 		opts = append(opts, cloudinit.WithDevMode(env.ENUserName, env.ENPassWord))
 	}
 
+	if deviceInfo.LocalAccountUserName != "" && deviceInfo.SSHKey != "" {
+		opts = append(opts, cloudinit.WithLocalAccount(deviceInfo.LocalAccountUserName, deviceInfo.SSHKey))
+	}
+
 	platformBundleData, err := platformbundle.FetchPlatformBundleScripts(ctx, deviceInfo.PlatformBundle)
 	if err != nil {
 		return nil, err
@@ -404,7 +408,7 @@ func NewTemplateDataProdEdgeMicrovisorToolkit(
 	return marshalWorkflow(&wf)
 }
 
-//nolint:funlen // May effect the functionality, need to simplify this in future
+//nolint:funlen,cyclop // Function length and cyclomatic complexity are high, but refactoring is deferred for now.
 func NewTemplateDataUbuntu(ctx context.Context, name string, deviceInfo onboarding_types.DeviceInfo) ([]byte, error) {
 	infraConfig := config.GetInfraConfig()
 	opts := []cloudinit.Option{
@@ -417,6 +421,9 @@ func NewTemplateDataUbuntu(ctx context.Context, name string, deviceInfo onboardi
 
 	if env.ENDkamMode == envDkamDevMode {
 		opts = append(opts, cloudinit.WithDevMode(env.ENUserName, env.ENPassWord))
+	}
+	if deviceInfo.LocalAccountUserName != "" && deviceInfo.SSHKey != "" {
+		opts = append(opts, cloudinit.WithLocalAccount(deviceInfo.LocalAccountUserName, deviceInfo.SSHKey))
 	}
 
 	platformBundleData, err := platformbundle.FetchPlatformBundleScripts(ctx, deviceInfo.PlatformBundle)

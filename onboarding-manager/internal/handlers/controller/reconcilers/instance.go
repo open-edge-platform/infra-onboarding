@@ -18,7 +18,6 @@ import (
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
 	inv_status "github.com/open-edge-platform/infra-core/inventory/v2/pkg/status"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/tracing"
-	dkam_util "github.com/open-edge-platform/infra-onboarding/dkam/pkg/util"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/env"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/invclient"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding"
@@ -271,36 +270,35 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 	localHostIP := "127.0.0.1"
 	var osLocationURL string
 	// OS and Installer location returned to EN points to a local server that proxies requests to Provisioning Nginx
-	if desiredOs.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE {
+	switch desiredOs.GetOsType() {
+	case osv1.OsType_OS_TYPE_MUTABLE:
 		zlogInst.Debug().Msgf("Pulling %s image from %s", desiredOs.GetProfileName(), desiredOs.GetImageUrl())
 		osLocationURL = desiredOs.GetImageUrl()
-	} else {
+	case osv1.OsType_OS_TYPE_IMMUTABLE:
 		// TiberMicrovisor can be pulled drirectly from Release Server or CDN Server
 		zlogInst.Debug().Msgf("Pulling %s image Pulling from CDN/RS Servers", desiredOs.GetProfileName())
 		osLocationURL = fmt.Sprintf("http://%s/%s", localHostIP, desiredOs.GetImageUrl())
+	default:
+		invErr := inv_errors.Errorf("Unsupported OS type %v, may result in wrong installation artifacts path",
+			desiredOs.GetOsType())
+		zlogInst.InfraSec().Error().Err(invErr).Msg("")
+		return onboarding_types.DeviceInfo{}, invErr
 	}
 
-	proxyURL := fmt.Sprintf(TinkStackURLTemplate, localHostIP)
-	// Installer script or Cloud init file download
-	installerScriptURL, err := dkam_util.GetInstallerLocation(instance.GetDesiredOs(), proxyURL)
-	if err != nil {
-		return onboarding_types.DeviceInfo{}, err
-	}
 	tinkerVersion := env.TinkerActionVersion
 
 	deviceInfo := onboarding_types.DeviceInfo{
-		GUID:               host.GetUuid(),
-		HwSerialID:         host.GetSerialNumber(),
-		HwMacID:            host.GetPxeMac(),
-		HwIP:               host.GetBmcIp(),
-		Hostname:           host.GetResourceId(), // we use resource ID as hostname to uniquely identify a host
-		SecurityFeature:    instance.GetSecurityFeature(),
-		OSImageURL:         osLocationURL,
-		OsImageSHA256:      desiredOs.GetSha256(),
-		InstallerScriptURL: installerScriptURL,
-		TinkerVersion:      tinkerVersion,
-		OsType:             desiredOs.GetOsType(),
-		PlatformBundle:     desiredOs.GetPlatformBundle(),
+		GUID:            host.GetUuid(),
+		HwSerialID:      host.GetSerialNumber(),
+		HwMacID:         host.GetPxeMac(),
+		HwIP:            host.GetBmcIp(),
+		Hostname:        host.GetResourceId(), // we use resource ID as hostname to uniquely identify a host
+		SecurityFeature: instance.GetSecurityFeature(),
+		OSImageURL:      osLocationURL,
+		OsImageSHA256:   desiredOs.GetSha256(),
+		TinkerVersion:   tinkerVersion,
+		OsType:          desiredOs.GetOsType(),
+		PlatformBundle:  desiredOs.GetPlatformBundle(),
 	}
 
 	zlogInst.Debug().Msgf("DeviceInfo generated from OS resource (%s): %+v",

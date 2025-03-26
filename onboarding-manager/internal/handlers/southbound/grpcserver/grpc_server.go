@@ -16,6 +16,7 @@ import (
 
 	computev1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/compute/v1"
 	inventoryv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/inventory/v1"
+	localaccountv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/localaccount/v1"
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 	statusv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/status/v1"
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
@@ -712,6 +713,21 @@ func (s *InventoryClientService) checkNCreateInstance(ctx context.Context, tenan
 			},
 			SecurityFeature: desiredSecurityFeature,
 		}
+
+		if pconf.DefaultLocalAccount != "" {
+			localRes, err := s.invClientAPI.GetLocalAccountResourceByResourceID(ctx, tenantID, pconf.DefaultLocalAccount)
+			if err != nil {
+				zlog.Debug().Msgf("Failed to GetLocalAccountResourceByResourceID for host resource (uuid=%s)", hostResID)
+				zlog.Err(err).Msgf("Failed to GetLocalAccountResourceByResourceID for host resource")
+				return err
+			}
+			instance.Localaccount = &localaccountv1.LocalAccountResource{
+				ResourceId: localRes.ResourceId,
+			}
+		} else {
+			zlog.Debug().Msg("DefaultLocalAccount is empty, skipping GetLocalAccountResourceByResourceID call")
+		}
+
 		if _, err := s.invClientAPI.CreateInstanceResource(ctx, tenantID, instance); err != nil {
 			zlog.Debug().Msgf("Failed to CreateInstanceResource for host resource (uuid=%s),tID=%s", hostResID, tenantID)
 			zlog.Err(err).Msgf("Failed to CreateInstanceResource for host resource uuid,tID")

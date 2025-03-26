@@ -19,6 +19,7 @@ import (
 
 	computev1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/compute/v1"
 	inv_v1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/inventory/v1"
+	localaccountv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/localaccount/v1"
 	network_v1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/network/v1"
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 	provider_v1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/provider/v1"
@@ -613,6 +614,23 @@ func (c *OnboardingInventoryClient) GetOSResourceByResourceID(ctx context.Contex
 	return inst, nil
 }
 
+func (c *OnboardingInventoryClient) GetLocalAccountResourceByResourceID(ctx context.Context, tenantID string,
+	resourceID string,
+) (*localaccountv1.LocalAccountResource, error) {
+	resp, err := c.getResourceByID(ctx, tenantID, resourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	inst := resp.GetResource().GetLocalAccount()
+
+	if validateErr := validator.ValidateMessage(inst); validateErr != nil {
+		return nil, inv_errors.Wrap(validateErr)
+	}
+
+	return inst, nil
+}
+
 func (c *OnboardingInventoryClient) GetOSResources(ctx context.Context) ([]*osv1.OperatingSystemResource, error) {
 	filter := &inv_v1.ResourceFilter{
 		Resource: &inv_v1.Resource{
@@ -756,6 +774,7 @@ func GetProviderResourceByName(
 type ProviderConfig struct {
 	DefaultOs               string `json:"defaultOs"`
 	AutoProvision           bool   `json:"autoProvision"`
+	DefaultLocalAccount     string `json:"defaultLocalAccount"`
 	OSSecurityFeatureEnable bool   `json:"osSecurityFeatureEnable"`
 }
 

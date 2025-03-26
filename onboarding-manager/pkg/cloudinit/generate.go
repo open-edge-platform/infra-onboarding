@@ -23,10 +23,16 @@ func templateVariablesFromOptions(options cloudInitOptions) map[string]interface
 	extraVars := make(map[string]interface{}, 0)
 
 	extraVars["DEV_MODE"] = false
+	extraVars["LOCAL_ACCOUNT_ENABLED"] = false
 	if options.useDevMode {
 		extraVars["DEV_MODE"] = true
 		extraVars["DEV_USER"] = options.devUsername
 		extraVars["DEV_USER_PASSWD"] = options.devUserPasswd
+	}
+	if options.useLocalAccount {
+		extraVars["LOCAL_ACCOUNT_ENABLED"] = true
+		extraVars["LOCAL_ACCOUNT_USERNAME"] = options.localAccountUserName
+		extraVars["LOCAL_USER_SSH_KEY"] = options.sshKey
 	}
 
 	extraVars["WITH_PRESERVE_IP"] = false

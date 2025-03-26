@@ -22,17 +22,14 @@ type cloudInitOptions struct {
 	devUsername string
 	// userPasswd defines a password for local admin user, must be provided if useDevMode is set
 	devUserPasswd string
-
 	// tenantID specifies UUID of tenant that Host belongs to
 	tenantID string
 	// hostname specifies host name to be set on Host
 	hostname string
-
 	// clientID specifies client ID used to obtain JWT token for authorization
 	clientID string
 	// clientSecret specifies client secret used to obtain JWT token for authorization
 	clientSecret string
-
 	// hostMAC sets MAC address of host's management interface to be provided to netplan to speed up network discovery process
 	hostMAC string
 	// preserveIP if enabled, preserves IP address that is initially auto-assigned by DHCP during uOS stage
@@ -41,13 +38,20 @@ type cloudInitOptions struct {
 	staticHostIP string
 	// staticDNS set of statically configured DNS servers, must be provided if preserveIP is true
 	staticDNS []string
+	// useLocalAccount set to create local account for SSH access
+	useLocalAccount bool
+	// localAccountUserName a user name to log in to a local account
+	localAccountUserName string
+	// sshKey contains public SSH key to be set as authorized key for local account
+	sshKey string
 }
 
 func defaultCloudInitOptions() cloudInitOptions {
 	return cloudInitOptions{
 		// be explicit
-		useDevMode: false,
-		OsType:     osv1.OsType_OS_TYPE_UNSPECIFIED,
+		useDevMode:      false,
+		OsType:          osv1.OsType_OS_TYPE_UNSPECIFIED,
+		useLocalAccount: false,
 	}
 }
 
@@ -76,6 +80,11 @@ func (opts cloudInitOptions) validate() error {
 	if opts.useDevMode && (opts.devUsername == "" || opts.devUserPasswd == "") {
 		return inv_errors.Errorfc(codes.InvalidArgument,
 			"Username and password must be provided if dev mode is enabled")
+	}
+
+	if opts.useLocalAccount && (opts.localAccountUserName == "" || opts.sshKey == "") {
+		return inv_errors.Errorfc(codes.InvalidArgument,
+			"Username and SSH key must be provided if local account is enabled is there for an instance")
 	}
 
 	if opts.preserveIP && (opts.staticHostIP == "" || len(opts.staticDNS) == 0) {
@@ -116,6 +125,14 @@ func WithClientCredentials(clientID, clientSecret string) Option {
 	return func(options *cloudInitOptions) {
 		options.clientID = clientID
 		options.clientSecret = clientSecret
+	}
+}
+
+func WithLocalAccount(localAccountUserName, sshKey string) Option {
+	return func(options *cloudInitOptions) {
+		options.useLocalAccount = true
+		options.localAccountUserName = localAccountUserName
+		options.sshKey = sshKey
 	}
 }
 
