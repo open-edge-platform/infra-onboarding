@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Use an official Ubuntu base image
-FROM fluent/fluent-bit:3.1.10 AS fluent-bit-uos
+FROM fluent/fluent-bit:3.2.9 AS fluent-bit-uos
 
 COPY --from=busybox:stable-uclibc /bin/sh /bin/sh
 COPY --from=busybox:stable-uclibc /bin/cat /bin/cat

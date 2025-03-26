@@ -3,10 +3,10 @@
 
 package authz
 
-import future.keywords.in
+import rego.v1
 
 # This query checks if caller has write access to the resource
-hasWriteAccess {
+hasWriteAccess if {
     some role in input["realm_access/roles"] # iteration
     # We expect:
     # - with MT: [PROJECT_UUID]_en-agent-rw or [PROJECT_UUID]_en-ob
@@ -14,7 +14,7 @@ hasWriteAccess {
 }
 
 # This query checks if caller has read access to the resource
-hasReadAccess {
+hasReadAccess if {
     some role in input["realm_access/roles"] # iteration
     # We expect:
     # - with MT: [PROJECT_UUID]_en-agent-rw or [PROJECT_UUID]_en-ob

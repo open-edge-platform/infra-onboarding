@@ -97,7 +97,7 @@ func setupOamServerAndSetReady(enableTracing bool, oamServerAddress string) {
 	}
 }
 
-//nolint:cyclop,funlen // it's a main, complexity is 11
+//nolint:cyclop // it's a main, complexity is 11
 func main() {
 	// Print a summary of the build
 	printSummary()

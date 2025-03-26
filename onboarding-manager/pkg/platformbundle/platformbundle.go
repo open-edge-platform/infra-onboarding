@@ -69,7 +69,11 @@ func FetchPlatformBundleData(ctx context.Context, artifact string) (string, erro
 	if content, found := cache.Load(key); found {
 		// Return the cached content if found
 		zlog.InfraSec().Info().Msgf("Returning cached content for %s", key)
-		return content.(string), nil
+		contentStr, ok := content.(string)
+		if !ok {
+			return "", inv_errors.Errorf("unexpected type for string: %T", content)
+		}
+		return contentStr, nil
 	}
 
 	// If not in cache, download the content

@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-FROM caddy:2.8.4-alpine
+FROM caddy:2.9.1-alpine
 
 # Copy self signed certificate and key
 COPY "caddy-key.pem" "/etc/caddy/caddy-key.pem"

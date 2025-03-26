@@ -54,7 +54,6 @@ jobs:
       run_artifact: false
       prefix_tag_separator: "/"
       project_folder: ${{ matrix.project_folder }}
-      orch_ci_repo_ref: "0.0.2"
     secrets: inherit
   final-check:
       runs-on: ubuntu-latest

@@ -77,7 +77,11 @@ func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) Send(respon
 
 func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) Recv() (*pb.OnboardNodeStreamRequest, error) {
 	args := m.Called()
-	return args.Get(0).(*pb.OnboardNodeStreamRequest), args.Error(1)
+	result, ok := args.Get(0).(*pb.OnboardNodeStreamRequest)
+	if !ok {
+		return nil, inv_errors.Errorf("unexpected type for *OnboardNodeStreamRequest: %T", args.Get(0))
+	}
+	return result, args.Error(1)
 }
 
 func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) SetHeader(md metadata.MD) error {
@@ -96,7 +100,11 @@ func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) SetTrailer(
 
 func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) Context() context.Context {
 	args := m.Called()
-	return args.Get(0).(context.Context)
+	result, ok := args.Get(0).(context.Context)
+	if !ok {
+		return nil
+	}
+	return result
 }
 
 func (m *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer) SendMsg(msg interface{}) error {

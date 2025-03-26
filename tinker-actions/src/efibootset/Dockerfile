@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-FROM debian:12.7
+FROM debian:12.10
 
 RUN apt update && apt install -y parted grub-common udev grub-pc-bin grub-efi-amd64-bin dosfstools wget iproute2
 

@@ -432,7 +432,7 @@ func (s *NonInteractiveOnboardingService) getHostResource(req *pb.OnboardNodeStr
 	return hostResource, nil
 }
 
-//nolint:cyclop,funlen // reason: cyclomatic complexity is high due to necessary handling
+//nolint:cyclop // reason: cyclomatic complexity is high due to necessary handling
 func (s *NonInteractiveOnboardingService) OnboardNodeStream(
 	stream pb.NonInteractiveOnboardingService_OnboardNodeStreamServer,
 ) error {

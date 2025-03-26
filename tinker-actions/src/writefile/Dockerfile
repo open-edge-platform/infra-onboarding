@@ -5,7 +5,7 @@
 # Original file can be found at https://github.com/tinkerbell/actions.
 
 # Build stream
-FROM golang:1.23.2-alpine3.20 AS writefile
+FROM golang:1.24.1-alpine3.21 AS writefile
 RUN apk add --no-cache git ca-certificates gcc musl-dev 
 COPY . /go/src/github.com/tinkerbell/hub/actions/writefile/v1
 COPY pkg /go/src/github.com/tinkerbell/hub/actions/pkg
@@ -17,7 +17,7 @@ RUN --mount=type=cache,sharing=locked,id=gomod,target=/go/pkg/mod/cache \
 
 
 # Build final image
-FROM alpine:3.20.3
+FROM alpine:3.21.3
 RUN apk add --no-cache lsblk
 # Add Certificates into the image, for anything that does HTTPS calls
 COPY --from=writefile /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt

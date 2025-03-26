@@ -1,14 +1,14 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-FROM golang:1.23-alpine AS qemu-nbd-image2disk
+FROM golang:1.24.1-alpine AS qemu-nbd-image2disk
 RUN apk add --no-cache git ca-certificates gcc linux-headers musl-dev
 COPY . /src/qemu-nbd-image2disk
 COPY pkg /pkg/
 WORKDIR /src/qemu-nbd-image2disk
 RUN CGO_ENABLED=1 GOOS=linux go build -a -ldflags "-linkmode external -extldflags '-static' -s -w" -o qemu-nbd-image2disk
 
-FROM alpine:3.20.3
+FROM alpine:3.21.3
 RUN apk add --no-cache lsblk qemu-img
 # Add Certificates into the image, for anything that does HTTPS calls
 COPY --from=qemu-nbd-image2disk /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt

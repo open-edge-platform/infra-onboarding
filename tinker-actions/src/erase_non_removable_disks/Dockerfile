@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-FROM alpine:3.20.3
+FROM alpine:3.21.3
 
 RUN apk --no-cache add lsblk
 

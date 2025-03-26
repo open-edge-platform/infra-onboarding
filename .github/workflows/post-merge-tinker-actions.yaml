@@ -27,5 +27,4 @@ jobs:
       run_artifact: false
       prefix_tag_separator: "/"
       project_folder: "tinker-actions"
-      orch_ci_repo_ref: "0.0.2"
     secrets: inherit

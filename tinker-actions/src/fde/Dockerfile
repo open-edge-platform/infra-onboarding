@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-FROM debian:12.8
+FROM debian:12.10
 
 RUN apt-get update && apt-get install -y parted cryptsetup-bin tpm2-tools xxd
 RUN apt-get update && apt-get install -y lvm2 procps

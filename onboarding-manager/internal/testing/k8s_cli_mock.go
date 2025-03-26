@@ -105,32 +105,56 @@ func (k *MockK8sClient) DeleteAllOf(_ context.Context, _ client.Object, _ ...cli
 
 func (k *MockK8sClient) Status() client.SubResourceWriter {
 	args := k.Called()
-	return args.Get(0).(client.SubResourceWriter)
+	result, ok := args.Get(0).(client.SubResourceWriter)
+	if !ok {
+		return nil
+	}
+	return result
 }
 
 func (k *MockK8sClient) SubResource(_ string) client.SubResourceClient {
 	args := k.Called()
-	return args.Get(0).(client.SubResourceClient)
+	result, ok := args.Get(0).(client.SubResourceClient)
+	if !ok {
+		return nil
+	}
+	return result
 }
 
 func (k *MockK8sClient) Scheme() *runtime.Scheme {
 	args := k.Called()
-	return args.Get(0).(*runtime.Scheme)
+	result, ok := args.Get(0).(*runtime.Scheme)
+	if !ok {
+		return nil
+	}
+	return result
 }
 
 func (k *MockK8sClient) RESTMapper() meta.RESTMapper {
 	args := k.Called()
-	return args.Get(0).(meta.RESTMapper)
+	result, ok := args.Get(0).(meta.RESTMapper)
+	if !ok {
+		return nil
+	}
+	return result
 }
 
 func (k *MockK8sClient) GroupVersionKindFor(_ runtime.Object) (schema.GroupVersionKind, error) {
 	args := k.Called()
-	return args.Get(0).(schema.GroupVersionKind), args.Error(1)
+	result, ok := args.Get(0).(schema.GroupVersionKind)
+	if !ok {
+		return schema.GroupVersionKind{}, inv_errors.Errorf("unexpected type for GroupVersionKind: %T", args.Get(0))
+	}
+	return result, args.Error(1)
 }
 
 func (k *MockK8sClient) IsObjectNamespaced(_ runtime.Object) (bool, error) {
 	args := k.Called()
-	return args.Get(0).(bool), args.Error(1)
+	result, ok := args.Get(0).(bool)
+	if !ok {
+		return false, inv_errors.Errorf("unexpected type for bool: %T", args.Get(0))
+	}
+	return result, args.Error(1)
 }
 
 func K8sCliMockFactory(createShouldFail, getShouldFail, deleteShouldFail, useRealInventory bool) func() (client.Client, error) {

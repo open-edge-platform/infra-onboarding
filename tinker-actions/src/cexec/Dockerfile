@@ -5,7 +5,7 @@
 # Original file can be found at https://github.com/tinkerbell/actions.
 
 # Build cexec
-FROM golang:1.23.2-alpine3.20 AS cexec
+FROM golang:1.24.1-alpine3.21 AS cexec
 
 RUN apk add --no-cache git ca-certificates gcc linux-headers musl-dev
 COPY . /src/cexec
@@ -16,7 +16,7 @@ RUN --mount=type=cache,sharing=locked,id=gomod,target=/go/pkg/mod/cache \
     CGO_ENABLED=1 GOOS=linux go build -a -ldflags "-linkmode external -extldflags '-static' -s -w" -o cexec
 
 # Build final image
-FROM alpine:3.20.3
+FROM alpine:3.21.3
 RUN apk add --no-cache lsblk
 COPY --from=cexec /src/cexec/cexec /usr/bin/cexec
 
