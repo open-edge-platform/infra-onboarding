@@ -9,7 +9,7 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v1.2.1
 	github.com/google/uuid v1.6.0
 	github.com/open-edge-platform/infra-core/inventory/v2 v2.20.0
-	github.com/open-edge-platform/infra-onboarding/dkam v1.24.0
+	github.com/open-edge-platform/infra-onboarding/dkam v1.25.0
 	github.com/open-edge-platform/orch-library/go v0.5.27
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.21.1
@@ -24,8 +24,6 @@ require (
 	k8s.io/client-go v0.32.3
 	sigs.k8s.io/controller-runtime v0.20.3
 )
-
-replace github.com/open-edge-platform/infra-onboarding/dkam => ../dkam
 
 require (
 	ariga.io/atlas v0.32.0 // indirect
