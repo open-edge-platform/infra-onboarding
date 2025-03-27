@@ -89,7 +89,7 @@ while [ "$1" ];do
 done
 
 #vgcreate
-if echo "y" | vgcreate lvmvg "$disks"; then
+if echo "y" | vgcreate lvmvg $disks; then
     echo "Successfuly done vgcreate"
 else
     echo "Failure in vgcreate"
