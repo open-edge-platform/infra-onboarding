@@ -17,7 +17,7 @@ get_partition_suffix() {
 
 #####################################################################################
 #top level script to check and run fde for ubuntu or Edge Microvisor Toolkit
-run_enable_fde()
+run_enable_security()
 {
     disk_device=""
 
@@ -58,8 +58,8 @@ run_enable_fde()
     if [ $ubuntu_found -eq 0 ];
     then
 	# fde for ubuntu
-	echo "Ubuntu detected. running enable_fde."
-	bash enable_fde.sh
+	echo "Ubuntu detected. running enable_fde_ubuntu."
+	bash enable_fde_ubuntu.sh
     else
 
 	if [ -z "${ENABLE_ONLY_DMVERITY+x}" ] || [ "$ENABLE_ONLY_DMVERITY" = "false" ];
@@ -79,4 +79,4 @@ run_enable_fde()
 }
 
 #####################################################################################
-run_enable_fde
+run_enable_security
