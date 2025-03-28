@@ -17,7 +17,7 @@ VERSION_MAJOR := $(shell cut -c 1 VERSION)
 IMG_NAME      := ${PROJECT_NAME}
 IMG_VERSION   ?= $(VERSION)
 GIT_COMMIT    ?= $(shell git rev-parse HEAD)
-BRANCH_NAME   ?= $(shell git rev-parse --abbrev-ref HEAD)
+BRANCH_NAME   ?= $(shell git rev-parse --abbrev-ref HEAD | sed 's/\//_/g')
 
 
 ACTIONS := $(shell ls src)

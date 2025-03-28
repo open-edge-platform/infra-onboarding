@@ -30,7 +30,7 @@ SCRIPTS_DIR := ./ci_scripts
 VERSION       := $(shell cat VERSION)
 VERSION_MAJOR := $(shell cut -c 1 VERSION)
 IMG_NAME      := ${PROJECT_NAME}
-IMG_VERSION   ?= $(shell git branch --show-current)
+IMG_VERSION   ?= $(shell git branch --show-current | sed 's/\//_/g')
 GIT_COMMIT    ?= $(shell git rev-parse HEAD)
 
 # Create the virtualenv with python tools installed
