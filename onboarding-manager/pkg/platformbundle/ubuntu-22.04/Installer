@@ -85,6 +85,8 @@ install_dependencies() {
         #|bm-agents |    Group   |      500     |
         #|prometheus|    User    |      501     |
         #|fluent-bit|    User    |      502     |
+        #|tc-agent  |    User    |      503     |
+        #|tc-ima    |    User    |      504     |
         #|----------|------------|--------------|
 
         groupadd -f bm-agents -g 500 --system
@@ -92,6 +94,8 @@ install_dependencies() {
         id -u fluent-bit &>/dev/null || useradd fluent-bit -u 502 --system -g bm-agents -G adm -s /sbin/nologin
         id -u node-agent &>/dev/null || useradd node-agent --system -g bm-agents -s /sbin/nologin
         id -u platform-update-agent &>/dev/null || useradd platform-update-agent --system -g bm-agents -s /sbin/nologin
+        id -u tc-agent &>/dev/null || useradd tc-agent -u 503 --system -g bm-agents -s /sbin/nologin
+        id -u tc-ima &>/dev/null || useradd tc-ima -u 504 --system -g bm-agents -s /sbin/nologin
 
         echo "install_dependencies done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
