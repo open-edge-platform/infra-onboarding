@@ -21,13 +21,9 @@ var (
 	ProvisioningStatusDone   = inv_status.New("Provisioned", statusv1.StatusIndication_STATUS_INDICATION_IDLE)
 
 	// resource statuses for Host.
-	InitializationInProgress = inv_status.New("Device initializing",
-		statusv1.StatusIndication_STATUS_INDICATION_IN_PROGRESS)
 	InitializationDone   = inv_status.New("Device initialized", statusv1.StatusIndication_STATUS_INDICATION_IDLE)
 	InitializationFailed = inv_status.New("Device initialization failed",
 		statusv1.StatusIndication_STATUS_INDICATION_ERROR)
-	OnboardingStatusBooting        = inv_status.New("Booting", statusv1.StatusIndication_STATUS_INDICATION_IN_PROGRESS)
-	OnboardingStatusInProgress     = inv_status.New("Onboarding", statusv1.StatusIndication_STATUS_INDICATION_IN_PROGRESS)
 	OnboardingStatusDone           = inv_status.New("Onboarded", statusv1.StatusIndication_STATUS_INDICATION_IDLE)
 	OnboardingStatusFailed         = inv_status.New("Onboarding Failed", statusv1.StatusIndication_STATUS_INDICATION_ERROR)
 	AuthorizationStatusInvalidated = inv_status.New("Invalidated", statusv1.StatusIndication_STATUS_INDICATION_IDLE)

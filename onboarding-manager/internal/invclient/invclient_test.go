@@ -362,7 +362,7 @@ func TestOnboardingInventoryClient_GetHostResourceByResourceID(t *testing.T) {
 				hostID:           host.GetResourceId(),
 				expectedHost:     host,
 				details:          "some detail",
-				onboardingStatus: om_status.OnboardingStatusInProgress,
+				onboardingStatus: om_status.OnboardingStatusDone,
 			},
 			want:  nil,
 			valid: true,
@@ -411,7 +411,7 @@ func TestOnboardingInventoryClient_CreateHostResource(t *testing.T) {
 				tenantID:         host.GetTenantId(),
 				hostID:           host.GetResourceId(),
 				details:          "some detail",
-				onboardingStatus: om_status.OnboardingStatusInProgress,
+				onboardingStatus: om_status.OnboardingStatusDone,
 			},
 			valid: true,
 		},
@@ -473,7 +473,7 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 			args: args{
 				tenantID:         host.GetTenantId(),
 				hostID:           host.GetResourceId(),
-				onboardingStatus: om_status.OnboardingStatusInProgress,
+				onboardingStatus: om_status.OnboardingStatusFailed,
 				uuid:             "123",
 			},
 			want:  nil,
@@ -484,7 +484,7 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 			args: args{
 				tenantID:         host.GetTenantId(),
 				hostID:           host.GetResourceId(),
-				onboardingStatus: om_status.OnboardingStatusInProgress,
+				onboardingStatus: om_status.OnboardingStatusFailed,
 			},
 			want:  nil,
 			valid: true,
@@ -494,7 +494,7 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 			args: args{
 				tenantID:         host.GetTenantId(),
 				hostID:           host.GetResourceId(),
-				onboardingStatus: om_status.OnboardingStatusInProgress,
+				onboardingStatus: om_status.OnboardingStatusDone,
 				uuid:             host.Uuid,
 			},
 			want: &computev1.HostResource{
@@ -507,7 +507,7 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 			args: args{
 				tenantID:         host.GetTenantId(),
 				hostID:           host.GetResourceId(),
-				onboardingStatus: om_status.OnboardingStatusInProgress,
+				onboardingStatus: om_status.OnboardingStatusDone,
 				uuid:             "123",
 			},
 			want:  nil,
@@ -518,7 +518,7 @@ func TestOnboardingInventoryClient_GetHostResourceByUUID(t *testing.T) {
 			args: args{
 				tenantID:         host.GetTenantId(),
 				hostID:           host.GetResourceId(),
-				onboardingStatus: om_status.OnboardingStatusInProgress,
+				onboardingStatus: om_status.OnboardingStatusFailed,
 				uuid:             "123",
 			},
 			want:  nil,
@@ -585,7 +585,7 @@ func TestOnboardingInventoryClient_DeleteHostResource(t *testing.T) {
 				tenantID:         host.GetTenantId(),
 				hostID:           host.GetResourceId(),
 				details:          "some detail",
-				onboardingStatus: om_status.OnboardingStatusInProgress,
+				onboardingStatus: om_status.OnboardingStatusDone,
 			},
 			valid: true,
 		},
@@ -632,7 +632,7 @@ func TestOnboardingInventoryClient_SetHostStatus(t *testing.T) {
 			args: args{
 				tenantID:         host.GetTenantId(),
 				hostID:           host.GetResourceId(),
-				onboardingStatus: om_status.OnboardingStatusInProgress,
+				onboardingStatus: om_status.OnboardingStatusDone,
 			},
 			valid: true,
 		},
