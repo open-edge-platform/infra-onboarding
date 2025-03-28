@@ -22,6 +22,7 @@ import (
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/policy/rbac"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/providerconfiguration"
 	inv_status "github.com/open-edge-platform/infra-core/inventory/v2/pkg/status"
 	inv_tenant "github.com/open-edge-platform/infra-core/inventory/v2/pkg/tenant"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/invclient"
@@ -680,7 +681,7 @@ func (s *InventoryClientService) startZeroTouch(ctx context.Context, tenantID, h
 }
 
 func (s *InventoryClientService) checkNCreateInstance(ctx context.Context, tenantID string,
-	pconf invclient.ProviderConfig, host *computev1.HostResource,
+	pconf providerconfiguration.ProviderConfig, host *computev1.HostResource,
 ) error {
 	if pconf.AutoProvision { // ZTP
 		var desiredSecurityFeature osv1.SecurityFeature

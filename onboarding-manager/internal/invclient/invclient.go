@@ -27,6 +27,7 @@ import (
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/client"
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/providerconfiguration"
 	inv_status "github.com/open-edge-platform/infra-core/inventory/v2/pkg/status"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/util"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/validator"
@@ -770,26 +771,18 @@ func GetProviderResourceByName(
 	return c.listAndReturnProvider(ctx, filter)
 }
 
-//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
-type ProviderConfig struct {
-	DefaultOs               string `json:"defaultOs"`
-	AutoProvision           bool   `json:"autoProvision"`
-	DefaultLocalAccount     string `json:"defaultLocalAccount"`
-	OSSecurityFeatureEnable bool   `json:"osSecurityFeatureEnable"`
-}
-
 func (c *OnboardingInventoryClient) GetProviderConfig(
 	ctx context.Context,
 	tenantID string,
 	name string,
-) (*ProviderConfig, error) {
+) (*providerconfiguration.ProviderConfig, error) {
 	// Get the provider resource by name
 	provider, err := GetProviderResourceByName(ctx, tenantID, c, name)
 	if err != nil {
 		return nil, err
 	}
 
-	var pconf ProviderConfig
+	var pconf providerconfiguration.ProviderConfig
 	// Unmarshal provider config JSON into pconf
 	if err := json.Unmarshal([]byte(provider.Config), &pconf); err != nil {
 		zlog.InfraErr(err).Msgf("failed to unmarshal ProviderConfig")

@@ -35,6 +35,7 @@ import (
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/flags"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/policy/rbac"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/providerconfiguration"
 	inv_status "github.com/open-edge-platform/infra-core/inventory/v2/pkg/status"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/tenant"
 	inv_testing "github.com/open-edge-platform/infra-core/inventory/v2/pkg/testing"
@@ -1219,7 +1220,7 @@ func TestInteractiveOnboardingService_checkNCreateInstance(t *testing.T) {
 	})
 	type args struct {
 		ctx      context.Context
-		pconf    invclient.ProviderConfig
+		pconf    providerconfiguration.ProviderConfig
 		tenentID string
 		host     *computev1.HostResource
 	}
@@ -1241,7 +1242,7 @@ func TestInteractiveOnboardingService_checkNCreateInstance(t *testing.T) {
 			},
 			args: args{
 				ctx: ctx,
-				pconf: invclient.ProviderConfig{
+				pconf: providerconfiguration.ProviderConfig{
 					AutoProvision: true,
 				},
 				host:     &computev1.HostResource{},
@@ -1259,7 +1260,7 @@ func TestInteractiveOnboardingService_checkNCreateInstance(t *testing.T) {
 			},
 			args: args{
 				ctx: ctx,
-				pconf: invclient.ProviderConfig{
+				pconf: providerconfiguration.ProviderConfig{
 					AutoProvision: false,
 				},
 				host: &computev1.HostResource{},
