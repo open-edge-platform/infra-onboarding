@@ -39,9 +39,7 @@ const (
 	ActionWriteHostname                    = "write-hostname"
 	ActionSystemdNetworkOptimize           = "systemd-network-online-optimize"
 	ActionDisableSnapdOptimize             = "systemd-snapd-disable-optimize"
-	ActionEMTPartition                     = "emt-partition"
 	ActionCloudinitDsidentity              = "cloud-init-ds-identity"
-	ActionSetSeliuxRelabel                 = "set-selinux-relabel-policy"
 )
 
 const (
@@ -72,8 +70,6 @@ const (
 
 	envTinkActionKerenlUpgradeImage = "TINKER_KERNELUPGRD_IMAGE"
 
-	envTinkActionEMTPartitionImage = "TINKER_EMT_IMAGE_PARTITION"
-
 	envTinkActionQemuNbdImage2DiskImage = "TINKER_QEMU_NBD_IMAGE2DISK_IMAGE"
 
 	envDkamDevMode = "dev"
@@ -100,7 +96,6 @@ var (
 	defaultTinkActionEfibootImage            = getTinkerActionImage(tinkerActionEfibootset)
 	defaultTinkActionFdeImage                = getTinkerActionImage(tinkerActionFDE)
 	defaultTinkActionKernelUpgradeImage      = getTinkerActionImage(tinkerActionKernelUpgrade)
-	defaultTinkActionEMTPartitionImage       = getTinkerActionImage(tinkerActionEMTPartition)
 	defaultTinkActionQemuNbdImage2DiskImage  = getTinkerActionImage(tinkerActionQemuNbdImage2Disk)
 )
 
@@ -184,14 +179,6 @@ func tinkActionKernelupgradeImage(tinkerImageVersion string) string {
 	return fmt.Sprintf("%s:%s", defaultTinkActionKernelUpgradeImage, iv)
 }
 
-func tinkActionEMTPartitionImage(tinkerImageVersion string) string {
-	iv := getTinkerImageVersion(tinkerImageVersion)
-	if v := os.Getenv(envTinkActionEMTPartitionImage); v != "" {
-		return fmt.Sprintf("%s:%s", v, iv)
-	}
-	return fmt.Sprintf("%s:%s", defaultTinkActionEMTPartitionImage, iv)
-}
-
 func tinkActionQemuNbdImage2DiskImage(tinkerImageVersion string) string {
 	iv := getTinkerImageVersion(tinkerImageVersion)
 	if v := os.Getenv(envTinkActionQemuNbdImage2DiskImage); v != "" {
@@ -236,6 +223,11 @@ func NewTemplateDataProdEdgeMicrovisorToolkit(
 		return nil, err
 	}
 
+	enableOnlyDMVerity := "true"
+	if deviceInfo.SecurityFeature == osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION {
+		enableOnlyDMVerity = "false"
+	}
+
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -275,12 +267,6 @@ func NewTemplateDataProdEdgeMicrovisorToolkit(
 						"SHA256":     deviceInfo.OsImageSHA256,
 					},
 					Pid: "host",
-				},
-
-				{
-					Name:    ActionEMTPartition,
-					Image:   tinkActionEMTPartitionImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutAvg560,
 				},
 				// TODO: remove write hostname actions once fixed in EMT image
 				{
@@ -332,24 +318,15 @@ func NewTemplateDataProdEdgeMicrovisorToolkit(
 					Name:    ActionFdeEncryption,
 					Image:   tinkActionFdeImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg560,
+					Environment: map[string]string{
+						"ENABLE_ONLY_DMVERITY": enableOnlyDMVerity,
+					},
 				},
 
 				{
 					Name:    ActionEfibootset,
 					Image:   tinkActionEfibootImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg560,
-				},
-
-				{
-					Name:    ActionSetSeliuxRelabel,
-					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutAvg200,
-					Environment: map[string]string{
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /",
-					},
 				},
 
 				{
@@ -362,35 +339,6 @@ func NewTemplateDataProdEdgeMicrovisorToolkit(
 				},
 			},
 		}},
-	}
-
-	// FDE removal if security feature flag is not set for FDE
-	// #nosec G115
-	if deviceInfo.SecurityFeature ==
-		osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION {
-		for i, task := range wf.Tasks {
-			for j, action := range task.Actions {
-				if action.Name == ActionEMTPartition {
-					// Remove the action from the slice
-					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
-				}
-				if action.Name == ActionSetSeliuxRelabel {
-					// Remove the action from the slice
-					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
-				}
-			}
-		}
-	} else if deviceInfo.SecurityFeature ==
-		osv1.SecurityFeature_SECURITY_FEATURE_NONE {
-		for i, task := range wf.Tasks {
-			for j, action := range task.Actions {
-				if action.Name == ActionFdeEncryption {
-					// Remove the action from the slice
-					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
-					break
-				}
-			}
-		}
 	}
 
 	// Create the User credentials only for dev mode and remove the action for production mode
