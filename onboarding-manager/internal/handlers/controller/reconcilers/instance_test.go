@@ -120,11 +120,11 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 	instanceController := rec_v2.NewController[ReconcilerID](instanceReconciler.Reconcile, rec_v2.WithParallelism(1))
 	// do not Stop() to avoid races, should be safe in tests
 
-	host := inv_testing.CreateHost(t, nil, nil)
 	osRes := createOsWithArgs(t, true)
 	providerResource := inv_testing.CreateProviderWithArgs(t, "lenovo", "8.8.8.8", nil,
 		providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL, providerv1.ProviderVendor_PROVIDER_VENDOR_LENOVO_LOCA)
-	instance := inv_testing.CreateInstanceWithProvider(t, host, osRes, providerResource)
+	host := inv_testing.CreateHost(t, nil, providerResource)
+	instance := inv_testing.CreateInstance(t, host, osRes)
 	instanceID := instance.GetResourceId()
 
 	// performing reconciliation

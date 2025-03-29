@@ -26,10 +26,10 @@ else
     exit 1
 fi
 
-if [ -s "/etc/lp/node/agent_variables" ]; then
-    source /etc/lp/node/agent_variables
+if [ -s "/etc/edge-node/node/agent_variables" ]; then
+    source /etc/edge-node/node/agent_variables
 else
-    echo "/etc/lp/node/agent_variables file does not exists"
+    echo "/etc/edge-node/node/agent_variables file does not exists"
     exit 1
 fi
 

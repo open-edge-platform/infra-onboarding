@@ -19,7 +19,7 @@ Although cloud-init is a widely supported tool, there are some OS-specific requi
 - Should rely on `/etc/environment` for global environment variable configuration.
 - Should give cloud-init write permissions and persist the following OS paths:
   - `/etc/intel_edge_node/agent_versions`
-  - `/etc/lp/node/agent_variables`
+  - `/etc/edge-node/node/agent_variables`
   - `/opt/intel_edge_node/bootmgr.sh`
 - Should be able to configure NTP settings using `systemd-timesyncd`.
 - Should have `efibootmgr` installed for boot options configuration.
