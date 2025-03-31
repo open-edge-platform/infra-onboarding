@@ -15,7 +15,7 @@ require (
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
-	github.com/open-edge-platform/infra-core/inventory/v2 v2.20.0
+	github.com/open-edge-platform/infra-core/inventory/v2 v2.22.0
 	github.com/prometheus/client_golang v1.21.1
 	github.com/spf13/viper v1.20.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -23,7 +23,7 @@ require (
 
 require (
 	ariga.io/atlas v0.32.0 // indirect
-	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.5-20250307204501-0409229c3780.1 // indirect
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.6-20250307204501-0409229c3780.1 // indirect
 	cel.dev/expr v0.22.0 // indirect
 	dario.cat/mergo v1.0.1 // indirect
 	entgo.io/contrib v0.6.0 // indirect
@@ -43,7 +43,6 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/inflect v0.21.2 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
-	github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
 	github.com/google/cel-go v0.24.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -52,9 +51,8 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3 // indirect
 	github.com/hashicorp/hcl/v2 v2.23.0 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
-	github.com/jackc/pgx/v5 v5.7.3 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
-	github.com/labstack/echo-contrib v0.17.2 // indirect
+	github.com/labstack/echo-contrib v0.17.3 // indirect
 	github.com/labstack/echo/v4 v4.13.3 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/lib/pq v1.10.9 // indirect
@@ -65,7 +63,6 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/open-edge-platform/orch-library/go v0.5.27 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
