@@ -106,7 +106,7 @@ func NewInteractiveOnboardingService(invClient *invclient.OnboardingInventoryCli
 	if inventoryAdr == "" {
 		zlog.Warn().Msg("Unable to start onboarding inventory API server client, empty inventory address")
 	} else {
-		// TODO: remove this later https://jira.devtools.intel.com/browse/ITEP-1829
+		// TODO: remove this later ITEP-1829
 		invClientAPI, err = invclient.NewOnboardingInventoryClientWithOptions(
 			invclient.WithInventoryAddress(inventoryAdr),
 			invclient.WithEnableTracing(enableTracing),
@@ -140,7 +140,7 @@ func NewNonInteractiveOnboardingService(invClient *invclient.OnboardingInventory
 	if inventoryAdr == "" {
 		zlog.Warn().Msg("Unable to start onboarding inventory API server client, empty inventory address")
 	} else {
-		// TODO: remove this later https://jira.devtools.intel.com/browse/ITEP-1829
+		// TODO: remove this later ITEP-1829
 		invClientAPI, err = invclient.NewOnboardingInventoryClientWithOptions(
 			invclient.WithInventoryAddress(inventoryAdr),
 			invclient.WithEnableTracing(enableTracing),

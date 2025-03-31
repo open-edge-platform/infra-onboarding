@@ -26,27 +26,28 @@ const (
 // Manifest example from OCI repo, used by DKAM to gather the hookOS.
 const exampleManifest = `
 		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
-		"config":{"mediaType":"application/vnd.intel.ensp.en",
-		"digest":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a","size":2},
-		"layers":[{
-			"mediaType":"application/vnd.oci.image.layer.v1.tar",
-			"digest":"` + testDigest + `",
-			"size":24800,
-			"annotations":{"org.opencontainers.image.title":"` + testFile + `"}
-		}],
-		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
+         "config":{"mediaType":"application/vnd.intel.hookos.file",
+        "digest":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a","size":2},
+        "layers":[{
+            "mediaType":"application/vnd.oci.image.layer.v1.tar",
+            "digest":"` + testDigest + `",
+            "size":264193897,
+            "annotations":{"org.opencontainers.image.title":"hook_x86_64.tar.gz"}
+        }],
+        "annotations":{"org.opencontainers.image.created":"2025-03-18T16:44:00Z"}}`
 
 // Manifest example with no Annotation in Layers.
 const exampleManifestWrong = `
 		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
-		"config":{"mediaType":"application/vnd.intel.ensp.en",
-		"digest":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a","size":2},
+         "config":{"mediaType":"application/vnd.intel.hookos.file",
+        "digest":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a","size":2},
 		"layers":[{
 			"mediaType":"application/vnd.oci.image.layer.v1.tar",
 			"digest":"` + testDigest + `",
-			"size":24800
+			"size":24800,
+ 			"annotations":{"org.opencontainers.image.title":"hook_x86_64.tar.gz"}
 		}],
-		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`
+		"annotations":{"org.opencontainers.image.created":"2025-03-18T16:44:00Z"}}`
 
 func TestMain(m *testing.M) {
 	var err error
@@ -60,6 +61,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestDownloadMicroOS(t *testing.T) {
+	// TODO: refactor the test to improve functionality testing.
 	expectedFileContent := "GOOD TEST!"
 
 	// Create temporary folder and expected files and folder required by the DownloadMicroOS function
@@ -74,7 +76,7 @@ func TestDownloadMicroOS(t *testing.T) {
 	// Fake server to serve expected requests
 	mux := http.NewServeMux()
 	returnWrongManifest := false
-	mux.HandleFunc("/manifests/HOOK_OS_VERSION", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("/manifest/hookOS", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		if returnWrongManifest {
 			w.Write([]byte(exampleManifestWrong))
@@ -91,7 +93,7 @@ func TestDownloadMicroOS(t *testing.T) {
 	defer svr.Close()
 
 	// Override the RSProxy with test HTTP server
-	env.HookOSRepo = svr.URL + "/"
+	env.HookOSRepo = svr.URL + "/manifest/hookOS"
 	dir := config.PVC
 	mkdirerr := os.MkdirAll(dir, 0o755)
 	if mkdirerr != nil {

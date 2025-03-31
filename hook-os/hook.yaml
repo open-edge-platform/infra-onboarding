@@ -278,7 +278,7 @@ services:
       - all
     binds.add:
       - /etc/resolv.conf:/etc/resolv.conf
-      - /etc/idp/ca.pem:/usr/local/share/ca-certificates/ensp-orchestrator-ca.crt
+      - /etc/idp/ca.pem:/usr/local/share/ca-certificates/orchestrator-ca.crt
       - /etc/caddy/Caddyfile:/etc/caddy/Caddyfile
       - /dev/shm/idp_access_token:/dev/shm/idp_access_token
       - /dev/shm/release_token:/dev/shm/release_token

@@ -28,7 +28,7 @@ const (
 func exampleManifest(digest string, fileLen int) string {
 	return fmt.Sprintf(`
 		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
-		"config":{"mediaType":"application/vnd.intel.ensp.en",
+		"config":{"mediaType":"application/vnd.intel.hookos.file",
 		"digest":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a","size":2},
 		"layers":[{
 			"mediaType":"application/vnd.oci.image.layer.v1.tar",
@@ -36,7 +36,7 @@ func exampleManifest(digest string, fileLen int) string {
 			"size":%d,
 			"annotations":{"org.opencontainers.image.title":"`+digest+`"}
 		}],
-		"annotations":{"org.opencontainers.image.created":"2024-03-26T10:32:25Z"}}`, fileLen)
+		"annotations":{"org.opencontainers.image.created":"2025-03-18T16:44:00Z"}}`, fileLen)
 }
 
 func EnableLegacyModeForTesting(t *testing.T) {

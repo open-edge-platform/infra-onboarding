@@ -133,9 +133,9 @@ func (ir *InstanceReconciler) handleMatchingStates(ctx context.Context, instance
 	request rec_v2.Request[ReconcilerID], resourceID string,
 ) rec_v2.Directive[ReconcilerID] {
 	if instance.DesiredState == instance.CurrentState {
-		// HRM may already update the state to RUNNING before provisioning is done (see NEX-15924).
+		// HRM may already update the state to RUNNING before provisioning is done (see ITEP-15924).
 		// In such case, we let reconciler complete the provisioning process and clean up resources.
-		// TODO (NEX-16077): a clean solution should be to update provisioning status and clean resources
+		// TODO (ITEP-16077): a clean solution should be to update provisioning status and clean resources
 		//  based on events from Tinkerbell CRDs.
 		if instance.GetCurrentState() == computev1.InstanceState_INSTANCE_STATE_RUNNING &&
 			instance.GetProvisioningStatusIndicator() != om_status.ProvisioningStatusDone.StatusIndicator &&
@@ -275,7 +275,7 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		zlogInst.Debug().Msgf("Pulling %s image from %s", desiredOs.GetProfileName(), desiredOs.GetImageUrl())
 		osLocationURL = desiredOs.GetImageUrl()
 	case osv1.OsType_OS_TYPE_IMMUTABLE:
-		// TiberMicrovisor can be pulled drirectly from Release Server or CDN Server
+		// Microvisor can be pulled drirectly from Release Server or CDN Server
 		zlogInst.Debug().Msgf("Pulling %s image Pulling from CDN/RS Servers", desiredOs.GetProfileName())
 		osLocationURL = fmt.Sprintf("http://%s/%s", localHostIP, desiredOs.GetImageUrl())
 	default:

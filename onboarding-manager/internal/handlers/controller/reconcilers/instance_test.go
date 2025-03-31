@@ -105,7 +105,7 @@ func createProviderWithArgs(tb testing.TB, doCleanup bool,
 	return provider
 }
 
-// This TC verifies the case, when an event with Instance with pre-defined custom Provider (e.g., Lenovo) is obtained.
+// This TC verifies the case, when an event with Instance with a host with pre-defined custom Provider (e.g., Lenovo) is obtained.
 // In this case, no reconciliation should be performed for such Instance
 // (the reconciliation should happen in the Provider-specific RM,e.g., LOC-A RM).
 func TestReconcileInstanceWithProvider(t *testing.T) {
@@ -157,7 +157,7 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 }
 
-func TestReconcileInstanceNonEIM(t *testing.T) {
+func TestReconcileInstanceNonEdgeInfra(t *testing.T) {
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()

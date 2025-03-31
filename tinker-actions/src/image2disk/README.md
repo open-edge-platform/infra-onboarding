@@ -34,7 +34,7 @@ it to the block storage disk `/dev/sda`. The raw image is uncompressed in this e
 ```yaml
 actions:
     - name: "stream ubuntu"
-      image: amr-registry.caas.intel.com/one-intel-edge/edgenode/image2disk:latest
+      image: registry-rs.edgeorchestration.intel.com/edge-orch/infra/tinker-actions/image2disk:main
       timeout: 90
       environment:
           IMG_URL: http://192.168.1.2/ubuntu.raw
@@ -53,7 +53,7 @@ gzip ubuntu.raw
 ```yaml
 actions:
     - name: "stream ubuntu"
-      image: amr-registry.caas.intel.com/one-intel-edge/edgenode/image2disk:latest
+      image: registry-rs.edgeorchestration.intel.com/edge-orch/infra/tinker-actions/image2disk:main
       timeout: 90
       environment:
           IMG_URL: http://192.168.1.2/ubuntu.tar.gz

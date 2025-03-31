@@ -15,22 +15,16 @@
 The DKAM stands for Dynamic Kit Adaptation Module is a component
 in the Edge Infrastructure Manager,responsible to onboard edge node with
 curated sets of bare metal agents and software that can support deployment
-of other apps.It prepare artifacts like iPXE, HookOS for onboarding.
+of other apps. It prepares artifacts like iPXE, HookOS for onboarding.
 
 ## Features
 
-- OS Resource Management: Interfaces with the Infra Inventory Service
-  to manage OS resources lifecycle.
 - Secure Boot support: Generate signing keys to enroll inside
   UEFI BIOS Secure Boot Settings
 - iPXE build support: Build iPXE binary, inject orchestrator
   certificate and sign the binary for secure boot.
-- HookOS Configurations: Dowload prebuilt HookOS, inject certificates
+- HookOS Configurations: Download prebuilt HookOS, inject certificates
   and required configurations and sign the image.
-- UbuntuOS download: Download and integrity check of ubuntu OS based
-  on the profile selected.
-- Curation: Installer script (Ubuntu LTS, Ubuntu EXT, "Intel® Tiber™ Microvisor"
-  RT and "Intel® Tiber™ Microvisor" NONRT)curation based on profile.
 
 ## Get Started
 

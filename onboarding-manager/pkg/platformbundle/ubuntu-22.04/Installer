@@ -75,7 +75,7 @@ install_dependencies() {
         echo -e "\e[32m[install git python3-pip]\e[0m"
         sudo apt-get install -y curl wget unzip apparmor iptables lvm2 cryptsetup lxc mosquitto tpm2-abrmd tpm2-tools software-properties-common python3-venv git jq libpq5 python3-pip ca-certificates gnupg dmidecode
 
-        # IMPORTANT: These hardcoded uid/gid must be aligned to that in TiberMicrovisor specified in cluster-agent.conf.
+        # IMPORTANT: These hardcoded uid/gid must be aligned to that in Edge Microvisor Toolkit specified in cluster-agent.conf.
         # If additional new users or groups need to be created by DKAM, they MUST be added after the users and group created below to
         # avoid those users or groups being assigned to IDs that are reserved. A list of the reserved UID and GID values are below:
         #
@@ -290,15 +290,15 @@ if grep -q "install_syslogrotate_job done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 else
 ##### Managing log rotation
 echo "Install sys log"
-if ! sudo grep -q "cron.ensp" "/etc/crontab"; then
+if ! sudo grep -q "cron.emf" "/etc/crontab"; then
   sudo sed -i '$ d' /etc/crontab
-  echo "*/5 *   * * *   root    cd / && run-parts --report /etc/cron.ensp" | sudo tee -a /etc/crontab
+  echo "*/5 *   * * *   root    cd / && run-parts --report /etc/cron.emf" | sudo tee -a /etc/crontab
   echo "#" | sudo tee -a /etc/crontab
 fi
 
-sudo rm -rf /etc/cron.ensp
-sudo mkdir -p /etc/cron.ensp
-sudo tee /etc/cron.ensp/logrotate << 'END'
+sudo rm -rf /etc/cron.emf
+sudo mkdir -p /etc/cron.emf
+sudo tee /etc/cron.emf/logrotate << 'END'
 #!/bin/sh
 /usr/sbin/logrotate /etc/logrotate.conf
 EXITVALUE=$?
@@ -308,7 +308,7 @@ fi
 exit $EXITVALUE
 END
 
-sudo chmod +x /etc/cron.ensp/logrotate
+sudo chmod +x /etc/cron.emf/logrotate
 
 sudo tee /etc/logrotate.d/rsyslog << 'END'
 /var/log/syslog

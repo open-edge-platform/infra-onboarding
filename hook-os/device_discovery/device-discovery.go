@@ -119,7 +119,7 @@ func readEnvVars(requiredVars []string, optionalVars []string) (map[string]strin
 	return envVars, nil
 }
 
-func grpcMaestroOnboardNodeJWT(ctx context.Context, address string, port int, mac string, ip string, uuid string, serial string, caCertPath string, accessTokenPath string) error {
+func grpcInfraOnboardNodeJWT(ctx context.Context, address string, port int, mac string, ip string, uuid string, serial string, caCertPath string, accessTokenPath string) error {
 	// Load the CA certificate
 	caCert, err := os.ReadFile(caCertPath)
 	if err != nil {
@@ -254,7 +254,7 @@ func grpcClient(ctx context.Context, obsSVC string, obmSVC string, obmPort int, 
 		retryDelay := 2 * time.Second // Fixed delay between retries
 
 		for retries := 0; retries < maxRetries; retries++ {
-			err := grpcMaestroOnboardNodeJWT(ctx, obmSVC, obmPort, macAddr, ipAddress, uuid, serialNumber, caCertPath, accessTokenFile)
+			err := grpcInfraOnboardNodeJWT(ctx, obmSVC, obmPort, macAddr, ipAddress, uuid, serialNumber, caCertPath, accessTokenFile)
 			if err == nil {
 				fmt.Println("Device discovery done")
 				return

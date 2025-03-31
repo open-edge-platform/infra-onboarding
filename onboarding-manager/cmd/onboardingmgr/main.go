@@ -66,7 +66,7 @@ var (
 )
 
 func printSummary() {
-	zlog.Info().Msgf("Starting IFM Onboarding Manager")
+	zlog.Info().Msgf("Starting Onboarding Manager")
 	zlog.InfraSec().Info().Msgf("RepoURL: %s, Version: %s, Revision: %s, BuildDate: %s\n",
 		RepoURL, Version, Revision, BuildDate)
 }

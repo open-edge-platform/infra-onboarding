@@ -16,7 +16,7 @@ The below example will write a file to the filesystem on the block device `/dev/
 ```yaml
 actions:
     - name: "expand ubuntu filesystem to root"
-      image: amr-registry.caas.intel.com/one-intel-edge/edgenode/writefile:main
+      image:  registry-rs.edgeorchestration.intel.com/edge-orch/infra/tinker-actions/writefile:main
       timeout: 90
       environment:
           DEST_DISK: /dev/sda3

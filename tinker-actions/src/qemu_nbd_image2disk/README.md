@@ -32,7 +32,7 @@ The below example will stream ubuntu cloud image (img format) and write it to th
 ```yaml
 actions:
     - name: "stream ubuntu"
-      image: registry-rs.edgeorchestration.intel.com/one-intel-edge/edgenode/qemu_nbd_image2disk:latest
+      image: registry-rs.edgeorchestration.intel.com/edge-orch/infra/tinker-actions/qemu_nbd_image2disk:main
       timeout: 90
       environment:
           IMG_URL: http://192.168.1.2/ubuntu.img

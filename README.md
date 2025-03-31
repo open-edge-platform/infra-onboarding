@@ -3,7 +3,7 @@
 ## Overview
 
 The repository includes the onboarding and os provisioning micro-services of the Edge Infrastructure Manager of the
-Intel® Tiber™ Edge Platform. In particular, the repository comprises the following components and services:
+Edge Manageability Framework. In particular, the repository comprises the following components and services:
 
 - [**Onboarding-Manager**](onboarding-manager/): implements a resource manager to onboard and provision edge nodes.
 - [**DKAM**](dkam/): manages OS profiles, builds iPXE binaries with digital signatures, and facilitates MicroOS provisioning
