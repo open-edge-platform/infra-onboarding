@@ -1,0 +1,71 @@
+// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+
+package onboardingmgr.v1;
+
+import "google/rpc/status.proto";
+import "validate/validate.proto";
+
+option go_package = "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/api/onboardingmgr/v1;onboardingmgrv1";
+
+// Interactive Onboarding
+service InteractiveOnboardingService {
+  rpc CreateNodes(CreateNodesRequest) returns (CreateNodesResponse) {}
+}
+
+// Non Interactive Onboarding
+service NonInteractiveOnboardingService {
+  // OnboardNodeStream establishes a bidirectional stream between the Edge Node and the Onboarding Manager
+  // It allows Edge Node to send stream requests and receive responses
+  rpc OnboardNodeStream(stream OnboardNodeStreamRequest) returns (stream OnboardNodeStreamResponse) {}
+}
+
+message CreateNodesRequest {
+  repeated NodeData payload = 1; // Payload data
+}
+
+message CreateNodesResponse {
+  repeated NodeData payload = 1; // Payload data
+  string project_id = 2; // The project_id associated with the Edge Node, identifying the project to which the Edge Node belongs
+}
+
+message NodeData {
+  repeated HwData hwdata = 1;
+}
+
+message HwData {
+  string uuid = 1 [(validate.rules).string.uuid = true];
+  string serialnum = 2 [(validate.rules).string.pattern = "^[A-Za-z0-9]{5,20}$"];
+  string mac_id = 3 [(validate.rules).string.pattern = "^([0-9a-fA-F]{2}([-:])){5}[0-9a-fA-F]{2}$"]; // Mac ID of Edge Node
+  string sut_ip = 4 [(validate.rules).string.pattern = "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"]; // sutip
+}
+
+// OnboardNodeStreamRequest represents a request sent from Edge Node to the Onboarding Manager
+message OnboardNodeStreamRequest {
+  // The UUID of the Edge Node being onboarded
+  string uuid = 1 [(validate.rules).string.uuid = true];
+  // The serial number of the Edge Node
+  string serialnum = 2 [(validate.rules).string.pattern = "^[A-Za-z0-9]{5,20}$"];
+  // The MAC ID of the Edge Node
+  string mac_id = 3 [(validate.rules).string.pattern = "^([0-9a-fA-F]{2}([-:])){5}[0-9a-fA-F]{2}$"];
+  // The IP (IPv4 pattern) of the Edge Node
+  string host_ip = 4 [(validate.rules).string.pattern = "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"];
+}
+
+// OnboardNodeStreamResponse represents a response sent from the Onboarding Manager to a Edge Node
+// over the bidirectional stream
+message OnboardNodeStreamResponse {
+  // NodeState represents state of the device as stored in Infra Inventory
+  enum NodeState {
+    NODE_STATE_UNSPECIFIED = 0; // Edge Node state is unspecified or unknown
+    NODE_STATE_REGISTERED = 1; // Allow to retry, Node is registered but not yet onboarded
+    NODE_STATE_ONBOARDED = 2; // Edge Node successfully onboarded
+  }
+  google.rpc.Status status = 1; // The status of the onboarding request
+  NodeState node_state = 2; // The current state of the device as stored in Infra Inventory
+  string client_id = 3; // The client_id provided to the node upon successful onboarding
+  string client_secret = 4; // The client_secret provided to the node upon successful onboarding
+  string project_id = 5; // The project_id associated with the node, identifying the project to which the node belongs
+}

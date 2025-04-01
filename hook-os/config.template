@@ -1,0 +1,38 @@
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+#####################################################################################
+# Provide the following inputs
+#####################################################################################
+
+# provide Keyclock url
+keycloak_url=""
+
+# provide extra hosts needed to resolve domain names. example:
+# extra_hosts="10.114.181.238 api-proxy.kind.internal,10.114.181.238 app-orch.kind.internal,10.114.181.238 cluster-orch-edge-node.kind.internal"
+extra_hosts=""
+
+#NGINX runtime configs
+release_svc=""
+oci_release_svc=""
+logging_svc=""
+tink_stack_svc=""
+tink_server_svc=""
+onboarding_manager_svc=""
+onboarding_stream_svc=""
+
+## organizationonal proxy config (default is intel)
+http_proxy=""
+https_proxy=""
+ftp_proxy=""
+socks_proxy=""
+no_proxy=""
+
+# external proxy
+# Set this to the proxy address (example: "proxy-us.intel.com:911" ) if queries
+# to the orchestrator's vault and keycloak must go through a proxy from where
+# the build is taking place Leave blank if no proxy is being used.
+external_proxy=""
+
+## nameservers (external, organizational)
+nameserver=("" "" "")

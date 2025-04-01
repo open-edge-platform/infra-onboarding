@@ -1,0 +1,24 @@
+// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
+
+module device-discovery
+
+go 1.24.1
+
+require (
+	github.com/open-edge-platform/infra-onboarding/onboarding-manager v1.28.1
+	golang.org/x/oauth2 v0.28.0
+	google.golang.org/grpc v1.71.0
+)
+
+replace github.com/open-edge-platform/infra-onboarding/onboarding-manager => ../../onboarding-manager
+
+require (
+	cloud.google.com/go/compute/metadata v0.6.0 // indirect
+	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
+	golang.org/x/net v0.37.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250313205543-e70fdf4c4cb4 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
+)

@@ -1,0 +1,35 @@
+---
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+# buf.gen.yaml
+# docs: https://docs.buf.build/configuration/v1/buf-gen-yaml
+
+version: v1
+
+plugins:
+  # go - https://pkg.go.dev/google.golang.org/protobuf
+  - plugin: go
+    out: pkg/api
+    opt:
+      - paths=source_relative
+
+  # go grpc - https://pkg.go.dev/google.golang.org/grpc
+  - plugin: go-grpc
+    out: pkg/api
+    opt:
+      - paths=source_relative
+      - require_unimplemented_servers=false
+
+  # validation - https://github.com/envoyproxy/protoc-gen-validate
+  - plugin: validate
+    out: pkg/api
+    opt:
+      - paths=source_relative
+      - lang=go
+
+  # docs - https://github.com/pseudomuto/protoc-gen-doc
+  - plugin: doc
+    out: docs/api
+    opt: markdown,onboardingmgr.md
+    strategy: all

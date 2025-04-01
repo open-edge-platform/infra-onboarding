@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+
+venv_hook-os
+artifacts
+device_discovery/app
+config
+binarybuilderr.log

@@ -1,0 +1,10 @@
+---
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+# buf.yaml
+# docs: https://docs.buf.build/configuration/v1/buf-yaml
+version: v1
+deps:
+  - buf.build/googleapis/googleapis
+  - buf.build/envoyproxy/protoc-gen-validate

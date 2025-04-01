@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+CI 🤖:
+  - changed-files:
+      - any-glob-to-any-file: ".github/**"
+
+root:
+  - changed-files:
+      - any-glob-to-any-file: "*"
+
+dkam:
+  - changed-files:
+    - any-glob-to-any-file: "dkam/**"
+
+hook-os:
+  - changed-files:
+    - any-glob-to-any-file: "hook-os/**"
+
+onboarding-manager:
+  - changed-files:
+    - any-glob-to-any-file: "onboarding-manager/**"
+
+tinker-actions:
+  - changed-files:
+    - any-glob-to-any-file: "tinker-actions/**"

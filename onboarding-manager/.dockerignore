@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+*.license
+*.md
+*.yaml
+*.yml
+.git
+.github
+.idea
+.reuse
+.gitignore
+.golangci.yml
+Jenkinsfile
+LICENSES
+api
+test
+venv_*
