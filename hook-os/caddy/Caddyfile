@@ -17,26 +17,14 @@
             }
         }
     }
-}
 
-# Proxy server for fileserver access
-localhost:443 {
-    bind 127.0.0.1
-    tls /etc/caddy/caddy-cert.pem /etc/caddy/caddy-key.pem
-    reverse_proxy {$release_svc}:443 {
-        header_up Authorization "Bearer {$release_token}"
-        header_up Host {upstream_hostport}
+    auto_https off
 
-        transport http {
-            tls
-        }
-    }
 }
 
 # Proxy server for OCI release service
-localhost:7443 {
+http://localhost:7443 {
     bind 127.0.0.1 
-    tls /etc/caddy/caddy-cert.pem /etc/caddy/caddy-key.pem
     reverse_proxy {$oci_release_svc}:443 {
         header_up Authorization "Bearer {$release_token}"
         header_up Host {upstream_hostport}
@@ -86,9 +74,8 @@ localhost:7443 {
 }
 
 # Server to route fluent-bit logs to Loki/Grafana
-localhost:24224 {
+http://localhost:24224 {
     bind 127.0.0.1
-    tls /etc/caddy/caddy-cert.pem /etc/caddy/caddy-key.pem
     reverse_proxy {$logging_svc}:443 {
         header_up Authorization "Bearer {$access_token}"
         header_up Host {upstream_hostport}

@@ -273,13 +273,15 @@ services:
         - /var/run/docker
 
   - name: caddy
-    image: caddy_proxy:latest
+    image: caddy:2.9.1-alpine
+    command: ["/bin/sh", "/etc/caddy/caddy_run.sh"]
     capabilities:
       - all
     binds.add:
       - /etc/resolv.conf:/etc/resolv.conf
       - /etc/idp/ca.pem:/usr/local/share/ca-certificates/orchestrator-ca.crt
       - /etc/caddy/Caddyfile:/etc/caddy/Caddyfile
+      - /etc/caddy/caddy_run.sh:/etc/caddy/caddy_run.sh
       - /dev/shm/idp_access_token:/dev/shm/idp_access_token
       - /dev/shm/release_token:/dev/shm/release_token
       - /dev/shm/project_id:/dev/shm/project_id
@@ -417,6 +419,10 @@ files:
   - path: etc/caddy/Caddyfile
     source: "files/caddy/Caddyfile"
     mode: "0644"
+
+  - path: etc/caddy/caddy_run.sh
+    source: "files/caddy/caddy_run.sh"
+    mode: "0777"
 
   - path: etc/hook/env_config
     contents: ""

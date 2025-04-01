@@ -51,7 +51,7 @@ targets. The following is a list of makefile targets that support developer acti
 make <COMPONENT NAME>
 ```
 
-Components can be `device_discovery`, `fluent-bit`, `caddy` or `hook_dind`
+Components can be `device_discovery`, `fluent-bit` or `hook_dind`
 
 Example
 
@@ -190,4 +190,4 @@ Edge Orchestrator is licensed under [Apache License
 [contributors-guide-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/index.html
 [troubleshooting-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/troubleshooting/troubleshooting.html
 
-Last Updated Date: March 24, 2025
+Last Updated Date: March 31, 2025

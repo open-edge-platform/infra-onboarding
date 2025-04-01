@@ -27,7 +27,7 @@ HOOK_KERNEL_POINT_RELEASE   :=228
 include ../common.mk
 
 OCI_PATH	:= ${OCI_REGISTRY}/${OCI_REPOSITORY}
-COMPONENTS	:= device_discovery fluent-bit caddy hook_dind
+COMPONENTS	:= device_discovery fluent-bit hook_dind
 .PHONY: $(COMPONENTS)
 
 all:

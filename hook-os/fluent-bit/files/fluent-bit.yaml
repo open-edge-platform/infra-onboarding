@@ -155,5 +155,5 @@ pipeline:
       host: localhost
       port: 24224
       logs_uri: /v1/logs
-      tls: on
+      tls: off
       tls.verify: off

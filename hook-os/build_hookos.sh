@@ -19,7 +19,7 @@ OUT_DIR=$PWD/out/
 FLUENTBIT_FILES=$PWD/fluent-bit/files
 HOOKOS_FLUENTBIT_FILES=$PWD/hook/files/fluent-bit
 
-CADDY_FILES=$PWD/caddy/files
+CADDY_FILES=$PWD/caddy
 HOOKOS_CADDY_FILES=$PWD/hook/files/caddy
 
 # set this to `gsed` if on macos
@@ -31,7 +31,7 @@ SED_CMD="sed"
 
 copy_fluent_bit_files() {
     mkdir -p "$HOOKOS_FLUENTBIT_FILES"
-    if ! cp "$FLUENTBIT_FILES"/* "$HOOKOS_FLUENTBIT_FILES"; then
+    if ! cp -r "$FLUENTBIT_FILES"/* "$HOOKOS_FLUENTBIT_FILES"; then
         echo "Copy of the fluent-bit config file to the hook/files folder failed"
         exit 1
     fi
@@ -39,7 +39,7 @@ copy_fluent_bit_files() {
 
 get_caddy_conf() {
     mkdir -p "$HOOKOS_CADDY_FILES"
-    if ! cp "$CADDY_FILES"/* "$HOOKOS_CADDY_FILES"; then
+    if ! cp -r "$CADDY_FILES"/* "$HOOKOS_CADDY_FILES"; then
         echo "Copy of the Caddyfile to the hook/files folder failed"
         exit 1
     fi
