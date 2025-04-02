@@ -54,8 +54,13 @@ func TestCheckStatusOrRunProdWorkflow(t *testing.T) {
 		{
 			name: "Empty Context and Instance",
 			args: args{
-				ctx:      context.Background(),
-				instance: &computev1.InstanceResource{},
+				ctx: context.Background(),
+				instance: &computev1.InstanceResource{
+					Host: &computev1.HostResource{
+						ResourceId: "host-084d9b08",
+					},
+					DesiredOs: &osv1.OperatingSystemResource{},
+				},
 			},
 			wantErr: true,
 		},
