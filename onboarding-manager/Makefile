@@ -65,7 +65,7 @@ build: go-build
 
 lint: license yamllint go-lint hadolint mdlint buf-lint
 
-test: go-test
+test: go-test fuzztest
 
 #### Sub-targets ####
 
