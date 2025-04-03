@@ -1,6 +1,0 @@
-Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-
-# Subfolder are handled by their respective license targets
-Files: *.md dkam/** hook-os/** onboarding-manager/** tinker-actions/**
-Copyright: (C) 2025 Intel Corporation
-License: Apache-2.0

@@ -13,7 +13,6 @@ on:
       - "*"
       - ".github/**"
       - "LICENSES/**"
-      - ".reuse/**"
   workflow_dispatch:
 
 concurrency:
