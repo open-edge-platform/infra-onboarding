@@ -37,6 +37,8 @@ import (
 	rec_v2 "github.com/open-edge-platform/orch-library/go/pkg/controller/v2"
 )
 
+const tenantID = "11111111-1111-1111-1111-111111111111"
+
 func TestMain(m *testing.M) {
 	*flags.FlagDisableCredentialsManagement = true
 	wd, err := os.Getwd()
