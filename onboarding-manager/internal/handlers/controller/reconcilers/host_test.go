@@ -350,7 +350,6 @@ func TestReconcileHostWithProvider(t *testing.T) {
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 }
 
-//nolint:dupl // These tests are for different reconcilers but have a similar structure.
 func TestNewHostReconciler(t *testing.T) {
 	type args struct {
 		c *invclient.OnboardingInventoryClient
