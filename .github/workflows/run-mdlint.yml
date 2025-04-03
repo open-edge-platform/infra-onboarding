@@ -14,7 +14,6 @@ on:
       - ".github/**"
       - "LICENSES/**"
       - ".reuse/**"
-  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -27,20 +26,20 @@ jobs:
   root-lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-node@v43.0
         with:
           node-version: "18"
       - run: |
           npm install -g \
           "markdownlint-cli@${{ env.MARKDOWNLINT_CLI_VER }}"
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5.5.0
         id: setup_python
         with:
           python-version: "3.13"
       - name: Restore cached virtualenv
-        uses: actions/cache@v4
-        with:
+        uses: actions/cache@v4.2.3
+          with:
           key: venv-${{ runner.os }}-${{ steps.setup_python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
           path: venv_infra
 
