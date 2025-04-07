@@ -10,13 +10,12 @@ name: Stale Pull Requests
 on:
   schedule:
     - cron: '30 1 * * *'  # run every day
-  workflow_dispatch: {}
 
 jobs:
   stale-auto-close:
     runs-on: ${{ github.repository_owner == 'intel' && 'intel-ubuntu-latest' || 'ubuntu-latest' }}
     steps:
-      - uses: actions/stale@v5.1.1
+      - uses: actions/stale@v9.1.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           stale-pr-message: 'This pull request is stale because it has been open 30 days with no activity. Make a comment or update the PR to avoid closing PR after 15 days.'

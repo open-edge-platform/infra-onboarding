@@ -11,7 +11,6 @@ on:
       - release-*
     paths:
       - "onboarding-manager/**"
-  workflow_dispatch:
 
 jobs:
   post-merge-pipeline:
