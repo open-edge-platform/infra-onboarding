@@ -38,32 +38,15 @@ provided in the kernel arguments, instead of running DHCP on all `eth*` interfac
    - Added 3 second delay post detecting reboot trigger file to provide sufficient time for tink-worker to send workflow
      execution success to tink controller
 
-7. **images/hook-mdev/Dockerfile**
-   - Added a non-root user.
-
-8. **kernel/configs/generic-6.6.y-x86_64**
+7. **kernel/configs/generic-6.6.y-x86_64**
    - Set flags to enable XZ Compression.
 
-9. **kernel/configs/generic-5.10.y-x86_64**
+8. **kernel/configs/generic-5.10.y-x86_64**
    - Set flags to enable DM Verity.
-
-### General Improvements
-
-#### Linting
-
-The following files have been updated based on shellcheck
-
-- bash/docker.sh
-- files/setup-dns.sh
-- files/static-network.sh
-- files/vlan.sh
-- images/hook-embedded/images-mount.sh
-- images/hook-embedded/pull-images.sh
-- images/hook-mdev/persistent-storage.sh
 
 ## Conclusion
 
 These changes have been made to tailor the Tinkerbell Actions to our specific requirements, improve performance,
 and enhance the overall functionality. We will continue to maintain and update this fork as needed.
 
-Last Updated Date: March 25, 2025
+Last Updated Date: April 7, 2025

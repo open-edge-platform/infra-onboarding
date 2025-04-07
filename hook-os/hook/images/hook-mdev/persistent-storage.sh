@@ -26,7 +26,7 @@ blkid_encode_string() {
 	echo "$@" | sed -e 's| |\\x20|g'
 }
 
-: "${SYSFS:=${SYSFS:-/sys}}"
+: ${SYSFS:=/sys}
 
 # cdrom symlink
 case "$MDEV" in
@@ -50,7 +50,7 @@ mkdir -p disk/by-id
 
 if [ -f "$SYSFS/class/block/$MDEV/partition" ]; then
 	# This is a partition of a device, find out its parent device
-    _parent_dev="$(basename "$(${SBINDIR:-/usr/bin}/readlink -f "$SYSFS/class/block/$MDEV/..")")"
+	_parent_dev="$(basename $(${SBINDIR:-/usr/bin}/readlink -f "$SYSFS/class/block/$MDEV/.."))"
 
 	partition=$(cat $SYSFS/class/block/$MDEV/partition 2> /dev/null)
 	case "$partition" in
@@ -69,16 +69,17 @@ echo "INITIAL name: '${name}'" >&2
 serial=$(sanitise_file "$SYSFS/class/block/$_check_dev/device/serial")
 echo "INITIAL serial: '${serial}'" >&2
 # Special case where block devices have serials attached to the block itself, like virtio-blk
-: "${serial:=$(sanitise_file "$SYSFS/class/block/$_check_dev/serial")}"
+: ${serial:=$(sanitise_file "$SYSFS/class/block/$_check_dev/serial")}
 echo "DEVICE serial (after block-serial): '${serial}'" >&2
 wwid=$(sanitise_file "$SYSFS/class/block/$_check_dev/wwid")
 echo "INITIAL wwid: '${wwid}'" >&2
-: "${wwid:=$(sanitise_file "$SYSFS/class/block/$_check_dev/device/wwid")}"
+: ${wwid:=$(sanitise_file "$SYSFS/class/block/$_check_dev/device/wwid")}
 echo "DEVICE wwid (from device-wwid): '${wwid}'" >&2
 
 # Sets variables LABEL, PARTLABEL, PARTUUID, TYPE, UUID depending on
 # blkid output (busybox blkid will not provide PARTLABEL or PARTUUID)
-eval "$(blkid /dev/"$MDEV" | cut -d: -f2-)"
+eval $(blkid /dev/$MDEV | cut -d: -f2-)
+
 if [ -n "$wwid" ]; then
 	case "$MDEV" in
 		nvme*) symlink_action ../../$MDEV disk/by-id/nvme-${wwid}${partsuffix} ;;
@@ -219,7 +220,7 @@ if [ "${MDEV#sd}" != "$MDEV" ]; then
 	case "$sysdev" in
 		*usb[0-9]*)
 			# require vfat for devices without partition
-			if ! [ -e $SYSFS/block/$MDEV ] || [ "$TYPE" = "vfat" ]; then # @TODO: rpardini: upstream bug here? should be $TYPE
+			if ! [ -e $SYSFS/block/$MDEV ] || [ TYPE="vfat" ]; then # @TODO: rpardini: upstream bug here? should be $TYPE
 				symlink_action $MDEV usbdisk
 			fi
 			;;

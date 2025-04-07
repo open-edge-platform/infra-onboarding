@@ -1,5 +1,3 @@
-#!/bin/bash
-
 function check_docker_daemon_for_sanity() {
 	# Shenanigans to go around error control & capture output in the same effort, 'docker info' is slow.
 	declare docker_info docker_buildx_version

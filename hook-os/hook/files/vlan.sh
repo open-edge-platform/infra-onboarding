@@ -13,7 +13,9 @@ set -e # exit on error
 # It will use the MAC address specified in `hw_addr=` to find the interface to add the VLAN to.
 
 parse_from_cmdline() {
-    key="${1}"
+	local key="${1}"
+    local cmdline
+    local ipam_value
 
     # Read the contents of /proc/cmdline
     cmdline=$(cat /proc/cmdline)
@@ -32,11 +34,11 @@ parse_from_cmdline() {
 }
 
 get_interface_name() {
-    mac=$1
+    local mac=$1
     for interface in /sys/class/net/*; do
         if [ -f "$interface/address" ]; then
-            if [ "$(cat "$interface/address")" = "$mac" ]; then
-                basename "$interface"
+            if [ "$(cat "$interface/address")" == "$mac" ]; then
+                echo "$(basename "$interface")"
                 return 0
             fi
         fi
@@ -44,7 +46,7 @@ get_interface_name() {
     return 1
 }
 
-add_vlan_interface() {
+function add_vlan_interface() {
 	# check if vlan_id  are set in the kernel commandline, otherwise return.
 	if ! parse_from_cmdline vlan_id; then
 		echo "No vlan_id=xxxx set in kernel commandline; no VLAN handling." >&2

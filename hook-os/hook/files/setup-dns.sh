@@ -10,14 +10,14 @@ exec 3>&1 4>&2
 trap 'exec 2>&4 1>&3' 0 1 2 3
 exec 1>/var/log/setup-dns.log 2>&1
 
-while getopts "d:n" opt; do
+while getopts "d:n:h" opt; do
         case $opt in
                 d) DOMAINNAME="$OPTARG";;
                 n) NAMESERVERS="$OPTARG";;
-                *) echo "Invalid option: -$OPTARG" >&2; exit 1;;
         esac
 done
-shift $((OPTIND - 1))
+shift $(($OPTIND - 1))
+
 
 conf="${ROOT}resolv.conf"
 

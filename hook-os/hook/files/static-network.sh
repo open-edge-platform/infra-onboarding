@@ -13,12 +13,15 @@ exec 3>&1 4>&2
 trap 'exec 2>&4 1>&3' 0 1 2 3
 exec 1>/var/log/network_config.log 2>&1
 
-set -xeu
+set -xeuo pipefail
 
 # Define the location of the interfaces file
 INTERFACES_FILE="/var/run/network/interfaces"
 
 parse_ipam_from_cmdline() {
+    local cmdline
+    local ipam_value
+
     # Read the contents of /proc/cmdline
     cmdline=$(cat /proc/cmdline)
 
@@ -38,11 +41,11 @@ parse_ipam_from_cmdline() {
 # Function to get interface name from MAC address
 # TODO(jacobweinstock): if a vlan id is provided we should match for the vlan interface
 get_interface_name() {
-    mac=$1
+    local mac=$1
     for interface in /sys/class/net/*; do
         if [ -f "$interface/address" ]; then
-            if [ "$(cat "$interface/address")" = "$mac" ]; then
-                basename "$interface"
+            if [ "$(cat "$interface/address")" == "$mac" ]; then
+                echo "$(basename "$interface")"
                 return 0
             fi
         fi
@@ -62,7 +65,7 @@ if [ $? -ne 0 ]; then
 fi
 echo "IPAM value: $ipam"
 
-mkdir -p "$(dirname "$INTERFACES_FILE")"
+mkdir -p $(dirname "$INTERFACES_FILE")
 
 # Parse the IPAM string
 IFS=':' read -r mac vlan_id ip netmask gateway hostname dns search_domains ntp <<EOF
