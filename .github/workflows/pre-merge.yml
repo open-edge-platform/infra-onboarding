@@ -10,11 +10,15 @@ on:
       - main
       - release-*
 
+env:
+  MARKDOWNLINT_CLI_VER: 0.44.0
+
 jobs:
   pre-checks:
     runs-on: ubuntu-latest
     outputs:
       filtered_projects: ${{ steps.filter-changes.outputs.filtered_projects }}
+      other_changed_projects: ${{ steps.filter-changes.outputs.other_changed_projects }}
     env:
       GITHUB_ACTIONS: true
     steps:
@@ -27,11 +31,40 @@ jobs:
       - name: "Filter Out Unwanted Changed Subfolders"
         id: filter-changes
         run: |
-          folders_to_remove='[".github",".reuse","LICENSES"]'
-
+          folders_to_remove='[".github",".reuse","LICENSES",""]'
+          
           changed_projects='${{ steps.discover-changes.outputs.changed_projects }}'
           filtered_projects=$(echo "$changed_projects" | jq -cr --argjson folders_to_remove "$folders_to_remove" 'map(select(. as $item | $folders_to_remove | index($item) | not))')
+          other_changed_projects=$(echo "$changed_projects" | jq -cr --argjson filtered_projects "$filtered_projects" 'map(select(. as $item | $filtered_projects | index($item) | not))')
+
           echo "filtered_projects=$filtered_projects" >> $GITHUB_OUTPUT
+          echo "other_changed_projects=$other_changed_projects" >> $GITHUB_OUTPUT
+  pre-merge-root:
+    needs: pre-checks
+    if: ${{ contains(needs.pre-checks.outputs.other_changed_projects, '.github') || contains(needs.pre-checks.outputs.other_changed_projects, '.reuse') || contains(needs.pre-checks.outputs.other_changed_projects, 'LICENSES') || contains(needs.pre-checks.outputs.other_changed_projects, '""')}}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-node@v4.3.0
+        with:
+          node-version: '18'
+      - run: |
+          npm install -g \
+          "markdownlint-cli@${{ env.MARKDOWNLINT_CLI_VER }}"
+      - uses: actions/setup-python@v5.5.0
+        id: setup_python
+        with:
+          python-version: '3.13'
+      - name: Restore cached virtualenv
+        uses: actions/cache@v4.2.3
+        with:
+          key: venv-${{ runner.os }}-${{ steps.setup_python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
+          path: venv_infra
+
+      - name: Run mdlint
+        run: make mdlint
+      - name: Run license check
+        run: make license
   pre-merge-pipeline:
     needs: pre-checks
     if: ${{ needs.pre-checks.outputs.filtered_projects != '[]' }}
@@ -57,7 +90,7 @@ jobs:
   final-check:
       runs-on: ubuntu-latest
       if: ${{ always() }}
-      needs: [pre-merge-pipeline]
+      needs: [pre-merge-root, pre-merge-pipeline]
       steps:
         - name: Final Status Check
           run: |
