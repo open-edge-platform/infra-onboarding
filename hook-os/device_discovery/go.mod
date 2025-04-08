@@ -6,12 +6,10 @@ module device-discovery
 go 1.24.1
 
 require (
-	github.com/open-edge-platform/infra-onboarding/onboarding-manager v1.28.1
+	github.com/open-edge-platform/infra-onboarding/onboarding-manager v1.33.0
 	golang.org/x/oauth2 v0.28.0
 	google.golang.org/grpc v1.71.0
 )
-
-replace github.com/open-edge-platform/infra-onboarding/onboarding-manager => ../../onboarding-manager
 
 require (
 	cloud.google.com/go/compute/metadata v0.6.0 // indirect

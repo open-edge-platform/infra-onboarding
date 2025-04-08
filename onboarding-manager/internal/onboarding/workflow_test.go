@@ -54,8 +54,13 @@ func TestCheckStatusOrRunProdWorkflow(t *testing.T) {
 		{
 			name: "Empty Context and Instance",
 			args: args{
-				ctx:      context.Background(),
-				instance: &computev1.InstanceResource{},
+				ctx: context.Background(),
+				instance: &computev1.InstanceResource{
+					Host: &computev1.HostResource{
+						ResourceId: "host-084d9b08",
+					},
+					DesiredOs: &osv1.OperatingSystemResource{},
+				},
 			},
 			wantErr: true,
 		},
@@ -361,6 +366,7 @@ func Test_getWorkflow(t *testing.T) {
 		ctx          context.Context
 		k8sCli       client.Client
 		workflowName string
+		hostID       string
 	}
 	tests := []struct {
 		name    string
@@ -401,7 +407,7 @@ func Test_getWorkflow(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := getWorkflow(tt.args.ctx, tt.args.k8sCli, tt.args.workflowName)
+			_, err := getWorkflow(tt.args.ctx, tt.args.k8sCli, tt.args.workflowName, tt.args.hostID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getWorkflow() error = %v, wantErr %v", err, tt.wantErr)
 				return
