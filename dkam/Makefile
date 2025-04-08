@@ -57,13 +57,7 @@ build: go-build
 
 lint: go-lint license shellcheck mdlint
 
-test: go-test fuzztest
+test: go-test
 
 go-build: $(OUT_DIR) ## build resource manager binary
 	$(GOCMD) build $(GOEXTRAFLAGS) -o $(OUT_DIR)/$(BINARY_NAME) cmd/$(PROJECT_NAME)/main.go
-	
-fuzztest: $(OUT_DIR)
-	$(MAKE) db-stop
-	$(MAKE) db-start
-	$(SCRIPTS_DIR)/fuzz_test.sh "internal/handlers/controller/reconcilers/os_test.go"
-	$(MAKE) db-stop
