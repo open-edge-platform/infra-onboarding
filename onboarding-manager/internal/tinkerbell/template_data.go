@@ -282,6 +282,22 @@ func NewTemplateDataProdEdgeMicrovisorToolkit(
 					Image:   tinkActionEMTPartitionImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg560,
 				},
+				// TODO: remove write hostname actions once fixed in EMT image
+				{
+					Name:    ActionWriteHostname,
+					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+					Timeout: timeOutMin90,
+					Environment: map[string]string{
+						"FS_TYPE":   "ext4",
+						"DEST_PATH": "/etc/hostname",
+						"CONTENTS": fmt.Sprintf(`
+%s`, deviceInfo.Hostname),
+						"UID":     "0",
+						"GID":     "0",
+						"MODE":    "0755",
+						"DIRMODE": "0755",
+					},
+				},
 				{
 					Name:    ActionCloudInitInstall,
 					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
