@@ -19,22 +19,24 @@ GOJUNITREPORT        := true
 GOCOBERTURA          := true
 
 # Project variables
-PROJECT_NAME := dkammgr
-BINARY_NAME  := $(PROJECT_NAME) 
+PROJECT_NAME     := dkammgr
+PROJECT_NICKNAME := dkam
+BINARY_NAME      := $(PROJECT_NAME)
 
 DB_CONTAINER_NAME := $(PROJECT_NAME)-db
 
 OUT_DIR  := $(PWD)/out
 SCRIPTS_DIR := ./ci_scripts
 # Code versions, tags, and so on
-VERSION       := $(shell cat VERSION)
-VERSION_MAJOR := $(shell cut -c 1 VERSION)
-IMG_NAME      := ${PROJECT_NAME}
-IMG_VERSION   ?= $(shell git branch --show-current | sed 's/\//_/g')
-GIT_COMMIT    ?= $(shell git rev-parse HEAD)
+VERSION         := $(shell cat VERSION)
+VERSION_MAJOR   := $(shell cut -c 1 VERSION)
+DOCKER_IMG_NAME := ${PROJECT_NAME}
+DOCKER_VERSION  ?= $(shell git branch --show-current | sed 's/\//_/g')
+GIT_COMMIT      ?= $(shell git rev-parse HEAD)
+GIT_TAG_PREFIX  := dkam/v
 
 # Create the virtualenv with python tools installed
-VENV_NAME := venv_$(PROJECT_NAME) 
+VENV_NAME := venv_$(PROJECT_NAME)
 
 # Test variables
 # Set TEST_TARGET to '<testname1>' or '<testname1\|testname2>' to run specific tests or use other  regex '<testname.*>' - example:
@@ -61,7 +63,7 @@ test: go-test
 
 go-build: $(OUT_DIR) ## build resource manager binary
 	$(GOCMD) build $(GOEXTRAFLAGS) -o $(OUT_DIR)/$(BINARY_NAME) cmd/$(PROJECT_NAME)/main.go
-	
+
 fuzztest: $(OUT_DIR)
 	$(MAKE) db-stop
 	$(MAKE) db-start
