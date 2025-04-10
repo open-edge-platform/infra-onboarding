@@ -21,6 +21,8 @@ var WorkflowStepToStatusDetail = map[string]string{
 	ActionInstallScriptEnable:              "Enabling system services",
 	ActionEfibootset:                       "Setting boot option",
 	ActionFdeEncryption:                    "Setting FDE encryption",
+	ActionEnableDmv:                        "Enabling DM Verity",
+	ActionFdeDmv:                           "Setting FDE encryption + Enabling DM Verity",
 	ActionReboot:                           "Rebooting",
 	ActionAddAptProxy:                      "Configuring APT proxy settings",
 	ActionCreateSecretsDirectory:           "Creating secrets directory",
@@ -32,8 +34,6 @@ var WorkflowStepToStatusDetail = map[string]string{
 	ActionKernelupgrade:                    "Setting kernel-upgrade",
 	ActionCloudInitInstall:                 "Installing cloud-init",
 	ActionCloudinitDsidentity:              "Setting up cloud-init",
-	ActionEMTPartition:                     "Creating disk partition inside Edge Microvisor Toolkit",
-	ActionSetSeliuxRelabel:                 "Setting SELinux relabel policy",
 }
 
 func GenerateStatusDetailFromWorkflowState(workflow *tink.Workflow) string {

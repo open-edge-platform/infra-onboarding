@@ -32,8 +32,9 @@ generates Tinkerbell workflows for provisioning, which are executed by the Tink 
   Inventory Service to manage host and instance resources lifecycle.
 - Workflow Automation: Generates and executes Tinkerbell workflows
   for provisioning edge nodes.
-- Secure Boot and FDE Support: Supports Secure Boot and
-  Full Disk Encryption (FDE) settings for enhanced security.
+- Secure Boot, FDE and DMV Support: Supports Secure Boot,
+  Full Disk Encryption (FDE) and DM Verity (DMV) settings
+  for enhanced security.
 - Integration with Keycloak: Ensures secure authentication and
   token management for edge nodes.
 - Status Reporting: Sends onboarding and provisioning status
@@ -132,4 +133,4 @@ The following is a list of makefile targets that support developer activities:
 [contributors-guide-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/index.html
 [troubleshooting-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/troubleshooting/troubleshooting.html
 
-Last Updated Date: February 17, 2025
+Last Updated Date: April 1, 2025
