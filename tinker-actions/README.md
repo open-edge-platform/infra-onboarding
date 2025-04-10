@@ -55,13 +55,13 @@ targets. The following is a list of makefile targets that support developer acti
 - `lint` to run a list of linting targets
 - `docker-build` to build all the tinker action images
 
-#### Runs build, lint stages
+#### Run build, lint stages
 
 ```bash
 make all
 ```
 
-#### Builds tinker action
+#### Build tinker action
 
 ```bash
 make <ACTION NAME>
@@ -73,7 +73,7 @@ Example
 make erase_non_removable_disks
 ```
 
-#### Pushes tinker action with branch name as tag
+#### Push tinker action with branch name as tag
 
 ```bash
 make push-<ACTION NAME>
@@ -85,7 +85,7 @@ Example
 make push-cexec
 ```
 
-#### Pushes tinker action with VERSION as tag
+#### Push tinker action with VERSION as tag
 
 ```bash
 make release-<ACTION NAME>
@@ -97,13 +97,13 @@ Example
 make release-fde
 ```
 
-#### Builds all tinker actions
+#### Build all tinker actions
 
 ```bash
 make docker-build
 ```
 
-#### Pushes all tinker actions with BRANCH and VERSION tag
+#### Push all tinker actions with BRANCH and VERSION tag
 
 ```bash
 make docker-push
