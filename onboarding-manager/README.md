@@ -16,8 +16,8 @@
 
 The Onboarding Manager (OM) is a critical component in the Edge Infrastructure Manager,
 responsible for managing the onboarding process of edge nodes.
-The Onboarding Manager handles.the entire edge node onboarding and provisioning process,
-from pre-registration and system power-on up to iPXE boot,authentication,
+The Onboarding Manager handles the entire edge node onboarding and provisioning process,
+from pre-registration and system power-on up to iPXE boot, authentication,
 and device discovery. It manages host resources,
 facilitates user interaction for node verification, creates instance resources, and
 generates Tinkerbell workflows for provisioning, which are executed by the Tink Agent.
@@ -40,12 +40,12 @@ generates Tinkerbell workflows for provisioning, which are executed by the Tink 
 - Status Reporting: Sends onboarding and provisioning status
   information to the User Interface via the Inventory Service.
 - Scalability: Designed to scale with approximately 45 edge nodes
-  and provisioning tasks,as validated to date.
+  and provisioning tasks, as validated to date.
 
 ## API
 
 - Inventory Interaction: The onboarding manager uses the gRPC APIs
-  exposed by the infra Inventory Service to manage host,instance,os resources.
+  exposed by the infra Inventory Service to manage host, instance, os resources.
 - Device Discovery: The onboarding manager provides both unay
   and bi-directional stream gRPC-based APIs for device discovery.
 - gRPC Stream Management for Non-Interactive Onboarding: The API establishes
@@ -73,19 +73,19 @@ make dependency
 This code requires the following tools to be installed on your development machine:
 
 - [Go\* programming language](https://go.dev)
-  check [$GOVERSION_REQ](Makefile)
+  check [$GOVERSION_REQ](../version.mk)
 - [golangci-lint](https://github.com/golangci/golangci-lint)
-  check [$GOLINTVERSION_REQ](Makefile)
+  check [$GOLINTVERSION_REQ](../version.mk)
 - [buf](https://github.com/bufbuild/buf)
-  check [$BUFVERSION_REQ](Makefile)
+  check [$BUFVERSION_REQ](../version.mk)
 - [protoc-gen-doc](https://github.com/pseudomuto/protoc-gen-doc)
-  check [$PROTOCGENDOCVERSION_REQ](Makefile)
+  check [$PROTOCGENDOCVERSION_REQ](../version.mk)
 - [protoc-gen-go-grpc](https://pkg.go.dev/google.golang.org/grpc/cmd/protoc-gen-go-grpc)
-  check [$PROTOCGENGOGRPCVERSION_REQ](Makefile)
+  check [$PROTOCGENGOGRPCVERSION_REQ](../version.mk)
 - [protoc-gen-go](https://pkg.go.dev/google.golang.org/protobuf/cmd/protoc-gen-go)
-  check [$PROTOCGENGOVERSION_REQ](Makefile)
+  check [$PROTOCGENGOVERSION_REQ](../version.mk)
 - [protoc-gen-validate](https://github.com/bufbuild/protoc-gen-validate)
-  check[$PROTOCGENVALIDATEGOVERSION_REQ](Makefile)
+  check[$PROTOCGENVALIDATEGOVERSION_REQ](../version.mk)
 - [GNU Compiler Collection](https://gcc.gnu.org/)
 
 ### Build the Binary
