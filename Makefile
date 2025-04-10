@@ -8,8 +8,8 @@ SUBPROJECTS := onboarding-manager dkam
 .DEFAULT_GOAL := help
 .PHONY: all build clean clean-all help lint test license
 
-all: build lint test
-	@# Help: Runs build, lint, test stages for all subprojects
+all: build lint test ## Runs build, lint, test stages for all subprojects
+
 # Repo root directory, where base makefiles are located
 REPO_ROOT := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 
@@ -21,8 +21,6 @@ $(VENV_DIR): requirements.txt ## Create Python venv
   set +u; . ./$@/bin/activate; set -u ;\
   python -m pip install --upgrade pip ;\
   python -m pip install -r requirements.txt
-
-all: build lint test ## Runs build, lint, test stages for all subprojects
 
 dependency-check: $(VENV_DIR)
 
