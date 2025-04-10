@@ -13,9 +13,9 @@
 ## Overview
 
 The DKAM stands for Dynamic Kit Adaptation Module is a component
-in the Edge Infrastructure Manager,responsible to onboard edge node with
+in the Edge Infrastructure Manager, responsible for onboarding edge nodes with
 curated sets of bare metal agents and software that can support deployment
-of other apps. It prepares artifacts like iPXE, HookOS for onboarding.
+of other apps. It prepares artifacts like iPXE and HookOS used for onboarding.
 
 ## Features
 
@@ -32,8 +32,8 @@ Instructions on how to install and set up the DKAM on your machine.
 
 This code requires the following tools to be installed on your development machine:
 
-- [Go\* programming language](https://go.dev) - check [$GOVERSION_REQ](Makefile)
-- [golangci-lint](https://github.com/golangci/golangci-lint) - check [$GOLINTVERSION_REQ](Makefile)
+- [Go\* programming language](https://go.dev) - check [$GOVERSION_REQ](../version.mk)
+- [golangci-lint](https://github.com/golangci/golangci-lint) - check [$GOLINTVERSION_REQ](../version.mk)
 
 ### Build the Binary
 
