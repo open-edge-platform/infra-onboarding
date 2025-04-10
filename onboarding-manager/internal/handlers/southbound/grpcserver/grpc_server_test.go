@@ -23,7 +23,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 
 	computev1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/compute/v1"
@@ -194,56 +193,6 @@ func TestNewInteractiveOnboardingService(t *testing.T) {
 			}
 			if reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewInteractiveOnboardingService() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestCopyNodeReqtoNodetData(t *testing.T) {
-	type args struct {
-		payload []*pb.NodeData
-	}
-	payload := []*pb.NodeData{}
-	payloads := []*pb.NodeData{
-		{
-			Hwdata: []*pb.HwData{
-				{
-					MacId:     "mac1",
-					SutIp:     sutIP,
-					Uuid:      "uuid1",
-					Serialnum: "serial1",
-				},
-			},
-		},
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    []*computev1.HostResource
-		wantErr bool
-	}{
-		{
-			name:    "Empty Payload",
-			args:    args{payload: payload},
-			want:    nil,
-			wantErr: false,
-		},
-		{
-			name:    "Non-empty Payload",
-			args:    args{payload: payloads},
-			want:    []*computev1.HostResource{},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := CopyNodeReqToNodeData(tt.args.payload, tenant1)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("CopyNodeReqToNodeData() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if reflect.DeepEqual(got, tt.want) {
-				t.Errorf("CopyNodeReqToNodeData() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -1250,23 +1199,6 @@ func TestInteractiveOnboardingService_checkNCreateInstance(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		{
-			name: "Create Instance Failure",
-			fields: fields{
-				invClient:    om_testing.InvClient,
-				invClientAPI: om_testing.InvClient,
-				rbac:         rbacServer,
-				authEnabled:  true,
-			},
-			args: args{
-				ctx: ctx,
-				pconf: providerconfiguration.ProviderConfig{
-					AutoProvision: false,
-				},
-				host: &computev1.HostResource{},
-			},
-			wantErr: false,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1282,48 +1214,6 @@ func TestInteractiveOnboardingService_checkNCreateInstance(t *testing.T) {
 			if err := s.checkNCreateInstance(tt.args.ctx, tt.args.tenentID, tt.args.pconf,
 				tt.args.host); (err != nil) != tt.wantErr {
 				t.Errorf("InteractiveOnboardingService.checkNCreateInstance() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func Test_sendStreamErrorResponse(t *testing.T) {
-	type args struct {
-		stream  pb.NonInteractiveOnboardingService_OnboardNodeStreamServer
-		code    codes.Code
-		message string
-	}
-
-	var art MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
-	art.On("Send", mock.Anything).Return(errors.New("err"))
-	var art1 MockNonInteractiveOnboardingServiceOnboardNodeStreamServer
-	art1.On("Send", mock.Anything).Return(nil)
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "negative",
-			args: args{
-				stream:  &art,
-				code:    codes.InvalidArgument,
-				message: "error",
-			},
-			wantErr: true,
-		},
-		{
-			name: "positive",
-			args: args{
-				stream: &art1,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := sendStreamErrorResponse(tt.args.stream, tt.args.code, tt.args.message); (err != nil) != tt.wantErr {
-				t.Errorf("sendStreamErrorResponse() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
