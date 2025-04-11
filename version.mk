@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
- 
+
 GOLINTVERSION_HAVE             := $(shell golangci-lint version | sed 's/.*version //' | sed 's/ .*//')
 GOLINTVERSION_REQ              := 1.64.5
 GOJUNITREPORTVERSION_HAVE      := $(shell go-junit-report -version | sed s/.*" v"// | sed 's/ .*//')
