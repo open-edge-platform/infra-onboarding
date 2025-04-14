@@ -293,8 +293,6 @@ services:
       - tink_server_svc=update_tink_server_svc
       - release_svc=update_release_svc
       - logging_svc=update_logging_svc
-      - fdo_manufacturer_svc=update_manufacturer_svc
-      - fdo_owner_svc=update_owner_svc
       - oci_release_svc=update_oci_release_svc
       - EXTRA_HOSTS=update_extra_hosts
 
