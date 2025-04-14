@@ -14,7 +14,7 @@ Edge Manageability Framework. In particular, the repository comprises the follow
 
 Read more about Edge Orchestrator in the [user guide on onboarding an edge node][user-guide-onboard-edge-node].
 
-[user-guide-onboard-edge-node]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/set_up_edge_infra/edge_node_onboard.html
+[user-guide-onboard-edge-node]: https://docs.openedgeplatform.intel.com/edge-manage-docs/main/user_guide/set_up_edge_infra/index.html
 
 Navigate through the folders to get started, develop, and contribute to Orchestrator Infrastructure.
 
