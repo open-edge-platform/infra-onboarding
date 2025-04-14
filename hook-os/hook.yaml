@@ -293,8 +293,6 @@ services:
       - tink_server_svc=update_tink_server_svc
       - release_svc=update_release_svc
       - logging_svc=update_logging_svc
-      - fdo_manufacturer_svc=update_manufacturer_svc
-      - fdo_owner_svc=update_owner_svc
       - oci_release_svc=update_oci_release_svc
       - EXTRA_HOSTS=update_extra_hosts
 
@@ -330,8 +328,8 @@ files:
       alias       docker='nerdctl -n services.linuxkit exec -it hook-docker docker'
       alias docker-shell='nerdctl -n services.linuxkit exec -it hook-docker sh'
       export PS1='HookOS ${HOOK_VERSION}:\w\$ '
-      # only print WARNING or higher kernel messages to console
-      echo 4 > /proc/sys/kernel/printk
+      # only print CRITICAL or higher kernel messages to console
+      echo 2 > /proc/sys/kernel/printk
 
     mode: "0644"
 
