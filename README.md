@@ -20,7 +20,7 @@ Read more about Edge Orchestrator in the TODO [User Guide][user-guide-url].
 
 ## Develop
 
-To develop one of the services please follow it's specific guide present in the README.md of its specific folder.
+To develop one of the services, please follow its guide in README.md located in its respective folder.
 
 ## Contribute
 
