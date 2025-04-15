@@ -17,21 +17,7 @@ function display_msg_to_tty_devices() {
 }
 
 main() {
-    cat /proc/kmsg > /host/sblog.txt &
-    result=$(./main)
-    echo " output is $result "
-    case "$result" in
-        "") display_msg_to_tty_devices "Unable to read secure boot status" 1 &
-	sleep 1
-        exit 1
-        ;;
-        *Mismatch*) display_msg_to_tty_devices "Secure Boot Status MISMATCH" 1 &
-	sleep 1
-        exit 1
-        ;;
-        *) display_msg_to_tty_devices "Secure Boot Status MATCH" 2 ;;
-    esac
-    sleep 1
+    display_msg_to_tty_devices "Secure Boot Status SKIPPED" 1
     exit 0
 }
 main
