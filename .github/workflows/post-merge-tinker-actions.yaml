@@ -11,6 +11,7 @@ on:
       - release-*
     paths:
       - "tinker-actions/**"
+  workflow_dispatch:
 
 jobs:
   post-merge-pipeline:
