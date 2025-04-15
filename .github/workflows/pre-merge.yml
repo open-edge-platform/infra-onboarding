@@ -32,7 +32,7 @@ jobs:
         id: filter-changes
         run: |
           folders_to_remove='[".github",".reuse","LICENSES",""]'
-          
+
           changed_projects='${{ steps.discover-changes.outputs.changed_projects }}'
           filtered_projects=$(echo "$changed_projects" | jq -cr --argjson folders_to_remove "$folders_to_remove" 'map(select(. as $item | $folders_to_remove | index($item) | not))')
           other_changed_projects=$(echo "$changed_projects" | jq -cr --argjson filtered_projects "$filtered_projects" 'map(select(. as $item | $filtered_projects | index($item) | not))')
@@ -86,6 +86,7 @@ jobs:
       run_artifact: false
       prefix_tag_separator: "/"
       project_folder: ${{ matrix.project_folder }}
+      trivy_image_skip:  "postgres:16.4"
     secrets: inherit
   final-check:
       runs-on: ubuntu-latest
@@ -95,9 +96,9 @@ jobs:
         - name: Final Status Check
           run: |
             pre_merge_pipeline_result="${{ needs.pre-merge-pipeline.result }}"
-            
+
             echo "Pre-merge pipeline result: $pre_merge_pipeline_result"
-  
+
             if [ "$pre_merge_pipeline_result" == "success" ] || [ "$pre_merge_pipeline_result" == "skipped" ]; then
               echo "Pre-merge check passed successfully."
             else

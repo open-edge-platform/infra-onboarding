@@ -24,16 +24,19 @@ PROTOCGENGOGRPC      := true
 PROTOCGENVALIDATEGO  := true
 
 # Project variables
-PROJECT_NAME := onboardingmgr
-BINARY_NAME  := $(PROJECT_NAME)
+PROJECT_NAME     := onboardingmgr
+PROJECT_NICKNAME := om
+BINARY_NAME      := $(PROJECT_NAME)
 
 # Code versions, tags, and so on
-VERSION       := $(shell cat VERSION)
-VERSION_MAJOR := $(shell cut -c 1 VERSION)
-IMG_NAME      := ${PROJECT_NAME}
-IMG_VERSION   ?= $(shell git branch --show-current | sed 's/\//_/g')
-GIT_COMMIT    ?= $(shell git rev-parse HEAD)
-DIR_TO_CLEAN  := pkg/api/*
+VERSION         := $(shell cat VERSION)
+VERSION_MAJOR   := $(shell cut -c 1 VERSION)
+DOCKER_IMG_NAME := ${PROJECT_NAME}
+DOCKER_VERSION  ?= $(shell git branch --show-current | sed 's/\//_/g')
+GIT_COMMIT      ?= $(shell git rev-parse HEAD)
+GIT_TAG_PREFIX  := onboarding-manager/v
+
+DIR_TO_CLEAN    := pkg/api/*
 
 # Test variables
 # Set TEST_TARGET to '<testname1>' or '<testname1\|testname2>' to run specific tests or use other  regex '<testname.*>' - example:
@@ -65,7 +68,7 @@ build: go-build
 
 lint: license yamllint go-lint hadolint mdlint buf-lint
 
-test: go-test
+test: go-test fuzztest
 
 #### Sub-targets ####
 
