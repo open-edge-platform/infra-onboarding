@@ -72,7 +72,7 @@ jobs:
       fail-fast: false
       matrix:
         project_folder: ${{ fromJson(needs.pre-checks.outputs.filtered_projects) }}
-    uses: open-edge-platform/orch-ci/.github/workflows/pre-merge.yml@test_trivy_yaml
+    uses: open-edge-platform/orch-ci/.github/workflows/pre-merge.yml@main
     with:
       run_security_scans: true
       run_version_check: true
