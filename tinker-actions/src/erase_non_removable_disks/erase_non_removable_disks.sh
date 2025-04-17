@@ -14,13 +14,31 @@ if ! eject_all_removable_devices; then
     exit 1
 fi
 
+BLOCK_SIZE=1M
 # Format drives
 # 1. Size should not be 0
 # 2. Type should be disk and not partition or rom
 # 3. Should be Non-removable
 
 lsblk_output=$(lsblk --output NAME,SIZE,TYPE,RM -bldn)
-echo "$lsblk_output" | awk '{if ($2 != 0 && $3 == "disk" && $4 != 1) print $1}' | while read -r disk; do
-    dd if=/dev/zero of="/dev/$disk" bs=100MB count=20
+echo "$lsblk_output" | awk '{if ($2 != 0 && $3 == "disk" && $4 != 1) print $1}' | while read -r TARGET_DISK; do
+
+    # Get the total size of the target disk in bytes
+    DISK_SIZE=$(blockdev --getsize64 "$TARGET_DISK")
+
+    # Convert block size to bytes manually (e.g., 1M = 1048576 bytes)
+    case "$BLOCK_SIZE" in
+        *K) BLOCK_SIZE_BYTES=$((${BLOCK_SIZE%K} * 1024));;
+        *M) BLOCK_SIZE_BYTES=$((${BLOCK_SIZE%M} * 1024 * 1024));;
+        *G) BLOCK_SIZE_BYTES=$((${BLOCK_SIZE%G} * 1024 * 1024 * 1024));;
+        *) echo "Unsupported block size format: $BLOCK_SIZE"; exit 1;;
+    esac
+
+    # Calculate the count (number of blocks to write)
+    COUNT=$(($DISK_SIZE / $BLOCK_SIZE_BYTES))
+
+    # Run the dd command with the calculated count
+    echo "Writing to $TARGET_DISK with bs=$BLOCK_SIZE and count=$COUNT"
+    dd if=/dev/zero of="$TARGET_DISK" bs="$BLOCK_SIZE" count="$COUNT"
 done
 partprobe
