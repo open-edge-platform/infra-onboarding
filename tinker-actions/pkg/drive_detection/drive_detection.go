@@ -110,7 +110,9 @@ func filterDrives(drives []DriveInfo) []DriveInfo {
 
 	for _, drive := range drives {
 		// Check conditions: size not zero and type is "disk" and is non-removable
-		if drive.Size != 0 && drive.Type == "disk" && !drive.IsRemovable {
+		if drive.Size != 0 && drive.Type == "disk" && !drive.IsRemovable &&
+			!(strings.HasPrefix(drive.Name, "mmcblk") && strings.Contains(drive.Name, "boot")) {
+
 			filteredDrives = append(filteredDrives, drive)
 		}
 	}
