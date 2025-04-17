@@ -424,7 +424,7 @@ creat_lvm_partition(){
         #if one disk found and it has rootfs
         if [ "$disk_count" == "1" ];then
         lvm_part=$(parted "/dev/$lvm_disks" p | grep -i "primary" | awk '{print $1}')
-            if [[ "$lvm_disks" == *"nvme"* ]]; then
+            if [[ "$lvm_disks" == *"nvme"* || "$lvm_disks" == *"mmcblk"* ]]; then
             part_number=p
             disks+=("/dev/${lvm_disks}${part_number}${lvm_part}")
         else
@@ -451,7 +451,7 @@ creat_lvm_partition(){
                 parted -s "/dev/$disk" mklabel gpt mkpart primary 0% 100%
                 partprobe
 		sync
-                if [[ "$disk" == *"nvme"* ]]; then
+                if [[ "$disk" == *"nvme"* || || "$disk" == *"mmcblk"* ]]; then
                     part_number=p
                     disks+=("/dev/${disk}${part_number}1")
                 else
@@ -525,12 +525,12 @@ install_lvm_on_disk(){
         if [ ! -L /dev/mapper/rootfs_crypt ]; then
 
             echo "FDE not enabled and starting the LVM creation"
-            #check for NVME && SATA disk types , ignore USB and virtual media devices
-            disk_list=$(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*/ {if ($3 !="0B" && $4 !=1)  {print $1}}')
+            #check for NVME, SATA && eMMC disk types , ignore USB and virtual media devices
+            disk_list=$(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*|mmcblk*/ && $1 !~ /boot/ {if ($3 !="0B" && $4 !=1)  {print $1}}')
             for disk_name in ${disk_list[@]}
             do
-                #add to disk_list only if its nvme or sata
-                if [[ "$disk_name" == *"nvme"* ]] || [[ "$disk_name" = *"sd"* ]]; then
+                #add to disk_list only if its nvme or sata or emmc
+                if [[ "$disk_name" == *"nvme"* ]] || [[ "$disk_name" = *"sd"* ]] || [[ "$disk_name" = *"mmcblk"* ]]; then
                     final_disk_list+=("$disk_name")
                 else
                     continue;
@@ -540,6 +540,10 @@ install_lvm_on_disk(){
             rootfs=$(df / | awk 'NR==2 {print $1}')
             if [[ "$rootfs" == *"nvme"* ]]; then
                 os_disk=$(echo "$rootfs" | grep -oE 'nvme[0-9]+n[0-9]+' | head -n 1)
+		part_num=$(echo "$rootfs" | awk 'NR==1 {print $1}' | awk -F'p' '{print $2}')
+            fi
+            if [[ "$rootfs" == *"mmcblk"* ]]; then
+                os_disk=$(echo "$rootfs" | grep -oE 'mmcblk[0-9]+' | head -n 1)
 		part_num=$(echo "$rootfs" | awk 'NR==1 {print $1}' | awk -F'p' '{print $2}')
             fi
             if [[ "$rootfs" == *"sd"* ]]; then

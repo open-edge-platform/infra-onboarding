@@ -804,7 +804,7 @@ creat_lvm_partition(){
                 parted -s "/dev/$disk" mklabel gpt mkpart primary 0% 100%
                 partprobe
 		sync
-                if [[ "$disk" == *"nvme"* || "$disks" == *"mmcblk"* ]]; then
+                if [[ "$disk" == *"nvme"* || "$disk" == *"mmcblk"* ]]; then
                     part_number=p
                     disks+=("/dev/${disk}${part_number}1")
                 else
