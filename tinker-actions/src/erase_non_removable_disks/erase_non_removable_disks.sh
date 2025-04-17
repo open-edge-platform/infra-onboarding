@@ -23,6 +23,12 @@ BLOCK_SIZE=1M
 lsblk_output=$(lsblk --output NAME,SIZE,TYPE,RM -bldn)
 echo "$lsblk_output" | awk '{if ($2 != 0 && $3 == "disk" && $4 != 1) print $1}' | while read -r TARGET_DISK; do
 
+    # Check if the target disk has a force_ro file and set its value to 0 if it exists
+    FORCE_RO_FILE="/sys/block/$(basename "$TARGET_DISK")/force_ro"
+    if [ -f "$FORCE_RO_FILE" ]; then
+        echo 0 | tee "$FORCE_RO_FILE"
+    fi
+
     # Get the total size of the target disk in bytes
     DISK_SIZE=$(blockdev --getsize64 "$TARGET_DISK")
 
