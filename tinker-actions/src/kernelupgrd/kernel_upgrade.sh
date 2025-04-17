@@ -146,7 +146,7 @@ else
         fi
 
 	#get the number of devices attached to system ignoring USB/Virtual/Removable disks
-        blk_devices=$(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*|mmcblk*/ {if ($3 !="0B" && $4 ==0)  {print $1}}')
+        blk_devices=$(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*|mmcblk*/ && $1 !~ /boot/ {if ($3 != "0B" && $4 == 0) {print $1}}')
         set -- $blk_devices
         count=$#
 
