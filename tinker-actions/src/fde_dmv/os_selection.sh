@@ -6,7 +6,7 @@
 #####################################################################################
 get_partition_suffix() {
     part_variable=''
-    ret=$(grep -i "nvme" <<< "$1")
+	ret=$(grep -i -e "nvme" -e "mmcblk" <<< "$1")
     if [ $? == 0 ]
     then
 	part_variable="p"
@@ -21,7 +21,7 @@ run_enable_fde()
 {
     disk_device=""
 
-    list_block_devices=($(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*/ {if ($3 !="0B" && $4 ==0)  {print $1}}'))
+    list_block_devices=($(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*|mmcblk*/ && $1 !~ /boot/ {if ($3 !="0B" && $4 ==0)  {print $1}}'))
     for block_dev in ${list_block_devices[@]};
     do
 	#if there were any problems when the ubuntu was streamed.
