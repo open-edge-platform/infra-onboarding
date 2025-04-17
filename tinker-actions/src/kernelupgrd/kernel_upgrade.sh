@@ -124,6 +124,8 @@ else
         if [ -z "$rootfs_part" ]; then
                 if echo "$efiboot_part" | grep -q "nvme"; then
                         prefix_disk=$(echo "$efiboot_part" | grep -oE 'nvme[0-9]+n[0-9]+' | head -n 1)
+                elif echo "$efiboot_part" | grep -q "mmcblk"; then
+                        prefix_disk=$(echo "$efiboot_part" | grep -oE 'mmcblk[0-9]+' | head -n 1)
                 elif echo "$efiboot_part" | grep -q "sd"; then
                         prefix_disk=$(echo "$efiboot_part" | grep -oE 'sd[a-z]+' | head -n 1)
                 fi
@@ -134,13 +136,17 @@ else
                 os_disk=$(echo "$rootfs_part" | grep -oE 'nvme[0-9]+n[0-9]+' | head -n 1)
                 part_number=$(echo "$rootfs_part" | awk 'NR==1 {print $1}' | awk -F'p' '{print $2}')
         fi
+        if echo "$rootfs_part" | grep -q "mmcblk"; then
+                os_disk=$(echo "$rootfs_part" | grep -oE 'mmcblk[0-9]+' | head -n 1)
+                part_number=$(echo "$rootfs_part" | awk 'NR==1 {print $1}' | awk -F'p' '{print $2}')
+        fi
         if echo "$rootfs_part" | grep -q "sd"; then
                 os_disk=$(echo "$rootfs_part" | grep -oE 'sd[a-z]+' | head -n 1)
                 part_number=$(echo "$rootfs_part" | awk 'NR==1 {print $1}' | sed 's/[^0-9]*//g')
         fi
 
 	#get the number of devices attached to system ignoring USB/Virtual/Removable disks
-        blk_devices=$(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*/ {if ($3 !="0B" && $4 ==0)  {print $1}}')
+        blk_devices=$(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*|mmcblk*/ {if ($3 !="0B" && $4 ==0)  {print $1}}')
         set -- $blk_devices
         count=$#
 
