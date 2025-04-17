@@ -1,3 +1,0 @@
-misconfigurations:
-  - id: AVD-DS-0002
-    statement: The tinker action images need root privileges
