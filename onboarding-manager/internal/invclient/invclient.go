@@ -105,7 +105,7 @@ func NewOnboardingInventoryClientWithOptions(opts ...Option) (*OnboardingInvento
 	}
 
 	wg := sync.WaitGroup{}
-	eventsWatcher := make(chan *client.WatchEvents)
+	eventsWatcher := make(chan *client.WatchEvents, 10)
 	cfg := client.InventoryClientConfig{
 		Name:                      clientName,
 		Address:                   options.InventoryAddress,
