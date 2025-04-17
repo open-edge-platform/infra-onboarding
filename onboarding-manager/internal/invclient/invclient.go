@@ -39,6 +39,7 @@ const MaxSerialNumberLength = 36
 const (
 	DefaultInventoryTimeout = 5 * time.Second
 	ReconcileDefaultTimeout = 5 * time.Minute // Longer timeout for reconciling all resources
+	eventsWatcherBufSize    = 10
 )
 
 var ReconcileTimeout = flag.Duration(
@@ -105,7 +106,7 @@ func NewOnboardingInventoryClientWithOptions(opts ...Option) (*OnboardingInvento
 	}
 
 	wg := sync.WaitGroup{}
-	eventsWatcher := make(chan *client.WatchEvents, 10)
+	eventsWatcher := make(chan *client.WatchEvents, eventsWatcherBufSize)
 	cfg := client.InventoryClientConfig{
 		Name:                      clientName,
 		Address:                   options.InventoryAddress,
