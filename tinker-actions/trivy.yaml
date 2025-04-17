@@ -25,4 +25,4 @@ scan:
   # Same as '--skip-files'
   # Default is empty
   skip-files:
-    - /etc/ssl/private/ssl-cert-snakeoil.key
+    - '**/Dockerfile'
