@@ -424,7 +424,7 @@ creat_lvm_partition(){
         #if one disk found and it has rootfs
         if [ "$disk_count" == "1" ];then
         lvm_part=$(parted "/dev/$lvm_disks" p | grep -i "primary" | awk '{print $1}')
-            if [[ "$lvm_disks" == *"nvme"* || "$lvm_disks" == *"mmcblk"* ]]; then
+            if [[ "$lvm_disks" == *"nvme"* ]] || [[ "$lvm_disks" == *"mmcblk"* ]]; then
             part_number=p
             disks+=("/dev/${lvm_disks}${part_number}${lvm_part}")
         else
@@ -451,7 +451,7 @@ creat_lvm_partition(){
                 parted -s "/dev/$disk" mklabel gpt mkpart primary 0% 100%
                 partprobe
 		sync
-                if [[ "$disk" == *"nvme"* || || "$disk" == *"mmcblk"* ]]; then
+                if [[ "$disk" == *"nvme"* ]] || [[ "$disk" == *"mmcblk"* ]]; then
                     part_number=p
                     disks+=("/dev/${disk}${part_number}1")
                 else
