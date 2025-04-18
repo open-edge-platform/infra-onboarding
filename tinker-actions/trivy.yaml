@@ -21,8 +21,3 @@ scan:
   # Default is empty
   skip-dirs:
     - vendor/
-
-  # Same as '--skip-files'
-  # Default is empty
-  skip-files:
-    - '**/Dockerfile'
