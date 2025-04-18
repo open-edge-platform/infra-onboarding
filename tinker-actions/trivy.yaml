@@ -4,7 +4,7 @@
 
 # Same as '--ignorefile'
 # Default is '.trivyignore'
-ignorefile: .trivyignore
+ignorefile: tinker-actions/.trivyignore
 
 # Same as '--exit-code'
 # Default is 0
