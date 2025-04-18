@@ -1,5 +1,5 @@
 ---
-# Copyright (C) 2024 Intel Corporation
+# Copyright (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
 # Same as '--ignorefile'
@@ -15,9 +15,3 @@ exit-code: 1
 severity:
   - HIGH
   - CRITICAL
-
-scan:
-  # Same as '--skip-dirs'
-  # Default is empty
-  skip-dirs:
-    - vendor/
