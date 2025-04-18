@@ -11,9 +11,9 @@ COPY enable_fde_emt.sh /
 COPY enable_dmv_emt.sh /
 COPY os_selection.sh /
 
-RUN chmod +x enable_fde.sh \
-    chmod +x enable_fde_emt.sh \
-    chmod +x enable_dmv_emt.sh \
+RUN chmod +x enable_fde.sh && \
+    chmod +x enable_fde_emt.sh && \
+    chmod +x enable_dmv_emt.sh && \
     chmod +x os_selection.sh
 
 # Health check
