@@ -2,4 +2,5 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Ignore misconfigurations
-AVD-DS-0002
+AVD-DS-0002 # Tinker actions require root permissions
+AVD-DS-0029 # TODO:3.1 - Validate with suggested changes
