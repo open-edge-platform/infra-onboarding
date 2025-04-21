@@ -4,6 +4,9 @@
 # Use an official Ubuntu base image
 FROM fluent/fluent-bit:3.2.10 AS fluent-bit-uos
 
+# Update liblzma5 to the fixed version (CVE-2025-31115)
+RUN apt-get update && apt-get install -y --no-install-recommends liblzma5=5.4.1-1 && apt-get clean
+
 COPY --from=busybox:stable-uclibc /bin/sh /bin/sh
 COPY --from=busybox:stable-uclibc /bin/cat /bin/cat
 
