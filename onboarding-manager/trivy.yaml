@@ -1,10 +1,10 @@
 ---
-# Copyright (C) 2024 Intel Corporation
+# Copyright (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
 # Same as '--ignorefile'
 # Default is '.trivyignore'
-ignorefile: .trivyignore
+ignorefile: onboarding-manager/.trivyignore
 
 # Same as '--exit-code'
 # Default is 0
