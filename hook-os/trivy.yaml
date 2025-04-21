@@ -1,0 +1,23 @@
+---
+# Copyright (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+# Same as '--ignorefile'
+# Default is '.trivyignore'
+ignorefile: hook-os/.trivyignore
+
+# Same as '--exit-code'
+# Default is 0
+exit-code: 1
+
+# Same as '--severity'
+# Default is all severities
+severity:
+  - HIGH
+  - CRITICAL
+
+scan:
+  # Same as '--skip-dirs'
+  # Default is empty
+  skip-dirs:
+    - hook/
