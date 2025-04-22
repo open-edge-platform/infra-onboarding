@@ -1,11 +1,18 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+
+# Use a temporary stage to extract the fixed version of liblzma5
+FROM debian:bookworm AS liblzma-extractor
+RUN apt-get update && apt-get install -y --no-install-recommends liblzma5=5.4.1-1
+# Copy the fixed library to a temporary location
+RUN mkdir /fixed-libs && cp /usr/lib/x86_64-linux-gnu/liblzma.so.5 /fixed-libs/
+
 # Use an official Ubuntu base image
 FROM fluent/fluent-bit:3.2.10 AS fluent-bit-uos
 
-# Update liblzma5 to the fixed version (CVE-2025-31115)
-RUN apt-get update && apt-get install -y --no-install-recommends liblzma5=5.4.1-1 && apt-get clean
+# Replace the vulnerable liblzma5 with the fixed version
+COPY --from=liblzma-extractor /fixed-libs/liblzma.so.5 /usr/lib/x86_64-linux-gnu/liblzma.so.5
 
 COPY --from=busybox:stable-uclibc /bin/sh /bin/sh
 COPY --from=busybox:stable-uclibc /bin/cat /bin/cat
