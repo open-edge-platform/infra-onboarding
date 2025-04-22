@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-# Use a temporary stage to extract the fixed version of liblzma5
+# Use a temporary stage to extract the fixed version of liblzma5 (CVE-2025-31115)
 FROM debian:bookworm AS liblzma-extractor
 RUN apt-get update && apt-get install -y --no-install-recommends liblzma5=5.4.1-1
 # Copy the fixed library to a temporary location
