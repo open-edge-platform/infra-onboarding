@@ -50,18 +50,18 @@ mount --bind /etc/resolv.conf /mnt/etc/resolv.conf
 
 mv /mnt/etc/apt/apt.conf.d/99needrestart /mnt/etc/apt/apt.conf.d/99needrestart.bkp 
 
+#Enter into Ubuntu OS for the latest 6.x kernel instalation
+chroot /mnt /bin/bash <<EOT
+
+apt update
+
 #Get the Latest canonical 6.8 kerner version 
-export kernel_version=$(chroot /mnt /bin/bash -c "apt-cache search linux-image | grep 'linux-image-6.8.*-generic' | tail -1 | awk '{print \$1}' | grep -oP '(?<=linux-image-)[0-9]+\.[0-9]+\.[0-9]+-[0-9]+'")
+export kernel_version=$(/bin/bash -c "apt-cache search linux-image | grep 'linux-image-6.8.*-generic' | tail -1 | awk '{print \$1}' | grep -oP '(?<=linux-image-)[0-9]+\.[0-9]+\.[0-9]+-[0-9]+'")
 
 if [ -z "kernel_version" ]; then
     echo "Unable to get the kernel version,please check !!!!"
     exit 1
 fi
-
-#Enter into Ubuntu OS for the latest 6.x kernel instalation
-chroot /mnt /bin/bash <<EOT
-
-apt update
 
 #install 6.x kernel with all recommended packages and kernel modules
 apt install -y  linux-image-\${kernel_version}-generic linux-headers-\${kernel_version}-generic
