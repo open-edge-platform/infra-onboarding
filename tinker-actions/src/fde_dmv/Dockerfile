@@ -3,6 +3,9 @@
 
 FROM debian:12.10
 
+# Update perl-base to the fixed version (CVE-2024-56406)
+RUN apt-get update && apt-get install -y perl-base=5.36.0-7+deb12u2
+
 RUN apt-get update && apt-get install -y parted cryptsetup-bin tpm2-tools xxd
 RUN apt-get update && apt-get install -y lvm2 procps
 
