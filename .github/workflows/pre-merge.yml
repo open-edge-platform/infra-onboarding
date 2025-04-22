@@ -87,6 +87,7 @@ jobs:
       prefix_tag_separator: "/"
       project_folder: ${{ matrix.project_folder }}
       trivy_image_skip:  "postgres:16.4"
+      trivy_config_path: ${{ matrix.project_folder }}/trivy.yaml
     secrets: inherit
   final-check:
       runs-on: ubuntu-latest
