@@ -282,8 +282,10 @@ install_other_agents() {
         platform-telemetry-agent="$PLATFORM_TELEMETRY_AGENT_VERSION"
 
       echo "Update INBM configuration file"
-      # Remove docker checks from INBM configuration file
-      sed -i '/<sotaSW>/,/</sotaSW>/s/docker//' /etc/intel_manageability.conf
+      # Remove docker. trtl and inbm-telemetry checks from INBM configuration file
+      sed -i '/<sotaSW>/,/<\/sotaSW>/s/docker//' /etc/intel_manageability.conf
+      sed -i '/<sotaSW>/,/<\/sotaSW>/s/trtl//' /etc/intel_manageability.conf
+      sed -i '/<sotaSW>/,/<\/sotaSW>/s/inbm-telemetry//' /etc/intel_manageability.conf
       echo "install_other_agents done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
   fi
 }
