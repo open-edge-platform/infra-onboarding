@@ -423,6 +423,10 @@ install_inbm_configuration_agent(){
         VERSION={{ index . "inbm-configuration-agent-VERSION" }}
         echo $VERSION
         apt-get -y install inbm-configuration-agent="$VERSION"
+        # Remove docker. trtl and inbm-telemetry checks from INBM configuration file
+        sed -i '/<sotaSW>/,/<\/sotaSW>/s/docker//' /etc/intel_manageability.conf
+        sed -i '/<sotaSW>/,/<\/sotaSW>/s/trtl//' /etc/intel_manageability.conf
+        sed -i '/<sotaSW>/,/<\/sotaSW>/s/inbm-telemetry//' /etc/intel_manageability.conf
         echo "install_inbm_configuration_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 
