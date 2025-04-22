@@ -9,17 +9,20 @@ on:
     branches:
       - main
       - release-*
-  workflow_dispatch:
+
+env:
+  MARKDOWNLINT_CLI_VER: 0.44.0
 
 jobs:
   pre-checks:
     runs-on: ubuntu-latest
     outputs:
       filtered_projects: ${{ steps.filter-changes.outputs.filtered_projects }}
+      other_changed_projects: ${{ steps.filter-changes.outputs.other_changed_projects }}
     env:
       GITHUB_ACTIONS: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
       - name: "Verify Branch Name"
         uses: open-edge-platform/orch-ci/verify-branch-name@main
       - name: "Discover Changed Subfolders"
@@ -28,11 +31,40 @@ jobs:
       - name: "Filter Out Unwanted Changed Subfolders"
         id: filter-changes
         run: |
-          folders_to_remove='[".github",".reuse","LICENSES"]'
+          folders_to_remove='[".github",".reuse","LICENSES",""]'
 
           changed_projects='${{ steps.discover-changes.outputs.changed_projects }}'
           filtered_projects=$(echo "$changed_projects" | jq -cr --argjson folders_to_remove "$folders_to_remove" 'map(select(. as $item | $folders_to_remove | index($item) | not))')
+          other_changed_projects=$(echo "$changed_projects" | jq -cr --argjson filtered_projects "$filtered_projects" 'map(select(. as $item | $filtered_projects | index($item) | not))')
+
           echo "filtered_projects=$filtered_projects" >> $GITHUB_OUTPUT
+          echo "other_changed_projects=$other_changed_projects" >> $GITHUB_OUTPUT
+  pre-merge-root:
+    needs: pre-checks
+    if: ${{ contains(needs.pre-checks.outputs.other_changed_projects, '.github') || contains(needs.pre-checks.outputs.other_changed_projects, '.reuse') || contains(needs.pre-checks.outputs.other_changed_projects, 'LICENSES') || contains(needs.pre-checks.outputs.other_changed_projects, '""')}}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-node@v4.3.0
+        with:
+          node-version: '18'
+      - run: |
+          npm install -g \
+          "markdownlint-cli@${{ env.MARKDOWNLINT_CLI_VER }}"
+      - uses: actions/setup-python@v5.5.0
+        id: setup_python
+        with:
+          python-version: '3.13'
+      - name: Restore cached virtualenv
+        uses: actions/cache@v4.2.3
+        with:
+          key: venv-${{ runner.os }}-${{ steps.setup_python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
+          path: venv_infra
+
+      - name: Run mdlint
+        run: make mdlint
+      - name: Run license check
+        run: make license
   pre-merge-pipeline:
     needs: pre-checks
     if: ${{ needs.pre-checks.outputs.filtered_projects != '[]' }}
@@ -54,21 +86,33 @@ jobs:
       run_artifact: false
       prefix_tag_separator: "/"
       project_folder: ${{ matrix.project_folder }}
+      trivy_image_skip:  "postgres:16.4"
+      trivy_config_path: ${{ matrix.project_folder }}/trivy.yaml
     secrets: inherit
   final-check:
       runs-on: ubuntu-latest
       if: ${{ always() }}
-      needs: [pre-merge-pipeline]
+      needs: [pre-merge-root, pre-merge-pipeline]
       steps:
         - name: Final Status Check
           run: |
-            pre_merge_pipeline_result="${{ needs.pre-merge-pipeline.result }}"
+            pre_merge_root_pipeline="${{ needs.pre-merge-root.result }}"
+            pre_merge_pipeline="${{ needs.pre-merge-pipeline.result }}"
+
+            results=("pre_merge_root_pipeline" "pre_merge_pipeline")
+            status="OK"
             
-            echo "Pre-merge pipeline result: $pre_merge_pipeline_result"
-  
-            if [ "$pre_merge_pipeline_result" == "success" ] || [ "$pre_merge_pipeline_result" == "skipped" ]; then
+            for result in "${results[@]}"; do
+              pipeline_result=$(eval echo \$$result)
+              echo "${result} result: $pipeline_result"
+                if [[ "$pipeline_result" != "success" && "$pipeline_result" != "skipped" ]]; then
+                status="KO"
+              fi
+            done
+            
+            if [[ "$status" == "OK" ]]; then
               echo "Pre-merge check passed successfully."
             else
-              echo "Pre-merge checks failed. PR can't get merged"
+              echo "All pre-merge checks failed or were skipped. PR can't get merged"
               exit 1
             fi

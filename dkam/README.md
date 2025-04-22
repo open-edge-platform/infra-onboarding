@@ -13,9 +13,9 @@
 ## Overview
 
 The DKAM stands for Dynamic Kit Adaptation Module is a component
-in the Edge Infrastructure Manager,responsible to onboard edge node with
+in the Edge Infrastructure Manager, responsible for onboarding edge nodes with
 curated sets of bare metal agents and software that can support deployment
-of other apps. It prepares artifacts like iPXE, HookOS for onboarding.
+of other apps. It prepares artifacts like iPXE and HookOS used for onboarding.
 
 ## Features
 
@@ -32,8 +32,8 @@ Instructions on how to install and set up the DKAM on your machine.
 
 This code requires the following tools to be installed on your development machine:
 
-- [Go\* programming language](https://go.dev) - check [$GOVERSION_REQ](Makefile)
-- [golangci-lint](https://github.com/golangci/golangci-lint) - check [$GOLINTVERSION_REQ](Makefile)
+- [Go\* programming language](https://go.dev) - check [$GOVERSION_REQ](../version.mk)
+- [golangci-lint](https://github.com/golangci/golangci-lint) - check [$GOLINTVERSION_REQ](../version.mk)
 
 ### Build the Binary
 
@@ -74,10 +74,10 @@ The following is a list of makefile targets that support developer activities:
 - If you are contributing, please read the [contributors guide][contributors-guide-url].
 - For troubleshooting, see the [troubleshooting guide][troubleshooting-url].
 
-[user-guide-onboard-edge-node]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/set_up_edge_infra/edge_node_onboard.html
-[user-guide-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/get_started_guide/gsg_content.html
-[inframanager-dev-guide-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/get_started_guide/gsg_content.html
-[contributors-guide-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/index.html
-[troubleshooting-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/troubleshooting/troubleshooting.html
+[user-guide-onboard-edge-node]: https://docs.openedgeplatform.intel.com/edge-manage-docs/main/user_guide/set_up_edge_infra/index.html
+[user-guide-url]: https://docs.openedgeplatform.intel.com/edge-manage-docs/main/user_guide/get_started_guide/index.html
+[inframanager-dev-guide-url]: https://docs.openedgeplatform.intel.com/edge-manage-docs/main/developer_guide/infra_manager/index.html
+[contributors-guide-url]: https://docs.openedgeplatform.intel.com/edge-manage-docs/main/developer_guide/contributor_guide/index.html
+[troubleshooting-url]: https://docs.openedgeplatform.intel.com/edge-manage-docs/main/user_guide/troubleshooting/index.html
 
 Last Updated Date: February 7, 2025

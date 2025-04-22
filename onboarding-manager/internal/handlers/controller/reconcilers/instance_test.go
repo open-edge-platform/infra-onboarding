@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
-//
-//nolint:testpackage // Keeping the test in the same package due to dependencies on unexported fields.
-package reconcilers
+
+package reconcilers_test
 
 import (
 	"context"
@@ -25,9 +24,11 @@ import (
 	providerv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/provider/v1"
 	statusv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/status/v1"
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
 	inv_status "github.com/open-edge-platform/infra-core/inventory/v2/pkg/status"
 	inv_testing "github.com/open-edge-platform/infra-core/inventory/v2/pkg/testing"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/util"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/handlers/controller/reconcilers"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/invclient"
 	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	om_testing "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/testing"
@@ -105,7 +106,7 @@ func createProviderWithArgs(tb testing.TB, doCleanup bool,
 	return provider
 }
 
-// This TC verifies the case, when an event with Instance with a host with pre-defined custom Provider (e.g., Lenovo) is obtained.
+// This TC verifies the case, when an event with Instance with pre-defined custom Provider (e.g., Lenovo) is obtained.
 // In this case, no reconciliation should be performed for such Instance
 // (the reconciliation should happen in the Provider-specific RM,e.g., LOC-A RM).
 func TestReconcileInstanceWithProvider(t *testing.T) {
@@ -114,21 +115,21 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
 
-	instanceReconciler := NewInstanceReconciler(om_testing.InvClient, true)
+	instanceReconciler := reconcilers.NewInstanceReconciler(om_testing.InvClient, true)
 	require.NotNil(t, instanceReconciler)
 
-	instanceController := rec_v2.NewController[ReconcilerID](instanceReconciler.Reconcile, rec_v2.WithParallelism(1))
+	instanceController := rec_v2.NewController[reconcilers.ReconcilerID](instanceReconciler.Reconcile, rec_v2.WithParallelism(1))
 	// do not Stop() to avoid races, should be safe in tests
 
+	host := inv_testing.CreateHost(t, nil, nil)
 	osRes := createOsWithArgs(t, true)
 	providerResource := inv_testing.CreateProviderWithArgs(t, "lenovo", "8.8.8.8", nil,
 		providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL, providerv1.ProviderVendor_PROVIDER_VENDOR_LENOVO_LOCA)
-	host := inv_testing.CreateHost(t, nil, providerResource)
-	instance := inv_testing.CreateInstance(t, host, osRes)
+	instance := inv_testing.CreateInstanceWithProvider(t, host, osRes, providerResource)
 	instanceID := instance.GetResourceId()
 
 	// performing reconciliation
-	err := instanceController.Reconcile(NewReconcilerID(instance.GetTenantId(), instanceID))
+	err := instanceController.Reconcile(reconcilers.NewReconcilerID(instance.GetTenantId(), instanceID))
 	assert.NoError(t, err, "Reconciliation failed")
 
 	// making sure no changes to the Instance has happened
@@ -136,7 +137,6 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
-
 	// Trying to delete the Instance. It contains Provider, so nothing should happen during the reconciliation.
 	// Setting the Desired state of the Instance to be DELETED.
 	inv_testing.DeleteResource(t, instanceID)
@@ -147,7 +147,7 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// performing Instance reconciliation
-	err = instanceController.Reconcile(NewReconcilerID(instance.GetTenantId(), instanceID))
+	err = instanceController.Reconcile(reconcilers.NewReconcilerID(instance.GetTenantId(), instanceID))
 	assert.NoError(t, err, "Reconciliation failed")
 
 	// No change at the Instance Current State and Status should have happened
@@ -157,16 +157,16 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 }
 
-func TestReconcileInstanceNonEdgeInfra(t *testing.T) {
+func TestReconcileInstanceNonEIM(t *testing.T) {
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
 
-	instanceReconciler := NewInstanceReconciler(om_testing.InvClient, true)
+	instanceReconciler := reconcilers.NewInstanceReconciler(om_testing.InvClient, true)
 	require.NotNil(t, instanceReconciler)
 
-	instanceController := rec_v2.NewController[ReconcilerID](instanceReconciler.Reconcile, rec_v2.WithParallelism(1))
+	instanceController := rec_v2.NewController[reconcilers.ReconcilerID](instanceReconciler.Reconcile, rec_v2.WithParallelism(1))
 	// do not Stop() to avoid races, should be safe in tests
 
 	host := inv_testing.CreateHost(t, nil, nil)
@@ -228,10 +228,10 @@ func TestReconcileInstance(t *testing.T) {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
 
-	instanceReconciler := NewInstanceReconciler(om_testing.InvClient, true)
+	instanceReconciler := reconcilers.NewInstanceReconciler(om_testing.InvClient, true)
 	require.NotNil(t, instanceReconciler)
 
-	instanceController := rec_v2.NewController[ReconcilerID](instanceReconciler.Reconcile, rec_v2.WithParallelism(1))
+	instanceController := rec_v2.NewController[reconcilers.ReconcilerID](instanceReconciler.Reconcile, rec_v2.WithParallelism(1))
 	// do not Stop() to avoid races, should be safe in tests
 
 	host := inv_testing.CreateHost(t, nil, nil)
@@ -291,7 +291,7 @@ func TestReconcileInstance(t *testing.T) {
 	require.NoError(t, err)
 
 	// This case is handled with internal events, let's mock it by calling the reconciler again
-	err = instanceController.Reconcile(NewReconcilerID(instance.GetTenantId(), instanceID))
+	err = instanceController.Reconcile(reconcilers.NewReconcilerID(instance.GetTenantId(), instanceID))
 	assert.NoError(t, err, "Reconciliation failed for internal events")
 
 	// Wait for reconciler to do its magic.
@@ -346,6 +346,7 @@ func TestReconcileInstance(t *testing.T) {
 	fmk = fieldmaskpb.FieldMask{Paths: []string{computev1.InstanceResourceFieldDesiredState}}
 	_, err = inv_testing.TestClients[inv_testing.APIClient].Update(ctx, instanceID, &fmk, res)
 	require.NoError(t, err)
+	zlogInst := logging.GetLogger("InstanceReconciler")
 	zlogInst.Debug().Msgf("Instance %s updated to DELETED", instanceID)
 
 	runReconcilationFuncInstance(t, instanceController, instance)
@@ -354,7 +355,7 @@ func TestReconcileInstance(t *testing.T) {
 	require.True(t, inv_errors.IsNotFound(err))
 }
 
-func runReconcilationFuncInstance(t *testing.T, instanceController *rec_v2.Controller[ReconcilerID],
+func runReconcilationFuncInstance(t *testing.T, instanceController *rec_v2.Controller[reconcilers.ReconcilerID],
 	instance *computev1.InstanceResource,
 ) {
 	t.Helper()
@@ -365,7 +366,7 @@ func runReconcilationFuncInstance(t *testing.T, instanceController *rec_v2.Contr
 			expectedKind, err := util.GetResourceKindFromResourceID(ev.Event.ResourceId)
 			require.NoError(t, err)
 			if expectedKind == inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE {
-				err = instanceController.Reconcile(NewReconcilerID(instance.GetTenantId(), ev.Event.ResourceId))
+				err = instanceController.Reconcile(reconcilers.NewReconcilerID(instance.GetTenantId(), ev.Event.ResourceId))
 				assert.NoError(t, err, "Reconciliation failed")
 			}
 		case <-time.After(1 * time.Second):
@@ -376,7 +377,6 @@ func runReconcilationFuncInstance(t *testing.T, instanceController *rec_v2.Contr
 	runReconcilationFunc()
 }
 
-//nolint:dupl // These tests are for different reconcilers but have a similar structure.
 func TestNewInstanceReconciler(t *testing.T) {
 	type args struct {
 		c *invclient.OnboardingInventoryClient
@@ -384,21 +384,19 @@ func TestNewInstanceReconciler(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want *InstanceReconciler
+		want *reconcilers.InstanceReconciler
 	}{
 		{
 			name: "Positive -for InstanceReconciler",
 			args: args{
 				c: &invclient.OnboardingInventoryClient{},
 			},
-			want: &InstanceReconciler{
-				invClient: &invclient.OnboardingInventoryClient{},
-			},
+			want: reconcilers.NewInstanceReconciler(&invclient.OnboardingInventoryClient{}, false),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewInstanceReconciler(tt.args.c, false); !reflect.DeepEqual(got, tt.want) {
+			if got := reconcilers.NewInstanceReconciler(tt.args.c, false); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewInstanceReconciler() = %v, want %v", got, tt.want)
 			}
 		})
@@ -411,9 +409,9 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 	}
 	type args struct {
 		ctx     context.Context
-		request rec_v2.Request[ReconcilerID]
+		request rec_v2.Request[reconcilers.ReconcilerID]
 	}
-	testRequest := rec_v2.Request[ReconcilerID]{}
+	testRequest := rec_v2.Request[reconcilers.ReconcilerID]{}
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
@@ -422,7 +420,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 		name   string
 		fields fields
 		args   args
-		want   rec_v2.Directive[ReconcilerID]
+		want   rec_v2.Directive[reconcilers.ReconcilerID]
 	}{
 		{
 			name: "Test Reconciliation on Instance Deletion Success",
@@ -431,7 +429,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			},
 			args: args{
 				ctx:     context.TODO(),
-				request: rec_v2.Request[ReconcilerID]{ID: NewReconcilerID(tenantID, "12345678")},
+				request: rec_v2.Request[reconcilers.ReconcilerID]{ID: reconcilers.NewReconcilerID(tenantID, "12345678")},
 			},
 			want: testRequest.Ack(),
 		},
@@ -442,7 +440,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			},
 			args: args{
 				ctx:     context.TODO(),
-				request: rec_v2.Request[ReconcilerID]{ID: NewReconcilerID(tenantID, "12345678")},
+				request: rec_v2.Request[reconcilers.ReconcilerID]{ID: reconcilers.NewReconcilerID(tenantID, "12345678")},
 			},
 			want: testRequest.Ack(),
 		},
@@ -453,7 +451,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			},
 			args: args{
 				ctx:     context.TODO(),
-				request: rec_v2.Request[ReconcilerID]{ID: NewReconcilerID(tenantID, "12345678")},
+				request: rec_v2.Request[reconcilers.ReconcilerID]{ID: reconcilers.NewReconcilerID(tenantID, "12345678")},
 			},
 			want: testRequest.Ack(),
 		},
@@ -464,7 +462,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			},
 			args: args{
 				ctx:     context.TODO(),
-				request: rec_v2.Request[ReconcilerID]{ID: NewReconcilerID(tenantID, "12345678")},
+				request: rec_v2.Request[reconcilers.ReconcilerID]{ID: reconcilers.NewReconcilerID(tenantID, "12345678")},
 			},
 			want: testRequest.Ack(),
 		},
@@ -475,7 +473,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 			},
 			args: args{
 				ctx:     context.TODO(),
-				request: rec_v2.Request[ReconcilerID]{ID: NewReconcilerID(tenantID, "12345678")},
+				request: rec_v2.Request[reconcilers.ReconcilerID]{ID: reconcilers.NewReconcilerID(tenantID, "12345678")},
 			},
 			want: testRequest.Ack(),
 		},
@@ -490,9 +488,7 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ir := &InstanceReconciler{
-				invClient: tt.fields.invClient,
-			}
+			ir := reconcilers.NewInstanceReconciler(tt.fields.invClient, false)
 			if got := ir.Reconcile(tt.args.ctx, tt.args.request); reflect.DeepEqual(got, tt.want) {
 				t.Errorf("InstanceReconciler.Reconcile() = %v, want %v", got, tt.want)
 			}
@@ -500,165 +496,37 @@ func TestInstanceReconciler_Reconcile(t *testing.T) {
 	}
 }
 
-func TestInstanceReconciler_reconcileInstance(t *testing.T) {
+func TestReconcileInstanceWithDesiredUpdateState(t *testing.T) {
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
-	type fields struct {
-		invClient *invclient.OnboardingInventoryClient
-	}
-	type args struct {
-		ctx      context.Context
-		request  rec_v2.Request[ReconcilerID]
-		instance *computev1.InstanceResource
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   rec_v2.Directive[ReconcilerID]
-	}{
-		{
-			name: "Test Reconciliation with Running Instance and BMC Interface",
-			fields: fields{
-				invClient: om_testing.InvClient,
-			},
-			args: args{
-				ctx:     context.Background(),
-				request: rec_v2.Request[ReconcilerID]{},
-				instance: &computev1.InstanceResource{
-					DesiredState: computev1.InstanceState_INSTANCE_STATE_RUNNING,
-					Host: &computev1.HostResource{
-						ResourceId: "host-084d9b08",
-						HostNics: []*computev1.HostnicResource{
-							{
-								ResourceId:   "hostnic-084d9b08",
-								BmcInterface: true,
-							},
-						},
-						BmcIp: "00.00.00.00",
-					},
 
-					DesiredOs: &osv1.OperatingSystemResource{
-						ImageUrl: "osUrl.raw.gz;overlayUrl",
-					},
-				},
-			},
-		},
-		{
-			name: "Test Case for untrusted state",
-			fields: fields{
-				invClient: om_testing.InvClient,
-			},
-			args: args{
-				ctx:     context.Background(),
-				request: rec_v2.Request[ReconcilerID]{},
-				instance: &computev1.InstanceResource{
-					DesiredState: computev1.InstanceState_INSTANCE_STATE_UNTRUSTED,
-					Host: &computev1.HostResource{
-						ResourceId:   "host-084d9b08",
-						CurrentState: computev1.HostState_HOST_STATE_UNTRUSTED,
-						HostNics: []*computev1.HostnicResource{
-							{
-								ResourceId:   "hostnic-084d9b08",
-								BmcInterface: true,
-							},
-						},
-						BmcIp: "00.00.00.00",
-					},
+	instanceReconciler := reconcilers.NewInstanceReconciler(om_testing.InvClient, true)
+	require.NotNil(t, instanceReconciler)
 
-					DesiredOs: &osv1.OperatingSystemResource{
-						ImageUrl: "osUrl.raw.gz;overlayUrl",
-					},
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ir := &InstanceReconciler{
-				invClient: tt.fields.invClient,
-			}
-			if got := ir.reconcileInstance(tt.args.ctx, tt.args.request, tt.args.instance); reflect.DeepEqual(got, tt.want) {
-				t.Errorf("InstanceReconciler.reconcileInstance() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
+	instanceController := rec_v2.NewController[reconcilers.ReconcilerID](instanceReconciler.Reconcile, rec_v2.WithParallelism(1))
+	// do not Stop() to avoid races, should be safe in tests
 
-func Test_convertInstanceToDeviceInfo(t *testing.T) {
-	type args struct {
-		instance *computev1.InstanceResource
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    onboarding_types.DeviceInfo
-		wantErr bool
-	}{
-		{
-			name: "Success",
-			args: args{
-				instance: &computev1.InstanceResource{
-					Host: &computev1.HostResource{
-						BmcIp: "0.0.0.0",
-					},
-					SecurityFeature: osv1.SecurityFeature_SECURITY_FEATURE_UNSPECIFIED,
-					DesiredOs: &osv1.OperatingSystemResource{
-						OsType:   osv1.OsType_OS_TYPE_MUTABLE,
-						ImageUrl: "http://some-url.raw.gz;http://some-url-2;v0.7.4",
-					},
-				},
+	host := inv_testing.CreateHost(t, nil, nil)
+	osRes := createOsWithArgs(t, true)
+	providerResource := inv_testing.CreateProviderWithArgs(t, "lenovo", "8.8.8.8", nil,
+		providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL, providerv1.ProviderVendor_PROVIDER_VENDOR_LENOVO_LOCA)
+	instance := inv_testing.CreateInstanceWithProvider(t, host, osRes, providerResource)
+	instanceID := instance.GetResourceId()
+	resDesired := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Instance{
+			Instance: &computev1.InstanceResource{
+				ResourceId:   instanceID,
+				DesiredState: computev1.InstanceState_INSTANCE_STATE_UNTRUSTED,
 			},
-			want: onboarding_types.DeviceInfo{
-				OSImageURL:    "http://some-url.raw.gz",
-				TinkerVersion: "v0.7.4",
-				HwIP:          "0.0.0.0",
-				Gateway:       "", // note that this is not valid and temporary
-				OsType:        osv1.OsType_OS_TYPE_MUTABLE,
-			},
-			wantErr: false,
-		},
-		{
-			name: "Failed - invalid OS URL format",
-			args: args{
-				instance: &computev1.InstanceResource{
-					Host: &computev1.HostResource{
-						BmcIp: "0.0.0.0",
-					},
-					SecurityFeature: osv1.SecurityFeature_SECURITY_FEATURE_UNSPECIFIED,
-					DesiredOs: &osv1.OperatingSystemResource{
-						ImageUrl: "http://some-url;http://some-url-2;v0.7.4",
-					},
-				},
-			},
-			want:    onboarding_types.DeviceInfo{},
-			wantErr: true,
-		},
-		{
-			name: "Failed - no OS resource associated",
-			args: args{
-				instance: &computev1.InstanceResource{
-					Host: &computev1.HostResource{
-						BmcIp: "000.0.0.0",
-					},
-					SecurityFeature: osv1.SecurityFeature_SECURITY_FEATURE_UNSPECIFIED,
-				},
-			},
-			want:    onboarding_types.DeviceInfo{},
-			wantErr: true,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := convertInstanceToDeviceInfo(tt.args.instance)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
+	fmkDesired := fieldmaskpb.FieldMask{Paths: []string{computev1.InstanceResourceFieldDesiredState}}
+	_, err := inv_testing.TestClients[inv_testing.APIClient].Update(context.Background(), instanceID, &fmkDesired, resDesired)
+	require.NoError(t, err)
+	err = instanceController.Reconcile(reconcilers.NewReconcilerID(instance.GetTenantId(), instanceID))
+	assert.NoError(t, err, "Reconciliation failed")
 }
 
 func FuzzTestReconcile(f *testing.F) {
@@ -680,16 +548,16 @@ func FuzzTestReconcile(f *testing.F) {
 			return
 		}
 		rID := "host-" + getFirstNChars(getMD5Hash(resourceID), 8)
-		testRequest := rec_v2.Request[ReconcilerID]{}
+		testRequest := rec_v2.Request[reconcilers.ReconcilerID]{}
 
 		// ir := &reconcilers.InstanceReconciler{
-		ir := NewInstanceReconciler(om_testing.InvClient, true)
+		ir := reconcilers.NewInstanceReconciler(om_testing.InvClient, true)
 		//}
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		request := rec_v2.Request[ReconcilerID]{ID: NewReconcilerID(tenantID, rID)}
+		request := rec_v2.Request[reconcilers.ReconcilerID]{ID: reconcilers.NewReconcilerID(tenantID, rID)}
 		got := ir.Reconcile(ctx, request)
 		if reflect.DeepEqual(got, testRequest.Ack()) {
 			t.Errorf("Fuzz Test InstanceReconciler.Reconcile() = %v", got)

@@ -4,7 +4,7 @@
 
 # Same as '--ignorefile'
 # Default is '.trivyignore'
-ignorefile: onboarding-manager/.trivyignore
+ignorefile: tinker-actions/.trivyignore
 
 # Same as '--exit-code'
 # Default is 0
@@ -15,14 +15,3 @@ exit-code: 1
 severity:
   - HIGH
   - CRITICAL
-
-scan:
-  # Same as '--skip-dirs'
-  # Default is empty
-  skip-dirs:
-    - vendor/
-
-  # Same as '--skip-files'
-  # Default is empty
-  skip-files:
-    - /etc/ssl/private/ssl-cert-snakeoil.key
