@@ -414,6 +414,54 @@ install_inbm_dispatcher_agent(){
 
 }
 
+remove_lines_from_sotaSW() {
+  local file="$1"
+  shift
+  local targets=("$@")  # All remaining arguments are lines to remove
+
+  if [[ ! -f "$file" ]]; then
+    echo "Error: File not found: $file"
+    return 1
+  fi
+
+  # Join all targets with | into one string (e.g., docker|trtl|inbm-telemetry)
+  local joined_targets=""
+  local sep=""
+  for t in "${targets[@]}"; do
+    joined_targets+="${sep}${t}"
+    sep="|"
+  done
+
+  awk -v targets="$joined_targets" '
+  BEGIN {
+    n = split(targets, t_arr, "|")
+  }
+
+  /<configurations>/     { in_config=1 }
+  /<\/configurations>/   { in_config=0 }
+
+  in_config && /<diagnostic>/ { in_diag=1 }
+  in_config && /<\/diagnostic>/ { in_diag=0 }
+
+  in_diag && /<sotaSW>/ { in_sota=1; print; next }
+  in_diag && /<\/sotaSW>/ { in_sota=0; print; next }
+
+  in_config && in_diag && in_sota {
+    line = $0
+    gsub(/^[ \t]+/, "", line)
+    gsub(/[ \t]+$/, "", line)
+
+    for (i = 1; i <= n; i++) {
+      if (line == t_arr[i]) next
+    }
+  }
+
+  { print }
+  ' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+
+  echo "Removed: ${targets[*]} from <sotaSW> inside <diagnostic>"
+}
+
 # 14. Install INBM Configuration Agent
 install_inbm_configuration_agent(){
     if grep -q "install_inbm_configuration_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
@@ -424,9 +472,7 @@ install_inbm_configuration_agent(){
         echo $VERSION
         apt-get -y install inbm-configuration-agent="$VERSION"
         # Remove docker. trtl and inbm-telemetry checks from INBM configuration file
-        sed -i '/<sotaSW>/,/<\/sotaSW>/s/docker//' /etc/intel_manageability.conf
-        sed -i '/<sotaSW>/,/<\/sotaSW>/s/trtl//' /etc/intel_manageability.conf
-        sed -i '/<sotaSW>/,/<\/sotaSW>/s/inbm-telemetry//' /etc/intel_manageability.conf
+        remove_lines_from_sotaSW /etc/intel_manageability.conf docker trtl inbm-telemetry
         echo "install_inbm_configuration_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 
