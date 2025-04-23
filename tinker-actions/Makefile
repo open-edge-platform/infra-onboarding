@@ -12,12 +12,12 @@ PROJECT_NAME := tinker-actions
 BINARY_NAME  := tinker-actions
 
 # Code versions, tags, and so on
-VERSION       := $(shell cat VERSION)
-VERSION_MAJOR := $(shell cut -c 1 VERSION)
-IMG_NAME      := ${PROJECT_NAME}
-IMG_VERSION   ?= $(VERSION)
-GIT_COMMIT    ?= $(shell git rev-parse HEAD)
-BRANCH_NAME   ?= $(shell git rev-parse --abbrev-ref HEAD | sed 's/\//_/g')
+VERSION         := $(shell cat VERSION)
+VERSION_MAJOR   := $(shell cut -c 1 VERSION)
+DOCKER_IMG_NAME := ${PROJECT_NAME}
+IMG_VERSION     ?= $(VERSION)
+GIT_COMMIT      ?= $(shell git rev-parse HEAD)
+BRANCH_NAME     ?= $(shell git rev-parse --abbrev-ref HEAD | sed 's/\//_/g')
 
 
 ACTIONS := $(shell ls src)
@@ -32,6 +32,8 @@ DOCKER_TAG    := ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/$(DOCKER_SECTION)/${IMG
 all: 
 	@# Help: Runs build, lint, test stage
 	lint docker-build docker-push
+DOCKER_PATH_PREFIX  := $(shell echo ${DOCKER_TAG} | sed 's/:.*//')
+CREATE_REPO_PREFIX  := $(shell echo ${DOCKER_PATH_PREFIX} | sed 's|^[^/]*/||')
 
 $(ACTIONS): 
 	cp -r pkg/ src/$@/pkg/ 
@@ -64,10 +66,10 @@ sh -c ' \
 retry=0; \
 max_retries=5; \
 while [ $$retry -lt $$max_retries ]; do \
-	aws ecr create-repository --region us-west-2 --repository-name ${DOCKER_REPOSITORY}/${IMG_NAME}/${1} || true \
+	aws ecr create-repository --region us-west-2 --repository-name ${CREATE_REPO_PREFIX}/${1} || true \
 	echo "Tagging and pushing ${1}:${2} (attempt $$((retry+1)))"; \
-	docker tag ${1}:latest ${DOCKER_TAG}/${1}:${2}; \
-	if docker push ${DOCKER_TAG}/${1}:${2}; then \
+	docker tag ${1}:latest ${DOCKER_PATH_PREFIX}/${1}:${2}; \
+	if docker push ${DOCKER_PATH_PREFIX}/${1}:${2}; then \
 		echo "Successfully pushed ${1}:${2}"; \
 		break; \
 	else \

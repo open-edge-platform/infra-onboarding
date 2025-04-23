@@ -1,6 +1,7 @@
 <!---
   SPDX-FileCopyrightText: (C) 2025 Intel Corporation
   SPDX-License-Identifier: Apache-2.0
+
   ------------------------------------------------------
 
   Author Mandatory (to be filled by PR Author/Submitter)
@@ -10,25 +11,22 @@
   - Those checklist items which are not marked are considered as not applicable for the PR change.
 -->
 
-### PULL DESCRIPTION
+### Description
 
-_Provide a 1-2 line brief overview of the changes submitted through the Pull Request..._
+Please include a summary of the changes and the related issue. List any dependencies that are required for this change.
 
+Fixes # (issue)
 
-### Impact Analysis
+### Any Newly Introduced Dependencies
 
-| Info | Please fill out this column |
-| ------ | ----------- |
-| Root Cause | Specifically for bugs, empty in case of no variants |
-| Jira ticket | Add the name to the Jira ticket |
+Please describe any newly introduced 3rd party dependencies in this change. List their name, license information and how they are used in the project.
 
+### How Has This Been Tested?
 
-### CODE MAINTAINABILITY
+Please describe the tests that you ran to verify your changes. Provide instructions so we can reproduce. Please also list any relevant details for your test configuration
 
-- [ ] Added required new tests relevant to the changes and the URL has been included
-- [ ] Updated Documentation as relevant to the changes
-- [ ] PR change contains code related to security
-- [ ] PR introduces changes that break compatibility with other modules/services (If YES, please provide description)
+### Checklist:
 
-
-# _Code must act as a teacher for future developers_
+- [ ] I agree to use the APACHE-2.0 license for my code changes
+- [ ] I have not introduced any 3rd party dependency changes
+- [ ] I have performed a self-review of my code
