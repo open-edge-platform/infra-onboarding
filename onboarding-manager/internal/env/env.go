@@ -10,12 +10,13 @@ import (
 )
 
 const (
-	envK8sNamespace       = "DEFAULT_K8S_NAMESPACE"
-	envDkamMode           = "EN_DKAMMODE"
-	envUserName           = "EN_USERNAME"
-	envPassWord           = "EN_PASSWORD"
-	envTinkerVersion      = "TINKER_VERSION"
-	envTinkerArtifactName = "TINKER_ARTIFACT_NAME"
+	envK8sNamespace          = "DEFAULT_K8S_NAMESPACE"
+	envDkamMode              = "EN_DKAMMODE"
+	envUserName              = "EN_USERNAME"
+	envPassWord              = "EN_PASSWORD"
+	envTinkerVersion         = "TINKER_VERSION"
+	envTinkerArtifactName    = "TINKER_ARTIFACT_NAME"
+	envReconcileTickerPeriod = "RECONCILE_TICKER_PERIOD"
 )
 
 var (
@@ -27,6 +28,8 @@ var (
 
 	TinkerActionVersion = os.Getenv(envTinkerVersion)
 	TinkerArtifactName  = os.Getenv(envTinkerArtifactName)
+
+	ReconcileAllTickerPeriod = os.Getenv(envReconcileTickerPeriod)
 )
 
 var zlog = logging.GetLogger("Env")
