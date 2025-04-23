@@ -52,14 +52,14 @@ mv /mnt/etc/apt/apt.conf.d/99needrestart /mnt/etc/apt/apt.conf.d/99needrestart.b
 
 #Enter into Ubuntu OS for the latest 6.x kernel instalation
 chroot /mnt /bin/bash <<EOT
-
+KERNEL_VERSION=linux-image-6.8.0-52-generic
 apt update
 
 #Get the Latest canonical 6.8 kerner version 
-export kernel_version=$(/bin/bash -c "apt-cache search linux-image | grep 'linux-image-6.8.*-generic' | tail -1 | awk '{print \$1}' | grep -oP '(?<=linux-image-)[0-9]+\.[0-9]+\.[0-9]+-[0-9]+'")
+export kernel_version=$(/bin/bash -c "apt-cache search linux-image | grep $KERNEL_VERSION | tail -1 | awk '{print $1}'")
 
 if [ -z "kernel_version" ]; then
-    echo "Unable to get the kernel version,please check !!!!"
+    echo "Unable to get the kernel version $KERNEL_VERSION,please check !!!!"
     exit 1
 fi
 
