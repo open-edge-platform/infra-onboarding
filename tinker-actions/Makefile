@@ -27,7 +27,7 @@ VENV_NAME := venv_$(PROJECT_NAME)
 # Include shared makefile
 include ../common.mk
 
-DOCKER_TAG    := ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${IMG_NAME}
+DOCKER_TAG    := ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/$(DOCKER_SECTION)/${IMG_NAME}
 
 all: 
 	@# Help: Runs build, lint, test stage
