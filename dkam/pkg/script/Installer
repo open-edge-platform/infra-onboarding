@@ -332,6 +332,7 @@ install_cluster_agent(){
 		echo "Skipping install_cluster_agent"
     else
         echo "Install Cluster agent..."
+        apt-get update
         VERSION={{ index . "cluster-agent-VERSION" }}
         echo $VERSION
         echo "cluster-agent cluster-agent/cluster-orchestrator-url string ${CLUSTER_ORCH_URL}" | debconf-set-selections
@@ -347,6 +348,7 @@ install_hardware_discovery_agent(){
 		echo "Skipping install_hardware_discovery_agent"
     else
         echo "Install Hardware discovery agent..."
+        apt-get update
         VERSION={{ index . "hardware-discovery-agent-VERSION" }}
         echo $VERSION
         echo "hardware-discovery-agent hardware-discovery-agent/onboarding.serviceURL string ${HW_INVENTORY_URL}" | debconf-set-selections
@@ -362,6 +364,7 @@ install_platform_observability_agent(){
 		echo "Skipping install_platform_observability_agent"
     else
         echo "install platform-observability-agent"
+        apt-get update
         VERSION={{ index . "platform-observability-agent-VERSION" }}
         echo $VERSION
         echo "platform-observability-agent platform-observability-agent/host string $OBSERVABILITY_LOGGING_URL" | debconf-set-selections
@@ -380,6 +383,7 @@ install_trtl(){
 		echo "Skipping install_trtl"
     else
         echo "Install TRTL..."
+        apt-get update
         VERSION={{ index . "trtl-VERSION" }}
         echo $VERSION
         apt-get -y install trtl="$VERSION"
@@ -393,6 +397,7 @@ install_inbm_cloudadapter_agent(){
 		echo "Skipping install_inbm_cloudadapter_agent"
     else
         echo "Install inbm-cloudadapter-agent..."
+        apt-get update
         VERSION={{ index . "inbm-cloudadapter-agent-VERSION" }}
         echo $VERSION
         apt-get -y install inbm-cloudadapter-agent="$VERSION"
@@ -406,6 +411,7 @@ install_inbm_dispatcher_agent(){
 		echo "Skipping install_inbm_dispatcher_agent"
     else
         echo "Install inbm-dispatcher-agent..."
+        apt-get update
         VERSION={{ index . "inbm-dispatcher-agent-VERSION" }}
         echo $VERSION
         apt-get -y install inbm-dispatcher-agent="$VERSION"
@@ -468,6 +474,7 @@ install_inbm_configuration_agent(){
 		echo "Skipping install_inbm_configuration_agent"
     else
         echo "Install inbm-configuration-agent..."
+        apt-get update
         VERSION={{ index . "inbm-configuration-agent-VERSION" }}
         echo $VERSION
         apt-get -y install inbm-configuration-agent="$VERSION"
@@ -484,6 +491,7 @@ install_inbm_telemetry_agent(){
 		echo "Skipping install_inbm_telemetry_agent"
     else
         echo "Install inbm-telemetry-agent..."
+        apt-get update
         VERSION={{ index . "inbm-telemetry-agent-VERSION" }}
         echo $VERSION
         apt-get -y install inbm-telemetry-agent="$VERSION"
@@ -497,6 +505,7 @@ install_inbm_diagnostic_agent(){
 		echo "Skipping install_inbm_diagnostic_agent"
     else
         echo "Install inbm-diagnostic-agent..."
+        apt-get update
         VERSION={{ index . "inbm-diagnostic-agent-VERSION" }}
         echo $VERSION
         apt-get -y install inbm-diagnostic-agent="$VERSION"
@@ -510,6 +519,7 @@ install_mqtt(){
 		echo "Skipping install_mqtt"
     else
         echo "Install mqtt..."
+        apt-get update
         VERSION={{ index . "mqtt-VERSION" }}
         echo $VERSION
         apt-get -y install mqtt="$VERSION"
@@ -523,6 +533,7 @@ install_tpm_provision(){
 		echo "Skipping install_tpm_provision"
     else
         echo "Install tpm-provision..."
+        apt-get update
         VERSION={{ index . "tpm-provision-VERSION" }}
         echo $VERSION
         apt-get -y install tpm-provision="$VERSION"
@@ -536,6 +547,7 @@ install_inbc_program(){
 		echo "Skipping install_inbc_program"
     else
         echo "Install inbc-program..."
+        apt-get update
         VERSION={{ index . "inbc-program-VERSION" }}
         echo $VERSION
         apt-get -y install inbc-program="$VERSION"
@@ -549,6 +561,7 @@ install_platform_update_agent(){
 		echo "Skipping install_platform_update_agent"
     else
         echo "Install Platform Update agent..."
+        apt-get update
         VERSION={{ index . "platform-update-agent-VERSION" }}
         echo $VERSION
 
@@ -566,6 +579,7 @@ install_platform_telemetry_agent(){
 		echo "Skipping install_platform_telemetry_agent"
     else
         echo "install platform-telemetry-agent"
+        apt-get update
         VERSION={{ index . "platform-telemetry-agent-VERSION" }}
         echo $VERSION
         echo "telemetry-agent telemetry-agent/telemetrymanager.serviceURL string ${TELEMETRY_MANAGER_URL}" | debconf-set-selections
