@@ -118,7 +118,7 @@ To learn how to contribute to the project, see the [contributor's guide][contrib
 To learn more about the project, its community, and governance, visit
 the [Edge Orchestrator Community](https://community.intel.com/).
 
-For support, start with [troubleshooting][troubleshooting-url] or [contact us](mailto:adreanne.bertrand@intel.com).
+For support, start with [troubleshooting][troubleshooting-url].
 
 ## License
 
