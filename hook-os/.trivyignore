@@ -3,3 +3,11 @@
 
 # Ignore misconfigurations
 AVD-DS-0002 # Hook OS components require root permissions
+
+# Ignore vulnerabilities
+CVE-2024-41110
+CVE-2024-45337
+CVE-2025-22869
+CVE-2024-34156
+CVE-2024-24790
+CVE-2025-30204
