@@ -4,7 +4,7 @@
 
 # Same as '--ignorefile'
 # Default is '.trivyignore'
-ignorefile: hook-os/.trivyignore
+ignorefile: .trivyignore
 
 # Same as '--exit-code'
 # Default is 0
