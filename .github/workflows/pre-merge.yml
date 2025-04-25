@@ -86,7 +86,7 @@ jobs:
       prefix_tag_separator: "/"
       project_folder: ${{ matrix.project_folder }}
       trivy_image_skip:  "postgres:16.4,registry-rs.edgeorchestration.intel.com/edge-orch/edge-node/hook-kernel:5.10.228-41b485d1,quay.io/tinkerbell/hook-containerd:30084036-amd64,quay.io/tinkerbell/hook-runc:f0dbe53f-amd64"
-      trivy_config_path: ${{ matrix.project_folder }}/trivy.yaml
+      # trivy_config_path: ${{ matrix.project_folder }}/trivy.yaml
     secrets: inherit
   final-check:
       runs-on: ubuntu-latest
