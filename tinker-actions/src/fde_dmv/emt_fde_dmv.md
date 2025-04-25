@@ -109,22 +109,22 @@ DM-Verity is a kernel feature that ensures the integrity of the root filesystem 
    - Partition the disk based on pre-defined sizes and flags.
    - Convert partition sizes from MB to sectors for compatibility with the `parted` command.
 
-### Filesystem Backup
-5. **Save Root Filesystem on RAM (`save_rootfs_on_ram`)**:
-   - If `COMPLETE_FDE_DMVERITY` is enabled, save the root filesystem to RAM for later restoration.
+### Backup of RootFS
+5. **Backup of Root Filesystem**:
+   - If `COMPLETE_FDE_DMVERITY` is enabled, save the root filesystem for later restoration.
 
 ### Key Generation
 6. **Generate LUKS Key**:
    - Generate a 32-byte random key using the TPM's random number generator (`tpm2_getrandom`).
-   - Store the key temporarily in the `luks_key` file for encryption purposes.
+   - Store the key temporarily in the `luks2_key` file for encryption purposes.
 
 ### Encryption Setup
 7. **Enable LUKS Encryption (`enable_luks`)**:
-   - Set up LUKS encryption on partitions such as rootfs, swap, and persistent partitions.
+   - Set up LUKS2 encryption on partitions such as rootfs, swap, and persistent partitions.
    - Handle encryption for DM-verity-related partitions if enabled.
-8. **Seal Key to TPM**:
-   - Seal the `luks_key` to the TPM using `tpm2-initramfs-tool` for secure storage.
-   - Securely delete the key from disk after sealing.
+8. **Seal passphrase to TPM**:
+   - Seal the luks passphrase to the TPM using `tpm2-initramfs-tool` for secure storage.
+   - Securely delete passphrase from disk after sealing.
 
 ### Logical Volume Management
 9. **Create Single HDD LVM Group (`create_single_hdd_lvmg`)**:
