@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Ignore misconfigurations
-AVD-DS-0002 # Hook OS components require root permissions
+# Hook OS components require root permissions
+AVD-DS-0002 
 
 # Ignore vulnerabilities
 CVE-2024-41110
