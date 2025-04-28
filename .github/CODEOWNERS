@@ -2,4 +2,10 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-* @Andrea-Campanella @cjnolan @damiankopyto @daniele-moro @ikyrycho @jkossak @ktaube26 @niket-intc @osinstom @Paiadhithi @PalashGoelIntel @pierventre @raphaelvrosa @rranjan3 @soniabha-intc @sunil-parida @tmatenko @zdw @AdithyaBaglody @DevipriyaS17 @ipsita-npg @lodhirax @ppanigra @punam20 @Ram-srini @rishiraj-intel @Shruti-Raj-Vansh-Singh @vthiruveedula
+* @Andrea-Campanella @cjnolan @daniele-moro @osinstom @pierventre @rranjan3 @ipsita-npg @ppanigra @punam20 @Ram-srini @shankarsrinivas1 @nbmaiti @shiva-shankar-k @vthiruveedula
+
+# Tinker-actions specific owners
+tinker-actions/* @AdithyaBaglody
+
+# Hook-OS specific owners
+hook-os/* @AdithyaBaglody
