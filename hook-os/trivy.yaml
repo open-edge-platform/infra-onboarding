@@ -4,7 +4,7 @@
 
 # Same as '--ignorefile'
 # Default is '.trivyignore'
-ignorefile: hook-os/.trivyignore
+# ignorefile: hook-os/.trivyignore
 
 # Same as '--exit-code'
 # Default is 0
@@ -20,7 +20,8 @@ scan:
   # Same as '--skip-dirs'
   # Default is empty
   skip-dirs:
-    - hook/
+    - hook/images/hook-containerd
+    - hook/images/hook-runc
 
 vulnerability:
   # Same as '--ignore-unfixed'
