@@ -14,6 +14,7 @@ import (
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/tracing"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/invclient"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/util"
 	om_status "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/status"
 	rec_v2 "github.com/open-edge-platform/orch-library/go/pkg/controller/v2"
 )
@@ -51,6 +52,11 @@ func (hr *HostReconciler) Reconcile(ctx context.Context,
 		return directive
 	}
 
+	instance, err := hr.invClient.GetInstanceResourceByResourceID(ctx, tenantID, resourceID)
+	if directive := HandleInventoryError(err, request); directive != nil {
+		return directive
+	}
+
 	// Forbid Host provisioning with defined Provider. Such Host should be reconciled within Provider-specific RM.
 	if host.GetProvider() != nil {
 		zlogHost.Info().Msgf("Host should be reconciled within other vendor-specific RM (%s)", host.GetProvider().GetName())
@@ -62,13 +68,14 @@ func (hr *HostReconciler) Reconcile(ctx context.Context,
 		return request.Ack()
 	}
 
-	return hr.reconcileHost(ctx, request, host)
+	return hr.reconcileHost(ctx, request, host, instance)
 }
 
 func (hr *HostReconciler) reconcileHost(
 	ctx context.Context,
 	request rec_v2.Request[ReconcilerID],
 	host *computev1.HostResource,
+	instance *computev1.InstanceResource,
 ) rec_v2.Directive[ReconcilerID] {
 	zlogHost.Debug().Msgf("Reconciling host with ID %s, with Current state: %v, Desired state: %v.",
 		host.GetResourceId(), host.GetCurrentState(), host.GetDesiredState())
@@ -87,6 +94,7 @@ func (hr *HostReconciler) reconcileHost(
 		if directive := HandleInventoryError(err, request); directive != nil {
 			return directive
 		}
+		util.PopulateInstanceProvisioningStatus(instance, om_status.ProvisioningStatusFailed)
 		zlogHost.Debug().Msgf("Host %v has been unauthorized", host.GetResourceId())
 		return request.Ack()
 	}
