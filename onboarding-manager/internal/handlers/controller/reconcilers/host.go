@@ -94,7 +94,9 @@ func (hr *HostReconciler) reconcileHost(
 		if directive := HandleInventoryError(err, request); directive != nil {
 			return directive
 		}
-		util.PopulateInstanceProvisioningStatus(instance, om_status.ProvisioningStatusFailed)
+		if instance != nil {
+			util.PopulateInstanceProvisioningStatus(instance, om_status.ProvisioningStatusFailed)
+		}
 		zlogHost.Debug().Msgf("Host %v has been unauthorized", host.GetResourceId())
 		return request.Ack()
 	}
