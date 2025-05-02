@@ -27,6 +27,7 @@ PROTOCGENVALIDATEGO  := true
 PROJECT_NAME     := onboardingmgr
 PROJECT_NICKNAME := om
 BINARY_NAME      := $(PROJECT_NAME)
+SUBPROJECT_DIR   := onboarding-manager
 
 # Code versions, tags, and so on
 VERSION         := $(shell cat VERSION)
