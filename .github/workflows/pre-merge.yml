@@ -115,3 +115,6 @@ jobs:
               echo "All pre-merge checks failed or were skipped. PR can't get merged"
               exit 1
             fi
+
+permissions:
+  contents: read
