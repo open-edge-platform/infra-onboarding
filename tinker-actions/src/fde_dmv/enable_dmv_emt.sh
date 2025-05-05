@@ -161,14 +161,14 @@ convert_mb_to_sectors() {
 make_partition() {
 
     #ram_size
-    ram_size=$(free -g | grep -i mem | awk '{ print $2 }' )
+    ram_size=$(free -m | grep -i mem | awk '{ print $2 }' )
     swap_size=$(( ram_size / 2 ))
 
 
-    # limit swap size to 128GB
-    if [[ $swap_size -gt 128 ]];
+    # limit swap size to 128GB=128*1024=131072MB
+    if [[ $swap_size -gt 131072 ]];
     then
-	swap_size=128
+	swap_size=131072
     fi
 
 
@@ -182,9 +182,12 @@ make_partition() {
 	swap_size=$(echo "$ram_size" | awk '{printf ("%.0f\n", sqrt($1))}')
     fi
 
-    swap_size=$(( swap_size * 1024 ))
+    swap_size=$(( swap_size ))
 
     total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
+    # To ensure perfect boundary alignment and avoid sector errors, 
+    # we have reduced the total disk size by 1 MB for the last partition.
+    total_size_disk=$(( total_size_disk - 1))
 
     # For single HDD reduce the size to 100 and fit everything inside it
     if [ $single_hdd -eq 0 ];
