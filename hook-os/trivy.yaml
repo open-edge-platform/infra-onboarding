@@ -6,23 +6,10 @@
 # Default is '.trivyignore'
 ignorefile: hook-os/.trivyignore
 
-# Same as '--exit-code'
-# Default is 0
-exit-code: 1
-
-# Same as '--severity'
-# Default is all severities
-severity:
-  - HIGH
-  - CRITICAL
-
 scan:
   # Same as '--skip-dirs'
-  # Default is empty
+  # Default is empty.
+  # The code in the following directories is unchanged from the open-source version.
   skip-dirs:
     - hook/images/hook-containerd
     - hook/images/hook-runc
-
-vulnerability:
-  # Same as '--ignore-unfixed'
-  ignore-unfixed: true
