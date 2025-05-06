@@ -81,8 +81,6 @@ docker-build: ## build Docker image
 	@rm -rf vendor common.mk version.mk common_go.mk
 
 docker-push: docker-build ## Tag and push Docker image
-	# TODO: remove ecr create
-	aws ecr create-repository --region us-west-2 --repository-name $(DOCKER_REPOSITORY)/$(IMG_NAME) || true
 	docker tag $(DOCKER_IMG_NAME):$(VERSION) $(DOCKER_TAG_BRANCH)
 	docker tag $(DOCKER_IMG_NAME):$(VERSION) $(DOCKER_TAG)
 	docker push $(DOCKER_TAG)
