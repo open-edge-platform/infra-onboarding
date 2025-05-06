@@ -13,8 +13,7 @@
 
 #### Go Targets ####
 
-# Set GOPRIVATE to deal with private repos
-GOCMD := GOPRIVATE="github.com/open-edge-platform/*" go
+GOCMD := go
 
 #### Variables ####
 GOARCH	:= $(shell go env GOARCH)
