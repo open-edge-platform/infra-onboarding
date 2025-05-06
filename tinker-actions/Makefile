@@ -61,7 +61,6 @@ sh -c ' \
 retry=0; \
 max_retries=5; \
 while [ $$retry -lt $$max_retries ]; do \
-	aws ecr create-repository --region us-west-2 --repository-name ${CREATE_REPO_PREFIX}/${1} || true \
 	echo "Tagging and pushing ${1}:${2} (attempt $$((retry+1)))"; \
 	docker tag ${1}:latest ${DOCKER_PATH_PREFIX}/${1}:${2}; \
 	if docker push ${DOCKER_PATH_PREFIX}/${1}:${2}; then \
