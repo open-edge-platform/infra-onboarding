@@ -12,7 +12,6 @@ import (
 
 	google_rpc "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	computev1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/compute/v1"
 	inventoryv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/inventory/v1"
@@ -32,33 +31,9 @@ import (
 	om_status "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/status"
 )
 
-const (
-	DefaultTimeout = 3 * time.Second
-)
-
 var (
 	name = "InteractiveOnboardingService"
 	zlog = logging.GetLogger(name)
-
-	hostResID string
-
-	UpdateHostFieldmask = &fieldmaskpb.FieldMask{
-		Paths: []string{
-			computev1.HostResourceFieldBmcKind,
-			computev1.HostResourceFieldBmcIp,
-			computev1.HostResourceFieldSerialNumber,
-			computev1.HostResourceFieldPxeMac,
-		},
-	}
-	CompareHostFieldmask = &fieldmaskpb.FieldMask{
-		Paths: []string{
-			computev1.HostResourceFieldBmcKind,
-			computev1.HostResourceFieldBmcIp,
-			computev1.HostResourceFieldSerialNumber,
-			computev1.HostResourceFieldUuid,
-			computev1.HostResourceFieldPxeMac,
-		},
-	}
 )
 
 type InventoryClientService struct {
@@ -628,7 +603,7 @@ func (s *InteractiveOnboardingService) CreateNodes(ctx context.Context, req *pb.
 		return nil, err
 	}
 	// UUID not found, create a new host
-	hostResID, err = s.invClient.CreateHostResource(ctx, tenantID, host)
+	hostResID, err := s.invClient.CreateHostResource(ctx, tenantID, host)
 	if err != nil {
 		zlog.InfraSec().InfraErr(err).Msgf("Cannot create Host resource: %v tID=%s", host, tenantID)
 		return nil, err
@@ -718,7 +693,7 @@ func (s *InventoryClientService) checkNCreateInstance(ctx context.Context, tenan
 		if pconf.DefaultLocalAccount != "" {
 			localRes, err := s.invClientAPI.GetLocalAccountResourceByResourceID(ctx, tenantID, pconf.DefaultLocalAccount)
 			if err != nil {
-				zlog.Debug().Msgf("Failed to GetLocalAccountResourceByResourceID for host resource (uuid=%s)", hostResID)
+				zlog.Debug().Msgf("Failed to GetLocalAccountResourceByResourceID for host resource (uuid=%s)", host.GetUuid())
 				zlog.Err(err).Msgf("Failed to GetLocalAccountResourceByResourceID for host resource")
 				return err
 			}
@@ -730,7 +705,7 @@ func (s *InventoryClientService) checkNCreateInstance(ctx context.Context, tenan
 		}
 
 		if _, err := s.invClientAPI.CreateInstanceResource(ctx, tenantID, instance); err != nil {
-			zlog.Debug().Msgf("Failed to CreateInstanceResource for host resource (uuid=%s),tID=%s", hostResID, tenantID)
+			zlog.Debug().Msgf("Failed to CreateInstanceResource for host resource (uuid=%s),tID=%s", host.GetUuid(), tenantID)
 			zlog.Err(err).Msgf("Failed to CreateInstanceResource for host resource uuid,tID")
 			return err
 		}
