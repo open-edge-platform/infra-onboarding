@@ -27,3 +27,7 @@ jobs:
       project_folder: "hook-os"
     secrets: inherit
 
+permissions:
+  contents: read
+  security-events: write
+  id-token: write

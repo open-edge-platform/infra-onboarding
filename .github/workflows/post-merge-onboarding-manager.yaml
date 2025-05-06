@@ -26,3 +26,8 @@ jobs:
       prefix_tag_separator: "/"
       project_folder: "onboarding-manager"
     secrets: inherit
+
+permissions:
+  contents: read
+  security-events: write
+  id-token: write

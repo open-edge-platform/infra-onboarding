@@ -13,6 +13,7 @@
 - [daniele-moro](https://github.com/daniele-moro)
 - [DevipriyaS17](https://github.com/DevipriyaS17)
 - [ipsita-npg](https://github.com/ipsita-npg)
+- [krishnajs](https://github.com/krishnajs)
 - [ktaube26](https://github.com/ktaube26)
 - [lejin-joy](https://github.com/lejin-joy)
 - [lodhirax](https://github.com/lodhirax)
