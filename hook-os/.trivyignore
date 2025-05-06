@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+# Ignore misconfigurations
+# Hook OS components require root permissions
+AVD-DS-0002 
+
+# Ignore vulnerabilities
+
+# Vulnerabilities in hook_dind
+CVE-2024-41110
+CVE-2024-45337
+CVE-2025-22869
+CVE-2024-34156
+CVE-2024-24790
+CVE-2025-30204
+
+# Vulnerabilities in hook-docker
+CVE-2025-31498
+CVE-2024-6387
+CVE-2025-31115
+CVE-2023-45288
