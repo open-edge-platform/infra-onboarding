@@ -99,7 +99,6 @@ test:
 publish-binaries-ci:
 	@echo "Publishing Hook OS binary to Production Release Service."
 	cd $(OUT_DIR) && \
-	aws ecr create-repository --region us-west-2 --repository-name $(OCI_REPOSITORY) || true && \
 	oras push $(OCI_PATH):$(IMG_VERSION) --artifact-type application/vnd.intel.hookos.file hook_x86_64.tar.gz
 	@echo "---END MAKEFILE TEST---"
 
