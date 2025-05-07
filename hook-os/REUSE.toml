@@ -7,8 +7,8 @@ version = 1
 path = [
     "VERSION",
     "*/go.sum",
-
-    "hook/*",
+    "hook/**",
+    "**.md",
 ]
 
 SPDX-FileCopyrightText = "2025 Intel Corporation"
