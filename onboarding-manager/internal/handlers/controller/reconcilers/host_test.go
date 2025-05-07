@@ -857,10 +857,9 @@ func TestHostReconciler_reconcileHost(t *testing.T) {
 		invClient *invclient.OnboardingInventoryClient
 	}
 	type args struct {
-		ctx      context.Context
-		request  rec_v2.Request[ReconcilerID]
-		host     *computev1.HostResource
-		instance *computev1.InstanceResource
+		ctx     context.Context
+		request rec_v2.Request[ReconcilerID]
+		host    *computev1.HostResource
 	}
 	tests := []struct {
 		name   string
@@ -879,9 +878,6 @@ func TestHostReconciler_reconcileHost(t *testing.T) {
 				host: &computev1.HostResource{
 					DesiredState: computev1.HostState_HOST_STATE_DELETED,
 				},
-				instance: &computev1.InstanceResource{
-					ProvisioningStatus: "Provisioning Failed",
-				},
 			},
 		},
 	}
@@ -890,8 +886,7 @@ func TestHostReconciler_reconcileHost(t *testing.T) {
 			hr := &HostReconciler{
 				invClient: tt.fields.invClient,
 			}
-			got := hr.reconcileHost(tt.args.ctx, tt.args.request, tt.args.host, tt.args.instance)
-			if reflect.DeepEqual(got, tt.want) {
+			if got := hr.reconcileHost(tt.args.ctx, tt.args.request, tt.args.host); reflect.DeepEqual(got, tt.want) {
 				t.Errorf("HostReconciler.reconcileHost() = %v, want %v", got, tt.want)
 			}
 		})

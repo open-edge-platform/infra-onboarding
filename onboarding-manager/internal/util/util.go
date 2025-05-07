@@ -54,6 +54,16 @@ func PopulateInstanceStatusAndCurrentState(
 	instance.ProvisioningStatusIndicator = provisioningStatus.StatusIndicator
 }
 
+func PopulateInstanceStatusAndDesiredState(
+	instance *computev1.InstanceResource,
+	desiredState computev1.InstanceState,
+	provisioningStatus inv_status.ResourceStatus,
+) {
+	instance.DesiredState = desiredState
+	instance.ProvisioningStatus = provisioningStatus.Status
+	instance.ProvisioningStatusIndicator = provisioningStatus.StatusIndicator
+}
+
 func PopulateCurrentOS(instance *computev1.InstanceResource, osResourceID string) {
 	instance.CurrentOs = &osv1.OperatingSystemResource{ResourceId: osResourceID}
 }
