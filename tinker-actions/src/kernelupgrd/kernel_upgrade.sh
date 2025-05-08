@@ -50,27 +50,29 @@ mount --bind /etc/resolv.conf /mnt/etc/resolv.conf
 
 mv /mnt/etc/apt/apt.conf.d/99needrestart /mnt/etc/apt/apt.conf.d/99needrestart.bkp 
 
-#Enter into Ubuntu OS for the latest 6.x kernel instalation
-chroot /mnt /bin/bash <<EOT
 KERNEL_VERSION=linux-image-6.8.0-52-generic
-apt update
 
 #Get the Latest canonical 6.8 kerner version 
-export kernel_version=$(/bin/bash -c "apt-cache search linux-image | grep $KERNEL_VERSION | tail -1 | awk '{print $1}'")
+export kernel_version=$(chroot /mnt /bin/bash -c "apt-cache search linux-image | grep $KERNEL_VERSION | tail -1 | awk '{print \$1}' | grep -oP '(?<=linux-image-)[0-9]+\.[0-9]+\.[0-9]+-[0-9]+'")
 
 if [ -z "kernel_version" ]; then
     echo "Unable to get the kernel version $KERNEL_VERSION,please check !!!!"
     exit 1
 fi
 
+#Enter into Ubuntu OS for the latest 6.x kernel instalation
+chroot /mnt /bin/bash <<EOT
+
+apt update
+
 #install 6.x kernel with all recommended packages and kernel modules
 apt install -y  linux-image-\${kernel_version}-generic linux-headers-\${kernel_version}-generic
 apt install -y --install-recommends linux-modules-extra-\${kernel_version}-generic
 
 if [ "$?" -eq 0 ]; then
-    echo "Successfully Installed 6.x kernel"
+    echo "Successfully Installed $KERNEL_VERSION kernel"
 else
-    echo "Something went wrong in 6.x kernel installtion please check!!!"
+    echo "Something went wrong in $KERNEL_VERSION kernel installtion please check!!!"
     exit 1
 fi
 

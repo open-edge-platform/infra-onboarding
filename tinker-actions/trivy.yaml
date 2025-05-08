@@ -5,13 +5,3 @@
 # Same as '--ignorefile'
 # Default is '.trivyignore'
 ignorefile: tinker-actions/.trivyignore
-
-# Same as '--exit-code'
-# Default is 0
-exit-code: 1
-
-# Same as '--severity'
-# Default is all severities
-severity:
-  - HIGH
-  - CRITICAL

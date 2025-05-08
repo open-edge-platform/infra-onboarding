@@ -19,7 +19,12 @@ RUN set -eux; \
 		xfsprogs \
 		xz \
 		zfs \
+		libcurl \
+		curl \
 	;
+
+RUN set -eux; \
+	apk add --no-cache --upgrade libexpat
 
 # dind might be used on systems where the nf_tables kernel module isn't available. In that case,
 # we need to switch over to xtables-legacy. See https://github.com/docker-library/docker/issues/463
