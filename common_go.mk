@@ -18,6 +18,9 @@ GOCMD := go
 #### Variables ####
 GOARCH	:= $(shell go env GOARCH)
 
+# Base branch variable
+BASE_BRANCH := main
+
 # Path variables
 GOPATH     := $(shell go env GOPATH)
 
@@ -159,3 +162,4 @@ common-buf-lint: $(VENV_NAME) ## Lint and format protobuf files
 	buf --version
 	buf format -d --exit-code
 	buf lint
+	buf breaking --against 'https://github.com/open-edge-platform/infra-onboarding.git#branch=${BASE_BRANCH},subdir=${SUBPROJECT_DIR}'
