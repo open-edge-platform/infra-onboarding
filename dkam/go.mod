@@ -5,10 +5,10 @@ module github.com/open-edge-platform/infra-onboarding/dkam
 go 1.24.1
 
 require (
-	github.com/fsnotify/fsnotify v1.8.0
+	github.com/fsnotify/fsnotify v1.9.0
 	github.com/magefile/mage v1.15.0
 	github.com/stretchr/testify v1.10.0
-	google.golang.org/grpc v1.71.0
+	google.golang.org/grpc v1.72.0
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -16,8 +16,8 @@ require (
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/open-edge-platform/infra-core/inventory/v2 v2.23.2
-	github.com/prometheus/client_golang v1.21.1
-	github.com/spf13/viper v1.20.0
+	github.com/prometheus/client_golang v1.22.0
+	github.com/spf13/viper v1.20.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -51,7 +51,6 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3 // indirect
 	github.com/hashicorp/hcl/v2 v2.23.0 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
-	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/labstack/echo-contrib v0.17.3 // indirect
 	github.com/labstack/echo/v4 v4.13.3 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
