@@ -13,8 +13,14 @@ on:
       - "tinker-actions/**"
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   post-merge-pipeline:
+    permissions:
+      contents: read
+      security-events: write
+      id-token: write
     uses: open-edge-platform/orch-ci/.github/workflows/post-merge.yml@0.1.5
     with:
       run_version_check: true
@@ -26,10 +32,6 @@ jobs:
       run_artifact: false
       prefix_tag_separator: "/"
       project_folder: "tinker-actions"
-    secrets: inherit
-
-permissions:
-  contents: read
-  security-events: write
-  id-token: write
+    secrets:  # zizmor: ignore[secrets-inherit]
+      inherit
 
