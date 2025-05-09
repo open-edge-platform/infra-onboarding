@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+version = 1
+
+[[annotations]]
+path = [
+    "VERSION",
+    "go.sum",
+
+    "**.md",
+    "pkg/cloudinit/testout/*",
+    "pkg/cloudinit/infra.cfg",
+    "api/buf.lock",
+    "pkg/api/onboardingmgr/v1/*.pb.*go"
+]
+
+SPDX-FileCopyrightText = "2025 Intel Corporation"
+SPDX-License-Identifier = "Apache-2.0"

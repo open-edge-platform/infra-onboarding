@@ -1,5 +1,0 @@
-Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-
-Files: *.md **/go.sum VERSION
-Copyright: (C) 2025 Intel Corporation
-License: Apache-2.0
