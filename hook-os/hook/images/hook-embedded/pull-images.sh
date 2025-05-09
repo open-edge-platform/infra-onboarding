@@ -8,9 +8,7 @@ set -euo pipefail
 function docker_save_image() {
     local image="$1"
     local output_dir="$2"
-    local output_file
-
-    output_file="${output_dir}/$(echo "${image}" | tr '/' '-')"
+    local output_file="${output_dir}/$(echo "${image}" | tr '/' '-')"
 
     docker save -o "${output_file}".tar "${image}"
 }
@@ -61,11 +59,9 @@ function main() {
 
     export remove_dind_container="true"
     # as this function maybe called multiple times, we need to ensure the container is removed
-    trap 'trap_handler '"${dind_container}"' RETURN'
-
+    trap "trap_handler ${dind_container}" RETURN
     # we're using set -e so the trap on RETURN will not be executed when a command fails
-    trap 'trap_handler '"${dind_container}"' EXIT'
-
+    trap "trap_handler ${dind_container}" EXIT
 
     # start DinD container
     # In order to avoid the src bind mount directory (./images/) ownership from changing to root
@@ -105,7 +101,7 @@ function main() {
     done
 
     # clean up tar files
-    rm -rf "${output_dir:?}"/*
+    rm -rf "${output_dir}"/*
 
     # Create any tags for the images and remove any original tags
     while IFS=" " read -r first_image image_tag remove_original || [ -n "${first_image}" ] ; do

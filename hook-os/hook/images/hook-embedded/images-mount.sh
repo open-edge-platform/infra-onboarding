@@ -1,9 +1,10 @@
-#!/bin/bash
-set -xeuo pipefail
+#!/bin/sh
 
 exec 3>&1 4>&2
 trap 'exec 2>&4 1>&3' 0 1 2 3
 exec 1>/var/log/embedded-images.log 2>&1
+
+set -xeuo pipefail
 
 # We can't have a Linuxkit "init" container that dumps its file contents to /var and be writable
 # because the init process overwrites it and the contents are lost.
