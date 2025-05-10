@@ -61,6 +61,7 @@ func TestPopulateInstanceProvisioningStatus(t *testing.T) {
 	}
 }
 
+//nolint:dupl //this is for PopulateInstanceStatusAndCurrentState.
 func TestPopulateInstanceStatusAndCurrentState(t *testing.T) {
 	type args struct {
 		instance           *computev1.InstanceResource
@@ -81,6 +82,31 @@ func TestPopulateInstanceStatusAndCurrentState(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(_ *testing.T) {
 			util.PopulateInstanceStatusAndCurrentState(tt.args.instance, tt.args.currentState, tt.args.provisioningStatus)
+		})
+	}
+}
+
+//nolint:dupl //this is for PopulateInstanceStatusAndDesiredState.
+func TestPopulateInstanceStatusAndDesiredStatus(t *testing.T) {
+	type args struct {
+		instance           *computev1.InstanceResource
+		desiredState       computev1.InstanceState
+		provisioningStatus inv_status.ResourceStatus
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "TestPopulateInstanceStatusAndDesiredStatus_WithInstance",
+			args: args{
+				instance: &computev1.InstanceResource{},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(_ *testing.T) {
+			util.PopulateInstanceStatusAndDesiredState(tt.args.instance, tt.args.desiredState, tt.args.provisioningStatus)
 		})
 	}
 }
