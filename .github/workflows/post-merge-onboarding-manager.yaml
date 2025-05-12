@@ -12,8 +12,14 @@ on:
     paths:
       - "onboarding-manager/**"
 
+permissions: {}
+
 jobs:
   post-merge-pipeline:
+    permissions:
+      contents: read
+      security-events: write
+      id-token: write
     uses: open-edge-platform/orch-ci/.github/workflows/post-merge.yml@0.1.5
     with:
       run_version_check: true
@@ -25,4 +31,5 @@ jobs:
       run_artifact: false
       prefix_tag_separator: "/"
       project_folder: "onboarding-manager"
-    secrets: inherit
+    secrets:  # zizmor: ignore[secrets-inherit]
+      inherit
