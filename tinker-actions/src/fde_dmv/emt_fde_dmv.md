@@ -76,7 +76,7 @@ DM-Verity is a kernel feature that ensures the integrity of the root filesystem 
    - **Minimum Size**: Square root of RAM size (in GB).
    - **Actual Size**: Half of RAM size.
 
-9. **TEP Partition**
+9. **Trusted Compute Partition**
    - **Purpose**: Stores temporary execution files or data.
    - **Minimum Size**: 14336 MB (14 GB).
    - **Actual Size**: 14336 MB (14 GB).
@@ -97,7 +97,7 @@ DM-Verity is a kernel feature that ensures the integrity of the root filesystem 
 
 ### Initialization
 1. **Set Global Variables and Flags**:
-   - Initialize variables like `COMPLETE_FDE_DMVERITY` and `TEST_ENABLE_DM_ON_ROOTFSB`.
+   - Initialize variables like `COMPLETE_FDE_DMVERITY`.
    - Define functions for operations such as disk partitioning, encryption, and filesystem setup.
 
 ### Disk and Partition Setup
@@ -111,7 +111,7 @@ DM-Verity is a kernel feature that ensures the integrity of the root filesystem 
 
 ### Backup of RootFS
 5. **Backup of Root Filesystem**:
-   - If `COMPLETE_FDE_DMVERITY` is enabled, save the root filesystem for later restoration.
+   - save the root filesystem for later restoration after LUKS setup.
 
 ### Key Generation
 6. **Generate LUKS Key**:
@@ -152,15 +152,14 @@ DM-Verity is a kernel feature that ensures the integrity of the root filesystem 
 - The `rootfs_partition` is fully encrypted to ensure data confidentiality.
 - The `swap_partition` is also encrypted to protect sensitive data in virtual memory.
 - The `boot_partition` and `efi_partition` remain unencrypted for compatibility with bootloaders.
-- The `emt_persistent_partition` and other partitions are not encrypted but are used for specific purposes like persistent data storage or system recovery.
-- The `tep_partition`, `reserved_partition`, and `singlehdd_lvm_partition` are not encrypted but are used for temporary storage, reserved operations, and flexible storage management, respectively.
+- The `emt_persistent_partition` and `singlehdd_lvm_partition` are also encrypted but are used for specific purposes like persistent data storage..
+- The `trusted_compute_partition`, `reserved_partition` are not encrypted but are used for Trusted Compute based activities and recovery operations respectively. 
 
-### Device Mapper Verity (DMV)
+### DeviceMapper Verity (DMV)
 - Adds integrity verification to the `rootfs_partition` using hash maps stored in `root_hashmap_a_partition` and `root_hashmap_b_partition`.
 - The `roothash_partition` is used to store the root hash for verifying the integrity of the root filesystem.
 - The `boot_partition` and `efi_partition` remain unencrypted, similar to FDE, but the integrity of the boot environment is validated using TPM and PCR values.
 - The `emt_persistent_partition` and other partitions are used similarly to FDE but with added integrity checks where applicable.
-- The `tep_partition`, `reserved_partition`, and `singlehdd_lvm_partition` are not encrypted but may include integrity checks depending on the implementation.
 
 In summary, FDE focuses on encrypting partitions to ensure data confidentiality, while DMV adds integrity verification mechanisms to ensure that the root filesystem and other critical partitions remain unmodified and secure.
 
