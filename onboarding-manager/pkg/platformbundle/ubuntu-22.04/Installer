@@ -243,7 +243,7 @@ install_node_agent(){
         else
             curl -kfsSL "https://$CADDY_APT_PROXY_URL/${FILE_RS_ROOT}/edge-node.asc" -o /etc/apt/trusted.gpg.d/edge-node.asc
         fi
-        echo "deb https://localhost:$CADDY_APT_PROXY_PORT/${FILE_RS_ROOT}/repository ${APT_DISTRO} main" | tee /etc/apt/sources.list.d/edge-node.list
+        echo "deb http://localhost:$CADDY_APT_PROXY_PORT/${FILE_RS_ROOT}/repository ${APT_DISTRO} main" | tee /etc/apt/sources.list.d/edge-node.list
 
         apt-get update
         echo "install_node_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
