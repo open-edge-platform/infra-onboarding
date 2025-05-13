@@ -418,6 +418,23 @@ func (c *OnboardingInventoryClient) updateHostCurrentState(ctx context.Context,
 	})
 }
 
+func (c *OnboardingInventoryClient) SetHostStatus(ctx context.Context, tenantID string, hostID string,
+	hostStatus inv_status.ResourceStatus,
+) error {
+	updateHost := &computev1.HostResource{
+		ResourceId:          hostID,
+		HostStatus:          hostStatus.Status,
+		HostStatusIndicator: hostStatus.StatusIndicator,
+		HostStatusTimestamp: uint64(time.Now().Unix()), // #nosec G115
+	}
+
+	return c.UpdateInvResourceFields(ctx, tenantID, updateHost, []string{
+		computev1.HostResourceFieldHostStatus,
+		computev1.HostResourceFieldHostStatusIndicator,
+		computev1.HostResourceFieldHostStatusTimestamp,
+	})
+}
+
 func (c *OnboardingInventoryClient) SetHostOnboardingStatus(ctx context.Context, tenantID string, hostID string,
 	onboardingStatus inv_status.ResourceStatus,
 ) error {
