@@ -13,11 +13,13 @@
 
 #### Go Targets ####
 
-# Set GOPRIVATE to deal with private repos
-GOCMD := GOPRIVATE="github.com/open-edge-platform/*" go
+GOCMD := go
 
 #### Variables ####
 GOARCH	:= $(shell go env GOARCH)
+
+# Base branch variable
+BASE_BRANCH := main
 
 # Path variables
 GOPATH     := $(shell go env GOPATH)
@@ -70,7 +72,7 @@ docker-build: ## build Docker image
 	$(GOCMD) mod vendor
 	cp ../common.mk ../version.mk ../common_go.mk .
 	docker build . -f Dockerfile \
-		-t $(IMG_NAME):$(IMG_VERSION) \
+		-t $(DOCKER_IMG_NAME):$(VERSION) \
 		--build-arg http_proxy="$(http_proxy)" --build-arg HTTP_PROXY="$(HTTP_PROXY)" \
 		--build-arg https_proxy="$(https_proxy)" --build-arg HTTPS_PROXY="$(HTTPS_PROXY)" \
 		--build-arg no_proxy="$(no_proxy)" --build-arg NO_PROXY="$(NO_PROXY)" \
@@ -81,14 +83,19 @@ docker-build: ## build Docker image
 	@rm -rf vendor common.mk version.mk common_go.mk
 
 docker-push: docker-build ## Tag and push Docker image
-	# TODO: remove ecr create
-	aws ecr create-repository --region us-west-2 --repository-name $(DOCKER_REPOSITORY)/$(IMG_NAME) || true
-	docker tag $(IMG_NAME):$(IMG_VERSION) $(DOCKER_TAG)
-	docker tag $(IMG_NAME):$(IMG_VERSION) $(DOCKER_TAG_BRANCH)
+	docker tag $(DOCKER_IMG_NAME):$(VERSION) $(DOCKER_TAG_BRANCH)
+	docker tag $(DOCKER_IMG_NAME):$(VERSION) $(DOCKER_TAG)
 	docker push $(DOCKER_TAG)
 ifeq ($(DOCKER_TAG_BRANCH_PUSH), true)
 	docker push $(DOCKER_TAG_BRANCH)
 endif
+
+docker-list: ## Print name of docker container image
+	@echo "  $(DOCKER_IMG_NAME):"
+	@echo "    name: '$(DOCKER_TAG)'"
+	@echo "    version: '$(VERSION)'"
+	@echo "    gitTagPrefix: '$(GIT_TAG_PREFIX)'"
+	@echo "    buildTarget: '$(PROJECT_NICKNAME)-docker-build'"
 
 #### GO Targets ####
 
@@ -155,3 +162,4 @@ common-buf-lint: $(VENV_NAME) ## Lint and format protobuf files
 	buf --version
 	buf format -d --exit-code
 	buf lint
+	buf breaking --against 'https://github.com/open-edge-platform/infra-onboarding.git#branch=${BASE_BRANCH},subdir=${SUBPROJECT_DIR}'

@@ -10,7 +10,7 @@ service:
 pipeline:
   inputs:
     - name: tail
-      path: /var/log/onboot/*client-auth.*log
+      path: /var/log/client-auth/*client-auth.*log
       read_from_head: true
       tag: uOS_clientAuthLog
       processors:
@@ -65,28 +65,6 @@ pipeline:
             action: upsert
             key: "FileType"
             value: "uOS_caddyLogs"
-          - name: content_modifier
-            action: upsert
-            key: "hostGuid"
-            value: "${EDGENODE_UUID}"
-          - name: content_modifier
-            context: attributes
-            action: upsert
-            key: "source"
-            value: "edgenode_provisioning"
-
-    - name: tail
-      path: /var/log/*fdo.*log
-      read_from_head: true
-      tag: uOS_fdoLogs
-      processors:
-        logs:
-          - name: opentelemetry_envelope
-          - name: content_modifier
-            context: attributes
-            action: upsert
-            key: "FileType"
-            value: "uOS_fdoLogs"
           - name: content_modifier
             action: upsert
             key: "hostGuid"

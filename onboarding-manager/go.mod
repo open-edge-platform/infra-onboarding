@@ -8,15 +8,15 @@ go 1.24.1
 require (
 	github.com/envoyproxy/protoc-gen-validate v1.2.1
 	github.com/google/uuid v1.6.0
-	github.com/open-edge-platform/infra-core/inventory/v2 v2.23.0
-	github.com/open-edge-platform/infra-onboarding/dkam v1.27.0
+	github.com/open-edge-platform/infra-core/inventory/v2 v2.23.2
+	github.com/open-edge-platform/infra-onboarding/dkam v1.27.1
 	github.com/open-edge-platform/orch-library/go v0.5.29
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.21.1
 	github.com/stretchr/testify v1.10.0
 	github.com/tinkerbell/tink v0.12.2
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250313205543-e70fdf4c4cb4
-	google.golang.org/grpc v1.71.0
+	google.golang.org/grpc v1.71.1
 	google.golang.org/protobuf v1.36.6
 	gopkg.in/yaml.v2 v2.4.0
 	gotest.tools v2.2.0+incompatible
@@ -118,7 +118,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/open-edge-platform/orch-library/go/dazl v0.5.2 // indirect
-	github.com/open-policy-agent/opa v1.3.0 // indirect
+	github.com/open-policy-agent/opa v1.4.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
@@ -139,7 +139,7 @@ require (
 	github.com/spf13/afero v1.14.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
-	github.com/spf13/viper v1.20.0 // indirect
+	github.com/spf13/viper v1.20.1 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
@@ -170,7 +170,7 @@ require (
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
 	golang.org/x/mod v0.24.0 // indirect
-	golang.org/x/net v0.37.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/oauth2 v0.28.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect

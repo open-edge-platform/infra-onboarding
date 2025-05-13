@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2025 Intel Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+
+* @Andrea-Campanella @cjnolan @daniele-moro @osinstom @pierventre @rranjan3 @ipsita-npg @ppanigra @punam20 @Ram-srini @shankarsrinivas1 @nbmaiti @shiva-shankar-k @vthiruveedula @krishnajs
+
+# Tinker-actions specific owners
+tinker-actions/* @AdithyaBaglody @Andrea-Campanella @cjnolan @daniele-moro @osinstom @pierventre @rranjan3 @ipsita-npg @ppanigra @punam20 @Ram-srini @shankarsrinivas1 @nbmaiti @shiva-shankar-k @vthiruveedula @krishnajs
+
+# Hook-OS specific owners
+hook-os/* @AdithyaBaglody @Andrea-Campanella @cjnolan @daniele-moro @osinstom @pierventre @rranjan3 @ipsita-npg @ppanigra @punam20 @Ram-srini @shankarsrinivas1 @nbmaiti @shiva-shankar-k @vthiruveedula @krishnajs

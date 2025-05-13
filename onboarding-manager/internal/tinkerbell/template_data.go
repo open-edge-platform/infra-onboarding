@@ -30,6 +30,8 @@ const (
 	ActionInstallScriptEnable              = "enable-service-script-for-profile-pkg-node-agents"
 	ActionEfibootset                       = "efibootset-for-diskboot"
 	ActionFdeEncryption                    = "fde-encryption"
+	ActionEnableDmv                        = "enable-dm-verity"
+	ActionFdeDmv                           = "fde-encryption-and-dm-verity-check"
 	ActionKernelupgrade                    = "kernel-upgrade"
 	ActionReboot                           = "reboot"
 	ActionAddAptProxy                      = "add-apt-proxy"
@@ -39,9 +41,7 @@ const (
 	ActionWriteHostname                    = "write-hostname"
 	ActionSystemdNetworkOptimize           = "systemd-network-online-optimize"
 	ActionDisableSnapdOptimize             = "systemd-snapd-disable-optimize"
-	ActionEMTPartition                     = "emt-partition"
 	ActionCloudinitDsidentity              = "cloud-init-ds-identity"
-	ActionSetSeliuxRelabel                 = "set-selinux-relabel-policy"
 )
 
 const (
@@ -68,11 +68,9 @@ const (
 
 	envTinkActionEfibootImage = "TINKER_EFIBOOT_IMAGE"
 
-	envTinkActionFdeImage = "TINKER_FDE_IMAGE"
+	envTinkActionFdeDmvImage = "TINKER_FDE_DMV_IMAGE"
 
 	envTinkActionKerenlUpgradeImage = "TINKER_KERNELUPGRD_IMAGE"
-
-	envTinkActionEMTPartitionImage = "TINKER_EMT_IMAGE_PARTITION"
 
 	envTinkActionQemuNbdImage2DiskImage = "TINKER_QEMU_NBD_IMAGE2DISK_IMAGE"
 
@@ -81,8 +79,7 @@ const (
 
 	tinkerActionEraseNonRemovableDisks = "erase_non_removable_disks"
 	tinkerActionCexec                  = "cexec"
-	tinkerActionFDE                    = "fde"
-	tinkerActionEMTPartition           = "emt_partition"
+	tinkerActionFdeDmv                 = "fde_dmv"
 	tinkerActionQemuNbdImage2Disk      = "qemu_nbd_image2disk"
 	tinkerActionKernelUpgrade          = "kernelupgrd"
 	tinkerActionEfibootset             = "efibootset"
@@ -98,9 +95,8 @@ var (
 	defaultTinkActionCexecImage              = getTinkerActionImage(tinkerActionCexec)
 	defaultTinkActionDiskImage               = getTinkerActionImage(tinkerActionImage2Disk)
 	defaultTinkActionEfibootImage            = getTinkerActionImage(tinkerActionEfibootset)
-	defaultTinkActionFdeImage                = getTinkerActionImage(tinkerActionFDE)
+	defaultTinkActionFdeDmvImage             = getTinkerActionImage(tinkerActionFdeDmv)
 	defaultTinkActionKernelUpgradeImage      = getTinkerActionImage(tinkerActionKernelUpgrade)
-	defaultTinkActionEMTPartitionImage       = getTinkerActionImage(tinkerActionEMTPartition)
 	defaultTinkActionQemuNbdImage2DiskImage  = getTinkerActionImage(tinkerActionQemuNbdImage2Disk)
 )
 
@@ -168,12 +164,12 @@ func tinkActionEfibootImage(tinkerImageVersion string) string {
 	return fmt.Sprintf("%s:%s", defaultTinkActionEfibootImage, iv)
 }
 
-func tinkActionFdeImage(tinkerImageVersion string) string {
+func tinkActionFdeDmvImage(tinkerImageVersion string) string {
 	iv := getTinkerImageVersion(tinkerImageVersion)
-	if v := os.Getenv(envTinkActionFdeImage); v != "" {
+	if v := os.Getenv(envTinkActionFdeDmvImage); v != "" {
 		return fmt.Sprintf("%s:%s", v, iv)
 	}
-	return fmt.Sprintf("%s:%s", defaultTinkActionFdeImage, iv)
+	return fmt.Sprintf("%s:%s", defaultTinkActionFdeDmvImage, iv)
 }
 
 func tinkActionKernelupgradeImage(tinkerImageVersion string) string {
@@ -182,14 +178,6 @@ func tinkActionKernelupgradeImage(tinkerImageVersion string) string {
 		return fmt.Sprintf("%s:%s", v, iv)
 	}
 	return fmt.Sprintf("%s:%s", defaultTinkActionKernelUpgradeImage, iv)
-}
-
-func tinkActionEMTPartitionImage(tinkerImageVersion string) string {
-	iv := getTinkerImageVersion(tinkerImageVersion)
-	if v := os.Getenv(envTinkActionEMTPartitionImage); v != "" {
-		return fmt.Sprintf("%s:%s", v, iv)
-	}
-	return fmt.Sprintf("%s:%s", defaultTinkActionEMTPartitionImage, iv)
 }
 
 func tinkActionQemuNbdImage2DiskImage(tinkerImageVersion string) string {
@@ -236,6 +224,13 @@ func NewTemplateDataProdEdgeMicrovisorToolkit(
 		return nil, err
 	}
 
+	enableOnlyDMVerity := "true"
+	ActionSecurityFeature := ActionEnableDmv
+	if deviceInfo.SecurityFeature == osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION {
+		enableOnlyDMVerity = "false"
+		ActionSecurityFeature = ActionFdeDmv
+	}
+
 	wf := Workflow{
 		Version:       "0.1",
 		Name:          name,
@@ -276,28 +271,6 @@ func NewTemplateDataProdEdgeMicrovisorToolkit(
 					},
 					Pid: "host",
 				},
-
-				{
-					Name:    ActionEMTPartition,
-					Image:   tinkActionEMTPartitionImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutAvg560,
-				},
-				// TODO: remove write hostname actions once fixed in EMT image
-				{
-					Name:    ActionWriteHostname,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/hostname",
-						"CONTENTS": fmt.Sprintf(`
-%s`, deviceInfo.Hostname),
-						"UID":     "0",
-						"GID":     "0",
-						"MODE":    "0755",
-						"DIRMODE": "0755",
-					},
-				},
 				{
 					Name:    ActionCloudInitInstall,
 					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
@@ -329,27 +302,18 @@ func NewTemplateDataProdEdgeMicrovisorToolkit(
 				},
 
 				{
-					Name:    ActionFdeEncryption,
-					Image:   tinkActionFdeImage(deviceInfo.TinkerVersion),
+					Name:    ActionSecurityFeature,
+					Image:   tinkActionFdeDmvImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg560,
+					Environment: map[string]string{
+						"ENABLE_ONLY_DMVERITY": enableOnlyDMVerity,
+					},
 				},
 
 				{
 					Name:    ActionEfibootset,
 					Image:   tinkActionEfibootImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg560,
-				},
-
-				{
-					Name:    ActionSetSeliuxRelabel,
-					Image:   tinkActionCexecImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutAvg200,
-					Environment: map[string]string{
-						"FS_TYPE":             "ext4",
-						"CHROOT":              "y",
-						"DEFAULT_INTERPRETER": "/bin/sh -c",
-						"CMD_LINE":            "setfiles -m -v /etc/selinux/targeted/contexts/files/file_contexts /",
-					},
 				},
 
 				{
@@ -362,35 +326,6 @@ func NewTemplateDataProdEdgeMicrovisorToolkit(
 				},
 			},
 		}},
-	}
-
-	// FDE removal if security feature flag is not set for FDE
-	// #nosec G115
-	if deviceInfo.SecurityFeature ==
-		osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION {
-		for i, task := range wf.Tasks {
-			for j, action := range task.Actions {
-				if action.Name == ActionEMTPartition {
-					// Remove the action from the slice
-					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
-				}
-				if action.Name == ActionSetSeliuxRelabel {
-					// Remove the action from the slice
-					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
-				}
-			}
-		}
-	} else if deviceInfo.SecurityFeature ==
-		osv1.SecurityFeature_SECURITY_FEATURE_NONE {
-		for i, task := range wf.Tasks {
-			for j, action := range task.Actions {
-				if action.Name == ActionFdeEncryption {
-					// Remove the action from the slice
-					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
-					break
-				}
-			}
-		}
 	}
 
 	// Create the User credentials only for dev mode and remove the action for production mode
@@ -619,7 +554,7 @@ func NewTemplateDataUbuntu(ctx context.Context, name string, deviceInfo onboardi
 
 				{
 					Name:    ActionFdeEncryption,
-					Image:   tinkActionFdeImage(deviceInfo.TinkerVersion),
+					Image:   tinkActionFdeDmvImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutAvg560,
 				},
 				{

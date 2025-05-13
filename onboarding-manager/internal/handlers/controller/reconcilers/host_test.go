@@ -37,6 +37,8 @@ import (
 	rec_v2 "github.com/open-edge-platform/orch-library/go/pkg/controller/v2"
 )
 
+const tenantID = "11111111-1111-1111-1111-111111111111"
+
 func TestMain(m *testing.M) {
 	*flags.FlagDisableCredentialsManagement = true
 	wd, err := os.Getwd()
@@ -348,7 +350,6 @@ func TestReconcileHostWithProvider(t *testing.T) {
 		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 }
 
-//nolint:dupl // These tests are for different reconcilers but have a similar structure.
 func TestNewHostReconciler(t *testing.T) {
 	type args struct {
 		c *invclient.OnboardingInventoryClient

@@ -55,13 +55,13 @@ targets. The following is a list of makefile targets that support developer acti
 - `lint` to run a list of linting targets
 - `docker-build` to build all the tinker action images
 
-#### Runs build, lint stages
+#### Run build, lint stages
 
 ```bash
 make all
 ```
 
-#### Builds tinker action
+#### Build tinker action
 
 ```bash
 make <ACTION NAME>
@@ -73,7 +73,7 @@ Example
 make erase_non_removable_disks
 ```
 
-#### Pushes tinker action with branch name as tag
+#### Push tinker action with branch name as tag
 
 ```bash
 make push-<ACTION NAME>
@@ -85,7 +85,7 @@ Example
 make push-cexec
 ```
 
-#### Pushes tinker action with VERSION as tag
+#### Push tinker action with VERSION as tag
 
 ```bash
 make release-<ACTION NAME>
@@ -97,13 +97,13 @@ Example
 make release-fde
 ```
 
-#### Builds all tinker actions
+#### Build all tinker actions
 
 ```bash
 make docker-build
 ```
 
-#### Pushes all tinker actions with BRANCH and VERSION tag
+#### Push all tinker actions with BRANCH and VERSION tag
 
 ```bash
 make docker-push
@@ -118,7 +118,7 @@ To learn how to contribute to the project, see the [contributor's guide][contrib
 To learn more about the project, its community, and governance, visit
 the [Edge Orchestrator Community](https://community.intel.com/).
 
-For support, start with [troubleshooting][troubleshooting-url] or [contact us](mailto:adreanne.bertrand@intel.com).
+For support, start with [troubleshooting][troubleshooting-url].
 
 ## License
 
@@ -131,10 +131,10 @@ Edge Orchestrator is licensed under [Apache License
 - If you are contributing, please read the [contributors guide][contributors-guide-url].
 - For troubleshooting, see the [troubleshooting guide][troubleshooting-url].
 
-[user-guide-onboard-edge-node]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/set_up_edge_infra/edge_node_onboard.html
-[user-guide-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/get_started_guide/gsg_content.html
-[inframanager-dev-guide-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/get_started_guide/gsg_content.html
-[contributors-guide-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/index.html
-[troubleshooting-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/troubleshooting/troubleshooting.html
+[user-guide-onboard-edge-node]: https://docs.openedgeplatform.intel.com/edge-manage-docs/main/user_guide/set_up_edge_infra/index.html
+[user-guide-url]: https://docs.openedgeplatform.intel.com/edge-manage-docs/main/user_guide/get_started_guide/index.html
+[inframanager-dev-guide-url]: https://docs.openedgeplatform.intel.com/edge-manage-docs/main/developer_guide/infra_manager/index.html
+[contributors-guide-url]: https://docs.openedgeplatform.intel.com/edge-manage-docs/main/developer_guide/contributor_guide/index.html
+[troubleshooting-url]: https://docs.openedgeplatform.intel.com/edge-manage-docs/main/user_guide/troubleshooting/index.html
 
 Last Updated Date: March 24, 2025

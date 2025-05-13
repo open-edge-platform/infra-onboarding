@@ -12,7 +12,7 @@
 ## Overview
 
 Hook is the Tinkerbell Installation Environment for bare-metal. It runs in-memory, installs operating system,
-and handles deprovisioning. Its based on [LinuxKit](https://github.com/linuxkit/linuxkit).
+and handles deprovisioning. It is based on [LinuxKit](https://github.com/linuxkit/linuxkit).
 
 This repo is forked from the open source repo [github.com/tinkerbell/hook](https://github.com/tinkerbell/hook).
 Summary of all the changes and contributions can be found [here](CHANGELOG.md)
@@ -22,7 +22,7 @@ Following components have been added to the open source HookOS for our specific 
 - Device Discovery: This service can read all the hardware data (serial number, UUID etc) and send out to the Edge Orchestrator
 while provisioning.
 - Fluent Bit: This service helps us stream the logs of all important services to the Observability microservice
-of Edge Orchestrator.
+of the Edge Orchestrator.
 - Caddy: This service is used as a proxy to communicate with the Edge Orchestrator securely.
 
 ## Features
@@ -39,13 +39,13 @@ Instructions on how to build HookOS on your machine.
 
 ### Develop the HookOS
 
-There are several convenient `make` targets to support developer activities, you can use `help` to see a list of makefile
+There are several convenient `make` targets to support developer activities. You can use `help` to see a list of makefile
 targets. The following is a list of makefile targets that support developer activities:
 
 - `lint` to run a list of linting targets
 - `build` to build the compressed HookOS image in `tar.gz` format
 
-#### Builds Component
+#### Build Component
 
 ```bash
 make <COMPONENT NAME>
@@ -59,13 +59,13 @@ Example
 make device_discovery
 ```
 
-#### Builds container images of all the components to be embedded
+#### Build container images of all the components to be embedded
 
 ```bash
 make components
 ```
 
-#### Configures Edge Node and Edge Orchestrator parameters
+#### Configure Edge Node and Edge Orchestrator parameters
 
 ```bash
 make configure
@@ -73,15 +73,15 @@ make configure
 
 All the configurable parameter details can be found in [config.template](config.template)
 
-#### Creates placeholder for Edge Orchestrator SSL Certificates
+#### Create placeholder for Edge Orchestrator SSL Certificates
 
 ```bash
 make certs
 ```
 
-#### Builds HookOS kernel container image
+#### Build HookOS kernel container image
 
-**NOTE**:This target will build kernel container image even if another image with identical tag available locally
+**NOTE**: This target will build kernel container image even if another image with identical tag is available locally
 or in the Production Release service.
 
 ```bash
@@ -171,7 +171,7 @@ To learn how to contribute to the project, see the [contributor's guide][contrib
 To learn more about the project, its community, and governance, visit
 the [Edge Orchestrator Community](https://community.intel.com/).
 
-For support, start with [troubleshooting][troubleshooting-url] or [contact us](mailto:adreanne.bertrand@intel.com).
+For support, start with [troubleshooting][troubleshooting-url].
 
 ## License
 
@@ -184,10 +184,10 @@ Edge Orchestrator is licensed under [Apache License
 - If you are contributing, please read the [contributors guide][contributors-guide-url].
 - For troubleshooting, see the [troubleshooting guide][troubleshooting-url].
 
-[user-guide-onboard-edge-node]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/set_up_edge_infra/edge_node_onboard.html
-[user-guide-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/get_started_guide/gsg_content.html
-[inframanager-dev-guide-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/get_started_guide/gsg_content.html
-[contributors-guide-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/index.html
-[troubleshooting-url]: https://literate-adventure-7vjeyem.pages.github.io/edge_orchestrator/user_guide_main/content/user_guide/troubleshooting/troubleshooting.html
+[user-guide-onboard-edge-node]: https://docs.openedgeplatform.intel.com/edge-manage-docs/main/user_guide/set_up_edge_infra/index.html
+[user-guide-url]: https://docs.openedgeplatform.intel.com/edge-manage-docs/main/user_guide/get_started_guide/index.html
+[inframanager-dev-guide-url]: https://docs.openedgeplatform.intel.com/edge-manage-docs/main/developer_guide/infra_manager/index.html
+[contributors-guide-url]: https://docs.openedgeplatform.intel.com/edge-manage-docs/main/developer_guide/contributor_guide/index.html
+[troubleshooting-url]: https://docs.openedgeplatform.intel.com/edge-manage-docs/main/user_guide/troubleshooting/index.html
 
 Last Updated Date: March 31, 2025
