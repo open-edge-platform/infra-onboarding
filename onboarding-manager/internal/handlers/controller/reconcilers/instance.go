@@ -163,10 +163,17 @@ func (ir *InstanceReconciler) updateHostInstanceStatusAndCurrentState(
 		newHost.GetUuid(), newHost.GetResourceId(), newHost.GetOnboardingStatus())
 
 	if !util.IsSameHostStatus(oldInstance.GetHost(), newHost) {
+		if err := ir.invClient.SetHostStatus(
+			ctx, newHost.GetTenantId(), newHost.GetResourceId(),
+			inv_status.New(newHost.GetHostStatus(), newHost.GetHostStatusIndicator())); err != nil {
+			zlogInst.InfraSec().InfraErr(err).Msgf("Failed to update host status")
+		}
+	}
+	if !util.IsSameOnboardingStatus(oldInstance.GetHost(), newHost) {
 		if err := ir.invClient.SetHostOnboardingStatus(
 			ctx, newHost.GetTenantId(), newHost.GetResourceId(),
 			inv_status.New(newHost.GetOnboardingStatus(), newHost.GetOnboardingStatusIndicator())); err != nil {
-			zlogInst.InfraSec().InfraErr(err).Msgf("Failed to update host status")
+			zlogInst.InfraSec().InfraErr(err).Msgf("Failed to update host onboarding status")
 		}
 	}
 
