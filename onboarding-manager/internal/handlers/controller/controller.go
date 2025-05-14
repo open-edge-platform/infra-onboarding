@@ -6,7 +6,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"sync"
 	"time"
 
@@ -18,7 +17,6 @@ import (
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/util"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/validator"
-	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/env"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/handlers/controller/reconcilers"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/invclient"
 	rec_v2 "github.com/open-edge-platform/orch-library/go/pkg/controller/v2"
@@ -33,7 +31,7 @@ var (
 	// if our notification won't deliver an event.
 	// Since we are not confident about the reliability of the current reconciliation,
 	// we set quite frequent periodic reconciliation (10m), but it should be increased in the future.
-	defaultTickerPeriod = 120 * time.Minute
+	defaultTickerPeriod = 10 * time.Minute
 )
 
 const (
@@ -99,15 +97,8 @@ func (obc *OnboardingController) Stop() {
 }
 
 func (obc *OnboardingController) controlLoop() {
-	var tickerPeriod time.Duration
-	envTickerPeriod, err := strconv.Atoi(env.ReconcileAllTickerPeriod)
-	if err != nil {
-		tickerPeriod = defaultTickerPeriod
-	} else {
-		tickerPeriod = time.Duration(envTickerPeriod) * time.Minute
-	}
-	zlog.InfraSec().Info().Msgf("Reconciliation ticker period set to %f minutes", tickerPeriod.Minutes())
-	ticker := time.NewTicker(tickerPeriod)
+	zlog.InfraSec().Info().Msgf("Reconciliation ticker period set to %f minutes", defaultTickerPeriod.Minutes())
+	ticker := time.NewTicker(defaultTickerPeriod)
 	defer ticker.Stop()
 
 	for {

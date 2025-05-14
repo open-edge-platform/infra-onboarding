@@ -28,8 +28,6 @@ var (
 
 	TinkerActionVersion = os.Getenv(envTinkerVersion)
 	TinkerArtifactName  = os.Getenv(envTinkerArtifactName)
-
-	ReconcileAllTickerPeriod = os.Getenv(envReconcileTickerPeriod)
 )
 
 var zlog = logging.GetLogger("Env")
