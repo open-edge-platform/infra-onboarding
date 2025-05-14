@@ -3,25 +3,22 @@
 
 ---
 version: 2
-registries:
-  github:
-    type: git
-    url: https://github.com
-    username: x-access-token
-    password: ${{ secrets.SYS_ORCH_GITHUB }}
 updates:
   - package-ecosystem: "gomod"
     directories:
       - "/onboarding-manager"
       - "/dkam"
-    registries:
-      - github
     schedule:
       interval: daily
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 3
     commit-message:
       prefix: "[gomod] "
     groups:
       dependencies:
         patterns:
           - "*"
+        exclude-patterns: # Internal dependencies are update into separate PRs.
+          - "*open-edge-platform*"
+      internal-dependencies:
+        patterns:
+          - "*open-edge-platform*"
