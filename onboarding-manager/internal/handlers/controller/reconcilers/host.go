@@ -267,10 +267,8 @@ func (hr *HostReconciler) invalidateHost(ctx context.Context, host *computev1.Ho
 		HostStatusTimestamp:         uint64(time.Now().Unix()),                                // #nosec G115
 		OnboardingStatus:            om_status.OnboardingStatusUnknown.Status,
 		OnboardingStatusIndicator:   om_status.OnboardingStatusUnknown.StatusIndicator,
-		OnboardingStatusTimestamp:   uint64(time.Now().Unix()), // #nosec G115
 		RegistrationStatus:          om_status.HostRegistrationUnknown.Status,
 		RegistrationStatusIndicator: om_status.HostRegistrationUnknown.StatusIndicator,
-		RegistrationStatusTimestamp: uint64(time.Now().Unix()), // #nosec G115
 	}
 
 	// Although Onboarding Manager should not update host_status that is updated by HRM,

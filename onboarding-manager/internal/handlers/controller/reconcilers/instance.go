@@ -93,6 +93,15 @@ func (ir *InstanceReconciler) Reconcile(ctx context.Context,
 	return ir.reconcileInstance(ctx, request, instance)
 }
 
+func checkStatusUnknown(instance *computev1.InstanceResource,
+) bool {
+	// Check if instance status has already been set to unknown
+	if instance.GetInstanceStatus() != "Unknown" {
+		return false
+	}
+	return true
+}
+
 func checkStatusIdle(instance *computev1.InstanceResource,
 ) bool {
 	// Check if all statuses in instance are Idle
@@ -120,31 +129,25 @@ func (ir *InstanceReconciler) handleHostDeauthorized(ctx context.Context, instan
 ) rec_v2.Directive[ReconcilerID] {
 	if instance.GetHost().GetCurrentState() == computev1.HostState_HOST_STATE_UNTRUSTED ||
 		instance.GetHost().GetDesiredState() == computev1.HostState_HOST_STATE_UNTRUSTED {
-		checkCleanupRun := false
-		// Check that all statuses and indicators have been updated
-		if !checkStatusIdle(instance) {
-			// Update instance statuses to idle
-			util.PopulateInstanceIdleStatus(instance)
-			checkCleanupRun = true
-		}
-		// If the host associated with the instance is deauthorized, check if the provisioning
-		// workflow has been removed and clean it up if not
-		deviceInfo, err := convertInstanceToDeviceInfo(instance)
-		if err == nil && onboarding.CheckWorkflowExist(ctx, deviceInfo, instance) {
-			// Delete workflow and set provisioning status
-			if err := ir.cleanupProvisioningResources(ctx, instance); err != nil {
-				// If error received, don't retry as resources will be deleted when instance is deleted
-				return request.Ack()
+		if !checkStatusUnknown(instance) {
+			// Check that all statuses and indicators have been updated
+			if !checkStatusIdle(instance) {
+				zlogInst.Info().Msgf("Host associated with Instance (%s) has been deauthorized. "+
+					"Forcing reconciliation to update Instance status.", resourceID)
+				// Update instance statuses to idle
+				util.PopulateInstanceIdleStatus(instance)
 			}
-			checkCleanupRun = true
+			// If the host associated with the instance is deauthorized, check if the provisioning
+			// workflow has been removed and clean it up if not
+			deviceInfo, err := convertInstanceToDeviceInfo(instance)
+			if err == nil && onboarding.CheckWorkflowExist(ctx, deviceInfo, instance) {
+				// Delete workflow and set provisioning status
+				if err := ir.cleanupProvisioningResources(ctx, instance); err != nil {
+					// If error received, don't retry as resources will be deleted when instance is deleted
+					return request.Ack()
+				}
+			}
 		}
-		if checkCleanupRun {
-			// Run reconciliation on the instance to complete
-			zlogInst.Info().Msgf("Host associated with Instance (%s) has been deauthorized. "+
-				"Forcing reconciliation to update Instance status.", resourceID)
-			return ir.reconcileInstance(ctx, request, instance)
-		}
-		zlogInst.Debug().Msgf("Instance (%s) reconciliation skipped - host has been deauthorized.", resourceID)
 		return request.Ack()
 	}
 	return nil
