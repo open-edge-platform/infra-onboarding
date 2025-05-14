@@ -8,6 +8,7 @@ import (
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 	_ "github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging" // include to pass tests with -globalLogLevel
 	inv_status "github.com/open-edge-platform/infra-core/inventory/v2/pkg/status"
+	om_status "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/status"
 )
 
 func IsSameHostStatus(
@@ -54,14 +55,39 @@ func PopulateInstanceStatusAndCurrentState(
 	instance.ProvisioningStatusIndicator = provisioningStatus.StatusIndicator
 }
 
-func PopulateInstanceStatusAndDesiredState(
+func PopulateInstanceStatus(
 	instance *computev1.InstanceResource,
-	desiredState computev1.InstanceState,
-	provisioningStatus inv_status.ResourceStatus,
+	instanceStatus inv_status.ResourceStatus,
 ) {
-	instance.DesiredState = desiredState
-	instance.ProvisioningStatus = provisioningStatus.Status
-	instance.ProvisioningStatusIndicator = provisioningStatus.StatusIndicator
+	instance.InstanceStatus = instanceStatus.Status
+	instance.InstanceStatusIndicator = instanceStatus.StatusIndicator
+	instance.InstanceStatusDetail = ""
+}
+
+func PopulateInstanceUpdateStatus(
+	instance *computev1.InstanceResource,
+	updateStatus inv_status.ResourceStatus,
+) {
+	instance.UpdateStatus = updateStatus.Status
+	instance.UpdateStatusIndicator = updateStatus.StatusIndicator
+	instance.UpdateStatusDetail = ""
+}
+
+func PopulateInstanceTrustedAttestationStatus(
+	instance *computev1.InstanceResource,
+	trustedAttestationStatus inv_status.ResourceStatus,
+) {
+	instance.TrustedAttestationStatus = trustedAttestationStatus.Status
+	instance.TrustedAttestationStatusIndicator = trustedAttestationStatus.StatusIndicator
+}
+
+func PopulateInstanceIdleStatus(
+	instance *computev1.InstanceResource,
+) {
+	PopulateInstanceStatus(instance, om_status.InstanceStatusUnknown)
+	PopulateInstanceProvisioningStatus(instance, om_status.ProvisioningStatusUnknown)
+	PopulateInstanceUpdateStatus(instance, om_status.UpdateStatusUnknown)
+	PopulateInstanceTrustedAttestationStatus(instance, om_status.TrustedAttestationStatusUnknown)
 }
 
 func PopulateCurrentOS(instance *computev1.InstanceResource, osResourceID string) {

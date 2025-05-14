@@ -407,6 +407,12 @@ func (c *OnboardingInventoryClient) UpdateHostStateAndRuntimeStatus(ctx context.
 		computev1.HostResourceFieldHostStatus,
 		computev1.HostResourceFieldHostStatusIndicator,
 		computev1.HostResourceFieldHostStatusTimestamp,
+		computev1.HostResourceFieldOnboardingStatus,
+		computev1.HostResourceFieldOnboardingStatusIndicator,
+		computev1.HostResourceFieldOnboardingStatusTimestamp,
+		computev1.HostResourceFieldRegistrationStatus,
+		computev1.HostResourceFieldRegistrationStatusIndicator,
+		computev1.HostResourceFieldRegistrationStatusTimestamp,
 	})
 }
 

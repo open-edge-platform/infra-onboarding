@@ -1213,15 +1213,18 @@ func TestOnboardingInventoryClient_UpdateInvResourceFields(t *testing.T) {
 	}
 }
 
+//nolint:funlen // it consists of required test cases.
 func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 	CreateOnboardingClientForTesting(t)
 	host := inv_testing.CreateHost(t, nil, nil)
 	type args struct {
-		tenantID          string
-		hostID            string
-		hostCurrentState  computev1.HostState
-		runtimeHostStatus inv_status.ResourceStatus
-		updateTimestamp   int64
+		tenantID           string
+		hostID             string
+		hostCurrentState   computev1.HostState
+		runtimeHostStatus  inv_status.ResourceStatus
+		updateTimestamp    int64
+		onboardingStatus   inv_status.ResourceStatus
+		registrationStatus inv_status.ResourceStatus
 	}
 	tests := []struct {
 		name       string
@@ -1232,22 +1235,26 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 		{
 			name: "Success",
 			args: args{
-				tenantID:          host.GetTenantId(),
-				hostID:            host.GetResourceId(),
-				hostCurrentState:  computev1.HostState_HOST_STATE_UNTRUSTED,
-				runtimeHostStatus: om_status.AuthorizationStatusInvalidated,
-				updateTimestamp:   time.Now().Unix(),
+				tenantID:           host.GetTenantId(),
+				hostID:             host.GetResourceId(),
+				hostCurrentState:   computev1.HostState_HOST_STATE_UNTRUSTED,
+				runtimeHostStatus:  om_status.AuthorizationStatusInvalidated,
+				updateTimestamp:    time.Now().Unix(),
+				onboardingStatus:   om_status.OnboardingStatusUnknown,
+				registrationStatus: om_status.HostRegistrationUnknown,
 			},
 			valid: true,
 		},
 		{
 			name: "Failed_NotFound",
 			args: args{
-				tenantID:          tenant1,
-				hostID:            "host-12345678",
-				hostCurrentState:  computev1.HostState_HOST_STATE_UNTRUSTED,
-				runtimeHostStatus: om_status.AuthorizationStatusInvalidated,
-				updateTimestamp:   time.Now().Unix(),
+				tenantID:           tenant1,
+				hostID:             "host-12345678",
+				hostCurrentState:   computev1.HostState_HOST_STATE_UNTRUSTED,
+				runtimeHostStatus:  om_status.AuthorizationStatusInvalidated,
+				updateTimestamp:    time.Now().Unix(),
+				onboardingStatus:   om_status.OnboardingStatusUnknown,
+				registrationStatus: om_status.HostRegistrationUnknown,
 			},
 			valid:      false,
 			statusCode: codes.NotFound,
@@ -1266,12 +1273,20 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 			hostStatusTimestamp := uint64(math.Max(0, float64(tt.args.updateTimestamp)))
+			onboardingStatusTimestamp := uint64(math.Max(0, float64(tt.args.updateTimestamp)))
+			registrationStatusTimestamp := uint64(math.Max(0, float64(tt.args.updateTimestamp)))
 			hostUp := &computev1.HostResource{
-				ResourceId:          tt.args.hostID,
-				CurrentState:        tt.args.hostCurrentState,
-				HostStatus:          tt.args.runtimeHostStatus.Status,
-				HostStatusIndicator: tt.args.runtimeHostStatus.StatusIndicator,
-				HostStatusTimestamp: hostStatusTimestamp,
+				ResourceId:                  tt.args.hostID,
+				CurrentState:                tt.args.hostCurrentState,
+				HostStatus:                  tt.args.runtimeHostStatus.Status,
+				HostStatusIndicator:         tt.args.runtimeHostStatus.StatusIndicator,
+				HostStatusTimestamp:         hostStatusTimestamp,
+				OnboardingStatus:            tt.args.onboardingStatus.Status,
+				OnboardingStatusIndicator:   tt.args.onboardingStatus.StatusIndicator,
+				OnboardingStatusTimestamp:   onboardingStatusTimestamp,
+				RegistrationStatus:          tt.args.registrationStatus.Status,
+				RegistrationStatusIndicator: tt.args.registrationStatus.StatusIndicator,
+				RegistrationStatusTimestamp: registrationStatusTimestamp,
 			}
 
 			err := OnboardingTestClient.UpdateHostStateAndRuntimeStatus(ctx, tt.args.tenantID, hostUp)
@@ -1298,6 +1313,12 @@ func TestOnboardingInventoryClient_UpdateHostStateAndStatus(t *testing.T) {
 				assert.Equal(t, tt.args.runtimeHostStatus.Status, hostInv.GetHostStatus())
 				assert.Equal(t, tt.args.runtimeHostStatus.StatusIndicator, hostInv.GetHostStatusIndicator())
 				assert.LessOrEqual(t, hostStatusTimestamp, hostInv.GetHostStatusTimestamp())
+				assert.Equal(t, tt.args.onboardingStatus.Status, hostInv.GetOnboardingStatus())
+				assert.Equal(t, tt.args.onboardingStatus.StatusIndicator, hostInv.GetOnboardingStatusIndicator())
+				assert.LessOrEqual(t, onboardingStatusTimestamp, hostInv.GetOnboardingStatusTimestamp())
+				assert.Equal(t, tt.args.registrationStatus.Status, hostInv.GetRegistrationStatus())
+				assert.Equal(t, tt.args.registrationStatus.StatusIndicator, hostInv.GetRegistrationStatusIndicator())
+				assert.LessOrEqual(t, registrationStatusTimestamp, hostInv.GetRegistrationStatusTimestamp())
 			}
 
 			if !tt.valid {

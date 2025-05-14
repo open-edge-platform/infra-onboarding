@@ -61,7 +61,6 @@ func TestPopulateInstanceProvisioningStatus(t *testing.T) {
 	}
 }
 
-//nolint:dupl //this is for PopulateInstanceStatusAndCurrentState.
 func TestPopulateInstanceStatusAndCurrentState(t *testing.T) {
 	type args struct {
 		instance           *computev1.InstanceResource
@@ -86,19 +85,17 @@ func TestPopulateInstanceStatusAndCurrentState(t *testing.T) {
 	}
 }
 
-//nolint:dupl //this is for PopulateInstanceStatusAndDesiredState.
-func TestPopulateInstanceStatusAndDesiredStatus(t *testing.T) {
+func TestPopulateInstanceStatus(t *testing.T) {
 	type args struct {
-		instance           *computev1.InstanceResource
-		desiredState       computev1.InstanceState
-		provisioningStatus inv_status.ResourceStatus
+		instance       *computev1.InstanceResource
+		instanceStatus inv_status.ResourceStatus
 	}
 	tests := []struct {
 		name string
 		args args
 	}{
 		{
-			name: "TestPopulateInstanceStatusAndDesiredStatus_WithInstance",
+			name: "TestPopulateInstanceStatus_WithInstance",
 			args: args{
 				instance: &computev1.InstanceResource{},
 			},
@@ -106,7 +103,53 @@ func TestPopulateInstanceStatusAndDesiredStatus(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(_ *testing.T) {
-			util.PopulateInstanceStatusAndDesiredState(tt.args.instance, tt.args.desiredState, tt.args.provisioningStatus)
+			util.PopulateInstanceStatus(tt.args.instance, tt.args.instanceStatus)
+		})
+	}
+}
+
+func TestPopulateInstanceUpdateStatus(t *testing.T) {
+	type args struct {
+		instance     *computev1.InstanceResource
+		updateStatus inv_status.ResourceStatus
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "TestPopulateInstanceUpdateStatus_WithInstance",
+			args: args{
+				instance: &computev1.InstanceResource{},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(_ *testing.T) {
+			util.PopulateInstanceUpdateStatus(tt.args.instance, tt.args.updateStatus)
+		})
+	}
+}
+
+func TestPopulateInstanceTrustedAttestationStatus(t *testing.T) {
+	type args struct {
+		instance               *computev1.InstanceResource
+		trustedAttestionStatus inv_status.ResourceStatus
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "TestPopulateInstanceTrustedAttestationStatus_WithInstance",
+			args: args{
+				instance: &computev1.InstanceResource{},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(_ *testing.T) {
+			util.PopulateInstanceTrustedAttestationStatus(tt.args.instance, tt.args.trustedAttestionStatus)
 		})
 	}
 }
