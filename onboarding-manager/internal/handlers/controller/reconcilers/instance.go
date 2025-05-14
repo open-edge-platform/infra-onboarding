@@ -14,6 +14,7 @@ import (
 
 	computev1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/compute/v1"
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
+	statusv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/status/v1"
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
 	inv_status "github.com/open-edge-platform/infra-core/inventory/v2/pkg/status"
@@ -85,7 +86,71 @@ func (ir *InstanceReconciler) Reconcile(ctx context.Context,
 		return directive
 	}
 
+	if directive := ir.handleHostDeauthorized(ctx, instance, request, resourceID); directive != nil {
+		return directive
+	}
+
 	return ir.reconcileInstance(ctx, request, instance)
+}
+
+func checkStatusUnknown(instance *computev1.InstanceResource,
+) bool {
+	// Check if instance status has already been set to unknown
+	if instance.GetInstanceStatus() != "Unknown" {
+		return false
+	}
+	return true
+}
+
+func checkStatusIdle(instance *computev1.InstanceResource,
+) bool {
+	// Check if all statuses in instance are Idle
+	if instance.GetInstanceStatusIndicator() != statusv1.StatusIndication_STATUS_INDICATION_IDLE &&
+		instance.GetInstanceStatusIndicator() != statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED {
+		return false
+	}
+	if instance.GetProvisioningStatusIndicator() != statusv1.StatusIndication_STATUS_INDICATION_IDLE &&
+		instance.GetProvisioningStatusIndicator() != statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED {
+		return false
+	}
+	if instance.GetUpdateStatusIndicator() != statusv1.StatusIndication_STATUS_INDICATION_IDLE &&
+		instance.GetUpdateStatusIndicator() != statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED {
+		return false
+	}
+	if instance.GetTrustedAttestationStatusIndicator() != statusv1.StatusIndication_STATUS_INDICATION_IDLE &&
+		instance.GetTrustedAttestationStatusIndicator() != statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED {
+		return false
+	}
+	return true
+}
+
+func (ir *InstanceReconciler) handleHostDeauthorized(ctx context.Context, instance *computev1.InstanceResource,
+	request rec_v2.Request[ReconcilerID], resourceID string,
+) rec_v2.Directive[ReconcilerID] {
+	if instance.GetHost().GetCurrentState() == computev1.HostState_HOST_STATE_UNTRUSTED ||
+		instance.GetHost().GetDesiredState() == computev1.HostState_HOST_STATE_UNTRUSTED {
+		if !checkStatusUnknown(instance) {
+			// Check that all statuses and indicators have been updated
+			if !checkStatusIdle(instance) {
+				zlogInst.Info().Msgf("Host associated with Instance (%s) has been deauthorized. "+
+					"Forcing reconciliation to update Instance status.", resourceID)
+				// Update instance statuses to idle
+				util.PopulateInstanceIdleStatus(instance)
+			}
+			// If the host associated with the instance is deauthorized, check if the provisioning
+			// workflow has been removed and clean it up if not
+			deviceInfo, err := convertInstanceToDeviceInfo(instance)
+			if err == nil && onboarding.CheckWorkflowExist(ctx, deviceInfo, instance) {
+				// Delete workflow and set provisioning status
+				if err := ir.cleanupProvisioningResources(ctx, instance); err != nil {
+					// If error received, don't retry as resources will be deleted when instance is deleted
+					return request.Ack()
+				}
+			}
+		}
+		return request.Ack()
+	}
+	return nil
 }
 
 func (ir *InstanceReconciler) handleHostOnboarded(instance *computev1.InstanceResource, request rec_v2.Request[ReconcilerID],
