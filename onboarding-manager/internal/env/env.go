@@ -10,13 +10,12 @@ import (
 )
 
 const (
-	envK8sNamespace          = "DEFAULT_K8S_NAMESPACE"
-	envDkamMode              = "EN_DKAMMODE"
-	envUserName              = "EN_USERNAME"
-	envPassWord              = "EN_PASSWORD"
-	envTinkerVersion         = "TINKER_VERSION"
-	envTinkerArtifactName    = "TINKER_ARTIFACT_NAME"
-	envReconcileTickerPeriod = "RECONCILE_TICKER_PERIOD"
+	envK8sNamespace       = "DEFAULT_K8S_NAMESPACE"
+	envDkamMode           = "EN_DKAMMODE"
+	envUserName           = "EN_USERNAME"
+	envPassWord           = "EN_PASSWORD"
+	envTinkerVersion      = "TINKER_VERSION"
+	envTinkerArtifactName = "TINKER_ARTIFACT_NAME"
 )
 
 var (
