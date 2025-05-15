@@ -39,6 +39,7 @@ const MaxSerialNumberLength = 36
 const (
 	DefaultInventoryTimeout = 5 * time.Second
 	ReconcileDefaultTimeout = 5 * time.Minute // Longer timeout for reconciling all resources
+	eventsWatcherBufSize    = 10
 )
 
 var ReconcileTimeout = flag.Duration(
@@ -105,7 +106,7 @@ func NewOnboardingInventoryClientWithOptions(opts ...Option) (*OnboardingInvento
 	}
 
 	wg := sync.WaitGroup{}
-	eventsWatcher := make(chan *client.WatchEvents)
+	eventsWatcher := make(chan *client.WatchEvents, eventsWatcherBufSize)
 	cfg := client.InventoryClientConfig{
 		Name:                      clientName,
 		Address:                   options.InventoryAddress,
@@ -136,7 +137,7 @@ func NewOnboardingInventoryClientWithOptions(opts ...Option) (*OnboardingInvento
 	}
 	zlog.InfraSec().Info().Msgf("Inventory client started")
 	// Define unbuffered channel for managing internal events.
-	internalWatchChannel := make(chan *client.ResourceTenantIDCarrier)
+	internalWatchChannel := make(chan *client.ResourceTenantIDCarrier, eventsWatcherBufSize)
 	return NewOnboardingInventoryClient(invClient, eventsWatcher, internalWatchChannel)
 }
 

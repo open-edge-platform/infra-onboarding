@@ -97,6 +97,7 @@ func (obc *OnboardingController) Stop() {
 }
 
 func (obc *OnboardingController) controlLoop() {
+	zlog.InfraSec().Info().Msgf("Reconciliation ticker period set to %f minutes", defaultTickerPeriod.Minutes())
 	ticker := time.NewTicker(defaultTickerPeriod)
 	defer ticker.Stop()
 
