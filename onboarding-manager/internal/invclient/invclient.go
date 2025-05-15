@@ -137,7 +137,7 @@ func NewOnboardingInventoryClientWithOptions(opts ...Option) (*OnboardingInvento
 	}
 	zlog.InfraSec().Info().Msgf("Inventory client started")
 	// Define unbuffered channel for managing internal events.
-	internalWatchChannel := make(chan *client.ResourceTenantIDCarrier)
+	internalWatchChannel := make(chan *client.ResourceTenantIDCarrier, eventsWatcherBufSize)
 	return NewOnboardingInventoryClient(invClient, eventsWatcher, internalWatchChannel)
 }
 
