@@ -1,5 +1,7 @@
 # Full Disk Encryption (FDE) and Device Mapper Verity (DM-Verity)
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
 This document provides an explanation of the partition scheme used in Full Disk Encryption (FDE) and Device Mapper Verity (DM-Verity), along with the key differences between the two mechanisms.
 
 ---
@@ -163,3 +165,4 @@ DM-Verity is a kernel feature that ensures the integrity of the root filesystem 
 
 In summary, FDE focuses on encrypting partitions to ensure data confidentiality, while DMV adds integrity verification mechanisms to ensure that the root filesystem and other critical partitions remain unmodified and secure.
 
+[apache-license]: https://www.apache.org/licenses/LICENSE-2.0
