@@ -68,13 +68,17 @@ func (ir *InstanceReconciler) Reconcile(ctx context.Context,
 		return directive
 	}
 
+	// Forbid Instance provisioning with defined Provider. Such Instance should be reconciled within Provider-specific RM.
+	if directive := ir.handleProviderSpecificRM(instance, request); directive != nil {
+		return directive
+	}
+
 	// the only allowed path from the ERROR state is DELETED
 	if directive := ir.handleErrorState(instance, request); directive != nil {
 		return directive
 	}
 
-	// Forbid Instance provisioning with defined Provider. Such Instance should be reconciled within Provider-specific RM.
-	if directive := ir.handleProviderSpecificRM(instance, request); directive != nil {
+	if directive := ir.handleHostDeauthorized(ctx, instance, request, resourceID); directive != nil {
 		return directive
 	}
 
@@ -83,10 +87,6 @@ func (ir *InstanceReconciler) Reconcile(ctx context.Context,
 	}
 
 	if directive := ir.handleHostOnboarded(instance, request); directive != nil {
-		return directive
-	}
-
-	if directive := ir.handleHostDeauthorized(ctx, instance, request, resourceID); directive != nil {
 		return directive
 	}
 
@@ -161,8 +161,7 @@ func (ir *InstanceReconciler) handleHostDeauthorized(ctx context.Context, instan
 func (ir *InstanceReconciler) handleHostOnboarded(instance *computev1.InstanceResource, request rec_v2.Request[ReconcilerID],
 ) rec_v2.Directive[ReconcilerID] {
 	if instance.GetDesiredState() != computev1.InstanceState_INSTANCE_STATE_RUNNING ||
-		instance.GetHost().GetCurrentState() == computev1.HostState_HOST_STATE_ONBOARDED ||
-		instance.GetHost().GetCurrentState() == computev1.HostState_HOST_STATE_UNTRUSTED {
+		instance.GetHost().GetCurrentState() == computev1.HostState_HOST_STATE_ONBOARDED {
 		// Proceed with provisioning only if the host is already onboarded.
 		return nil
 	}
