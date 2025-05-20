@@ -453,6 +453,7 @@ func (c *OnboardingInventoryClient) SetHostOnboardingStatus(ctx context.Context,
 	})
 }
 
+// FIXME: ITEP-67453 This function duplicates SetHostOnboardingStatus. Consider refactoring to avoid redundancy.
 func (c *OnboardingInventoryClient) SetHostStatusDetail(ctx context.Context, tenantID string,
 	hostID string, onboardingStatus inv_status.ResourceStatus,
 ) error {
