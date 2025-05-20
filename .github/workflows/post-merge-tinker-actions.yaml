@@ -21,7 +21,7 @@ jobs:
       contents: read
       security-events: write
       id-token: write
-    uses: open-edge-platform/orch-ci/.github/workflows/post-merge.yml@0.1.13
+    uses: open-edge-platform/orch-ci/.github/workflows/post-merge.yml@b39f8770ac653e73001e07f9f47028e1d590be5c  # 0.1.13
     with:
       run_version_check: true
       run_dep_version_check: true
@@ -32,6 +32,10 @@ jobs:
       run_artifact: false
       prefix_tag_separator: "/"
       project_folder: "tinker-actions"
-    secrets:  # zizmor: ignore[secrets-inherit]
-      inherit
+    secrets:
+      SYS_ORCH_GITHUB: ${{ secrets.SYS_ORCH_GITHUB }}
+      COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+      COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+      NO_AUTH_ECR_PUSH_USERNAME: ${{ secrets.NO_AUTH_ECR_PUSH_USERNAME }}
+      NO_AUTH_ECR_PUSH_PASSWD: ${{ secrets.NO_AUTH_ECR_PUSH_PASSWD }}
 
