@@ -179,7 +179,7 @@ func PrepareTestInfraConfig(_ *testing.T) {
 		MetricsObservabilityURL:               "metrics.test:443",
 		KeycloakURL:                           "keycloak.test:443",
 		TelemetryURL:                          "telemetry.test:443",
-		RegistryURL:                           "registry.test:443",
+		RegistryURL:                           "registry.test",
 		FileServerURL:                         "fs.test:443",
 		ProvisioningService:                   "provisioning.test:443",
 		ProvisioningServerURL:                 "provisioning.test:443",
