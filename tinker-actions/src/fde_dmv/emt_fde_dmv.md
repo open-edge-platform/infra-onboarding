@@ -2,7 +2,8 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-This document explains the partition scheme used in Full Disk Encryption (FDE) and Device Mapper Verity (DM-Verity), along with the key differences between the two mechanisms.
+This document explains the partition scheme used in Full Disk Encryption (FDE) and Device Mapper Verity (DM-Verity),
+along with the key differences between the two mechanisms.
 
 ---
 
@@ -25,13 +26,15 @@ This document explains the partition scheme used in Full Disk Encryption (FDE) a
 
 ## Full Disk Encryption (FDE)
 
-Full Disk Encryption (FDE) encrypts the entire disk to ensure that data is inaccessible without the encryption key. This protects sensitive data even if the physical disk is stolen or removed.
+Full Disk Encryption (FDE) encrypts the entire disk to ensure that data is inaccessible without the encryption key.
+This protects sensitive data even if the physical disk is stolen or removed.
 
 ---
 
 ## Device Mapper Verity (DM-Verity)
 
-DM-Verity is a kernel feature that ensures the integrity of the root filesystem by validating data blocks against a hash tree. It prevents unauthorized modifications to the filesystem, making it ideal for read-only root filesystems.
+DM-Verity is a kernel feature that ensures the integrity of the root filesystem by validating data blocks against a
+hash tree. It prevents unauthorized modifications to the filesystem, making it ideal for read-only root filesystems.
 
 ---
 
@@ -105,66 +108,66 @@ DM-Verity is a kernel feature that ensures the integrity of the root filesystem 
 
 ### Disk and Partition Setup
 
-2. **Get Destination Disk (`get_dest_disk`)**
+1. **Get Destination Disk (`get_dest_disk`)**
    - Identify the disk (`DEST_DISK`) to be used for provisioning.
 
-3. **Check for Single HDD (`is_single_hdd`)**
+2. **Check for Single HDD (`is_single_hdd`)**
    - Determine if the system has a single hard drive and adjust configurations accordingly.
 
-4. **Create Partitions (`make_partition`)**
+3. **Create Partitions (`make_partition`)**
    - Partition the disk based on pre-defined sizes and flags.
    - Convert partition sizes from MB to sectors for compatibility with the `parted` command.
 
 ### Backup of RootFS
 
-5. **Backup of Root Filesystem**
+1. **Backup of Root Filesystem**
    - Save the root filesystem for later restoration after LUKS setup.
 
 ### Key Generation
 
-6. **Generate LUKS Key**
+1. **Generate LUKS Key**
    - Generate a 32-byte random key using the TPM's random number generator (`tpm2_getrandom`).
    - Store the key temporarily in the `luks2_key` file for encryption purposes.
 
 ### Encryption Setup
 
-7. **Enable LUKS Encryption (`enable_luks`)**
+1. **Enable LUKS Encryption (`enable_luks`)**
    - Set up LUKS2 encryption on partitions such as rootfs, swap, and persistent partitions.
    - Handle encryption for DM-verity-related partitions if enabled.
 
-8. **Seal passphrase to TPM**
+2. **Seal passphrase to TPM**
    - Seal the LUKS passphrase to the TPM using `tpm2-initramfs-tool` for secure storage.
    - Securely delete passphrase from disk after sealing.
 
 ### Logical Volume Management
 
-9. **Create Single HDD LVM Group (`create_single_hdd_lvmg`)**
+1. **Create Single HDD LVM Group (`create_single_hdd_lvmg`)**
    - Create an encrypted Logical Volume Group (LVM) if a single HDD is detected.
 
-10. **Partition Other Devices (`partition_other_devices`)**
-    - Partition and encrypt additional block devices if present.
+2. **Partition Other Devices (`partition_other_devices`)**
+   - Partition and encrypt additional block devices if present.
 
 ### Verification and Finalization
 
-11. **Update LUKS UUID (`update_luks_uuid`)**
-    - Update the UUID for the encrypted root filesystem.
+1. **Update LUKS UUID (`update_luks_uuid`)**
+   - Update the UUID for the encrypted root filesystem.
 
-12. **Enable DM-Verity (`luks_format_verity_part`)**
-    - If `COMPLETE_FDE_DMVERITY` is enabled, set up DM-verity partitions for integrity verification.
+2. **Enable DM-Verity (`luks_format_verity_part`)**
+   - If `COMPLETE_FDE_DMVERITY` is enabled, set up DM-verity partitions for integrity verification.
 
 ### Cleanup
 
-13. **Unmount Filesystems**
-    - Ensure all mounted filesystems are properly unmounted after provisioning.
+1. **Unmount Filesystems**
+   - Ensure all mounted filesystems are properly unmounted after provisioning.
 
-14. **Cleanup Temporary Files**
-    - Remove temporary data, such as backups stored in the reserved partition.
+2. **Cleanup Temporary Files**
+   - Remove temporary data, such as backups stored in the reserved partition.
 
 ---
 
 ## Key Differences Between FDE and DMV Partitioning
 
-### Full Disk Encryption (FDE)
+### FDE Partitioning
 
 - The `rootfs_partition` is fully encrypted to ensure data confidentiality.
 - The `swap_partition` is also encrypted to protect sensitive data in virtual memory.
@@ -172,7 +175,7 @@ DM-Verity is a kernel feature that ensures the integrity of the root filesystem 
 - The `emt_persistent_partition` and `singlehdd_lvm_partition` are also encrypted but are used for specific purposes like persistent data storage.
 - The `trusted_compute_partition` and `reserved_partition` are not encrypted but are used for Trusted Compute-based activities and recovery operations, respectively.
 
-### DeviceMapper Verity (DMV)
+### DMV Partitioning
 
 - Adds integrity verification to the `rootfs_partition` using hash maps stored in `root_hashmap_a_partition` and `root_hashmap_b_partition`.
 - The `roothash_partition` is used to store the root hash for verifying the integrity of the root filesystem.
