@@ -14,6 +14,14 @@ func IsSameHostStatus(
 	oldHost *computev1.HostResource,
 	newHost *computev1.HostResource,
 ) bool {
+	return oldHost.HostStatusIndicator == newHost.HostStatusIndicator &&
+		oldHost.HostStatus == newHost.HostStatus
+}
+
+func IsSameOnboardingStatus(
+	oldHost *computev1.HostResource,
+	newHost *computev1.HostResource,
+) bool {
 	return oldHost.OnboardingStatusIndicator == newHost.OnboardingStatusIndicator &&
 		oldHost.OnboardingStatus == newHost.OnboardingStatus
 }
@@ -25,6 +33,15 @@ func IsSameInstanceStatusAndState(
 	return oldInstance.CurrentState == newInstance.CurrentState &&
 		oldInstance.ProvisioningStatus == newInstance.ProvisioningStatus &&
 		oldInstance.ProvisioningStatusIndicator == newInstance.ProvisioningStatusIndicator
+}
+
+func PopulateHostStatus(
+	instance *computev1.InstanceResource,
+	hostStatus inv_status.ResourceStatus,
+) {
+	host := instance.GetHost() // eager-loaded
+	host.HostStatus = hostStatus.Status
+	host.HostStatusIndicator = hostStatus.StatusIndicator
 }
 
 func PopulateHostOnboardingStatus(
