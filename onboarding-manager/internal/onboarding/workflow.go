@@ -317,6 +317,9 @@ func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.W
 		} else {
 			return inv_errors.Errorf("OS resource ID not found in Tinkerbell hardware %s", hardwareName)
 		}
+
+		// set host status to "rebooting" since every successful workflow ends with a reboot
+		util.PopulateHostStatus(instance, om_status.HostStatusRebooting)
 		return nil
 	case tink.WorkflowStateFailed, tink.WorkflowStateTimeout:
 		ProvisioningStatusFailed := om_status.NewStatusWithDetails(onFailureProvisioningStatus,
