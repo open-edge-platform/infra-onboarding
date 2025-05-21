@@ -39,6 +39,7 @@ const MaxSerialNumberLength = 36
 const (
 	DefaultInventoryTimeout = 5 * time.Second
 	ReconcileDefaultTimeout = 5 * time.Minute // Longer timeout for reconciling all resources
+	eventsWatcherBufSize    = 10
 )
 
 var ReconcileTimeout = flag.Duration(
@@ -105,7 +106,7 @@ func NewOnboardingInventoryClientWithOptions(opts ...Option) (*OnboardingInvento
 	}
 
 	wg := sync.WaitGroup{}
-	eventsWatcher := make(chan *client.WatchEvents)
+	eventsWatcher := make(chan *client.WatchEvents, eventsWatcherBufSize)
 	cfg := client.InventoryClientConfig{
 		Name:                      clientName,
 		Address:                   options.InventoryAddress,
@@ -136,7 +137,7 @@ func NewOnboardingInventoryClientWithOptions(opts ...Option) (*OnboardingInvento
 	}
 	zlog.InfraSec().Info().Msgf("Inventory client started")
 	// Define unbuffered channel for managing internal events.
-	internalWatchChannel := make(chan *client.ResourceTenantIDCarrier)
+	internalWatchChannel := make(chan *client.ResourceTenantIDCarrier, eventsWatcherBufSize)
 	return NewOnboardingInventoryClient(invClient, eventsWatcher, internalWatchChannel)
 }
 
@@ -418,6 +419,23 @@ func (c *OnboardingInventoryClient) updateHostCurrentState(ctx context.Context,
 	})
 }
 
+func (c *OnboardingInventoryClient) SetHostStatus(ctx context.Context, tenantID string, hostID string,
+	hostStatus inv_status.ResourceStatus,
+) error {
+	updateHost := &computev1.HostResource{
+		ResourceId:          hostID,
+		HostStatus:          hostStatus.Status,
+		HostStatusIndicator: hostStatus.StatusIndicator,
+		HostStatusTimestamp: uint64(time.Now().Unix()), // #nosec G115
+	}
+
+	return c.UpdateInvResourceFields(ctx, tenantID, updateHost, []string{
+		computev1.HostResourceFieldHostStatus,
+		computev1.HostResourceFieldHostStatusIndicator,
+		computev1.HostResourceFieldHostStatusTimestamp,
+	})
+}
+
 func (c *OnboardingInventoryClient) SetHostOnboardingStatus(ctx context.Context, tenantID string, hostID string,
 	onboardingStatus inv_status.ResourceStatus,
 ) error {
@@ -435,6 +453,7 @@ func (c *OnboardingInventoryClient) SetHostOnboardingStatus(ctx context.Context,
 	})
 }
 
+// FIXME: ITEP-67453 This function duplicates SetHostOnboardingStatus. Consider refactoring to avoid redundancy.
 func (c *OnboardingInventoryClient) SetHostStatusDetail(ctx context.Context, tenantID string,
 	hostID string, onboardingStatus inv_status.ResourceStatus,
 ) error {
