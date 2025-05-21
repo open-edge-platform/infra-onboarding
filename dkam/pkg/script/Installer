@@ -254,6 +254,7 @@ install_node_agent(){
         echo "node-agent node-agent/proxy.aptSourceProxyPort string ${CADDY_APT_PROXY_PORT}" | debconf-set-selections
         echo "node-agent node-agent/proxy.imgRegistryURL string ${CADDY_REGISTRY_PROXY_URL}" | debconf-set-selections
         echo "node-agent node-agent/proxy.imgRegistryProxyPort string ${CADDY_REGISTRY_PROXY_PORT}" | debconf-set-selections
+	echo "node-agent node-agent/proxy.aptSourceFilesRSRoot string ${FILE_RS_ROOT}" | debconf-set-selections
         echo "node-agent node-agent/auth.RSType string ${RS_TYPE}" | debconf-set-selections
 
         echo "Install caddy for node agent..."
@@ -303,7 +304,7 @@ install_node_agent(){
 
         echo "wait for node agent and client proxy to start"
         while true; do
-            http_status=$(curl -s -o /dev/null -w "%{http_code}" "https://localhost:$CADDY_APT_PROXY_PORT/${FILE_RS_ROOT}/edge-node.asc")
+            http_status=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:$CADDY_APT_PROXY_PORT/${FILE_RS_ROOT}/edge-node.asc")
             if [ "$http_status" -eq 200 ]; then
                 echo "Client proxy is active"
                 break
@@ -319,7 +320,7 @@ install_node_agent(){
         else
             curl -kfsSL "https://$CADDY_APT_PROXY_URL/${FILE_RS_ROOT}/edge-node.asc" -o /etc/apt/trusted.gpg.d/edge-node.asc
         fi
-        echo "deb https://localhost:$CADDY_APT_PROXY_PORT/${FILE_RS_ROOT}/repository ${APT_DISTRO} main" | tee /etc/apt/sources.list.d/edge-node.list
+        echo "deb http://localhost:$CADDY_APT_PROXY_PORT/${FILE_RS_ROOT}/repository ${APT_DISTRO} main" | tee /etc/apt/sources.list.d/edge-node.list
 
         apt-get update
         echo "install_node_agent done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
