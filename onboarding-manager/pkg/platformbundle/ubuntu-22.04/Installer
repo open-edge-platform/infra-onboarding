@@ -177,9 +177,7 @@ install_node_agent(){
         echo "node-agent node-agent/auth.rsTokenURL string ${NODE_RS_URL}" | debconf-set-selections
         echo "node-agent node-agent/proxy.aptSourceURL string ${CADDY_APT_PROXY_URL}" | debconf-set-selections
         echo "node-agent node-agent/proxy.aptSourceProxyPort string ${CADDY_APT_PROXY_PORT}" | debconf-set-selections
-        echo "node-agent node-agent/proxy.imgRegistryURL string ${CADDY_REGISTRY_PROXY_URL}" | debconf-set-selections
-        echo "node-agent node-agent/proxy.imgRegistryProxyPort string ${CADDY_REGISTRY_PROXY_PORT}" | debconf-set-selections
-	echo "node-agent node-agent/proxy.aptSourceFilesRSRoot string ${FILE_RS_ROOT}" | debconf-set-selections
+        echo "node-agent node-agent/proxy.aptSourceFilesRSRoot string ${FILE_RS_ROOT}" | debconf-set-selections
         echo "node-agent node-agent/auth.RSType string ${RS_TYPE}" | debconf-set-selections
 
         echo "Install caddy for node agent..."
@@ -187,9 +185,9 @@ install_node_agent(){
         echo "download caddy deb package..."
         CADDY_PKGFILE="./caddy_${CADDY_VERSION}_linux_amd64.deb"
          if [ "$RS_TYPE" == "auth" ]; then
-            echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/caddy:$CADDY_VERSION" --password-stdin
+            echo "${RS_AT}" | oras pull "${REGISTRY_URL}/${DEB_PACKAGES_REPO}/caddy:$CADDY_VERSION" --password-stdin
         else
-            oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/caddy:$CADDY_VERSION"
+            oras pull "${REGISTRY_URL}/${DEB_PACKAGES_REPO}/caddy:$CADDY_VERSION"
         fi
 
         if [ ! -f "${CADDY_PKGFILE}" ]; then
@@ -210,9 +208,9 @@ install_node_agent(){
 
         echo "download node agent"
          if [ "$RS_TYPE" == "auth" ]; then
-            echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/node-agent:$NODE_AGENT_VERSION" --password-stdin
+            echo "${RS_AT}" | oras pull "${REGISTRY_URL}/${DEB_PACKAGES_REPO}/node-agent:$NODE_AGENT_VERSION" --password-stdin
         else
-            oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/node-agent:$NODE_AGENT_VERSION"
+            oras pull "${REGISTRY_URL}/${DEB_PACKAGES_REPO}/node-agent:$NODE_AGENT_VERSION"
         fi
 
         if [ ! -f "${PKGFILE}" ]; then

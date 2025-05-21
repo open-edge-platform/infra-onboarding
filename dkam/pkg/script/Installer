@@ -78,8 +78,7 @@ NODE_RS_URL={{ .RELEASE_TOKEN_URL }}
 RELEASE_FQDN={{ .RELEASE_FQDN }}
 CADDY_APT_PROXY_URL={{ .FILE_SERVER }}
 CADDY_APT_PROXY_PORT={{ .ORCH_APT_PORT }}
-CADDY_REGISTRY_PROXY_URL={{ .IMG_REGISTRY_URL }}
-CADDY_REGISTRY_PROXY_PORT={{ .ORCH_IMG_PORT }}
+REGISTRY_URL={{ .IMG_REGISTRY_URL }}
 DEB_PACKAGES_REPO={{ .DEB_PACKAGES_REPO }}
 FILE_RS_ROOT={{ .FILE_RS_ROOT }}
 
@@ -252,9 +251,7 @@ install_node_agent(){
         echo "node-agent node-agent/auth.rsTokenURL string ${NODE_RS_URL}" | debconf-set-selections
         echo "node-agent node-agent/proxy.aptSourceURL string ${CADDY_APT_PROXY_URL}" | debconf-set-selections
         echo "node-agent node-agent/proxy.aptSourceProxyPort string ${CADDY_APT_PROXY_PORT}" | debconf-set-selections
-        echo "node-agent node-agent/proxy.imgRegistryURL string ${CADDY_REGISTRY_PROXY_URL}" | debconf-set-selections
-        echo "node-agent node-agent/proxy.imgRegistryProxyPort string ${CADDY_REGISTRY_PROXY_PORT}" | debconf-set-selections
-	echo "node-agent node-agent/proxy.aptSourceFilesRSRoot string ${FILE_RS_ROOT}" | debconf-set-selections
+        echo "node-agent node-agent/proxy.aptSourceFilesRSRoot string ${FILE_RS_ROOT}" | debconf-set-selections
         echo "node-agent node-agent/auth.RSType string ${RS_TYPE}" | debconf-set-selections
 
         echo "Install caddy for node agent..."
@@ -263,9 +260,9 @@ install_node_agent(){
         CADDY_VERSION={{ index . "caddy-VERSION" }}
         CADDY_PKGFILE="./caddy_${CADDY_VERSION}_linux_amd64.deb"
         if [ "$RS_TYPE" == "auth" ]; then
-            echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/caddy:$CADDY_VERSION" --password-stdin
+            echo "${RS_AT}" | oras pull "${REGISTRY_URL}/${DEB_PACKAGES_REPO}/caddy:$CADDY_VERSION" --password-stdin
         else
-            oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/caddy:$CADDY_VERSION"
+            oras pull "${REGISTRY_URL}/${DEB_PACKAGES_REPO}/caddy:$CADDY_VERSION"
         fi
         if [ ! -f "${CADDY_PKGFILE}" ]; then
             echo "caddy debian package could not be downloaded. Aborting installation"
@@ -286,9 +283,9 @@ install_node_agent(){
 
         echo "download node agent"
         if [ "$RS_TYPE" == "auth" ]; then
-            echo "${RS_AT}" | oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/node-agent:$VERSION" --password-stdin
+            echo "${RS_AT}" | oras pull "${REGISTRY_URL}/${DEB_PACKAGES_REPO}/node-agent:$VERSION" --password-stdin
         else
-            oras pull "${CADDY_REGISTRY_PROXY_URL}/${DEB_PACKAGES_REPO}/node-agent:$VERSION"
+            oras pull "${REGISTRY_URL}/${DEB_PACKAGES_REPO}/node-agent:$VERSION"
         fi
 
         if [ ! -f "${PKGFILE}" ]; then
