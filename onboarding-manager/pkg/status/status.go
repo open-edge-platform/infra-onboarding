@@ -32,6 +32,8 @@ var (
 	HostRegistrationDone     = inv_status.New("Host is Registered", statusv1.StatusIndication_STATUS_INDICATION_IDLE)
 	HostRegistrationInFailed = inv_status.New("Host Registration Failed", statusv1.StatusIndication_STATUS_INDICATION_ERROR)
 
+	HostStatusRebooting = inv_status.New("Rebooting", statusv1.StatusIndication_STATUS_INDICATION_IN_PROGRESS)
+
 	DeletingStatus = inv_status.New("Deleting", statusv1.StatusIndication_STATUS_INDICATION_IN_PROGRESS)
 )
 
