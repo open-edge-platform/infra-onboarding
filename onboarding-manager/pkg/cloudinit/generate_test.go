@@ -82,12 +82,12 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 					newCfg.ExtraHosts = strings.Split("1.1.1.1 a.test,2.2.2.2 b.test", ",")
 					newCfg.FirewallCfgAllow = `
 		[
-		    {
-		        "sourceIp": "",
-		        "ports": "80,443",
-		        "ipVer": "",
-		        "protocol": "tcp"
-		    }
+			{
+				"sourceIp": "",
+				"ports": "80,443",
+				"ipVer": "",
+				"protocol": "tcp"
+			}
 		]`
 					return newCfg
 				},
@@ -111,14 +111,14 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 					newCfg.ClusterURL = clusterURL
 					newCfg.ExtraHosts = strings.Split("1.1.1.1 a.test,2.2.2.2 b.test", ",")
 					newCfg.FirewallCfgAllow = `
-		   		[
-		   		    {
-		   		        "sourceIp": "",
-		   		        "ports": "80,443",
-		   		        "ipVer": "",
-		   		        "protocol": "tcp"
-		   		    }
-		   		]`
+				[
+		 			{
+		 			"sourceIp": "",
+		 				"ports": "80,443",
+						 "ipVer": "",
+						 "protocol": "tcp"
+					}
+				]`
 					return newCfg
 				},
 			},
@@ -368,14 +368,14 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 					newCfg.ClusterURL = clusterURL
 					newCfg.ExtraHosts = strings.Split("1.1.1.1 a.test,2.2.2.2 b.test", ",")
 					newCfg.FirewallCfgAllow = `
-		   [
-		       {
-		           "sourceIp": "",
-		           "ports": "80,443",
-		           "ipVer": "",
-		           "protocol": "tcp"
-		       }
-		   ]`
+			[
+				{
+					"sourceIp": "",
+					"ports": "80,443",
+					"ipVer": "",
+					"protocol": "tcp"
+				}
+			]`
 					return newCfg
 				},
 			},
@@ -399,14 +399,14 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 					newCfg.ClusterURL = clusterURL
 					newCfg.ExtraHosts = strings.Split("1.1.1.1 a.test,2.2.2.2 b.test", ",")
 					newCfg.FirewallCfgAllow = `
-		   [
-		       {
-		           "sourceIp": "",
-		           "ports": "80,443",
-		           "ipVer": "",
-		           "protocol": "tcp"
-		       }
-		   ]`
+			[
+				{
+					"sourceIp": "",
+					"ports": "80,443",
+					"ipVer": "",
+					"protocol": "tcp"
+				}
+			]`
 					return newCfg
 				},
 			},
