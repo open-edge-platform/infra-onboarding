@@ -17,6 +17,11 @@ source ./config
 #mkdir -p "$STORE_ALPINE_SECUREBOOT"
 STORE_ALPINE=output
 mkdir -p "$STORE_ALPINE"
+
+#TEMPORARY
+cp "$data_dir"/hook_x86_64.tar.gz "$data_dir"/emt_uos_x86_64.tar.gz
+
+
 cp "$data_dir"/emt_uos_x86_64.tar.gz "$STORE_ALPINE"
 
 popd || exit
