@@ -27,19 +27,20 @@ jobs:
       GITHUB_ACTIONS: true
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - name: "Verify Branch Name"
         with:
-          persist-credentails: false
+          persist-credentials: false
+      - name: "Verify Branch Name"
         uses: open-edge-platform/orch-ci/verify-branch-name@b39f8770ac653e73001e07f9f47028e1d590be5c  # 0.1.13
       - name: "Discover Changed Subfolders"
         id: discover-changes
         uses: open-edge-platform/orch-ci/discover-changed-subfolders@b39f8770ac653e73001e07f9f47028e1d590be5c  # 0.1.13
       - name: "Filter Out Unwanted Changed Subfolders"
         id: filter-changes
+        env:
+          changed_projects: ${{ steps.discover-changes.outputs.changed_projects }}
         run: |
           folders_to_remove='[".github",".reuse","LICENSES",""]'
 
-          changed_projects='${{ steps.discover-changes.outputs.changed_projects }}'
           filtered_projects=$(echo "$changed_projects" | jq -cr --argjson folders_to_remove "$folders_to_remove" 'map(select(. as $item | $folders_to_remove | index($item) | not))')
           other_changed_projects=$(echo "$changed_projects" | jq -cr --argjson filtered_projects "$filtered_projects" 'map(select(. as $item | $filtered_projects | index($item) | not))')
 
