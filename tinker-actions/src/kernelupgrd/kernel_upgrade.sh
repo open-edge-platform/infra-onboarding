@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-set -x
+set -ex
 
 # Sync file system
 function sync_file_system(){
@@ -173,6 +173,7 @@ else
                 echo "Multiple Disks"
                 sgdisk -e "/dev/${os_disk}"
                 partprobe "/dev/${os_disk}"
+                sync_file_system "$rootfs_part"
                 e2fsck -f -y "$rootfs_part"
                 growpart "/dev/${os_disk}" "${part_number}"
 		partprobe "/dev/${os_disk}"
