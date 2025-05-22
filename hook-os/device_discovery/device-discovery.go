@@ -37,8 +37,8 @@ const (
 	clientCredentialsFolder = "/dev/shm/"
 	clientIDPath            = clientCredentialsFolder + "/client_id"
 	clientSecretPath        = clientCredentialsFolder + "/client_secret"
-	kernelArgsFilePath      = "/host_proc_cmdline"
-	caCertPath              = "/usr/local/share/ca-certificates/ca.crt"
+	kernelArgsFilePath      = "/proc/cmdline"
+	caCertPath              = "/etc/idp/server_cert.pem"
 	projectIDPath           = clientCredentialsFolder + "/project_id"
 )
 
