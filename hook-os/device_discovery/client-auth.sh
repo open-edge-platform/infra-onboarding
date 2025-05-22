@@ -130,7 +130,17 @@ main() {
 		echo "Incorrect username password" >> "$log_file"
 		continue
 	fi
+ 
+ 	if [ ! cp /etc/idp/server_cert.pem /usr/local/share/ca-certificates/IDP_keyclock.crt ]; then
+		echo "Failed to copy server_cert.pem to /usr/local/share/ca-certificates/IDP_keyclock.crt" >> "$log_file"
+		exit 1
+	fi
 
+	if [ ! cp /etc/idp/ca.pem /usr/local/share/ca-certificates/ca.crt ]; then
+		echo "Failed to copy ca.pem to /usr/local/share/ca-certificates/ca.crt" >> "$log_file"
+		exit 1
+	fi
+ 
 	if [ ! -e /usr/local/share/ca-certificates/IDP_keyclock.crt ];
 	then
 	    echo " IDP ca cert not found at the expected location: reboot" >> "$log_file"
@@ -138,7 +148,7 @@ main() {
 	    reboot
 	fi
 
-	update-ca-certificates
+	update-ca-trust
 
 	#update hosts if they were provided
 	extra_hosts_needed=$(echo "$EXTRA_HOSTS" | sed "s|,|\n|g")
