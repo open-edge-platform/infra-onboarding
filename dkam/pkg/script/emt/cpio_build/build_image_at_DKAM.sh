@@ -5,7 +5,7 @@
 
 #set -x
 
-set -xuo pipefail
+set -xueo pipefail
 data_dir=$1
 pushd ../
 
@@ -164,7 +164,7 @@ extract_emt_tar() {
 
 	#Extract rootfs.tar.gz from initramfs and decompress
 	mkdir -p $iter_folder/emt_uos_x86_64_files/extract_initramfs
-	zcat $iter_folder/emt_uos_x86_64_files/initramfs-x86_64 | cpio -idmv -D $iter_folder/emt_uos_x86_64_files/extract_initramfs > /dev/null 2>&1
+	zcat $iter_folder/emt_uos_x86_64_files/initramfs-x86_64 | cpio -idmv -D $iter_folder/emt_uos_x86_64_files/extract_initramfs || true #> /dev/null 2>&1
 	rm $iter_folder/emt_uos_x86_64_files/initramfs-x86_64
         mkdir -p $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp
 	#tar -xvf $iter_folder/emt_uos_x86_64_files/extract_initramfs/rootfs.tar.gz -C $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp > /dev/null 2>&1
@@ -213,11 +213,11 @@ extract_emt_tar() {
         find . | cpio -o -H newc | gzip -9 > ../initramfs-x86_64
 
 	popd || exit
-        ls $iter_folder/
-	rm $iter_folder/emt_uos_x86_64.tar.gz
-	rm -rf $iter_folder/emt_uos_x86_64_files/extract_initramfs
-	tar -czvf $iter_folder/emt_uos_x86_64.tar.gz -C $iter_folder/emt_uos_x86_64_files . > /dev/null 2>&1
-	rm -rf $iter_folder/emt_uos_x86_64_files/
+    #     ls $iter_folder/
+	# rm $iter_folder/emt_uos_x86_64.tar.gz
+	# rm -rf $iter_folder/emt_uos_x86_64_files/extract_initramfs
+	# tar -czvf $iter_folder/emt_uos_x86_64.tar.gz -C $iter_folder/emt_uos_x86_64_files . > /dev/null 2>&1
+	# rm -rf $iter_folder/emt_uos_x86_64_files/
     done
 
 }
