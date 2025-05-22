@@ -82,8 +82,8 @@ func SignHookOS() (bool, error) {
 }
 
 func setupHookDirectories() (string, error) {
-	hookDir := config.ScriptPath + "/hook"
-	buildScriptPath := config.DownloadPath + "/hook"
+	hookDir := config.ScriptPath + "/emt"
+	buildScriptPath := config.DownloadPath + "/emt"
 	zlog.InfraSec().Info().Msgf("Hook OS dir %s", buildScriptPath)
 	mkdirErr := os.MkdirAll(buildScriptPath, fileMode)
 	if mkdirErr != nil {
