@@ -37,7 +37,7 @@ RUN groupadd --gid $USER_GID $USERNAME && \
     m4 git gettext autopoint pkg-config \
     autoconf-archive python3 bison flex \
     gawk efitools sbsigntool gnupg uuid-runtime \
-    pax curl unzip
+    pax curl unzip cpio
 
 ARG REPO_URL
 ARG VERSION
