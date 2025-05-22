@@ -151,6 +151,7 @@ func GetCommonInfraTemplateVariables(infraConfig config.InfraConfig, osType osv1
 		"RELEASE_FQDN":                   strings.Split(infraConfig.ReleaseServiceURL, ":")[0],
 		"RELEASE_TOKEN_URL":              infraConfig.ReleaseServiceURL,
 		"ORCH_APT_PORT":                  strings.Split(infraConfig.FileServerURL, ":")[1],
+		"ORCH_IMG_PORT":                  strings.Split(infraConfig.RegistryURL, ":")[1],
 		"FILE_SERVER":                    strings.Split(infraConfig.FileServerURL, ":")[0],
 		"IMG_REGISTRY_URL":               strings.Split(infraConfig.RegistryURL, ":")[0],
 		"NTP_SERVERS":                    strings.Join(infraConfig.NTPServers, ","),
