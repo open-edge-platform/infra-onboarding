@@ -119,3 +119,34 @@ func AssertInstance(
 	assert.Equal(tb, expectedProvisioningStatus.Status, instance.GetProvisioningStatus())
 	assert.Equal(tb, expectedProvisioningStatus.StatusIndicator, instance.GetProvisioningStatusIndicator())
 }
+
+func AssertInstanceStatuses(
+	tb testing.TB,
+	tenantID string,
+	resID string,
+	expectedInstanceStatus inv_status.ResourceStatus,
+	expectedProvisioningStatus inv_status.ResourceStatus,
+	expectedUpdateStatus inv_status.ResourceStatus,
+	expectedTrustedAttestationStatus inv_status.ResourceStatus,
+) {
+	tb.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	gresp, err := inv_testing.TestClients[inv_testing.APIClient].GetTenantAwareInventoryClient().Get(ctx, tenantID, resID)
+	require.NoError(tb, err)
+
+	instance := gresp.GetResource().GetInstance()
+
+	assert.Equal(tb, expectedInstanceStatus.Status, instance.GetInstanceStatus())
+	assert.Equal(tb, expectedInstanceStatus.StatusIndicator, instance.GetInstanceStatusIndicator())
+	assert.Equal(tb, "", instance.GetInstanceStatusDetail())
+	assert.Equal(tb, expectedProvisioningStatus.Status, instance.GetProvisioningStatus())
+	assert.Equal(tb, expectedProvisioningStatus.StatusIndicator, instance.GetProvisioningStatusIndicator())
+	assert.Equal(tb, expectedUpdateStatus.Status, instance.GetUpdateStatus())
+	assert.Equal(tb, expectedUpdateStatus.StatusIndicator, instance.GetUpdateStatusIndicator())
+	assert.Equal(tb, "", instance.GetUpdateStatusDetail())
+	assert.Equal(tb, expectedTrustedAttestationStatus.Status, instance.GetTrustedAttestationStatus())
+	assert.Equal(tb, expectedTrustedAttestationStatus.StatusIndicator, instance.GetTrustedAttestationStatusIndicator())
+}
