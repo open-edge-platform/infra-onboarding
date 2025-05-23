@@ -260,11 +260,15 @@ func (hr *HostReconciler) invalidateHost(ctx context.Context, host *computev1.Ho
 	}
 
 	untrustedHost := computev1.HostResource{
-		ResourceId:          host.GetResourceId(),
-		CurrentState:        computev1.HostState_HOST_STATE_UNTRUSTED,
-		HostStatus:          om_status.AuthorizationStatusInvalidated.Status,
-		HostStatusIndicator: om_status.AuthorizationStatusInvalidated.StatusIndicator, // #nosec G115
-		HostStatusTimestamp: uint64(time.Now().Unix()),                                // #nosec G115
+		ResourceId:                  host.GetResourceId(),
+		CurrentState:                computev1.HostState_HOST_STATE_UNTRUSTED,
+		HostStatus:                  om_status.AuthorizationStatusInvalidated.Status,
+		HostStatusIndicator:         om_status.AuthorizationStatusInvalidated.StatusIndicator, // #nosec G115
+		HostStatusTimestamp:         uint64(time.Now().Unix()),                                // #nosec G115
+		OnboardingStatus:            om_status.OnboardingStatusUnknown.Status,
+		OnboardingStatusIndicator:   om_status.OnboardingStatusUnknown.StatusIndicator,
+		RegistrationStatus:          om_status.HostRegistrationUnknown.Status,
+		RegistrationStatusIndicator: om_status.HostRegistrationUnknown.StatusIndicator,
 	}
 
 	// Although Onboarding Manager should not update host_status that is updated by HRM,

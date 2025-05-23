@@ -38,6 +38,25 @@ var (
 	actionSuccessDuration = make(map[string]int64)
 )
 
+func CheckWorkflowExist(ctx context.Context,
+	deviceInfo onboarding_types.DeviceInfo,
+	instance *computev1.InstanceResource,
+) bool {
+	zlog.Debug().Msgf("Checking status of Prod workflow for host %s", deviceInfo.GUID)
+
+	kubeClient, err := tinkerbell.K8sClientFactory()
+	if err != nil {
+		return false
+	}
+
+	prodWorkflowName := tinkerbell.GetProdWorkflowName(deviceInfo.GUID)
+	_, err = getWorkflow(ctx, kubeClient, prodWorkflowName, instance.Host.ResourceId)
+	if err != nil || inv_errors.IsNotFound(err) {
+		return false
+	}
+	return true
+}
+
 func CheckStatusOrRunProdWorkflow(ctx context.Context,
 	deviceInfo onboarding_types.DeviceInfo,
 	instance *computev1.InstanceResource,
@@ -298,6 +317,9 @@ func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.W
 		} else {
 			return inv_errors.Errorf("OS resource ID not found in Tinkerbell hardware %s", hardwareName)
 		}
+
+		// set host status to "rebooting" since every successful workflow ends with a reboot
+		util.PopulateHostStatus(instance, om_status.HostStatusRebooting)
 		return nil
 	case tink.WorkflowStateFailed, tink.WorkflowStateTimeout:
 		ProvisioningStatusFailed := om_status.NewStatusWithDetails(onFailureProvisioningStatus,

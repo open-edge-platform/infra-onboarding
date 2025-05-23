@@ -14,6 +14,7 @@ import (
 
 	computev1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/compute/v1"
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
+	statusv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/status/v1"
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
 	inv_status "github.com/open-edge-platform/infra-core/inventory/v2/pkg/status"
@@ -67,13 +68,17 @@ func (ir *InstanceReconciler) Reconcile(ctx context.Context,
 		return directive
 	}
 
+	// Forbid Instance provisioning with defined Provider. Such Instance should be reconciled within Provider-specific RM.
+	if directive := ir.handleProviderSpecificRM(instance, request); directive != nil {
+		return directive
+	}
+
 	// the only allowed path from the ERROR state is DELETED
 	if directive := ir.handleErrorState(instance, request); directive != nil {
 		return directive
 	}
 
-	// Forbid Instance provisioning with defined Provider. Such Instance should be reconciled within Provider-specific RM.
-	if directive := ir.handleProviderSpecificRM(instance, request); directive != nil {
+	if directive := ir.handleHostDeauthorized(ctx, instance, request, resourceID); directive != nil {
 		return directive
 	}
 
@@ -86,6 +91,71 @@ func (ir *InstanceReconciler) Reconcile(ctx context.Context,
 	}
 
 	return ir.reconcileInstance(ctx, request, instance)
+}
+
+func checkStatusUnknown(instance *computev1.InstanceResource,
+) bool {
+	// Check if instance status has already been set to unknown
+	if instance.GetInstanceStatus() != "Unknown" {
+		return false
+	}
+	return true
+}
+
+func checkStatusIdle(instance *computev1.InstanceResource,
+) bool {
+	idleCheck := true
+	// Check if all statuses in instance are Idle
+	if instance.GetInstanceStatusIndicator() != statusv1.StatusIndication_STATUS_INDICATION_IDLE &&
+		instance.GetInstanceStatusIndicator() != statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED {
+		idleCheck = false
+	}
+	if instance.GetProvisioningStatusIndicator() != statusv1.StatusIndication_STATUS_INDICATION_IDLE &&
+		instance.GetProvisioningStatusIndicator() != statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED {
+		idleCheck = false
+	}
+	if instance.GetUpdateStatusIndicator() != statusv1.StatusIndication_STATUS_INDICATION_IDLE &&
+		instance.GetUpdateStatusIndicator() != statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED {
+		idleCheck = false
+	}
+	if instance.GetTrustedAttestationStatusIndicator() != statusv1.StatusIndication_STATUS_INDICATION_IDLE &&
+		instance.GetTrustedAttestationStatusIndicator() != statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED {
+		idleCheck = false
+	}
+	return idleCheck
+}
+
+func (ir *InstanceReconciler) handleHostDeauthorized(ctx context.Context, instance *computev1.InstanceResource,
+	request rec_v2.Request[ReconcilerID], resourceID string,
+) rec_v2.Directive[ReconcilerID] {
+	if (instance.GetHost().GetCurrentState() == computev1.HostState_HOST_STATE_UNTRUSTED ||
+		instance.GetHost().GetDesiredState() == computev1.HostState_HOST_STATE_UNTRUSTED) &&
+		instance.GetDesiredState() == computev1.InstanceState_INSTANCE_STATE_RUNNING {
+		if !checkStatusUnknown(instance) {
+			// Check that all statuses and indicators have been updated
+			if !checkStatusIdle(instance) {
+				zlogInst.Info().Msgf("Host associated with Instance (%s) has been deauthorized. "+
+					"Forcing reconciliation to update Instance status.", resourceID)
+				// Update instance statuses to idle
+				util.PopulateInstanceIdleStatus(instance)
+			}
+			// If the host associated with the instance is deauthorized, check if the provisioning
+			// workflow has been removed and clean it up if not
+			deviceInfo, err := convertInstanceToDeviceInfo(instance)
+			if err == nil && onboarding.CheckWorkflowExist(ctx, deviceInfo, instance) {
+				// Delete workflow and set provisioning status
+				zlogInst.Info().Msgf("Host associated with Instance (%s) has been deauthorized. "+
+					"Deleting provisioning workflows.", resourceID)
+				if err := ir.cleanupProvisioningResources(ctx, instance); err != nil {
+					// If error received, don't retry as resources will be deleted when instance is deleted
+					return request.Ack()
+				}
+			}
+			ir.updateInstanceStatuses(ctx, instance)
+		}
+		return request.Ack()
+	}
+	return nil
 }
 
 func (ir *InstanceReconciler) handleHostOnboarded(instance *computev1.InstanceResource, request rec_v2.Request[ReconcilerID],
@@ -153,6 +223,28 @@ func (ir *InstanceReconciler) handleMatchingStates(ctx context.Context, instance
 	return nil
 }
 
+func (ir *InstanceReconciler) updateInstanceStatuses(
+	ctx context.Context,
+	newInstance *computev1.InstanceResource,
+) {
+	newHost := newInstance.GetHost()
+	zlogInst.Debug().Msgf("Updating Host %s resourceID %s onboarding status: %q",
+		newHost.GetUuid(), newHost.GetResourceId(), newHost.GetOnboardingStatus())
+	if err := ir.invClient.UpdateInstanceStatuses(
+		ctx,
+		newInstance.GetTenantId(),
+		newInstance.GetResourceId(),
+		inv_status.New(newInstance.GetInstanceStatus(), newInstance.GetInstanceStatusIndicator()),
+		newInstance.GetInstanceStatusDetail(),
+		inv_status.New(newInstance.GetProvisioningStatus(), newInstance.GetProvisioningStatusIndicator()),
+		inv_status.New(newInstance.GetUpdateStatus(), newInstance.GetUpdateStatusIndicator()),
+		newInstance.GetUpdateStatusDetail(),
+		inv_status.New(newInstance.GetTrustedAttestationStatus(), newInstance.GetTrustedAttestationStatusIndicator()),
+	); err != nil {
+		zlogInst.InfraSec().InfraErr(err).Msgf("Failed to update instance status")
+	}
+}
+
 func (ir *InstanceReconciler) updateHostInstanceStatusAndCurrentState(
 	ctx context.Context,
 	oldInstance *computev1.InstanceResource,
@@ -163,10 +255,17 @@ func (ir *InstanceReconciler) updateHostInstanceStatusAndCurrentState(
 		newHost.GetUuid(), newHost.GetResourceId(), newHost.GetOnboardingStatus())
 
 	if !util.IsSameHostStatus(oldInstance.GetHost(), newHost) {
+		if err := ir.invClient.SetHostStatus(
+			ctx, newHost.GetTenantId(), newHost.GetResourceId(),
+			inv_status.New(newHost.GetHostStatus(), newHost.GetHostStatusIndicator())); err != nil {
+			zlogInst.InfraSec().InfraErr(err).Msgf("Failed to update host status")
+		}
+	}
+	if !util.IsSameOnboardingStatus(oldInstance.GetHost(), newHost) {
 		if err := ir.invClient.SetHostOnboardingStatus(
 			ctx, newHost.GetTenantId(), newHost.GetResourceId(),
 			inv_status.New(newHost.GetOnboardingStatus(), newHost.GetOnboardingStatusIndicator())); err != nil {
-			zlogInst.InfraSec().InfraErr(err).Msgf("Failed to update host status")
+			zlogInst.InfraSec().InfraErr(err).Msgf("Failed to update host onboarding status")
 		}
 	}
 
