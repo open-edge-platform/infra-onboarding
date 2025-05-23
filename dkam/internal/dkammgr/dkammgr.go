@@ -32,7 +32,7 @@ func DownloadArtifacts(ctx context.Context) error {
 }
 
 func SignMicroOS() (bool, error) {
-	signed, err := signing.SignHookOS()
+	signed, err := signing.SignUOS()
 	if err != nil {
 		zlog.InfraSec().Info().Msgf("Failed to sign MicroOS %v", err)
 		return false, err
