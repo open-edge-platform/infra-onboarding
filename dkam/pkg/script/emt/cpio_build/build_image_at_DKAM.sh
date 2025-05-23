@@ -19,7 +19,7 @@ STORE_ALPINE=output
 mkdir -p "$STORE_ALPINE"
 
 #TEMPORARY
-cp "$data_dir"/hook_x86_64.tar.gz "$data_dir"/emt_uos_x86_64.tar.gz
+# cp "$data_dir"/hook_x86_64.tar.gz "$data_dir"/emt_uos_x86_64.tar.gz
 
 
 cp "$data_dir"/emt_uos_x86_64.tar.gz "$STORE_ALPINE"
@@ -95,32 +95,33 @@ create_env_config() {
 
 get_cert(){	
 
-	if [ ! -f /etc/ssl/boots-ca-cert/ca.crt ]; then
+    CERT_DIR="/home/hspe/ppanigra/recreated/infra-onboarding/dkam/pkg/script/emt/data"
+	if [ ! -f "$CERT_DIR"/etc/ssl/boots-ca-cert/ca.crt ]; then
 		echo "======== file is not present ========"
 		exit 0
 	fi
 
-	if [ ! -s /etc/ssl/boots-ca-cert/ca.crt ]; then
+	if [ ! -s "$CERT_DIR"/etc/ssl/boots-ca-cert/ca.crt ]; then
 		echo "======== file size is zero ========"
 		exit 0
 	fi
-	if [ ! -f /etc/ssl/orch-ca-cert/ca.crt ]; then
+	if [ ! -f "$CERT_DIR"/etc/ssl/orch-ca-cert/ca.crt ]; then
 		echo "======== file is not present ========"
 		exit 0
 	fi
 
-	if [ ! -s /etc/ssl/orch-ca-cert/ca.crt ]; then
+	if [ ! -s "$CERT_DIR"/etc/ssl/orch-ca-cert/ca.crt ]; then
 		echo "======== file size is zero ========"
 		exit 0
 	fi
 
 	# Get CA certificates
-	cp /etc/ssl/orch-ca-cert/ca.crt "$IDP"/server_cert.pem
-	cp /etc/ssl/orch-ca-cert/ca.crt "$IDP"/ca.pem
+	cp "$CERT_DIR"/etc/ssl/orch-ca-cert/ca.crt "$IDP"/server_cert.pem
+	cp "$CERT_DIR"/etc/ssl/orch-ca-cert/ca.crt "$IDP"/ca.pem
 
 	#Boots certificates
 	echo "" >> "$IDP"/ca.pem
-	cat /etc/ssl/boots-ca-cert/ca.crt >> "$IDP"/ca.pem	
+	cat "$CERT_DIR"/etc/ssl/boots-ca-cert/ca.crt >> "$IDP"/ca.pem	
 }
 #######################################################################################################
 #

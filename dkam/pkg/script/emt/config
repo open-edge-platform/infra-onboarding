@@ -9,7 +9,7 @@
 ### Mandatory configurations
 ### The Private interface needs to be onboard NIC.
 ### If there are multiple NICs then 2nd NIC can be connected to a enterprise network
-### else use a usb-ethernet connecter 
+### else use a usb-ethernet connecter
 #####################################################################################
 
 
@@ -24,28 +24,28 @@ pd_host_ip=""
 load_balancer_ip=""
 
 #provide Keyclock url
-keycloak_url="__keycloak_url__"
+keycloak_url="keycloak.orch-10-139-218-33.pid.infra-host.com:443"
 
 #provide harbor or docker registry where tinker_actions are hosted
 
 # provide extra hosts needed to resolve domain names.
 # example
 #extra_hosts="10.114.181.238 api-proxy.kind.internal,10.114.181.238 app-orch.kind.internal,10.114.181.238 cluster-orch-edge-node.kind.internal"
-extra_hosts="__extra_hosts__"
+extra_hosts=""
 #NGINX runtime configs
-release_svc="__release_svc__"
-oci_release_svc="__oci_release_svc__"
-logging_svc="__logging_svc__"
-tink_stack_svc="__tink_stack_svc__"
-tink_server_svc="__tink_server_svc__"
-onboarding_manager_svc="__onboarding_manager_svc__"
-onboarding_stream_svc="__onboarding_stream_svc__"
+release_svc="files-rs.edgeorchestration.intel.com"
+oci_release_svc="registry-rs.edgeorchestration.intel.com"
+logging_svc="logs-node.orch-10-139-218-33.pid.infra-host.com"
+tink_stack_svc="tinkerbell-nginx.orch-10-139-218-33.pid.infra-host.com"
+tink_server_svc="tinkerbell-server.orch-10-139-218-33.pid.infra-host.com"
+onboarding_manager_svc="onboarding-node.orch-10-139-218-33.pid.infra-host.com"
+onboarding_stream_svc="onboarding-stream.orch-10-139-218-33.pid.infra-host.com"
 ## Organizationonal proxy config (default is intel)
-en_http_proxy="__http_proxy__"
-en_https_proxy="__https_proxy__"
-en_ftp_proxy="__ftp_proxy__"
-en_socks_proxy="__socks_proxy__"
-en_no_proxy="__no_proxy__"
+en_http_proxy="http://proxy-dmz.intel.com:912"
+en_https_proxy="http://proxy-dmz.intel.com:912"
+en_ftp_proxy="http://proxy-dmz.intel.com:911"
+en_socks_proxy="http://proxy-dmz.intel.com:1080"
+en_no_proxy="localhost,127.0.0.1,.caas.intel.com,.internal,10.0.0.0/8,192.168.0.0/16,cluster.local,.espd.infra-host.com,.pid.infra-host.com,.espdqa.infra-host.com"
 
 ####################################################################################
 ### Advanced configurations
