@@ -66,6 +66,7 @@ create_env_config() {
 	echo -e "tink_server_svc=$tink_server_svc"
 	echo -e "onboarding_manager_svc=$onboarding_manager_svc"
 	echo -e "onboarding_stream_svc=$onboarding_stream_svc"
+	echo -e "OBM_PORT=443"
 	} >> "$LOCATION_OF_ENV_CONFIG"
     fi
 
