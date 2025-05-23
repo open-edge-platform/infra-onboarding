@@ -7,42 +7,29 @@
 
 set -xueo pipefail
 data_dir=$1
+
+source ./secure_uos.sh
+
 pushd ../
-
-# shellcheck source=/dev/null
 source ./config
-# shellcheck source=/dev/null
-#source ./secure_hookos.sh
-#STORE_ALPINE="$STORE_ALPINE_SECUREBOOT"/../alpine_image
-#mkdir -p "$STORE_ALPINE_SECUREBOOT"
-STORE_ALPINE=output
-mkdir -p "$STORE_ALPINE"
-
-#TEMPORARY
-cp "$data_dir"/hook_x86_64.tar.gz "$data_dir"/emt_uos_x86_64.tar.gz
-
-
-cp "$data_dir"/emt_uos_x86_64.tar.gz "$STORE_ALPINE"
-
 popd || exit
+CPIO_OUTPUT=output
+mkdir -p "$CPIO_OUTPUT"
+cp "$data_dir"/emt_uos_x86_64.tar.gz "$CPIO_OUTPUT"
 
 LOCATION_OF_EXTRA_FILES=$PWD/etc
-LOCATION_OF_ENV_CONFIG=$PWD/etc/emt/env_config
-LOCATION_OF_HOOK_ENV=$PWD/etc/emt/
+LOCATION_OF_ENV_CONFIG=$PWD/etc/emf/env_config
+LOCATION_OF_UOS_ENV=$PWD/etc/emf/
 extras_cpio=$PWD/additional_files.cpio.gz
 IDP=$LOCATION_OF_EXTRA_FILES/idp
-# old_initramfs=$PWD/initramfs-x86_64
-# new_initramfs=$PWD/initramfs-x86_64_new
-#STORE_ALPINE="$STORE_ALPINE_SECUREBOOT"/../alpine_image
-STORE_ALPINE=../output
-LOCATION_OF_FLUENTBIT_YAML=$PWD/etc/emt/fluent-bit/fluent-bit.yaml
-LOCATION_OF_CADDY_FILES=$PWD/etc/emt/caddy
+LOCATION_OF_FLUENTBIT_YAML=$PWD/etc/emf/fluent-bit/fluent-bit.yaml
+LOCATION_OF_CADDY_FILES=$PWD/etc/emf/caddy
 
 #######################################################################################################
 create_env_config() {
 
     #Just to double confirm that the folder is available.
-    mkdir -p "$LOCATION_OF_HOOK_ENV"
+    mkdir -p "$LOCATION_OF_UOS_ENV"
 
     if [ -n "$keycloak_url" ];
     then
@@ -128,12 +115,12 @@ get_cert(){
 #
 extract_emt_tar() {
 
-    hookos_tar_files_to_update=("$STORE_ALPINE" )
+    uos_tar_files_to_update=("$CPIO_OUTPUT" )
 
     # run this for alpine_image folder and alpine_image_secureboot.
     # In current case we dont need to run the loop for secureboot.
     # But keeping the loop logic so that in future if needed and be enabled.
-    for iter_folder in  "${hookos_tar_files_to_update[@]}";
+    for iter_folder in  "${uos_tar_files_to_update[@]}";
     do
         echo "$iter_folder"
 	mkdir -p "$iter_folder"/emt_uos_x86_64_files
@@ -165,30 +152,31 @@ extract_emt_tar() {
 
 	#Extract rootfs.tar.gz from initramfs and decompress
 	mkdir -p $iter_folder/emt_uos_x86_64_files/extract_initramfs
-	zcat $iter_folder/emt_uos_x86_64_files/initramfs-x86_64 | cpio -idmv -D $iter_folder/emt_uos_x86_64_files/extract_initramfs || true #> /dev/null 2>&1
+	fakeroot sh -c "zcat $iter_folder/emt_uos_x86_64_files/initramfs-x86_64 | cpio -idmv -D $iter_folder/emt_uos_x86_64_files/extract_initramfs"
+	#zcat $iter_folder/emt_uos_x86_64_files/initramfs-x86_64 | cpio -idmv -D $iter_folder/emt_uos_x86_64_files/extract_initramfs || true #> /dev/null 2>&1
 	rm $iter_folder/emt_uos_x86_64_files/initramfs-x86_64
-        mkdir -p $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp
+    mkdir -p $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp
 	#tar -xvf $iter_folder/emt_uos_x86_64_files/extract_initramfs/rootfs.tar.gz -C $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp > /dev/null 2>&1
-        gzip -d $iter_folder/emt_uos_x86_64_files/extract_initramfs/rootfs.tar.gz
+    gzip -d $iter_folder/emt_uos_x86_64_files/extract_initramfs/rootfs.tar.gz
 	mv $iter_folder/emt_uos_x86_64_files/extract_initramfs/rootfs.tar $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp
 	mkdir -p $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
-        cp $IDP/Intel.crt $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
+    #cp $IDP/Intel.crt $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
 
 	#Copy env_config file and idp
-	tar -uf $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C $PWD ./etc/emt/env_config
+	tar -uf $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C $PWD ./etc/emf/env_config
 	#Workaround for device-discovery
 	mkdir -p $PWD/etc/hook/
-	cp $PWD/etc/emt/env_config $PWD/etc/hook/env_config
+	cp $PWD/etc/emf/env_config $PWD/etc/hook/env_config
 	tar -uf $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C $PWD ./etc/hook/env_config
 	tar -uf $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C $PWD ./etc/idp
 
-        #Copy fluent-bit file and update
+    #Copy fluent-bit file and update
 	tar -uf $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C $PWD ./etc/fluent-bit/
 
 	#Copy Caddy files and udpate
 	tar -uf $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C $PWD ./etc/caddy/
 
-        pushd "$iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/" || exit
+    pushd "$iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/" || exit
 	tar -xvf rootfs.tar ./usr/lib/systemd/system/caddy.service
 	sed -i 's|ExecStart=/usr/bin/caddy run --environ --config /etc/caddy/Caddyfile|ExecStart=/etc/caddy/caddy_run.sh|' ./usr/lib/systemd/system/caddy.service
 	sed -i '/^\[Unit\]/,/^$/s/^After=network.target network-online.target/After=network.target network-online.target device-discovery.service/' ./usr/lib/systemd/system/caddy.service
@@ -199,11 +187,11 @@ extract_emt_tar() {
 	sed -i '/^\[Unit\]/,/^$/s/^After=network.target/After=network.target caddy.service/' ./usr/lib/systemd/system/fluent-bit.service
 	sed -i '/^\[Unit\]/,/^$/s/^Requires=network.target/Requires=network.target caddy.service/' ./usr/lib/systemd/system/fluent-bit.service
 	
-        tar -uf rootfs.tar ./usr/lib/systemd/system/caddy.service
+    tar -uf rootfs.tar ./usr/lib/systemd/system/caddy.service
 	tar -uf rootfs.tar ./usr/lib/systemd/system/fluent-bit.service
 
 	#Add crt for tink-worker
-	tar -uf rootfs.tar ./etc/pki/ca-trust/source/anchors/Intel.crt
+	#tar -uf rootfs.tar ./etc/pki/ca-trust/source/anchors/Intel.crt
 
 	gzip -c rootfs.tar > ../rootfs.tar.gz
 	popd || exit
@@ -211,7 +199,8 @@ extract_emt_tar() {
 
 	pushd "$iter_folder/emt_uos_x86_64_files/extract_initramfs/" || exit
 	
-        find . | cpio -o -H newc | gzip -9 > ../initramfs-x86_64
+    #find . | cpio -o -H newc | gzip -9 > ../initramfs-x86_64
+	fakeroot sh -c "find . | cpio -o -H newc | gzip -9 > ../initramfs-x86_64"
 
 	popd || exit
     #     ls $iter_folder/
@@ -232,9 +221,9 @@ main() {
 
     extract_emt_tar
 
-    #pushd ../ || exit
-    #resign_hookos
-    #popd || exit
+    pushd ../ || exit
+    resign_uos
+    popd || exit
 }
 #######################################################################################################
 main
