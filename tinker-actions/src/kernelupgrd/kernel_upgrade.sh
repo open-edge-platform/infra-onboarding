@@ -58,7 +58,7 @@ os_release_file="/mnt/etc/os-release"
 if grep -q 'VERSION_ID="22.04"' "$os_release_file"; then
         KERNEL_VERSION=$KERNEL_VERSION_2204
 else
-        KERNEL_VERSION=$KERNEL_VERSION_2244
+        KERNEL_VERSION=$KERNEL_VERSION_2404
 fi
 
 #Get the Latest canonical 6.8 kerner version 
