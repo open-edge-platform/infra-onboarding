@@ -50,7 +50,16 @@ mount --bind /etc/resolv.conf /mnt/etc/resolv.conf
 
 mv /mnt/etc/apt/apt.conf.d/99needrestart /mnt/etc/apt/apt.conf.d/99needrestart.bkp 
 
-KERNEL_VERSION=linux-image-6.8.0-52-generic
+KERNEL_VERSION_2204=linux-image-6.8.0-52-generic
+KERNEL_VERSION_2404=linux-image-6.11.0-9-generic
+
+# Detect Ubuntu version and set KERNEL_VERSION accordingly
+os_release_file="/mnt/etc/os-release"
+if grep -q 'VERSION_ID="22.04"' "$os_release_file"; then
+        KERNEL_VERSION=$KERNEL_VERSION_2204
+else
+        KERNEL_VERSION=$KERNEL_VERSION_2244
+fi
 
 #Get the Latest canonical 6.8 kerner version 
 export kernel_version=$(chroot /mnt /bin/bash -c "apt-cache search linux-image | grep $KERNEL_VERSION | tail -1 | awk '{print \$1}' | grep -oP '(?<=linux-image-)[0-9]+\.[0-9]+\.[0-9]+-[0-9]+'")
