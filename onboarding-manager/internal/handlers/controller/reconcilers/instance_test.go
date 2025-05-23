@@ -136,7 +136,7 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 	// Trying to delete the Instance. It contains Provider, so nothing should happen during the reconciliation.
 	// Setting the Desired state of the Instance to be DELETED.
 	inv_testing.DeleteResource(t, instanceID)
@@ -144,7 +144,7 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_DELETED, // Desired state has just been updated
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// performing Instance reconciliation
 	err = instanceController.Reconcile(reconcilers.NewReconcilerID(instance.GetTenantId(), instanceID))
@@ -154,7 +154,7 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_DELETED, // Desired state has just been updated
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 }
 
 func TestReconcileInstanceNonEIM(t *testing.T) {
@@ -184,7 +184,7 @@ func TestReconcileInstanceNonEIM(t *testing.T) {
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// getting rid of the Host event
 	<-om_testing.InvClient.Watcher
@@ -211,7 +211,7 @@ func TestReconcileInstanceNonEIM(t *testing.T) {
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 }
 
 //nolint:funlen // it's a test
@@ -248,7 +248,7 @@ func TestReconcileInstance(t *testing.T) {
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// getting rid of the Host event
 	<-om_testing.InvClient.Watcher
@@ -275,7 +275,7 @@ func TestReconcileInstance(t *testing.T) {
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// Set host current state to ONBOARDED
 	res = &inv_v1.Resource{
@@ -389,7 +389,7 @@ func TestReconcileInstanceHostDeauthorized(t *testing.T) {
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// getting rid of the Host event
 	<-om_testing.InvClient.Watcher
@@ -416,7 +416,7 @@ func TestReconcileInstanceHostDeauthorized(t *testing.T) {
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// Set host current state to UNTRUSTED to trigger deauthorized flow
 	res = &inv_v1.Resource{
