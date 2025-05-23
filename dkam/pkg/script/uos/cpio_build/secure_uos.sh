@@ -6,15 +6,15 @@
 #set -x
 
 # shellcheck source=/dev/null
-source ./config
+source ./../config
 set -xuo pipefail
-
+pwd
 #######
 GPG_KEY_DIR=$PWD/gpg_key
-SB_KEYS_DIR=$PWD/../sb_keys
-SERVER_CERT_DIR=$PWD/../server_certs
+SB_KEYS_DIR=$PWD/../../sb_keys
+SERVER_CERT_DIR=$PWD/../../server_certs
 public_gpg_key=$PWD/boot.key
-STORE_ALPINE_SECUREBOOT=$PWD/alpine_image_secureboot/
+UOS_SECUREBOOT=$PWD/output/
 RSA_KEY_SIZE=4096
 HASH_SIZE=512
 en_http_proxy="${en_http_proxy:-}"
@@ -64,14 +64,15 @@ Expire-Date:0
 sign_all_components() {
 
     #temp untar to sign images only
-    rm -rf "$STORE_ALPINE_SECUREBOOT"/hook_sign_temp
-    mkdir -p "$STORE_ALPINE_SECUREBOOT"/hook_sign_temp
+    rm -rf "$UOS_SECUREBOOT"/uos_sign_temp
+    mkdir -p "$UOS_SECUREBOOT"/uos_sign_temp
 
-    tar -xvf "$STORE_ALPINE_SECUREBOOT"/hook_x86_64.tar.gz -C "$STORE_ALPINE_SECUREBOOT"/hook_sign_temp
+    cp "$UOS_SECUREBOOT"/emt_uos_x86_64_files/initramfs-x86_64 "$UOS_SECUREBOOT"/uos_sign_temp
+    cp "$UOS_SECUREBOOT"/emt_uos_x86_64_files/vmlinuz-x86_64 "$UOS_SECUREBOOT"/uos_sign_temp
 
     mkdir -p "$GPG_KEY_DIR"
 
-    pushd "$STORE_ALPINE_SECUREBOOT"/hook_sign_temp || exit
+    pushd "$UOS_SECUREBOOT"/uos_sign_temp || exit
 
     KEY_ID=$(gpg --homedir "$GPG_KEY_DIR" --list-secret-keys --keyid-format LONG | grep sec | awk '{print $2}' | cut -d '/' -f2)
 
@@ -108,13 +109,13 @@ sign_all_components() {
 
     popd || exit
 
-    # copy public key used validation of HookOS to archive
-    cp "$SB_KEYS_DIR"/db.der "$STORE_ALPINE_SECUREBOOT"/hook_sign_temp/hookos_db.der
+    # copy public key used validation of UOS to archive
+    cp "$SB_KEYS_DIR"/db.der "$UOS_SECUREBOOT"/uos_sign_temp/uos_db.der
 }
 
 uefi_sign_vmlinuz() {
     
-    if ! sbsign --key "$SB_KEYS_DIR"/db.key --cert "$SB_KEYS_DIR"/db.crt --output "$STORE_ALPINE_SECUREBOOT"/hook_sign_temp/vmlinuz-x86_64 "$STORE_ALPINE_SECUREBOOT"/hook_sign_temp/vmlinuz-x86_64;
+    if ! sbsign --key "$SB_KEYS_DIR"/db.key --cert "$SB_KEYS_DIR"/db.crt --output "$UOS_SECUREBOOT"/uos_sign_temp/vmlinuz-x86_64 "$UOS_SECUREBOOT"/uos_sign_temp/vmlinuz-x86_64;
     then
         echo "Failed to sign vmlinuz image"
         exit
@@ -162,51 +163,51 @@ generate_pk_kek_db() {
     popd || exit
 }
 
-package_signed_hookOS(){
+package_signed_UOS(){
 
     # make one tar which has all signatures and efi binaries
-    pushd "$STORE_ALPINE_SECUREBOOT"/hook_sign_temp || exit
+    pushd "$UOS_SECUREBOOT"/uos_sign_temp || exit
 
     sync
 
-    tar -czvf hook_x86_64.tar.gz .
+    #tar -czvf hook_x86_64.tar.gz .
     if [ -d "/data" ]; then
         echo "Path /data exists."
-        cp "$STORE_ALPINE_SECUREBOOT"/hook_sign_temp/initramfs-x86_64 /data
-        cp "$STORE_ALPINE_SECUREBOOT"/hook_sign_temp/vmlinuz-x86_64 /data
-        cp "$STORE_ALPINE_SECUREBOOT"/hook_sign_temp/hook_x86_64.tar.gz /data
+        cp "$UOS_SECUREBOOT"/uos_sign_temp/initramfs-x86_64 /data
+        cp "$UOS_SECUREBOOT"/uos_sign_temp/vmlinuz-x86_64 /data
+        #cp "$UOS_SECUREBOOT"/hook_sign_temp/hook_x86_64.tar.gz /data
     else
         echo "Path /data does not exist."
-        mv -f "$STORE_ALPINE_SECUREBOOT"/hook_sign_temp/hook_x86_64.tar.gz "$STORE_ALPINE_SECUREBOOT"/hook_x86_64.tar.gz
+        #mv -f "$UOS_SECUREBOOT"/hook_sign_temp/hook_x86_64.tar.gz "$UOS_SECUREBOOT"/hook_x86_64.tar.gz
     fi 
 
     popd || exit
 
 }
 
-secure_hookos() {
+secure_uos() {
 
-    echo "in secure_hookos()"
+    echo "in secure_uos()"
 
     #container/host setup
     sudo apt install -y autoconf automake make gcc m4 git gettext autopoint pkg-config autoconf-archive python3 bison flex gawk efitools
     #container/host setup done
 
-    mkdir -p "$STORE_ALPINE_SECUREBOOT"
+    mkdir -p "$UOS_SECUREBOOT"
     create_gpg_key
     generate_pk_kek_db
 
     sign_all_components
-    package_signed_hookOS
+    package_signed_UOS
 
     echo "Save db.der file on a FAT volume to enroll inside UEFI bios"
 }
 
-resign_hookos() {
+resign_uos() {
 
-    if [ ! -f "$STORE_ALPINE_SECUREBOOT"/hook_x86_64.tar.gz ] ;
+    if [ ! -f "$UOS_SECUREBOOT"/emt_uos_x86_64.tar.gz ] ;
     then
-	echo "Place the hook image at ""$STORE_ALPINE_SECUREBOOT""/hook_x86_64.tar.gz to proceed."
+	echo "Place the hook image at ""$UOS_SECUREBOOT""/emt_uos_x86_64.tar.gz to proceed."
 	exit 1
     fi
 
@@ -214,12 +215,11 @@ resign_hookos() {
     create_gpg_key
 
     sign_all_components
-    package_signed_hookOS
+    package_signed_UOS
     rm -rf "$GPG_KEY_DIR"
     rm -rf "$SB_KEYS_DIR"
     rm -rf "$SERVER_CERT_DIR"
     rm -rf "$public_gpg_key"
-    rm -rf "$STORE_ALPINE"
 
     echo "Save db.der file on a FAT volume to enroll inside UEFI bios"
 }
