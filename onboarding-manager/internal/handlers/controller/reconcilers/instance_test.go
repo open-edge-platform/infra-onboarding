@@ -389,7 +389,7 @@ func TestReconcileInstanceHostDeauthorized(t *testing.T) {
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// getting rid of the Host event
 	<-om_testing.InvClient.Watcher
@@ -416,7 +416,7 @@ func TestReconcileInstanceHostDeauthorized(t *testing.T) {
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// Set host current state to UNTRUSTED to trigger deauthorized flow
 	res = &inv_v1.Resource{
