@@ -67,19 +67,7 @@ export https_proxy="$https_proxy"
 export no_proxy="$no_proxy"
 
 # Update CA certificates
-update-ca-certificates
+update-ca-trust
 echo "Added CA certificates to trust pool"
 
-# Define the log level based on the environment variable
-IS_CADDY_DEBUG=$(grep -o 'DEBUG=[^ ]*' /proc/cmdline | awk -F= '{print $2}')
-if [ "$IS_CADDY_DEBUG" = "false" ]; then
-    LOG_LEVEL="ERROR"
-else
-    LOG_LEVEL="DEBUG"
-fi
-
-cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile2
-# Replace the log level in the Caddyfile
-sed -i "s/level .*/level $LOG_LEVEL/" /etc/caddy/Caddyfile2
-
-/usr/bin/caddy run --config /etc/caddy/Caddyfile2
+exec /usr/bin/caddy run --config /etc/caddy/Caddyfile
