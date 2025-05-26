@@ -16,6 +16,7 @@ source ./config
 #STORE_ALPINE="$STORE_ALPINE_SECUREBOOT"/../alpine_image
 #mkdir -p "$STORE_ALPINE_SECUREBOOT"
 STORE_ALPINE=output
+rm -rf "$STORE_ALPINE"
 mkdir -p "$STORE_ALPINE"
 
 #TEMPORARY
