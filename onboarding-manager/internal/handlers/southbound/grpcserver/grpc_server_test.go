@@ -1349,7 +1349,7 @@ func TestInteractiveOnboardingService_handleOnboardedState(t *testing.T) {
 		om_testing.AssertHost(t, host.GetTenantId(), host.GetResourceId(),
 			computev1.HostState_HOST_STATE_ONBOARDED,
 			computev1.HostState_HOST_STATE_ONBOARDED,
-			inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED),
+			inv_status.New(inv_status.DefaultHostStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED),
 		)
 	})
 }
