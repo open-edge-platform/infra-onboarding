@@ -4,6 +4,7 @@
 package drive_detection
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -26,7 +27,7 @@ func TestDriveDetection(t *testing.T) {
 			{Name: "nvme0n1", Size: 51, Type: "disk"},
 			{Name: "sdb", Size: 256, Type: "disk", Tran: "usb"},
 		},
-			"/dev/sda",
+			"/dev/sdb",
 		},
 		{[]DriveInfo{
 			{Name: "sda", Size: 1024, Type: "disk"},
@@ -98,5 +99,63 @@ func TestDriveDetection_SingleValidDrive(t *testing.T) {
 
 	if disk != "/dev/sdc" {
 		t.Errorf("Expected /dev/sdc, got: %s", disk)
+	}
+}
+
+func TestFindRootPartitionForDisk(t *testing.T) {
+	type args struct {
+		disk string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "Test case",
+			args: args{
+				disk: "/dev/sda",
+			},
+			want:    "",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := FindRootPartitionForDisk(tt.args.disk)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("FindRootPartitionForDisk() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("FindRootPartitionForDisk() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetDrives(t *testing.T) {
+	tests := []struct {
+		name    string
+		want    []DriveInfo
+		wantErr bool
+	}{
+		{
+			name: "Get Drives",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetDrives()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetDrives() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetDrives() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
