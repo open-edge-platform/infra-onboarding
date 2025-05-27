@@ -85,11 +85,13 @@ HADOLINT_FILES := $(shell find . -type f \( -name '*Dockerfile*' \) -print )
 hadolint: ## Check Dockerfile with Hadolint
 	hadolint $(HADOLINT_FILES)
 
+YAML_FILES := $(shell find . -type f \( -name '*.yaml' -o -name '*.yml' \) -print )
+YAML_IGNORE ?= "vendor, .github/workflows/, $(VENV_NAME)"
 yamllint: $(VENV_NAME) ## lint YAML files
 	. ./$</bin/activate; set -u ;\
 	yamllint --version ;\
 	if [ -n "$(YAML_FILES)" ]; then \
-	    yamllint -d '{extends: default, rules: {line-length: {max: 99}}, ignore: [$(YAML_IGNORE)]}' -s $(YAML_FILES); \
+	    yamllint -d '{extends: default, rules: {line-length: {max: 99}}, ignore: $(YAML_IGNORE)}' -s $(YAML_FILES); \
 	else \
 	    echo "No YAML files found to lint."; \
 	fi
