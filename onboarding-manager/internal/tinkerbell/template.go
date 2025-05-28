@@ -5,23 +5,12 @@ package tinkerbell
 
 import (
 	"context"
-	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell/templates"
-
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
-	"google.golang.org/grpc/codes"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
-	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
-)
-
-var (
-	OSProfileToTemplateName = map[string]string{
-		"microvisor-nonrt": templates.MicrovisorName,
-		"microvisor-rt":    templates.MicrovisorName,
-	}
 )
 
 func NewTemplate(tpData, name, ns string) *tink.Template {
@@ -39,27 +28,6 @@ func NewTemplate(tpData, name, ns string) *tink.Template {
 		},
 	}
 	return tp
-}
-
-func GenerateTemplateForProd(
-	k8sNamespace string,
-	deviceInfo onboarding_types.DeviceInfo,
-) (*tink.Template, error) {
-	templateName, exists := OSProfileToTemplateName[deviceInfo.OsProfileName]
-	if !exists {
-		return nil, inv_errors.Errorfc(codes.InvalidArgument,
-			"Unsupported OS profile %s", deviceInfo.OsProfileName)
-	}
-
-	templateSpec, exists := templates.TemplatesMap[templateName]
-	if !exists {
-		// this should never happen
-		return nil, inv_errors.Errorfc(codes.Internal,
-			"Unsupported template name %s", templateName)
-	}
-
-	tmpl := NewTemplate(string(templateSpec), templateName, k8sNamespace)
-	return tmpl, nil
 }
 
 // TODO (ITEP-1865): We can probably optimize it.

@@ -101,6 +101,12 @@ type TinkerActionImages struct {
 	Image2Disk            string
 }
 
+type Env struct {
+	ENProxyHTTP    string
+	ENProxyHTTPS   string
+	ENProxyNoProxy string
+}
+
 var (
 	defaultEraseNonRemovableDiskImage        = getTinkerActionImage(tinkerActionEraseNonRemovableDisks)
 	defaultTinkActionSecurebootFlagReadImage = getTinkerActionImage(tinkerActionSecurebootflag)
@@ -114,11 +120,14 @@ var (
 )
 
 type WorkflowInputs struct {
+	Env               Env
 	DeviceInfo        onboarding_types.DeviceInfo
 	TinkerActionImage TinkerActionImages
+	CloudInitData     string
+	InstallerScript   string
 }
 
-func StructToMapStringString(input interface{}) map[string]string {
+func structToMapStringString(input interface{}) map[string]string {
 	result := make(map[string]string)
 	val := reflect.ValueOf(input)
 	typ := reflect.TypeOf(input)
@@ -137,7 +146,7 @@ func StructToMapStringString(input interface{}) map[string]string {
 	return result
 }
 
-func GenerateWorkflowHardwareMap(deviceInfo onboarding_types.DeviceInfo) map[string]string {
+func GenerateWorkflowHardwareMap(ctx context.Context, deviceInfo onboarding_types.DeviceInfo) (map[string]string, error) {
 	inputs := WorkflowInputs{
 		DeviceInfo: deviceInfo,
 		TinkerActionImage: TinkerActionImages{
@@ -153,7 +162,44 @@ func GenerateWorkflowHardwareMap(deviceInfo onboarding_types.DeviceInfo) map[str
 		},
 	}
 
-	return StructToMapStringString(inputs)
+	infraConfig := config.GetInfraConfig()
+	opts := []cloudinit.Option{
+		cloudinit.WithOSType(deviceInfo.OsType),
+		cloudinit.WithTenantID(deviceInfo.TenantID),
+		cloudinit.WithHostname(deviceInfo.Hostname),
+		cloudinit.WithClientCredentials(deviceInfo.AuthClientID, deviceInfo.AuthClientSecret),
+		cloudinit.WithHostMACAddress(deviceInfo.HwMacID),
+	}
+
+	if env.ENDkamMode == envDkamDevMode {
+		opts = append(opts, cloudinit.WithDevMode(env.ENUserName, env.ENPassWord))
+	}
+
+	if deviceInfo.LocalAccountUserName != "" && deviceInfo.SSHKey != "" {
+		opts = append(opts, cloudinit.WithLocalAccount(deviceInfo.LocalAccountUserName, deviceInfo.SSHKey))
+	}
+
+	platformBundleData, err := platformbundle.FetchPlatformBundleScripts(ctx, deviceInfo.PlatformBundle)
+	if err != nil {
+		return nil, err
+	}
+
+	if infraConfig.NetIP == netIPStatic {
+		opts = append(opts, cloudinit.WithPreserveIP(deviceInfo.HwIP, infraConfig.DNSServers))
+	}
+	cloudInitData, err := cloudinit.GenerateFromInfraConfig(platformBundleData.CloudInitTemplate, infraConfig, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	inputs.CloudInitData = cloudInitData
+	inputs.Env = Env{
+		ENProxyHTTP:    infraConfig.ENProxyHTTP,
+		ENProxyHTTPS:   infraConfig.ENProxyHTTPS,
+		ENProxyNoProxy: infraConfig.ENProxyNoProxy,
+	}
+
+	return structToMapStringString(inputs), nil
 }
 
 // if `tinkerImageVersion` is non-empty, its value is returned,
@@ -242,151 +288,6 @@ func tinkActionQemuNbdImage2DiskImage(tinkerImageVersion string) string {
 		return fmt.Sprintf("%s:%s", v, iv)
 	}
 	return fmt.Sprintf("%s:%s", defaultTinkActionQemuNbdImage2DiskImage, iv)
-}
-
-// Deprecated: Use NewTemplate instead
-//
-//nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
-func NewTemplateDataProdEdgeMicrovisorToolkit(
-	ctx context.Context,
-	name string,
-	deviceInfo onboarding_types.DeviceInfo,
-) ([]byte, error) {
-	infraConfig := config.GetInfraConfig()
-	opts := []cloudinit.Option{
-		cloudinit.WithOSType(deviceInfo.OsType),
-		cloudinit.WithTenantID(deviceInfo.TenantID),
-		cloudinit.WithHostname(deviceInfo.Hostname),
-		cloudinit.WithClientCredentials(deviceInfo.AuthClientID, deviceInfo.AuthClientSecret),
-		cloudinit.WithHostMACAddress(deviceInfo.HwMacID),
-	}
-
-	if env.ENDkamMode == envDkamDevMode {
-		opts = append(opts, cloudinit.WithDevMode(env.ENUserName, env.ENPassWord))
-	}
-
-	if deviceInfo.LocalAccountUserName != "" && deviceInfo.SSHKey != "" {
-		opts = append(opts, cloudinit.WithLocalAccount(deviceInfo.LocalAccountUserName, deviceInfo.SSHKey))
-	}
-
-	platformBundleData, err := platformbundle.FetchPlatformBundleScripts(ctx, deviceInfo.PlatformBundle)
-	if err != nil {
-		return nil, err
-	}
-
-	if infraConfig.NetIP == netIPStatic {
-		opts = append(opts, cloudinit.WithPreserveIP(deviceInfo.HwIP, infraConfig.DNSServers))
-	}
-	cloudInitData, err := cloudinit.GenerateFromInfraConfig(platformBundleData.CloudInitTemplate, infraConfig, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	enableOnlyDMVerity := "true"
-	ActionSecurityFeature := ActionEnableDmv
-	if deviceInfo.SecurityFeature == osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION {
-		enableOnlyDMVerity = "false"
-		ActionSecurityFeature = ActionFdeDmv
-	}
-
-	wf := Workflow{
-		Version:       "0.1",
-		Name:          name,
-		GlobalTimeout: timeOutMax9800,
-		Tasks: []Task{{
-			Name:       "os-installation",
-			WorkerAddr: "{{.device_1}}",
-			Volumes: []string{
-				"/dev:/dev",
-				"/dev/console:/dev/console",
-				"/lib/firmware:/lib/firmware:ro",
-			},
-			Actions: []Action{
-				{
-					Name:    ActionSecureBootStatusFlagRead,
-					Image:   tinkActionSecurebootFlagReadImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutAvg560,
-					Environment: map[string]string{
-						"SECURITY_FEATURE_FLAG": deviceInfo.SecurityFeature.String(),
-					},
-					Volumes: []string{
-						"/:/host:rw",
-					},
-				},
-				{
-					Name:    ActionEraseNonRemovableDisk,
-					Image:   tinkActionEraseNonRemovableDisk(deviceInfo.TinkerVersion),
-					Timeout: timeOutAvg560,
-				},
-				{
-					Name:    ActionStreamEdgeMicrovisorToolKitImage,
-					Image:   tinkActionDiskImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMax9800,
-					Environment: map[string]string{
-						"IMG_URL":    deviceInfo.OSImageURL,
-						"COMPRESSED": "true",
-						"SHA256":     deviceInfo.OsImageSHA256,
-					},
-					Pid: "host",
-				},
-				{
-					Name:    ActionCloudInitInstall,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/cloud/cloud.cfg.d/infra.cfg",
-						"CONTENTS":  cloudInitData,
-						"UID":       "0",
-						"GID":       "0",
-						"MODE":      "0755",
-						"DIRMODE":   "0755",
-					},
-				},
-
-				{
-					Name:    ActionCloudinitDsidentity,
-					Image:   tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutMin90,
-					Environment: map[string]string{
-						"FS_TYPE":   "ext4",
-						"DEST_PATH": "/etc/cloud/ds-identify.cfg",
-						"CONTENTS":  `datasource: NoCloud`,
-						"UID":       "0",
-						"GID":       "0",
-						"MODE":      "0600",
-						"DIRMODE":   "0700",
-					},
-				},
-
-				{
-					Name:    ActionSecurityFeature,
-					Image:   tinkActionFdeDmvImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutAvg560,
-					Environment: map[string]string{
-						"ENABLE_ONLY_DMVERITY": enableOnlyDMVerity,
-					},
-				},
-
-				{
-					Name:    ActionEfibootset,
-					Image:   tinkActionEfibootImage(deviceInfo.TinkerVersion),
-					Timeout: timeOutAvg560,
-				},
-
-				{
-					Name:    ActionReboot,
-					Image:   "public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest",
-					Timeout: timeOutMin90,
-					Volumes: []string{
-						"/worker:/worker",
-					},
-				},
-			},
-		}},
-	}
-
-	return marshalWorkflow(&wf)
 }
 
 //nolint:funlen,cyclop // Function length and cyclomatic complexity are high, but refactoring is deferred for now.

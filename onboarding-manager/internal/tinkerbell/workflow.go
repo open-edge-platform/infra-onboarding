@@ -21,7 +21,7 @@ var (
 )
 
 func NewWorkflow(name, ns, mac, hardwareRef, templateRef string, hardwareMap map[string]string) *tink.Workflow {
-	hardwareMap["device_1"] = mac
+	hardwareMap["WorkerID"] = mac
 
 	wf := &tink.Workflow{
 		TypeMeta: metav1.TypeMeta{

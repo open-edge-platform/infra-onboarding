@@ -38,7 +38,7 @@ tasks:
           MODE: "0755"
           DIRMODE: "0755"
           CONTENTS: |
-            {{ .cloudInitData }}
+            {{ .CloudInitData }}
       - name: "cloud-init-ds-identity"
         image: {{ .TinkerActionImage.WriteFile }}
         timeout: 90

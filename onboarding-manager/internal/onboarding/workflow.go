@@ -8,6 +8,7 @@ package onboarding
 import (
 	"context"
 	"fmt"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell/templates"
 	"strings"
 	"time"
 
@@ -123,9 +124,14 @@ func runProdWorkflow(
 		deviceInfo.SSHKey = instance.GetLocalaccount().SshKey
 	}
 
-	templateName, found := tinkerbell.OSProfileToTemplateName[deviceInfo.OsProfileName]
+	templateName, found := templates.OSProfileToTemplateName[deviceInfo.OsProfileName]
 	if !found {
 		return inv_errors.Errorf("Cannot find Tinkerbell template for OS profile %s", deviceInfo.OsProfileName)
+	}
+
+	workflowHardwareMap, err := tinkerbell.GenerateWorkflowHardwareMap(ctx, deviceInfo)
+	if err != nil {
+		return err
 	}
 
 	prodWorkflow := tinkerbell.NewWorkflow(
@@ -134,7 +140,7 @@ func runProdWorkflow(
 		deviceInfo.HwMacID,
 		tinkerbell.GetTinkHardwareName(deviceInfo.GUID),
 		templateName,
-		tinkerbell.GenerateWorkflowHardwareMap(deviceInfo))
+		workflowHardwareMap)
 
 	if createWFErr := tinkerbell.CreateWorkflowIfNotExists(ctx, k8sCli, prodWorkflow); createWFErr != nil {
 		return createWFErr

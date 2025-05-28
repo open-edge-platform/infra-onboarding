@@ -16,9 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
-	dkam_testing "github.com/open-edge-platform/infra-onboarding/dkam/testing"
-	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	om_testing "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/testing"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell"
 )
@@ -63,54 +60,6 @@ func TestNewTemplate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tinkerbell.NewTemplate(tt.args.tpData, tt.args.name, tt.args.ns); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewTemplate() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestGenerateTemplateForProd(t *testing.T) {
-	dkam_testing.PrepareTestCaCertificateFile(t)
-	dkam_testing.PrepareTestInfraConfig(t)
-	type args struct {
-		ctx          context.Context
-		k8sNamespace string
-		deviceInfo   onboarding_types.DeviceInfo
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *tink.Template
-		wantErr bool
-	}{
-		{
-			name:    "Test Case",
-			args:    args{},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "Test Case1",
-			args: args{
-				deviceInfo: onboarding_types.DeviceInfo{
-					OsType:           osv1.OsType_OS_TYPE_MUTABLE,
-					TenantID:         "test-tenantid",
-					Hostname:         "test-hostname",
-					AuthClientID:     "test-client-id",
-					AuthClientSecret: "test-client-secret",
-					HwMacID:          "aa:bb:cc:dd:ee:ff",
-					PlatformBundle:   "null",
-				},
-			},
-			want:    nil,
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := tinkerbell.GenerateTemplateForProd(tt.args.ctx, tt.args.k8sNamespace, tt.args.deviceInfo)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GenerateTemplateForProd() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 		})
 	}
