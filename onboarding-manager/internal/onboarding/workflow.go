@@ -8,7 +8,6 @@ package onboarding
 import (
 	"context"
 	"fmt"
-	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell/templates"
 	"strings"
 	"time"
 
@@ -26,6 +25,7 @@ import (
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/env"
 	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell/templates"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/util"
 	om_status "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/status"
 )

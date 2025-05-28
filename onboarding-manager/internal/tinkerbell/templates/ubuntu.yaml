@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+---
 name: ubuntu
 version: "0.1.0"
 global_timeout: 9800

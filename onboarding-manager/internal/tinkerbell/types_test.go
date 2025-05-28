@@ -4,10 +4,10 @@
 package tinkerbell_test
 
 import (
-	"gopkg.in/yaml.v2"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v2"
 
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell"
 )

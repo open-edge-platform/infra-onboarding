@@ -6,7 +6,6 @@ package tinkerbell_test
 import (
 	"context"
 	"fmt"
-	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell/templates"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -19,6 +18,7 @@ import (
 	dkam_testing "github.com/open-edge-platform/infra-onboarding/dkam/testing"
 	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell/templates"
 )
 
 func TestWorkflowActionToStatusDetail(t *testing.T) {
@@ -43,6 +43,7 @@ func TestWorkflowActionToStatusDetail(t *testing.T) {
 		"test-hardware", tmpl.Name, wfInputs)
 
 	rawWf, err := yaml.Marshal(wf)
+	require.NoError(t, err)
 
 	prodBkcWorkflowInstance, err := unmarshalWorkflow(rawWf)
 	require.NoError(t, err)

@@ -6,6 +6,10 @@ package tinkerbell
 import (
 	"context"
 	"fmt"
+	"os"
+	"reflect"
+	"strconv"
+
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/env"
@@ -13,9 +17,6 @@ import (
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/cloudinit"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/platformbundle"
 	platformbundleubuntu2204 "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/platformbundle/ubuntu-22.04"
-	"os"
-	"reflect"
-	"strconv"
 )
 
 const (

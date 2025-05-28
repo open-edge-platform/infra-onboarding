@@ -7,9 +7,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell"
 )
 
 func TestNewTemplate(t *testing.T) {

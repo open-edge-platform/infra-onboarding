@@ -67,7 +67,6 @@ func TestNewWorkflow(t *testing.T) {
 	}
 }
 
-//nolint:dupl //this is with tink.Workflow as args.
 func TestCreateWorkflowIfNotExists(t *testing.T) {
 	type args struct {
 		ctx      context.Context

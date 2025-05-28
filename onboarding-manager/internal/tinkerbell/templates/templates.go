@@ -1,7 +1,11 @@
+// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
+
 package templates
 
 import (
 	_ "embed"
+
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 )
 
@@ -18,10 +22,8 @@ var TemplatesMap = map[string][]byte{
 	UbuntuTemplateName: UbuntuTemplate,
 }
 
-var (
-	// TODO: This uses OS type now but should be based on OS distro or profile name.
-	OSTypeToTemplateName = map[osv1.OsType]string{
-		osv1.OsType_OS_TYPE_MUTABLE:   UbuntuTemplateName,
-		osv1.OsType_OS_TYPE_IMMUTABLE: MicrovisorName,
-	}
-)
+// TODO: This uses OS type now but should be based on OS distro or profile name.
+var OSTypeToTemplateName = map[osv1.OsType]string{
+	osv1.OsType_OS_TYPE_MUTABLE:   UbuntuTemplateName,
+	osv1.OsType_OS_TYPE_IMMUTABLE: MicrovisorName,
+}

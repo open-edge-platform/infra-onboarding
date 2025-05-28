@@ -5,7 +5,8 @@ package tinkerbell
 
 import (
 	"context"
-	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/env"
+	"time"
+
 	tinkv1alpha1 "github.com/tinkerbell/tink/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,10 +15,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"time"
 
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/env"
 )
+
+const defaultK8sClientTimeout = 3 * time.Second
 
 var K8sClientFactory = newK8SClient
 
@@ -44,7 +47,7 @@ func newK8SClient() (client.Client, error) {
 }
 
 func ListTemplates() ([]tinkv1alpha1.Template, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultK8sClientTimeout)
 	defer cancel()
 
 	kubeClient, err := K8sClientFactory()
@@ -54,12 +57,15 @@ func ListTemplates() ([]tinkv1alpha1.Template, error) {
 
 	tmplList := &tinkv1alpha1.TemplateList{}
 	err = kubeClient.List(ctx, tmplList, client.InNamespace(env.K8sNamespace))
+	if err != nil {
+		return nil, err
+	}
 
 	return tmplList.Items, nil
 }
 
 func CreateTemplate(template *tinkv1alpha1.Template) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultK8sClientTimeout)
 	defer cancel()
 
 	kubeClient, err := K8sClientFactory()
@@ -81,7 +87,7 @@ func CreateTemplate(template *tinkv1alpha1.Template) error {
 }
 
 func DeleteTemplate(name, namespace string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultK8sClientTimeout)
 	defer cancel()
 
 	kubeClient, err := K8sClientFactory()
