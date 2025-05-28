@@ -6,6 +6,7 @@ import _ "embed"
 var MicrovisorTemplate []byte
 var MicrovisorName = "microvisor"
 
+//go:embed ubuntu.yaml
 var UbuntuTemplate []byte
 var UbuntuTemplateName = "ubuntu"
 
