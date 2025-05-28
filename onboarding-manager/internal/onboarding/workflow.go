@@ -124,9 +124,9 @@ func runProdWorkflow(
 		deviceInfo.SSHKey = instance.GetLocalaccount().SshKey
 	}
 
-	templateName, found := templates.OSProfileToTemplateName[deviceInfo.OsProfileName]
+	templateName, found := templates.OSTypeToTemplateName[deviceInfo.OsType]
 	if !found {
-		return inv_errors.Errorf("Cannot find Tinkerbell template for OS profile %s", deviceInfo.OsProfileName)
+		return inv_errors.Errorf("Cannot find Tinkerbell template for OS type %s", deviceInfo.OsType)
 	}
 
 	workflowHardwareMap, err := tinkerbell.GenerateWorkflowInputs(ctx, deviceInfo)

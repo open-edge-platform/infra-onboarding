@@ -397,7 +397,6 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		OsImageSHA256:   desiredOs.GetSha256(),
 		TinkerVersion:   tinkerVersion,
 		OsType:          desiredOs.GetOsType(),
-		OsProfileName:   desiredOs.GetProfileName(),
 		PlatformBundle:  desiredOs.GetPlatformBundle(),
 	}
 

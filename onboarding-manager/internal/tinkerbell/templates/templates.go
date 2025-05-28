@@ -1,6 +1,9 @@
 package templates
 
-import _ "embed"
+import (
+	_ "embed"
+	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
+)
 
 //go:embed microvisor.yaml
 var MicrovisorTemplate []byte
@@ -16,11 +19,9 @@ var TemplatesMap = map[string][]byte{
 }
 
 var (
-	OSProfileToTemplateName = map[string]string{
-		"microvisor-nonrt":             MicrovisorName,
-		"microvisor-rt":                MicrovisorName,
-		"ubuntu-24.04-lts-generic":     UbuntuTemplateName,
-		"ubuntu-22.04-lts-generic":     UbuntuTemplateName,
-		"ubuntu-22.04-lts-generic-ext": UbuntuTemplateName,
+	// TODO: This uses OS type now but should be based on OS distro or profile name.
+	OSTypeToTemplateName = map[osv1.OsType]string{
+		osv1.OsType_OS_TYPE_MUTABLE:   UbuntuTemplateName,
+		osv1.OsType_OS_TYPE_IMMUTABLE: MicrovisorName,
 	}
 )

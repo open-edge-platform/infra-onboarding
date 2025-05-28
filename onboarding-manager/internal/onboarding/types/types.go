@@ -43,8 +43,6 @@ type (
 		OsImageSHA256 string
 		// OsType differentiates between mutable and immutable OS
 		OsType osv1.OsType
-		// OsProfileName uniquely identifies a family of OS profiles.
-		OsProfileName string
 		// Tenant ID of resource
 		TenantID       string
 		PlatformBundle string
