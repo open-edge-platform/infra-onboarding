@@ -1,0 +1,66 @@
+name: microvisor
+version: "0.1.0"
+global_timeout: 9800
+tasks:
+  - name: "OS provisioning"
+    worker: {{ .WorkerID }}
+    volumes:
+      - /dev:/dev
+      - /dev/console:/dev/console
+      - /lib/firmware:/lib/firmware:ro
+    actions:
+      - name: "secure-boot-status-flag-read"
+        image: {{ .TinkerActionImage.SecureBootFlagRead }}
+        timeout: 560
+        volumes:
+          - /:/host:rw
+        environment:
+          SECURITY_FEATURE_FLAG: {{ .DeviceInfo.SecurityFeature }}
+      - name: "erase-non-removable-disk"
+        image: {{ .TinkerActionImage.EraseNonRemovableDisk }}
+        timeout: 560
+      - name: "stream-edge-microvisor-toolkit-image"
+        image: {{ .TinkerActionImage.Image2Disk }}
+        timeout: 9800
+        pid: "host"
+        environment:
+          IMG_URL: {{ .DeviceInfo.OSImageURL }}
+          SHA256: {{ .DeviceInfo.OsImageSHA256 }}
+          COMPRESSED: true
+      - name: "install-cloud-init"
+        image: {{ .TinkerActionImage.WriteFile }}
+        timeout: 90
+        environment:
+          FS_TYPE: ext4
+          DEST_PATH: /etc/cloud/cloud.cfg.d/infra.cfg
+          UID: 0
+          GID: 0
+          MODE: "0755"
+          DIRMODE: "0755"
+          CONTENTS: |
+            {{ .cloudInitData }}
+      - name: "cloud-init-ds-identity"
+        image: {{ .TinkerActionImage.WriteFile }}
+        timeout: 90
+        environment:
+          FS_TYPE: ext4
+          UID: 0
+          GID: 0
+          MODE: "0600"
+          DIRMODE: "0700"
+          DEST_PATH: /etc/cloud/ds-identify.cfg
+          CONTENTS: |
+            datasource: NoCloud
+      - name: "enable-security-features"
+        image: {{ .TinkerActionImage.FdeDmv }}
+        timeout: 560
+        environment:
+          ENABLE_ONLY_DMVERITY: {{ .deviceInfo.enableDMVerityOnly }}
+      - name: "efibootset-for-diskboot"
+        image: {{ .TinkerActionImage.Efibootset }}
+        timeout: 560
+      - name: "reboot"
+        image: public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest
+        timeout: 90
+        volumes:
+          - "/worker:/worker"

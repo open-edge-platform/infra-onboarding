@@ -123,14 +123,9 @@ func runProdWorkflow(
 		deviceInfo.SSHKey = instance.GetLocalaccount().SshKey
 	}
 
-	prodTemplate, err := tinkerbell.GenerateTemplateForProd(ctx, env.K8sNamespace, deviceInfo)
-	if err != nil {
-		zlog.InfraErr(err).Msg("")
-		return inv_errors.Errorf("Failed to generate Tinkerbell prod template for host %s", deviceInfo.GUID)
-	}
-
-	if createTemplErr := tinkerbell.CreateTemplateIfNotExists(ctx, k8sCli, prodTemplate); createTemplErr != nil {
-		return createTemplErr
+	templateName, found := tinkerbell.OSProfileToTemplateName[deviceInfo.OsProfileName]
+	if !found {
+		return inv_errors.Errorf("Cannot find Tinkerbell template for OS profile %s", deviceInfo.OsProfileName)
 	}
 
 	prodWorkflow := tinkerbell.NewWorkflow(
@@ -138,7 +133,8 @@ func runProdWorkflow(
 		env.K8sNamespace,
 		deviceInfo.HwMacID,
 		tinkerbell.GetTinkHardwareName(deviceInfo.GUID),
-		tinkerbell.GetProdTemplateName(deviceInfo.GUID))
+		templateName,
+		tinkerbell.GenerateWorkflowHardwareMap(deviceInfo))
 
 	if createWFErr := tinkerbell.CreateWorkflowIfNotExists(ctx, k8sCli, prodWorkflow); createWFErr != nil {
 		return createWFErr

@@ -7,6 +7,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell"
 	"os"
 	"os/signal"
 	"sync"
@@ -147,6 +148,10 @@ func main() {
 
 	if authInitErr := auth.Init(); authInitErr != nil {
 		zlog.InfraSec().Fatal().Err(authInitErr).Msgf("Unable to initialize auth service")
+	}
+
+	if tinkBootstrapErr := tinkerbell.Bootstrap(); tinkBootstrapErr != nil {
+		zlog.InfraSec().Fatal().Err(tinkBootstrapErr).Msg("Unable to bootstrap Tinkerbell")
 	}
 
 	onboardingController, err := controller.New(invClient, *enableTracing)

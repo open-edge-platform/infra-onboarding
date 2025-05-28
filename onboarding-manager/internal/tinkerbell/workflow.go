@@ -20,7 +20,9 @@ var (
 	zlog       = logging.GetLogger(clientName)
 )
 
-func NewWorkflow(name, ns, mac, hardwareRef, templateRef string) *tink.Workflow {
+func NewWorkflow(name, ns, mac, hardwareRef, templateRef string, hardwareMap map[string]string) *tink.Workflow {
+	hardwareMap["device_1"] = mac
+
 	wf := &tink.Workflow{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Workflow",
@@ -31,9 +33,7 @@ func NewWorkflow(name, ns, mac, hardwareRef, templateRef string) *tink.Workflow 
 			Namespace: ns,
 		},
 		Spec: tink.WorkflowSpec{
-			HardwareMap: map[string]string{
-				"device_1": mac,
-			},
+			HardwareMap: hardwareMap,
 			HardwareRef: hardwareRef,
 			TemplateRef: templateRef,
 		},
@@ -78,25 +78,6 @@ func DeleteProdWorkflowResourcesIfExist(ctx context.Context, k8sNamespace, hostU
 	kubeClient, err := K8sClientFactory()
 	if err != nil {
 		return err
-	}
-
-	zlog.Debug().Msgf("Deleting prod template for host %s", hostUUID)
-
-	prodTemplate := &tink.Template{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Template",
-			APIVersion: "tinkerbell.org/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      GetProdTemplateName(hostUUID),
-			Namespace: k8sNamespace,
-		},
-	}
-
-	if err = kubeClient.Delete(ctx, prodTemplate); err != nil && !errors.IsNotFound(err) {
-		zlog.InfraSec().InfraErr(err).Msg("")
-		zlog.Debug().Msgf("Failed to delete prod template resources for host %s", hostUUID)
-		return inv_errors.Errorf("Failed to delete prod template resources for host")
 	}
 
 	zlog.Debug().Msgf("Deleting prod workflow for host %s", hostUUID)

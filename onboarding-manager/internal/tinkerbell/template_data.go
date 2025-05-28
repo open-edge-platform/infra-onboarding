@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"reflect"
 
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
@@ -88,6 +89,18 @@ const (
 	tinkerActionSecurebootflag         = "securebootflag"
 )
 
+type TinkerActionImages struct {
+	EraseNonRemovableDisk string
+	WriteFile             string
+	SecurebootFlagRead    string
+	Cexec                 string
+	Efibootset            string
+	KernelUpgrade         string
+	FdeDmv                string
+	QemuNbdImage2Disk     string
+	Image2Disk            string
+}
+
 var (
 	defaultEraseNonRemovableDiskImage        = getTinkerActionImage(tinkerActionEraseNonRemovableDisks)
 	defaultTinkActionSecurebootFlagReadImage = getTinkerActionImage(tinkerActionSecurebootflag)
@@ -99,6 +112,49 @@ var (
 	defaultTinkActionKernelUpgradeImage      = getTinkerActionImage(tinkerActionKernelUpgrade)
 	defaultTinkActionQemuNbdImage2DiskImage  = getTinkerActionImage(tinkerActionQemuNbdImage2Disk)
 )
+
+type WorkflowInputs struct {
+	DeviceInfo        onboarding_types.DeviceInfo
+	TinkerActionImage TinkerActionImages
+}
+
+func StructToMapStringString(input interface{}) map[string]string {
+	result := make(map[string]string)
+	val := reflect.ValueOf(input)
+	typ := reflect.TypeOf(input)
+
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+		typ = typ.Elem()
+	}
+
+	for i := 0; i < val.NumField(); i++ {
+		field := typ.Field(i)
+		key := field.Name
+		value := val.Field(i).Interface()
+		result[key] = fmt.Sprintf("%v", value)
+	}
+	return result
+}
+
+func GenerateWorkflowHardwareMap(deviceInfo onboarding_types.DeviceInfo) map[string]string {
+	inputs := WorkflowInputs{
+		DeviceInfo: deviceInfo,
+		TinkerActionImage: TinkerActionImages{
+			EraseNonRemovableDisk: tinkActionEraseNonRemovableDisk(deviceInfo.TinkerVersion),
+			WriteFile:             tinkActionWriteFileImage(deviceInfo.TinkerVersion),
+			SecurebootFlagRead:    tinkActionSecurebootFlagReadImage(deviceInfo.TinkerVersion),
+			Cexec:                 tinkActionCexecImage(deviceInfo.TinkerVersion),
+			Efibootset:            tinkActionEfibootImage(deviceInfo.TinkerVersion),
+			KernelUpgrade:         tinkActionKernelupgradeImage(deviceInfo.TinkerVersion),
+			FdeDmv:                tinkActionFdeDmvImage(deviceInfo.TinkerVersion),
+			QemuNbdImage2Disk:     tinkActionQemuNbdImage2DiskImage(deviceInfo.TinkerVersion),
+			Image2Disk:            tinkActionDiskImage(deviceInfo.TinkerVersion),
+		},
+	}
+
+	return StructToMapStringString(inputs)
+}
 
 // if `tinkerImageVersion` is non-empty, its value is returned,
 // then it tries to retrieve value from envar, otherwise default value is returned.
@@ -188,6 +244,8 @@ func tinkActionQemuNbdImage2DiskImage(tinkerImageVersion string) string {
 	return fmt.Sprintf("%s:%s", defaultTinkActionQemuNbdImage2DiskImage, iv)
 }
 
+// Deprecated: Use NewTemplate instead
+//
 //nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
 func NewTemplateDataProdEdgeMicrovisorToolkit(
 	ctx context.Context,
@@ -328,18 +386,6 @@ func NewTemplateDataProdEdgeMicrovisorToolkit(
 		}},
 	}
 
-	// Create the User credentials only for dev mode and remove the action for production mode
-	if env.ENDkamMode != envDkamDevMode {
-		for i, task := range wf.Tasks {
-			for j, action := range task.Actions {
-				if action.Name == ActionCreateUser {
-					// Remove the create user  from the slice
-					wf.Tasks[i].Actions = append(wf.Tasks[i].Actions[:j], wf.Tasks[i].Actions[j+1:]...)
-					break
-				}
-			}
-		}
-	}
 	return marshalWorkflow(&wf)
 }
 

@@ -5,6 +5,7 @@ package tinkerbell
 
 import (
 	"context"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell/templates"
 
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	"google.golang.org/grpc/codes"
@@ -12,9 +13,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
+)
+
+var (
+	OSProfileToTemplateName = map[string]string{
+		"microvisor-nonrt": templates.MicrovisorName,
+		"microvisor-rt":    templates.MicrovisorName,
+	}
 )
 
 func NewTemplate(tpData, name, ns string) *tink.Template {
@@ -35,32 +42,23 @@ func NewTemplate(tpData, name, ns string) *tink.Template {
 }
 
 func GenerateTemplateForProd(
-	ctx context.Context,
 	k8sNamespace string,
 	deviceInfo onboarding_types.DeviceInfo,
 ) (*tink.Template, error) {
-	var (
-		tmplName = GetProdTemplateName(deviceInfo.GUID)
-		tmplData []byte
-		err      error
-	)
-	switch deviceInfo.OsType {
-	case osv1.OsType_OS_TYPE_MUTABLE:
-		tmplData, err = NewTemplateDataUbuntu(ctx, tmplName, deviceInfo)
-		if err != nil {
-			return nil, err
-		}
-	case osv1.OsType_OS_TYPE_IMMUTABLE:
-		tmplData, err = NewTemplateDataProdEdgeMicrovisorToolkit(ctx, tmplName, deviceInfo)
-		if err != nil {
-			return nil, err
-		}
-	default:
+	templateName, exists := OSProfileToTemplateName[deviceInfo.OsProfileName]
+	if !exists {
 		return nil, inv_errors.Errorfc(codes.InvalidArgument,
-			"Unsupported OS type %s", deviceInfo.OsType)
+			"Unsupported OS profile %s", deviceInfo.OsProfileName)
 	}
 
-	tmpl := NewTemplate(string(tmplData), tmplName, k8sNamespace)
+	templateSpec, exists := templates.TemplatesMap[templateName]
+	if !exists {
+		// this should never happen
+		return nil, inv_errors.Errorfc(codes.Internal,
+			"Unsupported template name %s", templateName)
+	}
+
+	tmpl := NewTemplate(string(templateSpec), templateName, k8sNamespace)
 	return tmpl, nil
 }
 
