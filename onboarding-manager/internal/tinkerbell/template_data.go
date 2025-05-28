@@ -129,21 +129,43 @@ type WorkflowInputs struct {
 
 func structToMapStringString(input interface{}) map[string]string {
 	result := make(map[string]string)
-	val := reflect.ValueOf(input)
-	typ := reflect.TypeOf(input)
+	flattenStruct(reflect.ValueOf(input), "", result)
+	return result
+}
 
+func flattenStruct(val reflect.Value, prefix string, result map[string]string) {
 	if val.Kind() == reflect.Ptr {
+		if val.IsNil() {
+			return
+		}
 		val = val.Elem()
-		typ = typ.Elem()
 	}
 
+	if val.Kind() != reflect.Struct {
+		return
+	}
+
+	typ := val.Type()
 	for i := 0; i < val.NumField(); i++ {
 		field := typ.Field(i)
+		fieldVal := val.Field(i)
+
+		// Skip unexported fields
+		if field.PkgPath != "" {
+			continue
+		}
+
 		key := field.Name
-		value := val.Field(i).Interface()
-		result[key] = fmt.Sprintf("%v", value)
+		if prefix != "" {
+			key = prefix + "." + key
+		}
+
+		if fieldVal.Kind() == reflect.Struct || (fieldVal.Kind() == reflect.Ptr && fieldVal.Elem().Kind() == reflect.Struct) {
+			flattenStruct(fieldVal, key, result)
+		} else {
+			result[key] = fmt.Sprintf("%v", fieldVal.Interface())
+		}
 	}
-	return result
 }
 
 func GenerateWorkflowHardwareMap(ctx context.Context, deviceInfo onboarding_types.DeviceInfo) (map[string]string, error) {
