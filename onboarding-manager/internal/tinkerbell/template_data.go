@@ -206,6 +206,15 @@ func GenerateWorkflowHardwareMap(ctx context.Context, deviceInfo onboarding_type
 		return nil, err
 	}
 
+	var installerScript string
+	if deviceInfo.OsType == osv1.OsType_OS_TYPE_MUTABLE {
+		if platformBundleData.InstallerScript != "" {
+			installerScript = platformBundleData.InstallerScript
+		} else {
+			installerScript = platformbundleubuntu2204.Installer
+		}
+	}
+
 	if infraConfig.NetIP == netIPStatic {
 		opts = append(opts, cloudinit.WithPreserveIP(deviceInfo.HwIP, infraConfig.DNSServers))
 	}
@@ -214,9 +223,8 @@ func GenerateWorkflowHardwareMap(ctx context.Context, deviceInfo onboarding_type
 		return nil, err
 	}
 
-	cloudInitData = strconv.Quote(cloudInitData)
-
-	inputs.CloudInitData = cloudInitData
+	inputs.InstallerScript = strconv.Quote(installerScript)
+	inputs.CloudInitData = strconv.Quote(cloudInitData)
 	inputs.Env = Env{
 		ENProxyHTTP:    infraConfig.ENProxyHTTP,
 		ENProxyHTTPS:   infraConfig.ENProxyHTTPS,

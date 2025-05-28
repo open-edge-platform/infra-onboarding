@@ -3,34 +3,34 @@ version: "0.1.0"
 global_timeout: 9800
 tasks:
   - name: "OS provisioning"
-    worker: {{ .DeviceInfo.HwMacID }}
+    worker: {{ .DeviceInfoHwMacID }}
     volumes:
       - /dev:/dev
       - /dev/console:/dev/console
       - /lib/firmware:/lib/firmware:ro
     actions:
       - name: "secure-boot-status-flag-read"
-        image: {{ .TinkerActionImage.SecureBootFlagRead }}
+        image: {{ .TinkerActionImageSecureBootFlagRead }}
         timeout: 560
         volumes:
           - /:/host:rw
         environment:
-          SECURITY_FEATURE_FLAG: {{ .DeviceInfo.SecurityFeature }}
+          SECURITY_FEATURE_FLAG: "{{ .DeviceInfoSecurityFeature }}"
       - name: "erase-non-removable-disk"
-        image: {{ .TinkerActionImage.EraseNonRemovableDisk }}
+        image: {{ .TinkerActionImageEraseNonRemovableDisk }}
         timeout: 560
       - name: "stream-ubuntu-image"
-        image: {{ .TinkerActionImage.QemuNbdImage2Disk }}
+        image: {{ .TinkerActionImageQemuNbdImage2Disk }}
         timeout: 9800
         pid: "host"
         environment:
-          IMG_URL: {{ .DeviceInfo.OSImageURL }}
-          SHA256: {{ .DeviceInfo.OsImageSHA256 }}
-          HTTP_PROXY: {{ .Env.ENProxyHTTP }}
-          HTTPS_PROXY: {{ .Env.ENProxyHTTPS }}
-          NO_PROXY: {{ .Env.ENProxyNoProxy }}
+          IMG_URL: {{ .DeviceInfoOSImageURL }}
+          SHA256: {{ .DeviceInfoOsImageSHA256 }}
+          HTTP_PROXY: {{ .EnvENProxyHTTP }}
+          HTTPS_PROXY: {{ .EnvENProxyHTTPS }}
+          NO_PROXY: {{ .EnvENProxyNoProxy }}
       - name: "add-apt-proxy"
-        image: {{ .TinkerActionImage.WriteFile }}
+        image: {{ .TinkerActionImageWriteFile }}
         timeout: 90
         environment:
           FS_TYPE: ext4
@@ -40,10 +40,10 @@ tasks:
           MODE: "0755"
           DIRMODE: "0755"
           CONTENTS: |
-            Acquire::http::Proxy "{{ .Env.ENProxyHTTP }}";
-            Acquire::https::Proxy "{{ .Env.ENProxyHTTPS }}";
+            Acquire::http::Proxy "{{ .EnvENProxyHTTP }}";
+            Acquire::https::Proxy "{{ .EnvENProxyHTTPS }}";
       - name: "install-cloud-init"
-        image: {{ .TinkerActionImage.WriteFile }}
+        image: {{ .TinkerActionImageWriteFile }}
         timeout: 90
         environment:
           FS_TYPE: ext4
@@ -52,10 +52,9 @@ tasks:
           GID: 0
           MODE: "0755"
           DIRMODE: "0755"
-          CONTENTS: |
-            {{ .CloudInitData }}
+          CONTENTS: {{ .CloudInitData }}
       - name: "cloud-init-ds-identity"
-        image: {{ .TinkerActionImage.WriteFile }}
+        image: {{ .TinkerActionImageWriteFile }}
         timeout: 90
         environment:
           FS_TYPE: ext4
@@ -67,7 +66,7 @@ tasks:
           CONTENTS: |
             datasource: NoCloud
       - name: "profile-pkg-and-node-agents-install-script-download"
-        image: {{ .TinkerActionImage.WriteFile }}
+        image: {{ .TinkerActionImageWriteFile }}
         timeout: 90
         environment:
           FS_TYPE: ext4
@@ -78,7 +77,7 @@ tasks:
           DEST_PATH: /home/postinstall/Setup/installer.sh
           CONTENTS: {{ .InstallerScript }}
       - name: "service-script-for-profile-pkg-and-node-agents-install"
-        image: {{ .TinkerActionImage.WriteFile }}
+        image: {{ .TinkerActionImageWriteFile }}
         timeout: 90
         environment:
           FS_TYPE: ext4
@@ -105,7 +104,7 @@ tasks:
             [Install]
             WantedBy=multi-user.target
       - name: "enable-service-script-for-profile-pkg-node-agents"
-        image: {{ .TinkerActionImage.Cexec }}
+        image: {{ .TinkerActionImageCexec }}
         timeout: 200
         environment:
           FS_TYPE: ext4
@@ -113,7 +112,7 @@ tasks:
           DEFAULT_INTERPRETER: "/bin/sh -c"
           CMD_LINE: "systemctl enable install-profile-pkgs-and-node-agent.service"
       - name: "systemd-network-online-optimize"
-        image: {{ .TinkerActionImage.Cexec }}
+        image: {{ .TinkerActionImageCexec }}
         timeout: 90
         environment:
           FS_TYPE: ext4
@@ -121,23 +120,23 @@ tasks:
           DEFAULT_INTERPRETER: "/bin/sh -c"
           CMD_LINE: "sed -i 's|ExecStart=/lib/systemd/systemd-networkd-wait-online|ExecStart=/lib/systemd/systemd-networkd-wait-online --timeout=5|' /usr/lib/systemd/system/systemd-networkd-wait-online.service"
       - name: "systemd-snapd-disable-optimize"
-        image: {{ .TinkerActionImage.Cexec }}
+        image: {{ .TinkerActionImageCexec }}
         timeout: 90
         environment:
           FS_TYPE: ext4
           CHROOT: y
           DEFAULT_INTERPRETER: "/bin/sh -c"
           CMD_LINE: "systemctl disable snapd.seeded.service"
-{{- if eq .DeviceInfo.SecurityFeature "SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION" }}
+{{- if eq .DeviceInfoSecurityFeature "SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION" }}
       - name: "fde-encryption"
-        image: {{ .TinkerActionImage.FdeDmv }}
+        image: {{ .TinkerActionImageFdeDmv }}
         timeout: 560
 {{- end }}
       - name: "kernel-upgrade"
-        image: {{ .TinkerActionImage.KernelUpgrade }}
+        image: {{ .TinkerActionImageKernelUpgrade }}
         timeout: 9800
       - name: "efibootset-for-diskboot"
-        image: {{ .TinkerActionImage.Efibootset }}
+        image: {{ .TinkerActionImageEfibootset }}
         timeout: 560
       - name: "reboot"
         image: public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest
