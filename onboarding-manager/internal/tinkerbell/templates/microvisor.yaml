@@ -3,7 +3,7 @@ version: "0.1.0"
 global_timeout: 9800
 tasks:
   - name: "OS provisioning"
-    worker: {{ .WorkerID }}
+    worker: {{ .DeviceInfo.HwMacID }}
     volumes:
       - /dev:/dev
       - /dev/console:/dev/console

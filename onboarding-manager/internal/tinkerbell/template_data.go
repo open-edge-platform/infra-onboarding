@@ -92,7 +92,7 @@ const (
 type TinkerActionImages struct {
 	EraseNonRemovableDisk string
 	WriteFile             string
-	SecurebootFlagRead    string
+	SecureBootFlagRead    string
 	Cexec                 string
 	Efibootset            string
 	KernelUpgrade         string
@@ -174,7 +174,7 @@ func GenerateWorkflowHardwareMap(ctx context.Context, deviceInfo onboarding_type
 		TinkerActionImage: TinkerActionImages{
 			EraseNonRemovableDisk: tinkActionEraseNonRemovableDisk(deviceInfo.TinkerVersion),
 			WriteFile:             tinkActionWriteFileImage(deviceInfo.TinkerVersion),
-			SecurebootFlagRead:    tinkActionSecurebootFlagReadImage(deviceInfo.TinkerVersion),
+			SecureBootFlagRead:    tinkActionSecurebootFlagReadImage(deviceInfo.TinkerVersion),
 			Cexec:                 tinkActionCexecImage(deviceInfo.TinkerVersion),
 			Efibootset:            tinkActionEfibootImage(deviceInfo.TinkerVersion),
 			KernelUpgrade:         tinkActionKernelupgradeImage(deviceInfo.TinkerVersion),
