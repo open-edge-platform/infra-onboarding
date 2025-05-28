@@ -20,9 +20,7 @@ var (
 	zlog       = logging.GetLogger(clientName)
 )
 
-func NewWorkflow(name, ns, mac, hardwareRef, templateRef string, hardwareMap map[string]string) *tink.Workflow {
-	hardwareMap["WorkerID"] = mac
-
+func NewWorkflow(name, ns, hardwareRef, templateRef string, hardwareMap map[string]string) *tink.Workflow {
 	wf := &tink.Workflow{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Workflow",

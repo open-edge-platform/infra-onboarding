@@ -137,7 +137,6 @@ func runProdWorkflow(
 	prodWorkflow := tinkerbell.NewWorkflow(
 		tinkerbell.GetProdWorkflowName(deviceInfo.GUID),
 		env.K8sNamespace,
-		deviceInfo.HwMacID,
 		tinkerbell.GetTinkHardwareName(deviceInfo.GUID),
 		templateName,
 		workflowHardwareMap)

@@ -59,7 +59,7 @@ func TestNewWorkflow(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tinkerbell.NewWorkflow(tt.args.name, tt.args.ns, tt.args.mac, tt.args.hardwareRef,
+			if got := tinkerbell.NewWorkflow(tt.args.name, tt.args.ns, tt.args.hardwareRef,
 				tt.args.templateRef, make(map[string]string)); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewWorkflow() = %v, want %v", got, tt.want)
 			}
