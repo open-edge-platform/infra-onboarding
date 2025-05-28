@@ -3,10 +3,6 @@
 
 package tinkerbell
 
-import (
-	"gopkg.in/yaml.v2"
-)
-
 type Workflow struct {
 	Version       string `yaml:"version"`
 	Name          string `yaml:"name"`
@@ -35,8 +31,4 @@ type Action struct {
 	Volumes     []string          `yaml:"volumes,omitempty"`
 	Environment map[string]string `yaml:"environment,omitempty"`
 	Pid         string            `yaml:"pid,omitempty"`
-}
-
-func marshalWorkflow(wf *Workflow) ([]byte, error) {
-	return yaml.Marshal(wf)
 }

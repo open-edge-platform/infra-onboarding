@@ -50,7 +50,7 @@ func CheckWorkflowExist(ctx context.Context,
 		return false
 	}
 
-	prodWorkflowName := tinkerbell.GetProdWorkflowName(deviceInfo.GUID)
+	prodWorkflowName := tinkerbell.GetWorkflowName(deviceInfo.GUID)
 	_, err = getWorkflow(ctx, kubeClient, prodWorkflowName, instance.Host.ResourceId)
 	if err != nil || inv_errors.IsNotFound(err) {
 		return false
@@ -69,7 +69,7 @@ func CheckStatusOrRunProdWorkflow(ctx context.Context,
 		return err
 	}
 
-	prodWorkflowName := tinkerbell.GetProdWorkflowName(deviceInfo.GUID)
+	prodWorkflowName := tinkerbell.GetWorkflowName(deviceInfo.GUID)
 	workflow, err := getWorkflow(ctx, kubeClient, prodWorkflowName, instance.Host.ResourceId)
 	if err != nil && inv_errors.IsNotFound(err) {
 		// This may happen if:
@@ -129,13 +129,13 @@ func runProdWorkflow(
 		return inv_errors.Errorf("Cannot find Tinkerbell template for OS profile %s", deviceInfo.OsProfileName)
 	}
 
-	workflowHardwareMap, err := tinkerbell.GenerateWorkflowHardwareMap(ctx, deviceInfo)
+	workflowHardwareMap, err := tinkerbell.GenerateWorkflowInputs(ctx, deviceInfo)
 	if err != nil {
 		return err
 	}
 
 	prodWorkflow := tinkerbell.NewWorkflow(
-		tinkerbell.GetProdWorkflowName(deviceInfo.GUID),
+		tinkerbell.GetWorkflowName(deviceInfo.GUID),
 		env.K8sNamespace,
 		tinkerbell.GetTinkHardwareName(deviceInfo.GUID),
 		templateName,

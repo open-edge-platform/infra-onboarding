@@ -86,7 +86,7 @@ func DeleteProdWorkflowResourcesIfExist(ctx context.Context, k8sNamespace, hostU
 			APIVersion: "tinkerbell.org/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      GetProdWorkflowName(hostUUID),
+			Name:      GetWorkflowName(hostUUID),
 			Namespace: k8sNamespace,
 		},
 	}

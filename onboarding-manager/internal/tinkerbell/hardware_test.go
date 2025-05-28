@@ -199,8 +199,8 @@ func TestGetProdWorkflowName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := GetProdWorkflowName(tt.args.uuid); got != tt.want {
-				t.Errorf("GetProdWorkflowName() = %v, want %v", got, tt.want)
+			if got := GetWorkflowName(tt.args.uuid); got != tt.want {
+				t.Errorf("GetWorkflowName() = %v, want %v", got, tt.want)
 			}
 		})
 	}

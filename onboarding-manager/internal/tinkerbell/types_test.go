@@ -4,6 +4,7 @@
 package tinkerbell_test
 
 import (
+	"gopkg.in/yaml.v2"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -49,7 +50,7 @@ func TestMarshal(t *testing.T) {
 		}},
 	}
 
-	r, err := marshalWorkflow(wf)
+	r, err := yaml.Marshal(wf)
 	if err != nil {
 		t.Errorf(`Got unexpected error: %v"`, err)
 	}

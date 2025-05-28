@@ -6,6 +6,7 @@ package tinkerbell_test
 import (
 	"context"
 	"fmt"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell/templates"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -25,7 +26,9 @@ func TestWorkflowActionToStatusDetail(t *testing.T) {
 	dkam_testing.PrepareTestCaCertificateFile(t)
 	dkam_testing.PrepareTestInfraConfig(t)
 
-	wf, err := tinkerbell.NewTemplateDataUbuntu(ctx, "test-wf", onboarding_types.DeviceInfo{
+	tmpl := tinkerbell.NewTemplate(string(templates.UbuntuTemplate), "test-template", "test-namespace")
+
+	wfInputs, err := tinkerbell.GenerateWorkflowInputs(ctx, onboarding_types.DeviceInfo{
 		OsType:           osv1.OsType_OS_TYPE_MUTABLE,
 		TenantID:         "test-tenantid",
 		Hostname:         "test-hostname",
@@ -36,7 +39,12 @@ func TestWorkflowActionToStatusDetail(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	prodBkcWorkflowInstance, err := unmarshalWorkflow(wf)
+	wf := tinkerbell.NewWorkflow("test-wf", "test-namespace",
+		"test-hardware", tmpl.Name, wfInputs)
+
+	rawWf, err := yaml.Marshal(wf)
+
+	prodBkcWorkflowInstance, err := unmarshalWorkflow(rawWf)
 	require.NoError(t, err)
 
 	workflows := []*tinkerbell.Workflow{
