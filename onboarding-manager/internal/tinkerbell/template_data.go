@@ -157,7 +157,7 @@ func flattenStruct(val reflect.Value, prefix string, result map[string]string) {
 
 		key := field.Name
 		if prefix != "" {
-			key = prefix + "." + key
+			key = prefix + key
 		}
 
 		if fieldVal.Kind() == reflect.Struct || (fieldVal.Kind() == reflect.Ptr && fieldVal.Elem().Kind() == reflect.Struct) {

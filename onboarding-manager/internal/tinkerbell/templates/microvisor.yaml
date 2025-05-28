@@ -3,32 +3,32 @@ version: "0.1.0"
 global_timeout: 9800
 tasks:
   - name: "OS provisioning"
-    worker: {{ .DeviceInfo.HwMacID }}
+    worker: {{ .DeviceInfoHwMacID }}
     volumes:
       - /dev:/dev
       - /dev/console:/dev/console
       - /lib/firmware:/lib/firmware:ro
     actions:
       - name: "secure-boot-status-flag-read"
-        image: {{ .TinkerActionImage.SecureBootFlagRead }}
+        image: {{ .TinkerActionImageSecureBootFlagRead }}
         timeout: 560
         volumes:
           - /:/host:rw
         environment:
-          SECURITY_FEATURE_FLAG: {{ .DeviceInfo.SecurityFeature }}
+          SECURITY_FEATURE_FLAG: {{ .DeviceInfoSecurityFeature }}
       - name: "erase-non-removable-disk"
-        image: {{ .TinkerActionImage.EraseNonRemovableDisk }}
+        image: {{ .TinkerActionImageEraseNonRemovableDisk }}
         timeout: 560
       - name: "stream-edge-microvisor-toolkit-image"
-        image: {{ .TinkerActionImage.Image2Disk }}
+        image: {{ .TinkerActionImageImage2Disk }}
         timeout: 9800
         pid: "host"
         environment:
-          IMG_URL: {{ .DeviceInfo.OSImageURL }}
-          SHA256: {{ .DeviceInfo.OsImageSHA256 }}
+          IMG_URL: {{ .DeviceInfoOSImageURL }}
+          SHA256: {{ .DeviceInfoOsImageSHA256 }}
           COMPRESSED: true
       - name: "install-cloud-init"
-        image: {{ .TinkerActionImage.WriteFile }}
+        image: {{ .TinkerActionImageWriteFile }}
         timeout: 90
         environment:
           FS_TYPE: ext4
@@ -40,7 +40,7 @@ tasks:
           CONTENTS: |
             {{ .CloudInitData }}
       - name: "cloud-init-ds-identity"
-        image: {{ .TinkerActionImage.WriteFile }}
+        image: {{ .TinkerActionImageWriteFile }}
         timeout: 90
         environment:
           FS_TYPE: ext4
@@ -52,12 +52,12 @@ tasks:
           CONTENTS: |
             datasource: NoCloud
       - name: "enable-security-features"
-        image: {{ .TinkerActionImage.FdeDmv }}
+        image: {{ .TinkerActionImageFdeDmv }}
         timeout: 560
         environment:
-          ENABLE_ONLY_DMVERITY: {{ .deviceInfo.enableDMVerityOnly }}
+          ENABLE_ONLY_DMVERITY: {{- not (eq .DeviceInfoSecurityFeature "SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION") }}
       - name: "efibootset-for-diskboot"
-        image: {{ .TinkerActionImage.Efibootset }}
+        image: {{ .TinkerActionImageEfibootset }}
         timeout: 560
       - name: "reboot"
         image: public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest
