@@ -27,18 +27,18 @@ tasks:
           IMG_URL: {{ .DeviceInfoOSImageURL }}
           SHA256: {{ .DeviceInfoOsImageSHA256 }}
           COMPRESSED: true
-      - name: "install-cloud-init"
-        image: {{ .TinkerActionImageWriteFile }}
-        timeout: 90
-        environment:
-          FS_TYPE: ext4
-          DEST_PATH: /etc/cloud/cloud.cfg.d/infra.cfg
-          UID: 0
-          GID: 0
-          MODE: "0755"
-          DIRMODE: "0755"
-          CONTENTS: |
-            {{ .CloudInitData }}
+#      - name: "install-cloud-init"
+#        image: {{ .TinkerActionImageWriteFile }}
+#        timeout: 90
+#        environment:
+#          FS_TYPE: ext4
+#          DEST_PATH: /etc/cloud/cloud.cfg.d/infra.cfg
+#          UID: 0
+#          GID: 0
+#          MODE: "0755"
+#          DIRMODE: "0755"
+#          CONTENTS: |
+#            {{ .CloudInitData }}
       - name: "cloud-init-ds-identity"
         image: {{ .TinkerActionImageWriteFile }}
         timeout: 90
