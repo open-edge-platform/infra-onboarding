@@ -39,6 +39,11 @@ tasks:
           DEST_PATH: /etc/cloud/ds-identify.cfg
           CONTENTS: |
             datasource: NoCloud
+      - name: "enable-security-features"
+        image: {{ .TinkerActionImageFdeDmv }}
+        timeout: 560
+        environment:
+          ENABLE_ONLY_DMVERITY: "{{- not (eq .DeviceInfoSecurityFeature "SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION") }}"
       - name: "efibootset-for-diskboot"
         image: {{ .TinkerActionImageEfibootset }}
         timeout: 560
