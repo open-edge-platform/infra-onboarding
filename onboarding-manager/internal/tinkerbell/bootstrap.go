@@ -33,6 +33,17 @@ func createTemplates() error {
 
 func clearAllTemplates() error {
 	zlog.Info().Msg("Clearing all existing Tinkerbell templates")
+	allTemplates, err := ListTemplates()
+	if err != nil {
+		return err
+	}
 
-	return DeleteAllTemplates(env.K8sNamespace)
+	for _, tmpl := range allTemplates {
+		zlog.Info().Msgf("Deleting Tinkerbell template %q", tmpl.Name)
+		if delErr := DeleteTemplate(tmpl.Name, tmpl.Namespace); delErr != nil {
+			return delErr
+		}
+	}
+
+	return nil
 }
