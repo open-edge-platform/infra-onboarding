@@ -263,7 +263,7 @@ func TestWrite(t *testing.T) {
 
 	// Set SHA256 env var for match
 	hash := sha256.Sum256(fakeImage)
-	os.Setenv("SHA256", hex.EncodeToString(hash[:]))
+	t.Setenv("SHA256", hex.EncodeToString(hash[:]))
 
 	tests := []struct {
 		name    string
@@ -283,16 +283,203 @@ func TestWrite(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "404 not found",
+			name: "Failure with compressed as true",
 			args: args{
 				ctx:               context.Background(),
 				log:               slog.New(slog.NewTextHandler(io.Discard, nil)),
-				sourceImage:       server.URL + "/not-found",
+				sourceImage:       server.URL,
+				destinationDevice: tmpFile.Name(),
+				compressed:        true,
+				progressInterval:  5 * time.Millisecond,
+			},
+			wantErr: true,
+		},
+		{
+			name: "Failure with empty destination",
+			args: args{
+				ctx:               context.Background(),
+				log:               slog.New(slog.NewTextHandler(io.Discard, nil)),
+				sourceImage:       server.URL,
+				destinationDevice: "",
+				compressed:        false,
+				progressInterval:  5 * time.Millisecond,
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := Write(tt.args.ctx, tt.args.log, tt.args.sourceImage, tt.args.destinationDevice, tt.args.compressed, tt.args.progressInterval)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Write() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestWrite_InavlidSHA(t *testing.T) {
+	type args struct {
+		ctx               context.Context
+		log               *slog.Logger
+		sourceImage       string
+		destinationDevice string
+		compressed        bool
+		progressInterval  time.Duration
+	}
+
+	// Start a fake HTTP server
+	fakeImage := []byte("fake image content")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write(fakeImage)
+	}))
+	defer server.Close()
+
+	// Create a temporary destination file
+	tmpFile, err := os.CreateTemp("", "test-disk")
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	// Set SHA256 env var for match
+	// hash := sha256.Sum256(fakeImage)
+	t.Setenv("SHA256", "sha")
+
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Failure write with sha mismatch",
+			args: args{
+				ctx:               context.Background(),
+				log:               slog.New(slog.NewTextHandler(io.Discard, nil)),
+				sourceImage:       server.URL,
 				destinationDevice: tmpFile.Name(),
 				compressed:        false,
 				progressInterval:  5 * time.Millisecond,
 			},
-			wantErr: false,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := Write(tt.args.ctx, tt.args.log, tt.args.sourceImage, tt.args.destinationDevice, tt.args.compressed, tt.args.progressInterval)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Write() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+func TestWrite_ErrorNotFound(t *testing.T) {
+	type args struct {
+		ctx               context.Context
+		log               *slog.Logger
+		sourceImage       string
+		destinationDevice string
+		compressed        bool
+		progressInterval  time.Duration
+	}
+
+	// Start a fake HTTP server
+	fakeImage := []byte("fake image content")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write(fakeImage)
+	}))
+	defer server.Close()
+
+	// Create a temporary destination file
+	tmpFile, err := os.CreateTemp("", "test-disk")
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	// Set SHA256 env var for match
+	hash := sha256.Sum256(fakeImage)
+	os.Setenv("SHA256", hex.EncodeToString(hash[:]))
+
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+
+		{
+			name: "404 not found",
+			args: args{
+				ctx:               context.Background(),
+				log:               slog.New(slog.NewTextHandler(io.Discard, nil)),
+				sourceImage:       server.URL,
+				destinationDevice: tmpFile.Name(),
+				compressed:        false,
+				progressInterval:  5 * time.Millisecond,
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := Write(tt.args.ctx, tt.args.log, tt.args.sourceImage, tt.args.destinationDevice, tt.args.compressed, tt.args.progressInterval)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Write() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestWrite_Error(t *testing.T) {
+	type args struct {
+		ctx               context.Context
+		log               *slog.Logger
+		sourceImage       string
+		destinationDevice string
+		compressed        bool
+		progressInterval  time.Duration
+	}
+
+	// Start a fake HTTP server
+	fakeImage := []byte("fake image content")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+		w.Write(fakeImage)
+	}))
+	defer server.Close()
+
+	// Create a temporary destination file
+	tmpFile, err := os.CreateTemp("", "test-disk")
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	// Set SHA256 env var for match
+	hash := sha256.Sum256(fakeImage)
+	os.Setenv("SHA256", hex.EncodeToString(hash[:]))
+
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+
+		{
+			name: "Other than 404 and 200",
+			args: args{
+				ctx:               context.Background(),
+				log:               slog.New(slog.NewTextHandler(io.Discard, nil)),
+				sourceImage:       server.URL,
+				destinationDevice: tmpFile.Name(),
+				compressed:        false,
+				progressInterval:  5 * time.Millisecond,
+			},
+			wantErr: true,
 		},
 	}
 
