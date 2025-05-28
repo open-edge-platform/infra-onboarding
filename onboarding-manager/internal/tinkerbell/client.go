@@ -5,10 +5,7 @@ package tinkerbell
 
 import (
 	"context"
-	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/env"
 	tinkv1alpha1 "github.com/tinkerbell/tink/api/v1alpha1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -43,21 +40,6 @@ func newK8SClient() (client.Client, error) {
 	return kubeClient, nil
 }
 
-func ListTemplates() ([]tinkv1alpha1.Template, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	kubeClient, err := K8sClientFactory()
-	if err != nil {
-		return nil, err
-	}
-
-	tmplList := &tinkv1alpha1.TemplateList{}
-	err = kubeClient.List(ctx, tmplList, client.InNamespace(env.K8sNamespace))
-
-	return tmplList.Items, nil
-}
-
 func CreateTemplate(template *tinkv1alpha1.Template) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -67,7 +49,7 @@ func CreateTemplate(template *tinkv1alpha1.Template) error {
 		return err
 	}
 
-	zlog.Info().Msgf("Creating new Tinkerbell template %s.", template.Name)
+	zlog.Info().Msgf("Creating new Tinkerbell template %q", template.Name)
 
 	createErr := kubeClient.Create(ctx, template)
 	if createErr != nil {
@@ -80,7 +62,7 @@ func CreateTemplate(template *tinkv1alpha1.Template) error {
 	return nil
 }
 
-func DeleteTemplate(name, namespace string) error {
+func DeleteAllTemplates(namespace string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -89,22 +71,11 @@ func DeleteTemplate(name, namespace string) error {
 		return err
 	}
 
-	zlog.Debug().Msgf("Deleting prod template %s in namespace %s", name, namespace)
+	zlog.Debug().Msgf("Deleting all Tinkerbell templates in namespace %q", namespace)
 
-	template := &tinkv1alpha1.Template{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Template",
-			APIVersion: "tinkerbell.org/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-	}
-
-	if err = kubeClient.Delete(ctx, template); err != nil && !errors.IsNotFound(err) {
+	if err = kubeClient.DeleteAllOf(ctx, &tinkv1alpha1.Template{}, client.InNamespace(namespace)); err != nil {
 		zlog.InfraSec().InfraErr(err).Msg("")
-		return inv_errors.Errorf("Failed to delete Tinkerbell template")
+		return inv_errors.Errorf("Failed to delete Tinkerbell templates")
 	}
 
 	return nil
