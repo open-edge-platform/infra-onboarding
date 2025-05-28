@@ -408,6 +408,10 @@ func (c *OnboardingInventoryClient) UpdateHostStateAndRuntimeStatus(ctx context.
 		computev1.HostResourceFieldHostStatus,
 		computev1.HostResourceFieldHostStatusIndicator,
 		computev1.HostResourceFieldHostStatusTimestamp,
+		computev1.HostResourceFieldOnboardingStatus,
+		computev1.HostResourceFieldOnboardingStatusIndicator,
+		computev1.HostResourceFieldRegistrationStatus,
+		computev1.HostResourceFieldRegistrationStatusIndicator,
 	})
 }
 
@@ -550,6 +554,50 @@ func (c *OnboardingInventoryClient) SetInstanceProvisioningStatus(ctx context.Co
 		computev1.InstanceResourceFieldProvisioningStatus,
 		computev1.InstanceResourceFieldProvisioningStatusIndicator,
 		computev1.InstanceResourceFieldProvisioningStatusTimestamp,
+	})
+}
+
+func (c *OnboardingInventoryClient) UpdateInstanceStatuses(ctx context.Context, tenantID string, instanceID string,
+	instanceStatus inv_status.ResourceStatus,
+	instanceStatusDetail string,
+	provisioningStatus inv_status.ResourceStatus,
+	updateStatus inv_status.ResourceStatus,
+	updateStatusDetail string,
+	trustedAttestationStatus inv_status.ResourceStatus,
+) error {
+	updateInstance := &computev1.InstanceResource{
+		ResourceId:                        instanceID,
+		InstanceStatus:                    instanceStatus.Status,
+		InstanceStatusIndicator:           instanceStatus.StatusIndicator,
+		InstanceStatusTimestamp:           uint64(time.Now().Unix()), // #nosec G115
+		ProvisioningStatus:                provisioningStatus.Status,
+		ProvisioningStatusIndicator:       provisioningStatus.StatusIndicator,
+		ProvisioningStatusTimestamp:       uint64(time.Now().Unix()), // #nosec G115
+		UpdateStatus:                      updateStatus.Status,
+		UpdateStatusIndicator:             updateStatus.StatusIndicator,
+		UpdateStatusTimestamp:             uint64(time.Now().Unix()), // #nosec G115
+		UpdateStatusDetail:                updateStatusDetail,
+		TrustedAttestationStatus:          trustedAttestationStatus.Status,
+		TrustedAttestationStatusIndicator: trustedAttestationStatus.StatusIndicator,
+		TrustedAttestationStatusTimestamp: uint64(time.Now().Unix()), // #nosec G115
+		InstanceStatusDetail:              instanceStatusDetail,
+	}
+
+	return c.UpdateInvResourceFields(ctx, tenantID, updateInstance, []string{
+		computev1.InstanceResourceFieldInstanceStatus,
+		computev1.InstanceResourceFieldInstanceStatusIndicator,
+		computev1.InstanceResourceFieldInstanceStatusTimestamp,
+		computev1.InstanceResourceFieldProvisioningStatus,
+		computev1.InstanceResourceFieldProvisioningStatusIndicator,
+		computev1.InstanceResourceFieldProvisioningStatusTimestamp,
+		computev1.InstanceResourceFieldUpdateStatus,
+		computev1.InstanceResourceFieldUpdateStatusIndicator,
+		computev1.InstanceResourceFieldUpdateStatusTimestamp,
+		computev1.InstanceResourceFieldUpdateStatusDetail,
+		computev1.InstanceResourceFieldTrustedAttestationStatus,
+		computev1.InstanceResourceFieldTrustedAttestationStatusIndicator,
+		computev1.InstanceResourceFieldTrustedAttestationStatusTimestamp,
+		computev1.InstanceResourceFieldInstanceStatusDetail,
 	})
 }
 

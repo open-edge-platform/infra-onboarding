@@ -14,16 +14,20 @@ var (
 	LegacyHostStatusDeleting = "Deleting"
 
 	// resource statuses for Instance.
+	InstanceStatusUnknown        = inv_status.New("Unknown", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED)
 	ProvisioningStatusUnknown    = inv_status.New("Unknown", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED)
 	ProvisioningStatusInProgress = inv_status.New("Provisioning In Progress",
 		statusv1.StatusIndication_STATUS_INDICATION_IN_PROGRESS)
-	ProvisioningStatusFailed = inv_status.New("Provisioning Failed", statusv1.StatusIndication_STATUS_INDICATION_ERROR)
-	ProvisioningStatusDone   = inv_status.New("Provisioned", statusv1.StatusIndication_STATUS_INDICATION_IDLE)
+	ProvisioningStatusFailed        = inv_status.New("Provisioning Failed", statusv1.StatusIndication_STATUS_INDICATION_ERROR)
+	ProvisioningStatusDone          = inv_status.New("Provisioned", statusv1.StatusIndication_STATUS_INDICATION_IDLE)
+	UpdateStatusUnknown             = inv_status.New("Unknown", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED)
+	TrustedAttestationStatusUnknown = inv_status.New("Unknown", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED)
 
 	// resource statuses for Host.
 	InitializationDone   = inv_status.New("Device initialized", statusv1.StatusIndication_STATUS_INDICATION_IDLE)
 	InitializationFailed = inv_status.New("Device initialization failed",
 		statusv1.StatusIndication_STATUS_INDICATION_ERROR)
+	OnboardingStatusUnknown        = inv_status.New("Unknown", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED)
 	OnboardingStatusDone           = inv_status.New("Onboarded", statusv1.StatusIndication_STATUS_INDICATION_IDLE)
 	OnboardingStatusFailed         = inv_status.New("Onboarding Failed", statusv1.StatusIndication_STATUS_INDICATION_ERROR)
 	AuthorizationStatusInvalidated = inv_status.New("Invalidated", statusv1.StatusIndication_STATUS_INDICATION_IDLE)
