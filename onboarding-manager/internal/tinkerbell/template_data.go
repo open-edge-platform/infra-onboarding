@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
@@ -213,6 +214,8 @@ func GenerateWorkflowHardwareMap(ctx context.Context, deviceInfo onboarding_type
 	if err != nil {
 		return nil, err
 	}
+
+	cloudInitData = strings.ReplaceAll(cloudInitData, `\n`, "\n")
 
 	inputs.CloudInitData = cloudInitData
 	inputs.Env = Env{
