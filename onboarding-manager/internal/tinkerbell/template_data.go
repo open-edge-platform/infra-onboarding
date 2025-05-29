@@ -114,12 +114,28 @@ var (
 	defaultTinkActionQemuNbdImage2DiskImage  = getTinkerActionImage(tinkerActionQemuNbdImage2Disk)
 )
 
+// structToMapStringString this function takes an arbitrary object (e.g., nested struct)
+// and recursively converts it into a flat map. Example:
+//
+//	type InnerStruct struct {
+//	  A string // set to "example1"
+//	  B string // set to "example2"
+//	}
+//
+//	type OuterStruct struct {
+//	  Inner InnerStruct
+//	}
+//
+// will be converted to a map with the following elements:
+// InnerA: example1
+// InnerB: example2
 func structToMapStringString(input interface{}) map[string]string {
 	result := make(map[string]string)
 	flattenStruct(reflect.ValueOf(input), "", result)
 	return result
 }
 
+// flattenStruct recursively reads a nested struct and generates a flat map.
 func flattenStruct(val reflect.Value, prefix string, result map[string]string) {
 	if val.Kind() == reflect.Ptr {
 		if val.IsNil() {
