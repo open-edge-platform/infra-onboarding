@@ -89,34 +89,6 @@ func TestCheckStatusOrRunProdWorkflow(t *testing.T) {
 }
 
 //nolint:dupl // These tests cover different scenarios.
-func TestDeleteTinkHardwareForHostIfExist(t *testing.T) {
-	type args struct {
-		ctx      context.Context
-		hostUUID string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "DeleteTinkHardwareForHostIfExistsTest",
-			args: args{
-				ctx: context.Background(),
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := DeleteTinkHardwareForHostIfExist(tt.args.ctx, tt.args.hostUUID); (err != nil) != tt.wantErr {
-				t.Errorf("DeleteTinkHardwareForHostIfExist() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-//nolint:dupl // These tests cover different scenarios.
 func TestDeleteProdWorkflowResourcesIfExist(t *testing.T) {
 	type args struct {
 		ctx      context.Context
@@ -137,8 +109,8 @@ func TestDeleteProdWorkflowResourcesIfExist(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := DeleteProdWorkflowResourcesIfExist(tt.args.ctx, tt.args.hostUUID); (err != nil) != tt.wantErr {
-				t.Errorf("DeleteProdWorkflowResourcesIfExist() error = %v, wantErr %v", err, tt.wantErr)
+			if err := DeleteTinkerbellWorkflowIfExists(tt.args.ctx, tt.args.hostUUID); (err != nil) != tt.wantErr {
+				t.Errorf("DeleteWorkflowIfExists() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

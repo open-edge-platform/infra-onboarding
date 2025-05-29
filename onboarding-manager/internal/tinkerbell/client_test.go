@@ -7,50 +7,16 @@ package tinkerbell
 import (
 	"context"
 	"errors"
-	"reflect"
-	"testing"
-
-	"github.com/google/uuid"
+	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
+	om_testing "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/testing"
 	"github.com/stretchr/testify/mock"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	error_k8 "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
-	om_testing "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/testing"
+	"testing"
 )
-
-func TestNewHardware(t *testing.T) {
-	type args struct {
-		name         string
-		ns           string
-		id           string
-		ip           string
-		gateway      string
-		osResourceID string
-	}
-	tests := []struct {
-		name string
-		args args
-		want *tink.Hardware
-	}{
-		{
-			name: "Create new hardware with default values",
-			args: args{},
-			want: &tink.Hardware{},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := NewHardware(tt.args.name, tt.args.ns, tt.args.id,
-				tt.args.ip, tt.args.gateway, tt.args.osResourceID); reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewHardware() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
 
 func Test_newK8SClient(t *testing.T) {
 	currK8sClientFactory := K8sClientFactory
@@ -92,7 +58,7 @@ func TestDeleteHardwareForHostIfExist(t *testing.T) {
 	type args struct {
 		ctx          context.Context
 		k8sNamespace string
-		hostUUID     string
+		name         string
 	}
 	tests := []struct {
 		name    string
@@ -109,8 +75,8 @@ func TestDeleteHardwareForHostIfExist(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := DeleteHardwareForHostIfExist(tt.args.ctx, tt.args.k8sNamespace,
-				tt.args.hostUUID); (err != nil) != tt.wantErr {
+			if err := DeleteHardware(tt.args.k8sNamespace,
+				tt.args.name); (err != nil) != tt.wantErr {
 				t.Errorf("DeleteHardwareForHostIfExist() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -176,36 +142,8 @@ func TestCreateHardwareIfNotExists(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := CreateHardwareIfNotExists(tt.args.ctx, tt.args.k8sCli, tt.args.k8sNamespace, tt.args.deviceInfo,
-				tt.args.osResourceID); (err != nil) != tt.wantErr {
+			if err := CreateHardwareIfNotExists(tt.args.k8sNamespace, "test"); (err != nil) != tt.wantErr {
 				t.Errorf("CreateHardwareIfNotExists() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestGetWorkflowName(t *testing.T) {
-	testUUID := uuid.NewString()
-	type args struct {
-		uuid string
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			name: "TestGetWorkflowNameUUID",
-			args: args{
-				uuid: testUUID,
-			},
-			want: "workflow-" + testUUID,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := GetWorkflowName(tt.args.uuid); got != tt.want {
-				t.Errorf("GetWorkflowName() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -215,7 +153,7 @@ func TestDeleteHardwareForHostIfExist_ErrorScenario(t *testing.T) {
 	type args struct {
 		ctx          context.Context
 		k8sNamespace string
-		hostUUID     string
+		name         string
 	}
 	tests := []struct {
 		name    string
@@ -230,9 +168,140 @@ func TestDeleteHardwareForHostIfExist_ErrorScenario(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := DeleteHardwareForHostIfExist(tt.args.ctx, tt.args.k8sNamespace,
-				tt.args.hostUUID); (err != nil) != tt.wantErr {
+			if err := DeleteHardware(tt.args.k8sNamespace, tt.args.name); (err != nil) != tt.wantErr {
 				t.Errorf("DeleteHardwareForHostIfExist() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestCreateWorkflowIfNotExists(t *testing.T) {
+	type args struct {
+		ctx      context.Context
+		k8sCli   client.Client
+		workflow *tink.Workflow
+	}
+	mockClient := om_testing.MockK8sClient{}
+	mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	mockClient1 := om_testing.MockK8sClient{}
+	mockClient1.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
+	mockClient2 := om_testing.MockK8sClient{}
+	mockClient2.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(error_k8.NewNotFound(schema.GroupResource{Group: "example.com", Resource: "myresource"}, "resource-name"))
+	mockClient2.On("Create", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	mockClient3 := om_testing.MockK8sClient{}
+	mockClient3.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(error_k8.NewNotFound(schema.GroupResource{Group: "example.com", Resource: "myresource"}, "resource-name"))
+	mockClient3.On("Create", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "CreateWorkflow_Success",
+			args: args{
+				ctx:      context.Background(),
+				k8sCli:   &mockClient,
+				workflow: &tink.Workflow{},
+			},
+		},
+		{
+			name: "CreateWorkflow_ClientError",
+			args: args{
+				ctx:      context.Background(),
+				k8sCli:   &mockClient1,
+				workflow: &tink.Workflow{},
+			},
+			wantErr: true,
+		},
+		{
+			name: "CreateWorkflow_WorkflowNotFound",
+			args: args{
+				ctx:      context.Background(),
+				k8sCli:   &mockClient2,
+				workflow: &tink.Workflow{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "CreateWorkflow_CreateError",
+			args: args{
+				ctx:      context.Background(),
+				k8sCli:   &mockClient3,
+				workflow: &tink.Workflow{},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := CreateWorkflowIfNotExists(tt.args.ctx, tt.args.k8sCli,
+				tt.args.workflow); (err != nil) != tt.wantErr {
+				t.Errorf("CreateWorkflowIfNotExists() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestDeleteProdWorkflowResourcesIfExist(t *testing.T) {
+	type args struct {
+		ctx          context.Context
+		k8sNamespace string
+		hostUUID     string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "TestDeleteProdWorkflowResourcesIfExist_WithExistingResources",
+			args: args{
+				ctx: context.Background(),
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := DeleteWorkflowIfExists(tt.args.ctx, tt.args.k8sNamespace,
+				tt.args.hostUUID); (err != nil) != tt.wantErr {
+				t.Errorf("DeleteWorkflowIfExists() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestDeleteProdWorkflowResourcesIfExist_Case(t *testing.T) {
+	currK8sClientFactory := K8sClientFactory
+	defer func() {
+		K8sClientFactory = currK8sClientFactory
+	}()
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
+	type args struct {
+		ctx          context.Context
+		k8sNamespace string
+		hostUUID     string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "TestDeleteProdWorkflowResourcesIfExist_WithExistingResources",
+			args: args{
+				ctx: context.Background(),
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tinkerbell.DeleteWorkflowIfExists(tt.args.ctx, tt.args.k8sNamespace,
+				tt.args.hostUUID); (err != nil) != tt.wantErr {
+				t.Errorf("DeleteWorkflowIfExists() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

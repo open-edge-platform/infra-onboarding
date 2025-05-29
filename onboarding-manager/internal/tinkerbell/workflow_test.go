@@ -159,9 +159,9 @@ func TestDeleteProdWorkflowResourcesIfExist(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tinkerbell.DeleteProdWorkflowResourcesIfExist(tt.args.ctx, tt.args.k8sNamespace,
+			if err := tinkerbell.DeleteWorkflowIfExists(tt.args.ctx, tt.args.k8sNamespace,
 				tt.args.hostUUID); (err != nil) != tt.wantErr {
-				t.Errorf("DeleteProdWorkflowResourcesIfExist() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("DeleteWorkflowIfExists() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -193,9 +193,9 @@ func TestDeleteProdWorkflowResourcesIfExist_Case(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tinkerbell.DeleteProdWorkflowResourcesIfExist(tt.args.ctx, tt.args.k8sNamespace,
+			if err := tinkerbell.DeleteWorkflowIfExists(tt.args.ctx, tt.args.k8sNamespace,
 				tt.args.hostUUID); (err != nil) != tt.wantErr {
-				t.Errorf("DeleteProdWorkflowResourcesIfExist() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("DeleteWorkflowIfExists() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
