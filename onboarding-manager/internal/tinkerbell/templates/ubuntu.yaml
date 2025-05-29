@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 name: ubuntu
-version: "0.1.0"
+version: "0.1" # must stay at 0.1 due to v0.10.0 limitations
 global_timeout: 9800
 tasks:
   - name: "OS provisioning"
@@ -130,11 +130,11 @@ tasks:
           CHROOT: y
           DEFAULT_INTERPRETER: "/bin/sh -c"
           CMD_LINE: "systemctl disable snapd.seeded.service"
-#{{- if eq .DeviceInfoSecurityFeature "SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION" }}
-#      - name: "fde-encryption"
-#        image: {{ .TinkerActionImageFdeDmv }}
-#        timeout: 560
-#{{- end }}
+{{- if eq .DeviceInfoSecurityFeature "SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION" }}
+      - name: "fde-encryption"
+        image: {{ .TinkerActionImageFdeDmv }}
+        timeout: 560
+{{- end }}
       - name: "kernel-upgrade"
         image: {{ .TinkerActionImageKernelUpgrade }}
         timeout: 9800
