@@ -18,6 +18,19 @@ import (
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell/templates"
 )
 
+type WorkflowSpec struct {
+	Name  string `yaml:"name"`
+	Tasks []Task `yaml:"tasks"`
+}
+
+type Task struct {
+	Actions []Action `yaml:"actions"`
+}
+
+type Action struct {
+	Name string `yaml:"name"`
+}
+
 // TestWorkflowActionToStatusDetail verifies if there is a mapping from a workflow step to human-readable status detail.
 func TestWorkflowActionToStatusDetail(t *testing.T) {
 	testData := [][]byte{
@@ -26,9 +39,9 @@ func TestWorkflowActionToStatusDetail(t *testing.T) {
 	}
 
 	for _, tmpl := range testData {
-		// replace {{ }} placeholders with "test-value", we only care about action names
+		// remove {{ }} placeholders, we only care about action names
 		re := regexp.MustCompile(`{{[^}]*}}`)
-		templateUnderTest := re.ReplaceAllString(string(tmpl), "test-value")
+		templateUnderTest := re.ReplaceAllString(string(tmpl), "")
 
 		wf, err := unmarshalWorkflow([]byte(templateUnderTest))
 		require.NoError(t, err)
@@ -46,11 +59,11 @@ func TestWorkflowActionToStatusDetail(t *testing.T) {
 	}
 }
 
-func unmarshalWorkflow(yamlContent []byte) (*tinkerbell.Workflow, error) {
-	var workflow tinkerbell.Workflow
+func unmarshalWorkflow(yamlContent []byte) (*WorkflowSpec, error) {
+	var workflow WorkflowSpec
 
 	if err := yaml.Unmarshal(yamlContent, &workflow); err != nil {
-		return &tinkerbell.Workflow{}, errors.Wrap(err, "parsing yaml data")
+		return &WorkflowSpec{}, errors.Wrap(err, "parsing yaml data")
 	}
 	return &workflow, nil
 }
