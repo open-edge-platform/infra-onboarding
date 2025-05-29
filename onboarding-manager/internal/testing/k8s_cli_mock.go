@@ -180,6 +180,8 @@ func K8sCliMockFactory(createShouldFail, getShouldFail, deleteShouldFail, useRea
 		k8sMock.On("Delete", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	}
 
+	k8sMock.On("List", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
 	return func() (client.Client, error) {
 		return k8sMock, nil
 	}

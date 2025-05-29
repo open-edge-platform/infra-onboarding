@@ -20,29 +20,22 @@ import (
 )
 
 const (
-	ActionEraseNonRemovableDisk            = "erase-non-removable-disk" //#nosec G101 -- ignore false positive.
-	ActionSecureBootStatusFlagRead         = "secure-boot-status-flag-read"
-	ActionStreamUbuntuImage                = "stream-ubuntu-image"
-	ActionStreamEdgeMicrovisorToolKitImage = "stream-edge-microvisor-toolkit-image"
-	ActionGrowPartitionInstallScript       = "grow-partition-install-script"
-	ActionCreateUser                       = "create-user"
-	ActionInstallScriptDownload            = "profile-pkg-and-node-agents-install-script-download"
-	ActionCloudInitInstall                 = "install-cloud-init"
-	ActionInstallScript                    = "service-script-for-profile-pkg-and-node-agents-install"
-	ActionInstallScriptEnable              = "enable-service-script-for-profile-pkg-node-agents"
-	ActionEfibootset                       = "efibootset-for-diskboot"
-	ActionFdeEncryption                    = "fde-encryption"
-	ActionSecurityFeatures                 = "enable-security-features"
-	ActionKernelupgrade                    = "kernel-upgrade"
-	ActionReboot                           = "reboot"
-	ActionAddAptProxy                      = "add-apt-proxy"
-	ActionCreateSecretsDirectory           = "create-node-directory" //#nosec G101 -- ignore false positive.
-	ActionWriteClientID                    = "write-client-id"
-	ActionWriteClientSecret                = "write-client-secret"
-	ActionWriteHostname                    = "write-hostname"
-	ActionSystemdNetworkOptimize           = "systemd-network-online-optimize"
-	ActionDisableSnapdOptimize             = "systemd-snapd-disable-optimize"
-	ActionCloudinitDsidentity              = "cloud-init-ds-identity"
+	ActionEraseNonRemovableDisk    = "erase-non-removable-disk" //#nosec G101 -- ignore false positive.
+	ActionSecureBootStatusFlagRead = "secure-boot-status-flag-read"
+	ActionInstallScriptDownload    = "profile-pkg-and-node-agents-install-script-download"
+	ActionStreamOSImage            = "stream-os-image"
+	ActionCloudInitInstall         = "install-cloud-init"
+	ActionInstallScript            = "service-script-for-profile-pkg-and-node-agents-install"
+	ActionInstallScriptEnable      = "enable-service-script-for-profile-pkg-node-agents"
+	ActionEfibootset               = "efibootset-for-diskboot"
+	ActionFdeEncryption            = "fde-encryption"
+	ActionSecurityFeatures         = "enable-security-features"
+	ActionKernelupgrade            = "kernel-upgrade"
+	ActionReboot                   = "reboot"
+	ActionAddAptProxy              = "add-apt-proxy"
+	ActionSystemdNetworkOptimize   = "systemd-network-online-optimize"
+	ActionDisableSnapdOptimize     = "systemd-snapd-disable-optimize"
+	ActionCloudinitDsidentity      = "cloud-init-ds-identity"
 )
 
 const (

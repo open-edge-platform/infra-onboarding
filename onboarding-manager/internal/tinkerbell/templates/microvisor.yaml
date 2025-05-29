@@ -22,7 +22,7 @@ tasks:
       - name: "erase-non-removable-disk"
         image: {{ .TinkerActionImageEraseNonRemovableDisk }}
         timeout: 560
-      - name: "stream-edge-microvisor-toolkit-image"
+      - name: "stream-os-image"
         image: {{ .TinkerActionImageImage2Disk }}
         timeout: 9800
         pid: "host"

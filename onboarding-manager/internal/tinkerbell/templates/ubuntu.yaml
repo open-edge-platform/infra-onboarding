@@ -22,7 +22,7 @@ tasks:
       - name: "erase-non-removable-disk"
         image: {{ .TinkerActionImageEraseNonRemovableDisk }}
         timeout: 560
-      - name: "stream-ubuntu-image"
+      - name: "stream-os-image"
         image: {{ .TinkerActionImageQemuNbdImage2Disk }}
         timeout: 9800
         pid: "host"
@@ -130,11 +130,11 @@ tasks:
           CHROOT: y
           DEFAULT_INTERPRETER: "/bin/sh -c"
           CMD_LINE: "systemctl disable snapd.seeded.service"
-{{- if eq .DeviceInfoSecurityFeature "SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION" }}
-      - name: "fde-encryption"
-        image: {{ .TinkerActionImageFdeDmv }}
-        timeout: 560
-{{- end }}
+#{{- if eq .DeviceInfoSecurityFeature "SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION" }}
+#      - name: "fde-encryption"
+#        image: {{ .TinkerActionImageFdeDmv }}
+#        timeout: 560
+#{{- end }}
       - name: "kernel-upgrade"
         image: {{ .TinkerActionImageKernelUpgrade }}
         timeout: 9800

@@ -24,9 +24,9 @@ func TestNewWorkflow(t *testing.T) {
 	type args struct {
 		name        string
 		ns          string
-		mac         string
 		hardwareRef string
 		templateRef string
+		hardwareMap map[string]string
 	}
 	tests := []struct {
 		name string
@@ -38,7 +38,9 @@ func TestNewWorkflow(t *testing.T) {
 			args: args{
 				name: "workflow1",
 				ns:   "namespace1",
-				mac:  "00:11:22:33:44:55",
+				hardwareMap: map[string]string{
+					"device_1": "00:11:22:33:44:55",
+				},
 			},
 			want: &tink.Workflow{
 				TypeMeta: metav1.TypeMeta{
@@ -60,7 +62,7 @@ func TestNewWorkflow(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tinkerbell.NewWorkflow(tt.args.name, tt.args.ns, tt.args.hardwareRef,
-				tt.args.templateRef, make(map[string]string)); !reflect.DeepEqual(got, tt.want) {
+				tt.args.templateRef, tt.args.hardwareMap); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewWorkflow() = %v, want %v", got, tt.want)
 			}
 		})
