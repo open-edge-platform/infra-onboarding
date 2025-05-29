@@ -159,7 +159,9 @@ extract_emt_tar() {
 
 	#Extract rootfs.tar.gz from initramfs and decompress
 	mkdir -p $iter_folder/emt_uos_x86_64_files/extract_initramfs
-	zcat $iter_folder/emt_uos_x86_64_files/initramfs-x86_64 | cpio -idmv -D $iter_folder/emt_uos_x86_64_files/extract_initramfs > /dev/null 2>&1
+
+	#zcat $iter_folder/emt_uos_x86_64_files/initramfs-x86_64 | cpio -idmv -D $iter_folder/emt_uos_x86_64_files/extract_initramfs > /dev/null 2>&1
+	fakeroot sh -c "zcat $iter_folder/emt_uos_x86_64_files/initramfs-x86_64 | cpio -idmv -D $iter_folder/emt_uos_x86_64_files/extract_initramfs" > /dev/null 2>&1
 	rm $iter_folder/emt_uos_x86_64_files/initramfs-x86_64
         mkdir -p $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp
 	#tar -xvf $iter_folder/emt_uos_x86_64_files/extract_initramfs/rootfs.tar.gz -C $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp > /dev/null 2>&1
@@ -170,6 +172,7 @@ extract_emt_tar() {
 
 	#Copy env_config file and idp
 	tar -uf $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C $PWD ./etc/emt/env_config
+
 	#Workaround for device-discovery
 	mkdir -p $PWD/etc/hook/
 	cp $PWD/etc/emt/env_config $PWD/etc/hook/env_config
@@ -199,13 +202,25 @@ extract_emt_tar() {
 	#Add crt for tink-worker
 	tar -uf rootfs.tar ./etc/pki/ca-trust/source/anchors/Intel.crt
 
+	#Add autologin
+	tar -xvf rootfs.tar ./usr/lib/systemd/system/getty@.service
+	mkdir -p ./etc/systemd/system/
+	cp ./usr/lib/systemd/system/getty@.service ./etc/systemd/system/getty@tty1.service
+	sed -i 's|^ExecStart=.*agetty.*|ExecStart=-/usr/sbin/agetty --autologin root --noclear %I|' ./etc/systemd/system/getty@tty1.service
+	sed -i '/^DefaultInstance=tty1/a Alias=getty@tty1.service' ./etc/systemd/system/getty@tty1.service
+	tar --delete -f rootfs.tar ./etc/systemd/system/getty.target.wants/getty@tty1.service
+	mkdir -p ./etc/systemd/system/getty.target.wants/
+	ln -s /etc/systemd/system/getty@tty1.service ./etc/systemd/system/getty.target.wants/getty@tty1.service
+	tar -uf rootfs.tar ./etc/systemd/system/getty@tty1.service
+	tar -rf rootfs.tar ./etc/systemd/system/getty.target.wants/getty@tty1.service
+
 	gzip -c rootfs.tar > ../rootfs.tar.gz
 	popd || exit
 	rm -r $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/
 
 	pushd "$iter_folder/emt_uos_x86_64_files/extract_initramfs/" || exit
 	
-        find . | cpio -o -H newc | gzip -9 > ../initramfs-x86_64
+	fakeroot sh -c "find . | cpio -o -H newc | gzip -9 > ../initramfs-x86_64"
 
 	popd || exit
         ls $iter_folder/
