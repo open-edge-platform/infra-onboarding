@@ -39,9 +39,9 @@ func TestWorkflowActionToStatusDetail(t *testing.T) {
 	}
 
 	for _, tmpl := range testData {
-		// replace {{ }} placeholders with "test-value", we only care about action names
+		// remove {{ }} placeholders, we only care about action names
 		re := regexp.MustCompile(`{{[^}]*}}`)
-		templateUnderTest := re.ReplaceAllString(string(tmpl), "test-value")
+		templateUnderTest := re.ReplaceAllString(string(tmpl), "")
 
 		wf, err := unmarshalWorkflow([]byte(templateUnderTest))
 		require.NoError(t, err)
