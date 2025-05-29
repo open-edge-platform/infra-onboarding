@@ -18,30 +18,31 @@ import (
 )
 
 const (
-	ActionEraseNonRemovableDisk            = "erase-non-removable-disk" //#nosec G101 -- ignore false positive.
-	ActionSecureBootStatusFlagRead         = "secure-boot-status-flag-read"
-	ActionStreamUbuntuImage                = "stream-ubuntu-image"
-	ActionStreamEdgeMicrovisorToolKitImage = "stream-edge-microvisor-toolkit-image"
-	ActionGrowPartitionInstallScript       = "grow-partition-install-script"
+	// Max length for action name allowed is 60 characters.
+	ActionEraseNonRemovableDisk            = "erase" //#nosec G101 -- ignore false positive.
+	ActionSecureBootStatusFlagRead         = "secure-boot"
+	ActionStreamUbuntuImage                = "stream-ubuntu"
+	ActionStreamEdgeMicrovisorToolKitImage = "stream-edge"
+	ActionGrowPartitionInstallScript       = "grow-partition"
 	ActionCreateUser                       = "create-user"
-	ActionInstallScriptDownload            = "profile-pkg-and-node-agents-install-script-download"
-	ActionCloudInitInstall                 = "install-cloud-init"
-	ActionInstallScript                    = "service-script-for-profile-pkg-and-node-agents-install"
-	ActionInstallScriptEnable              = "enable-service-script-for-profile-pkg-node-agents"
-	ActionEfibootset                       = "efibootset-for-diskboot"
+	ActionInstallScriptDownload            = "profile-pkg"
+	ActionCloudInitInstall                 = "cloud-init"
+	ActionInstallScript                    = "profile-pkg"
+	ActionInstallScriptEnable              = "enable-profile"
+	ActionEfibootset                       = "efibootset"
 	ActionFdeEncryption                    = "fde-encryption"
-	ActionEnableDmv                        = "enable-dm-verity"
-	ActionFdeDmv                           = "fde-encryption-and-dm-verity-check"
+	ActionEnableDmv                        = "dm-verity"
+	ActionFdeDmv                           = "fde-dm-verity"
 	ActionKernelupgrade                    = "kernel-upgrade"
 	ActionReboot                           = "reboot"
 	ActionAddAptProxy                      = "add-apt-proxy"
-	ActionCreateSecretsDirectory           = "create-node-directory" //#nosec G101 -- ignore false positive.
-	ActionWriteClientID                    = "write-client-id"
-	ActionWriteClientSecret                = "write-client-secret"
+	ActionCreateSecretsDirectory           = "create-node-dir" //#nosec G101 -- ignore false positive.
+	ActionWriteClientID                    = "wrt-client-id"
+	ActionWriteClientSecret                = "wrt-client-sec"
 	ActionWriteHostname                    = "write-hostname"
-	ActionSystemdNetworkOptimize           = "systemd-network-online-optimize"
-	ActionDisableSnapdOptimize             = "systemd-snapd-disable-optimize"
-	ActionCloudinitDsidentity              = "cloud-init-ds-identity"
+	ActionSystemdNetworkOptimize           = "network-online"
+	ActionDisableSnapdOptimize             = "snapd-disable"
+	ActionCloudinitDsidentity              = "cloud-init-ds"
 )
 
 const (
