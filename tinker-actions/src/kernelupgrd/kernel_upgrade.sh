@@ -24,6 +24,7 @@ function update_kernel_image(){
 #Mount the all required partitions for kernel upgrade
 rootfs_part=$1
 efiboot_part=$2
+boot_part=$3
 # Wait until the partition is available
 sync_file_system "$rootfs_part"
 if [ "$?" -ne 0 ]; then
@@ -32,10 +33,18 @@ if [ "$?" -ne 0 ]; then
 fi
 
 mount $rootfs_part /mnt
+
+# Detect Ubuntu version and set KERNEL_VERSION accordingly
+if grep -q 'VERSION_ID="24.04"' "/mnt/etc/os-release"; then
+    KERNEL_VERSION="linux-image-6.11.0-17-generic"
+    mount $boot_part /mnt/boot
+else
+    KERNEL_VERSION="linux-image-6.8.0-52-generic"
+fi
 if echo "$rootfs_part" | grep -q "rootfs_crypt"; then
-    boot_part=$3
     mount $boot_part /mnt/boot
 fi
+
 mount $efiboot_part /mnt/boot/efi
 mount --bind /dev /mnt/dev
 mount --bind /dev/pts /mnt/dev/pts
@@ -50,7 +59,6 @@ mount --bind /etc/resolv.conf /mnt/etc/resolv.conf
 
 mv /mnt/etc/apt/apt.conf.d/99needrestart /mnt/etc/apt/apt.conf.d/99needrestart.bkp 
 
-KERNEL_VERSION=linux-image-6.8.0-52-generic
 
 #Get the Latest canonical 6.8 kerner version 
 export kernel_version=$(chroot /mnt /bin/bash -c "apt-cache search linux-image | grep $KERNEL_VERSION | tail -1 | awk '{print \$1}' | grep -oP '(?<=linux-image-)[0-9]+\.[0-9]+\.[0-9]+-[0-9]+'")
@@ -103,7 +111,7 @@ done
 
 #check if FDE Enabled on the disk
 
-is_fde_set=$(blkid | grep -c "crypto_LUKS")
+is_fde_set=$(blkid | grep -c "crypto_LUKS" || true)
 
 if [ "$is_fde_set" -ge 1 ]; then
 
@@ -119,8 +127,9 @@ else
 	#get the rootfs partition and efibootset partition from the disk
         rootfs_part=$(blkid | grep -i rootfs | grep -i ext4 |  awk -F: '{print $1}')
         efiboot_part=$(blkid | grep -i uefi | grep -i vfat |  awk -F: '{print $1}')
+        boot_part=$(blkid | grep -i boot | grep -i ext4 |  awk -F: '{print $1}')
 
-        echo "Partitions detected root:$rootfs_part efi:$efiboot_part"
+        echo "Partitions detected root:$rootfs_part efi:$efiboot_part boot:$boot_part"
 
         # Take biggest partition as rootfs if ext4 partion not detected
         if [ -z "$rootfs_part" ]; then
@@ -189,6 +198,6 @@ else
 		partprobe "/dev/${os_disk}"
         fi
 	sync
-        update_kernel_image $rootfs_part $efiboot_part
+        update_kernel_image $rootfs_part $efiboot_part $boot_part
 
 fi
