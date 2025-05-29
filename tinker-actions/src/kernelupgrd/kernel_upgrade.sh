@@ -106,7 +106,6 @@ for mount in $(mount | grep '/mnt' | awk '{print $3}' | sort -nr); do
   umount "$mount"
 done
 
-#tail -f /dev/null
 }
 ####@main#################
 
