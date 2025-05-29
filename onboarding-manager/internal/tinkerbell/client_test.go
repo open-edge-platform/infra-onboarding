@@ -7,15 +7,16 @@ package tinkerbell
 import (
 	"context"
 	"errors"
-	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
-	om_testing "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/testing"
+	"reflect"
+	"testing"
+
 	"github.com/stretchr/testify/mock"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	error_k8 "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"testing"
+
+	om_testing "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/testing"
 )
 
 func Test_newK8SClient(t *testing.T) {
@@ -88,8 +89,6 @@ func TestCreateHardwareIfNotExists(t *testing.T) {
 		ctx          context.Context
 		k8sCli       client.Client
 		k8sNamespace string
-		deviceInfo   onboarding_types.DeviceInfo
-		osResourceID string
 	}
 	mockClient := om_testing.MockK8sClient{}
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -151,7 +150,6 @@ func TestCreateHardwareIfNotExists(t *testing.T) {
 
 func TestDeleteHardwareForHostIfExist_ErrorScenario(t *testing.T) {
 	type args struct {
-		ctx          context.Context
 		k8sNamespace string
 		name         string
 	}
@@ -278,7 +276,7 @@ func TestDeleteProdWorkflowResourcesIfExist_Case(t *testing.T) {
 	defer func() {
 		K8sClientFactory = currK8sClientFactory
 	}()
-	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
+	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
 	type args struct {
 		ctx          context.Context
 		k8sNamespace string
@@ -299,7 +297,7 @@ func TestDeleteProdWorkflowResourcesIfExist_Case(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tinkerbell.DeleteWorkflowIfExists(tt.args.ctx, tt.args.k8sNamespace,
+			if err := DeleteWorkflowIfExists(tt.args.ctx, tt.args.k8sNamespace,
 				tt.args.hostUUID); (err != nil) != tt.wantErr {
 				t.Errorf("DeleteWorkflowIfExists() error = %v, wantErr %v", err, tt.wantErr)
 			}

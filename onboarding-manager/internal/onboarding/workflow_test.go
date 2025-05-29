@@ -88,8 +88,7 @@ func TestCheckStatusOrRunProdWorkflow(t *testing.T) {
 	}
 }
 
-//nolint:dupl // These tests cover different scenarios.
-func TestDeleteProdWorkflowResourcesIfExist(t *testing.T) {
+func TestDeleteTinkerbellWorkflowIfExists(t *testing.T) {
 	type args struct {
 		ctx      context.Context
 		hostUUID string
@@ -100,7 +99,7 @@ func TestDeleteProdWorkflowResourcesIfExist(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "DeleteProdWorkflowResourcesIfExistsTest",
+			name: "DeleteTinkerbellWorkflowIfExistsTest",
 			args: args{
 				ctx: context.Background(),
 			},

@@ -39,7 +39,7 @@ var (
 	actionSuccessDuration = make(map[string]int64)
 )
 
-// generateWorkflowName returns workflow name in format "wf-<UUID>"
+// generateWorkflowName returns workflow name in format "workflow-<UUID>".
 func generateWorkflowName(uuid string) string {
 	return fmt.Sprintf("workflow-%s", uuid)
 }

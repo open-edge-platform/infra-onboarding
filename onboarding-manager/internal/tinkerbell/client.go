@@ -5,7 +5,6 @@ package tinkerbell
 
 import (
 	"context"
-	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
 	"time"
 
 	tinkv1alpha1 "github.com/tinkerbell/tink/api/v1alpha1"
@@ -18,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/env"
 )
 
