@@ -66,6 +66,13 @@ export http_proxy="$http_proxy"
 export https_proxy="$https_proxy"
 export no_proxy="$no_proxy"
 
+export oci_release_svc="${oci_release_svc:-}"
+export tink_stack_svc="${tink_stack_svc:-}"
+export release_svc="${release_svc:-}"
+export tink_server_svc="${tink_server_svc:-}"
+export logging_svc="${logging_svc:-}"
+
+cp /etc/idp/ca.pem /etc/pki/ca-trust/source/anchors/
 # Update CA certificates
 update-ca-trust
 echo "Added CA certificates to trust pool"
