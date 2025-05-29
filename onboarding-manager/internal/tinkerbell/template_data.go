@@ -129,6 +129,7 @@ var (
 // will be converted to a map with the following elements:
 // InnerA: example1
 // InnerB: example2
+// .
 func structToMapStringString(input interface{}) map[string]string {
 	result := make(map[string]string)
 	flattenStruct(reflect.ValueOf(input), "", result)
