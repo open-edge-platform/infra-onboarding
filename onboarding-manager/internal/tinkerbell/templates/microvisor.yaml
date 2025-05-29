@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 name: microvisor
-version: "0.1.0"
+version: "0.1" # must stay at 0.1 due to v0.10.0 limitations
 global_timeout: 9800
 tasks:
   - name: "OS provisioning"
