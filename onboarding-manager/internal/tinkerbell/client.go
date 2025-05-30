@@ -149,7 +149,7 @@ func deleteAllK8sResourcesOfKind(namespace string, kinds []client.Object) error 
 	}
 
 	for _, kind := range kinds {
-		if err = kubeClient.DeleteAllOf(ctx, kind, client.InNamespace(namespace); err != nil {
+		if err = kubeClient.DeleteAllOf(ctx, kind, client.InNamespace(namespace)); err != nil {
 			zlog.InfraSec().InfraErr(err).Msg("")
 			return inv_errors.Errorf("Failed to delete Tinkerbell template")
 		}
