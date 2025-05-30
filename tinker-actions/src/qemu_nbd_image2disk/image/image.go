@@ -96,7 +96,7 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 	log.Info("lsblk output", "stdout", lsblkOut.String(), "stderr", lsblkErr.String())
 
 	// Run 'ls -ld /var/lock' to show directory details
-	cmdLs := exec.Command("ls", "-lrth", "/dev")
+	cmdLs := exec.Command("ls", "-lrth", "/dev/nbd0")
 	var lsOut, lsErr bytes.Buffer
 	cmdLs.Stdout = &lsOut
 	cmdLs.Stderr = &lsErr
