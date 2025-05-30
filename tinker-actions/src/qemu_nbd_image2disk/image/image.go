@@ -86,7 +86,7 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 	}
 	log.Info("Successfully loaded nbd kernel module")
 
-	lockDir := "/var/lock/qemu-nbd-nbd0"
+	lockDir := "/run/lock/qemu-nbd-nbd0"
 	if _, err := os.Stat(lockDir); err == nil {
 		if err := os.RemoveAll(lockDir); err != nil {
 			return fmt.Errorf("failed to remove existing lock directory %s: %v", lockDir, err)
