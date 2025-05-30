@@ -175,11 +175,11 @@ func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName, hostRe
 					switch action.Status {
 					case tink.WorkflowStatePending:
 						if _, ok := actionStartTimes[workflowName+action.Name]; !ok &&
-							action.Name == "secure-boot-status-flag-read" {
+							action.Name == tinkerbell.ActionSecureBootStatusFlagRead {
 							actionStartTimes[workflowName+action.Name] = time.Now()
 						}
 					case tink.WorkflowStateRunning:
-						if _, ok := actionRuning[workflowName+action.Name]; !ok && action.Name == "secure-boot-status-flag-read" {
+						if _, ok := actionRuning[workflowName+action.Name]; !ok && action.Name == tinkerbell.ActionSecureBootStatusFlagRead {
 							actionRuning[workflowName+action.Name] = time.Since(actionStartTimes[workflowName+action.Name]).
 								Seconds()
 						}
@@ -205,13 +205,13 @@ func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName, hostRe
 				// Total Time for all tinker actions
 				var totalDuration int64
 				for actionN, actionSuccessTime := range actionSuccessDuration {
-					if actionN == workflowName+"secure-boot-status-flag-read" {
+					if actionN == workflowName+tinkerbell.ActionSecureBootStatusFlagRead {
 						msg := fmt.Sprintf(
 							"Instrumentation Info for workflow %s: action name %s pending to running time %.2f, "+
 								"host resource ID: %s",
 							workflowName,
 							"secure-boot-status-flag-read",
-							actionRuning[workflowName+"secure-boot-status-flag-read"],
+							actionRuning[workflowName+tinkerbell.ActionSecureBootStatusFlagRead],
 							hostResourceID,
 						)
 						zlog.Info().Msg(msg)

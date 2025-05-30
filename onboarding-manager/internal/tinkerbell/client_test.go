@@ -7,6 +7,7 @@ package tinkerbell
 import (
 	"context"
 	"errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"reflect"
 	"testing"
 
@@ -24,7 +25,7 @@ func Test_newK8SClient(t *testing.T) {
 	defer func() {
 		K8sClientFactory = currK8sClientFactory
 	}()
-	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
+	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
 	tests := []struct {
 		name    string
 		want    client.Client
@@ -50,12 +51,61 @@ func Test_newK8SClient(t *testing.T) {
 	}
 }
 
+func TestNewWorkflow(t *testing.T) {
+	type args struct {
+		name        string
+		ns          string
+		hardwareRef string
+		templateRef string
+		hardwareMap map[string]string
+	}
+	tests := []struct {
+		name string
+		args args
+		want *tink.Workflow
+	}{
+		{
+			name: "TestNewWorkflow_Creation_Success",
+			args: args{
+				name: "workflow1",
+				ns:   "namespace1",
+				hardwareMap: map[string]string{
+					"device_1": "00:11:22:33:44:55",
+				},
+			},
+			want: &tink.Workflow{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Workflow",
+					APIVersion: "tinkerbell.org/v1alpha1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "workflow1",
+					Namespace: "namespace1",
+				},
+				Spec: tink.WorkflowSpec{
+					HardwareMap: map[string]string{
+						"device_1": "00:11:22:33:44:55",
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := NewWorkflow(tt.args.name, tt.args.ns, tt.args.hardwareRef,
+				tt.args.templateRef, tt.args.hardwareMap); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewWorkflow() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestDeleteHardwareForHostIfExist(t *testing.T) {
 	currK8sClientFactory := K8sClientFactory
 	defer func() {
 		K8sClientFactory = currK8sClientFactory
 	}()
-	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
+	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
 	type args struct {
 		ctx          context.Context
 		k8sNamespace string
@@ -276,7 +326,7 @@ func TestDeleteProdWorkflowResourcesIfExist_Case(t *testing.T) {
 	defer func() {
 		K8sClientFactory = currK8sClientFactory
 	}()
-	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, false)
+	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
 	type args struct {
 		ctx          context.Context
 		k8sNamespace string
