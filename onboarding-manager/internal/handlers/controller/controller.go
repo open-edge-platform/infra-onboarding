@@ -19,6 +19,7 @@ import (
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/validator"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/handlers/controller/reconcilers"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/invclient"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell"
 	rec_v2 "github.com/open-edge-platform/orch-library/go/pkg/controller/v2"
 )
 
@@ -76,6 +77,10 @@ func New(
 }
 
 func (obc *OnboardingController) Start() error {
+	if err := tinkerbell.Bootstrap(); err != nil {
+		return err
+	}
+
 	if err := obc.reconcileAll(); err != nil {
 		return err
 	}

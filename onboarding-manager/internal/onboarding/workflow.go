@@ -25,6 +25,7 @@ import (
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/env"
 	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell/templates"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/util"
 	om_status "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/status"
 )
@@ -49,7 +50,7 @@ func CheckWorkflowExist(ctx context.Context,
 		return false
 	}
 
-	prodWorkflowName := tinkerbell.GetProdWorkflowName(deviceInfo.GUID)
+	prodWorkflowName := tinkerbell.GetWorkflowName(deviceInfo.GUID)
 	_, err = getWorkflow(ctx, kubeClient, prodWorkflowName, instance.Host.ResourceId)
 	if err != nil || inv_errors.IsNotFound(err) {
 		return false
@@ -68,7 +69,7 @@ func CheckStatusOrRunProdWorkflow(ctx context.Context,
 		return err
 	}
 
-	prodWorkflowName := tinkerbell.GetProdWorkflowName(deviceInfo.GUID)
+	prodWorkflowName := tinkerbell.GetWorkflowName(deviceInfo.GUID)
 	workflow, err := getWorkflow(ctx, kubeClient, prodWorkflowName, instance.Host.ResourceId)
 	if err != nil && inv_errors.IsNotFound(err) {
 		// This may happen if:
@@ -123,22 +124,22 @@ func runProdWorkflow(
 		deviceInfo.SSHKey = instance.GetLocalaccount().SshKey
 	}
 
-	prodTemplate, err := tinkerbell.GenerateTemplateForProd(ctx, env.K8sNamespace, deviceInfo)
-	if err != nil {
-		zlog.InfraErr(err).Msg("")
-		return inv_errors.Errorf("Failed to generate Tinkerbell prod template for host %s", deviceInfo.GUID)
+	templateName, found := templates.OSTypeToTemplateName[deviceInfo.OsType]
+	if !found {
+		return inv_errors.Errorf("Cannot find Tinkerbell template for OS type %s", deviceInfo.OsType)
 	}
 
-	if createTemplErr := tinkerbell.CreateTemplateIfNotExists(ctx, k8sCli, prodTemplate); createTemplErr != nil {
-		return createTemplErr
+	workflowHardwareMap, err := tinkerbell.GenerateWorkflowInputs(ctx, deviceInfo)
+	if err != nil {
+		return err
 	}
 
 	prodWorkflow := tinkerbell.NewWorkflow(
-		tinkerbell.GetProdWorkflowName(deviceInfo.GUID),
+		tinkerbell.GetWorkflowName(deviceInfo.GUID),
 		env.K8sNamespace,
-		deviceInfo.HwMacID,
 		tinkerbell.GetTinkHardwareName(deviceInfo.GUID),
-		tinkerbell.GetProdTemplateName(deviceInfo.GUID))
+		templateName,
+		workflowHardwareMap)
 
 	if createWFErr := tinkerbell.CreateWorkflowIfNotExists(ctx, k8sCli, prodWorkflow); createWFErr != nil {
 		return createWFErr
