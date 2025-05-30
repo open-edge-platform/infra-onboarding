@@ -94,18 +94,9 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 		return fmt.Errorf("failed to run lsblk: %v\nstdout:%s\nstderr:\n%s", err, lsblkOut.String(), lsblkErr.String())
 	}
 	log.Info("lsblk output", "stdout", lsblkOut.String(), "stderr", lsblkErr.String())
-	// Ensure /var/lock directory exists
-	cmdMkdir := exec.Command("mkdir", "-p", "/var/lock")
-	var mkdirOut, mkdirErr bytes.Buffer
-	cmdMkdir.Stdout = &mkdirOut
-	cmdMkdir.Stderr = &mkdirErr
-	if err := cmdMkdir.Run(); err != nil {
-		return fmt.Errorf("failed to create /var/lock directory: %v\nstdout:%s\nstderr:\n%s", err, mkdirOut.String(), mkdirErr.String())
-	}
-	log.Info("Ensured /var/lock directory exists", "stdout", mkdirOut.String(), "stderr", mkdirErr.String())
 
 	// Run 'ls -ld /var/lock' to show directory details
-	cmdLs := exec.Command("ls", "/var/lock")
+	cmdLs := exec.Command("ls", "-lrth", "/dev")
 	var lsOut, lsErr bytes.Buffer
 	cmdLs.Stdout = &lsOut
 	cmdLs.Stderr = &lsErr
