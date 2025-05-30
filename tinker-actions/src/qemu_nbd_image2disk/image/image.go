@@ -107,9 +107,9 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 	// Run 'ls -ld /var/lock' to show directory details
 	cmdLs := exec.Command("ls", "/var/lock")
 	var lsOut, lsErr bytes.Buffer
-	cmdLsblk.Stdout = &lsOut
-	cmdLsblk.Stderr = &lsErr
-	if err := cmdLsblk.Run(); err != nil {
+	cmdLs.Stdout = &lsOut
+	cmdLs.Stderr = &lsErr
+	if err := cmdLs.Run(); err != nil {
 		return fmt.Errorf("failed to run ls: %v\nstdout:%s\nstderr:\n%s", err, lsOut.String(), lsErr.String())
 	}
 	log.Info("ls output", "stdout", lsOut.String(), "stderr", lsErr.String())
@@ -125,11 +125,15 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 	}
 	defer exec.Command("qemu-nbd", "--disconnect", nbdDevice).Run()
 	log.Info("Successfully attached qcow2 image as network block device")
-
-	if err := cmdLs.Run(); err != nil {
-		return fmt.Errorf("failed to run ls -l /var/lock: %v\nstdout:%s\nstderr:\n%s", err, lsOut.String(), lsErr.String())
+	cmdLs1 := exec.Command("ls", "/var/lock")
+	var lsOut1, lsErr1 bytes.Buffer
+	cmdLs1.Stdout = &lsOut1
+	cmdLs1.Stderr = &lsErr1
+	if err := cmdLs1.Run(); err != nil {
+		return fmt.Errorf("failed to run ls: %v\nstdout:%s\nstderr:\n%s", err, lsOut1.String(), lsErr1.String())
 	}
-	log.Info("ls /var/lock output", "stdout", lsOut.String(), "stderr", lsErr.String())
+	log.Info("ls output", "stdout", lsOut1.String(), "stderr", lsErr1.String())
+
 	// Install the OS to the disk using DD
 	cmdDD := exec.Command("dd", "if="+nbdDevice, "of="+destinationDevice, "bs=4M")
 	cmdDD.Stdout = os.Stdout
