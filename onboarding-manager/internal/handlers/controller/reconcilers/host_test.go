@@ -49,7 +49,7 @@ func TestMain(m *testing.M) {
 	policyPath := projectRoot + "/out"
 	migrationsDir := projectRoot + "/out"
 
-	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, true)
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
 
 	inv_testing.StartTestingEnvironment(policyPath, "", migrationsDir)
 	run := m.Run() // run all tests

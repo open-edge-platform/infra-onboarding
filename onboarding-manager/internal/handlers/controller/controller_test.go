@@ -45,7 +45,7 @@ func TestReconcileEvent(t *testing.T) {
 	defaultTickerPeriod = 30 * time.Second
 	currK8sClientFactory := tinkerbell.K8sClientFactory
 	om_testing.CreateInventoryOnboardingClientForTesting()
-	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, true)
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 		tinkerbell.K8sClientFactory = currK8sClientFactory
@@ -114,7 +114,7 @@ func TestReconcileEvent(t *testing.T) {
 func TestReconcileAll(t *testing.T) {
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	currK8sClientFactory := tinkerbell.K8sClientFactory
-	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, true)
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 		tinkerbell.K8sClientFactory = currK8sClientFactory
@@ -195,7 +195,7 @@ func TestReconcileAll(t *testing.T) {
 func TestReconcileNoControllers(t *testing.T) {
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	currK8sClientFactory := tinkerbell.K8sClientFactory
-	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, true)
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 		tinkerbell.K8sClientFactory = currK8sClientFactory

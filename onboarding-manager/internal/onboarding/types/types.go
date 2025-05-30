@@ -50,5 +50,7 @@ type (
 		LocalAccountUserName string
 		// SSh key
 		SSHKey string
+		// OS resource ID
+		OSResourceID string
 	}
 )

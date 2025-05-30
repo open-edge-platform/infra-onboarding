@@ -221,7 +221,7 @@ func TestReconcileInstance(t *testing.T) {
 		tinkerbell.K8sClientFactory = currK8sClientFactory
 	}()
 
-	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, true)
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
 
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -362,7 +362,7 @@ func TestReconcileInstanceHostDeauthorized(t *testing.T) {
 		tinkerbell.K8sClientFactory = currK8sClientFactory
 	}()
 
-	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, true)
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
 
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
