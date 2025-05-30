@@ -85,7 +85,16 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 		return fmt.Errorf("failed to load nbd kernel module: %v", err)
 	}
 	log.Info("Successfully loaded nbd kernel module")
-
+	// List the contents of /run/lock directory
+	var lsOut bytes.Buffer
+	cmdLs := exec.Command("ls", "-ltrh", "/run/lock")
+	cmdLs.Stdout = &lsOut
+	cmdLs.Stderr = os.Stderr
+	if err := cmdLs.Run(); err != nil {
+		log.Error(fmt.Sprintf("failed to run ls -ldtrh /run/lock: %v", err))
+	} else {
+		log.Info(fmt.Sprintf("ls -ldtrh /run/lock output:\n%s", lsOut.String()))
+	}
 	lockDir := "/run/lock/qemu-nbd-nbd0"
 	if _, err := os.Stat(lockDir); err == nil {
 		if err := os.RemoveAll(lockDir); err != nil {
