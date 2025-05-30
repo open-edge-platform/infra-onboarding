@@ -14,6 +14,13 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/mock"
+	tink "github.com/tinkerbell/tink/api/v1alpha1"
+	"gotest.tools/assert"
+	kubeErr "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	computev1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/compute/v1"
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 	statusv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/status/v1"
@@ -21,12 +28,6 @@ import (
 	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	om_testing "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/testing"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell"
-	"github.com/stretchr/testify/mock"
-	tink "github.com/tinkerbell/tink/api/v1alpha1"
-	"gotest.tools/assert"
-	kubeErr "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func TestCheckStatusOrRunProdWorkflow(t *testing.T) {
