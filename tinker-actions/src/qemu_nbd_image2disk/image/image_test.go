@@ -7,68 +7,136 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
 
-func TestWrite(t *testing.T) {
-	type args struct {
-		ctx               context.Context
-		log               *slog.Logger
-		sourceImage       string
-		destinationDevice string
-		compressed        bool
-		progressInterval  time.Duration
-	}
+func TestWrites(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-	imageData := []byte("fake image data")
-	hash := sha256.Sum256(imageData)
-	expectedSHA256 := hex.EncodeToString(hash[:])
-	os.Setenv("SHA256", expectedSHA256)
+	t.Run("HTTP request creation fails", func(t *testing.T) {
+		ctx := context.Background()
+		invalidURL := string([]byte{0x7f}) // Invalid URL
+		err := Write(ctx, logger, invalidURL, "/dev/null", false, time.Second)
+		if err == nil {
+			t.Fatal("Expected error for invalid URL")
+		}
+	})
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write(imageData)
-	}))
-	defer server.Close()
+	t.Run("HTTP request fails", func(t *testing.T) {
+		ctx := context.Background()
+		err := Write(ctx, logger, "http://127.0.0.1:1", "/dev/null", false, time.Second)
+		if err == nil {
+			t.Fatal("Expected error for failed HTTP request")
+		}
+	})
 
-	tmpDev, err := os.CreateTemp("", "fake-dev-*")
-	if err != nil {
-		t.Fatalf("failed to create fake device: %v", err)
-	}
-	tmpDevPath := tmpDev.Name()
-	tmpDev.Close()
-	defer os.Remove(tmpDevPath)
+	t.Run("HTTP status not 200", func(t *testing.T) {
+		server := httptest.NewServer(http.NotFoundHandler())
+		defer server.Close()
 
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "happy path till nbd (mocked)",
-			args: args{
-				ctx:               context.Background(),
-				log:               slog.New(slog.NewTextHandler(io.Discard, nil)),
-				sourceImage:       server.URL,
-				destinationDevice: tmpDevPath, 
-				compressed:        false,
-				progressInterval:  time.Second,
-			},
-			wantErr: true, 
-		},
-	}
+		ctx := context.Background()
+		err := Write(ctx, logger, server.URL, "/dev/null", false, time.Second)
+		if err == nil || !strings.Contains(err.Error(), "HTTP status code: 404") {
+			t.Fatalf("Expected 404 status error, got: %v", err)
+		}
+	})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := Write(tt.args.ctx, tt.args.log, tt.args.sourceImage, tt.args.destinationDevice, tt.args.compressed, tt.args.progressInterval)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Write() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
+	t.Run("SHA mismatch", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("test image content"))
+		}))
+		defer server.Close()
+
+		// Set invalid expected SHA256
+		os.Setenv("SHA256", "invalidsha")
+		defer os.Unsetenv("SHA256")
+
+		ctx := context.Background()
+		err := Write(ctx, logger, server.URL, "/dev/null", false, time.Second)
+		if err == nil || !strings.Contains(err.Error(), "Image SHA-256 hash mismatch") {
+			t.Fatalf("Expected SHA mismatch, got: %v", err)
+		}
+	})
+
+	t.Run("qemu-nbd fails", func(t *testing.T) {
+		// Fake qemu-nbd by shadowing it in PATH
+		tmpDir := t.TempDir()
+		fakeQemu := filepath.Join(tmpDir, "qemu-nbd")
+		os.WriteFile(fakeQemu, []byte("#!/bin/sh\nexit 1"), 0755)
+
+		// Prepend to PATH
+		oldPath := os.Getenv("PATH")
+		os.Setenv("PATH", tmpDir+":"+oldPath)
+		defer os.Setenv("PATH", oldPath)
+
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("test image content"))
+		}))
+		defer server.Close()
+
+		ctx := context.Background()
+		err := Write(ctx, logger, server.URL, "/dev/null", false, time.Second)
+		if err == nil || !strings.Contains(err.Error(), "network block device attach failed") {
+			t.Fatalf("Expected qemu-nbd failure, got: %v", err)
+		}
+	})
+
+	t.Run("dd fails", func(t *testing.T) {
+		// Fake qemu-nbd success
+		tmpDir := t.TempDir()
+		fakeQemu := filepath.Join(tmpDir, "qemu-nbd")
+		os.WriteFile(fakeQemu, []byte("#!/bin/sh\nexit 0"), 0755)
+
+		// Fake dd failure
+		fakeDD := filepath.Join(tmpDir, "dd")
+		os.WriteFile(fakeDD, []byte("#!/bin/sh\nexit 1"), 0755)
+
+		oldPath := os.Getenv("PATH")
+		os.Setenv("PATH", tmpDir+":"+oldPath)
+		defer os.Setenv("PATH", oldPath)
+
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("test image content"))
+		}))
+		defer server.Close()
+
+		ctx := context.Background()
+		err := Write(ctx, logger, server.URL, "/dev/null", false, time.Second)
+		if err == nil || !strings.Contains(err.Error(), "failed to write image to disk") {
+			t.Fatalf("Expected dd failure, got: %v", err)
+		}
+	})
+
+	t.Run("happy path with no SHA mismatch", func(t *testing.T) {
+		// Fake qemu-nbd and dd success
+		tmpDir := t.TempDir()
+		writeFake := func(name string) {
+			_ = os.WriteFile(filepath.Join(tmpDir, name), []byte("#!/bin/sh\nexit 0"), 0755)
+		}
+		writeFake("qemu-nbd")
+		writeFake("dd")
+
+		oldPath := os.Getenv("PATH")
+		os.Setenv("PATH", tmpDir+":"+oldPath)
+		defer os.Setenv("PATH", oldPath)
+
+		content := []byte("test image")
+		sum := sha256.Sum256(content)
+		os.Setenv("SHA256", hex.EncodeToString(sum[:]))
+		defer os.Unsetenv("SHA256")
+
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write(content)
+		}))
+		defer server.Close()
+		Write(context.Background(), logger, server.URL, "/dev/null", false, time.Second)
+
+	})
 }
