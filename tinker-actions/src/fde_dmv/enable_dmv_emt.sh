@@ -318,9 +318,7 @@ make_partition() {
 make_partition_ven() {
     # Logic for partitioning when PARTITION_MODE is VEN
 
-    # Set total_size_disk to 32GB in MB testing purpuse
-    total_size_disk=$((32 * 1024))
-    #total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
+    total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
     boot_size=$(lsblk -bno SIZE /dev/sda1)
     boot_size=$((boot_size / 1024 / 1024))  # Convert bytes to MB
 
