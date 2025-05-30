@@ -77,6 +77,26 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 	log.Info(fmt.Sprintf("SHA-256 hash of the downloaded file: %s", actualSHA256))
 	log.Info("Successfully verified SHA-256 checksum")
 
+	// Load the nbd kernel module
+	cmdModprobe := exec.Command("modprobe", "nbd")
+	cmdModprobe.Stdout = os.Stdout
+	cmdModprobe.Stderr = os.Stderr
+	if err := cmdModprobe.Run(); err != nil {
+		return fmt.Errorf("failed to load nbd kernel module: %v", err)
+	}
+	log.Info("Successfully loaded nbd kernel module")
+
+	lockDir := "/var/lock/qemu-nbd-nbd0"
+	if _, err := os.Stat(lockDir); err == nil {
+		if err := os.RemoveAll(lockDir); err != nil {
+			return fmt.Errorf("failed to remove existing lock directory %s: %v", lockDir, err)
+		}
+		log.Info(fmt.Sprintf("Removed existing lock directory: %s", lockDir))
+	}
+	if err := os.MkdirAll(lockDir, 0755); err != nil {
+		return fmt.Errorf("failed to create lock directory %s: %v", lockDir, err)
+	}
+	log.Info(fmt.Sprintf("Created lock directory: %s", lockDir))
 	// Attach the qcow2 image as a network block device
 	var outBuf, errBuf bytes.Buffer
 	nbdDevice := "/dev/nbd0"
