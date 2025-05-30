@@ -6,6 +6,7 @@ package image
 // This package handles the pulling and management of images
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -77,12 +78,13 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 	log.Info("Successfully verified SHA-256 checksum")
 
 	// Attach the qcow2 image as a network block device
+	var outBuf, errBuf bytes.Buffer
 	nbdDevice := "/dev/nbd0"
 	cmdNbd := exec.Command("qemu-nbd", "--connect="+nbdDevice, tmpFile.Name())
-	cmdNbd.Stdout = os.Stdout
-	cmdNbd.Stderr = os.Stderr
+	cmdNbd.Stdout = &outBuf
+	cmdNbd.Stderr = &errBuf
 	if err := cmdNbd.Run(); err != nil {
-		return fmt.Errorf("network block device attach failed: %v", err)
+		return fmt.Errorf("network block device attach failed: %v\nstdout:%s\nstderr:\n%s", err, outBuf.String(), errBuf.String())
 	}
 	defer exec.Command("qemu-nbd", "--disconnect", nbdDevice).Run()
 	log.Info("Successfully attached qcow2 image as network block device")
