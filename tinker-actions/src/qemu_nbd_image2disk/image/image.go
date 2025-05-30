@@ -85,6 +85,15 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 		return fmt.Errorf("failed to load nbd kernel module: %v", err)
 	}
 	log.Info("Successfully loaded nbd kernel module")
+
+	cmdLsblk := exec.Command("lsblk")
+	var lsblkOut, lsblkErr bytes.Buffer
+	cmdLsblk.Stdout = &lsblkOut
+	cmdLsblk.Stderr = &lsblkErr
+	if err := cmdLsblk.Run(); err != nil {
+		return fmt.Errorf("failed to run lsblk: %v\nstdout:%s\nstderr:\n%s", err, lsblkOut.String(), lsblkErr.String())
+	}
+	log.Info("lsblk output", "stdout", lsblkOut.String(), "stderr", lsblkErr.String())
 	// Ensure /var/lock directory exists
 	cmdMkdir := exec.Command("mkdir", "-p", "/var/lock")
 	var mkdirOut, mkdirErr bytes.Buffer
@@ -96,14 +105,14 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 	log.Info("Ensured /var/lock directory exists", "stdout", mkdirOut.String(), "stderr", mkdirErr.String())
 
 	// Run 'ls -ld /var/lock' to show directory details
-	cmdLs := exec.Command("ls", "-l", "/var/lock")
+	cmdLs := exec.Command("ls", "/var/lock")
 	var lsOut, lsErr bytes.Buffer
-	cmdLs.Stdout = &lsOut
-	cmdLs.Stderr = &lsErr
-	if err := cmdLs.Run(); err != nil {
-		return fmt.Errorf("failed to run ls -l /var/lock: %v\nstdout:%s\nstderr:\n%s", err, lsOut.String(), lsErr.String())
+	cmdLsblk.Stdout = &lsOut
+	cmdLsblk.Stderr = &lsErr
+	if err := cmdLsblk.Run(); err != nil {
+		return fmt.Errorf("failed to run ls: %v\nstdout:%s\nstderr:\n%s", err, lsOut.String(), lsErr.String())
 	}
-	log.Info("ls -l /var/lock output", "stdout", lsOut.String(), "stderr", lsErr.String())
+	log.Info("ls output", "stdout", lsOut.String(), "stderr", lsErr.String())
 
 	// Attach the qcow2 image as a network block device
 	var outBuf, errBuf bytes.Buffer
@@ -120,7 +129,7 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 	if err := cmdLs.Run(); err != nil {
 		return fmt.Errorf("failed to run ls -l /var/lock: %v\nstdout:%s\nstderr:\n%s", err, lsOut.String(), lsErr.String())
 	}
-	log.Info("ls -l /var/lock output", "stdout", lsOut.String(), "stderr", lsErr.String())
+	log.Info("ls /var/lock output", "stdout", lsOut.String(), "stderr", lsErr.String())
 	// Install the OS to the disk using DD
 	cmdDD := exec.Command("dd", "if="+nbdDevice, "of="+destinationDevice, "bs=4M")
 	cmdDD.Stdout = os.Stdout
