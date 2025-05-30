@@ -179,7 +179,8 @@ func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName, hostRe
 							actionStartTimes[workflowName+action.Name] = time.Now()
 						}
 					case tink.WorkflowStateRunning:
-						if _, ok := actionRuning[workflowName+action.Name]; !ok && action.Name == tinkerbell.ActionSecureBootStatusFlagRead {
+						if _, ok := actionRuning[workflowName+action.Name]; !ok &&
+							action.Name == tinkerbell.ActionSecureBootStatusFlagRead {
 							actionRuning[workflowName+action.Name] = time.Since(actionStartTimes[workflowName+action.Name]).
 								Seconds()
 						}
