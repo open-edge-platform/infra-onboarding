@@ -85,27 +85,26 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 		return fmt.Errorf("failed to load nbd kernel module: %v", err)
 	}
 	log.Info("Successfully loaded nbd kernel module")
-	// List the contents of /run/lock directory
-	var lsOut bytes.Buffer
-	cmdLs := exec.Command("ls", "-ltrh", "/run/lock")
+	// Ensure /var/lock directory exists
+	cmdMkdir := exec.Command("mkdir", "-p", "/var/lock")
+	var mkdirOut, mkdirErr bytes.Buffer
+	cmdMkdir.Stdout = &mkdirOut
+	cmdMkdir.Stderr = &mkdirErr
+	if err := cmdMkdir.Run(); err != nil {
+		return fmt.Errorf("failed to create /var/lock directory: %v\nstdout:%s\nstderr:\n%s", err, mkdirOut.String(), mkdirErr.String())
+	}
+	log.Info("Ensured /var/lock directory exists", "stdout", mkdirOut.String(), "stderr", mkdirErr.String())
+
+	// Run 'ls -ld /var/lock' to show directory details
+	cmdLs := exec.Command("ls", "-l", "/var/lock")
+	var lsOut, lsErr bytes.Buffer
 	cmdLs.Stdout = &lsOut
-	cmdLs.Stderr = os.Stderr
+	cmdLs.Stderr = &lsErr
 	if err := cmdLs.Run(); err != nil {
-		log.Error(fmt.Sprintf("failed to run ls -ldtrh /run/lock: %v", err))
-	} else {
-		log.Info(fmt.Sprintf("ls -ldtrh /run/lock output:\n%s", lsOut.String()))
+		return fmt.Errorf("failed to run ls -l /var/lock: %v\nstdout:%s\nstderr:\n%s", err, lsOut.String(), lsErr.String())
 	}
-	lockDir := "/run/lock/qemu-nbd-nbd0"
-	if _, err := os.Stat(lockDir); err == nil {
-		if err := os.RemoveAll(lockDir); err != nil {
-			return fmt.Errorf("failed to remove existing lock directory %s: %v", lockDir, err)
-		}
-		log.Info(fmt.Sprintf("Removed existing lock directory: %s", lockDir))
-	}
-	if err := os.MkdirAll(lockDir, 0755); err != nil {
-		return fmt.Errorf("failed to create lock directory %s: %v", lockDir, err)
-	}
-	log.Info(fmt.Sprintf("Created lock directory: %s", lockDir))
+	log.Info("ls -l /var/lock output", "stdout", lsOut.String(), "stderr", lsErr.String())
+
 	// Attach the qcow2 image as a network block device
 	var outBuf, errBuf bytes.Buffer
 	nbdDevice := "/dev/nbd0"
@@ -118,6 +117,10 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 	defer exec.Command("qemu-nbd", "--disconnect", nbdDevice).Run()
 	log.Info("Successfully attached qcow2 image as network block device")
 
+	if err := cmdLs.Run(); err != nil {
+		return fmt.Errorf("failed to run ls -l /var/lock: %v\nstdout:%s\nstderr:\n%s", err, lsOut.String(), lsErr.String())
+	}
+	log.Info("ls -l /var/lock output", "stdout", lsOut.String(), "stderr", lsErr.String())
 	// Install the OS to the disk using DD
 	cmdDD := exec.Command("dd", "if="+nbdDevice, "of="+destinationDevice, "bs=4M")
 	cmdDD.Stdout = os.Stdout
