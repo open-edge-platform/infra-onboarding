@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	error_k8 "k8s.io/apimachinery/pkg/api/errors"
@@ -183,7 +184,8 @@ func TestCreateHardwareIfNotExists(t *testing.T) {
 	}
 }
 
-func TestGetProdWorkflowName(t *testing.T) {
+func TestGetWorkflowName(t *testing.T) {
+	testUUID := uuid.NewString()
 	type args struct {
 		uuid string
 	}
@@ -193,14 +195,17 @@ func TestGetProdWorkflowName(t *testing.T) {
 		want string
 	}{
 		{
-			name: "TestGetProdWorkflowNameUUID",
-			want: "workflow--prod",
+			name: "TestGetWorkflowNameUUID",
+			args: args{
+				uuid: testUUID,
+			},
+			want: "workflow-" + testUUID,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := GetProdWorkflowName(tt.args.uuid); got != tt.want {
-				t.Errorf("GetProdWorkflowName() = %v, want %v", got, tt.want)
+			if got := GetWorkflowName(tt.args.uuid); got != tt.want {
+				t.Errorf("GetWorkflowName() = %v, want %v", got, tt.want)
 			}
 		})
 	}

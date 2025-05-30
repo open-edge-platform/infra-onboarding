@@ -7,14 +7,11 @@ import (
 	"context"
 
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
-	"google.golang.org/grpc/codes"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
-	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
 )
 
 func NewTemplate(tpData, name, ns string) *tink.Template {
@@ -32,36 +29,6 @@ func NewTemplate(tpData, name, ns string) *tink.Template {
 		},
 	}
 	return tp
-}
-
-func GenerateTemplateForProd(
-	ctx context.Context,
-	k8sNamespace string,
-	deviceInfo onboarding_types.DeviceInfo,
-) (*tink.Template, error) {
-	var (
-		tmplName = GetProdTemplateName(deviceInfo.GUID)
-		tmplData []byte
-		err      error
-	)
-	switch deviceInfo.OsType {
-	case osv1.OsType_OS_TYPE_MUTABLE:
-		tmplData, err = NewTemplateDataUbuntu(ctx, tmplName, deviceInfo)
-		if err != nil {
-			return nil, err
-		}
-	case osv1.OsType_OS_TYPE_IMMUTABLE:
-		tmplData, err = NewTemplateDataProdEdgeMicrovisorToolkit(ctx, tmplName, deviceInfo)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, inv_errors.Errorfc(codes.InvalidArgument,
-			"Unsupported OS type %s", deviceInfo.OsType)
-	}
-
-	tmpl := NewTemplate(string(tmplData), tmplName, k8sNamespace)
-	return tmpl, nil
 }
 
 // TODO (ITEP-1865): We can probably optimize it.

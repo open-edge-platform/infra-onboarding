@@ -7,12 +7,8 @@ import (
 	"fmt"
 )
 
-func GetProdWorkflowName(uuid string) string {
-	return fmt.Sprintf("workflow-%s-prod", uuid)
-}
-
-func GetProdTemplateName(uuid string) string {
-	return fmt.Sprintf("template-%s-prod", uuid)
+func GetWorkflowName(uuid string) string {
+	return fmt.Sprintf("workflow-%s", uuid)
 }
 
 func GetTinkHardwareName(uuid string) string {

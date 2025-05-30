@@ -20,6 +20,7 @@ import (
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/handlers/controller/reconcilers"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/invclient"
 	om_testing "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/testing"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell"
 	rec_v2 "github.com/open-edge-platform/orch-library/go/pkg/controller/v2"
 )
 
@@ -42,11 +43,13 @@ func TestMain(m *testing.M) {
 func TestReconcileEvent(t *testing.T) {
 	// increase default reconciliation interval
 	defaultTickerPeriod = 30 * time.Second
+	currK8sClientFactory := tinkerbell.K8sClientFactory
 	om_testing.CreateInventoryOnboardingClientForTesting()
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, true)
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
+		tinkerbell.K8sClientFactory = currK8sClientFactory
 	})
-
 	nbHandler, err := New(om_testing.InvClient, false)
 	require.NoError(t, err)
 
@@ -110,8 +113,11 @@ func TestReconcileEvent(t *testing.T) {
 
 func TestReconcileAll(t *testing.T) {
 	om_testing.CreateInventoryOnboardingClientForTesting()
+	currK8sClientFactory := tinkerbell.K8sClientFactory
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, true)
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
+		tinkerbell.K8sClientFactory = currK8sClientFactory
 	})
 
 	nbHandler, err := New(om_testing.InvClient, false)
@@ -188,8 +194,11 @@ func TestReconcileAll(t *testing.T) {
 
 func TestReconcileNoControllers(t *testing.T) {
 	om_testing.CreateInventoryOnboardingClientForTesting()
+	currK8sClientFactory := tinkerbell.K8sClientFactory
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, true)
 	t.Cleanup(func() {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
+		tinkerbell.K8sClientFactory = currK8sClientFactory
 	})
 
 	nbHandler, err := New(om_testing.InvClient, false)
