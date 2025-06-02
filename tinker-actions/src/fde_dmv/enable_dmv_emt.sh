@@ -17,7 +17,7 @@ TEST_ENABLE_DM_ON_ROOTFSB=false
 TEST_ON_ONLY_ONE_PART=false
 
 # Set PARTITION_MODE to either EN (Edge Node) or VEN (Virtual Edge Node)
-PARTITION_MODE_VEN=true  # Default to EN if not set
+DMV_IN_VEN=false # Default to EN if not set
 
 ####
 ####
@@ -43,41 +43,35 @@ singlehdd_lvm_partition=9
 #####################################################################################
 
 # Size in MBs for EN
-if ! $PARTITION_MODE_VEN;
-then
-	# Partitions in %
-	swap_space_start=91
+# Partitions in %
+swap_space_start=91
 
-	# Size in MBs
-	tep_size=14336
-	reserved_size=5120
-	boot_size=5120600
-	bare_min_rootfs_size=25
-	rootfs_size=3584
-	rootfs_hashmap_size=100
-	rootfs_roothash_size=50
-fi
-
-# Size in MBs for VEN
-if $PARTITION_MODE_VEN;
-then
-	rootfs_size=2048
-	readonly rootfs_size
-	rootfs_hashmap_size=100
-	readonly rootfs_hashmap_size
-	rootfs_roothash_size=50
-	readonly rootfs_roothash_size
-	swap_size=4096
-	readonly swap_size
-	#reserved_size=3072
-	#readonly reserved_size
-fi
+# Size in MBs
+tep_size=14336
+reserved_size=5120
+boot_size=5120600
+bare_min_rootfs_size=25
+rootfs_size=3584
+rootfs_hashmap_size=100
+rootfs_roothash_size=50
 
 #####################################################################################
 #Global var which is updated
 single_hdd=-1
 check_all_disks=1
 #####################################################################################
+#####################################################################################
+set_ven_partitions() {
+    # Size in MBs for VEN
+    rootfs_size=2048
+    readonly rootfs_size
+    rootfs_hashmap_size=100
+    readonly rootfs_hashmap_size
+    rootfs_roothash_size=50
+    readonly rootfs_roothash_size
+    swap_size=4096
+    readonly swap_size
+}
 #####################################################################################
 fix_partition_suffix() {
     part_variable=''
@@ -358,6 +352,31 @@ make_partition_ven() {
     lvm_start=$((swap_start + swap_size))
     lvm_end=$((lvm_start + lvm_size))
 
+    #####
+    # logging needed to understand the block splits
+    echo "DEST_DISK             ${DEST_DISK}"
+    echo "rootfs_partition     $rootfs_partition         rootfs_end           ${rootfs_end}MB"
+    echo "emt_persistent_start ${emt_persistent_start_mb}MB emt_persistent_end   ${emt_persistent_end_mb}MB"
+    echo "root_hashmap_a_start ${root_hashmap_a_start}MB root_hashmap_b_start ${root_hashmap_b_start}MB"
+    echo "root_hashmap_b_start ${root_hashmap_b_start}MB rootfs_b_start       ${rootfs_b_start}MB"
+    echo "rootfs_b_start       ${rootfs_b_start}MB       roothash_start       ${roothash_start}MB"
+    echo "roothash_start       ${roothash_start}MB       swap_start           ${swap_start}MB"
+    echo "swap_start           ${swap_start}MB           lvm_start            ${lvm_start}MB"
+    echo "lvm_start            ${lvm_start}MB            lvm_end              ${lvm_end}MB"
+    #####
+    
+    echo "sizes in sectors"
+    echo "rootfs_partition     $rootfs_partition         rootfs_end             $(convert_mb_to_sectors ${rootfs_end} 1)"
+    echo "emt_persistent_start $(convert_mb_to_sectors ${emt_persistent_start_mb} 0) emt_persistent_end   $(convert_mb_to_sectors ${emt_persistent_end_mb} 1)"
+    echo "root_hashmap_a_start $(convert_mb_to_sectors ${root_hashmap_a_start} 0) root_hashmap_b_start $(convert_mb_to_sectors ${root_hashmap_b_start} 1)"
+    echo "root_hashmap_b_start $(convert_mb_to_sectors ${root_hashmap_b_start} 0) rootfs_b_start       $(convert_mb_to_sectors ${rootfs_b_start} 1)"
+    echo "rootfs_b_start       $(convert_mb_to_sectors ${rootfs_b_start} 0)       roothash_start       $(convert_mb_to_sectors ${roothash_start} 1)"
+    echo "roothash_start       $(convert_mb_to_sectors ${roothash_start} 0)       swap_start           $(convert_mb_to_sectors ${swap_start} 1)"
+    echo "swap_start           $(convert_mb_to_sectors ${swap_start} 0)           lvm_start            $(convert_mb_to_sectors ${lvm_start} 1)"
+    echo "lvm_start            $(convert_mb_to_sectors ${lvm_start} 0)            lvm_end              $(convert_mb_to_sectors ${lvm_end} 1)"
+    #####
+
+
     printf 'Fix\n' | parted ---pretend-input-tty ${DEST_DISK} resizepart $emt_persistent_partition "$(convert_mb_to_sectors "${emt_persistent_end_mb}" 1)"s
     check_return_value $? "Failed to resize emt persistent"
 
@@ -612,7 +631,7 @@ enable_dmv(){
     echo "UUID=$swap_uuid swap swap default 0 2" >> /mnt/etc/fstab
 
     create_single_hdd_lvmg
-    if ! $TEST_ON_ONLY_ONE_PART;
+    if [ "$TEST_ON_ONLY_ONE_PART" = "false" ] && [ "$ven_mode_active" = "false" ];
     then
 	partition_other_devices
     fi
@@ -717,11 +736,13 @@ EOT
 	mount "${DEST_DISK}${suffix}${roothash_partition}" /temp
 	check_return_value $? "Failed to mount rootfs"
 
+        set -o pipefail
 	veritysetup format "${DEST_DISK}${suffix}${rootfs_partition}" "${DEST_DISK}${suffix}${root_hashmap_a_partition}" | grep Root | cut -f2 > /temp/part_a_roothash
 	check_return_value $? "Failed to do veritysetup"
 
 	if $TEST_ENABLE_DM_ON_ROOTFSB;
 	then
+	    set -o pipefail
 	    veritysetup format "${DEST_DISK}${suffix}${rootfs_b_partition}" "${DEST_DISK}${suffix}${root_hashmap_b_partition}" | grep Root | cut -f2 > /temp/part_b_roothash
 	    check_return_value $? "Failed to do veritysetup"
 	fi
@@ -740,17 +761,30 @@ EOT
 #####################################################################################
 emt_main_dmv() {
 
+    if [ -n "${DMV_IN_VEN+x}" ] && [ "$DMV_IN_VEN" = "false" ];
+    then
+
+        ven_mode_active=false
+
+    elif [ "$DMV_IN_VEN" = "true" ];
+    then 
+
+        ven_mode_active=true
+
+    fi
+
     echo "Edge Microvisor Toolkit detected"
     get_dest_disk
 
     is_single_hdd
 
-    if $PARTITION_MODE_VEN;
+    if [ "$ven_mode_active" = true ];
     then
-	    make_partition_ven
-    else
-	    make_partition
+        set_ven_partitions
+	make_partition_ven
     fi
+
+    make_partition
 
     enable_dmv
 }
