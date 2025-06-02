@@ -763,14 +763,10 @@ emt_main_dmv() {
 
     if [ -n "${DMV_IN_VEN+x}" ] && [ "$DMV_IN_VEN" = "false" ];
     then
-
         ven_mode_active=false
-
     elif [ "$DMV_IN_VEN" = "true" ];
     then 
-
         ven_mode_active=true
-
     fi
 
     echo "Edge Microvisor Toolkit detected"
