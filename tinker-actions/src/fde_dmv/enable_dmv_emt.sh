@@ -316,22 +316,30 @@ make_partition_ven() {
     boot_size=$(lsblk -bno SIZE /dev/sda1)
     boot_size=$((boot_size / 1024 / 1024))  # Convert bytes to MB
 
-    if [ $total_size_disk -lt $((32 * 1024)) ]; then
+    if [ $total_size_disk -lt $((32 * 1024)) ];
+    then
         echo "Error: Total disk size is less than 32GB. Exiting."
         exit 1
     fi
 
     fixed_size=$((rootfs_size * 2 + rootfs_hashmap_size * 2 + rootfs_roothash_size + swap_size + boot_size))
     remaining_size=$((total_size_disk - fixed_size))
-    if [ "$remaining_size" -le 0 ]; then
+    if [ "$remaining_size" -le 0 ];
+    then
             echo "Error: Not enough disk space"
             exit 1
     fi
 
-    forty_percent=$((remaining_size * 40 / 100))
-    emt_persistent_size=$((forty_percent <= 20480 ? forty_percent : 20480))
-    lvm_size=$((remaining_size - emt_persistent_size))
-
+    if [ $single_hdd -eq 0 ];
+    then
+        forty_percent=$((remaining_size * 40 / 100))
+        emt_persistent_size=$((forty_percent <= 20480 ? forty_percent : 20480))
+        lvm_size=$((remaining_size - emt_persistent_size))
+    elif [ "$single_hdd" -ne 0 ];
+    then 
+        emt_persistent_size=$remaining_size
+        lvm_size=0
+    fi
 
 
     rootfs_end=$(parted -s "${DEST_DISK}" unit s print | awk '/ 2 / {gsub("s", "", $3); print int($3 * 512 / 1024 / 1024)}')
@@ -386,9 +394,15 @@ make_partition_ven() {
         mkpart rootfs_b ext4 "$(convert_mb_to_sectors "${rootfs_b_start}" 0)"s "$(convert_mb_to_sectors "${roothash_start}" 1)"s \
         mkpart roothash ext4 "$(convert_mb_to_sectors "${roothash_start}" 0)"s "$(convert_mb_to_sectors "${swap_start}" 1)"s \
         mkpart swap linux-swap "$(convert_mb_to_sectors "${swap_start}" 0)"s "$(convert_mb_to_sectors "$((swap_start + swap_size))" 1)"s \
-        mkpart lvm ext4 "$(convert_mb_to_sectors "${lvm_start}" 0)"s "$(convert_mb_to_sectors "${lvm_end}" 1)"s
 
     check_return_value $? "Failed to create partitions"
+
+    if [ $single_hdd -eq 0 ];
+    then
+        parted -s ${DEST_DISK} \
+            mkpart lvm ext4 "$(convert_mb_to_sectors "${lvm_start}" 0)"s "$(convert_mb_to_sectors "${lvm_end}" 1)"s
+        check_return_value $? "Failed to create LVM partition"
+    fi
 
     suffix=$(fix_partition_suffix)
 
@@ -631,7 +645,7 @@ enable_dmv(){
     echo "UUID=$swap_uuid swap swap default 0 2" >> /mnt/etc/fstab
 
     create_single_hdd_lvmg
-    if [ "$TEST_ON_ONLY_ONE_PART" = "false" ] && [ "$ven_mode_active" = "false" ];
+    if ! $TEST_ON_ONLY_ONE_PART;
     then
 	partition_other_devices
     fi
