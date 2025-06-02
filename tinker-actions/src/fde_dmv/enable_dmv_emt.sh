@@ -792,9 +792,9 @@ emt_main_dmv() {
     then
         set_ven_partitions
 	make_partition_ven
+    else
+	make_partition
     fi
-
-    make_partition
 
     enable_dmv
 }
