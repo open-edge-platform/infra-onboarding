@@ -17,7 +17,7 @@ TEST_ENABLE_DM_ON_ROOTFSB=false
 TEST_ON_ONLY_ONE_PART=false
 
 # Set PARTITION_MODE to either EN (Edge Node) or VEN (Virtual Edge Node)
-DMV_IN_VEN=false # Default to EN if not set
+DMV_IN_VEN=true # Default to EN if not set
 
 ####
 ####
@@ -64,13 +64,10 @@ check_all_disks=1
 set_ven_partitions() {
     # Size in MBs for VEN
     rootfs_size=2048
-    readonly rootfs_size
     rootfs_hashmap_size=100
-    readonly rootfs_hashmap_size
     rootfs_roothash_size=50
-    readonly rootfs_roothash_size
     swap_size=4096
-    readonly swap_size
+    reserved_size=3072
 }
 
 #####################################################################################
@@ -323,7 +320,7 @@ make_partition_ven() {
         exit 1
     fi
 
-    fixed_size=$((rootfs_size * 2 + rootfs_hashmap_size * 2 + rootfs_roothash_size + swap_size + boot_size))
+    fixed_size=$((rootfs_size * 2 + rootfs_hashmap_size * 2 + rootfs_roothash_size + swap_size + reserved_size  + boot_size))
     remaining_size=$((total_size_disk - fixed_size))
     if [ "$remaining_size" -le 0 ];
     then
@@ -358,7 +355,8 @@ make_partition_ven() {
     rootfs_b_start=$((root_hashmap_b_start + rootfs_hashmap_size))
     roothash_start=$((rootfs_b_start + rootfs_size))
     swap_start=$((roothash_start + rootfs_roothash_size))
-    lvm_start=$((swap_start + swap_size))
+    reserved_start=$((swap_start + swap_size))
+    lvm_start=$((reserved_start + reserved_size))
     lvm_end=$((lvm_start + lvm_size))
 
     #####
@@ -370,7 +368,8 @@ make_partition_ven() {
     echo "root_hashmap_b_start ${root_hashmap_b_start}MB rootfs_b_start       ${rootfs_b_start}MB"
     echo "rootfs_b_start       ${rootfs_b_start}MB       roothash_start       ${roothash_start}MB"
     echo "roothash_start       ${roothash_start}MB       swap_start           ${swap_start}MB"
-    echo "swap_start           ${swap_start}MB           lvm_start            ${lvm_start}MB"
+    echo "swap_start           ${swap_start}MB           reserved_start       ${reserved_start}MB"
+    echo "reserved_start       ${reserved_start}MB	 lvm_start	      ${lvm_start}MB"
     echo "lvm_start            ${lvm_start}MB            lvm_end              ${lvm_end}MB"
     #####
     
@@ -381,7 +380,8 @@ make_partition_ven() {
     echo "root_hashmap_b_start $(convert_mb_to_sectors ${root_hashmap_b_start} 0) rootfs_b_start       $(convert_mb_to_sectors ${rootfs_b_start} 1)"
     echo "rootfs_b_start       $(convert_mb_to_sectors ${rootfs_b_start} 0)       roothash_start       $(convert_mb_to_sectors ${roothash_start} 1)"
     echo "roothash_start       $(convert_mb_to_sectors ${roothash_start} 0)       swap_start           $(convert_mb_to_sectors ${swap_start} 1)"
-    echo "swap_start           $(convert_mb_to_sectors ${swap_start} 0)           lvm_start            $(convert_mb_to_sectors ${lvm_start} 1)"
+    echo "swap_start           $(convert_mb_to_sectors ${swap_start} 0)           reserved_start       $(convert_mb_to_sectors ${reserved_start} 1)"
+    echo "reserved_start       $(convert_mb_to_sectors ${reserved_start} 0)       lvm_start            $(convert_mb_to_sectors ${lvm_start} 1)"
     echo "lvm_start            $(convert_mb_to_sectors ${lvm_start} 0)            lvm_end              $(convert_mb_to_sectors ${lvm_end} 1)"
     #####
 
@@ -394,7 +394,8 @@ make_partition_ven() {
         mkpart hashmap_b ext4 "$(convert_mb_to_sectors "${root_hashmap_b_start}" 0)"s "$(convert_mb_to_sectors "${rootfs_b_start}" 1)"s \
         mkpart rootfs_b ext4 "$(convert_mb_to_sectors "${rootfs_b_start}" 0)"s "$(convert_mb_to_sectors "${roothash_start}" 1)"s \
         mkpart roothash ext4 "$(convert_mb_to_sectors "${roothash_start}" 0)"s "$(convert_mb_to_sectors "${swap_start}" 1)"s \
-        mkpart swap linux-swap "$(convert_mb_to_sectors "${swap_start}" 0)"s "$(convert_mb_to_sectors "$((swap_start + swap_size))" 1)"s \
+        mkpart swap linux-swap "$(convert_mb_to_sectors "${swap_start}" 0)"s "$(convert_mb_to_sectors "${reserved_start}" 1)"s \
+	mkpart reserved ext4  "$(convert_mb_to_sectors "${reserved_start}" 0)"s "$(convert_mb_to_sectors "$((reserved_start + reserved_size))" 1)"s
 
     check_return_value $? "Failed to create partitions"
 
