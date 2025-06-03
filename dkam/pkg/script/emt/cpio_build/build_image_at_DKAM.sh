@@ -168,7 +168,15 @@ extract_emt_tar() {
         gzip -d $iter_folder/emt_uos_x86_64_files/extract_initramfs/rootfs.tar.gz
 	mv $iter_folder/emt_uos_x86_64_files/extract_initramfs/rootfs.tar $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp
 	mkdir -p $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
-        cp $IDP/Intel.crt $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
+        if [ -f "$PWD/../IntelSHA2RootChain-Base64.zip" ]; then
+	  echo "found IntelSHA2RootChain-Base64.zip"
+	  unzip $PWD/../IntelSHA2RootChain-Base64.zip -d $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
+	else
+	  if [ -f "$IDP/Intel.crt" ]; then
+	    echo "found Intel.crt, make sure tinkworker included it specs"
+	    cp $IDP/Intel.crt $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
+	  fi
+	fi
 
 	#Copy env_config file and idp
 	tar -uf $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C $PWD ./etc/emt/env_config
@@ -200,7 +208,14 @@ extract_emt_tar() {
 	tar -uf rootfs.tar ./usr/lib/systemd/system/fluent-bit.service
 
 	#Add crt for tink-worker
-	tar -uf rootfs.tar ./etc/pki/ca-trust/source/anchors/Intel.crt
+	if [ -f ./etc/pki/ca-trust/source/anchors/Intel.crt ]; then
+	  tar -uf rootfs.tar ./etc/pki/ca-trust/source/anchors/Intel.crt
+	else
+	  tar -xvf rootfs.tar ./usr/lib/systemd/system/tink-worker.service
+	  sed -i '/^\[Service\]/a ExecStartPre=/usr/bin/update-ca-trust' ./usr/lib/systemd/system/tink-worker.service
+	  tar -uf rootfs.tar ./usr/lib/systemd/system/tink-worker.service
+	  tar -uf rootfs.tar ./etc/pki/ca-trust/source/anchors/*
+	fi
 
 	#Add autologin
 	tar -xvf rootfs.tar ./usr/lib/systemd/system/getty@.service
@@ -237,7 +252,7 @@ extract_emt_tar() {
 main() {
 
     create_env_config
-    get_cert
+    #get_cert
 
     extract_emt_tar
 
