@@ -135,10 +135,18 @@ func TestDeleteHardwareForHostIfExist(t *testing.T) {
 }
 
 func TestCreateHardwareIfNotExists(t *testing.T) {
+	currK8sClientFactory := K8sClientFactory
+	defer func() {
+		K8sClientFactory = currK8sClientFactory
+	}()
+
+	factoryCreateErr := om_testing.K8sCliMockFactory(true, false, false)
+	factoryCreateSuccess := om_testing.K8sCliMockFactory(false, false, false)
+
 	type args struct {
-		ctx          context.Context
-		k8sCli       client.Client
-		k8sNamespace string
+		ctx           context.Context
+		k8sCliFactory func() (client.Client, error)
+		k8sNamespace  string
 	}
 	mockClient := om_testing.MockK8sClient{}
 	mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -160,37 +168,22 @@ func TestCreateHardwareIfNotExists(t *testing.T) {
 		{
 			name: "CreateHardwareSuccess",
 			args: args{
-				ctx:    context.Background(),
-				k8sCli: &mockClient,
+				ctx:           context.Background(),
+				k8sCliFactory: factoryCreateSuccess,
 			},
-		},
-		{
-			name: "GetHardwareError",
-			args: args{
-				ctx:    context.Background(),
-				k8sCli: &mockClient1,
-			},
-			wantErr: true,
-		},
-		{
-			name: "HardwareNotFoundCreate",
-			args: args{
-				ctx:    context.Background(),
-				k8sCli: &mockClient2,
-			},
-			wantErr: false,
 		},
 		{
 			name: "CreateHardwareError",
 			args: args{
-				ctx:    context.Background(),
-				k8sCli: &mockClient3,
+				ctx:           context.Background(),
+				k8sCliFactory: factoryCreateErr,
 			},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			K8sClientFactory = tt.args.k8sCliFactory
 			if err := CreateHardwareIfNotExists(tt.args.k8sNamespace, "test"); (err != nil) != tt.wantErr {
 				t.Errorf("CreateHardwareIfNotExists() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -230,16 +223,12 @@ func TestCreateWorkflowIfNotExists(t *testing.T) {
 		workflow *tink.Workflow
 	}
 	mockClient := om_testing.MockK8sClient{}
-	mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	mockClient.On("Create", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	mockClient1 := om_testing.MockK8sClient{}
-	mockClient1.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
+	mockClient1.On("Create", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
 	mockClient2 := om_testing.MockK8sClient{}
-	mockClient2.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(error_k8.NewNotFound(schema.GroupResource{Group: "example.com", Resource: "myresource"}, "resource-name"))
 	mockClient2.On("Create", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	mockClient3 := om_testing.MockK8sClient{}
-	mockClient3.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(error_k8.NewNotFound(schema.GroupResource{Group: "example.com", Resource: "myresource"}, "resource-name"))
 	mockClient3.On("Create", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("err"))
 	tests := []struct {
 		name    string

@@ -8,7 +8,6 @@ import (
 	"context"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
@@ -126,7 +125,7 @@ func K8sCliMockFactory(createShouldFail, getShouldFail, deleteShouldFail bool) f
 	k8sMock := &MockK8sClient{}
 
 	if createShouldFail {
-		k8sMock.On("Create", mock.Anything, mock.Anything, mock.Anything).Return("", "", errors.New(""))
+		k8sMock.On("Create", mock.Anything, mock.Anything, mock.Anything).Return(k8s_errors.NewServiceUnavailable(""))
 	} else {
 		k8sMock.On("Create", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	}
