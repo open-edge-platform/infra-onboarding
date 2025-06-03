@@ -285,6 +285,10 @@ func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.Dev
 		cloudinit.WithHostMACAddress(deviceInfo.HwMacID),
 	}
 
+	if deviceInfo.IsStandaloneNode {
+		opts = append(opts, cloudinit.WithRunAsStandalone())
+	}
+
 	if env.ENDkamMode == envDkamDevMode {
 		opts = append(opts, cloudinit.WithDevMode(env.ENUserName, env.ENPassWord))
 	}

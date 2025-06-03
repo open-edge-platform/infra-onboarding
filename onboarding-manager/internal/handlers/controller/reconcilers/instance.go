@@ -387,18 +387,19 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 	tinkerVersion := env.TinkerActionVersion
 
 	deviceInfo := onboarding_types.DeviceInfo{
-		GUID:            host.GetUuid(),
-		HwSerialID:      host.GetSerialNumber(),
-		HwMacID:         host.GetPxeMac(),
-		HwIP:            host.GetBmcIp(),
-		Hostname:        host.GetResourceId(), // we use resource ID as hostname to uniquely identify a host
-		SecurityFeature: instance.GetSecurityFeature(),
-		OSImageURL:      osLocationURL,
-		OsImageSHA256:   desiredOs.GetSha256(),
-		TinkerVersion:   tinkerVersion,
-		OsType:          desiredOs.GetOsType(),
-		OSResourceID:    desiredOs.GetResourceId(),
-		PlatformBundle:  desiredOs.GetPlatformBundle(),
+		GUID:             host.GetUuid(),
+		HwSerialID:       host.GetSerialNumber(),
+		HwMacID:          host.GetPxeMac(),
+		HwIP:             host.GetBmcIp(),
+		Hostname:         host.GetResourceId(), // we use resource ID as hostname to uniquely identify a host
+		SecurityFeature:  instance.GetSecurityFeature(),
+		OSImageURL:       osLocationURL,
+		OsImageSHA256:    desiredOs.GetSha256(),
+		TinkerVersion:    tinkerVersion,
+		OsType:           desiredOs.GetOsType(),
+		OSResourceID:     desiredOs.GetResourceId(),
+		PlatformBundle:   desiredOs.GetPlatformBundle(),
+		IsStandaloneNode: util.IsStandalone(instance),
 	}
 
 	zlogInst.Debug().Msgf("DeviceInfo generated from OS resource (%s): %+v",
