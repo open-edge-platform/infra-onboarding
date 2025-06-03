@@ -4,4 +4,15 @@
 
 # Same as '--ignorefile'
 # Default is '.trivyignore'
-ignorefile: tink-worker/.trivyignore
+#ignorefile: tink-worker/.trivyignore
+
+scan:
+  skip-files:
+    - "tinker-worker/cmd/tink-agent/Dockerfile"
+    - "tinker-worker/cmd/tink-controller/Dockerfile"
+    - "tinker-worker/cmd/tink-server/Dockerfile"
+    - "tinker-worker/cmd/tink-worker/Dockerfile"
+    - "tinker-worker/cmd/virtual-worker/Dockerfile"
+  skip-dirs:
+    - "tinker-worker/config/"
+    - "tinker-worker/internal/e2e/testdata/"
