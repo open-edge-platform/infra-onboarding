@@ -4,4 +4,4 @@
 
 # Same as '--ignorefile'
 # Default is '.trivyignore'
-ignorefile: tinker-worker/.trivyignore
+ignorefile: tink-worker/.trivyignore
