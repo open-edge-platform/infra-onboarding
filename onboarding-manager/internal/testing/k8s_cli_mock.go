@@ -138,8 +138,10 @@ func K8sCliMockFactory(createShouldFail, getShouldFail, deleteShouldFail bool) f
 
 	if deleteShouldFail {
 		k8sMock.On("Delete", mock.Anything, mock.Anything, mock.Anything).Return(inv_errors.Errorf(""))
+		k8sMock.On("DeleteAllOf", mock.Anything, mock.Anything, mock.Anything).Return(inv_errors.Errorf(""))
 	} else {
 		k8sMock.On("Delete", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+		k8sMock.On("DeleteAllOf", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	}
 
 	k8sMock.On("List", mock.Anything, mock.Anything, mock.Anything).Return(nil)
