@@ -1,0 +1,11 @@
+# Copyright (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+# Ignore files
+tinker-worker/config/*
+tinker-worker/internal/e2e/testdata/*
+tinker-worker/cmd/tink-agent/Dockerfile
+tinker-worker/cmd/tink-controller/Dockerfile
+tinker-worker/cmd/tink-server/Dockerfile
+tinker-worker/cmd/tink-worker/Dockerfile
+tinker-worker/cmd/virtual-worker/Dockerfile
