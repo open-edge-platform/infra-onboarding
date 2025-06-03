@@ -100,40 +100,6 @@ func TestNewWorkflow(t *testing.T) {
 	}
 }
 
-func TestDeleteHardwareForHostIfExist(t *testing.T) {
-	currK8sClientFactory := K8sClientFactory
-	defer func() {
-		K8sClientFactory = currK8sClientFactory
-	}()
-	K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
-	type args struct {
-		ctx          context.Context
-		k8sNamespace string
-		name         string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "TestDeleteHardwareForHostIfExist_KubernetesEnvironment",
-			args: args{
-				ctx: context.Background(),
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := DeleteHardware(tt.args.k8sNamespace,
-				tt.args.name); (err != nil) != tt.wantErr {
-				t.Errorf("DeleteHardwareForHostIfExist() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestCreateHardwareIfNotExists(t *testing.T) {
 	currK8sClientFactory := K8sClientFactory
 	defer func() {
@@ -186,31 +152,6 @@ func TestCreateHardwareIfNotExists(t *testing.T) {
 			K8sClientFactory = tt.args.k8sCliFactory
 			if err := CreateHardwareIfNotExists(tt.args.k8sNamespace, "test"); (err != nil) != tt.wantErr {
 				t.Errorf("CreateHardwareIfNotExists() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestDeleteHardwareForHostIfExist_ErrorScenario(t *testing.T) {
-	type args struct {
-		k8sNamespace string
-		name         string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name:    "Kubeclient error",
-			args:    args{},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := DeleteHardware(tt.args.k8sNamespace, tt.args.name); (err != nil) != tt.wantErr {
-				t.Errorf("DeleteHardwareForHostIfExist() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

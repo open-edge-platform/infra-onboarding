@@ -72,24 +72,6 @@ func NewWorkflow(name, ns, hardwareRef, templateRef string, hardwareMap map[stri
 	return wf
 }
 
-func ListTemplates() ([]tinkv1alpha1.Template, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultK8sClientTimeout)
-	defer cancel()
-
-	kubeClient, err := K8sClientFactory()
-	if err != nil {
-		return nil, err
-	}
-
-	tmplList := &tinkv1alpha1.TemplateList{}
-	err = kubeClient.List(ctx, tmplList, client.InNamespace(env.K8sNamespace))
-	if err != nil {
-		return nil, err
-	}
-
-	return tmplList.Items, nil
-}
-
 func CreateTemplate(k8sNamespace, name string, rawTemplateData []byte) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultK8sClientTimeout)
 	defer cancel()
@@ -157,65 +139,31 @@ func CreateHardwareIfNotExists(k8sNamespace, hwName string) error {
 	return nil
 }
 
-func DeleteHardware(k8sNamespace, hwName string) error {
+func deleteAllK8sResourcesOfKind(namespace string, kinds []client.Object) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultK8sClientTimeout)
 	defer cancel()
-
-	zlog.Debug().Msgf("Deleting Tinkerbell Hardware %q", hwName)
 
 	kubeClient, err := K8sClientFactory()
 	if err != nil {
 		return err
 	}
 
-	hw := &tinkv1alpha1.Hardware{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Hardware",
-			APIVersion: "tinkerbell.org/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      hwName,
-			Namespace: k8sNamespace,
-		},
-	}
-
-	if err = kubeClient.Delete(ctx, hw); err != nil && !errors.IsNotFound(err) {
-		zlog.InfraSec().InfraErr(err).Msg("")
-		zlog.Debug().Msgf("Failed to delete Tink hardware resource %q", hwName)
-		return inv_errors.Errorf("Failed to delete Tink hardware resource")
+	for _, kind := range kinds {
+		if err = kubeClient.DeleteAllOf(ctx, kind, client.InNamespace(namespace)); err != nil {
+			zlog.InfraSec().InfraErr(err).Msg("")
+			return inv_errors.Errorf("Failed to delete Tinkerbell template")
+		}
 	}
 
 	return nil
 }
 
-func DeleteTemplate(name, namespace string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultK8sClientTimeout)
-	defer cancel()
-
-	kubeClient, err := K8sClientFactory()
-	if err != nil {
-		return err
-	}
-
-	zlog.Debug().Msgf("Deleting prod template %s in namespace %s", name, namespace)
-
-	template := &tinkv1alpha1.Template{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Template",
-			APIVersion: "tinkerbell.org/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-	}
-
-	if err = kubeClient.Delete(ctx, template); err != nil && !errors.IsNotFound(err) {
-		zlog.InfraSec().InfraErr(err).Msg("")
-		return inv_errors.Errorf("Failed to delete Tinkerbell template")
-	}
-
-	return nil
+func DeletePredefinedTinkerbellResources() error {
+	zlog.Debug().Msgf("Deleting all Tinkerbell Template and Hardware objects in namespace %s", env.K8sNamespace)
+	return deleteAllK8sResourcesOfKind(env.K8sNamespace, []client.Object{
+		&tinkv1alpha1.Template{},
+		&tinkv1alpha1.Hardware{},
+	})
 }
 
 func CreateWorkflowIfNotExists(ctx context.Context, k8sCli client.Client, workflow *tinkv1alpha1.Workflow) error {
