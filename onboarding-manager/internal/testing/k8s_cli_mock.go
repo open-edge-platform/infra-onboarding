@@ -6,10 +6,8 @@ package testing
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
@@ -18,15 +16,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	inv_client "github.com/open-edge-platform/infra-core/inventory/v2/pkg/client"
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 )
 
 type MockK8sClient struct {
 	mock.Mock
-
-	// withInventory use real Inventory client to get current OS to fill in the Tink Hardware CRD object
-	withInventory bool
 }
 
 func (k *MockK8sClient) Get(_ context.Context, key client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
@@ -38,36 +32,6 @@ func (k *MockK8sClient) Get(_ context.Context, key client.ObjectKey, obj client.
 			return args.Error(0)
 		}
 		workflow.Status.State = tink.WorkflowStateSuccess
-	}
-
-	if strings.HasPrefix(key.Name, "machine-") {
-		// If workfkow state is SUCCESS (see above), OM fetches Tink hardware to update current OS of Instance.
-		// For testing purpose, and to avoid NotFound OS resource during update, we set current OS to Instance's desired OS.
-		// Therefore, we retrieve existing Instance to get desired OS and set OsSlug to its resource ID.
-		// This behavior can be controlled by withInventory flag.
-
-		osResourceID := "os-12345678"
-
-		if k.withInventory {
-			hostUUID := strings.TrimPrefix(key.Name, "machine-")
-			host, err := InvClient.Client.GetHostByUUID(context.Background(), inv_client.FakeTenantID, hostUUID)
-			if err != nil {
-				fmt.Println(err)
-			}
-			osResourceID = host.GetInstance().GetDesiredOs().GetResourceId()
-		}
-
-		hardware, ok := obj.(*tink.Hardware)
-		if !ok {
-			return args.Error(0)
-		}
-		hardware.Spec.Metadata = &tink.HardwareMetadata{
-			Instance: &tink.MetadataInstance{
-				OperatingSystem: &tink.MetadataInstanceOperatingSystem{
-					OsSlug: osResourceID,
-				},
-			},
-		}
 	}
 
 	return args.Error(0)
@@ -157,13 +121,11 @@ func (k *MockK8sClient) IsObjectNamespaced(_ runtime.Object) (bool, error) {
 	return result, args.Error(1)
 }
 
-func K8sCliMockFactory(createShouldFail, getShouldFail, deleteShouldFail, useRealInventory bool) func() (client.Client, error) {
-	k8sMock := &MockK8sClient{
-		withInventory: useRealInventory,
-	}
+func K8sCliMockFactory(createShouldFail, getShouldFail, deleteShouldFail bool) func() (client.Client, error) {
+	k8sMock := &MockK8sClient{}
 
 	if createShouldFail {
-		k8sMock.On("Create", mock.Anything, mock.Anything, mock.Anything).Return("", "", errors.New(""))
+		k8sMock.On("Create", mock.Anything, mock.Anything, mock.Anything).Return(k8s_errors.NewServiceUnavailable(""))
 	} else {
 		k8sMock.On("Create", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	}
