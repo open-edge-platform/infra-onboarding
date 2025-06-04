@@ -17,7 +17,7 @@ TEST_ENABLE_DM_ON_ROOTFSB=false
 TEST_ON_ONLY_ONE_PART=false
 
 # Set PARTITION_MODE to either EN (Edge Node) or VEN (Virtual Edge Node)
-DMV_IN_VEN=false # Default to EN if not set
+DMV_IN_VEN=true # Defaelt to EN if not set
 
 ####
 ####
@@ -311,7 +311,7 @@ make_partition_ven() {
     # Logic for partitioning when PARTITION_MODE is VEN
 
     total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
-    boot_size=$(lsblk -bno SIZE /dev/sda1)
+    boot_size=$(lsblk -bno SIZE "${DEST_DISK}1")
     boot_size=$((boot_size / 1024 / 1024))  # Convert bytes to MB
 
     if [ $total_size_disk -lt $((32 * 1024)) ];
