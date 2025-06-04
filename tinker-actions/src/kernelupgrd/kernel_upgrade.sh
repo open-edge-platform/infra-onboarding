@@ -157,7 +157,7 @@ else
                 partprobe "/dev/${os_disk}" 
 		# Wait until the partition is available
                 sync_file_system "$rootfs_part"
-                e2fsck -f "$rootfs_part"
+                e2fsck -f -y "$rootfs_part"
 		# Before resize the partition 
 		sync_file_system "$rootfs_part"
                 resize2fs "$rootfs_part"

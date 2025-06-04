@@ -60,6 +60,16 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 	tmpFile.Close()
 	log.Info("Successfully saved image to tmpFile")
 
+	// Run 'ls -lh /tmp' and print stdout and stderr
+	cmdLsTmp := exec.Command("ls", "-lh", "/tmp")
+	var lsTmpOut, lsTmpErr bytes.Buffer
+	cmdLsTmp.Stdout = &lsTmpOut
+	cmdLsTmp.Stderr = &lsTmpErr
+	if err := cmdLsTmp.Run(); err != nil {
+		return fmt.Errorf("failed to run ls -lh /tmp: %v\nstdout:%s\nstderr:\n%s", err, lsTmpOut.String(), lsTmpErr.String())
+	}
+	log.Info("ls -lh /tmp output", "stdout", lsTmpOut.String(), "stderr", lsTmpErr.String())
+
 	// Compute the SHA-256 checksum
 	hashSum := hash.Sum(nil)
 	actualSHA256 := hex.EncodeToString(hashSum)
@@ -86,15 +96,6 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 	}
 	log.Info("Successfully loaded nbd kernel module")
 
-	cmdLsblk := exec.Command("lsblk")
-	var lsblkOut, lsblkErr bytes.Buffer
-	cmdLsblk.Stdout = &lsblkOut
-	cmdLsblk.Stderr = &lsblkErr
-	if err := cmdLsblk.Run(); err != nil {
-		return fmt.Errorf("failed to run lsblk: %v\nstdout:%s\nstderr:\n%s", err, lsblkOut.String(), lsblkErr.String())
-	}
-	log.Info("lsblk output", "stdout", lsblkOut.String(), "stderr", lsblkErr.String())
-
 	// Run 'ls -ld /var/lock' to show directory details
 	cmdLs := exec.Command("ls", "-lrth", "/dev/nbd0")
 	var lsOut, lsErr bytes.Buffer
@@ -116,6 +117,17 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 	}
 	defer exec.Command("qemu-nbd", "--disconnect", nbdDevice).Run()
 	log.Info("Successfully attached qcow2 image as network block device")
+
+	// Run 'lsblk' and print stdout and stderr
+	cmdLsblk := exec.Command("lsblk")
+	var lsblkOut, lsblkErr bytes.Buffer
+	cmdLsblk.Stdout = &lsblkOut
+	cmdLsblk.Stderr = &lsblkErr
+	if err := cmdLsblk.Run(); err != nil {
+		return fmt.Errorf("failed to run lsblk: %v\nstdout:%s\nstderr:\n%s", err, lsblkOut.String(), lsblkErr.String())
+	}
+	log.Info("lsblk output", "stdout", lsblkOut.String(), "stderr", lsblkErr.String())
+
 	cmdLs1 := exec.Command("ls", "/var/lock")
 	var lsOut1, lsErr1 bytes.Buffer
 	cmdLs1.Stdout = &lsOut1
@@ -134,6 +146,16 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 		return fmt.Errorf("failed to write image to disk: %v", err)
 	}
 	log.Info(fmt.Sprintf("Successfully installed  cloud image on %s", destinationDevice))
+
+	// Rerun 'lsblk' and print stdout and stderr
+	cmdLsblk2 := exec.Command("lsblk")
+	var lsblkOut2, lsblkErr2 bytes.Buffer
+	cmdLsblk2.Stdout = &lsblkOut2
+	cmdLsblk2.Stderr = &lsblkErr2
+	if err := cmdLsblk2.Run(); err != nil {
+		return fmt.Errorf("failed to rerun lsblk: %v\nstdout:%s\nstderr:\n%s", err, lsblkOut2.String(), lsblkErr2.String())
+	}
+	log.Info("lsblk output (rerun)", "stdout", lsblkOut2.String(), "stderr", lsblkErr2.String())
 
 	// Run partition table re-probing
 	file, err := os.OpenFile(destinationDevice, os.O_RDWR, 0600)
