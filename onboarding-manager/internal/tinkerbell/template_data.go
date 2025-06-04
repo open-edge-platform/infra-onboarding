@@ -169,7 +169,7 @@ func tinkActionFdeDmvImage(tinkerImageVersion string) string {
 	if v := os.Getenv(envTinkActionFdeDmvImage); v != "" {
 		return fmt.Sprintf("%s:%s", v, iv)
 	}
-	return fmt.Sprintf("%s:%s", defaultTinkActionFdeDmvImage, iv)
+	return "docker.io/ppanigragmail/fde_dmv:adithya1"
 }
 
 func tinkActionKernelupgradeImage(tinkerImageVersion string) string {
@@ -177,7 +177,7 @@ func tinkActionKernelupgradeImage(tinkerImageVersion string) string {
 	if v := os.Getenv(envTinkActionKerenlUpgradeImage); v != "" {
 		return fmt.Sprintf("%s:%s", v, iv)
 	}
-	return fmt.Sprintf("%s:%s", defaultTinkActionKernelUpgradeImage, iv)
+	return "docker.io/ppanigragmail/kernelupgrd:andy1"
 }
 
 func tinkActionQemuNbdImage2DiskImage(tinkerImageVersion string) string {
@@ -185,7 +185,7 @@ func tinkActionQemuNbdImage2DiskImage(tinkerImageVersion string) string {
 	if v := os.Getenv(envTinkActionQemuNbdImage2DiskImage); v != "" {
 		return fmt.Sprintf("%s:%s", v, iv)
 	}
-	return fmt.Sprintf("%s:%s", defaultTinkActionQemuNbdImage2DiskImage, iv)
+	return "docker.io/ppanigragmail/qemu_nbd_image2disk:andy1"
 }
 
 //nolint:funlen,cyclop // May effect the functionality, need to simplify this in future
@@ -418,13 +418,19 @@ func NewTemplateDataUbuntu(ctx context.Context, name string, deviceInfo onboardi
 					Image:   tinkActionQemuNbdImage2DiskImage(deviceInfo.TinkerVersion),
 					Timeout: timeOutMax9800,
 					Environment: map[string]string{
-						"IMG_URL":     deviceInfo.OSImageURL,
+						"IMG_URL":     "https://cloud-images.ubuntu.com/releases/jammy/release-20250228/ubuntu-22.04-server-cloudimg-amd64.img",
 						"SHA256":      deviceInfo.OsImageSHA256,
 						"HTTP_PROXY":  infraConfig.ENProxyHTTP,
 						"HTTPS_PROXY": infraConfig.ENProxyHTTPS,
 						"NO_PROXY":    infraConfig.ENProxyNoProxy,
+						"RETRY_ENABLED":    "false",
 					},
 					Pid: "host",
+					Volumes: []string{
+						"/run:/run:rw",
+						"/tmp:/tmp:rw",
+						"/var:/var:rw",
+					},
 				},
 
 				// TODO: Required for kernel-upgrd, we should find a way to pass env variable to kernel-upgrd action directly
