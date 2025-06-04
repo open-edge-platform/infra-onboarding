@@ -28,7 +28,6 @@ jobs:
       run_docker_build: true
       run_docker_push: true
       run_version_tag: true
-      run_artifact: false
       prefix_tag_separator: "/"
       project_folder: "onboarding-manager"
     secrets:
