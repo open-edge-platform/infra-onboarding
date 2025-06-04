@@ -729,25 +729,7 @@ enable_netipplan() {
 }
 {{- end }}
 
-# 26. delete the invalid ubuntu boot menu options
-delete_invalid_ubuntu_boot_menuoptions () {
-    if grep -q "delete_invalid_ubuntu_boot_menuoptions done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping delete_invalid_ubuntu_boot_menuoptions"
-    else
-        echo "Inside boot order change function"
-        present_boot=$(efibootmgr | grep -i "Bootcurrent" | awk '{print $2}')
-        while IFS= read -r boot_part_number; do
-        if [[ "$boot_part_number" = "$present_boot" ]]; then
-                continue;
-        else
-            efibootmgr -b "$boot_part_number" -B
-        fi
-        done < <(efibootmgr | grep -i ubuntu | awk '{print $1}'| cut -c 5-8 )
-        echo "delete_invalid_ubuntu_boot_menuoptions done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
-# 27. Set kernel configurations
+# 26. Set kernel configurations
 enable_kernel_config(){
     if grep -q "enable_kernel_config done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping enable_kernel_config"
@@ -766,7 +748,7 @@ enable_kernel_config(){
     fi
 }
 
-# 28. Enable NTP configuration
+# 27. Enable NTP configuration
 enable_NTP(){
     if grep -q "enable_NTP done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
                 echo "Skipping enable_NTP"
@@ -789,7 +771,7 @@ enable_NTP(){
     fi
 }
 
-# 29. Disable unattended upgrades
+# 28. Disable unattended upgrades
 disable_unattended_upgrade(){
     if grep -q "disable_unattended_upgrade done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping disable_unattended_upgrade"
@@ -809,7 +791,7 @@ disable_unattended_upgrade(){
     fi
 }
 
-# 30. Enable the inactive boot partition numbers
+# 29. Enable the inactive boot partition numbers
 enable_inactive_boot_numbers(){
     if grep -q "enable_inactive_boot_numbers done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping enable_inactive_boot_numbers"
@@ -826,7 +808,7 @@ enable_inactive_boot_numbers(){
     fi
 }
 
-# 31. lvm creation on disk
+# 30. lvm creation on disk
 creat_lvm_partition(){
     if grep -q "creat_lvm_partition done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
                 echo "Skipping creat_lvm_partition"
@@ -931,7 +913,7 @@ creat_lvm_partition(){
     fi
 }
 
-# 32. LVM partition for secondary disk
+# 31. LVM partition for secondary disk
 install_lvm_on_disk(){
     if grep -q "install_lvm_on_disk done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping install_lvm_on_disk"
@@ -1035,7 +1017,5 @@ install_platform_update_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_platform_telemetry_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_syslogrotate_ufw 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 disable_unattended_upgrade 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-#Delete the invalid ubuntu boot numbers created from previous installation from boot menu
-delete_invalid_ubuntu_boot_menuoptions  2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 echo "Installation completed Successfuly on EdgeNode!!!!" > /dev/tty1
 echo "Installation done" > "$SCRIPT_DIR"/.base_pkg_install_done
