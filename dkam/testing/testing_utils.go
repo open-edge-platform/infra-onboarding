@@ -37,7 +37,7 @@ func exampleManifest(digest string, fileLen int) string {
 		"annotations":{"org.opencontainers.image.created":"2025-03-18T16:44:00Z"}}`, fileLen)
 }
 
-func StartTestReleaseService(testProfileName string) func() {
+func StartTestReleaseService() func() {
 	config.SetInfraConfig(config.InfraConfig{
 		ENManifestRepo:     TestManifestRepo,
 		ENAgentManifestTag: CorrectTestManifestTag,
@@ -86,7 +86,6 @@ packages:
 
 	testManifestDigestCorrect := "TEST_MANIFEST_DIGEST_CORRECT"
 	testManifestDigestEmpty := "TEST_MANIFEST_DIGEST_EMPTY"
-	testProfileManifest := "TEST_PROFILE_MANIFEST"
 
 	mux.HandleFunc("/v2/"+infraConfig.ENManifestRepo+"/manifests/"+CorrectTestManifestTag,
 		func(w http.ResponseWriter, _ *http.Request) {
