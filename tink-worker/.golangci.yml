@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Intel Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+
 run:
   # The default runtime timeout is 1m, which doesn't work well on Github Actions.
   timeout: 4m

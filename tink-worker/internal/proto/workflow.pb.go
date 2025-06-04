@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Intel Corporation
+//
+// SPDX-License-Identifier: Apache-2.0
+
 //
 // A workflow represents the work that has to be executed on a particular
 // hardware.

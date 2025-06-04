@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Intel Corporation
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /*
 Package ptr provides utility functions for converting non-addressable primitive types to pointers.
 Its useful in contexts where a variable gives nil primitive type pointers semantics

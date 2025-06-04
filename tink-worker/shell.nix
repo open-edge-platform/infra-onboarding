@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Intel Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+
 let _pkgs = import <nixpkgs> { };
 in { pkgs ? import (_pkgs.fetchFromGitHub {
   owner = "NixOS";

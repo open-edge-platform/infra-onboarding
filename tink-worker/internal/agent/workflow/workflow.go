@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Intel Corporation
+//
+// SPDX-License-Identifier: Apache-2.0
+
 // Package workflow contains workflow domain objects. The domain objects will be moved to
 // /internal/workflow at a later date when they are required/we transition to the new codebase.
 package workflow

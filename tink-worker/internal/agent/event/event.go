@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Intel Corporation
+//
+// SPDX-License-Identifier: Apache-2.0
+
 // Package event describes the event set and an interface for recording events. Events are
 // generated as workflows execute.
 package event

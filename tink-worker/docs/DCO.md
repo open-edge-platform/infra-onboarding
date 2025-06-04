@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Intel Corporation
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # DCO Sign Off
 
 All authors to the project retain copyright to their work. However, to ensure

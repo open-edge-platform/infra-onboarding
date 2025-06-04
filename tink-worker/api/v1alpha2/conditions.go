@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Intel Corporation
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package v1alpha2
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

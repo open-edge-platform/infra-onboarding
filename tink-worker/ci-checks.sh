@@ -1,5 +1,10 @@
 #!/usr/bin/env nix-shell
 #!nix-shell -i bash
+
+# SPDX-FileCopyrightText: 2025 Intel Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # shellcheck shell=bash
 
 set -eux
