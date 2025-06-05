@@ -17,7 +17,7 @@ TEST_ENABLE_DM_ON_ROOTFSB=false
 TEST_ON_ONLY_ONE_PART=false
 
 # Set PARTITION_MODE to either EN (Edge Node) or VEN (Virtual Edge Node)
-ENABLE_DMVERITY_VEN=true # Defaelt to EN if not set
+#ENABLE_DMVERITY_VEN=false # Defaelt to EN if not set
 
 ####
 ####
@@ -311,6 +311,7 @@ make_partition_ven() {
     # Logic for partitioning when PARTITION_MODE is VEN
 
     total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
+    suffix=$(fix_partition_suffix)
     boot_size=$(lsblk -bno SIZE "${DEST_DISK}1")
     boot_size=$((boot_size / 1024 / 1024))  # Convert bytes to MB
 
@@ -405,8 +406,6 @@ make_partition_ven() {
             mkpart lvm ext4 "$(convert_mb_to_sectors "${lvm_start}" 0)"s "$(convert_mb_to_sectors "${lvm_end}" 1)"s
         check_return_value $? "Failed to create LVM partition"
     fi
-
-    suffix=$(fix_partition_suffix)
 
     mkfs -t ext4 -L roothash -F "${DEST_DISK}${suffix}${roothash_partition}"
     check_return_value $? "Failed to mkfs roothash"
