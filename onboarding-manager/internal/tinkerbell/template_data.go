@@ -25,16 +25,14 @@ const (
 	ActionInstallScriptDownload    = "profile-pkg-and-node-agents-install-script-download"
 	ActionStreamOSImage            = "stream-os-image"
 	ActionCloudInitInstall         = "install-cloud-init"
+	ActionSystemConfiguration      = "system-configuration"
 	ActionInstallScript            = "service-script-for-profile-pkg-and-node-agents-install"
-	ActionInstallScriptEnable      = "enable-service-script-for-profile-pkg-node-agents"
 	ActionEfibootset               = "efibootset-for-diskboot"
 	ActionFdeEncryption            = "fde-encryption"
 	ActionSecurityFeatures         = "enable-security-features"
 	ActionKernelupgrade            = "kernel-upgrade"
 	ActionReboot                   = "reboot"
 	ActionAddAptProxy              = "add-apt-proxy"
-	ActionSystemdNetworkOptimize   = "systemd-network-online-optimize"
-	ActionDisableSnapdOptimize     = "systemd-snapd-disable-optimize"
 	ActionCloudinitDsidentity      = "cloud-init-ds-identity"
 )
 
