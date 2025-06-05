@@ -1,6 +1,7 @@
----
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+
+---
 
 name: Auto Update PR
 
@@ -15,13 +16,24 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  Auto-Update-PR:
+  update-pull-requests:
     permissions:
       contents: read
       pull-requests: write
-    runs-on: ${{ github.repository_owner == 'intel' && 'intel-ubuntu-latest' || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
+
     steps:
-      - uses: tibdex/auto-update@4081c5bdc34560b58288a010318054e63e6f4a51
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Update pull requests
+        uses: open-edge-platform/orch-ci/.github/actions/pr_updater@69af6d89005b367c332671121e3481766de8e147  # 0.1.16
         with:
           github_token: ${{ secrets.SYS_ORCH_GITHUB }}

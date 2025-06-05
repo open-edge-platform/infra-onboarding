@@ -25,6 +25,7 @@ import (
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/env"
 	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell/templates"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/util"
 	om_status "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/status"
 )
@@ -38,6 +39,30 @@ var (
 	actionSuccessDuration = make(map[string]int64)
 )
 
+// generateWorkflowName returns workflow name in format "workflow-<UUID>".
+func generateWorkflowName(uuid string) string {
+	return fmt.Sprintf("workflow-%s", uuid)
+}
+
+func CheckWorkflowExist(ctx context.Context,
+	deviceInfo onboarding_types.DeviceInfo,
+	instance *computev1.InstanceResource,
+) bool {
+	zlog.Debug().Msgf("Checking status of workflow for host %s", deviceInfo.GUID)
+
+	kubeClient, err := tinkerbell.K8sClientFactory()
+	if err != nil {
+		return false
+	}
+
+	prodWorkflowName := generateWorkflowName(deviceInfo.GUID)
+	_, err = getWorkflow(ctx, kubeClient, prodWorkflowName, instance.Host.ResourceId)
+	if err != nil || inv_errors.IsNotFound(err) {
+		return false
+	}
+	return true
+}
+
 func CheckStatusOrRunProdWorkflow(ctx context.Context,
 	deviceInfo onboarding_types.DeviceInfo,
 	instance *computev1.InstanceResource,
@@ -49,7 +74,7 @@ func CheckStatusOrRunProdWorkflow(ctx context.Context,
 		return err
 	}
 
-	prodWorkflowName := tinkerbell.GetProdWorkflowName(deviceInfo.GUID)
+	prodWorkflowName := generateWorkflowName(deviceInfo.GUID)
 	workflow, err := getWorkflow(ctx, kubeClient, prodWorkflowName, instance.Host.ResourceId)
 	if err != nil && inv_errors.IsNotFound(err) {
 		// This may happen if:
@@ -90,13 +115,6 @@ func runProdWorkflow(
 
 	deviceInfo.AuthClientID = clientID
 	deviceInfo.AuthClientSecret = clientSecret
-
-	// NOTE: IMO (Tomasz) this is a one-time operation that should be done when a host is discovered and created.
-	// So it shouldn't be here (move to host reconciler?)
-	if createHwErr := tinkerbell.CreateHardwareIfNotExists(ctx, k8sCli, env.K8sNamespace, deviceInfo,
-		instance.GetDesiredOs().ResourceId); createHwErr != nil {
-		return createHwErr
-	}
 	deviceInfo.TenantID = instance.GetTenantId()
 
 	if instance.GetLocalaccount() != nil {
@@ -104,22 +122,22 @@ func runProdWorkflow(
 		deviceInfo.SSHKey = instance.GetLocalaccount().SshKey
 	}
 
-	prodTemplate, err := tinkerbell.GenerateTemplateForProd(ctx, env.K8sNamespace, deviceInfo)
-	if err != nil {
-		zlog.InfraErr(err).Msg("")
-		return inv_errors.Errorf("Failed to generate Tinkerbell prod template for host %s", deviceInfo.GUID)
+	templateName, found := templates.OSTypeToTemplateName[deviceInfo.OsType]
+	if !found {
+		return inv_errors.Errorf("Cannot find Tinkerbell template for OS type %s", deviceInfo.OsType)
 	}
 
-	if createTemplErr := tinkerbell.CreateTemplateIfNotExists(ctx, k8sCli, prodTemplate); createTemplErr != nil {
-		return createTemplErr
+	workflowHardwareMap, err := tinkerbell.GenerateWorkflowInputs(ctx, deviceInfo)
+	if err != nil {
+		return err
 	}
 
 	prodWorkflow := tinkerbell.NewWorkflow(
-		tinkerbell.GetProdWorkflowName(deviceInfo.GUID),
+		generateWorkflowName(deviceInfo.GUID),
 		env.K8sNamespace,
-		deviceInfo.HwMacID,
-		tinkerbell.GetTinkHardwareName(deviceInfo.GUID),
-		tinkerbell.GetProdTemplateName(deviceInfo.GUID))
+		tinkerbell.DummyHardwareName,
+		templateName,
+		workflowHardwareMap)
 
 	if createWFErr := tinkerbell.CreateWorkflowIfNotExists(ctx, k8sCli, prodWorkflow); createWFErr != nil {
 		return createWFErr
@@ -157,11 +175,12 @@ func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName, hostRe
 					switch action.Status {
 					case tink.WorkflowStatePending:
 						if _, ok := actionStartTimes[workflowName+action.Name]; !ok &&
-							action.Name == "secure-boot-status-flag-read" {
+							action.Name == tinkerbell.ActionSecureBootStatusFlagRead {
 							actionStartTimes[workflowName+action.Name] = time.Now()
 						}
 					case tink.WorkflowStateRunning:
-						if _, ok := actionRuning[workflowName+action.Name]; !ok && action.Name == "secure-boot-status-flag-read" {
+						if _, ok := actionRuning[workflowName+action.Name]; !ok &&
+							action.Name == tinkerbell.ActionSecureBootStatusFlagRead {
 							actionRuning[workflowName+action.Name] = time.Since(actionStartTimes[workflowName+action.Name]).
 								Seconds()
 						}
@@ -187,13 +206,13 @@ func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName, hostRe
 				// Total Time for all tinker actions
 				var totalDuration int64
 				for actionN, actionSuccessTime := range actionSuccessDuration {
-					if actionN == workflowName+"secure-boot-status-flag-read" {
+					if actionN == workflowName+tinkerbell.ActionSecureBootStatusFlagRead {
 						msg := fmt.Sprintf(
 							"Instrumentation Info for workflow %s: action name %s pending to running time %.2f, "+
 								"host resource ID: %s",
 							workflowName,
 							"secure-boot-status-flag-read",
-							actionRuning[workflowName+"secure-boot-status-flag-read"],
+							actionRuning[workflowName+tinkerbell.ActionSecureBootStatusFlagRead],
 							hostResourceID,
 						)
 						zlog.Info().Msg(msg)
@@ -255,12 +274,8 @@ func createENCredentialsIfNotExists(
 	return clientID, clientSecret, nil
 }
 
-func DeleteTinkHardwareForHostIfExist(ctx context.Context, hostUUID string) error {
-	return tinkerbell.DeleteHardwareForHostIfExist(ctx, env.K8sNamespace, hostUUID)
-}
-
-func DeleteProdWorkflowResourcesIfExist(ctx context.Context, hostUUID string) error {
-	return tinkerbell.DeleteProdWorkflowResourcesIfExist(ctx, env.K8sNamespace, hostUUID)
+func DeleteTinkerbellWorkflowIfExists(ctx context.Context, hostUUID string) error {
+	return tinkerbell.DeleteWorkflowIfExists(ctx, env.K8sNamespace, generateWorkflowName(hostUUID))
 }
 
 func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.Workflow,
@@ -271,11 +286,6 @@ func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.W
 	zlog.Debug().Msgf("Workflow %s status for host %s is %s. Workflow state: %q", workflow.Name, instance.GetHost().GetUuid(),
 		workflow.Status.State, intermediateWorkflowState)
 
-	k8sCli, err := tinkerbell.K8sClientFactory()
-	if err != nil {
-		return err
-	}
-
 	switch workflow.Status.State {
 	case tink.WorkflowStateSuccess:
 		// success, proceed further
@@ -283,22 +293,14 @@ func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.W
 			instance, computev1.InstanceState_INSTANCE_STATE_RUNNING,
 			om_status.NewStatusWithDetails(onSuccessProvisioningStatus, intermediateWorkflowState))
 
-		// Retrieve the Tinkerbell hardware resource to get the OS resource ID
-		hardwareName := tinkerbell.GetTinkHardwareName(instance.GetHost().GetUuid())
-		hardware := &tink.Hardware{}
-		err := k8sCli.Get(context.Background(), client.ObjectKey{Name: hardwareName, Namespace: env.K8sNamespace}, hardware)
-		if err != nil {
-			return inv_errors.Errorf("Failed to retrieve Tinkerbell hardware %s: %v", hardwareName, err)
+		// FIXME: We retrieve original desired OS from workflow's template parameters (hardware map).
+		//  This is temporary, until we implement Day2 refactoring.
+		osResourceID, exists := workflow.Spec.HardwareMap["DeviceInfoOSResourceID"]
+		if !exists {
+			return inv_errors.Errorf("OS resource ID not found in Tinkerbell workflow %s", workflow.Name)
 		}
 
-		if hardware.Spec.Metadata.Instance.OperatingSystem != nil {
-			osResourceID := hardware.Spec.Metadata.Instance.OperatingSystem.OsSlug // Use OsSlug as a unique identifier
-
-			util.PopulateCurrentOS(instance, osResourceID)
-		} else {
-			return inv_errors.Errorf("OS resource ID not found in Tinkerbell hardware %s", hardwareName)
-		}
-
+		util.PopulateCurrentOS(instance, osResourceID)
 		// set host status to "rebooting" since every successful workflow ends with a reboot
 		util.PopulateHostStatus(instance, om_status.HostStatusRebooting)
 		return nil

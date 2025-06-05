@@ -83,7 +83,7 @@ func createOsWithArgs(tb testing.TB, doCleanup bool,
 
 func createProviderWithArgs(tb testing.TB, doCleanup bool,
 	resourceID, name string, providerKind providerv1.ProviderKind,
-) (provider *providerv1.ProviderResource) {
+) (provider *providerv1.ProviderResource) { //nolint:unparam // current tests do not use, future tests may
 	tb.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
@@ -136,7 +136,7 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 	// Trying to delete the Instance. It contains Provider, so nothing should happen during the reconciliation.
 	// Setting the Desired state of the Instance to be DELETED.
 	inv_testing.DeleteResource(t, instanceID)
@@ -144,7 +144,7 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_DELETED, // Desired state has just been updated
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// performing Instance reconciliation
 	err = instanceController.Reconcile(reconcilers.NewReconcilerID(instance.GetTenantId(), instanceID))
@@ -154,7 +154,7 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_DELETED, // Desired state has just been updated
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 }
 
 func TestReconcileInstanceNonEIM(t *testing.T) {
@@ -184,7 +184,7 @@ func TestReconcileInstanceNonEIM(t *testing.T) {
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// getting rid of the Host event
 	<-om_testing.InvClient.Watcher
@@ -211,7 +211,7 @@ func TestReconcileInstanceNonEIM(t *testing.T) {
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 }
 
 //nolint:funlen // it's a test
@@ -221,7 +221,7 @@ func TestReconcileInstance(t *testing.T) {
 		tinkerbell.K8sClientFactory = currK8sClientFactory
 	}()
 
-	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false, true)
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
 
 	om_testing.CreateInventoryOnboardingClientForTesting()
 	t.Cleanup(func() {
@@ -248,7 +248,7 @@ func TestReconcileInstance(t *testing.T) {
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// getting rid of the Host event
 	<-om_testing.InvClient.Watcher
@@ -275,7 +275,7 @@ func TestReconcileInstance(t *testing.T) {
 	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
 		computev1.InstanceState_INSTANCE_STATE_RUNNING,
 		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New("", statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
 
 	// Set host current state to ONBOARDED
 	res = &inv_v1.Resource{
@@ -348,6 +348,130 @@ func TestReconcileInstance(t *testing.T) {
 	require.NoError(t, err)
 	zlogInst := logging.GetLogger("InstanceReconciler")
 	zlogInst.Debug().Msgf("Instance %s updated to DELETED", instanceID)
+
+	runReconcilationFuncInstance(t, instanceController, instance)
+
+	_, err = inv_testing.TestClients[inv_testing.APIClient].Get(ctx, instanceID)
+	require.True(t, inv_errors.IsNotFound(err))
+}
+
+//nolint:funlen // it's a test
+func TestReconcileInstanceHostDeauthorized(t *testing.T) {
+	currK8sClientFactory := tinkerbell.K8sClientFactory
+	defer func() {
+		tinkerbell.K8sClientFactory = currK8sClientFactory
+	}()
+
+	tinkerbell.K8sClientFactory = om_testing.K8sCliMockFactory(false, false, false)
+
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+
+	instanceReconciler := reconcilers.NewInstanceReconciler(om_testing.InvClient, true)
+	require.NotNil(t, instanceReconciler)
+
+	instanceController := rec_v2.NewController[reconcilers.ReconcilerID](instanceReconciler.Reconcile, rec_v2.WithParallelism(1))
+	// do not Stop() to avoid races, should be safe in tests
+
+	host := inv_testing.CreateHost(t, nil, nil)
+
+	osRes := createOsWithArgs(t, false)
+	// Creating Provider profile which would be fetched by the reconciler.
+	_ = createProviderWithArgs(t, false, osRes.ResourceId, onboarding_types.DefaultProviderName+"_test",
+		providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL)
+	// Instance should not be assigned to the Provider.
+	instance := inv_testing.CreateInstanceNoCleanup(t, host, osRes)
+	instanceID := instance.GetResourceId()
+
+	runReconcilationFuncInstance(t, instanceController, instance)
+	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
+		computev1.InstanceState_INSTANCE_STATE_RUNNING,
+		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
+		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+
+	// getting rid of the Host event
+	<-om_testing.InvClient.Watcher
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// provision
+	fmk := fieldmaskpb.FieldMask{Paths: []string{computev1.InstanceResourceFieldDesiredState}}
+	res := &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Instance{
+			Instance: &computev1.InstanceResource{
+				ResourceId:   instanceID,
+				DesiredState: computev1.InstanceState_INSTANCE_STATE_RUNNING,
+			},
+		},
+	}
+	_, err := inv_testing.TestClients[inv_testing.APIClient].Update(ctx, instanceID, &fmk, res)
+	require.NoError(t, err)
+
+	runReconcilationFuncInstance(t, instanceController, instance)
+
+	// Host is still not onboarded, so instance provisioning should not start.
+	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
+		computev1.InstanceState_INSTANCE_STATE_RUNNING,
+		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
+		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
+
+	// Set host current state to UNTRUSTED to trigger deauthorized flow
+	res = &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Host{
+			Host: &computev1.HostResource{
+				ResourceId:   host.GetResourceId(),
+				CurrentState: computev1.HostState_HOST_STATE_UNTRUSTED,
+			},
+		},
+	}
+	_, err = inv_testing.TestClients[inv_testing.RMClient].Update(ctx, host.GetResourceId(),
+		&fieldmaskpb.FieldMask{Paths: []string{computev1.HostResourceFieldCurrentState}}, res)
+	require.NoError(t, err)
+
+	fmk = fieldmaskpb.FieldMask{Paths: []string{computev1.InstanceResourceFieldProvisioningStatusIndicator}}
+	res = &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Instance{
+			Instance: &computev1.InstanceResource{
+				ResourceId:                  instanceID,
+				ProvisioningStatusIndicator: statusv1.StatusIndication_STATUS_INDICATION_IN_PROGRESS,
+			},
+		},
+	}
+	_, err = inv_testing.TestClients[inv_testing.APIClient].Update(ctx, instanceID, &fmk, res)
+	require.NoError(t, err)
+
+	runReconcilationFuncInstance(t, instanceController, instance)
+
+	// This case is handled with internal events, let's mock it by calling the reconciler again
+	err = instanceController.Reconcile(reconcilers.NewReconcilerID(instance.GetTenantId(), instanceID))
+	assert.NoError(t, err, "Reconciliation failed for internal events")
+
+	// Wait for reconciler to do its magic.
+	time.Sleep(500 * time.Millisecond)
+
+	// getting rid of the Host event
+	<-om_testing.InvClient.Watcher
+
+	// Now instance statuses should be updated to Unknown since Host is deauthorized
+	om_testing.AssertInstanceStatuses(t, instance.GetTenantId(), instanceID,
+		om_status.InstanceStatusUnknown, om_status.ProvisioningStatusUnknown,
+		om_status.UpdateStatusUnknown, om_status.TrustedAttestationStatusUnknown)
+
+	// delete
+	res = &inv_v1.Resource{
+		Resource: &inv_v1.Resource_Instance{
+			Instance: &computev1.InstanceResource{
+				ResourceId:   instanceID,
+				DesiredState: computev1.InstanceState_INSTANCE_STATE_DELETED,
+			},
+		},
+	}
+	fmk = fieldmaskpb.FieldMask{Paths: []string{computev1.InstanceResourceFieldDesiredState}}
+	_, err = inv_testing.TestClients[inv_testing.APIClient].Update(ctx, instanceID, &fmk, res)
+	require.NoError(t, err)
 
 	runReconcilationFuncInstance(t, instanceController, instance)
 
