@@ -32,7 +32,7 @@ actions:
         timeout: 560
         environment:
           ENABLE_ONLY_DMVERITY: false
-  	  ENABLE_DMVERITY_VEN:
+  	  ENABLE_DMVERITY_VEN: false
 ```
 
 The below example will enable  DM-V on a Virtual Edge Node.
