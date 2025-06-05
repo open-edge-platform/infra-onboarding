@@ -13,5 +13,3 @@ out/*
 pkg/script/org_chain.ipxe
 pkg/script/sb_keys
 pkg/script/hook/cpio_build/etc/hook/env_config
-pkg/script/jammy-server-cloudimg-amd64.raw.gz
-internal/dkammgr/installer.sh
