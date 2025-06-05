@@ -4,6 +4,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"strings"
 )
@@ -30,6 +31,15 @@ func parseCmdLine(cmdLines []string) (tinkConfig, error) {
 			cfg.debug = cmdLine[1]
 		case "TIMEOUT":
 			cfg.timeout = cmdLine[1]
+		case "s_net_scan_duration":
+			// This is a custom argument for the network scan duration.
+			log.Printf("Network scan duration: %s sec", cmdLine[1])
+		case "s_vmlinux_download":
+			// This is a custom argument for the vmlinux image download duration.
+			log.Printf("vmlinux image download duration: %s sec", cmdLine[1])
+		case "s_initramfs_download":
+			// This is a custom argument for the initramfs image download duration.
+			log.Printf("initramfs image download duration: %s sec", cmdLine[1])
 		}
 	}
 	return cfg, nil
