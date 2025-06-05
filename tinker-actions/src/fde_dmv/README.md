@@ -4,15 +4,13 @@
 
 ---
 
-slug: enable-security-features
+slug: fde_dmv
 
-name: enable-security-features
+name: fde_dmv
 
 description: "This action sets up full disk encryption using LUKS to protect data on disk and enables DM-Verity to
 ensure the root filesystem hasn't been tampered with. It uses TPM for key generation and secure storage, and
 configures encrypted partitions(optional) with integrity verification for enhanced system security."
-
-version: 1.18.1
 
 | env var | data type | default value | required | description |
 |---------|-----------|---------------|----------|-------------|
@@ -24,11 +22,10 @@ The below example will enable FDE, DM-V and Secure Boot on the target Edge Node.
 ```yaml
 actions:
     - name: "enable-security-features"
-        image:  registry-rs.edgeorchestration.intel.com/edge-orch/infra/tinker-actions/fde_dmv:1.17.2
+        image:  registry-rs.edgeorchestration.intel.com/edge-orch/infra/tinker-actions/fde_dmv:1.18.2
         timeout: 560
         environment:
           ENABLE_ONLY_DMVERITY: false
-  	  ENABLE_DMVERITY_VEN: false
 ```
 
 The below example will enable  DM-V on a Virtual Edge Node.
@@ -36,7 +33,7 @@ The below example will enable  DM-V on a Virtual Edge Node.
 ```yaml
 actions:
     - name: "enable-security-features"
-        image:  registry-rs.edgeorchestration.intel.com/edge-orch/infra/tinker-actions/fde_dmv:1.17.2
+        image:  registry-rs.edgeorchestration.intel.com/edge-orch/infra/tinker-actions/fde_dmv:1.18.2
         timeout: 560
         environment:
           ENABLE_ONLY_DMVERITY: true
@@ -48,11 +45,11 @@ The below example will enable  DM-V on the target Edge Node.
 ```yaml
 actions:
     - name: "enable-security-features"
-        image:  registry-rs.edgeorchestration.intel.com/edge-orch/infra/tinker-actions/fde_dmv:1.17.2
+        image:  registry-rs.edgeorchestration.intel.com/edge-orch/infra/tinker-actions/fde_dmv:1.18.2
         timeout: 560
         environment:
           ENABLE_ONLY_DMVERITY: true
-          ENABLE_DMVERITY_VEN: false (optional)
+          ENABLE_DMVERITY_VEN: false #optional
 ```
 
 This document explains Full Disk Encryption (FDE) and Device Mapper Verity (DM-Verity) implimentation,
