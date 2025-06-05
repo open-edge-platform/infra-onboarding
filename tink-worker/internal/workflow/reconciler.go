@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+//nolint:unparam // ignore param.
 package workflow
 
 import (

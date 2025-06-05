@@ -41,13 +41,13 @@ func NewRootCommand(version string) *cobra.Command {
 		Use:     "tink-worker",
 		Short:   "Tink Worker",
 		Version: version,
-		PreRunE: func(cmd *cobra.Command, args []string) error {
+		PreRunE: func(cmd *cobra.Command, _ []string) error {
 			if err := worker.Init(); err != nil {
 				return errors.Wrap(err, "failed to initialize worker")
 			}
 			return initViper(logger, cmd)
 		},
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			retryInterval := viper.GetDuration("retry-interval")
 			retries := viper.GetInt("max-retry")
 			workerID := viper.GetString("id")
