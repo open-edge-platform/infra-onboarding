@@ -12,7 +12,6 @@ out/*
 # TODO: should we avoid generating these files in the path of the repo?
 pkg/script/org_chain.ipxe
 pkg/script/sb_keys
-pkg/script/hook/cpio_build/etc/hook/env_config
-pkg/script/emt/cpio_build/etc/emt/env_config
+pkg/script/uos/cpio_build/etc/emf/env_config
 pkg/script/jammy-server-cloudimg-amd64.raw.gz
 internal/dkammgr/installer.sh

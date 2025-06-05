@@ -21,7 +21,7 @@ const (
 	writeMode = 0o600
 )
 
-func SignUOS() (bool, error) {
+func SignMicroOS() (bool, error) {
 	zlog.InfraSec().Info().Msgf("Script dir %s", config.ScriptPath)
 	buildScriptPath, err := setupUOSDirectories()
 	if err != nil {
