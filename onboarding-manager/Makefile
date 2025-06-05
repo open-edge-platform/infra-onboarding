@@ -53,7 +53,7 @@ GO_TEST_DEPS      := policy-build certificates
 
 # Yamllint variables
 YAML_FILES           := $(shell find . -path './venv_$(PROJECT_NAME)' -path './vendor' -prune -o -type f \( -name '*.yaml' -o -name '*.yml' \) -print )
-YAML_IGNORE          := vendor, .github/workflows
+YAML_IGNORE          := vendor, .github/workflows, internal/tinkerbell/templates
 
 # Include shared makefile
 include ../common.mk

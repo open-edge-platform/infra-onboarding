@@ -4,8 +4,8 @@
 package tinkerbell_test
 
 import (
-	"context"
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -14,53 +14,56 @@ import (
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 	"gopkg.in/yaml.v2"
 
-	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
-	dkam_testing "github.com/open-edge-platform/infra-onboarding/dkam/testing"
-	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell/templates"
 )
 
+type WorkflowSpec struct {
+	Name  string `yaml:"name"`
+	Tasks []Task `yaml:"tasks"`
+}
+
+type Task struct {
+	Actions []Action `yaml:"actions"`
+}
+
+type Action struct {
+	Name string `yaml:"name"`
+}
+
+// TestWorkflowActionToStatusDetail verifies if there is a mapping from a workflow step to human-readable status detail.
 func TestWorkflowActionToStatusDetail(t *testing.T) {
-	ctx := context.Background() // Define context
-	dkam_testing.PrepareTestCaCertificateFile(t)
-	dkam_testing.PrepareTestInfraConfig(t)
-
-	wf, err := tinkerbell.NewTemplateDataUbuntu(ctx, "test-wf", onboarding_types.DeviceInfo{
-		OsType:           osv1.OsType_OS_TYPE_MUTABLE,
-		TenantID:         "test-tenantid",
-		Hostname:         "test-hostname",
-		AuthClientID:     "test-client-id",
-		AuthClientSecret: "test-client-secret",
-		HwMacID:          "aa:bb:cc:dd:ee:ff",
-		PlatformBundle:   "null",
-	})
-	require.NoError(t, err)
-
-	prodBkcWorkflowInstance, err := unmarshalWorkflow(wf)
-	require.NoError(t, err)
-
-	workflows := []*tinkerbell.Workflow{
-		prodBkcWorkflowInstance,
+	testData := [][]byte{
+		templates.UbuntuTemplate,
+		templates.MicrovisorTemplate,
 	}
 
-	for _, wf := range workflows {
+	for _, tmpl := range testData {
+		// remove {{ }} placeholders, we only care about action names
+		re := regexp.MustCompile(`{{[^}]*}}`)
+		templateUnderTest := re.ReplaceAllString(string(tmpl), "")
+
+		wf, err := unmarshalWorkflow([]byte(templateUnderTest))
+		require.NoError(t, err)
+
 		t.Run(wf.Name, func(t *testing.T) {
 			for _, action := range wf.Tasks[0].Actions {
 				_, exists := tinkerbell.WorkflowStepToStatusDetail[action.Name]
-				assert.True(t, exists)
+				require.Truef(t, exists, "Mapping for action %q not found for template %q", action.Name, wf.Name)
 				if !exists {
 					t.Errorf("No status detail for action %q", action.Name)
+					t.FailNow()
 				}
 			}
 		})
 	}
 }
 
-func unmarshalWorkflow(yamlContent []byte) (*tinkerbell.Workflow, error) {
-	var workflow tinkerbell.Workflow
+func unmarshalWorkflow(yamlContent []byte) (*WorkflowSpec, error) {
+	var workflow WorkflowSpec
 
 	if err := yaml.Unmarshal(yamlContent, &workflow); err != nil {
-		return &tinkerbell.Workflow{}, errors.Wrap(err, "parsing yaml data")
+		return &WorkflowSpec{}, errors.Wrap(err, "parsing yaml data")
 	}
 	return &workflow, nil
 }
