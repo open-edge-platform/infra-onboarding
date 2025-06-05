@@ -5,6 +5,49 @@
 This document explains the partition scheme used in Full Disk Encryption (FDE) and Device Mapper Verity (DM-Verity),
 along with the key differences between the two mechanisms.
 
+
+---
+
+slug: enable_fde_dmv
+
+name: enable_fde_dmv
+
+description: "This action sets up full disk encryption using LUKS to protect data on disk and enables DM-Verity to
+ensure the root filesystem hasn't been tampered with. It uses TPM for key generation and secure storage, and
+configures encrypted partitions with integrity verification(optional) for enhanced system security."
+
+version: latest
+
+| env var | data type | default value | required | description |
+|---------|-----------|---------------|----------|-------------|
+| ENABLE_ONLY_DMVERITY | bool | true | yes |  When set to `true`, only DM-Verity is enabled. Set to `false` FDE, Secure Boot and DM-Verity is enabled. |
+| ENABLE_DMVERITY_VEN | boot | true | yes | DM-Verity is applied to Virtual Edge Node specific partitions. |  
+
+The below example will enable FDE, DM-V and Secure Boot on target Edge Node.
+
+```yaml
+actions:
+    - name: "enable-security-features"
+        image: {{ .TinkerActionImageFdeDmv }}
+        timeout: 560
+        environment:
+          ENABLE_ONLY_DMVERITY: false
+  	  ENABLE_DMVERITY_VEN:
+```
+
+The below example will enable  DM-V on a Virtual Edge Node.
+
+```yaml
+actions:
+    - name: "enable-security-features"
+        image: {{ .TinkerActionImageFdeDmv }}
+        timeout: 560
+        environment:
+          ENABLE_ONLY_DMVERITY: true
+          ENABLE_DMVERITY_VEN: true
+```
+
+
 ---
 
 ## Requirements
