@@ -17,7 +17,7 @@ TEST_ENABLE_DM_ON_ROOTFSB=false
 TEST_ON_ONLY_ONE_PART=false
 
 # Set PARTITION_MODE to either EN (Edge Node) or VEN (Virtual Edge Node)
-DMV_IN_VEN=true # Defaelt to EN if not set
+ENABLE_DMVERITY_VEN=true # Defaelt to EN if not set
 
 ####
 ####
@@ -773,10 +773,10 @@ EOT
 #####################################################################################
 emt_main_dmv() {
 
-    if [ -z "${DMV_IN_VEN+x}" ] || [ "$DMV_IN_VEN" = "false" ];
+    if [ -z "${ENABLE_DMVERITY_VEN+x}" ] || [ "$ENABLE_DMVERITY_VEN" = "false" ];
     then
         ven_mode_active=false
-    elif [ "$DMV_IN_VEN" = "true" ];
+    elif [ "$ENABLE_DMVERITY_VEN" = "true" ];
     then 
         ven_mode_active=true
     fi
