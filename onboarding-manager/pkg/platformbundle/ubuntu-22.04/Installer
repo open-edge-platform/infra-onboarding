@@ -335,97 +335,6 @@ install_other_agents() {
   fi
 }
 
-install_syslogrotate_job(){
-if grep -q "install_syslogrotate_job done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-    echo "Skipping install_syslogrotate_job"
-else
-##### Managing log rotation
-echo "Install sys log"
-if ! sudo grep -q "cron.emf" "/etc/crontab"; then
-  sudo sed -i '$ d' /etc/crontab
-  echo "*/5 *   * * *   root    cd / && run-parts --report /etc/cron.emf" | sudo tee -a /etc/crontab
-  echo "#" | sudo tee -a /etc/crontab
-fi
-
-sudo rm -rf /etc/cron.emf
-sudo mkdir -p /etc/cron.emf
-sudo tee /etc/cron.emf/logrotate << 'END'
-#!/bin/sh
-/usr/sbin/logrotate /etc/logrotate.conf
-EXITVALUE=$?
-if [ $EXITVALUE != 0 ]; then
-    /usr/bin/logger -t logrotate "ALERT exited abnormally with [$EXITVALUE]"
-fi
-exit $EXITVALUE
-END
-
-sudo chmod +x /etc/cron.emf/logrotate
-
-sudo tee /etc/logrotate.d/rsyslog << 'END'
-/var/log/syslog
-/var/log/mail.info
-/var/log/mail.warn
-/var/log/mail.err
-/var/log/mail.log
-/var/log/daemon.log
-/var/log/kern.log
-/var/log/auth.log
-/var/log/user.log
-/var/log/lpr.log
-/var/log/cron.log
-/var/log/debug
-/var/log/messages
-{
-        rotate 4
-        weekly
-        missingok
-        size 1G
-        notifempty
-        compress
-        delaycompress
-        sharedscripts
-        postrotate
-                /usr/lib/rsyslog/rsyslog-rotate
-        endscript
-}
-END
-
-sudo systemctl restart rsyslog.service
-
-sudo systemctl restart cron.service
-sudo /usr/sbin/logrotate /etc/logrotate.conf
-##### Managing log rotation
-echo "install_syslogrotate_job done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-fi
-}
-
-install_syslogrotate_ufw(){
-if grep -q "install_syslogrotate_ufw done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-	echo "Skipping install_syslogrotate_ufw"
-else
-sudo tee /etc/logrotate.d/ufw << 'END'
-/var/log/ufw.log
-{
-        rotate 4
-        weekly
-        missingok
-        notifempty
-        size 1G
-        compress
-        delaycompress
-        sharedscripts
-        postrotate
-                [ -x /usr/lib/rsyslog/rsyslog-rotate ] && /usr/lib/rsyslog/rsyslog-rotate || true
-        endscript
-}
-END
-
-sudo systemctl restart ufw.service
-sudo ufw logging low
-echo "install_syslogrotate_ufw done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-fi
-}
-
 enable_kernel_config(){
     if grep -q "enable_kernel_config done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping enable_kernel_config"
@@ -641,11 +550,9 @@ install_lvm_on_disk(){
 install_lvm_on_disk 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_dependencies 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 enable_kernel_config 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_syslogrotate_job 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 echo "Install agents..........................."
 install_node_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_other_agents 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_syslogrotate_ufw 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 disable_unattended_upgrade 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 echo "Installation completed Successfuly on EdgeNode!!!!" > /dev/tty1
 echo "Installation done" > "$SCRIPT_DIR"/.base_pkg_install_done
