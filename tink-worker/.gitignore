@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+cmd/tink-worker/worker/testdata/
 bin/
 certs/
 cmd/tink-controller/tink-controller

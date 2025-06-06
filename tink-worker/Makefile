@@ -60,7 +60,7 @@ lint: license go-lint
 	@echo "---END MAKEFILE LINT---"
 
 .PHONY: test
-test:
+test: fuzztest
 	@# Help: Runs test stage
 	@echo "---MAKEFILE TEST---"
 	echo $@
@@ -83,3 +83,7 @@ coverage:
 .PHONY: go-build
 go-build:
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(LDFLAGS) -o ./bin/tink-worker ./cmd/tink-worker
+
+.PHONY: fuzztest
+fuzztest:
+	go test -v -fuzz FuzzNewContainerName -fuzz FuzzParseCmdLine -fuzztime 30s -parallel=4 ./cmd/tink-worker/worker

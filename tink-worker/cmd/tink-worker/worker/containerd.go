@@ -513,7 +513,7 @@ type tinkWorkerConfig struct {
 func parseCmdLine(cmdLines []string) (cfg tinkWorkerConfig) {
 	for i := range cmdLines {
 		cmdLine := strings.SplitN(cmdLines[i], "=", 2)
-		if len(cmdLine) == 0 {
+		if len(cmdLine) < 2 {
 			continue
 		}
 
@@ -601,5 +601,6 @@ func randStr(n int) string {
 }
 
 func newContainerName(name string) string {
+	// max length is 76 in containerd.
 	return fmt.Sprintf("%s-%s", truncateStr(name, 60), randStr(10))
 }
