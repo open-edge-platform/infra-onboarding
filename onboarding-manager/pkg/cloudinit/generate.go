@@ -22,6 +22,8 @@ var (
 func templateVariablesFromOptions(options cloudInitOptions) map[string]interface{} {
 	extraVars := make(map[string]interface{}, 0)
 
+	extraVars["RUN_AS_STANDALONE"] = options.RunAsStandalone
+
 	extraVars["DEV_MODE"] = false
 	extraVars["LOCAL_ACCOUNT_ENABLED"] = false
 	if options.useDevMode {

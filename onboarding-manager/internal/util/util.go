@@ -110,3 +110,11 @@ func PopulateInstanceIdleStatus(
 func PopulateCurrentOS(instance *computev1.InstanceResource, osResourceID string) {
 	instance.CurrentOs = &osv1.OperatingSystemResource{ResourceId: osResourceID}
 }
+
+func IsStandalone(instance *computev1.InstanceResource) bool {
+	if instance.GetDesiredOs() == nil {
+		return false
+	}
+	// FIXME: temporary until OS resource contains metadata
+	return instance.GetDesiredOs().GetProfileName() == "microvisor-standalone"
+}
