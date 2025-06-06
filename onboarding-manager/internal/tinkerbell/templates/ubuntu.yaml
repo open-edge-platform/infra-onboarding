@@ -106,30 +106,17 @@ tasks:
       
             [Install]
             WantedBy=multi-user.target
-      - name: "enable-service-script-for-profile-pkg-node-agents"
+      - name: "system-configuration"
         image: {{ .TinkerActionImageCexec }}
         timeout: 200
         environment:
           FS_TYPE: ext4
           CHROOT: y
           DEFAULT_INTERPRETER: "/bin/sh -c"
-          CMD_LINE: "systemctl enable install-profile-pkgs-and-node-agent.service"
-      - name: "systemd-network-online-optimize"
-        image: {{ .TinkerActionImageCexec }}
-        timeout: 90
-        environment:
-          FS_TYPE: ext4
-          CHROOT: y
-          DEFAULT_INTERPRETER: "/bin/sh -c"
-          CMD_LINE: "sed -i 's|ExecStart=/lib/systemd/systemd-networkd-wait-online|ExecStart=/lib/systemd/systemd-networkd-wait-online --timeout=5|' /usr/lib/systemd/system/systemd-networkd-wait-online.service"
-      - name: "systemd-snapd-disable-optimize"
-        image: {{ .TinkerActionImageCexec }}
-        timeout: 90
-        environment:
-          FS_TYPE: ext4
-          CHROOT: y
-          DEFAULT_INTERPRETER: "/bin/sh -c"
-          CMD_LINE: "systemctl disable snapd.seeded.service"
+          CMD_LINE: "
+          systemctl enable install-profile-pkgs-and-node-agent.service &&
+          sed -i 's|ExecStart=/lib/systemd/systemd-networkd-wait-online|ExecStart=/lib/systemd/systemd-networkd-wait-online --timeout=5|' /usr/lib/systemd/system/systemd-networkd-wait-online.service &&
+          systemctl disable snapd.seeded.service"
 {{- if eq .DeviceInfoSecurityFeature "SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION" }}
       - name: "fde-encryption"
         image: {{ .TinkerActionImageFdeDmv }}
