@@ -193,6 +193,18 @@ extract_emt_tar() {
 	#Add crt for tink-worker
 	#tar -uf rootfs.tar ./etc/pki/ca-trust/source/anchors/Intel.crt
 
+	#Add autologin
+	tar -xvf rootfs.tar ./usr/lib/systemd/system/getty@.service
+	mkdir -p ./etc/systemd/system/
+	cp ./usr/lib/systemd/system/getty@.service ./etc/systemd/system/getty@tty1.service
+	sed -i 's|^ExecStart=.*agetty.*|ExecStart=-/usr/sbin/agetty --autologin root --noclear %I|' ./etc/systemd/system/getty@tty1.service
+	sed -i '/^DefaultInstance=tty1/a Alias=getty@tty1.service' ./etc/systemd/system/getty@tty1.service
+	tar --delete -f rootfs.tar ./etc/systemd/system/getty.target.wants/getty@tty1.service
+	mkdir -p ./etc/systemd/system/getty.target.wants/
+	ln -s /etc/systemd/system/getty@tty1.service ./etc/systemd/system/getty.target.wants/getty@tty1.service
+	tar -uf rootfs.tar ./etc/systemd/system/getty@tty1.service
+	tar -rf rootfs.tar ./etc/systemd/system/getty.target.wants/getty@tty1.service
+
 	gzip -c rootfs.tar > ../rootfs.tar.gz
 	popd || exit
 	rm -r $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/
