@@ -17,7 +17,7 @@ TEST_ENABLE_DM_ON_ROOTFSB=false
 TEST_ON_ONLY_ONE_PART=false
 
 # Set PARTITION_MODE to either EN (Edge Node) or VEN (Virtual Edge Node)
-#ENABLE_DMVERITY_VEN=false # Defaelt to EN if not set
+#ENABLE_DMVERITY_VEN=false # Default to EN if not set
 
 ####
 ####
