@@ -33,8 +33,59 @@ Changes have been made to enhance and customize the functionality for our specif
 7. **go.sum**
     - Code change to remove docker client and use containerd.
 
+8. **internal/e2e**
+    - Code removed since it's not used by tink worker.
 
+9. **config**
+    - Code removed since it's not used by tink worker.
 
+10. **cmd/virtual-worker**
+    - Code removed since it's not used by tink worker.
+
+11. **cmd/tink-server**
+    - Code removed since it's not used by tink worker.
+
+12. **tink-worker/cmd/tink-controller**
+    - Code removed since it's not used by tink worker.
+
+13. **cmd/tink-agent**
+    - Code removed since it's not used by tink worker.
+
+14. **cmd/tink-worker/worker/containerd_test.go**
+    - New file to fuzz test containerd code.
+
+15. **VERSION**
+    - New file to keep track of version.
+
+16. **Makefile**
+    - Updated file to enable CI.
+
+17. **internal/server**
+    - Code removed since it's not used by tink worker.
+
+18. **api**
+    - Code removed since it's not used by tink worker.
+
+19. **internal/controller**
+    - Code removed since it's not used by tink worker.
+
+20. **internal/grpcserver**
+    - Code removed since it's not used by tink worker.
+
+21. **internal/hardware**
+    - Code removed since it's not used by tink worker.
+
+22. **internal/httpserver**
+    - Code removed since it's not used by tink worker.
+
+23. **internal/ptr**
+    - Code removed since it's not used by tink worker.
+
+24. **internal/testtime**
+    - Code removed since it's not used by tink worker.
+
+25. **internal/workflow**
+    - Code removed since it's not used by tink worker.
 
 ### General Improvements
 
@@ -42,6 +93,7 @@ Changes have been made to enhance and customize the functionality for our specif
 
 The following files have been added to skip some Trivy warnings.
 
+- trivy.yaml
 - .trivyignore
 
 ## Conclusion

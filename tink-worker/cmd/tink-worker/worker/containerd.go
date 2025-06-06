@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -32,6 +33,9 @@ var (
 	_ LogCapturer      = (*containerdLogCapturer)(nil)
 
 	mountExcluded = []string{
+		"/mnt",
+		"/sys",
+		"/dev/console",
 		"/dev",
 		"/worker",
 		"/lib/modules",
@@ -97,6 +101,30 @@ func (c *containerdManager) CreateContainer(ctx context.Context, cmd []string, w
 
 	mounts := []specs.Mount{
 		{
+			Destination: "/sys",
+			Source:      "/sys",
+			Type:        "sysfs",
+			Options:     []string{"rbind", "rw"},
+		},
+		{
+			Source:      "/dev",
+			Destination: "/dev",
+			Type:        "bind",
+			Options:     []string{"rbind", "rw"},
+		},
+		{
+			Source:      "/mnt",
+			Destination: "/mnt",
+			Type:        "bind",
+			Options:     []string{"rbind", "rw"},
+		},
+		{
+			Source:      "/dev/console",
+			Destination: "/dev/console",
+			Type:        "bind",
+			Options:     []string{"rbind", "rw"},
+		},
+		{
 			Source:      "/lib/modules",
 			Destination: "/lib/modules",
 			Type:        "bind",
@@ -139,6 +167,8 @@ func (c *containerdManager) CreateContainer(ctx context.Context, cmd []string, w
 	}
 	// Create the container specification
 	opts := []oci.SpecOpts{
+		oci.WithDefaultSpec(),
+		oci.WithDefaultUnixDevices,
 		oci.WithImageConfig(image),
 		oci.WithEnv(action.GetEnvironment()),
 		oci.WithMounts(mounts),
@@ -554,12 +584,7 @@ func splitEnv(env string) []string {
 }
 
 func isValidDst(dst string) bool {
-	for _, excluded := range mountExcluded {
-		if strings.HasPrefix(dst, excluded) {
-			return false
-		}
-	}
-	return true
+	return !slices.Contains(mountExcluded, dst)
 }
 
 func parseVolumes(volumes []string) ([]specs.Mount, error) {
