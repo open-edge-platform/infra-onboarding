@@ -25,7 +25,7 @@ func TestMain(m *testing.M) {
 		panic(fmt.Sprintf("Error creating temp directory: %v", err))
 	}
 
-	cleanupFunc := dkam_testing.StartTestReleaseService("profile")
+	cleanupFunc := dkam_testing.StartTestReleaseService()
 
 	run := m.Run()
 	cleanupFunc()
