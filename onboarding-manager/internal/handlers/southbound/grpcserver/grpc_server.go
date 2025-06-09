@@ -276,6 +276,19 @@ func (s *NonInteractiveOnboardingService) handleDefaultState(
 	})
 }
 
+func isSerialNumberValidationError(err error) bool {
+	if multiErr, ok := err.(pb.OnboardNodeStreamRequestMultiError); ok {
+		for _, e := range multiErr.AllErrors() {
+			if validationErr, ok := e.(pb.OnboardNodeStreamRequestValidationError); ok {
+				if validationErr.Field() == "Serialnum" {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 //nolint:cyclop,funlen // reason: function is long due to necessary logic; cyclomatic complexity is high due to necessary handling
 func (s *NonInteractiveOnboardingService) getHostResource(req *pb.OnboardNodeStreamRequest) (*computev1.HostResource, error) {
 	var hostResource *computev1.HostResource
@@ -289,10 +302,8 @@ func (s *NonInteractiveOnboardingService) getHostResource(req *pb.OnboardNodeStr
 		if errUUID != nil {
 			if inv_errors.IsNotFound(errUUID) {
 				zlog.Debug().Msgf("Node doesn't exist for UUID: %v", req.Uuid)
-				zlog.Error().Err(errUUID).Msgf("Node doesn't exist for UUID")
 			} else {
 				zlog.Debug().Msgf("Error retrieving host resource by UUID: %v", req.Uuid)
-				zlog.Error().Err(errUUID).Msgf("Error retrieving host resource by UUID")
 				return nil, inv_errors.Errorfc(codes.Internal, "Error retrieving host resource by UUID")
 			}
 		} else {
@@ -302,7 +313,8 @@ func (s *NonInteractiveOnboardingService) getHostResource(req *pb.OnboardNodeStr
 
 			// Check the associated serial number
 			if hostResource.SerialNumber == "" {
-				zlog.Debug().Msgf("Proceeding with registration for UUID %v with no Serial Number in inventory", req.Uuid)
+				zlog.Debug().Msgf("Proceeding with registration for UUID %v with no Serial Number in inventory",
+					req.Uuid)
 				return hostResource, nil
 			}
 		}
@@ -440,8 +452,21 @@ func (s *NonInteractiveOnboardingService) OnboardNodeStream(
 		}
 
 		// Validate the stream request using the generated Validate method
-		if reqValidateerr := req.Validate(); reqValidateerr != nil {
+		/*if reqValidateerr := req.Validate(); reqValidateerr != nil {
 			return sendStreamErrorResponse(stream, codes.InvalidArgument, reqValidateerr.Error())
+		}*/
+
+		// Validate the stream request using the generated Validate method
+		if reqValidateerr := req.Validate(); reqValidateerr != nil {
+			// Check if the error is related to serial number validation
+			if isSerialNumberValidationError(reqValidateerr) {
+				// Log the validation error and proceed with UUID-based provisioning
+				zlog.Debug().Msgf("Ignoring serial number validation error: %v", reqValidateerr)
+				req.Serialnum = "" // Set serial number to empty string
+			} else {
+				// For other validation errors, send an InvalidArgument error response
+				return sendStreamErrorResponse(stream, codes.InvalidArgument, reqValidateerr.Error())
+			}
 		}
 
 		// Retrieves the host resource based on UUID or Serial Number.
@@ -517,14 +542,46 @@ func (s *NonInteractiveOnboardingService) OnboardNodeStream(
 	}
 }
 
+// Helper function to check if the validation error is related to the serial number
+func isSerialNumberValidationErrorIO(err error) bool {
+	if multiErr, ok := err.(pb.CreateNodesRequestMultiError); ok {
+		for _, e := range multiErr.AllErrors() {
+			if validationErr, ok := e.(pb.CreateNodesRequestValidationError); ok {
+				if validationErr.Field() == "Serialnum" {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 //nolint:funlen,cyclop // reason: function is long due to necessary logic; cyclomatic complexity is high due to necessary handling
 func (s *InteractiveOnboardingService) CreateNodes(ctx context.Context, req *pb.CreateNodesRequest) (
 	*pb.CreateNodesResponse, error,
 ) {
 	zlog.Info().Msgf("CreateNodes")
-	if validationErr := req.Validate(); validationErr != nil {
+
+	/*if validationErr := req.Validate(); validationErr != nil {
 		zlog.InfraSec().InfraErr(validationErr).Msgf("Request does not match the expected regex pattern %v", validationErr)
 		return nil, validationErr
+	}*/
+
+	// Validate the request using the generated Validate method
+	if reqValidateerr := req.Validate(); reqValidateerr != nil {
+		// Check if the error is related to serial number validation
+		if isSerialNumberValidationErrorIO(reqValidateerr) {
+			// Ignore serail number validation error
+			zlog.Debug().Msgf("Ignoring serial number validation error: %v", reqValidateerr)
+			for _, nodeData := range req.GetPayload() {
+				for _, hwData := range nodeData.GetHwdata() {
+					hwData.Serialnum = "" // Set serial number to empty string
+				}
+			}
+		} else {
+			// For other validation errors, return the error
+			return nil, reqValidateerr
+		}
 	}
 
 	if s.authEnabled {
