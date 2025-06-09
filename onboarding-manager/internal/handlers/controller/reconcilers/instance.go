@@ -397,6 +397,7 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		OsImageSHA256:   desiredOs.GetSha256(),
 		TinkerVersion:   tinkerVersion,
 		OsType:          desiredOs.GetOsType(),
+		OSResourceID:    desiredOs.GetResourceId(),
 		PlatformBundle:  desiredOs.GetPlatformBundle(),
 	}
 
@@ -464,9 +465,5 @@ func (ir *InstanceReconciler) cleanupProvisioningResources(
 ) error {
 	zlogInst.Debug().Msgf("Cleaning up all provisioning resources for host %s", instance.GetHost().GetUuid())
 
-	if err := onboarding.DeleteProdWorkflowResourcesIfExist(ctx, instance.GetHost().GetUuid()); err != nil {
-		return err
-	}
-
-	return onboarding.DeleteTinkHardwareForHostIfExist(ctx, instance.GetHost().GetUuid())
+	return onboarding.DeleteTinkerbellWorkflowIfExists(ctx, instance.GetHost().GetUuid())
 }

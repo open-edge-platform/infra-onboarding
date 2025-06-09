@@ -25,22 +25,18 @@ const (
 	ActionInstallScriptDownload    = "profile-pkg-and-node-agents-install-script-download"
 	ActionStreamOSImage            = "stream-os-image"
 	ActionCloudInitInstall         = "install-cloud-init"
+	ActionSystemConfiguration      = "system-configuration"
 	ActionInstallScript            = "service-script-for-profile-pkg-and-node-agents-install"
-	ActionInstallScriptEnable      = "enable-service-script-for-profile-pkg-node-agents"
 	ActionEfibootset               = "efibootset-for-diskboot"
 	ActionFdeEncryption            = "fde-encryption"
 	ActionSecurityFeatures         = "enable-security-features"
 	ActionKernelupgrade            = "kernel-upgrade"
 	ActionReboot                   = "reboot"
 	ActionAddAptProxy              = "add-apt-proxy"
-	ActionSystemdNetworkOptimize   = "systemd-network-online-optimize"
-	ActionDisableSnapdOptimize     = "systemd-snapd-disable-optimize"
 	ActionCloudinitDsidentity      = "cloud-init-ds-identity"
 )
 
 const (
-	leaseTime86400 = 86400
-
 	envTinkerImageVersion     = "TINKER_IMAGE_VERSION"
 	defaultTinkerImageVersion = "v1.0.0"
 
@@ -100,6 +96,8 @@ type WorkflowInputs struct {
 	TinkerActionImage TinkerActionImages
 	CloudInitData     string
 	InstallerScript   string
+	// OsResourceID resource ID of Operating System that was specified initially at the provisioning time
+	OsResourceID string
 }
 
 var (
