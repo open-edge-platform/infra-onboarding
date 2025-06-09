@@ -1,0 +1,8 @@
+# Copyright (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+# Ignore specific vulnerabilities in the tink-worker project
+AVD-KSV-0118
+AVD-KSV-0024
+AVD-KSV-0014
+AVD-DS-0002

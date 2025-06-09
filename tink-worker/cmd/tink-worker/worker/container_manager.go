@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Intel Corporation
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package worker
 
 import (
@@ -6,7 +10,6 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/go-logr/logr"
@@ -94,7 +97,7 @@ func makeValidContainerName(name string) string {
 
 func (m *containerManager) StartContainer(ctx context.Context, id string) error {
 	m.getLogger(ctx).Info("starting container", "containerID", id)
-	return errors.Wrap(m.cli.ContainerStart(ctx, id, types.ContainerStartOptions{}), "DOCKER START")
+	return errors.Wrap(m.cli.ContainerStart(ctx, id, container.StartOptions{}), "DOCKER START")
 }
 
 func (m *containerManager) WaitForContainer(ctx context.Context, id string) (proto.State, error) {
@@ -142,7 +145,7 @@ func (m *containerManager) WaitForFailedContainer(ctx context.Context, id string
 
 func (m *containerManager) RemoveContainer(ctx context.Context, id string) error {
 	// create options for removing container
-	opts := types.ContainerRemoveOptions{
+	opts := container.RemoveOptions{
 		Force:         true,
 		RemoveLinks:   false,
 		RemoveVolumes: true,

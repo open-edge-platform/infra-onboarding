@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Intel Corporation
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package client
 
 import (
@@ -15,7 +19,7 @@ func NewClientConn(authority string, tls bool) (*grpc.ClientConn, error) {
 	} else {
 		creds = grpc.WithTransportCredentials(insecure.NewCredentials())
 	}
-
+	//nolint:staticcheck // SA1019 grpc.Dial is deprecated.
 	conn, err := grpc.Dial(authority, creds, grpc.WithStatsHandler(otelgrpc.NewClientHandler()))
 	if err != nil {
 		return nil, errors.Wrap(err, "dial tinkerbell server")

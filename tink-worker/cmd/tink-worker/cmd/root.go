@@ -1,11 +1,13 @@
+// SPDX-FileCopyrightText: 2025 Intel Corporation
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package cmd
 
 import (
-	"os"
 	"strings"
 	"time"
 
-	dockercli "github.com/docker/docker/client"
 	"github.com/go-logr/logr"
 	"github.com/go-logr/zapr"
 	"github.com/pkg/errors"
@@ -39,10 +41,13 @@ func NewRootCommand(version string) *cobra.Command {
 		Use:     "tink-worker",
 		Short:   "Tink Worker",
 		Version: version,
-		PreRunE: func(cmd *cobra.Command, args []string) error {
+		PreRunE: func(cmd *cobra.Command, _ []string) error {
+			if err := worker.Init(); err != nil {
+				return errors.Wrap(err, "failed to initialize worker")
+			}
 			return initViper(logger, cmd)
 		},
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			retryInterval := viper.GetDuration("retry-interval")
 			retries := viper.GetInt("max-retry")
 			workerID := viper.GetString("id")
@@ -63,20 +68,15 @@ func NewRootCommand(version string) *cobra.Command {
 			}
 			workflowClient := proto.NewWorkflowServiceClient(conn)
 
-			dockerClient, err := dockercli.NewClientWithOpts(dockercli.FromEnv, dockercli.WithAPIVersionNegotiation())
-			if err != nil {
-				return err
-			}
-			containerManager := worker.NewContainerManager(
+			containerManager := worker.NewContainerdManager(
 				logger,
-				dockerClient,
 				worker.RegistryConnDetails{
 					Registry: registry,
 					Username: user,
 					Password: pwd,
 				})
 
-			logCapturer := worker.NewDockerLogCapturer(dockerClient, logger, os.Stdout)
+			logCapturer := worker.NewContainerdLogCapturer()
 
 			w := worker.NewWorker(
 				workerID,
