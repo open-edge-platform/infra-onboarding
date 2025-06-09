@@ -355,6 +355,10 @@ func (s *NonInteractiveOnboardingService) getHostResource(req *pb.OnboardNodeStr
 				return hostResource, nil
 			}
 		}
+	} else if uuidMatch {
+		// If UUID is found and serial number is empty, proceed with UUID-based provisioning
+		zlog.Debug().Msgf("Proceeding with registration for UUID %v with empty Serial Number", req.Uuid)
+		return hostResource, nil
 	}
 
 	// Handle mismatches between the two resources
