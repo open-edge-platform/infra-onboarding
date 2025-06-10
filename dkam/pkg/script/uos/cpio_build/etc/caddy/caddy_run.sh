@@ -66,20 +66,15 @@ export http_proxy="$http_proxy"
 export https_proxy="$https_proxy"
 export no_proxy="$no_proxy"
 
+export oci_release_svc="${oci_release_svc:-}"
+export tink_stack_svc="${tink_stack_svc:-}"
+export release_svc="${release_svc:-}"
+export tink_server_svc="${tink_server_svc:-}"
+export logging_svc="${logging_svc:-}"
+
+cp /etc/idp/ca.pem /etc/pki/ca-trust/source/anchors/
 # Update CA certificates
-update-ca-certificates
+update-ca-trust
 echo "Added CA certificates to trust pool"
 
-# Define the log level based on the environment variable
-IS_CADDY_DEBUG=$(grep -o 'DEBUG=[^ ]*' /proc/cmdline | awk -F= '{print $2}')
-if [ "$IS_CADDY_DEBUG" = "false" ]; then
-    LOG_LEVEL="ERROR"
-else
-    LOG_LEVEL="DEBUG"
-fi
-
-cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile2
-# Replace the log level in the Caddyfile
-sed -i "s/level .*/level $LOG_LEVEL/" /etc/caddy/Caddyfile2
-
-/usr/bin/caddy run --config /etc/caddy/Caddyfile2
+exec /usr/bin/caddy run --config /etc/caddy/Caddyfile
