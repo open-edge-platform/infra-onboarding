@@ -386,6 +386,13 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 
 	tinkerVersion := env.TinkerActionVersion
 
+	isStandalone, err := util.IsStandalone(instance)
+	if err != nil {
+		zlogInst.InfraSec().Error().Err(err).Msgf("Failed to determine standalone mode for instance %s",
+			instance.GetResourceId())
+		return onboarding_types.DeviceInfo{}, err
+	}
+
 	deviceInfo := onboarding_types.DeviceInfo{
 		GUID:             host.GetUuid(),
 		HwSerialID:       host.GetSerialNumber(),
@@ -399,7 +406,7 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		OsType:           desiredOs.GetOsType(),
 		OSResourceID:     desiredOs.GetResourceId(),
 		PlatformBundle:   desiredOs.GetPlatformBundle(),
-		IsStandaloneNode: util.IsStandalone(instance),
+		IsStandaloneNode: isStandalone,
 	}
 
 	zlogInst.Debug().Msgf("DeviceInfo generated from OS resource (%s): %+v",
