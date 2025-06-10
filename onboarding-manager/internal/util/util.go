@@ -5,7 +5,6 @@ package util
 
 import (
 	"encoding/json"
-
 	"google.golang.org/grpc/codes"
 
 	computev1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/compute/v1"
@@ -126,6 +125,10 @@ func IsStandalone(instance *computev1.InstanceResource) (bool, error) {
 	}
 
 	osMetadata := instance.GetDesiredOs().GetMetadata()
+
+	if osMetadata == "" {
+		return false, nil
+	}
 
 	var jsonMap map[string]string
 	err := json.Unmarshal([]byte(osMetadata), &jsonMap)
