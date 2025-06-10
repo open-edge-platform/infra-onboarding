@@ -543,7 +543,7 @@ func (s *NonInteractiveOnboardingService) OnboardNodeStream(
 }
 
 // Helper function to check if the validation error is related to the serial number
-func isSerialNumberValidationErrorIO(err error) bool {
+/*func isSerialNumberValidationErrorIO(err error) bool {
 	if multiErr, ok := err.(pb.CreateNodesRequestMultiError); ok {
 		for _, e := range multiErr.AllErrors() {
 			if validationErr, ok := e.(pb.CreateNodesRequestValidationError); ok {
@@ -551,6 +551,27 @@ func isSerialNumberValidationErrorIO(err error) bool {
 					return true
 				}
 			}
+		}
+	}
+	return false
+}*/
+
+func isSerialNumberValidationErrorIO(err error) bool {
+	type validationError interface {
+		Field() string
+		Cause() error
+	}
+
+	for currentErr := err; currentErr != nil; {
+		if e, ok := currentErr.(validationError); ok {
+			// Check if the field is "Serialnum"
+			if e.Field() == "Serialnum" {
+				return true
+			}
+			// Move to the next error
+			currentErr = e.Cause()
+		} else {
+			return false
 		}
 	}
 	return false
