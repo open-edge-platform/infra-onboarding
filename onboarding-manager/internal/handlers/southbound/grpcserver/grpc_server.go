@@ -277,13 +277,9 @@ func (s *NonInteractiveOnboardingService) handleDefaultState(
 }
 
 func isSerialNumberValidationError(err error) bool {
-	if multiErr, ok := err.(pb.OnboardNodeStreamRequestMultiError); ok {
-		for _, e := range multiErr.AllErrors() {
-			if validationErr, ok := e.(pb.OnboardNodeStreamRequestValidationError); ok {
-				if validationErr.Field() == "Serialnum" {
-					return true
-				}
-			}
+	if validationErr, ok := err.(pb.OnboardNodeStreamRequestValidationError); ok {
+		if validationErr.Field() == "Serialnum" {
+			return true
 		}
 	}
 	return false
