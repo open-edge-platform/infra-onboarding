@@ -5,13 +5,15 @@ package util
 
 import (
 	"encoding/json"
+
+	"google.golang.org/grpc/codes"
+
 	computev1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/compute/v1"
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 	_ "github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging" // include to pass tests with -globalLogLevel
 	inv_status "github.com/open-edge-platform/infra-core/inventory/v2/pkg/status"
 	om_status "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/status"
-	"google.golang.org/grpc/codes"
 )
 
 const (

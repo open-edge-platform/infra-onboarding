@@ -302,7 +302,11 @@ func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.W
 
 		util.PopulateCurrentOS(instance, osResourceID)
 		// don't set Rebooting for Standalone ENs as we don't have agents that will converge to Running eventually
-		if !util.IsStandalone(instance) {
+		isStandalone, err := util.IsStandalone(instance)
+		if err != nil {
+			return err
+		}
+		if !isStandalone {
 			// set host status to "rebooting" since every successful workflow ends with a reboot
 			util.PopulateHostStatus(instance, om_status.HostStatusRebooting)
 		}
