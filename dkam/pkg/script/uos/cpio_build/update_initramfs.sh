@@ -8,10 +8,12 @@
 set -xueo pipefail
 data_dir=$1
 
-source ./secure_uos.sh
+# shellcheck source=./secure_uos.sh
+source "$(dirname "$0")/secure_uos.sh"
 
 pushd ../
-source ./config
+# shellcheck source=../config
+source "$(dirname "$0")/../config"
 popd || exit
 CPIO_OUTPUT=output
 mkdir -p "$CPIO_OUTPUT"
@@ -20,10 +22,7 @@ cp "$data_dir"/emt_uos_x86_64.tar.gz "$CPIO_OUTPUT"
 LOCATION_OF_EXTRA_FILES=$PWD/etc
 LOCATION_OF_ENV_CONFIG=$PWD/etc/emf/env_config
 LOCATION_OF_UOS_ENV=$PWD/etc/emf/
-extras_cpio=$PWD/additional_files.cpio.gz
 IDP=$LOCATION_OF_EXTRA_FILES/idp
-LOCATION_OF_FLUENTBIT_YAML=$PWD/etc/emf/fluent-bit/fluent-bit.yaml
-LOCATION_OF_CADDY_FILES=$PWD/etc/emf/caddy
 
 #######################################################################################################
 create_env_config() {
@@ -123,7 +122,7 @@ extract_emt_tar() {
     for iter_folder in  "${uos_tar_files_to_update[@]}";
     do
         echo "$iter_folder"
-	mkdir -p "$iter_folder"/emt_uos_x86_64_files
+	    mkdir -p "$iter_folder"/emt_uos_x86_64_files
 	if ! tar -xf "$iter_folder"/emt_uos_x86_64.tar.gz -C "$iter_folder"/emt_uos_x86_64_files;
 	then
 	    echo "unable to uncompress tar $iter_folder/emt_uos_x86_64.tar.gz"
@@ -135,10 +134,10 @@ extract_emt_tar() {
 	# Check for files matching initramfs* and vmlinuz* and rename then
 	if initramfs_file=$(find "$iter_folder/emt_uos_x86_64_files/" -type f  -name 'initramfs*'| head -n 1); then
 	    mv "$initramfs_file" "$iter_folder/emt_uos_x86_64_files/initramfs-x86_64"
-            echo "Renamed $initramfs_file to initramfs-x86_64"
-        else
-	    echo "Error: initramfs not exist"
-	    exit 1
+        echo "Renamed $initramfs_file to initramfs-x86_64"
+	else
+		echo "Error: initramfs not exist"
+		exit 1
 	fi
 
 
@@ -151,30 +150,30 @@ extract_emt_tar() {
 	fi
 
 	#Extract rootfs.tar.gz from initramfs and decompress
-	mkdir -p $iter_folder/emt_uos_x86_64_files/extract_initramfs
+	mkdir -p "$iter_folder"/emt_uos_x86_64_files/extract_initramfs
 	fakeroot sh -c "zcat $iter_folder/emt_uos_x86_64_files/initramfs-x86_64 | cpio -idmv -D $iter_folder/emt_uos_x86_64_files/extract_initramfs"
 	#zcat $iter_folder/emt_uos_x86_64_files/initramfs-x86_64 | cpio -idmv -D $iter_folder/emt_uos_x86_64_files/extract_initramfs || true #> /dev/null 2>&1
-	rm $iter_folder/emt_uos_x86_64_files/initramfs-x86_64
-    mkdir -p $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp
+	rm "$iter_folder"/emt_uos_x86_64_files/initramfs-x86_64
+	mkdir -p "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp
 	#tar -xvf $iter_folder/emt_uos_x86_64_files/extract_initramfs/rootfs.tar.gz -C $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp > /dev/null 2>&1
-    gzip -d $iter_folder/emt_uos_x86_64_files/extract_initramfs/rootfs.tar.gz
-	mv $iter_folder/emt_uos_x86_64_files/extract_initramfs/rootfs.tar $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp
-	mkdir -p $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
+    gzip -d "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/rootfs.tar.gz
+	mv "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/rootfs.tar "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp
+	mkdir -p "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
     #cp $IDP/Intel.crt $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
 
 	#Copy env_config file and idp
-	tar -uf $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C $PWD ./etc/emf/env_config
+	tar -uf "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/emf/env_config
 	#Workaround for device-discovery
-	mkdir -p $PWD/etc/hook/
-	cp $PWD/etc/emf/env_config $PWD/etc/hook/env_config
-	tar -uf $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C $PWD ./etc/hook/env_config
-	tar -uf $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C $PWD ./etc/idp
+	mkdir -p "$PWD"/etc/hook/
+	cp "$PWD"/etc/emf/env_config "$PWD"/etc/hook/env_config
+	tar -uf "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/hook/env_config
+	tar -uf "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/idp
 
     #Copy fluent-bit file and update
-	tar -uf $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C $PWD ./etc/fluent-bit/
+	tar -uf "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/fluent-bit/
 
 	#Copy Caddy files and udpate
-	tar -uf $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C $PWD ./etc/caddy/
+	tar -uf "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/caddy/
 
     pushd "$iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/" || exit
 	tar -xvf rootfs.tar ./usr/lib/systemd/system/caddy.service
@@ -207,7 +206,7 @@ extract_emt_tar() {
 
 	gzip -c rootfs.tar > ../rootfs.tar.gz
 	popd || exit
-	rm -r $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/
+	rm -r "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/
 
 	pushd "$iter_folder/emt_uos_x86_64_files/extract_initramfs/" || exit
 	

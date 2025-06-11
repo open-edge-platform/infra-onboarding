@@ -4,14 +4,13 @@
 # SPDX-License-Identifier: Apache-2.0
 
 echo "Read Edge Node UUID from system"
-UUID="$(cat /sys/class/dmi/id/product_uuid)"
-if [ -z "$UUID" ]; then
-	    echo "Edge Node UUID is empty. exiting.."
-	        exit 1
+EDGENODE_UUID="$(cat /sys/class/dmi/id/product_uuid)"
+export EDGENODE_UUID
+if [ -z "$EDGENODE_UUID" ]; then
+	echo "Edge Node UUID is empty. exiting.."
+	exit 1
 fi
-
-echo "UUID: $UUID"
-export EDGENODE_UUID="$UUID"
+echo "EDGENODE_UUID: $EDGENODE_UUID"
 
 echo "starting fluentbit container.."
 /bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml
