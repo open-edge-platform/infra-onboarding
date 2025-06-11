@@ -5,6 +5,7 @@ package util
 
 import (
 	"encoding/json"
+
 	"google.golang.org/grpc/codes"
 
 	computev1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/compute/v1"
