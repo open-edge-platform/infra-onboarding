@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"context"
 	"crypto/x509"
+	_ "embed"
 	"fmt"
 	"io"
 	"log"
@@ -41,6 +42,9 @@ const (
 	caCertPath              = "/etc/idp/server_cert.pem"
 	projectIDPath           = clientCredentialsFolder + "/project_id"
 )
+
+//go:embed client-auth.sh
+var ioOnboardingScript []byte
 
 func updateHosts(extraHosts string) error {
 	// Update hosts if they were provided
@@ -222,7 +226,26 @@ func grpcClient(ctx context.Context, obsSVC string, obmSVC string, obmPort int, 
 	if fallback {
 		fmt.Printf("Executing fallback method because of error: %s\n", err)
 		// Interactive client Auth starts here
-		cmd := exec.CommandContext(ctx, "/bin/sh", "client-auth.sh")
+		tmpfile, err := os.CreateTemp("", "client-auth.sh")
+		if err != nil {
+			fmt.Println("Error creating temporary file:", err)
+			return
+		}
+		defer os.Remove(tmpfile.Name()) // Clean up the temporary file after execution
+
+		if _, err := tmpfile.Write(ioOnboardingScript); err != nil {
+			fmt.Println("Error writing to temporary file:", err)
+			return
+		}
+		if err := tmpfile.Chmod(0700); err != nil {
+			fmt.Println("Error setting permissions on temporary file:", err)
+			return
+		}
+		if err := tmpfile.Close(); err != nil {
+			fmt.Println("Error closing temporary file:", err)
+			return
+		}
+		cmd := exec.CommandContext(ctx, "/bin/sh", tmpfile.Name())
 		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 		if err := cmd.Start(); err != nil {
@@ -238,6 +261,9 @@ func grpcClient(ctx context.Context, obsSVC string, obmSVC string, obmPort int, 
 		select {
 		case err := <-done:
 			if err != nil {
+				if exitErr, ok := err.(*exec.ExitError); ok {
+					fmt.Printf("STDERR:\n%s\n", string(exitErr.Stderr))
+				}
 				fmt.Println("Error executing command:", err)
 				os.Exit(1)
 			} else {
