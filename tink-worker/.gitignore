@@ -1,0 +1,34 @@
+# SPDX-FileCopyrightText: 2025 Intel Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+
+tink-worker
+vendor/
+cmd/tink-worker/worker/testdata/
+bin/
+certs/
+cmd/tink-controller/tink-controller
+cmd/tink-server/tink-server
+cmd/tink-worker/tink-worker
+doc/
+.idea
+.vscode
+coverage.txt
+
+# Terraform
+.terraform
+terraform.tfstate
+terraform.tfstate.backup
+
+# Vagrant
+**/.vagrant
+envrc
+.env
+deploy/state
+out/
+
+.*.swp
+hack/tools
+
+# test worker files
+tests/worker

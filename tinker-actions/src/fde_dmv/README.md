@@ -2,8 +2,61 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-This document explains the partition scheme used in Full Disk Encryption (FDE) and Device Mapper Verity (DM-Verity),
-along with the key differences between the two mechanisms.
+---
+
+slug: enable-security-features
+
+name: enable-security-features
+
+description: "This action sets up full disk encryption using LUKS to protect data on disk and enables DM-Verity to
+ensure the root filesystem hasn't been tampered with. It uses TPM for key generation and secure storage, and
+configures encrypted partitions(optional) with integrity verification for enhanced system security."
+
+version: 1.18.1
+
+| env var | data type | default value | required | description |
+|---------|-----------|---------------|----------|-------------|
+| ENABLE_ONLY_DMVERITY | bool | true | yes |  When set to `true`, only DM-Verity is enabled. Set to `false` FDE, Secure Boot and DM-Verity is enabled. |
+| ENABLE_DMVERITY_VEN | boot | false | no | DM-Verity is applied to Virtual Edge Node specific partitions. Should be set to true only if ENABLE_ONLY_DMVERITY=true |
+
+The below example will enable FDE, DM-V and Secure Boot on the target Edge Node.
+
+```yaml
+actions:
+    - name: "enable-security-features"
+        image:  registry-rs.edgeorchestration.intel.com/edge-orch/infra/tinker-actions/fde_dmv:1.17.2
+        timeout: 560
+        environment:
+          ENABLE_ONLY_DMVERITY: false
+  	  ENABLE_DMVERITY_VEN: false
+```
+
+The below example will enable  DM-V on a Virtual Edge Node.
+
+```yaml
+actions:
+    - name: "enable-security-features"
+        image:  registry-rs.edgeorchestration.intel.com/edge-orch/infra/tinker-actions/fde_dmv:1.17.2
+        timeout: 560
+        environment:
+          ENABLE_ONLY_DMVERITY: true
+          ENABLE_DMVERITY_VEN: true
+```
+
+The below example will enable  DM-V on the target Edge Node.
+
+```yaml
+actions:
+    - name: "enable-security-features"
+        image:  registry-rs.edgeorchestration.intel.com/edge-orch/infra/tinker-actions/fde_dmv:1.17.2
+        timeout: 560
+        environment:
+          ENABLE_ONLY_DMVERITY: true
+          ENABLE_DMVERITY_VEN: false (optional)
+```
+
+This document explains Full Disk Encryption (FDE) and Device Mapper Verity (DM-Verity) implimentation,
+along with the key differences between the two mechanisms and partition scheme.
 
 ---
 

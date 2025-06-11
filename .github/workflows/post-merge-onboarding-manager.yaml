@@ -20,7 +20,7 @@ jobs:
       contents: read
       security-events: write
       id-token: write
-    uses: open-edge-platform/orch-ci/.github/workflows/post-merge.yml@3bdd409ccf738472c6e1547d14628b51c70dbe99  # 0.1.21
+    uses: open-edge-platform/orch-ci/.github/workflows/post-merge.yml@37eef2d2a0909dfe8ff26bb0730ab2f13dfbcaf6  # 0.1.25
     with:
       run_version_check: true
       run_dep_version_check: true
@@ -28,7 +28,6 @@ jobs:
       run_docker_build: true
       run_docker_push: true
       run_version_tag: true
-      run_artifact: false
       prefix_tag_separator: "/"
       project_folder: "onboarding-manager"
     secrets:

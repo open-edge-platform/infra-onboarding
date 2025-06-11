@@ -14,8 +14,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/open-edge-platform/infra-onboarding/dkam/internal/env"
-	"github.com/open-edge-platform/infra-onboarding/dkam/internal/flag"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
 )
 
@@ -39,22 +37,13 @@ func exampleManifest(digest string, fileLen int) string {
 		"annotations":{"org.opencontainers.image.created":"2025-03-18T16:44:00Z"}}`, fileLen)
 }
 
-func EnableLegacyModeForTesting(t *testing.T) {
-	t.Helper()
-	*flag.LegacyMode = true
-	t.Cleanup(func() {
-		*flag.LegacyMode = false // restore default mode
-	})
-}
-
-func StartTestReleaseService(testProfileName string) func() {
+func StartTestReleaseService() func() {
 	config.SetInfraConfig(config.InfraConfig{
 		ENManifestRepo:     TestManifestRepo,
 		ENAgentManifestTag: CorrectTestManifestTag,
 	})
 	infraConfig := config.GetInfraConfig()
 
-	expectedFileContent := "GOOD TEST!"
 	expectedTestManifest := `
 repository:
   codename: 3.0
@@ -97,7 +86,6 @@ packages:
 
 	testManifestDigestCorrect := "TEST_MANIFEST_DIGEST_CORRECT"
 	testManifestDigestEmpty := "TEST_MANIFEST_DIGEST_EMPTY"
-	testProfileManifest := "TEST_PROFILE_MANIFEST"
 
 	mux.HandleFunc("/v2/"+infraConfig.ENManifestRepo+"/manifests/"+CorrectTestManifestTag,
 		func(w http.ResponseWriter, _ *http.Request) {
@@ -121,19 +109,6 @@ packages:
 		func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			// empty data
-		})
-
-	// test handlers for profile script
-	mux.HandleFunc("/v2/"+env.ProfileScriptRepo+testProfileName+"/manifests/1.0.2",
-		func(w http.ResponseWriter, _ *http.Request) {
-			w.WriteHeader(http.StatusOK)
-			// return example manifest
-			w.Write([]byte(exampleManifest(testProfileManifest, len(expectedFileContent))))
-		})
-	mux.HandleFunc("/v2/"+env.ProfileScriptRepo+testProfileName+"/blobs/"+testProfileManifest,
-		func(w http.ResponseWriter, _ *http.Request) {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(expectedFileContent))
 		})
 
 	svr := httptest.NewServer(mux)
