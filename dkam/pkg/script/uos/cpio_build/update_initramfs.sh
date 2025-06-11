@@ -3,19 +3,16 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-#set -x
-
 set -xueo pipefail
-data_dir=$1
+INPUT_DIR=$1
 
+# shellcheck source=/dev/null
 source ./secure_uos.sh
 
-pushd ../
-source ./config
-popd || exit
+source ../config
 CPIO_OUTPUT=output
 mkdir -p "$CPIO_OUTPUT"
-cp "$data_dir"/emt_uos_x86_64.tar.gz "$CPIO_OUTPUT"
+cp "$INPUT_DIR"/emt_uos_x86_64.tar.gz "$CPIO_OUTPUT"
 
 LOCATION_OF_EXTRA_FILES=$PWD/etc
 LOCATION_OF_ENV_CONFIG=$PWD/etc/emf/env_config
