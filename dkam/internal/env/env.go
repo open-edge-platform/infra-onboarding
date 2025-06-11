@@ -10,17 +10,15 @@ import (
 )
 
 const (
-	envProfileScriptsRepo = "RS_PROFILE_SCRIPTS_REPO"
-	envHookOSRepo         = "RS_HOOK_OS_REPO"
-	envHookOSVersion      = "HOOK_OS_VERSION"
+	envHookOSRepo    = "RS_HOOK_OS_REPO"
+	envHookOSVersion = "HOOK_OS_VERSION"
 )
 
 var (
 	// TODO: pass all hook os version and bare metal agent
 	//  versions via configmap or override values to dkam.
-	HookOSRepo        = os.Getenv(envHookOSRepo)
-	ProfileScriptRepo = os.Getenv(envProfileScriptsRepo)
-	HookOSVersion     = os.Getenv(envHookOSVersion)
+	HookOSRepo    = os.Getenv(envHookOSRepo)
+	HookOSVersion = os.Getenv(envHookOSVersion)
 )
 
 var zlog = logging.GetLogger("Env")
@@ -38,6 +36,5 @@ func MustGetEnv(key string) string {
 
 func MustEnsureRequired() {
 	HookOSRepo = MustGetEnv(envHookOSRepo)
-	ProfileScriptRepo = MustGetEnv(envProfileScriptsRepo)
 	HookOSVersion = MustGetEnv(envHookOSVersion)
 }

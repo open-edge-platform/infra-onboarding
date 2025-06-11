@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-name: Post-Merge Tinker Actions
+name: Post-Merge Tink Worker
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
       - main
       - release-*
     paths:
-      - "tinker-actions/**"
+      - "tink-worker/**"
   workflow_dispatch:
 
 permissions: {}
@@ -31,7 +31,7 @@ jobs:
       run_version_tag: true
       run_artifact: false
       prefix_tag_separator: "/"
-      project_folder: "tinker-actions"
+      project_folder: "tink-worker"
     secrets:
       SYS_ORCH_GITHUB: ${{ secrets.SYS_ORCH_GITHUB }}
       COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
@@ -39,4 +39,3 @@ jobs:
       NO_AUTH_ECR_PUSH_USERNAME: ${{ secrets.NO_AUTH_ECR_PUSH_USERNAME }}
       NO_AUTH_ECR_PUSH_PASSWD: ${{ secrets.NO_AUTH_ECR_PUSH_PASSWD }}
       MSTEAMS_WEBHOOK: ${{ secrets.TEAMS_WEBHOOK }}
-
