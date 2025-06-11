@@ -131,17 +131,17 @@ main() {
 		continue
 	fi
  
- 	if [ ! cp /etc/idp/server_cert.pem /usr/local/share/ca-certificates/IDP_keyclock.crt ]; then
-		echo "Failed to copy server_cert.pem to /usr/local/share/ca-certificates/IDP_keyclock.crt" >> "$log_file"
+ 	if [ ! cp /etc/idp/server_cert.pem /etc/pki/ca-trust/source/anchors/server_cert.pem ]; then
+		echo "Failed to copy server_cert.pem to /etc/pki/ca-trust/source/anchors/server_cert.pem" >> "$log_file"
 		exit 1
 	fi
 
-	if [ ! cp /etc/idp/ca.pem /usr/local/share/ca-certificates/ca.crt ]; then
-		echo "Failed to copy ca.pem to /usr/local/share/ca-certificates/ca.crt" >> "$log_file"
+	if [ ! cp /etc/idp/ca.pem /etc/pki/ca-trust/source/anchors/ca.pem ]; then
+		echo "Failed to copy ca.pem to /etc/pki/ca-trust/source/anchors/ca.pem" >> "$log_file"
 		exit 1
 	fi
  
-	if [ ! -e /usr/local/share/ca-certificates/IDP_keyclock.crt ];
+	if [ ! -e /etc/pki/ca-trust/source/anchors/server_cert.pem ];
 	then
 	    echo " IDP ca cert not found at the expected location: reboot" >> "$log_file"
 	    sleep 3
@@ -158,7 +158,7 @@ main() {
 	#login to IDP keycloak
 	# proxy if not set then the code will not be able to invoke curl.
 
-	access_token=$(curl --cacert /usr/local/share/ca-certificates/IDP_keyclock.crt -X POST https://"$KEYCLOAK_URL"/realms/master/protocol/openid-connect/token \
+	access_token=$(curl --cacert /etc/pki/ca-trust/source/anchors/server_cert.pem -X POST https://"$KEYCLOAK_URL"/realms/master/protocol/openid-connect/token \
 			    -H "Content-Type: application/x-www-form-urlencoded" \
 			    --data-urlencode "username=$username" \
 			    --data-urlencode "password=$password" \
@@ -187,7 +187,7 @@ main() {
 
 		response_body=$(mktemp)
 
-		status_code=$(curl --cacert /usr/local/share/ca-certificates/IDP_keyclock.crt -X GET "https://$release_server_url/token" -H "Authorization: Bearer $access_token" -w "%{http_code}" -o "$response_body")
+		status_code=$(curl --cacert /etc/pki/ca-trust/source/anchors/server_cert.pem -X GET "https://$release_server_url/token" -H "Authorization: Bearer $access_token" -w "%{http_code}" -o "$response_body")
 		release_token=$(cat "$response_body")
 
 		rm "$response_body"
