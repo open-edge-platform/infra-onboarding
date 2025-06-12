@@ -4,6 +4,9 @@
 
 
 .DEFAULT_GOAL := help
+.PHONY: lint docker-build
+
+all: lint docker-build
 
 # Optionally include tool version checks, not used in Docker builds
 TOOL_VERSION_CHECK ?= 1
@@ -40,53 +43,4 @@ docker-build:
 		--build-arg BUILD_DATE="$(LABEL_BUILD_DATE)"
 	@rm -rf common.mk version.mk common_go.mk
 
-.PHONY: dependency-check
-dependency-check:
-	@# Help: Runs dependency-check stage
-	@echo "---MAKEFILE TEST---"
-	echo $@
-	@echo "---END MAKEFILE TEST---"
-
-.PHONY: build
-build: go-build
-	@# Help: Runs build stage
-	@echo "---MAKEFILE TEST---"
-	echo $@
-	@echo "---END MAKEFILE TEST---"
-
 lint: license hadolint mdlint
-
-.PHONY: test
-test: fuzztest
-	@# Help: Runs test stage
-	@echo "---MAKEFILE TEST---"
-	echo $@
-	@echo "---END MAKEFILE TEST---"
-
-.PHONY: helm-build
-helm-build:
-	@# Help: Runs helm-build stage
-	@echo "---MAKEFILE TEST---"
-	echo $@
-	@echo "---END MAKEFILE TEST---"
-
-.PHONY: coverage
-coverage:
-	@# Help: Runs coverage stage
-	@echo "---MAKEFILE COVERAGE---"
-	echo $@
-	@echo "---END MAKEFILE COVERAGE---"
-
-.PHONY: go-build
-go-build:
-	@# Help: Runs go-build stage
-	@echo "---MAKEFILE COVERAGE---"
-	echo $@
-	@echo "---END MAKEFILE COVERAGE---"
-
-.PHONY: fuzztest
-fuzztest:
-	@# Help: Runs fuzztest stage
-	@echo "---MAKEFILE COVERAGE---"
-	echo $@
-	@echo "---END MAKEFILE COVERAGE---"
