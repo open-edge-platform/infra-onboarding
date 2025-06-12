@@ -125,6 +125,11 @@ func IsStandalone(instance *computev1.InstanceResource) (bool, error) {
 		return false, nil
 	}
 
+	if instance.GetDesiredOs().GetOsType() == osv1.OsType_OS_TYPE_MUTABLE {
+		// We don't support Standalone ENs for mutable OSes yet
+		return false, nil
+	}
+
 	osMetadata := instance.GetDesiredOs().GetMetadata()
 
 	if osMetadata == "" {
