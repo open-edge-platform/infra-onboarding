@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: 2025 Intel Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+
+.idea
+.vscode
+
+# Terraform
+.terraform
+terraform.tfstate
+terraform.tfstate.backup
+
+# Vagrant
+**/.vagrant
+envrc
+.env
+deploy/state
+out/
+
+.*.swp
+hack/tools
