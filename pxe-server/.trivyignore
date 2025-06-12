@@ -1,4 +1,5 @@
 # Copyright (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-# EMPTY FOR NOW
+# Ignore specific vulnerabilities
+AVD-DS-0002 # dnsmasq must start as a root but will drop privileges
