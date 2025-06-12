@@ -7,6 +7,7 @@ package reconcilers
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"google.golang.org/grpc/codes"
 	grpc_status "google.golang.org/grpc/status"
@@ -393,6 +394,14 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		return onboarding_types.DeviceInfo{}, err
 	}
 
+	venSupportStr := env.VenPartitionSupport
+
+	// Convert the string value to a boolean
+	venSupport, err := strconv.ParseBool(venSupportStr)
+	if err != nil {
+		venSupport = false // Default to false if parsing fails
+	}
+
 	deviceInfo := onboarding_types.DeviceInfo{
 		GUID:             host.GetUuid(),
 		HwSerialID:       host.GetSerialNumber(),
@@ -406,6 +415,7 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		OsType:           desiredOs.GetOsType(),
 		OSResourceID:     desiredOs.GetResourceId(),
 		PlatformBundle:   desiredOs.GetPlatformBundle(),
+		VenSupport:       venSupport,
 		IsStandaloneNode: isStandalone,
 	}
 
