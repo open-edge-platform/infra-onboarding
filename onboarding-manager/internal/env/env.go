@@ -16,7 +16,7 @@ const (
 	envPassWord           = "EN_PASSWORD"
 	envTinkerVersion      = "TINKER_VERSION"
 	envTinkerArtifactName = "TINKER_ARTIFACT_NAME"
-	envVenPartitionSupport = "VEN_PARTITION_SUPPORT"
+	envVenPartitionSupport = "VEN_SCALE_SUPPORT"
 )
 
 var (
