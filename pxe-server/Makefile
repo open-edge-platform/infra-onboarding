@@ -1,7 +1,5 @@
 # SPDX-FileCopyrightText: 2025 Intel Corporation
-#
 # SPDX-License-Identifier: Apache-2.0
-
 
 .DEFAULT_GOAL := help
 .PHONY: lint docker-build
@@ -10,7 +8,7 @@ all: lint docker-build
 
 # Optionally include tool version checks, not used in Docker builds
 TOOL_VERSION_CHECK ?= 1
-GO_CHECK ?=1
+GO_CHECK ?=0
 
 ##### Variables #####
 
