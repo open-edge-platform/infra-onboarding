@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-FROM debian:12.8-slim AS builder
+FROM debian:12.11-slim AS builder
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
