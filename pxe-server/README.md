@@ -3,11 +3,11 @@
 ## Table of Contents
 
 - [Edge Infrastructure Manager PXE server](#edge-infrastructure-manager-pxe-server)
-    - [Table of Contents](#table-of-contents)
-    - [Overview](#overview)
-    - [Features](#features)
-    - [Get Started](#get-started)
-    - [Contribute](#contribute)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Features](#features)
+  - [Get Started](#get-started)
+  - [Contribute](#contribute)
 
 ## Overview
 
@@ -19,10 +19,6 @@ TODO
 - Runs in a ProxyDHCP mode to provide PXE boot information to PXE firmware clients.
 
 ## Get Started
-
-Instructions on how to install and set up the onboarding-manager on your machine.
-
-### Dependencies
 
 This repository only contains scripts to build the Docker image, so you only need `docker` installed.
 

@@ -28,9 +28,17 @@ include ../common.mk
 
 .PHONY: docker-build
 docker-build:
-	@# Help: Build all images
-	@echo "Image build complete"
-	@echo "---END MAKEFILE Build---"
+	cp ../common.mk ../version.mk ../common_go.mk .
+	docker build . -f build/Dockerfile \
+		-t $(DOCKER_IMG_NAME):$(VERSION) \
+		--build-arg http_proxy="$(http_proxy)" --build-arg HTTP_PROXY="$(HTTP_PROXY)" \
+		--build-arg https_proxy="$(https_proxy)" --build-arg HTTPS_PROXY="$(HTTPS_PROXY)" \
+		--build-arg no_proxy="$(no_proxy)" --build-arg NO_PROXY="$(NO_PROXY)" \
+		--build-arg REPO_URL="$(LABEL_REPO_URL)" \
+		--build-arg VERSION="$(LABEL_VERSION)" \
+		--build-arg REVISION="$(LABEL_REVISION)" \
+		--build-arg BUILD_DATE="$(LABEL_BUILD_DATE)"
+	@rm -rf common.mk version.mk common_go.mk
 
 .PHONY: dependency-check
 dependency-check:
