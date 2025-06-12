@@ -392,7 +392,6 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 	// Convert the string value to a boolean
 	venSupport, err := strconv.ParseBool(venSupportStr)
 	if err != nil {
-		inv_errors.Errorf("Error parsing %s: %v\n", venSupportStr, err)
 		venSupport = false // Default to false if parsing fails
 	}
 
