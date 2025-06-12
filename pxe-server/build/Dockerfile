@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
 FROM debian:bookworm-slim AS builder
 
 RUN apt-get update && \
