@@ -23,6 +23,8 @@ var WorkflowStepToStatusDetail = map[string]string{
 	ActionSystemConfiguration:      "Applying system configuration",
 	ActionKernelupgrade:            "Upgrading kernel",
 	ActionCloudInitInstall:         "Installing cloud-init",
+	ActionCustomConfigInstall:      "Copying custom cloud-init configs",
+	ActionCustomConfigSplit:        "Installing custom cloud-init configs",
 	ActionCloudinitDsidentity:      "Setting up cloud-init",
 }
 

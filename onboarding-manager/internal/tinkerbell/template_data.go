@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"sort"
 	"strconv"
+	"strings"
 
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
@@ -26,6 +28,8 @@ const (
 	ActionStreamOSImage            = "stream-os-image"
 	ActionCloudInitInstall         = "install-cloud-init"
 	ActionSystemConfiguration      = "system-configuration"
+	ActionCustomConfigInstall      = "custom-configs"
+	ActionCustomConfigSplit        = "custom-configs-split"
 	ActionInstallScript            = "service-script-for-profile-pkg-and-node-agents-install"
 	ActionEfibootset               = "efibootset-for-diskboot"
 	ActionFdeEncryption            = "fde-encryption"
@@ -70,6 +74,10 @@ const (
 	tinkerActionImage2Disk             = "image2disk"
 	tinkerActionWritefile              = "writefile"
 	tinkerActionSecurebootflag         = "securebootflag"
+
+	// Use a delimiter that is highly unlikely to appear in any config or script.
+	// ASCII Unit Separator (0x1F) is a safe choice.
+	customConfigDelimiter = "\x1F"
 )
 
 type TinkerActionImages struct {
@@ -95,6 +103,7 @@ type WorkflowInputs struct {
 	DeviceInfo        onboarding_types.DeviceInfo
 	TinkerActionImage TinkerActionImages
 	CloudInitData     string
+	CustomConfigs     string
 	InstallerScript   string
 	// OsResourceID resource ID of Operating System that was specified initially at the provisioning time
 	OsResourceID string
@@ -315,6 +324,8 @@ func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.Dev
 
 	inputs.InstallerScript = strconv.Quote(installerScript)
 	inputs.CloudInitData = strconv.Quote(cloudInitData)
+	inputs.CustomConfigs = concatMapValuesSorted(deviceInfo.CustomConfigs)
+
 	inputs.Env = Env{
 		ENProxyHTTP:    infraConfig.ENProxyHTTP,
 		ENProxyHTTPS:   infraConfig.ENProxyHTTPS,
@@ -322,4 +333,22 @@ func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.Dev
 	}
 
 	return structToMapStringString(inputs), nil
+}
+
+// Helper function to concatenate map values sorted by key, delimited by "@@@@"
+func concatMapValuesSorted(m map[string]string) string {
+	if m == nil {
+		return ""
+	}
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	// Sort keys alphabetically
+	sort.Strings(keys)
+	values := make([]string, 0, len(keys))
+	for _, k := range keys {
+		values = append(values, m[k])
+	}
+	return strconv.Quote(strings.Join(values, customConfigDelimiter))
 }
