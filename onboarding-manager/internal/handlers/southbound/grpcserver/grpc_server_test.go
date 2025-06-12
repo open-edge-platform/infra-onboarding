@@ -1754,6 +1754,8 @@ func TestInteractiveOnboardingService_getHostResourcetest(t *testing.T) {
 	host1 := inv_testing.CreateHostWithArgs(t, "host-1", "44414747-3031-3052-b030-453347474122", "", "", nil, nil, true)
 	host2 := inv_testing.CreateHostWithArgs(t, "host-2", "", "ABCDEFG", "", nil, nil, true)
 	host3 := inv_testing.CreateHostWithArgs(t, "host-3", "44414747-3031-3052-b030-453347474166", serialnum, "", nil, nil, true)
+	host4 := inv_testing.CreateHostWithArgs(t, "host-3", "44414747-3031-3052-b030-453347474168", "", "", nil, nil, true)
+	host5 := inv_testing.CreateHostWithArgs(t, "host-3", "44414747-3031-3052-b030-453347474169", "", "", nil, nil, true)
 
 	tests := []struct {
 		name    string
@@ -1807,6 +1809,38 @@ func TestInteractiveOnboardingService_getHostResourcetest(t *testing.T) {
 			},
 			want:    host3,
 			wantErr: true,
+		},
+		{
+			name: "getHostResource test case with serial number empty and correct host uuid",
+			fields: fields{
+				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
+				invClient:    om_testing.InvClient,
+				invClientAPI: &invclient.OnboardingInventoryClient{},
+			},
+			args: args{
+				req: &pb.OnboardNodeStreamRequest{
+					Uuid:      "44414747-3031-3052-b030-453347474168",
+					Serialnum: "",
+				},
+			},
+			want:    host4,
+			wantErr: false,
+		},
+		{
+			name: "getHostResource test case with incorrect serial number and correct host uuid",
+			fields: fields{
+				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
+				invClient:    om_testing.InvClient,
+				invClientAPI: &invclient.OnboardingInventoryClient{},
+			},
+			args: args{
+				req: &pb.OnboardNodeStreamRequest{
+					Uuid:      "44414747-3031-3052-b030-453347474169",
+					Serialnum: "To be filled by O.E.M",
+				},
+			},
+			want:    host5,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
