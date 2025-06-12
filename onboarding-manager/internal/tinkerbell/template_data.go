@@ -335,7 +335,8 @@ func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.Dev
 	return structToMapStringString(inputs), nil
 }
 
-// Helper function to concatenate map values sorted by key, delimited by customConfigDelimiter
+// Helper function to concatenate map values sorted by key,
+// delimited by customConfigDelimiter.
 func concatMapValuesSorted(m map[string]string) string {
 	if m == nil {
 		return ""
