@@ -20,14 +20,15 @@ BINARY_NAME  := pxe-server
 VERSION         := $(shell cat VERSION)
 VERSION_MAJOR   := $(shell cut -c 1 VERSION)
 DOCKER_IMG_NAME := ${PROJECT_NAME}
+DOCKER_VERSION  ?= $(shell git branch --show-current | sed 's/\//_/g')
 IMG_VERSION     ?= $(VERSION)
 GIT_COMMIT      ?= $(shell git rev-parse HEAD)
 BRANCH_NAME     ?= $(shell git rev-parse --abbrev-ref HEAD | sed 's/\//_/g')
 
 # Include shared makefile
 include ../common.mk
+include ../common_go.mk
 
-.PHONY: docker-build
 docker-build:
 	cp ../common.mk ../version.mk ../common_go.mk .
 	docker build . -f build/Dockerfile \
@@ -45,6 +46,12 @@ lint: license hadolint mdlint
 
 test:
 	@# Help: Runs test stage
+	@echo "---MAKEFILE TEST---"
+	echo $@
+	@echo "---END MAKEFILE TEST---"
+
+go-build:
+	@# Help: Runs build stage
 	@echo "---MAKEFILE TEST---"
 	echo $@
 	@echo "---END MAKEFILE TEST---"
