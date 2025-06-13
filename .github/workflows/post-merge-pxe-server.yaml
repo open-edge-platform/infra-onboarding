@@ -28,6 +28,7 @@ jobs:
       run_docker_build: true
       run_docker_push: true
       run_version_tag: true
+      run_artifact_push: true
       prefix_tag_separator: "/"
       project_folder: "pxe-server"
     secrets:
