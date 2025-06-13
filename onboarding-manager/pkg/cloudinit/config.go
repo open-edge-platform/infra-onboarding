@@ -16,6 +16,10 @@ type cloudInitOptions struct {
 	// OsType type of OS for which a cloud-init is generated.
 	OsType osv1.OsType
 
+	// RunAsStandalone set to skip provisioning runtime EMF configuration,
+	// so that ENs will operate as standalone, unmanaged nodes.
+	RunAsStandalone bool
+
 	// useDevMode enables creation of local admin user
 	useDevMode bool
 	// username defines a username for local admin user, must be provided if useDevMode is set
@@ -23,6 +27,7 @@ type cloudInitOptions struct {
 	// userPasswd defines a password for local admin user, must be provided if useDevMode is set
 	devUserPasswd string
 	// tenantID specifies UUID of tenant that Host belongs to
+
 	tenantID string
 	// hostname specifies host name to be set on Host
 	hostname string
@@ -49,6 +54,7 @@ type cloudInitOptions struct {
 func defaultCloudInitOptions() cloudInitOptions {
 	return cloudInitOptions{
 		// be explicit
+		RunAsStandalone: false,
 		useDevMode:      false,
 		OsType:          osv1.OsType_OS_TYPE_UNSPECIFIED,
 		useLocalAccount: false,
@@ -61,20 +67,12 @@ func (opts cloudInitOptions) validate() error {
 		return inv_errors.Errorfc(codes.InvalidArgument, "Unsupported OS type: %s", opts.OsType.String())
 	}
 
-	if opts.tenantID == "" {
-		return inv_errors.Errorfc(codes.InvalidArgument, "Tenant ID must be provided")
-	}
-
 	if opts.hostname == "" {
 		return inv_errors.Errorfc(codes.InvalidArgument, "Hostname must be provided")
 	}
 
 	if opts.hostMAC == "" {
 		return inv_errors.Errorfc(codes.InvalidArgument, "Host's MAC address must be provided")
-	}
-
-	if opts.clientID == "" || opts.clientSecret == "" {
-		return inv_errors.Errorfc(codes.InvalidArgument, "Client credentials must be provided")
 	}
 
 	if opts.useDevMode && (opts.devUsername == "" || opts.devUserPasswd == "") {
@@ -92,7 +90,31 @@ func (opts cloudInitOptions) validate() error {
 			"IP address to set must be provided if static IP enabled")
 	}
 
+	if !opts.RunAsStandalone {
+		if err := opts.validateNonStandaloneOptions(); err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+func (opts cloudInitOptions) validateNonStandaloneOptions() error {
+	if opts.tenantID == "" {
+		return inv_errors.Errorfc(codes.InvalidArgument, "Tenant ID must be provided")
+	}
+
+	if opts.clientID == "" || opts.clientSecret == "" {
+		return inv_errors.Errorfc(codes.InvalidArgument, "Client credentials must be provided")
+	}
+
+	return nil
+}
+
+func WithRunAsStandalone() Option {
+	return func(options *cloudInitOptions) {
+		options.RunAsStandalone = true
+	}
 }
 
 func WithDevMode(username, password string) Option {
