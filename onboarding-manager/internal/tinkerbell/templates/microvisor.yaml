@@ -60,8 +60,13 @@ tasks:
           FS_TYPE: ext4
           CHROOT: y
           DEFAULT_INTERPRETER: "/bin/sh -c"
-          CMD_LINE: "awk -v RS=\"\x1F\" 'BEGIN{i=0} {fn=sprintf(\"/etc/cloud/cloud.cfg.d/%02d-infra.cfg\", i++); print > fn}' /etc/cloud/cloud.cfg.d/custom.cfg; rm -f /etc/cloud/cloud.cfg.d/custom.cfg"
-          {{- end }} 
+          CMD_LINE: |
+            awk -v RS='\x1F' 'BEGIN{i=0} {
+              fn=sprintf("/etc/cloud/cloud.cfg.d/%02d-infra.cfg", i++);
+              print > fn; close(fn); system("chmod 755 " fn)
+            }' /etc/cloud/cloud.cfg.d/custom.cfg &&
+            rm -f /etc/cloud/cloud.cfg.d/custom.cfg
+{{- end }}
       - name: "cloud-init-ds-identity"
         image: {{ .TinkerActionImageWriteFile }}
         timeout: 90
