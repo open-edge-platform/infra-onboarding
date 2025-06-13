@@ -42,3 +42,9 @@ docker-build:
 	@rm -rf common.mk version.mk common_go.mk
 
 lint: license hadolint mdlint
+
+test:
+	@# Help: Runs test stage
+	@echo "---MAKEFILE TEST---"
+	echo $@
+	@echo "---END MAKEFILE TEST---"
