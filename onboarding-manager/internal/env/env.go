@@ -16,6 +16,7 @@ const (
 	envPassWord           = "EN_PASSWORD"
 	envTinkerVersion      = "TINKER_VERSION"
 	envTinkerArtifactName = "TINKER_ARTIFACT_NAME"
+	envVenScaleSupport    = "VEN_SCALE_SUPPORT"
 )
 
 var (
@@ -27,6 +28,7 @@ var (
 
 	TinkerActionVersion = os.Getenv(envTinkerVersion)
 	TinkerArtifactName  = os.Getenv(envTinkerArtifactName)
+	VenPartitionSupport = os.Getenv(envVenScaleSupport)
 )
 
 var zlog = logging.GetLogger("Env")

@@ -52,5 +52,7 @@ type (
 		SSHKey string
 		// OS resource ID
 		OSResourceID string
+		// VEN Supported
+		VenSupport bool
 	}
 )
