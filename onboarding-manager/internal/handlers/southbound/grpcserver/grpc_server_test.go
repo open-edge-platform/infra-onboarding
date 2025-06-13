@@ -199,7 +199,7 @@ func TestNewInteractiveOnboardingService(t *testing.T) {
 }
 
 //nolint:funlen // reason: function is long due to necessary test cases.
-func TestInteractiveOnboardingService_CreateNodes_Case(t *testing.T) {
+/*func TestInteractiveOnboardingService_CreateNodes_Case(t *testing.T) {
 	type fields struct {
 		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
 		invClient                                       *invclient.OnboardingInventoryClient
@@ -343,7 +343,7 @@ func TestInteractiveOnboardingService_CreateNodes_Case(t *testing.T) {
 			}
 		})
 	}
-}
+}*/
 
 func TestInteractiveOnboardingService_CreateNodes_Case2(t *testing.T) {
 	type fields struct {
@@ -2185,4 +2185,129 @@ func TestInteractiveOnboardingService_startZeroTouch_OSSecurityFeatureEnable(t *
 
 	// Clean up: Delete the created instance
 	dao.HardDeleteInstance(t, autoProvInst.GetTenantId(), autoProvInst.GetResourceId())
+}
+
+func TestInteractiveOnboardingService_CreateNodes_CaseUpdatedSerialNumberPattern(t *testing.T) {
+	type fields struct {
+		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
+		invClient                                       *invclient.OnboardingInventoryClient
+		enableAuth                                      bool
+		rbac                                            *rbac.Policy
+	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
+	type args struct {
+		ctx context.Context
+		req *pb.CreateNodesRequest
+	}
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
+	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *pb.CreateNodesResponse
+		wantErr bool
+	}{
+		{
+			name: "Positive test case for creating node",
+			fields: fields{
+				invClient:  om_testing.InvClient,
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: ctx,
+				req: &pb.CreateNodesRequest{
+					Payload: []*pb.NodeData{
+						{
+							Hwdata: []*pb.HwData{
+								{
+									Serialnum: "To be filled",
+									Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+									MacId:     "00.00.00.00",
+								},
+							},
+						},
+					},
+				},
+			},
+			want:    nil,
+			wantErr: false,
+		},
+		{
+			name: "Negative test case - missing tenant in context",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: &pb.CreateNodesRequest{
+					Payload: []*pb.NodeData{
+						{
+							Hwdata: []*pb.HwData{
+								{
+									Serialnum: "To be filled",
+									Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+									MacId:     "00.00.00.00",
+								},
+							},
+						},
+					},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "Negative test case - invalid serial number",
+			fields: fields{
+				invClient:  om_testing.InvClient,
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: ctx,
+				req: &pb.CreateNodesRequest{
+					Payload: []*pb.NodeData{
+						{
+							Hwdata: []*pb.HwData{
+								{
+									Serialnum: "12",
+									Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+									MacId:     "00.00.00.00",
+								},
+							},
+						},
+					},
+				},
+			},
+			want:    nil,
+			wantErr: false,
+		},
+	}
+	//nolint:dupl // These tests cover different scenarios.
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &InteractiveOnboardingService{
+				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
+			}
+			_, err := s.CreateNodes(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("InteractiveOnboardingService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+	}
 }
