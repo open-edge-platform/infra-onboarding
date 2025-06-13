@@ -49,3 +49,9 @@ test:
 	@echo "---MAKEFILE TEST---"
 	echo $@
 	@echo "---END MAKEFILE TEST---"
+
+go-build:
+	@# Help: Runs build stage
+	@echo "---MAKEFILE TEST---"
+	echo $@
+	@echo "---END MAKEFILE TEST---"
