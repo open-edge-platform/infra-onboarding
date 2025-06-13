@@ -8,7 +8,7 @@ go 1.24.1
 require (
 	github.com/envoyproxy/protoc-gen-validate v1.2.1
 	github.com/google/uuid v1.6.0
-	github.com/open-edge-platform/infra-core/inventory/v2 v2.25.0
+	github.com/open-edge-platform/infra-core/inventory/v2 v2.26.3-0.20250611095359-3d196af3ec71
 	github.com/open-edge-platform/infra-onboarding/dkam v1.29.0
 	github.com/open-edge-platform/orch-library/go v0.6.1
 	github.com/pkg/errors v0.9.1
@@ -179,7 +179,6 @@ require (
 	golang.org/x/time v0.11.0 // indirect
 	golang.org/x/tools v0.33.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250313205543-e70fdf4c4cb4 // indirect
-	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/api v0.32.3 // indirect

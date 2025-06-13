@@ -4,11 +4,20 @@
 package util
 
 import (
+	"encoding/json"
+
+	"google.golang.org/grpc/codes"
+
 	computev1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/compute/v1"
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
+	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 	_ "github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging" // include to pass tests with -globalLogLevel
 	inv_status "github.com/open-edge-platform/infra-core/inventory/v2/pkg/status"
 	om_status "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/status"
+)
+
+const (
+	IsStandaloneMetadataKey = "standalone-node"
 )
 
 func IsSameHostStatus(
@@ -109,4 +118,35 @@ func PopulateInstanceIdleStatus(
 
 func PopulateCurrentOS(instance *computev1.InstanceResource, osResourceID string) {
 	instance.CurrentOs = &osv1.OperatingSystemResource{ResourceId: osResourceID}
+}
+
+func IsStandalone(instance *computev1.InstanceResource) (bool, error) {
+	if instance.GetDesiredOs() == nil {
+		return false, nil
+	}
+
+	if instance.GetDesiredOs().GetOsType() == osv1.OsType_OS_TYPE_MUTABLE {
+		// We don't support Standalone ENs for mutable OSes yet
+		return false, nil
+	}
+
+	osMetadata := instance.GetDesiredOs().GetMetadata()
+
+	if osMetadata == "" {
+		return false, nil
+	}
+
+	var jsonMap map[string]string
+	err := json.Unmarshal([]byte(osMetadata), &jsonMap)
+	if err != nil {
+		return false, inv_errors.Errorfc(codes.InvalidArgument, "Failed to parse JSON map: %v", err)
+	}
+
+	isStandaloneMdValue, exists := jsonMap[IsStandaloneMetadataKey]
+	if !exists {
+		// treat as non-standalone if metadata not included
+		return false, nil
+	}
+
+	return isStandaloneMdValue == "true", nil
 }
