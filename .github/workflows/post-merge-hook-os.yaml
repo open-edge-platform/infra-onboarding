@@ -28,7 +28,6 @@ jobs:
       run_docker_build: false
       run_docker_push: false
       run_version_tag: true
-      run_artifact: true
       prefix_tag_separator: "/"
       project_folder: "hook-os"
     secrets:
