@@ -374,6 +374,39 @@ type handleWorkflowTestCase struct {
 	wantErr                    bool
 }
 
+func Test_handleWorkflowStatus_withCustomConfigsActions(t *testing.T) {
+	instance := &computev1.InstanceResource{
+		Host: &computev1.HostResource{
+			ResourceId: "host-084d9b08",
+			Uuid:       uuid.NewString(),
+		},
+	}
+	workflow := &tink.Workflow{
+		Status: tink.WorkflowStatus{
+			State: tink.WorkflowStateRunning,
+			Tasks: []tink.Task{
+				{
+					Actions: []tink.Action{
+						{Name: "custom-configs", Status: tink.WorkflowStateSuccess},
+						{Name: "custom-configs-split", Status: tink.WorkflowStateRunning},
+					},
+				},
+			},
+		},
+		Spec: tink.WorkflowSpec{
+			HardwareMap: map[string]string{
+				"DeviceInfoOSResourceID": "os-12345678",
+			},
+		},
+	}
+	onSuccess := inv_status.New("Provisioned", statusv1.StatusIndication_STATUS_INDICATION_IDLE)
+	onFailure := inv_status.New("Provisioning Failed", statusv1.StatusIndication_STATUS_INDICATION_ERROR)
+
+	err := handleWorkflowStatus(instance, workflow, onSuccess, onFailure)
+	assert.ErrorContains(t, err, "") // Should be in progress, so error is returned
+	assert.Equal(t, instance.ProvisioningStatus, "Provisioning In Progress: 2/2: Installing custom cloud-init configs")
+}
+
 func createTestCase(name string, workflowState tink.WorkflowState, expectedStatus string, wantErr bool) handleWorkflowTestCase {
 	return handleWorkflowTestCase{
 		name: name,
