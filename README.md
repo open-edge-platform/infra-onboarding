@@ -18,6 +18,7 @@ The repository comprises the following components and services:
 - [**HookOS**](hook-os/): contains the Tinkerbell installation environment for bare-metal. It runs in-memory, installs
   operating system, and handles deprovisioning.
 - [**Tinker Actions**](tinker-actions/): contains custom Tinkerbell Actions that are used to compose Tinkerbell Workflows.
+- [**PXE Server**](pxe-server/): optional component that implements ProxyDHCP and TFTP server to support PXE booting.
 
 Read more about Edge Orchestrator in the [User Guide](https://docs.openedgeplatform.intel.com/edge-manage-docs/main/user_guide/index.html).
 
