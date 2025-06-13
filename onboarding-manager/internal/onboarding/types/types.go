@@ -52,6 +52,8 @@ type (
 		SSHKey string
 		// OS resource ID
 		OSResourceID string
+		// CustomConfigs is a map of custom cloud init (e.g. name:cloud-init-config)
+		CustomConfigs map[string]string
 		// IsStandaloneNode indicates whether EN should be provisioned as a standalone node
 		IsStandaloneNode bool
 		// VEN Supported
