@@ -276,7 +276,7 @@ func (s *NonInteractiveOnboardingService) handleDefaultState(
 	})
 }
 
-func isSerialNumberValidationError(err error) bool {
+func serialNumberValidationError(err error) bool {
 	var validationErr pb.OnboardNodeStreamRequestValidationError
 	if errors.As(err, &validationErr) {
 		if validationErr.Field() == "Serialnum" {
@@ -453,7 +453,7 @@ func (s *NonInteractiveOnboardingService) OnboardNodeStream(
 		// Validate the stream request using the generated Validate method
 		if reqValidateerr := req.Validate(); reqValidateerr != nil {
 			// Check if the error is related to serial number validation
-			if isSerialNumberValidationError(reqValidateerr) {
+			if serialNumberValidationError(reqValidateerr) {
 				// Log the validation error and proceed with UUID-based provisioning
 				zlog.Debug().Msgf("Ignoring serial number validation error: %v", reqValidateerr)
 				req.Serialnum = "" // Set serial number to empty string
@@ -535,7 +535,7 @@ func (s *NonInteractiveOnboardingService) OnboardNodeStream(
 	}
 }
 
-func isSerialNumberValidationErrorIO(err error) bool {
+func serialNumberValidationErrorIO(err error) bool {
 	type validationError interface {
 		Field() string
 		Cause() error
@@ -565,7 +565,7 @@ func (s *InteractiveOnboardingService) CreateNodes(ctx context.Context, req *pb.
 	// Validate the request using the generated Validate method
 	if reqValidateerr := req.Validate(); reqValidateerr != nil {
 		// Check if the error is related to serial number validation
-		if isSerialNumberValidationErrorIO(reqValidateerr) {
+		if serialNumberValidationErrorIO(reqValidateerr) {
 			// Ignore serail number validation error
 			zlog.Debug().Msgf("Ignoring serial number validation error: %v", reqValidateerr)
 			for _, nodeData := range req.GetPayload() {
