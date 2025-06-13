@@ -54,5 +54,7 @@ type (
 		OSResourceID string
 		// CustomConfigs is a map of custom cloud init (e.g. name:cloud-init-config)
 		CustomConfigs map[string]string
+		// VEN Supported
+		VenSupport bool
 	}
 )
