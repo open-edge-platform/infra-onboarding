@@ -5,6 +5,13 @@
 
 #set -x
 
+#!/bin/bash
+
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+#set -x
+
 set -xueo pipefail
 data_dir=$1
 pushd ../
@@ -175,6 +182,8 @@ extract_emt_tar() {
 	mv $iter_folder/emt_uos_x86_64_files/extract_initramfs/rootfs.tar $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp
 	mkdir -p $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
         cp $IDP/Intel.crt $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
+        cp $IDP/ca.pem $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
+        cp $IDP/server_cert.pem $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
 
 	#Copy env_config file and idp
 	tar -uf $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C $PWD ./etc/emt/env_config
@@ -192,9 +201,14 @@ extract_emt_tar() {
 
         pushd "$iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/" || exit
 	tar -xvf rootfs.tar ./usr/lib/systemd/system/caddy.service
+	sed -i 's|User=caddy|User=root|' ./usr/lib/systemd/system/caddy.service
+	sed -i 's|Group=caddy|Group=root|' ./usr/lib/systemd/system/caddy.service
+	# sed -i 's|ProtectSystem=full|ProtectSystem=strict|' ./usr/lib/systemd/system/caddy.service
+	# sed -i 's|ExecStartPost=/etc/edge-node/node/confs/post-caddy.sh|ReadWritePaths=/etc/pki/ca-trust|' ./usr/lib/systemd/system/caddy.service
 	sed -i 's|ExecStartPre=/usr/bin/caddy validate --config /etc/caddy/Caddyfile||' ./usr/lib/systemd/system/caddy.service
 	sed -i 's|ExecReload=/usr/bin/caddy reload --config /etc/caddy/Caddyfile||' ./usr/lib/systemd/system/caddy.service
 	sed -i 's|ExecStart=/usr/bin/caddy run --environ --config /etc/caddy/Caddyfile|ExecStart=/etc/caddy/caddy_run.sh|' ./usr/lib/systemd/system/caddy.service
+	sed -i '/^ExecStart=.*caddy_run\.sh$/a ReadWritePaths=/etc/pki/ca-trust' ./usr/lib/systemd/system/caddy.service
 	sed -i '/^\[Unit\]/,/^$/s/^After=network.target network-online.target/After=network.target network-online.target/' ./usr/lib/systemd/system/caddy.service
 	sed -i '/^\[Unit\]/,/^$/s/^Requires=network-online.target/Requires=network-online.target/' ./usr/lib/systemd/system/caddy.service
 
@@ -208,6 +222,20 @@ extract_emt_tar() {
 
 	#Add crt for tink-worker
 	tar -uf rootfs.tar ./etc/pki/ca-trust/source/anchors/Intel.crt
+	tar -uf rootfs.tar ./etc/pki/ca-trust/source/anchors/server_cert.pem
+	tar -uf rootfs.tar ./etc/pki/ca-trust/source/anchors/ca.pem
+
+    #Add autologin
+    tar -xvf rootfs.tar ./usr/lib/systemd/system/getty@.service
+    mkdir -p ./etc/systemd/system/
+    cp ./usr/lib/systemd/system/getty@.service ./etc/systemd/system/getty@tty1.service
+    sed -i 's|^ExecStart=.*agetty.*|ExecStart=-/usr/sbin/agetty --autologin root --noclear %I|' ./etc/systemd/system/getty@tty1.service
+    sed -i '/^DefaultInstance=tty1/a Alias=getty@tty1.service' ./etc/systemd/system/getty@tty1.service
+    tar --delete -f rootfs.tar ./etc/systemd/system/getty.target.wants/getty@tty1.service
+    mkdir -p ./etc/systemd/system/getty.target.wants/
+    ln -s /etc/systemd/system/getty@tty1.service ./etc/systemd/system/getty.target.wants/getty@tty1.service
+    tar -uf rootfs.tar ./etc/systemd/system/getty@tty1.service
+    tar -rf rootfs.tar ./etc/systemd/system/getty.target.wants/getty@tty1.service
 
 	gzip -c rootfs.tar > ../rootfs.tar.gz
 	popd || exit
