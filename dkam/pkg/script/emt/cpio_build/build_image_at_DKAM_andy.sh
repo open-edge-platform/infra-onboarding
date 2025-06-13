@@ -196,10 +196,12 @@ extract_emt_tar() {
 	tar -xvf rootfs.tar ./usr/lib/systemd/system/caddy.service
 	sed -i 's|User=caddy|User=root|' ./usr/lib/systemd/system/caddy.service
 	sed -i 's|Group=caddy|Group=root|' ./usr/lib/systemd/system/caddy.service
-	sed -i 's|ExecStartPost=/etc/edge-node/node/confs/post-caddy.sh|ReadWritePaths=/etc/pki/ca-trust|' ./usr/lib/systemd/system/caddy.service
+	# sed -i 's|ProtectSystem=full|ProtectSystem=strict|' ./usr/lib/systemd/system/caddy.service
+	# sed -i 's|ExecStartPost=/etc/edge-node/node/confs/post-caddy.sh|ReadWritePaths=/etc/pki/ca-trust|' ./usr/lib/systemd/system/caddy.service
 	sed -i 's|ExecStartPre=/usr/bin/caddy validate --config /etc/caddy/Caddyfile||' ./usr/lib/systemd/system/caddy.service
 	sed -i 's|ExecReload=/usr/bin/caddy reload --config /etc/caddy/Caddyfile||' ./usr/lib/systemd/system/caddy.service
 	sed -i 's|ExecStart=/usr/bin/caddy run --environ --config /etc/caddy/Caddyfile|ExecStart=/etc/caddy/caddy_run.sh|' ./usr/lib/systemd/system/caddy.service
+	sed -i '/^ExecStart=.*caddy_run\.sh$/a ReadWritePaths=/etc/pki/ca-trust' ./usr/lib/systemd/system/caddy.service
 	sed -i '/^\[Unit\]/,/^$/s/^After=network.target network-online.target/After=network.target network-online.target/' ./usr/lib/systemd/system/caddy.service
 	sed -i '/^\[Unit\]/,/^$/s/^Requires=network-online.target/Requires=network-online.target/' ./usr/lib/systemd/system/caddy.service
 

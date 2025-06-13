@@ -74,7 +74,7 @@ export logging_svc="${logging_svc:-}"
 
 # cp /etc/idp/ca.pem /etc/pki/ca-trust/source/anchors/
 # Update CA certificates
-# update-ca-trust
+update-ca-trust
 # echo "Added CA certificates to trust pool"
 
 exec /usr/bin/caddy run --config /etc/caddy/Caddyfile
