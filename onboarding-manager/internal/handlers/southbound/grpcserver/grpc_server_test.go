@@ -1286,6 +1286,7 @@ func TestNewNonInteractiveOnboardingService(t *testing.T) {
 	}
 }
 
+//nolint:funlen // reason: function is long due to necessary test cases.
 func TestInteractiveOnboardingServiceOnboardNodeStream(t *testing.T) {
 	type fields struct {
 		UnimplementedNonInteractiveOnboardingServiceServer pb.UnimplementedNonInteractiveOnboardingServiceServer
@@ -1586,6 +1587,7 @@ func TestInteractiveOnboardingService_getHostResource(t *testing.T) {
 	}
 }
 
+//nolint:funlen // reason: function is long due to necessary test cases.
 func TestInteractiveOnboardingService_getHostResourcetest(t *testing.T) {
 	type fields struct {
 		UnimplementedNonInteractiveOnboardingServiceServer pb.UnimplementedNonInteractiveOnboardingServiceServer
@@ -2036,6 +2038,7 @@ func TestInteractiveOnboardingService_startZeroTouch_OSSecurityFeatureEnable(t *
 	dao.HardDeleteInstance(t, autoProvInst.GetTenantId(), autoProvInst.GetResourceId())
 }
 
+//nolint:funlen // reason: function is long due to necessary test cases.
 func TestInteractiveOnboardingService_CreateNodes_CaseUpdatedSerialNumberPattern(t *testing.T) {
 	type fields struct {
 		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
@@ -2141,7 +2144,6 @@ func TestInteractiveOnboardingService_CreateNodes_CaseUpdatedSerialNumberPattern
 			wantErr: false,
 		},
 	}
-	//nolint:dupl // These tests cover different scenarios.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &InteractiveOnboardingService{

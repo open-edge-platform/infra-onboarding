@@ -277,7 +277,8 @@ func (s *NonInteractiveOnboardingService) handleDefaultState(
 }
 
 func isSerialNumberValidationError(err error) bool {
-	if validationErr, ok := err.(pb.OnboardNodeStreamRequestValidationError); ok {
+	var validationErr pb.OnboardNodeStreamRequestValidationError
+	if errors.As(err, &validationErr) {
 		if validationErr.Field() == "Serialnum" {
 			return true
 		}
