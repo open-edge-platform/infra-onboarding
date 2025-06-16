@@ -52,6 +52,8 @@ type (
 		SSHKey string
 		// OS resource ID
 		OSResourceID string
+		// IsStandaloneNode indicates whether EN should be provisioned as a standalone node
+		IsStandaloneNode bool
 		// VEN Supported
 		VenSupport bool
 	}
