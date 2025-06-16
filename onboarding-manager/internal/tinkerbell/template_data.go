@@ -8,14 +8,13 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"sort"
 	"strconv"
-	"strings"
 
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/env"
 	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/util"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/cloudinit"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/platformbundle"
 	platformbundleubuntu2204 "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/platformbundle/ubuntu-22.04"
@@ -74,10 +73,6 @@ const (
 	tinkerActionImage2Disk             = "image2disk"
 	tinkerActionWritefile              = "writefile"
 	tinkerActionSecurebootflag         = "securebootflag"
-
-	// Use a delimiter that is highly unlikely to appear in any config or script.
-	// ASCII Unit Separator (0x1F) is a safe choice.
-	customConfigDelimiter = "\x1F"
 )
 
 type TinkerActionImages struct {
@@ -328,7 +323,7 @@ func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.Dev
 
 	inputs.InstallerScript = strconv.Quote(installerScript)
 	inputs.CloudInitData = strconv.Quote(cloudInitData)
-	inputs.CustomConfigs = concatMapValuesSorted(deviceInfo.CustomConfigs)
+	inputs.CustomConfigs = util.ConcatMapValuesSorted(deviceInfo.CustomConfigs)
 
 	inputs.Env = Env{
 		ENProxyHTTP:    infraConfig.ENProxyHTTP,
@@ -337,23 +332,4 @@ func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.Dev
 	}
 
 	return structToMapStringString(inputs), nil
-}
-
-// Helper function to concatenate map values sorted by key,
-// delimited by customConfigDelimiter.
-func concatMapValuesSorted(m map[string]string) string {
-	if m == nil {
-		return ""
-	}
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	// Sort keys alphabetically
-	sort.Strings(keys)
-	values := make([]string, 0, len(keys))
-	for _, k := range keys {
-		values = append(values, m[k])
-	}
-	return strconv.Quote(strings.Join(values, customConfigDelimiter))
 }
