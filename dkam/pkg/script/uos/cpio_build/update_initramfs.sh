@@ -171,9 +171,11 @@ extract_emt_tar() {
 	tar -uf "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/idp
 
     #Copy fluent-bit file and update
+	chmod +x "$PWD"/etc/fluent-bit/fluentbit_run.sh
 	tar -uf "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/fluent-bit/
 
 	#Copy Caddy files and udpate
+	chmod +x "$PWD"/etc/caddy/caddy_run.sh
 	tar -uf "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/caddy/
 
     pushd "$iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/" || exit
