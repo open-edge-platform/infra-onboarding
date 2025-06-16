@@ -36,6 +36,8 @@ var (
 	zlog = logging.GetLogger(name)
 )
 
+const serialNumField = "Serialnum"
+
 type InventoryClientService struct {
 	invClient    *invclient.OnboardingInventoryClient
 	invClientAPI *invclient.OnboardingInventoryClient
@@ -279,7 +281,7 @@ func (s *NonInteractiveOnboardingService) handleDefaultState(
 func serialNumberValidationError(err error) bool {
 	var validationErr pb.OnboardNodeStreamRequestValidationError
 	if errors.As(err, &validationErr) {
-		if validationErr.Field() == "Serialnum" {
+		if validationErr.Field() == serialNumField {
 			return true
 		}
 	}
@@ -544,7 +546,7 @@ func serialNumberValidationErrorIO(err error) bool {
 	for currentErr := err; currentErr != nil; {
 		if e, ok := currentErr.(validationError); ok {
 			// Check if the field is "Serialnum"
-			if e.Field() == "Serialnum" {
+			if e.Field() == serialNumField {
 				return true
 			}
 			// Move to the next error
@@ -570,7 +572,7 @@ func (s *InteractiveOnboardingService) CreateNodes(ctx context.Context, req *pb.
 			zlog.Debug().Msgf("Ignoring serial number validation error: %v", reqValidateerr)
 			for _, nodeData := range req.GetPayload() {
 				for _, hwData := range nodeData.GetHwdata() {
-					hwData.Serialnum = "" // Set serial number to empty string
+					hwData.Serialnum = "N/A" // Set serial number to Not Available
 				}
 			}
 		} else {
