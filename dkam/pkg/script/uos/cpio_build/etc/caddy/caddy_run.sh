@@ -46,7 +46,7 @@ project_id=$(cat /dev/shm/project_id)
 export project_id
 
 # shellcheck source=/dev/null
-.  /etc/emt/env_config
+.  /etc/emf/env_config
 
 host_guid=$(cat /sys/class/dmi/id/product_uuid)
 export host_guid
