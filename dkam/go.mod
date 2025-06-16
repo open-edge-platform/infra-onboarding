@@ -15,7 +15,7 @@ require (
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
-	github.com/open-edge-platform/infra-core/inventory/v2 v2.25.0
+	github.com/open-edge-platform/infra-core/inventory/v2 v2.27.0
 	github.com/prometheus/client_golang v1.22.0
 	github.com/spf13/viper v1.20.0
 	gopkg.in/yaml.v3 v3.0.1
