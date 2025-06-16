@@ -297,8 +297,9 @@ func TestInteractiveOnboardingService_CreateNodes_Case(t *testing.T) {
 					{
 						Hwdata: []*pb.HwData{
 							{
-								Uuid:  "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-								MacId: "00.00.00.00",
+								Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+								MacId:     "00.00.00.00",
+								Serialnum: "N/A",
 							},
 						},
 					},
