@@ -9,14 +9,18 @@ set -xueo pipefail
 data_dir=$1
 
 # shellcheck source=./secure_uos.sh
-source "$(dirname "$0")/secure_uos.sh"
+source secure_uos.sh
 
 pushd ../
 # shellcheck source=../config
-source "$(dirname "$0")/../config"
+source ./config
 popd || exit
 CPIO_OUTPUT=output
 mkdir -p "$CPIO_OUTPUT"
+wget --no-proxy https://af01p-png.devtools.intel.com/artifactory/edge_system-png-local/images/emt_uos_image/emt_uos_x86_64_20250612.1038.tar.gz -O "$data_dir"/emt_uos_x86_64.tar.gz || {
+	echo "Failed to download emt_uos_x86_64.tar.gz"
+	exit 1
+}
 cp "$data_dir"/emt_uos_x86_64.tar.gz "$CPIO_OUTPUT"
 
 LOCATION_OF_EXTRA_FILES=$PWD/etc
@@ -160,7 +164,8 @@ extract_emt_tar() {
 	mv "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/rootfs.tar "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp
 	mkdir -p "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
     #cp $IDP/Intel.crt $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
-
+	cp $IDP/ca.pem $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
+    cp $IDP/server_cert.pem $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
 	#Copy env_config file and idp
 	tar -uf "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/emf/env_config
 	#Workaround for device-discovery
@@ -177,9 +182,16 @@ extract_emt_tar() {
 
     pushd "$iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/" || exit
 	tar -xvf rootfs.tar ./usr/lib/systemd/system/caddy.service
+	sed -i 's|User=caddy|User=root|' ./usr/lib/systemd/system/caddy.service
+	sed -i 's|Group=caddy|Group=root|' ./usr/lib/systemd/system/caddy.service
+	# sed -i 's|ProtectSystem=full|ProtectSystem=strict|' ./usr/lib/systemd/system/caddy.service
+	# sed -i 's|ExecStartPost=/etc/edge-node/node/confs/post-caddy.sh|ReadWritePaths=/etc/pki/ca-trust|' ./usr/lib/systemd/system/caddy.service
+	sed -i 's|ExecStartPre=/usr/bin/caddy validate --config /etc/caddy/Caddyfile||' ./usr/lib/systemd/system/caddy.service
+	sed -i 's|ExecReload=/usr/bin/caddy reload --config /etc/caddy/Caddyfile||' ./usr/lib/systemd/system/caddy.service
 	sed -i 's|ExecStart=/usr/bin/caddy run --environ --config /etc/caddy/Caddyfile|ExecStart=/etc/caddy/caddy_run.sh|' ./usr/lib/systemd/system/caddy.service
-	sed -i '/^\[Unit\]/,/^$/s/^After=network.target network-online.target/After=network.target network-online.target device-discovery.service/' ./usr/lib/systemd/system/caddy.service
-	sed -i '/^\[Unit\]/,/^$/s/^Requires=network-online.target/Requires=network-online.target device-discovery.service/' ./usr/lib/systemd/system/caddy.service
+	sed -i '/^ExecStart=.*caddy_run\.sh$/a ReadWritePaths=/etc/pki/ca-trust' ./usr/lib/systemd/system/caddy.service
+	sed -i '/^\[Unit\]/,/^$/s/^After=network.target network-online.target/After=network.target network-online.target/' ./usr/lib/systemd/system/caddy.service
+	sed -i '/^\[Unit\]/,/^$/s/^Requires=network-online.target/Requires=network-online.target/' ./usr/lib/systemd/system/caddy.service
 
 	tar -xvf rootfs.tar ./usr/lib/systemd/system/fluent-bit.service
 	sed -i 's|ExecStart=/usr/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.conf|ExecStart=/etc/fluent-bit/fluentbit_run.sh|' ./usr/lib/systemd/system/fluent-bit.service
@@ -191,6 +203,8 @@ extract_emt_tar() {
 
 	#Add crt for tink-worker
 	#tar -uf rootfs.tar ./etc/pki/ca-trust/source/anchors/Intel.crt
+	tar -uf rootfs.tar ./etc/pki/ca-trust/source/anchors/server_cert.pem
+	tar -uf rootfs.tar ./etc/pki/ca-trust/source/anchors/ca.pem
 
 	#Add autologin
 	tar -xvf rootfs.tar ./usr/lib/systemd/system/getty@.service
