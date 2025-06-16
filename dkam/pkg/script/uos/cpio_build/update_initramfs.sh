@@ -196,8 +196,13 @@ extract_emt_tar() {
 	sed -i '/^\[Unit\]/,/^$/s/^After=network.target/After=network.target caddy.service/' ./usr/lib/systemd/system/fluent-bit.service
 	sed -i '/^\[Unit\]/,/^$/s/^Requires=network.target/Requires=network.target caddy.service/' ./usr/lib/systemd/system/fluent-bit.service
 	
+	tar -xvf rootfs.tar ./usr/lib/systemd/system/tink-worker.service
+	sed -i '/^\[Unit\]/,/^$/s/^After=network.target/After=network.target caddy.service/' ./usr/lib/systemd/system/tink-worker.service
+	sed -i '/^After=network.target caddy.service$/a Requires=caddy.service' ./usr/lib/systemd/system/tink-worker.service
+
     tar -uf rootfs.tar ./usr/lib/systemd/system/caddy.service
 	tar -uf rootfs.tar ./usr/lib/systemd/system/fluent-bit.service
+	tar -uf rootfs.tar ./usr/lib/systemd/system/tink-worker.service
 
 	#Add crt for tink-worker
 	#tar -uf rootfs.tar ./etc/pki/ca-trust/source/anchors/Intel.crt
