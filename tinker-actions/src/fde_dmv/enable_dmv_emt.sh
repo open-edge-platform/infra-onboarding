@@ -16,8 +16,8 @@ TEST_ENABLE_DM_ON_ROOTFSB=false
 # Test flag for only partition
 TEST_ON_ONLY_ONE_PART=false
 
-# Set PARTITION_MODE to either EN (Edge Node) or VEN (Virtual Edge Node)
-#ENABLE_DMVERITY_VEN=false # Defaelt to EN if not set
+# Set PARTITION_MODE to either standard or small
+#PARTITIONING_SCHEME="standard" # Default
 
 ####
 ####
@@ -772,10 +772,10 @@ EOT
 #####################################################################################
 emt_main_dmv() {
 
-    if [ -z "${ENABLE_DMVERITY_VEN+x}" ] || [ "$ENABLE_DMVERITY_VEN" = "false" ];
+    if [ -z "${PARTITIONING_SCHEME+x}" ] || [ "$PARTITIONING_SCHEME" = "standard" ];
     then
         ven_mode_active=false
-    elif [ "$ENABLE_DMVERITY_VEN" = "true" ];
+    elif [ "$PARTITIONING_SCHEME" = "small" ];
     then 
         ven_mode_active=true
     fi
