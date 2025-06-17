@@ -115,18 +115,29 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 	if err := cmdNbd.Run(); err != nil {
 		return fmt.Errorf("network block device attach failed: %v\nstdout:%s\nstderr:\n%s", err, outBuf.String(), errBuf.String())
 	}
+	log.Info("qemu-nbd connect output", "stdout", outBuf.String(), "stderr", errBuf.String())
 	defer exec.Command("qemu-nbd", "--disconnect", nbdDevice).Run()
 	log.Info("Successfully attached qcow2 image as network block device")
 
-	// Run 'lsblk' and print stdout and stderr
-	cmdLsblk := exec.Command("lsblk")
+	// Run 'lsblk' in a loop until output contains "nbd0p1"
 	var lsblkOut, lsblkErr bytes.Buffer
-	cmdLsblk.Stdout = &lsblkOut
-	cmdLsblk.Stderr = &lsblkErr
-	if err := cmdLsblk.Run(); err != nil {
-		return fmt.Errorf("failed to run lsblk: %v\nstdout:%s\nstderr:\n%s", err, lsblkOut.String(), lsblkErr.String())
+	for {
+		cmdLsblk := exec.Command("lsblk")
+		cmdLsblk.Stdout = &lsblkOut
+		cmdLsblk.Stderr = &lsblkErr
+		if err := cmdLsblk.Run(); err != nil {
+			return fmt.Errorf("failed to run lsblk: %v\nstdout:%s\nstderr:\n%s", err, lsblkOut.String(), lsblkErr.String())
+		}
+		log.Info("lsblk output", "stdout", lsblkOut.String(), "stderr", lsblkErr.String())
+		if bytes.Contains(lsblkOut.Bytes(), []byte("nbd0p1")) {
+			log.Info("Found nbd0p1 in lsblk output, proceeding with installation")
+			break
+		}
+		time.Sleep(2 * time.Second)
+		log.Info("Waiting for nbd0p1 to appear in lsblk output, retrying...")
+		lsblkOut.Reset()
+		lsblkErr.Reset()
 	}
-	log.Info("lsblk output", "stdout", lsblkOut.String(), "stderr", lsblkErr.String())
 
 	cmdLs1 := exec.Command("ls", "/var/lock")
 	var lsOut1, lsErr1 bytes.Buffer
