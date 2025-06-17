@@ -66,6 +66,33 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 		wantErr                bool
 	}{
 		{
+			name: "Success_StandaloneEN",
+			args: args{
+				options: []cloudinit.Option{
+					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
+					cloudinit.WithHostname(testHostname),
+					cloudinit.WithHostMACAddress(testHostMAC),
+					cloudinit.WithRunAsStandalone(),
+				},
+			},
+			expectedOutputFileName: "expected-installer-13.cfg",
+			wantErr:                false,
+		},
+		{
+			name: "Success_StandaloneEN_WithLocalAccount",
+			args: args{
+				options: []cloudinit.Option{
+					cloudinit.WithOSType(osv1.OsType_OS_TYPE_IMMUTABLE),
+					cloudinit.WithHostname(testHostname),
+					cloudinit.WithHostMACAddress(testHostMAC),
+					cloudinit.WithRunAsStandalone(),
+					cloudinit.WithLocalAccount("user", "sshkey"),
+				},
+			},
+			expectedOutputFileName: "expected-installer-14.cfg",
+			wantErr:                false,
+		},
+		{
 			name: "Success_Base_ImmutableOS",
 			args: args{
 				options: []cloudinit.Option{
