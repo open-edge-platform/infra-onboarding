@@ -4,9 +4,7 @@
 
 module github.com/tinkerbell/tink
 
-go 1.23.0
-
-toolchain go1.23.2
+go 1.24.4
 
 require (
 	github.com/containerd/containerd v1.7.27
