@@ -1305,7 +1305,7 @@ func TestInteractiveOnboardingServiceOnboardNodeStream(t *testing.T) {
 
 	t.Setenv("ONBOARDING_MANAGER_CLIENT_NAME", "env")
 	t.Setenv("ONBOARDING_CREDENTIALS_SECRET_NAME", "env")
-	art, art1, art2, art3, art4 := setupMockOnboardNodeStreamServers(host)
+	art, art1, art2, art3 := setupMockOnboardNodeStreamServers(host)
 	currAuthServiceFactory := auth.AuthServiceFactory
 	currFlagDisableCredentialsManagement := *flags.FlagDisableCredentialsManagement
 	t.Cleanup(func() {
@@ -1314,6 +1314,13 @@ func TestInteractiveOnboardingServiceOnboardNodeStream(t *testing.T) {
 	})
 	*flags.FlagDisableCredentialsManagement = false
 	auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(false, false, true)
+	hostWithNASerial := inv_testing.CreateHostWithArgs(t, "host-1", "44414747-3031-3052-b030-453347474122", serialNumberNotAvailable, "", nil, nil, true)
+	art4 := new(MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
+	art4.On("Send", mock.Anything).Return(nil)
+	art4.On("Recv").Return(&pb.OnboardNodeStreamRequest{
+		Serialnum: hostWithNASerial.SerialNumber,
+		Uuid:      host.Uuid,
+	}, nil)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1447,13 +1454,11 @@ func setupMockOnboardNodeStreamServers(host *computev1.HostResource) (
 	streamServer1 *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer,
 	streamServer2 *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer,
 	streamServer3 *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer,
-	streamServer4 *MockNonInteractiveOnboardingServiceOnboardNodeStreamServer,
 ) {
 	art := new(MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
 	art1 := new(MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
 	art2 := new(MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
 	art3 := new(MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
-	art4 := new(MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
 	// Mock the first stream with an error
 	art.On("Recv").Return(&pb.OnboardNodeStreamRequest{}, errors.New("err"))
 
@@ -1481,13 +1486,7 @@ func setupMockOnboardNodeStreamServers(host *computev1.HostResource) (
 		Uuid:      host.Uuid,
 	}, nil)
 
-	art4.On("Send", mock.Anything).Return(nil)
-	art4.On("Recv").Return(&pb.OnboardNodeStreamRequest{
-		Serialnum: "To be Filled",
-		Uuid:      host.Uuid,
-	}, nil)
-
-	return art, art1, art2, art3, art4
+	return art, art1, art2, art3
 }
 
 func TestInteractiveOnboardingService_getHostResource(t *testing.T) {

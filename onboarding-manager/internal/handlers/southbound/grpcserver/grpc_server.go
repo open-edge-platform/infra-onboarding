@@ -36,7 +36,10 @@ var (
 	zlog = logging.GetLogger(name)
 )
 
-const serialNumField = "Serialnum"
+const (
+	serialNumField = "Serialnum"
+	serialNumberNotAvailable = "N/A"
+)
 
 type InventoryClientService struct {
 	invClient    *invclient.OnboardingInventoryClient
@@ -458,7 +461,7 @@ func (s *NonInteractiveOnboardingService) OnboardNodeStream(
 			if serialNumberValidationError(reqValidateerr) {
 				// Log the validation error and proceed with UUID-based provisioning
 				zlog.Debug().Msgf("Ignoring serial number validation error: %v", reqValidateerr)
-				req.Serialnum = "" // Set serial number to empty string
+				req.Serialnum = serialNumberNotAvailable // Set serial number to N/A string
 			} else {
 				// For other validation errors, send an InvalidArgument error response
 				return sendStreamErrorResponse(stream, codes.InvalidArgument, reqValidateerr.Error())
@@ -572,7 +575,7 @@ func (s *InteractiveOnboardingService) CreateNodes(ctx context.Context, req *pb.
 			zlog.Debug().Msgf("Ignoring serial number validation error: %v", reqValidateerr)
 			for _, nodeData := range req.GetPayload() {
 				for _, hwData := range nodeData.GetHwdata() {
-					hwData.Serialnum = "N/A" // Set serial number to Not Available
+					hwData.Serialnum = serialNumberNotAvailable // Set serial number to Not Available
 				}
 			}
 		} else {
