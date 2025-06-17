@@ -1319,7 +1319,7 @@ func TestInteractiveOnboardingServiceOnboardNodeStream(t *testing.T) {
 	art4.On("Send", mock.Anything).Return(nil)
 	art4.On("Recv").Return(&pb.OnboardNodeStreamRequest{
 		Serialnum: hostWithNASerial.SerialNumber,
-		Uuid:      host.Uuid,
+		Uuid:      hostWithNASerial.Uuid,
 	}, nil)
 	tests := []struct {
 		name    string
