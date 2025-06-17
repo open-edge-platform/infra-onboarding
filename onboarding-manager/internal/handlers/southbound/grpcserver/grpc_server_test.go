@@ -1315,7 +1315,7 @@ func TestInteractiveOnboardingServiceOnboardNodeStream(t *testing.T) {
 	*flags.FlagDisableCredentialsManagement = false
 	auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(false, false, true)
 	hostWithNASerial := inv_testing.CreateHostWithArgs(t, "host-1", "44414747-3031-3052-b030-453347474122",
-		serialNumberNotAvailable, "", nil, nil, true)
+		serialNumNotAvailable, "", nil, nil, true)
 	art4 := new(MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
 	art4.On("Send", mock.Anything).Return(nil)
 	art4.On("Recv").Return(&pb.OnboardNodeStreamRequest{

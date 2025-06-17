@@ -37,8 +37,8 @@ var (
 )
 
 const (
-	serialNumField = "Serialnum"
-	serialNumberNotAvailable = "N/A"
+	serialNumField        = "Serialnum"
+	serialNumNotAvailable = "N/A"
 )
 
 type InventoryClientService struct {
@@ -461,7 +461,7 @@ func (s *NonInteractiveOnboardingService) OnboardNodeStream(
 			if serialNumberValidationError(reqValidateerr) {
 				// Log the validation error and proceed with UUID-based provisioning
 				zlog.Debug().Msgf("Ignoring serial number validation error: %v", reqValidateerr)
-				req.Serialnum = serialNumberNotAvailable // Set serial number to N/A string
+				req.Serialnum = serialNumNotAvailable // Set serial number to Not Available
 			} else {
 				// For other validation errors, send an InvalidArgument error response
 				return sendStreamErrorResponse(stream, codes.InvalidArgument, reqValidateerr.Error())
@@ -575,7 +575,7 @@ func (s *InteractiveOnboardingService) CreateNodes(ctx context.Context, req *pb.
 			zlog.Debug().Msgf("Ignoring serial number validation error: %v", reqValidateerr)
 			for _, nodeData := range req.GetPayload() {
 				for _, hwData := range nodeData.GetHwdata() {
-					hwData.Serialnum = serialNumberNotAvailable // Set serial number to Not Available
+					hwData.Serialnum = serialNumNotAvailable // Set serial number to Not Available
 				}
 			}
 		} else {
