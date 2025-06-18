@@ -51,6 +51,13 @@ dependency-check:
 	echo $@
 	@echo "---END MAKEFILE TEST---"
 
+.PHONY: go-dependency-check
+go-dependency-check:
+	@# Help: Runs go-dependency-check stage
+	@echo "---MAKEFILE TEST---"
+	echo $@
+	@echo "---END MAKEFILE TEST---"
+
 .PHONY: build
 build: go-build
 	@# Help: Runs build stage
