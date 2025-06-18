@@ -117,7 +117,7 @@ main() {
 					--data-urlencode "client_id=system-client" \
 					--data-urlencode "scope=openid" | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
 
-		if [ "$access_token" = 'null' ]; then
+		if [ -z "$access_token" ] || [ "$access_token" = 'null' ]; then
 			echo "Error login - retry" >> "$log_file"
 			continue
 		else
