@@ -51,6 +51,9 @@ main() {
 
     # shellcheck source=/dev/null
     . /etc/hook/env_config
+	export http_proxy=${http_proxy:-""}
+	export https_proxy=${https_proxy:-""}
+	export no_proxy=${no_proxy:-""}
 
 	tty_devices="ttyS0 ttyS1 tty0 tty1"
     while [ $a -lt 3 ];
