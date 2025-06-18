@@ -112,7 +112,7 @@ main() {
 					--data-urlencode "password=$password" \
 					--data-urlencode "grant_type=password" \
 					--data-urlencode "client_id=system-client" \
-					--data-urlencode "scope=openid" | jq -r '.access_token')
+					--data-urlencode "scope=openid" | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
 
 		if [ "$access_token" = 'null' ]; then
 			echo "Error login - retry" >> "$log_file"
