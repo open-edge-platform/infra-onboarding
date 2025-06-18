@@ -26,15 +26,3 @@ export GOOS=linux
 export GOARCH=amd64
 
 go build -v -o app
-
-# Build the container
-docker build --no-cache -f Dockerfile \
-	--build-arg HTTP_PROXY="$http_proxy" \
-	--build-arg HTTPS_PROXY="$http_proxy" \
-	--build-arg NO_PROXY="$no_proxy" \
-	--build-arg http_proxy="$http_proxy" \
-	--build-arg https_proxy="$http_proxy" \
-	--build-arg no_proxy="$no_proxy" \
-	-t device-discovery:$ver .
-
-printf "\rSaved the Docker image for device-discovery as device-discovery:%s\n" "$ver"

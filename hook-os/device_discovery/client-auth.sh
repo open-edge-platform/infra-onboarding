@@ -19,160 +19,108 @@ mkdir -p /var/log/client-auth
 touch "$log_file"
 
 # shellcheck disable=SC2016
-enable_tty0() {
-    echo 'False' > /tty0_status_user
-    echo 'False' > /tty0_status_pass
-    echo "Provide Username and password for the IDP" >> "$log_file"
+enable_tty() {
+    tty_device="$1"
 
-	setsid /bin/sh -c "echo -e '\nProvide Username and password for the IDP' <> /dev/tty0 >&0 2>&1"
-    setsid /bin/sh -c 'read -p "Username: " username <> /dev/tty0 >&0 2>&1 && [ ! -z "$username" ] && echo $username > /idp_username && echo "True" > /tty0_status_user'
-    setsid /bin/sh -c 'read -s -p "Password: " password <> /dev/tty0 >&0 2>&1 && [ ! -z "$password" ] && echo $password > /idp_password  && echo "True" > /tty0_status_pass'
-    setsid /bin/sh -c "echo -e '\nUsername, Password received: Processing' <> /dev/tty0 >&0 2>&1"
+    echo 'False' > "/${tty_device}_status_user"
+    echo 'False' > "/${tty_device}_status_pass"
+    echo "${tty_device}: Provide Username and password for the IDP" >> "$log_file"
 
-    userread=$(cat /tty0_status_user)
-    passread=$(cat /tty0_status_pass)
-    if [ "${userread}" = 'True' ] && [ "${passread}" = 'True' ];
-    then
-	finished_read='True'
-	echo "$finished_read" > "$pipe"
-	echo "tty0: Username and password received" >> "$log_file"
-	echo 'False' > /tty0_status_user
-	echo 'False' > /tty0_status_pass
+    setsid /bin/sh -c "echo -e '\nProvide Username and password for the IDP' <> /dev/${tty_device} >&0 2>&1"
+    setsid /bin/sh -c "read -p 'Username: ' username <> /dev/${tty_device} >&0 2>&1 && [ ! -z \"\$username\" ] && echo \$username > /idp_username && echo 'True' > /${tty_device}_status_user"
+    setsid /bin/sh -c "read -s -p 'Password: ' password <> /dev/${tty_device} >&0 2>&1 && [ ! -z \"\$password\" ] && echo \$password > /idp_password  && echo 'True' > /${tty_device}_status_pass"
+    setsid /bin/sh -c "echo -e '\nUsername, Password received: Processing' <> /dev/${tty_device} >&0 2>&1"
+
+    userread=$(cat "/${tty_device}_status_user")
+    passread=$(cat "/${tty_device}_status_pass")
+    if [ "${userread}" = 'True' ] && [ "${passread}" = 'True' ]; then
+        finished_read='True'
+        echo "$finished_read" > "$pipe"
+        echo "${tty_device}: Username and password received" >> "$log_file"
+        echo 'False' > "/${tty_device}_status_user"
+        echo 'False' > "/${tty_device}_status_pass"
     fi
 }
 
-# shellcheck disable=SC2016
-enable_ttyS0() {
-    echo 'False' > /ttys0_status_user
-    echo 'False' > /ttys0_status_pass
-
-    echo "Provide Username and password for the IDP" >> "$log_file"
-	setsid /bin/sh -c "echo -e '\nProvide Username and password for the IDP' <> /dev/ttyS0 >&0 2>&1"
-    setsid /bin/sh -c 'read -p "Username: " username <> /dev/ttyS0 >&0 2>&1 && [ ! -z "$username" ] && echo $username > /idp_username && echo "True" > /ttys0_status_user'
-    setsid /bin/sh -c 'read -s -p "Password: " password <> /dev/ttyS0 >&0 2>&1 && [ ! -z "$password" ] && echo $password > /idp_password  && echo "True" > /ttys0_status_pass'
-    setsid /bin/sh -c "echo -e '\nUsername, Password received: Processing' <> /dev/ttyS0 >&0 2>&1"
-
-    userread=$(cat /ttys0_status_user)
-    passread=$(cat /ttys0_status_pass)
-
-    if [ "${userread}" = 'True' ] && [ "${passread}" = 'True' ];
-    then
-	finished_read='True'
-
-	echo "$finished_read" > "$pipe"
-	echo "ttyS0: Username and password received" >> "$log_file"
-	echo 'False' > /ttys0_status_user
-	echo 'False' > /ttys0_status_pass
-    fi
-    setsid /bin/sh -c "echo 'here-3' <> /dev/ttyS0 >&0 2>&1"
+show_incorrect_credentials() {
+    tty_device="$1"
+    setsid /bin/sh -c "echo -e '\nIncorrect username and password provided.' <> /dev/${tty_device} >&0 2>&1"
 }
-
-# shellcheck disable=SC2016
-enable_ttyS1() {
-    echo 'False' > /ttys1_status_user
-    echo 'False' > /ttys1_status_pass
-    echo "Provide Username and password for the IDP" >> "$log_file"
-	setsid /bin/sh -c "echo -e '\nProvide Username and password for the IDP' <> /dev/ttyS1 >&0 2>&1"
-    setsid /bin/sh -c 'read -p "Username: " username <> /dev/ttyS1 >&0 2>&1 && [ ! -z "$username" ] && echo $username > /idp_username && echo "True" > /ttys1_status_user'
-    setsid /bin/sh -c 'read -s -p "Password: " password <> /dev/ttyS1 >&0 2>&1 && [ ! -z "$password" ] && echo $password > /idp_password  && echo "True" > /ttys1_status_pass'
-    setsid /bin/sh -c "echo -e '\nUsername, Password received: Processing' <> /dev/ttyS1 >&0 2>&1"
-
-    userread=$(cat /ttys1_status_user)
-    passread=$(cat /ttys1_status_pass)
-    if [ "${userread}" = 'True' ] && [ "${passread}" = 'True' ];
-    then
-	finished_read='True'
-	echo "$finished_read" > "$pipe"
-	echo "ttyS1: Username and password received" >> "$log_file"
-	echo 'False' > /ttys1_status_user
-	echo 'False' > /ttys1_status_pass
-    fi
-}
-
 
 main() {
 
     # shellcheck source=/dev/null
     . /etc/hook/env_config
 
+	tty_devices="ttyS0 ttyS1 tty0 tty1"
     while [ $a -lt 3 ];
-    do
-	finished_read='False'
-	a=$((a + 1))
-	echo "Attempt $a to read username and password" >> "$log_file"
-
-	enable_ttyS0 &
-	enable_tty0 &
-	enable_ttyS1 &
-
-	check=0
-	while [ "${finished_read}" != 'True' ]
 	do
-	    sleep 5
-	    finished_read=$(cat "$pipe")
-	    echo "${finished_read}"
-		check=$((check + 1))
-	    if [ "$check" -gt 10 ];
-	    then
-		break
-	    fi
-	done
+		finished_read='False'
+		a=$((a + 1))
+		echo "Attempt $a to read username and password" >> "$log_file"
 
-	username=$(cat /idp_username)
-	password=$(cat /idp_password)
+		for tty in $tty_devices; do
+			enable_tty "$tty" &
+		done
 
-	username=$(echo "$username" | tr -d " "  | tr -d "\n" | tr -d ";")
-	password=$(echo "$password" | tr -d " "  | tr -d "\n" | tr -d ";")
+		check=0
+		while [ "${finished_read}" != 'True' ]
+		do
+			sleep 5
+			finished_read=$(cat "$pipe")
+			echo "${finished_read}"
+			check=$((check + 1))
+			if [ "$check" -gt 10 ];
+			then
+				break
+			fi
+		done
 
-	#username and password checks are done at keycloak this is just to ensure that there was some valid input received
-	# shellcheck disable=SC3037,SC2086
-	if [ "$(echo -n $username | wc -c)" -lt 3 ] || [ "$(echo -n $password | wc -c)" -lt 3 ]; then
-		echo "Incorrect username password" >> "$log_file"
-		continue
-	fi
+		username=$(cat /idp_username)
+		password=$(cat /idp_password)
+
+		username=$(echo "$username" | tr -d " "  | tr -d "\n" | tr -d ";")
+		password=$(echo "$password" | tr -d " "  | tr -d "\n" | tr -d ";")
+
+		#username and password checks are done at keycloak this is just to ensure that there was some valid input received
+		# shellcheck disable=SC3037,SC2086
+		if [ "$(echo -n $username | wc -c)" -lt 3 ] || [ "$(echo -n $password | wc -c)" -lt 3 ]; then
+			echo "Incorrect username password" >> "$log_file"
+			continue
+		fi
  
- 	if [ ! cp /etc/idp/server_cert.pem /etc/pki/ca-trust/source/anchors/server_cert.pem ]; then
-		echo "Failed to copy server_cert.pem to /etc/pki/ca-trust/source/anchors/server_cert.pem" >> "$log_file"
-		exit 1
-	fi
+		if [ ! -e /etc/pki/ca-trust/source/anchors/server_cert.pem ];
+		then
+			echo " IDP ca cert not found at the expected location: reboot" >> "$log_file"
+			sleep 3
+			reboot
+		fi
 
-	if [ ! cp /etc/idp/ca.pem /etc/pki/ca-trust/source/anchors/ca.pem ]; then
-		echo "Failed to copy ca.pem to /etc/pki/ca-trust/source/anchors/ca.pem" >> "$log_file"
-		exit 1
-	fi
- 
-	if [ ! -e /etc/pki/ca-trust/source/anchors/server_cert.pem ];
-	then
-	    echo " IDP ca cert not found at the expected location: reboot" >> "$log_file"
-	    sleep 3
-	    reboot
-	fi
+		update-ca-trust
 
-	update-ca-trust
+		#update hosts if they were provided
+		extra_hosts_needed=$(echo "$EXTRA_HOSTS" | sed "s|,|\n|g")
+		echo "$extra_hosts_needed" >> /etc/hosts
+		echo "adding extras completed" >> "$log_file"
 
-	#update hosts if they were provided
-	extra_hosts_needed=$(echo "$EXTRA_HOSTS" | sed "s|,|\n|g")
-	echo "$extra_hosts_needed" >> /etc/hosts
-	echo "adding extras completed" >> "$log_file"
+		#login to IDP keycloak
+		# proxy if not set then the code will not be able to invoke curl.
 
-	#login to IDP keycloak
-	# proxy if not set then the code will not be able to invoke curl.
+		access_token=$(curl --cacert /etc/pki/ca-trust/source/anchors/server_cert.pem -X POST https://"$KEYCLOAK_URL"/realms/master/protocol/openid-connect/token \
+					-H "Content-Type: application/x-www-form-urlencoded" \
+					--data-urlencode "username=$username" \
+					--data-urlencode "password=$password" \
+					--data-urlencode "grant_type=password" \
+					--data-urlencode "client_id=system-client" \
+					--data-urlencode "scope=openid" | jq -r '.access_token')
 
-	access_token=$(curl --cacert /etc/pki/ca-trust/source/anchors/server_cert.pem -X POST https://"$KEYCLOAK_URL"/realms/master/protocol/openid-connect/token \
-			    -H "Content-Type: application/x-www-form-urlencoded" \
-			    --data-urlencode "username=$username" \
-			    --data-urlencode "password=$password" \
-			    --data-urlencode "grant_type=password" \
-			    --data-urlencode "client_id=system-client" \
-			    --data-urlencode "scope=openid" | jq -r '.access_token')
-
-	if [ "$access_token" = 'null' ]; then
-	    echo "Error login - retry" >> "$log_file"
-	    continue
-	else
-	    password_authenticated=1
-	    break
-	fi
+		if [ "$access_token" = 'null' ]; then
+			echo "Error login - retry" >> "$log_file"
+			continue
+		else
+			password_authenticated=1
+			break
+		fi
 
 
     done
@@ -206,9 +154,9 @@ main() {
 		fi
     else
 		echo "Incorrect username and password provided." >> "$log_file"
-		setsid /bin/sh -c "echo -e '\nIncorrect username and password provided.' <> /dev/ttyS1 >&0 2>&1"
-		setsid /bin/sh -c "echo -e '\nIncorrect username and password provided.' <> /dev/ttyS0 >&0 2>&1"
-		setsid /bin/sh -c "echo -e '\nIncorrect username and password provided.' <> /dev/tty0 >&0 2>&1"
+		for tty in $tty_devices; do
+			show_incorrect_credentials "$tty"
+		done
 		sleep 5
     fi
 }
