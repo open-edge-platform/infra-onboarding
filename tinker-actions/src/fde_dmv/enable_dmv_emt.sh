@@ -768,22 +768,31 @@ EOT
     fi
 }
 
+#####################################################################################
+partitioning_scheme() {
+    total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
 
+    # Only applicable for single HDD.
+    if [ $single_hdd -eq 0 ];
+    then
+	total_size_disk=$(( 100 * 1024 ))
+    fi
+
+    if [ "$total_size_disk" -le 112640 ]; then
+	echo "Disk size is less than or equal to 110GB"
+	echo "PARTITIONING_SCHEME small is enabled"
+	export ven_mode_active=true
+    fi
+}
 #####################################################################################
 emt_main_dmv() {
-
-    if [ -z "${PARTITIONING_SCHEME+x}" ] || [ "$PARTITIONING_SCHEME" = "standard" ];
-    then
-        ven_mode_active=false
-    elif [ "$PARTITIONING_SCHEME" = "small" ];
-    then 
-        ven_mode_active=true
-    fi
 
     echo "Edge Microvisor Toolkit detected"
     get_dest_disk
 
     is_single_hdd
+
+    partitioning_scheme
 
     if [ "$ven_mode_active" = true ];
     then
