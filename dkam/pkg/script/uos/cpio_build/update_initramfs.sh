@@ -214,6 +214,8 @@ extract_emt_tar() {
 	mkdir -p ./etc/systemd/system/
 	cp ./usr/lib/systemd/system/getty@.service ./etc/systemd/system/getty@tty1.service
 	sed -i 's|^ExecStart=.*agetty.*|ExecStart=-/usr/sbin/agetty --autologin root --noclear %I|' ./etc/systemd/system/getty@tty1.service
+	sed -i '/^ConditionPathExists=/a Requires=device-discovery.service' ./etc/systemd/system/getty@tty1.service
+	sed -i '/^ConditionPathExists=/a After=device-discovery.service' ./etc/systemd/system/getty@tty1.service
 	sed -i '/^DefaultInstance=tty1/a Alias=getty@tty1.service' ./etc/systemd/system/getty@tty1.service
 	tar --delete -f rootfs.tar ./etc/systemd/system/getty.target.wants/getty@tty1.service
 	mkdir -p ./etc/systemd/system/getty.target.wants/
