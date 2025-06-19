@@ -10,15 +10,17 @@ import (
 )
 
 const (
-	envHookOSRepo    = "RS_HOOK_OS_REPO"
-	envHookOSVersion = "HOOK_OS_VERSION"
+	envUOSRepo                 = "UOS_REPO"
+	envUOSVersion              = "UOS_VERSION"
+	envNameRsFilesProxyAddress = "RSPROXY_FILES_ADDRESS"
 )
 
 var (
 	// TODO: pass all hook os version and bare metal agent
 	//  versions via configmap or override values to dkam.
-	HookOSRepo    = os.Getenv(envHookOSRepo)
-	HookOSVersion = os.Getenv(envHookOSVersion)
+	UOSRepo        = os.Getenv(envUOSRepo)
+	UOSVersion     = os.Getenv(envUOSVersion)
+	RSProxyAddress = os.Getenv(envNameRsFilesProxyAddress)
 )
 
 var zlog = logging.GetLogger("Env")
@@ -35,6 +37,7 @@ func MustGetEnv(key string) string {
 }
 
 func MustEnsureRequired() {
-	HookOSRepo = MustGetEnv(envHookOSRepo)
-	HookOSVersion = MustGetEnv(envHookOSVersion)
+	UOSRepo = MustGetEnv(envUOSRepo)
+	UOSVersion = MustGetEnv(envUOSVersion)
+	RSProxyAddress = MustGetEnv(envNameRsFilesProxyAddress)
 }
