@@ -1996,7 +1996,7 @@ func TestInteractiveOnboardingService_startZeroTouch_OSSecurityFeatureEnable(t *
 
 	// Create Host and OS resources
 	host := inv_testing.CreateHost(t, nil, nil)
-	osRes := inv_testing.CreateOsWithArgs(t, "", "", "profile:profile",
+	osRes := inv_testing.CreateOsWithArgs(t, "", "profile:profile",
 		osv1.SecurityFeature_SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION, osv1.OsType_OS_TYPE_MUTABLE)
 	dao := inv_testing.NewInvResourceDAOOrFail(t)
 
