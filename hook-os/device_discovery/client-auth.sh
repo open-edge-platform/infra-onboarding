@@ -55,7 +55,7 @@ main() {
 	export https_proxy=${https_proxy:-""}
 	export no_proxy=${no_proxy:-""}
 
-	tty_devices="ttyS0 ttyS1 tty0 tty1"
+	tty_devices="ttyS0 ttyS1 tty0"
     while [ $a -lt 3 ];
 	do
 		finished_read='False'
