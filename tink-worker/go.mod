@@ -4,7 +4,8 @@
 
 module github.com/tinkerbell/tink
 
-go 1.24.4
+// remains with Go 1.24.1 till EMT Go is updated to support Go 1.24.4
+go 1.24.1
 
 require (
 	github.com/containerd/containerd v1.7.27
