@@ -8,7 +8,7 @@ slug: enable-security-features
 
 name: enable-security-features
 
-description: "This action sets up full disk encryption using LUKS to protect data on disk and enables DM-Verity to
+description: "This action sets up full disk encryption using LUKS to protect data on disk and enables DM-Verity(DMV) to
 ensure the root filesystem hasn't been tampered with. It uses TPM for key generation and secure storage, and
 configures encrypted partitions(optional) with integrity verification for enhanced system security."
 
@@ -17,7 +17,6 @@ version: 1.18.1
 | env var | data type | default value | required | description |
 |---------|-----------|---------------|----------|-------------|
 | ENABLE_ONLY_DMVERITY | bool | true | yes |  When set to `true`, only DM-Verity is enabled. Set to `false` FDE, Secure Boot and DM-Verity is enabled. |
-| ENABLE_DMVERITY_VEN | boot | false | no | DM-Verity is applied to Virtual Edge Node specific partitions. Should be set to true only if ENABLE_ONLY_DMVERITY=true |
 
 The below example will enable FDE, DM-V and Secure Boot on the target Edge Node.
 
@@ -28,10 +27,11 @@ actions:
         timeout: 560
         environment:
           ENABLE_ONLY_DMVERITY: false
-  	  ENABLE_DMVERITY_VEN: false
 ```
 
-The below example will enable  DM-V on a Virtual Edge Node.
+The below example will enable  DM-V on a Edge Node.
+If block disks of smaller size(32-110GB) is available then smaller partitioning scheme is used.
+Applicable only for DM-verity.
 
 ```yaml
 actions:
@@ -40,19 +40,6 @@ actions:
         timeout: 560
         environment:
           ENABLE_ONLY_DMVERITY: true
-          ENABLE_DMVERITY_VEN: true
-```
-
-The below example will enable  DM-V on the target Edge Node.
-
-```yaml
-actions:
-    - name: "enable-security-features"
-        image:  registry-rs.edgeorchestration.intel.com/edge-orch/infra/tinker-actions/fde_dmv:1.17.2
-        timeout: 560
-        environment:
-          ENABLE_ONLY_DMVERITY: true
-          ENABLE_DMVERITY_VEN: false (optional)
 ```
 
 This document explains Full Disk Encryption (FDE) and Device Mapper Verity (DM-Verity) implimentation,
@@ -69,6 +56,8 @@ along with the key differences between the two mechanisms and partition scheme.
 - A Trusted Platform Module (TPM) device for key sealing and secure boot.
 - A system with a single or multiple hard disk drives (HDDs) or NVMe drives.
 - Minimum disk size required: 128GB.
+- If the disk size is less than 128GB, the small partition scheme will be applied, and the provisioning
+  process for only DM-Verity.
 
 #### Software
 
