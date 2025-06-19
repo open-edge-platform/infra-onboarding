@@ -18,7 +18,6 @@ version: 1.18.1
 |---------|-----------|---------------|----------|-------------|
 | ENABLE_ONLY_DMVERITY | bool | true | yes |  When set to `true`, only DM-Verity is enabled. Set to `false` FDE, Secure Boot and DM-Verity is enabled. |
 
-
 The below example will enable FDE, DM-V and Secure Boot on the target Edge Node.
 
 ```yaml
@@ -42,7 +41,6 @@ actions:
         environment:
           ENABLE_ONLY_DMVERITY: true
 ```
-
 
 This document explains Full Disk Encryption (FDE) and Device Mapper Verity (DM-Verity) implimentation,
 along with the key differences between the two mechanisms and partition scheme.
