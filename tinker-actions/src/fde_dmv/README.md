@@ -58,8 +58,8 @@ along with the key differences between the two mechanisms and partition scheme.
 - A Trusted Platform Module (TPM) device for key sealing and secure boot.
 - A system with a single or multiple hard disk drives (HDDs) or NVMe drives.
 - Minimum disk size required: 128GB.
-- If disk size is lesser than 128GB user can define PARTITIONING_SCHEME="small" and continue with
-  the provisioning process for only DM-Verity.
+- If the disk size is less than 128GB, the small partition scheme will be applied, and the provisioning
+  process for only DM-Verity.
 
 #### Software
 
