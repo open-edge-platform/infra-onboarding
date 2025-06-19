@@ -164,10 +164,6 @@ extract_emt_tar() {
     cp $IDP/server_cert.pem $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
 	#Copy env_config file and idp
 	tar -uf "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/emf/env_config
-	#Workaround for device-discovery
-	mkdir -p "$PWD"/etc/hook/
-	cp "$PWD"/etc/emf/env_config "$PWD"/etc/hook/env_config
-	tar -uf "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/hook/env_config
 	tar -uf "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/idp
 
     #Copy fluent-bit file and update
