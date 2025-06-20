@@ -7,6 +7,17 @@ AVD-DS-0002
 
 # Ignore vulnerabilities
 
+# Vulnerabilities in fluent-bit
+CVE-2025-4802
+CVE-2023-2953
+CVE-2023-45853
+
+# Vulnerabilities in sqlite-libs
+CVE-2025-29087
+
+# Vulnerabilities in hook-bootkit
+CVE-2025-22874
+
 # Vulnerabilities in hook_dind
 CVE-2024-41110
 CVE-2024-45337

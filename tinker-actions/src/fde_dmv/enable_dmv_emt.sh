@@ -16,8 +16,8 @@ TEST_ENABLE_DM_ON_ROOTFSB=false
 # Test flag for only partition
 TEST_ON_ONLY_ONE_PART=false
 
-# Set PARTITION_MODE to either EN (Edge Node) or VEN (Virtual Edge Node)
-#ENABLE_DMVERITY_VEN=false # Defaelt to EN if not set
+# Set PARTITION_MODE to either standard or small
+#PARTITIONING_SCHEME="standard" # Default
 
 ####
 ####
@@ -768,22 +768,31 @@ EOT
     fi
 }
 
+#####################################################################################
+partitioning_scheme() {
+    total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
 
+    # Only applicable for single HDD.
+    if [ $single_hdd -eq 0 ];
+    then
+	total_size_disk=$(( 100 * 1024 ))
+    fi
+
+    if [ "$total_size_disk" -le 112640 ]; then
+	echo "Disk size is less than or equal to 110GB"
+	echo "PARTITIONING_SCHEME small is enabled"
+	export ven_mode_active=true
+    fi
+}
 #####################################################################################
 emt_main_dmv() {
-
-    if [ -z "${ENABLE_DMVERITY_VEN+x}" ] || [ "$ENABLE_DMVERITY_VEN" = "false" ];
-    then
-        ven_mode_active=false
-    elif [ "$ENABLE_DMVERITY_VEN" = "true" ];
-    then 
-        ven_mode_active=true
-    fi
 
     echo "Edge Microvisor Toolkit detected"
     get_dest_disk
 
     is_single_hdd
+
+    partitioning_scheme
 
     if [ "$ven_mode_active" = true ];
     then
