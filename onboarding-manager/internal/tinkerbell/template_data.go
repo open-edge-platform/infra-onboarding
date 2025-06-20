@@ -14,6 +14,7 @@ import (
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/env"
 	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/util"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/cloudinit"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/platformbundle"
 	platformbundleubuntu2204 "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/platformbundle/ubuntu-22.04"
@@ -26,6 +27,8 @@ const (
 	ActionStreamOSImage            = "stream-os-image"
 	ActionCloudInitInstall         = "install-cloud-init"
 	ActionSystemConfiguration      = "system-configuration"
+	ActionCustomConfigInstall      = "custom-configs"
+	ActionCustomConfigSplit        = "custom-configs-split"
 	ActionInstallScript            = "service-script-for-profile-pkg-and-node-agents-install"
 	ActionEfibootset               = "efibootset-for-diskboot"
 	ActionFdeEncryption            = "fde-encryption"
@@ -95,6 +98,7 @@ type WorkflowInputs struct {
 	DeviceInfo        onboarding_types.DeviceInfo
 	TinkerActionImage TinkerActionImages
 	CloudInitData     string
+	CustomConfigs     string
 	InstallerScript   string
 	// OsResourceID resource ID of Operating System that was specified initially at the provisioning time
 	OsResourceID string
@@ -319,6 +323,8 @@ func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.Dev
 
 	inputs.InstallerScript = strconv.Quote(installerScript)
 	inputs.CloudInitData = strconv.Quote(cloudInitData)
+	inputs.CustomConfigs = util.ConcatMapValuesSorted(deviceInfo.CustomConfigs)
+
 	inputs.Env = Env{
 		ENProxyHTTP:    infraConfig.ENProxyHTTP,
 		ENProxyHTTPS:   infraConfig.ENProxyHTTPS,
