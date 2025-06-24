@@ -30,10 +30,10 @@ jobs:
         with:
           persist-credentials: false
       - name: "Verify Branch Name"
-        uses: open-edge-platform/orch-ci/verify-branch-name@69af6d89005b367c332671121e3481766de8e147  # 0.1.16
+        uses: open-edge-platform/orch-ci/verify-branch-name@37eef2d2a0909dfe8ff26bb0730ab2f13dfbcaf6  # 0.1.25
       - name: "Discover Changed Subfolders"
         id: discover-changes
-        uses: open-edge-platform/orch-ci/discover-changed-subfolders@69af6d89005b367c332671121e3481766de8e147  # 0.1.16
+        uses: open-edge-platform/orch-ci/discover-changed-subfolders@37eef2d2a0909dfe8ff26bb0730ab2f13dfbcaf6  # 0.1.25
       - name: "Filter Out Unwanted Changed Subfolders"
         id: filter-changes
         env:
@@ -56,13 +56,13 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '18'
       - run: |
           npm install -g \
           "markdownlint-cli@${{ env.MARKDOWNLINT_CLI_VER }}"
-      - uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5.5.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         id: setup_python
         with:
           python-version: '3.13'
@@ -85,7 +85,7 @@ jobs:
       fail-fast: false
       matrix:
         project_folder: ${{ fromJson(needs.pre-checks.outputs.filtered_projects) }}
-    uses: open-edge-platform/orch-ci/.github/workflows/pre-merge.yml@69af6d89005b367c332671121e3481766de8e147  # 0.1.16
+    uses: open-edge-platform/orch-ci/.github/workflows/pre-merge.yml@37eef2d2a0909dfe8ff26bb0730ab2f13dfbcaf6  # 0.1.25
     with:
       run_version_check: true
       run_dep_version_check: true
@@ -93,7 +93,7 @@ jobs:
       run_lint: true
       run_test: true
       run_validate_clean_folder: true
-      run_docker_build: true
+      run_docker_build: false
       run_artifact: false
       prefix_tag_separator: "/"
       project_folder: ${{ matrix.project_folder }}
