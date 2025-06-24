@@ -59,6 +59,9 @@ rootfs_roothash_size=50
 #Global var which is updated
 single_hdd=-1
 check_all_disks=1
+
+# Get the user provided lvm disk size number
+lvm_disk_size=$1
 #####################################################################################
 #####################################################################################
 set_ven_partitions() {
@@ -202,10 +205,18 @@ make_partition() {
     total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
     echo "total_size_disk(detected) ${total_size_disk}"
 
-    # For single HDD reduce the size to 100 and fit everything inside it
+    # For single HDD Size should be total disk - lvm_size in GB provided as input by the User
     if [ $single_hdd -eq 0 ];
     then
 	total_size_disk=$(( 100 * 1024 ))
+	if [ $lvm_disk_size -ge 1 ];
+        then
+	    lvm_size=$(( lvm_disk_size*1024 ))
+            if [ "$lvm_size" -ge "$total_size_disk" ];
+	    then
+                check_return_value 1 "$lvm_size is more than the disk size,please check"
+            fi
+	fi
     fi
     echo "total_size_disk(fixed) ${total_size_disk}"
 
@@ -289,12 +300,24 @@ make_partition() {
     fi
 
 
+    # Create LVM for single_hdd only when user chooses
     if [ $single_hdd -eq 0 ];
     then
-	parted -s ${DEST_DISK} \
-	       mkpart lvm ext4 "$(convert_mb_to_sectors "${total_size_disk}" 0)"s 100%
+	if [ $lvm_disk_size -ge 1 ];
+	then
+	    swap_end=$(parted -s "${DEST_DISK}" unit s print | awk '/ 8 / {gsub("s", "", $3); print int($3 * 512 / 1024 / 1024)}')
+	    lvm_start=$((swap_end + 1))
+            lvm_end=$((swap_end + lvm_size))
+	    echo "Creating custom LVM partition from ${lvm_start}MB to ${lvm_end}MB"
+            parted -s ${DEST_DISK} \
+		    mkpart lvm ext4 "$(convert_mb_to_sectors "${lvm_start}" 0)"s "$(convert_mb_to_sectors "${lvm_end}" 1)"s
 
-	check_return_value $? "Failed to create lvm parition"
+            check_return_value $? "Failed to create custom LVM partition"
+        else
+	    parted -s ${DEST_DISK} \
+		    mkpart lvm ext4 "$(convert_mb_to_sectors "${total_size_disk}" 0)"s 100%
+	    check_return_value $? "Failed to create lvm parition"
+	fi
     fi
 
 
@@ -367,9 +390,20 @@ make_partition_ven() {
 
     if [ $single_hdd -eq 0 ];
     then
-        forty_percent=$((remaining_size * 40 / 100))
-        emt_persistent_size=$((forty_percent <= 20480 ? forty_percent : 20480))
-        lvm_size=$((remaining_size - emt_persistent_size))
+	if [ $lvm_disk_size -ge 1 ];
+        then
+            lvm_size=$(( lvm_disk_size*1024 ))
+            emt_persistent_size=$((remaining_size - lvm_size))
+            if [ "$lvm_size" -ge "$total_size_disk" ] || [ "$emt_persistent_size" -le 0 ];
+            then
+                echo "Invalid partitioning: LVM size ($lvm_size) exceeds disk size ($total_size_disk) or persistent size ($emt_persistent_size) is <= 0"
+                exit 1
+            fi
+        else
+            forty_percent=$((remaining_size * 40 / 100))
+            emt_persistent_size=$((forty_percent <= 20480 ? forty_percent : 20480))
+            lvm_size=$((remaining_size - emt_persistent_size))
+        fi
     elif [ "$single_hdd" -ne 0 ];
     then 
         emt_persistent_size=$remaining_size
