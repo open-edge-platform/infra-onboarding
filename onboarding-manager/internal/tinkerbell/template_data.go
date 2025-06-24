@@ -11,10 +11,10 @@ import (
 	"strconv"
 
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/util/collections"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/env"
 	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
-	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/util"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/cloudinit"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/platformbundle"
 	platformbundleubuntu2204 "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/platformbundle/ubuntu-22.04"
@@ -73,6 +73,10 @@ const (
 	tinkerActionImage2Disk             = "image2disk"
 	tinkerActionWritefile              = "writefile"
 	tinkerActionSecurebootflag         = "securebootflag"
+
+	// Use a delimiter that is highly unlikely to appear in any config or script.
+	// ASCII Unit Separator (0x1F) is a safe choice.
+	customConfigDelimiter = "\x1F"
 )
 
 type TinkerActionImages struct {
@@ -323,7 +327,7 @@ func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.Dev
 
 	inputs.InstallerScript = strconv.Quote(installerScript)
 	inputs.CloudInitData = strconv.Quote(cloudInitData)
-	inputs.CustomConfigs = util.ConcatMapValuesSorted(deviceInfo.CustomConfigs)
+	inputs.CustomConfigs = strconv.Quote(collections.ConcatMapValuesSorted(deviceInfo.CustomConfigs, customConfigDelimiter))
 
 	inputs.Env = Env{
 		ENProxyHTTP:    infraConfig.ENProxyHTTP,

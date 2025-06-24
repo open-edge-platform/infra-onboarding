@@ -5,9 +5,6 @@ package util
 
 import (
 	"encoding/json"
-	"sort"
-	"strconv"
-	"strings"
 
 	"google.golang.org/grpc/codes"
 
@@ -21,9 +18,6 @@ import (
 
 const (
 	IsStandaloneMetadataKey = "standalone-node"
-	// Use a delimiter that is highly unlikely to appear in any config or script.
-	// ASCII Unit Separator (0x1F) is a safe choice.
-	customConfigDelimiter = "\x1F"
 )
 
 func IsSameHostStatus(
@@ -155,30 +149,4 @@ func IsStandalone(instance *computev1.InstanceResource) (bool, error) {
 	}
 
 	return isStandaloneMdValue == "true", nil
-}
-
-// Helper function to concatenate map values sorted by key,
-// delimited by customConfigDelimiter.
-func ConcatMapValuesSorted(m map[string]string) string {
-	if len(m) == 0 {
-		return ""
-	}
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	// Sort keys alphabetically
-	sort.Strings(keys)
-	values := make([]string, 0, len(keys))
-	for _, k := range keys {
-		if m[k] != "" {
-			values = append(values, m[k])
-		}
-	}
-
-	if len(values) == 0 {
-		return ""
-	}
-
-	return strconv.Quote(strings.Join(values, customConfigDelimiter))
 }

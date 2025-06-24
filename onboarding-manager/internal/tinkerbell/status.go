@@ -23,11 +23,11 @@ var WorkflowStepToStatusDetail = map[string]string{
 	ActionSystemConfiguration:      "Applying system configuration",
 	ActionKernelupgrade:            "Upgrading kernel",
 	ActionCloudInitInstall:         "Installing cloud-init",
-	// FIXME : Restrict to single action which does a mass copy. 
+	// FIXME : Restrict to single action which does a mass copy.
 	// Scaling becomes a challenge with growing number of actions ITEP-70669
-	ActionCustomConfigInstall:      "Copying custom cloud-init configs",
-	ActionCustomConfigSplit:        "Installing custom cloud-init configs",
-	ActionCloudinitDsidentity:      "Setting up cloud-init",
+	ActionCustomConfigInstall: "Copying custom cloud-init configs",
+	ActionCustomConfigSplit:   "Installing custom cloud-init configs",
+	ActionCloudinitDsidentity: "Setting up cloud-init",
 }
 
 func GenerateStatusDetailFromWorkflowState(workflow *tink.Workflow) string {
