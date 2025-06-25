@@ -1,0 +1,135 @@
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+---
+name: ubuntu
+version: "0.1" # must stay at 0.1 due to v0.10.0 limitations
+global_timeout: 9800
+tasks:
+  - name: "OS provisioning"
+    worker: {{ .DeviceInfoHwMacID }}
+    volumes:
+      - /dev:/dev
+      - /dev/console:/dev/console
+      - /lib/firmware:/lib/firmware:ro
+    actions:
+      - name: "secure-boot-status-flag-read"
+        image: {{ .TinkerActionImageSecureBootFlagRead }}
+        timeout: 560
+        volumes:
+          - /:/host:rw
+        environment:
+          SECURITY_FEATURE_FLAG: "{{ .DeviceInfoSecurityFeature }}"
+      - name: "erase-non-removable-disk"
+        image: {{ .TinkerActionImageEraseNonRemovableDisk }}
+        timeout: 560
+      - name: "stream-os-image"
+        image: {{ .TinkerActionImageQemuNbdImage2Disk }}
+        timeout: 9800
+        pid: "host"
+        environment:
+          IMG_URL: {{ .DeviceInfoOSImageURL }}
+          SHA256: {{ .DeviceInfoOsImageSHA256 }}
+          HTTP_PROXY: {{ .EnvENProxyHTTP }}
+          HTTPS_PROXY: {{ .EnvENProxyHTTPS }}
+          NO_PROXY: {{ .EnvENProxyNoProxy }}
+      - name: "add-apt-proxy"
+        image: {{ .TinkerActionImageWriteFile }}
+        timeout: 90
+        environment:
+          FS_TYPE: ext4
+          DEST_PATH: /etc/apt/apt.conf
+          UID: 0
+          GID: 0
+          MODE: "0755"
+          DIRMODE: "0755"
+          CONTENTS: |
+            Acquire::http::Proxy "{{ .EnvENProxyHTTP }}";
+            Acquire::https::Proxy "{{ .EnvENProxyHTTPS }}";
+      - name: "install-cloud-init"
+        image: {{ .TinkerActionImageWriteFile }}
+        timeout: 90
+        environment:
+          FS_TYPE: ext4
+          DEST_PATH: /etc/cloud/cloud.cfg.d/infra.cfg
+          UID: 0
+          GID: 0
+          MODE: "0755"
+          DIRMODE: "0755"
+          CONTENTS: {{ .CloudInitData }}
+      - name: "cloud-init-ds-identity"
+        image: {{ .TinkerActionImageWriteFile }}
+        timeout: 90
+        environment:
+          FS_TYPE: ext4
+          UID: 0
+          GID: 0
+          MODE: "0600"
+          DIRMODE: "0700"
+          DEST_PATH: /etc/cloud/ds-identify.cfg
+          CONTENTS: |
+            datasource: NoCloud
+      - name: "profile-pkg-and-node-agents-install-script-download"
+        image: {{ .TinkerActionImageWriteFile }}
+        timeout: 90
+        environment:
+          FS_TYPE: ext4
+          UID: 0
+          GID: 0
+          MODE: "0755"
+          DIRMODE: "0755"
+          DEST_PATH: /home/postinstall/Setup/installer.sh
+          CONTENTS: {{ .InstallerScript }}
+      - name: "service-script-for-profile-pkg-and-node-agents-install"
+        image: {{ .TinkerActionImageWriteFile }}
+        timeout: 90
+        environment:
+          FS_TYPE: ext4
+          UID: 0
+          GID: 0
+          MODE: "0644"
+          DIRMODE: "0755"
+          DEST_PATH: /etc/systemd/system/install-profile-pkgs-and-node-agent.service
+          CONTENTS: |
+            [Unit]
+            Description=Profile and node agents Package Installation
+            After=update-netplan.service getty@tty1.service
+            ConditionPathExists = !/home/postinstall/Setup/.base_pkg_install_done
+      
+            [Service]
+            ExecStartPre=/bin/sleep 10
+            WorkingDirectory=/home/postinstall/Setup
+            ExecStart=/home/postinstall/Setup/installer.sh
+            StandardOutput=tty
+            StandardError=tty
+            TTYPath=/dev/tty1
+            Restart=always
+      
+            [Install]
+            WantedBy=multi-user.target
+      - name: "system-configuration"
+        image: {{ .TinkerActionImageCexec }}
+        timeout: 200
+        environment:
+          FS_TYPE: ext4
+          CHROOT: y
+          DEFAULT_INTERPRETER: "/bin/sh -c"
+          CMD_LINE: "
+          systemctl enable install-profile-pkgs-and-node-agent.service &&
+          sed -i 's|ExecStart=/lib/systemd/systemd-networkd-wait-online|ExecStart=/lib/systemd/systemd-networkd-wait-online --timeout=5|' /usr/lib/systemd/system/systemd-networkd-wait-online.service &&
+          systemctl disable snapd.seeded.service"
+{{- if eq .DeviceInfoSecurityFeature "SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION" }}
+      - name: "fde-encryption"
+        image: {{ .TinkerActionImageFdeDmv }}
+        timeout: 560
+{{- end }}
+      - name: "kernel-upgrade"
+        image: {{ .TinkerActionImageKernelUpgrade }}
+        timeout: 9800
+      - name: "efibootset-for-diskboot"
+        image: {{ .TinkerActionImageEfibootset }}
+        timeout: 560
+      - name: "reboot"
+        image: public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest
+        timeout: 90
+        volumes:
+          - "/worker:/worker"

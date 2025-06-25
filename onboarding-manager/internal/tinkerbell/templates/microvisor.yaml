@@ -1,0 +1,68 @@
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+---
+name: microvisor
+version: "0.1" # must stay at 0.1 due to v0.10.0 limitations
+global_timeout: 9800
+tasks:
+  - name: "OS provisioning"
+    worker: {{ .DeviceInfoHwMacID }}
+    volumes:
+      - /dev:/dev
+      - /dev/console:/dev/console
+      - /lib/firmware:/lib/firmware:ro
+    actions:
+      - name: "secure-boot-status-flag-read"
+        image: {{ .TinkerActionImageSecureBootFlagRead }}
+        timeout: 560
+        volumes:
+          - /:/host:rw
+        environment:
+          SECURITY_FEATURE_FLAG: "{{ .DeviceInfoSecurityFeature }}"
+      - name: "erase-non-removable-disk"
+        image: {{ .TinkerActionImageEraseNonRemovableDisk }}
+        timeout: 560
+      - name: "stream-os-image"
+        image: {{ .TinkerActionImageImage2Disk }}
+        timeout: 9800
+        pid: "host"
+        environment:
+          IMG_URL: {{ .DeviceInfoOSImageURL }}
+          SHA256: {{ .DeviceInfoOsImageSHA256 }}
+          COMPRESSED: true
+      - name: "install-cloud-init"
+        image: {{ .TinkerActionImageWriteFile }}
+        timeout: 90
+        environment:
+          FS_TYPE: ext4
+          DEST_PATH: /etc/cloud/cloud.cfg.d/infra.cfg
+          UID: 0
+          GID: 0
+          MODE: "0755"
+          DIRMODE: "0755"
+          CONTENTS: {{ .CloudInitData }}
+      - name: "cloud-init-ds-identity"
+        image: {{ .TinkerActionImageWriteFile }}
+        timeout: 90
+        environment:
+          FS_TYPE: ext4
+          UID: 0
+          GID: 0
+          MODE: "0600"
+          DIRMODE: "0700"
+          DEST_PATH: /etc/cloud/ds-identify.cfg
+          CONTENTS: |
+            datasource: NoCloud
+      - name: "enable-security-features"
+        image: {{ .TinkerActionImageFdeDmv }}
+        timeout: 560
+        environment:
+          ENABLE_ONLY_DMVERITY: "{{- not (eq .DeviceInfoSecurityFeature "SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION") }}"
+      - name: "efibootset-for-diskboot"
+        image: {{ .TinkerActionImageEfibootset }}
+        timeout: 560
+      - name: "reboot"
+        image: public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest
+        timeout: 90
+        volumes:
+          - "/worker:/worker"

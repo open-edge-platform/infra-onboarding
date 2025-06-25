@@ -1,0 +1,40 @@
+---
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+name: Post-Merge Tink Worker
+
+on:
+  push:
+    branches:
+      - main
+      - release-*
+    paths:
+      - "tink-worker/**"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  post-merge-pipeline:
+    permissions:
+      contents: read
+      security-events: write
+      id-token: write
+    uses: open-edge-platform/orch-ci/.github/workflows/post-merge.yml@37eef2d2a0909dfe8ff26bb0730ab2f13dfbcaf6  # 0.1.25
+    with:
+      run_version_check: true
+      run_dep_version_check: true
+      run_build: true
+      run_docker_build: true
+      run_docker_push: true
+      run_version_tag: true
+      prefix_tag_separator: "/"
+      project_folder: "tink-worker"
+    secrets:
+      SYS_ORCH_GITHUB: ${{ secrets.SYS_ORCH_GITHUB }}
+      COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+      COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+      NO_AUTH_ECR_PUSH_USERNAME: ${{ secrets.NO_AUTH_ECR_PUSH_USERNAME }}
+      NO_AUTH_ECR_PUSH_PASSWD: ${{ secrets.NO_AUTH_ECR_PUSH_PASSWD }}
+      MSTEAMS_WEBHOOK: ${{ secrets.TEAMS_WEBHOOK }}

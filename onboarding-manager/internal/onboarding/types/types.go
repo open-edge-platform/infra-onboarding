@@ -50,5 +50,9 @@ type (
 		LocalAccountUserName string
 		// SSh key
 		SSHKey string
+		// OS resource ID
+		OSResourceID string
+		// IsStandaloneNode indicates whether EN should be provisioned as a standalone node
+		IsStandaloneNode bool
 	}
 )

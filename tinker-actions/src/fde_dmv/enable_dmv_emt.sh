@@ -15,6 +15,10 @@ TEST_ENABLE_DM_ON_ROOTFSB=false
 
 # Test flag for only partition
 TEST_ON_ONLY_ONE_PART=false
+
+# Set PARTITION_MODE to either standard or small
+#PARTITIONING_SCHEME="standard" # Default
+
 ####
 ####
 #####################################################################################
@@ -37,6 +41,8 @@ singlehdd_lvm_partition=9
 # DEST_DISK set from the template.yaml file as an environment variable.
 
 #####################################################################################
+
+# Size in MBs for EN
 # Partitions in %
 swap_space_start=91
 
@@ -49,12 +55,21 @@ rootfs_size=3584
 rootfs_hashmap_size=100
 rootfs_roothash_size=50
 
-
 #####################################################################################
 #Global var which is updated
 single_hdd=-1
 check_all_disks=1
 #####################################################################################
+#####################################################################################
+set_ven_partitions() {
+    # Size in MBs for VEN
+    rootfs_size=2048
+    rootfs_hashmap_size=100
+    rootfs_roothash_size=50
+    swap_size=4096
+    reserved_size=3072
+}
+
 #####################################################################################
 fix_partition_suffix() {
     part_variable=''
@@ -289,6 +304,115 @@ make_partition() {
 	mkfs -t ext4 -L root_b -F "${DEST_DISK}${suffix}${rootfs_b_partition}"
 	check_return_value $? "Failed to mkfs rootfs part"
     fi
+}
+
+#####################################################################################
+make_partition_ven() {
+    # Logic for partitioning when PARTITION_MODE is VEN
+
+    total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
+    suffix=$(fix_partition_suffix)
+    boot_size=$(lsblk -bno SIZE "${DEST_DISK}1")
+    boot_size=$((boot_size / 1024 / 1024))  # Convert bytes to MB
+
+    if [ $total_size_disk -lt $((32 * 1024)) ];
+    then
+        echo "Error: Total disk size is less than 32GB. Exiting."
+        exit 1
+    fi
+
+    fixed_size=$((rootfs_size * 2 + rootfs_hashmap_size * 2 + rootfs_roothash_size + swap_size + reserved_size  + boot_size))
+    remaining_size=$((total_size_disk - fixed_size))
+    if [ "$remaining_size" -le 0 ];
+    then
+            echo "Error: Not enough disk space"
+            exit 1
+    fi
+
+    if [ $single_hdd -eq 0 ];
+    then
+        forty_percent=$((remaining_size * 40 / 100))
+        emt_persistent_size=$((forty_percent <= 20480 ? forty_percent : 20480))
+        lvm_size=$((remaining_size - emt_persistent_size))
+    elif [ "$single_hdd" -ne 0 ];
+    then 
+        emt_persistent_size=$remaining_size
+        lvm_size=0
+    fi
+
+
+    rootfs_end=$(parted -s "${DEST_DISK}" unit s print | awk '/ 2 / {gsub("s", "", $3); print int($3 * 512 / 1024 / 1024)}')
+
+    if [ -z "$rootfs_end" ]; then
+        echo "Error: Could not determine end of rootfs_a (sda2)"
+        exit 1
+    fi
+
+     # Compute start points in MB
+    emt_persistent_start_mb=$rootfs_end
+    emt_persistent_end_mb=$((emt_persistent_start_mb + emt_persistent_size))
+    root_hashmap_a_start=$emt_persistent_end_mb
+    root_hashmap_b_start=$((root_hashmap_a_start + rootfs_hashmap_size))
+    rootfs_b_start=$((root_hashmap_b_start + rootfs_hashmap_size))
+    roothash_start=$((rootfs_b_start + rootfs_size))
+    swap_start=$((roothash_start + rootfs_roothash_size))
+    reserved_start=$((swap_start + swap_size))
+    lvm_start=$((reserved_start + reserved_size))
+    lvm_end=$((lvm_start + lvm_size))
+
+    #####
+    # logging needed to understand the block splits
+    echo "DEST_DISK             ${DEST_DISK}"
+    echo "rootfs_partition     $rootfs_partition         rootfs_end           ${rootfs_end}MB"
+    echo "emt_persistent_start ${emt_persistent_start_mb}MB emt_persistent_end   ${emt_persistent_end_mb}MB"
+    echo "root_hashmap_a_start ${root_hashmap_a_start}MB root_hashmap_b_start ${root_hashmap_b_start}MB"
+    echo "root_hashmap_b_start ${root_hashmap_b_start}MB rootfs_b_start       ${rootfs_b_start}MB"
+    echo "rootfs_b_start       ${rootfs_b_start}MB       roothash_start       ${roothash_start}MB"
+    echo "roothash_start       ${roothash_start}MB       swap_start           ${swap_start}MB"
+    echo "swap_start           ${swap_start}MB           reserved_start       ${reserved_start}MB"
+    echo "reserved_start       ${reserved_start}MB	 lvm_start	      ${lvm_start}MB"
+    echo "lvm_start            ${lvm_start}MB            lvm_end              ${lvm_end}MB"
+    #####
+    
+    echo "sizes in sectors"
+    echo "rootfs_partition     $rootfs_partition         rootfs_end             $(convert_mb_to_sectors ${rootfs_end} 1)"
+    echo "emt_persistent_start $(convert_mb_to_sectors ${emt_persistent_start_mb} 0) emt_persistent_end   $(convert_mb_to_sectors ${emt_persistent_end_mb} 1)"
+    echo "root_hashmap_a_start $(convert_mb_to_sectors ${root_hashmap_a_start} 0) root_hashmap_b_start $(convert_mb_to_sectors ${root_hashmap_b_start} 1)"
+    echo "root_hashmap_b_start $(convert_mb_to_sectors ${root_hashmap_b_start} 0) rootfs_b_start       $(convert_mb_to_sectors ${rootfs_b_start} 1)"
+    echo "rootfs_b_start       $(convert_mb_to_sectors ${rootfs_b_start} 0)       roothash_start       $(convert_mb_to_sectors ${roothash_start} 1)"
+    echo "roothash_start       $(convert_mb_to_sectors ${roothash_start} 0)       swap_start           $(convert_mb_to_sectors ${swap_start} 1)"
+    echo "swap_start           $(convert_mb_to_sectors ${swap_start} 0)           reserved_start       $(convert_mb_to_sectors ${reserved_start} 1)"
+    echo "reserved_start       $(convert_mb_to_sectors ${reserved_start} 0)       lvm_start            $(convert_mb_to_sectors ${lvm_start} 1)"
+    echo "lvm_start            $(convert_mb_to_sectors ${lvm_start} 0)            lvm_end              $(convert_mb_to_sectors ${lvm_end} 1)"
+    #####
+
+
+    printf 'Fix\n' | parted ---pretend-input-tty ${DEST_DISK} resizepart $emt_persistent_partition "$(convert_mb_to_sectors "${emt_persistent_end_mb}" 1)"s
+    check_return_value $? "Failed to resize emt persistent"
+
+    parted -s ${DEST_DISK} \
+        mkpart hashmap_a ext4 "$(convert_mb_to_sectors "${root_hashmap_a_start}" 0)"s "$(convert_mb_to_sectors "${root_hashmap_b_start}" 1)"s \
+        mkpart hashmap_b ext4 "$(convert_mb_to_sectors "${root_hashmap_b_start}" 0)"s "$(convert_mb_to_sectors "${rootfs_b_start}" 1)"s \
+        mkpart rootfs_b ext4 "$(convert_mb_to_sectors "${rootfs_b_start}" 0)"s "$(convert_mb_to_sectors "${roothash_start}" 1)"s \
+        mkpart roothash ext4 "$(convert_mb_to_sectors "${roothash_start}" 0)"s "$(convert_mb_to_sectors "${swap_start}" 1)"s \
+        mkpart swap linux-swap "$(convert_mb_to_sectors "${swap_start}" 0)"s "$(convert_mb_to_sectors "${reserved_start}" 1)"s \
+	mkpart reserved ext4  "$(convert_mb_to_sectors "${reserved_start}" 0)"s "$(convert_mb_to_sectors "$((reserved_start + reserved_size))" 1)"s
+
+    check_return_value $? "Failed to create partitions"
+
+    if [ $single_hdd -eq 0 ];
+    then
+        parted -s ${DEST_DISK} \
+            mkpart lvm ext4 "$(convert_mb_to_sectors "${lvm_start}" 0)"s "$(convert_mb_to_sectors "${lvm_end}" 1)"s
+        check_return_value $? "Failed to create LVM partition"
+    fi
+
+    mkfs -t ext4 -L roothash -F "${DEST_DISK}${suffix}${roothash_partition}"
+    check_return_value $? "Failed to mkfs roothash"
+
+    mkfs -t ext4 -L root_b -F "${DEST_DISK}${suffix}${rootfs_b_partition}"
+    check_return_value $? "Failed to mkfs rootfs_b"
+
 }
 
 #####################################################################################
@@ -627,11 +751,13 @@ EOT
 	mount "${DEST_DISK}${suffix}${roothash_partition}" /temp
 	check_return_value $? "Failed to mount rootfs"
 
+        set -o pipefail
 	veritysetup format "${DEST_DISK}${suffix}${rootfs_partition}" "${DEST_DISK}${suffix}${root_hashmap_a_partition}" | grep Root | cut -f2 > /temp/part_a_roothash
 	check_return_value $? "Failed to do veritysetup"
 
 	if $TEST_ENABLE_DM_ON_ROOTFSB;
 	then
+	    set -o pipefail
 	    veritysetup format "${DEST_DISK}${suffix}${rootfs_b_partition}" "${DEST_DISK}${suffix}${root_hashmap_b_partition}" | grep Root | cut -f2 > /temp/part_b_roothash
 	    check_return_value $? "Failed to do veritysetup"
 	fi
@@ -642,11 +768,22 @@ EOT
     fi
 }
 
+#####################################################################################
+partitioning_scheme() {
+    total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
 
+    # Only applicable for single HDD.
+    if [ $single_hdd -eq 0 ];
+    then
+	total_size_disk=$(( 100 * 1024 ))
+    fi
 
-
-
-
+    if [ "$total_size_disk" -le 112640 ]; then
+	echo "Disk size is less than or equal to 110GB"
+	echo "PARTITIONING_SCHEME small is enabled"
+	export ven_mode_active=true
+    fi
+}
 #####################################################################################
 emt_main_dmv() {
 
@@ -655,7 +792,15 @@ emt_main_dmv() {
 
     is_single_hdd
 
-    make_partition
+    partitioning_scheme
+
+    if [ "$ven_mode_active" = true ];
+    then
+        set_ven_partitions
+	make_partition_ven
+    else
+	make_partition
+    fi
 
     enable_dmv
 }
