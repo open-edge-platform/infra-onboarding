@@ -270,9 +270,9 @@ func TestInteractiveOnboardingService_CreateNodes_Case(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Positive test case for creating node",
+			name: "Test case for invalid serial number",
 			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{},
+				invClient:  om_testing.InvClient,
 				enableAuth: true,
 				rbac:       rbacServer,
 			},
@@ -292,8 +292,21 @@ func TestInteractiveOnboardingService_CreateNodes_Case(t *testing.T) {
 					},
 				},
 			},
-			want:    nil,
-			wantErr: true,
+			want: &pb.CreateNodesResponse{
+				Payload: []*pb.NodeData{
+					{
+						Hwdata: []*pb.HwData{
+							{
+								Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+								MacId:     "00.00.00.00",
+								Serialnum: "N/A",
+							},
+						},
+					},
+				},
+				ProjectId: tenant1,
+			},
+			wantErr: false,
 		},
 		{
 			name: "Negative test case for creating node",
@@ -317,189 +330,6 @@ func TestInteractiveOnboardingService_CreateNodes_Case(t *testing.T) {
 						},
 					},
 				},
-			},
-			want:    nil,
-			wantErr: true,
-		},
-	}
-	//nolint:dupl // These tests cover different scenarios.
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &InteractiveOnboardingService{
-				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
-				InventoryClientService: InventoryClientService{
-					invClient: tt.fields.invClient,
-				},
-				authEnabled: tt.fields.enableAuth,
-				rbac:        tt.fields.rbac,
-			}
-			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("InteractiveOnboardingService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("InteractiveOnboardingService.CreateNodes() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestInteractiveOnboardingService_CreateNodes_Case2(t *testing.T) {
-	type fields struct {
-		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
-		invClient                                       *invclient.OnboardingInventoryClient
-		enableAuth                                      bool
-		rbac                                            *rbac.Policy
-	}
-	rbacServer, err := rbac.New(rbacRules)
-	require.NoError(t, err)
-	type args struct {
-		ctx context.Context
-		req *pb.CreateNodesRequest
-	}
-	macID := generateValidMacID()
-	serialnum := serialnum
-
-	hwdata := &pb.HwData{
-		Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-		MacId:     macID,
-		SutIp:     sutIP,
-		Serialnum: serialnum,
-	}
-	hwdatas := []*pb.HwData{hwdata}
-	payload := pb.NodeData{Hwdata: hwdatas}
-	payloads := []*pb.NodeData{&payload}
-	mockRequest := &pb.CreateNodesRequest{
-		Payload: payloads,
-	}
-	tenantID := u_uuid.NewString()
-	ctx, cancel := inv_testing.CreateContextWithJWT(t, tenantID)
-	defer cancel()
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    *pb.CreateNodesResponse
-		wantErr bool
-	}{
-		{
-			name: "Negative",
-			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{},
-				enableAuth: true,
-				rbac:       rbacServer,
-			},
-			args: args{
-				ctx: ctx,
-				req: mockRequest,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "NoJWT",
-			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{},
-				enableAuth: true,
-				rbac:       rbacServer,
-			},
-			args: args{
-				ctx: context.TODO(),
-				req: mockRequest,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-	}
-	//nolint:dupl // These tests cover different scenarios.
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &InteractiveOnboardingService{
-				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
-				InventoryClientService: InventoryClientService{
-					invClient: tt.fields.invClient,
-				},
-				authEnabled: tt.fields.enableAuth,
-				rbac:        tt.fields.rbac,
-			}
-			got, err := s.CreateNodes(tt.args.ctx, tt.args.req)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("InteractiveOnboardingService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("InteractiveOnboardingService.CreateNodes() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestInteractiveOnboardingService_CreateNodes_Case3(t *testing.T) {
-	type fields struct {
-		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
-		invClient                                       *invclient.OnboardingInventoryClient
-		enableAuth                                      bool
-		rbac                                            *rbac.Policy
-	}
-	rbacServer, err := rbac.New(rbacRules)
-	require.NoError(t, err)
-	type args struct {
-		ctx context.Context
-		req *pb.CreateNodesRequest
-	}
-	macID := generateValidMacID()
-	serialnum := serialnum
-
-	hwdata := &pb.HwData{
-		Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
-		MacId:     macID,
-		SutIp:     sutIP,
-		Serialnum: serialnum,
-	}
-	hwdatas := []*pb.HwData{hwdata}
-	payload := pb.NodeData{Hwdata: hwdatas}
-	payloads := []*pb.NodeData{&payload}
-	mockRequest := &pb.CreateNodesRequest{
-		Payload: payloads,
-	}
-	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
-	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
-	om_testing.CreateInventoryOnboardingClientForTesting()
-	t.Cleanup(func() {
-		om_testing.DeleteInventoryOnboardingClientForTesting()
-	})
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    *pb.CreateNodesResponse
-		wantErr bool
-	}{
-		{
-			name: "Positive",
-			fields: fields{
-				invClient:  om_testing.InvClient,
-				enableAuth: true,
-				rbac:       rbacServer,
-			},
-			args: args{
-				ctx: ctx,
-				req: mockRequest,
-			},
-			want:    &pb.CreateNodesResponse{Payload: payloads, ProjectId: tenant1},
-			wantErr: false,
-		},
-		{
-			name: "NoJWT",
-			fields: fields{
-				invClient:  &invclient.OnboardingInventoryClient{},
-				enableAuth: true,
-				rbac:       rbacServer,
-			},
-			args: args{
-				ctx: context.TODO(),
-				req: mockRequest,
 			},
 			want:    nil,
 			wantErr: true,
@@ -1457,6 +1287,7 @@ func TestNewNonInteractiveOnboardingService(t *testing.T) {
 	}
 }
 
+//nolint:funlen // reason: function is long due to necessary test cases.
 func TestInteractiveOnboardingServiceOnboardNodeStream(t *testing.T) {
 	type fields struct {
 		UnimplementedNonInteractiveOnboardingServiceServer pb.UnimplementedNonInteractiveOnboardingServiceServer
@@ -1483,6 +1314,14 @@ func TestInteractiveOnboardingServiceOnboardNodeStream(t *testing.T) {
 	})
 	*flags.FlagDisableCredentialsManagement = false
 	auth.AuthServiceFactory = om_testing.AuthServiceMockFactory(false, false, true)
+	hostWithNASerial := inv_testing.CreateHostWithArgs(t, "host-1", "44414747-3031-3052-b030-453347474122",
+		serialNumNotAvailable, "", nil, nil, true)
+	art4 := new(MockNonInteractiveOnboardingServiceOnboardNodeStreamServer)
+	art4.On("Send", mock.Anything).Return(nil)
+	art4.On("Recv").Return(&pb.OnboardNodeStreamRequest{
+		Serialnum: hostWithNASerial.SerialNumber,
+		Uuid:      hostWithNASerial.Uuid,
+	}, nil)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1534,6 +1373,18 @@ func TestInteractiveOnboardingServiceOnboardNodeStream(t *testing.T) {
 			},
 			args: args{
 				stream: art3,
+			},
+			wantErr: false,
+		},
+		{
+			name: "OnboardNodeStream with incorrect Serial Number",
+			fields: fields{
+				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
+				invClient:    om_testing.InvClient,
+				invClientAPI: &invclient.OnboardingInventoryClient{},
+			},
+			args: args{
+				stream: art4,
 			},
 			wantErr: false,
 		},
@@ -1737,6 +1588,7 @@ func TestInteractiveOnboardingService_getHostResource(t *testing.T) {
 	}
 }
 
+//nolint:funlen // reason: function is long due to necessary test cases.
 func TestInteractiveOnboardingService_getHostResourcetest(t *testing.T) {
 	type fields struct {
 		UnimplementedNonInteractiveOnboardingServiceServer pb.UnimplementedNonInteractiveOnboardingServiceServer
@@ -1754,6 +1606,8 @@ func TestInteractiveOnboardingService_getHostResourcetest(t *testing.T) {
 	host1 := inv_testing.CreateHostWithArgs(t, "host-1", "44414747-3031-3052-b030-453347474122", "", "", nil, nil, true)
 	host2 := inv_testing.CreateHostWithArgs(t, "host-2", "", "ABCDEFG", "", nil, nil, true)
 	host3 := inv_testing.CreateHostWithArgs(t, "host-3", "44414747-3031-3052-b030-453347474166", serialnum, "", nil, nil, true)
+	host4 := inv_testing.CreateHostWithArgs(t, "host-3", "44414747-3031-3052-b030-453347474168", "", "", nil, nil, true)
+	host5 := inv_testing.CreateHostWithArgs(t, "host-3", "44414747-3031-3052-b030-453347474169", "", "", nil, nil, true)
 
 	tests := []struct {
 		name    string
@@ -1807,6 +1661,38 @@ func TestInteractiveOnboardingService_getHostResourcetest(t *testing.T) {
 			},
 			want:    host3,
 			wantErr: true,
+		},
+		{
+			name: "getHostResource test case with serial number empty and correct host uuid",
+			fields: fields{
+				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
+				invClient:    om_testing.InvClient,
+				invClientAPI: &invclient.OnboardingInventoryClient{},
+			},
+			args: args{
+				req: &pb.OnboardNodeStreamRequest{
+					Uuid:      "44414747-3031-3052-b030-453347474168",
+					Serialnum: "",
+				},
+			},
+			want:    host4,
+			wantErr: false,
+		},
+		{
+			name: "getHostResource test case with incorrect serial number and correct host uuid",
+			fields: fields{
+				UnimplementedNonInteractiveOnboardingServiceServer: pb.UnimplementedNonInteractiveOnboardingServiceServer{},
+				invClient:    om_testing.InvClient,
+				invClientAPI: &invclient.OnboardingInventoryClient{},
+			},
+			args: args{
+				req: &pb.OnboardNodeStreamRequest{
+					Uuid:      "44414747-3031-3052-b030-453347474169",
+					Serialnum: "To be filled by O.E.M",
+				},
+			},
+			want:    host5,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -2151,4 +2037,129 @@ func TestInteractiveOnboardingService_startZeroTouch_OSSecurityFeatureEnable(t *
 
 	// Clean up: Delete the created instance
 	dao.HardDeleteInstance(t, autoProvInst.GetTenantId(), autoProvInst.GetResourceId())
+}
+
+//nolint:funlen // reason: function is long due to necessary test cases.
+func TestInteractiveOnboardingService_CreateNodes_CaseUpdatedSerialNumberPattern(t *testing.T) {
+	type fields struct {
+		UnimplementedInteractiveOnboardingServiceServer pb.UnimplementedInteractiveOnboardingServiceServer
+		invClient                                       *invclient.OnboardingInventoryClient
+		enableAuth                                      bool
+		rbac                                            *rbac.Policy
+	}
+	rbacServer, err := rbac.New(rbacRules)
+	require.NoError(t, err)
+	type args struct {
+		ctx context.Context
+		req *pb.CreateNodesRequest
+	}
+	om_testing.CreateInventoryOnboardingClientForTesting()
+	t.Cleanup(func() {
+		om_testing.DeleteInventoryOnboardingClientForTesting()
+	})
+	ctx := inv_testing.CreateIncomingContextWithENJWT(t, context.Background(), tenant1)
+	ctx = tenant.AddTenantIDToContext(ctx, tenant1)
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *pb.CreateNodesResponse
+		wantErr bool
+	}{
+		{
+			name: "Positive test case for creating node",
+			fields: fields{
+				invClient:  om_testing.InvClient,
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: ctx,
+				req: &pb.CreateNodesRequest{
+					Payload: []*pb.NodeData{
+						{
+							Hwdata: []*pb.HwData{
+								{
+									Serialnum: "To be filled",
+									Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+									MacId:     "00.00.00.00",
+								},
+							},
+						},
+					},
+				},
+			},
+			want:    nil,
+			wantErr: false,
+		},
+		{
+			name: "Negative test case - missing tenant in context",
+			fields: fields{
+				invClient:  &invclient.OnboardingInventoryClient{},
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: &pb.CreateNodesRequest{
+					Payload: []*pb.NodeData{
+						{
+							Hwdata: []*pb.HwData{
+								{
+									Serialnum: "To be filled",
+									Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+									MacId:     "00.00.00.00",
+								},
+							},
+						},
+					},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "Negative test case - invalid serial number",
+			fields: fields{
+				invClient:  om_testing.InvClient,
+				enableAuth: true,
+				rbac:       rbacServer,
+			},
+			args: args{
+				ctx: ctx,
+				req: &pb.CreateNodesRequest{
+					Payload: []*pb.NodeData{
+						{
+							Hwdata: []*pb.HwData{
+								{
+									Serialnum: "12",
+									Uuid:      "9fa8a788-f9f8-434a-8620-bbed2a12b0ad",
+									MacId:     "00.00.00.00",
+								},
+							},
+						},
+					},
+				},
+			},
+			want:    nil,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &InteractiveOnboardingService{
+				UnimplementedInteractiveOnboardingServiceServer: tt.fields.UnimplementedInteractiveOnboardingServiceServer,
+				InventoryClientService: InventoryClientService{
+					invClient: tt.fields.invClient,
+				},
+				authEnabled: tt.fields.enableAuth,
+				rbac:        tt.fields.rbac,
+			}
+			_, err := s.CreateNodes(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("InteractiveOnboardingService.CreateNodes() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+	}
 }
