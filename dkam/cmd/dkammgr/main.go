@@ -19,10 +19,8 @@ import (
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/metrics"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/oam"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/tracing"
-	"github.com/open-edge-platform/infra-onboarding/dkam/internal/curation"
 	"github.com/open-edge-platform/infra-onboarding/dkam/internal/dkammgr"
 	"github.com/open-edge-platform/infra-onboarding/dkam/internal/env"
-	dkamflag "github.com/open-edge-platform/infra-onboarding/dkam/internal/flag"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
 )
 
@@ -87,12 +85,6 @@ func main() {
 			zlog.InfraSec().Fatal().Err(err).Msg("Failed to get artifacts")
 		}
 	}()
-
-	if *dkamflag.LegacyMode {
-		if err := curation.CurateLegacyScript(); err != nil {
-			zlog.InfraSec().Fatal().Err(err).Msg("Failed to curate Installer in the legacy mode")
-		}
-	}
 
 	setupOamServerAndSetReady(*enableTracing, *oamServerAddress)
 

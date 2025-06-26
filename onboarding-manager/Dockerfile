@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-FROM golang:1.24.1-bookworm as builder
+FROM golang:1.24.4-bookworm as builder
 
 ENV GO111MODULE=on
 ARG MAKE_TARGET=go-build

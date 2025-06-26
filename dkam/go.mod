@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 module github.com/open-edge-platform/infra-onboarding/dkam
 
-go 1.24.1
+go 1.24.4
 
 require (
 	github.com/fsnotify/fsnotify v1.8.0
@@ -15,7 +15,7 @@ require (
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
-	github.com/open-edge-platform/infra-core/inventory/v2 v2.25.0
+	github.com/open-edge-platform/infra-core/inventory/v2 v2.26.3-0.20250611095359-3d196af3ec71
 	github.com/prometheus/client_golang v1.22.0
 	github.com/spf13/viper v1.20.0
 	gopkg.in/yaml.v3 v3.0.1
