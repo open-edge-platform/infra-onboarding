@@ -12,5 +12,5 @@ if [ -z "$EDGENODE_UUID" ]; then
 fi
 echo "EDGENODE_UUID: $EDGENODE_UUID"
 
-echo "starting fluentbit container.."
-/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml
+echo "starting fluentbit process.."
+exec /bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml

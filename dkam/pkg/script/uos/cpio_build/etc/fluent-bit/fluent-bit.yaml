@@ -4,13 +4,13 @@
 service:
   flush: 30
   log_level: debug
-  parsers_file: /fluent-bit/etc/parsers.conf
+  parsers_file: /etc/fluent-bit/parsers.conf
   log_file: /var/log/fb-uos.log
 
 pipeline:
   inputs:
     - name: tail
-      path: /var/log/client-auth/*client-auth.*log
+      path: /var/log/client-auth/client-auth.log
       read_from_head: true
       tag: uOS_clientAuthLog
       processors:
@@ -56,7 +56,6 @@ pipeline:
     - name: systemd
       systemd_filter:
       - _SYSTEMD_UNIT=caddy.service
-      read_from_head: true
       tag: uOS_caddyLogs
       processors:
         logs:
@@ -79,7 +78,6 @@ pipeline:
     - name: systemd
       systemd_filter:
       - _SYSTEMD_UNIT=tink-worker.service
-      read_from_head: true
       tag: uOS_bootkitLogs
       processors:
         logs:
@@ -100,12 +98,6 @@ pipeline:
             value: "edgenode_provisioning"
 
   outputs:
-    - name: file
-      match: '*'
-      path: "/var/log"
-      file: "uos.log"
-      format: "out_file"
-
     - name: opentelemetry
       match: '*'
       host: localhost
