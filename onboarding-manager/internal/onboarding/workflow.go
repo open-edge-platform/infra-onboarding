@@ -122,6 +122,13 @@ func runProdWorkflow(
 		deviceInfo.SSHKey = instance.GetLocalaccount().SshKey
 	}
 
+	if len(instance.CustomConfig) != 0 {
+		deviceInfo.CustomConfigs = make(map[string]string)
+		for _, customCfg := range instance.CustomConfig {
+			deviceInfo.CustomConfigs[customCfg.Name] = customCfg.Config
+		}
+	}
+
 	templateName, found := templates.OSTypeToTemplateName[deviceInfo.OsType]
 	if !found {
 		return inv_errors.Errorf("Cannot find Tinkerbell template for OS type %s", deviceInfo.OsType)

@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/util/collections"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/env"
 	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
@@ -26,6 +27,8 @@ const (
 	ActionStreamOSImage            = "stream-os-image"
 	ActionCloudInitInstall         = "install-cloud-init"
 	ActionSystemConfiguration      = "system-configuration"
+	ActionCustomConfigInstall      = "custom-configs"
+	ActionCustomConfigSplit        = "custom-configs-split"
 	ActionInstallScript            = "service-script-for-profile-pkg-and-node-agents-install"
 	ActionEfibootset               = "efibootset-for-diskboot"
 	ActionFdeEncryption            = "fde-encryption"
@@ -70,6 +73,10 @@ const (
 	tinkerActionImage2Disk             = "image2disk"
 	tinkerActionWritefile              = "writefile"
 	tinkerActionSecurebootflag         = "securebootflag"
+
+	// Use a delimiter that is highly unlikely to appear in any config or script.
+	// ASCII Unit Separator (0x1F) is a safe choice.
+	customConfigDelimiter = "\x1F"
 )
 
 type TinkerActionImages struct {
@@ -95,6 +102,7 @@ type WorkflowInputs struct {
 	DeviceInfo        onboarding_types.DeviceInfo
 	TinkerActionImage TinkerActionImages
 	CloudInitData     string
+	CustomConfigs     string
 	InstallerScript   string
 	// OsResourceID resource ID of Operating System that was specified initially at the provisioning time
 	OsResourceID string
@@ -319,6 +327,8 @@ func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.Dev
 
 	inputs.InstallerScript = strconv.Quote(installerScript)
 	inputs.CloudInitData = strconv.Quote(cloudInitData)
+	inputs.CustomConfigs = strconv.Quote(collections.ConcatMapValuesSorted(deviceInfo.CustomConfigs, customConfigDelimiter))
+
 	inputs.Env = Env{
 		ENProxyHTTP:    infraConfig.ENProxyHTTP,
 		ENProxyHTTPS:   infraConfig.ENProxyHTTPS,
