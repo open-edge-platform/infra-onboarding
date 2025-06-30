@@ -50,7 +50,7 @@ tasks:
         timeout: 90
         environment:
           FS_TYPE: ext4
-          DEST_PATH: /etc/cloud/cloud.cfg.d/infra.cfg
+          DEST_PATH: /etc/cloud/cloud.cfg.d/99_infra.cfg
           UID: 0
           GID: 0
           MODE: "0755"
@@ -77,7 +77,7 @@ tasks:
           DEFAULT_INTERPRETER: "/bin/sh -c"
           CMD_LINE: |
             awk -v RS='\x1F' 'BEGIN{i=0} {
-              fn=sprintf("/etc/cloud/cloud.cfg.d/%02d-infra.cfg", i++);
+              fn=sprintf("/etc/cloud/cloud.cfg.d/%02d_infra.cfg", i++);
               print > fn; close(fn); system("chmod 755 " fn)
             }' /etc/cloud/cloud.cfg.d/custom.cfg &&
             rm -f /etc/cloud/cloud.cfg.d/custom.cfg
