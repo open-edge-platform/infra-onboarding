@@ -30,6 +30,9 @@ tasks:
           IMG_URL: {{ .DeviceInfoOSImageURL }}
           SHA256: {{ .DeviceInfoOsImageSHA256 }}
           COMPRESSED: true
+          HTTP_PROXY: {{ .EnvENProxyHTTP }}
+          HTTPS_PROXY: {{ .EnvENProxyHTTPS }}
+          NO_PROXY: {{ .EnvENProxyNoProxy }}
       - name: "install-cloud-init"
         image: {{ .TinkerActionImageWriteFile }}
         timeout: 90
