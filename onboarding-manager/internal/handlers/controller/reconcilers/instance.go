@@ -7,6 +7,7 @@ package reconcilers
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	"google.golang.org/grpc/codes"
 	grpc_status "google.golang.org/grpc/status"
@@ -374,9 +375,16 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		zlogInst.Debug().Msgf("Pulling %s image from %s", desiredOs.GetProfileName(), desiredOs.GetImageUrl())
 		osLocationURL = desiredOs.GetImageUrl()
 	case osv1.OsType_OS_TYPE_IMMUTABLE:
-		// Microvisor can be pulled drirectly from Release Server or CDN Server
-		zlogInst.Debug().Msgf("Pulling %s image Pulling from CDN/RS Servers", desiredOs.GetProfileName())
-		osLocationURL = fmt.Sprintf("http://%s/%s", localHostIP, desiredOs.GetImageUrl())
+		osLocationURL := desiredOs.GetImageUrl()
+	        _, err := url.ParseRequestURI(osLocationURL)
+	        if err != nil {
+			// Microvisor can be pulled drirectly from Release Server or CDN Server
+		        zlogInst.Debug().Msgf("Pulling %s image Pulling from CDN/RS Servers", desiredOs.GetProfileName())
+		        osLocationURL = fmt.Sprintf("http://%s/%s", localHostIP, osLocationURL)
+		}
+		else {
+			zlogInst.Debug().Msgf("Pulling %s image from %s", desiredOs.GetProfileName(), osLocationURL)
+		}
 	default:
 		invErr := inv_errors.Errorf("Unsupported OS type %v, may result in wrong installation artifacts path",
 			desiredOs.GetOsType())
