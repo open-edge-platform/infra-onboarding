@@ -10,7 +10,7 @@ path = [
 
     "**.md",
     "pkg/cloudinit/testout/*",
-    "pkg/cloudinit/infra.cfg",
+    "pkg/cloudinit/99_infra.cfg",
     "api/buf.lock",
     "pkg/api/onboardingmgr/v1/*.pb.*go"
 ]

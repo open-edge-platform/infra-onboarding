@@ -50,12 +50,38 @@ tasks:
         timeout: 90
         environment:
           FS_TYPE: ext4
-          DEST_PATH: /etc/cloud/cloud.cfg.d/infra.cfg
+          DEST_PATH: /etc/cloud/cloud.cfg.d/99_infra.cfg
           UID: 0
           GID: 0
           MODE: "0755"
           DIRMODE: "0755"
           CONTENTS: {{ .CloudInitData }}
+{{- if gt (len .CustomConfigs) 0 }}
+      - name: "custom-configs"
+        image: {{ .TinkerActionImageWriteFile }}
+        timeout: 90
+        environment:
+          FS_TYPE: ext4
+          DEST_PATH: /etc/cloud/cloud.cfg.d/custom.cfg
+          UID: 0
+          GID: 0
+          MODE: "0755"
+          DIRMODE: "0755"
+          CONTENTS: {{ .CustomConfigs }}
+      - name: "custom-configs-split"
+        image: {{ .TinkerActionImageCexec }}
+        timeout: 200
+        environment:
+          FS_TYPE: ext4
+          CHROOT: y
+          DEFAULT_INTERPRETER: "/bin/sh -c"
+          CMD_LINE: |
+            awk -v RS='\x1F' 'BEGIN{i=0} {
+              fn=sprintf("/etc/cloud/cloud.cfg.d/%02d_infra.cfg", i++);
+              print > fn; close(fn); system("chmod 755 " fn)
+            }' /etc/cloud/cloud.cfg.d/custom.cfg &&
+            rm -f /etc/cloud/cloud.cfg.d/custom.cfg
+{{- end }} 
       - name: "cloud-init-ds-identity"
         image: {{ .TinkerActionImageWriteFile }}
         timeout: 90

@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	//go:embed infra.cfg
+	//go:embed 99_infra.cfg
 	cloudInitTemplate string
 
 	zlog = logging.GetLogger("CloudInitGenerator")
