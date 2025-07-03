@@ -314,7 +314,7 @@ make_partition() {
 
     # Save the emt persistent
     # this is needed because we need to resize the rootfs a
-    ##############	
+    ##############
     #save using dd
     dd if="${DEST_DISK}${suffix}${emt_persistent_partition}" of="${DEST_DISK}${suffix}${reserved_partition}" bs=4M status=progress conv=sparse count=$emt_persistent_dd_count
     sync
@@ -334,7 +334,7 @@ make_partition() {
     parted -s ${DEST_DISK} \
 	   resizepart $rootfs_partition "$(convert_mb_to_sectors "${rootfs_a_end}" 1)"s \
 	   mkpart edge_persistent ext4 "$(convert_mb_to_sectors "${rootfs_a_end}" 0)"s "$(convert_mb_to_sectors "${emt_persistent_end}" 1)"s
-    
+
     # restore the copied data from reserved
     #backup using dd
     dd if="${DEST_DISK}${suffix}${reserved_partition}" of="${DEST_DISK}${suffix}${emt_persistent_partition}" bs=4M status=progress conv=sparse count=$emt_persistent_dd_count
@@ -808,17 +808,19 @@ EOT
 partitioning_scheme() {
     total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
 
+    if [ "$total_size_disk" -le 112640 ]; then
+	echo "Disk size is less than or equal to 110GB"
+	echo "PARTITIONING_SCHEME small is enabled"
+	export ven_mode_active=true
+	return
+    fi
+
     # Only applicable for single HDD.
     if [ $single_hdd -eq 0 ];
     then
 	total_size_disk=$(( 100 * 1024 ))
     fi
 
-    if [ "$total_size_disk" -le 112640 ]; then
-	echo "Disk size is less than or equal to 110GB"
-	echo "PARTITIONING_SCHEME small is enabled"
-	export ven_mode_active=true
-    fi
 }
 #####################################################################################
 emt_main_dmv() {
