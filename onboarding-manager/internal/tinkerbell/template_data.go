@@ -327,12 +327,7 @@ func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.Dev
 
 	inputs.InstallerScript = strconv.Quote(installerScript)
 	inputs.CloudInitData = strconv.Quote(cloudInitData)
-	concatenated := collections.ConcatMapValuesSorted(deviceInfo.CustomConfigs, customConfigDelimiter)
-	if concatenated != "" {
-		inputs.CustomConfigs = strconv.Quote(concatenated)
-	} else {
-		inputs.CustomConfigs = ""
-	}
+	inputs.CustomConfigs = getCustomConfigs(deviceInfo)
 
 	inputs.Env = Env{
 		ENProxyHTTP:    infraConfig.ENProxyHTTP,
@@ -341,4 +336,12 @@ func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.Dev
 	}
 
 	return structToMapStringString(inputs), nil
+}
+
+func getCustomConfigs(deviceInfo onboarding_types.DeviceInfo) string {
+	concatenated := collections.ConcatMapValuesSorted(deviceInfo.CustomConfigs, customConfigDelimiter)
+	if concatenated != "" {
+		return strconv.Quote(concatenated)
+	}
+	return ""
 }
