@@ -60,7 +60,7 @@ func createOsWithArgs(tb testing.TB, doCleanup bool,
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	osr = &osv1.OperatingSystemResource{
-		Name:              "for unit testing purposes",
+		Name:              "test-os-" + getFirstNChars(getMD5Hash(fmt.Sprintf("%d", time.Now().UnixNano())), 8),
 		UpdateSources:     []string{"test entries"},
 		ImageUrl:          "example.raw.gz",
 		ProfileName:       inv_testing.GenerateRandomProfileName(),

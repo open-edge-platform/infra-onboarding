@@ -7,7 +7,7 @@ This document provides guidance on how to ensure compatibility with cloud-init w
 
 # Overview of Edge Infrastructure Manager cloud-init
 
-The [inframanager cloud-init](./../pkg/cloudinit/infra.cfg) is intended to be an OS-independent mechanism that is limited to providing a Day0/Day1 configuration for Edge Nodes. 
+The [inframanager cloud-init](./../pkg/cloudinit/99_infra.cfg) is intended to be an OS-independent mechanism that is limited to providing a Day0/Day1 configuration for Edge Nodes. 
 
 It is worth noting that the goal of cloud-init should be to provide a static configuration files or perform OS configurations that are self-contained and don't require network connectivity. Any more advanced steps should be performed by the [platform bundle script](./../platform-bundle/README.md).
 
