@@ -444,7 +444,7 @@ make_partition_ven() {
     if [ $single_hdd -eq 0 ];
     then
         parted -s ${DEST_DISK} \
-            mkpart lvm ext4 "$(convert_mb_to_sectors "${lvm_start}" 0)"s "$(convert_mb_to_sectors "${lvm_end}" 1)"s
+            mkpart lvm ext4 "$(convert_mb_to_sectors "${lvm_start}" 0)"s 100%
         check_return_value $? "Failed to create LVM partition"
     fi
 
@@ -690,6 +690,8 @@ enable_dmv(){
 
 
     format_verity_part
+    e2fsck -fy "${DEST_DISK}${suffix}${emt_persistent_partition}"
+    check_return_value $? "Fix the file system of persistent partition"
 
     resize2fs -f "${DEST_DISK}${suffix}${emt_persistent_partition}"
     check_return_value $? "Failed to resize fs of persistent partition"
