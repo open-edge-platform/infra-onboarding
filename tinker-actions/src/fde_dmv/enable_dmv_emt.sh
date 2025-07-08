@@ -38,7 +38,6 @@ swap_partition=8
 reserved_partition=9
 singlehdd_lvm_partition=10
 
-
 # DEST_DISK set from the template.yaml file as an environment variable.
 
 #####################################################################################
@@ -64,7 +63,7 @@ check_all_disks=1
 #####################################################################################
 set_ven_partitions() {
     # Size in MBs for VEN
-    rootfs_size=2048
+    rootfs_size=4096
     rootfs_hashmap_size=100
     rootfs_roothash_size=50
     swap_size=4096
@@ -347,6 +346,7 @@ make_partition_ven() {
     # Logic for partitioning when PARTITION_MODE is VEN
 
     total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
+    echo "total_size_disk(detected) ${total_size_disk}"
     suffix=$(fix_partition_suffix)
     boot_size=$(lsblk -bno SIZE "${DEST_DISK}1")
     boot_size=$((boot_size / 1024 / 1024))  # Convert bytes to MB
@@ -377,17 +377,17 @@ make_partition_ven() {
     fi
 
 
-    rootfs_end=$(parted -s "${DEST_DISK}" unit s print | awk '/ 2 / {gsub("s", "", $3); print int($3 * 512 / 1024 / 1024)}')
+    rootfs_a_end=$(parted -s "${DEST_DISK}" unit s print | awk '/ 2 / {gsub("s", "", $3); print int($3 * 512 / 1024 / 1024)}')
 
-    if [ -z "$rootfs_end" ]; then
+    if [ -z "$rootfs_a_end" ]; then
         echo "Error: Could not determine end of rootfs_a (sda2)"
         exit 1
     fi
 
      # Compute start points in MB
-    emt_persistent_start_mb=$rootfs_end
-    emt_persistent_end_mb=$((emt_persistent_start_mb + emt_persistent_size))
-    root_hashmap_a_start=$emt_persistent_end_mb
+    emt_persistent_start=$rootfs_a_end
+    emt_persistent_end=$((emt_persistent_start + emt_persistent_size))
+    root_hashmap_a_start=$emt_persistent_end
     root_hashmap_b_start=$((root_hashmap_a_start + rootfs_hashmap_size))
     rootfs_b_start=$((root_hashmap_b_start + rootfs_hashmap_size))
     roothash_start=$((rootfs_b_start + rootfs_size))
@@ -396,11 +396,16 @@ make_partition_ven() {
     lvm_start=$((reserved_start + reserved_size))
     lvm_end=$((lvm_start + lvm_size))
 
+    #save this size of emt persistent before partition
+    suffix=$(fix_partition_suffix)
+    emt_persistent_dd_count=$(fdisk -l ${DEST_DISK} | grep "${DEST_DISK}${suffix}${emt_persistent_partition}" | awk '{print int( ($4/2048/4) + 0.999999) }')
+    export emt_persistent_dd_count
+
     #####
     # logging needed to understand the block splits
     echo "DEST_DISK             ${DEST_DISK}"
     echo "rootfs_partition     $rootfs_partition         rootfs_end           ${rootfs_end}MB"
-    echo "emt_persistent_start ${emt_persistent_start_mb}MB emt_persistent_end   ${emt_persistent_end_mb}MB"
+    echo "emt_persistent_start ${emt_persistent_start}MB emt_persistent_end   ${emt_persistent_end}MB"
     echo "root_hashmap_a_start ${root_hashmap_a_start}MB root_hashmap_b_start ${root_hashmap_b_start}MB"
     echo "root_hashmap_b_start ${root_hashmap_b_start}MB rootfs_b_start       ${rootfs_b_start}MB"
     echo "rootfs_b_start       ${rootfs_b_start}MB       roothash_start       ${roothash_start}MB"
@@ -412,7 +417,7 @@ make_partition_ven() {
     
     echo "sizes in sectors"
     echo "rootfs_partition     $rootfs_partition         rootfs_end             $(convert_mb_to_sectors ${rootfs_end} 1)"
-    echo "emt_persistent_start $(convert_mb_to_sectors ${emt_persistent_start_mb} 0) emt_persistent_end   $(convert_mb_to_sectors ${emt_persistent_end_mb} 1)"
+    echo "emt_persistent_start $(convert_mb_to_sectors ${emt_persistent_start} 0) emt_persistent_end   $(convert_mb_to_sectors ${emt_persistent_end} 1)"
     echo "root_hashmap_a_start $(convert_mb_to_sectors ${root_hashmap_a_start} 0) root_hashmap_b_start $(convert_mb_to_sectors ${root_hashmap_b_start} 1)"
     echo "root_hashmap_b_start $(convert_mb_to_sectors ${root_hashmap_b_start} 0) rootfs_b_start       $(convert_mb_to_sectors ${rootfs_b_start} 1)"
     echo "rootfs_b_start       $(convert_mb_to_sectors ${rootfs_b_start} 0)       roothash_start       $(convert_mb_to_sectors ${roothash_start} 1)"
@@ -423,7 +428,7 @@ make_partition_ven() {
     #####
 
 
-    printf 'Fix\n' | parted ---pretend-input-tty ${DEST_DISK} resizepart $emt_persistent_partition "$(convert_mb_to_sectors "${emt_persistent_end_mb}" 1)"s
+    printf 'Fix\n' | parted ---pretend-input-tty ${DEST_DISK} resizepart $emt_persistent_partition "$(convert_mb_to_sectors "${emt_persistent_end}" 1)"s
     check_return_value $? "Failed to resize emt persistent"
 
     parted -s ${DEST_DISK} \
@@ -439,7 +444,7 @@ make_partition_ven() {
     if [ $single_hdd -eq 0 ];
     then
         parted -s ${DEST_DISK} \
-            mkpart lvm ext4 "$(convert_mb_to_sectors "${lvm_start}" 0)"s "$(convert_mb_to_sectors "${lvm_end}" 1)"s
+            mkpart lvm ext4 "$(convert_mb_to_sectors "${lvm_start}" 0)"s 100%
         check_return_value $? "Failed to create LVM partition"
     fi
 
@@ -448,6 +453,35 @@ make_partition_ven() {
 
     mkfs -t ext4 -L root_b -F "${DEST_DISK}${suffix}${rootfs_b_partition}"
     check_return_value $? "Failed to mkfs rootfs_b"
+
+    # Save the emt persistent
+    # this is needed because we need to resize the rootfs a
+    ##############
+    #save using dd
+    dd if="${DEST_DISK}${suffix}${emt_persistent_partition}" of="${DEST_DISK}${suffix}${reserved_partition}" bs=4M status=progress conv=sparse count=$emt_persistent_dd_count
+    sync
+    ##############
+
+    # delete the complete emt persistent partition
+    parted -s ${DEST_DISK} \
+	   rm "${emt_persistent_partition}"
+
+    #resize rootfs a partition
+    rootfs_a_start=$(parted ${DEST_DISK} unit MB print | awk '/^ '$rootfs_partition'/ {gsub(/MB/, "", $2); print $2}')
+
+    #end size of rootfs a partition
+    rootfs_a_end=$(( rootfs_a_start + rootfs_size ))
+
+    # resize part a
+    parted -s ${DEST_DISK} \
+	   resizepart $rootfs_partition "$(convert_mb_to_sectors "${rootfs_a_end}" 1)"s \
+	   mkpart edge_persistent ext4 "$(convert_mb_to_sectors "${rootfs_a_end}" 0)"s "$(convert_mb_to_sectors "${emt_persistent_end}" 1)"s
+
+    # restore the copied data from reserved
+    #backup using dd
+    dd if="${DEST_DISK}${suffix}${reserved_partition}" of="${DEST_DISK}${suffix}${emt_persistent_partition}" bs=4M status=progress conv=sparse count=$emt_persistent_dd_count
+    sync
+    ##############
 
 }
 
@@ -656,6 +690,8 @@ enable_dmv(){
 
 
     format_verity_part
+    e2fsck -fy "${DEST_DISK}${suffix}${emt_persistent_partition}"
+    check_return_value $? "Fix the file system of persistent partition"
 
     resize2fs -f "${DEST_DISK}${suffix}${emt_persistent_partition}"
     check_return_value $? "Failed to resize fs of persistent partition"
@@ -818,7 +854,7 @@ partitioning_scheme() {
     # Only applicable for single HDD.
     if [ $single_hdd -eq 0 ];
     then
-	total_size_disk=$(( 100 * 1024 ))
+        total_size_disk=$(( 100 * 1024 ))
     fi
 
 }
