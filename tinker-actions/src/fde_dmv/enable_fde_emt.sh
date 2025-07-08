@@ -59,7 +59,7 @@ tep_size=14336
 reserved_size=5120
 boot_size=5120600
 bare_min_rootfs_size=25
-rootfs_size=3584
+rootfs_size=4096
 rootfs_hashmap_size=100
 rootfs_roothash_size=50
 
@@ -323,6 +323,35 @@ make_partition() {
 	mkfs -t ext4 -L root_b -F "${DEST_DISK}${suffix}${rootfs_b_partition}"
 	check_return_value $? "Failed to mkfs rootfs part"
     fi
+
+    # Save the emt persistent
+    # this is needed because we need to resize the rootfs a
+    ##############
+    #save using dd
+    dd if="${DEST_DISK}${suffix}${emt_persistent_partition}" of="${DEST_DISK}${suffix}${reserved_partition}" bs=4M status=progress conv=sparse count=$emt_persistent_dd_count
+    sync
+    ##############
+
+    # delete the complete emt persistent partition
+    parted -s ${DEST_DISK} \
+	   rm "${emt_persistent_partition}"
+
+    #resize rootfs a partition
+    rootfs_a_start=$(parted ${DEST_DISK} unit MB print | awk '/^ '$rootfs_partition'/ {gsub(/MB/, "", $2); print $2}')
+
+    #end size of rootfs a partition
+    rootfs_a_end=$(( rootfs_a_start + rootfs_size ))
+
+    # resize part a
+    parted -s ${DEST_DISK} \
+	   resizepart $rootfs_partition "$(convert_mb_to_sectors "${rootfs_a_end}" 1)"s \
+	   mkpart edge_persistent ext4 "$(convert_mb_to_sectors "${rootfs_a_end}" 0)"s "$(convert_mb_to_sectors "${emt_persistent_end}" 1)"s
+
+    # restore the copied data from reserved
+    #backup using dd
+    dd if="${DEST_DISK}${suffix}${reserved_partition}" of="${DEST_DISK}${suffix}${emt_persistent_partition}" bs=4M status=progress conv=sparse count=$emt_persistent_dd_count
+    sync
+    ##############
 }
 
 #####################################################################################
