@@ -283,7 +283,7 @@ make_partition() {
 	       mkpart rootfs_b ext4 "${rootfs_b_start}MB" "${swap_start}MB" \
 	       mkpart swap linux-swap "${swap_start}MB" "${tep_start}MB" \
 	       mkpart tep ext4 "${tep_start}MB"  "${reserved_start}MB" \
-	       mkpart reserved_partition ext4 "${reserved_start}MB"  "${total_size_disk}MB"
+	       mkpart reserved ext4 "${reserved_start}MB"  "${total_size_disk}MB"
 
 	check_return_value $? "Failed to create paritions"
     fi
@@ -437,7 +437,7 @@ make_partition_ven() {
         mkpart rootfs_b ext4 "$(convert_mb_to_sectors "${rootfs_b_start}" 0)"s "$(convert_mb_to_sectors "${roothash_start}" 1)"s \
         mkpart roothash ext4 "$(convert_mb_to_sectors "${roothash_start}" 0)"s "$(convert_mb_to_sectors "${swap_start}" 1)"s \
         mkpart swap linux-swap "$(convert_mb_to_sectors "${swap_start}" 0)"s "$(convert_mb_to_sectors "${reserved_start}" 1)"s \
-	mkpart reserved_partition ext4  "$(convert_mb_to_sectors "${reserved_start}" 0)"s "$(convert_mb_to_sectors "$((reserved_start + reserved_size))" 1)"s
+	mkpart reserved ext4  "$(convert_mb_to_sectors "${reserved_start}" 0)"s "$(convert_mb_to_sectors "$((reserved_start + reserved_size))" 1)"s
 
     check_return_value $? "Failed to create partitions"
 
