@@ -206,7 +206,7 @@ make_partition() {
 
     swap_size=$(( $swap_size * 1024 ))
 
-    total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
+    total_size_disk=$(( $(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ printf "%.0f\n", $1 / (1024*1024) }') - 1 ))
 
     # For single HDD reduce the size to 100 and fit everything inside it
     if [ $single_hdd -eq 0 ];
