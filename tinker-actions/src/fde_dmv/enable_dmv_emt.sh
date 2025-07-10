@@ -202,7 +202,7 @@ make_partition() {
 
     swap_size=$(( swap_size * 1024 ))
 
-    total_size_disk=$(( $(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ printf "%.0f\n", $1 / (1024*1024) }') - 1 ))
+    total_size_disk=$(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ printf "%.0f\n", $1 / (1024*1024) }')
     echo "total_size_disk(detected) ${total_size_disk}"
 
     # For single HDD Size should be total disk - lvm_size in GB provided as input by the User
@@ -373,7 +373,7 @@ make_partition() {
 make_partition_ven() {
     # Logic for partitioning when PARTITION_MODE is VEN
 
-    total_size_disk=$(( $(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ printf "%.0f\n", $1 / (1024*1024) }') - 1 ))
+    total_size_disk=$(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ printf "%.0f\n", $1 / (1024*1024) }')
     echo "total_size_disk(detected) ${total_size_disk}"
     suffix=$(fix_partition_suffix)
     boot_size=$(lsblk -bno SIZE "${DEST_DISK}1")
@@ -888,7 +888,7 @@ EOT
 
 #####################################################################################
 partitioning_scheme() {
-    total_size_disk=$(( $(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ printf "%.0f\n", $1 / (1024*1024) }') - 1 ))
+    total_size_disk=$(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ printf "%.0f\n", $1 / (1024*1024) }')
 
 
     if [ "$total_size_disk" -le 112640 ]; then
