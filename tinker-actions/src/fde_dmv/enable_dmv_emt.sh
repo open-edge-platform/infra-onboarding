@@ -890,7 +890,6 @@ EOT
 partitioning_scheme() {
     total_size_disk=$(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ printf "%.0f\n", $1 / (1024*1024) }')
 
-
     if [ "$total_size_disk" -le 112640 ]; then
 	echo "Disk size is less than or equal to 110GB"
 	echo "PARTITIONING_SCHEME small is enabled"
