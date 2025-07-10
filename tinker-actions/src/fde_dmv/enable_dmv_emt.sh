@@ -59,6 +59,9 @@ rootfs_roothash_size=50
 #Global var which is updated
 single_hdd=-1
 check_all_disks=1
+
+# Get the user provided lvm disk size number
+lvm_disk_size=$1
 #####################################################################################
 #####################################################################################
 set_ven_partitions() {
@@ -199,13 +202,28 @@ make_partition() {
 
     swap_size=$(( swap_size * 1024 ))
 
-    total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
+    total_size_disk=$(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ printf "%.0f\n", $1 / (1024*1024) }')
     echo "total_size_disk(detected) ${total_size_disk}"
 
-    # For single HDD reduce the size to 100 and fit everything inside it
+    # For single HDD Size should be total disk - lvm_size in GB provided as input by the User
     if [ $single_hdd -eq 0 ];
     then
-	total_size_disk=$(( 100 * 1024 ))
+	if [ $lvm_disk_size -ge 1 ];
+        then
+	    lvm_size=$(( lvm_disk_size*1024 ))
+            if [ "$lvm_size" -ge "$total_size_disk" ];
+	    then
+                check_return_value 1 "$lvm_size is more than the disk size,please check"
+	    else
+		total_size_disk=$(( 100 * 1024 ))
+		if [ "$lvm_size" -ge "$total_size_disk" ];
+		then
+		    echo "LVM partition will be created after the 100GB boundary"
+		else
+                    total_size_disk=$(( total_size_disk - lvm_size ))
+		fi
+            fi
+	fi
     fi
     echo "total_size_disk(fixed) ${total_size_disk}"
 
@@ -289,12 +307,22 @@ make_partition() {
     fi
 
 
+    # Create LVM for single_hdd only when user chooses
     if [ $single_hdd -eq 0 ];
     then
-	parted -s ${DEST_DISK} \
-	       mkpart lvm ext4 "$(convert_mb_to_sectors "${total_size_disk}" 0)"s 100%
-
-	check_return_value $? "Failed to create lvm parition"
+        if [ $lvm_disk_size -ge 1 ];
+	then
+	    reserved_end=$(parted -s "${DEST_DISK}" unit s print | awk '/ 9 / {gsub("s", "", $3); print int($3 * 512 / 1024 / 1024)}')
+	    lvm_start=$((reserved_end + 1))
+	    lvm_end=$((lvm_start + lvm_size))
+            parted -s ${DEST_DISK} \
+                    mkpart lvm ext4 "$(convert_mb_to_sectors "${lvm_start}" 0)"s "$(convert_mb_to_sectors "${lvm_end}" 1)"s
+            check_return_value $? "Failed to create LVM partition"
+        else
+	    parted -s ${DEST_DISK} \
+		    mkpart lvm ext4 "$(convert_mb_to_sectors "${total_size_disk}" 0)"s 100%
+	    check_return_value $? "Failed to create lvm parition"
+	fi
     fi
 
 
@@ -345,7 +373,7 @@ make_partition() {
 make_partition_ven() {
     # Logic for partitioning when PARTITION_MODE is VEN
 
-    total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
+    total_size_disk=$(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ printf "%.0f\n", $1 / (1024*1024) }')
     echo "total_size_disk(detected) ${total_size_disk}"
     suffix=$(fix_partition_suffix)
     boot_size=$(lsblk -bno SIZE "${DEST_DISK}1")
@@ -367,9 +395,21 @@ make_partition_ven() {
 
     if [ $single_hdd -eq 0 ];
     then
-        forty_percent=$((remaining_size * 40 / 100))
-        emt_persistent_size=$((forty_percent <= 20480 ? forty_percent : 20480))
-        lvm_size=$((remaining_size - emt_persistent_size))
+	if [ $lvm_disk_size -ge 1 ];
+        then
+            lvm_size=$(( lvm_disk_size*1024 ))
+	    if [ "$lvm_size" -ge "$total_size_disk" ];
+	    then
+                check_return_value 1 "$lvm_size is more than the disk size,please check"
+            else
+		total_size_disk=$(( total_size_disk - lvm_size ))
+		emt_persistent_size=$((total_size_disk - fixed_size))
+            fi
+        else
+            forty_percent=$((remaining_size * 40 / 100))
+            emt_persistent_size=$((forty_percent <= 20480 ? forty_percent : 20480))
+            lvm_size=$((remaining_size - emt_persistent_size))
+        fi
     elif [ "$single_hdd" -ne 0 ];
     then 
         emt_persistent_size=$remaining_size
@@ -443,9 +483,16 @@ make_partition_ven() {
 
     if [ $single_hdd -eq 0 ];
     then
-        parted -s ${DEST_DISK} \
-            mkpart lvm ext4 "$(convert_mb_to_sectors "${lvm_start}" 0)"s 100%
-        check_return_value $? "Failed to create LVM partition"
+	if [ $lvm_disk_size -ge 1 ];
+        then
+	    parted -s ${DEST_DISK} \
+		    mkpart lvm ext4 "$(convert_mb_to_sectors "${total_size_disk}" 0)"s 100%
+	    check_return_value $? "Failed to create LVM partition"
+	else
+            parted -s ${DEST_DISK} \
+		    mkpart lvm ext4 "$(convert_mb_to_sectors "${lvm_start}" 0)"s 100%
+	    check_return_value $? "Failed to create LVM partition"
+	fi
     fi
 
     mkfs -t ext4 -L roothash -F "${DEST_DISK}${suffix}${roothash_partition}"
@@ -841,7 +888,7 @@ EOT
 
 #####################################################################################
 partitioning_scheme() {
-    total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
+    total_size_disk=$(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ printf "%.0f\n", $1 / (1024*1024) }')
 
     if [ "$total_size_disk" -le 112640 ]; then
 	echo "Disk size is less than or equal to 110GB"
