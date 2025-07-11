@@ -458,7 +458,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 				fileData, err := os.ReadFile(currentDir + "/testout/" + tt.expectedOutputFileName)
 				require.NoError(t, err)
 
-				require.Equal(t, got, string(fileData))
+				require.Equal(t, string(fileData), got)
 			}
 		})
 	}

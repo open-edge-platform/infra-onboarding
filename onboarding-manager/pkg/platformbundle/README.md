@@ -11,7 +11,7 @@ packages and configuration. Currently, the only supported OS is Ubuntu 22.04 and
 
 The platform bundle script is a bash script that installs additional packages and configures the base OS.
 
-First and foremost, we decouple the provisioning of Day0/Day1 configuration from the platform bundle. The Day0/Day1 configuration is provisioned via [inframanager cloud-init](./../pkg/cloudinit/infra.cfg).
+First and foremost, we decouple the provisioning of Day0/Day1 configuration from the platform bundle. The Day0/Day1 configuration is provisioned via [inframanager cloud-init](./../pkg/cloudinit/99_infra.cfg).
 The platform bundle script should rely on the existence of the following configuration files that cloud-init writes to the OS file system:
 
 - `/etc/intel_edge_node/client-credentials/client_id` - a file that contains the client ID for JWT authorization
