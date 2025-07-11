@@ -93,7 +93,7 @@ func TestDownloadMicroOS(t *testing.T) {
 	defer svr.Close()
 
 	// Override the RSProxy with test HTTP server
-	env.HookOSRepo = svr.URL + "/manifest/hookOS"
+	env.UOSRepo = svr.URL + "/manifest/hookOS"
 	dir := config.PVC
 	mkdirerr := os.MkdirAll(dir, 0o755)
 	if mkdirerr != nil {
