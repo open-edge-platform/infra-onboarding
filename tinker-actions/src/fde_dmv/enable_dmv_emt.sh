@@ -61,7 +61,7 @@ single_hdd=-1
 check_all_disks=1
 
 # Get the user provided lvm disk size number
-lvm_disk_size=$1
+lvm_disk_size=0
 #####################################################################################
 #####################################################################################
 set_ven_partitions() {
