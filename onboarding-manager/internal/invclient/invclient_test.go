@@ -806,6 +806,7 @@ func TestOnboardingInventoryClient_GetInstanceResourceByResourceID(t *testing.T)
 	osRes := inv_testing.CreateOs(t)
 	inst := inv_testing.CreateInstance(t, host, osRes)
 	inst.DesiredOs = osRes
+	inst.Os = osRes
 	inst.CurrentOs = osRes
 	inst.Host = host
 	type args struct {
