@@ -16,6 +16,9 @@ TEST_ENABLE_DM_ON_ROOTFSB=false
 # Test flag for only partition
 TEST_ON_ONLY_ONE_PART=false
 
+# Get the user provided lvm disk size number
+LVM_DISK_SIZE=0
+
 # Set PARTITION_MODE to either standard or small
 #PARTITIONING_SCHEME="standard" # Default
 
@@ -60,8 +63,6 @@ rootfs_roothash_size=50
 single_hdd=-1
 check_all_disks=1
 
-# Get the user provided lvm disk size number
-lvm_disk_size=0
 #####################################################################################
 #####################################################################################
 set_ven_partitions() {
