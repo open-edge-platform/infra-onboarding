@@ -124,13 +124,6 @@ uefi_sign_vmlinuz() {
 
 generate_pk_kek_db() {
 
-    #verfy that pk kek db is already present.
-    # if [ -d "$SB_KEYS_DIR" ] || [ -f "$SB_KEYS_DIR"/db.crt ] ;
-    # then
-    #     echo "Seems like Secure boot "$SB_KEYS_DIR" are already present. Reusing the same"
-    #     return
-    # fi
-
     mkdir -p "$SB_KEYS_DIR"
     pushd "$SB_KEYS_DIR" || exit
 
@@ -175,10 +168,8 @@ package_signed_UOS(){
         echo "Path /data exists."
         cp "$UOS_SECUREBOOT"/uos_sign_temp/initramfs-x86_64 /data
         cp "$UOS_SECUREBOOT"/uos_sign_temp/vmlinuz-x86_64 /data
-        #cp "$UOS_SECUREBOOT"/hook_sign_temp/hook_x86_64.tar.gz /data
     else
         echo "Path /data does not exist."
-        #mv -f "$UOS_SECUREBOOT"/hook_sign_temp/hook_x86_64.tar.gz "$UOS_SECUREBOOT"/hook_x86_64.tar.gz
     fi 
 
     popd || exit
