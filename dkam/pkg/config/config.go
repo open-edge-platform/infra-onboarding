@@ -74,6 +74,8 @@ type InfraConfig struct {
 	FirewallCfgAllow string `mapstructure:"firewallCfgAllow"`
 
 	ENManifest ENManifest
+
+	EMBImageURL string `mapstructure:"embImageUrl"`
 }
 
 // Edge Node Agents release manifest.

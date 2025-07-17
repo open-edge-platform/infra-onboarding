@@ -7,6 +7,7 @@
 
 set -xueo pipefail
 data_dir=$1
+uos_file_name="emb_uos_x86_64.tar.gz"
 
 # shellcheck source=./secure_uos.sh
 source secure_uos.sh
@@ -17,7 +18,7 @@ source ./config
 popd || exit
 CPIO_OUTPUT=output
 mkdir -p "$CPIO_OUTPUT"
-cp "$data_dir"/emt_uos_x86_64.tar.gz "$CPIO_OUTPUT"
+cp "$data_dir"/$uos_file_name "$CPIO_OUTPUT"
 
 LOCATION_OF_EXTRA_FILES=$PWD/etc
 LOCATION_OF_ENV_CONFIG=$PWD/etc/emf/env_config
@@ -117,9 +118,9 @@ extract_emt_tar() {
     do
         echo "$iter_folder"
 	    mkdir -p "$iter_folder"/emt_uos_x86_64_files
-	if ! tar -xf "$iter_folder"/emt_uos_x86_64.tar.gz -C "$iter_folder"/emt_uos_x86_64_files;
+	if ! tar -xf "$iter_folder"/$uos_file_name -C "$iter_folder"/emt_uos_x86_64_files;
 	then
-	    echo "unable to uncompress tar $iter_folder/emt_uos_x86_64.tar.gz"
+	    echo "unable to uncompress tar $iter_folder/$uos_file_name"
 	    exit 1
 	fi
 
@@ -228,9 +229,9 @@ extract_emt_tar() {
 
 	popd || exit
     #     ls $iter_folder/
-	# rm $iter_folder/emt_uos_x86_64.tar.gz
+	# rm $iter_folder/$uos_file_name
 	# rm -rf $iter_folder/emt_uos_x86_64_files/extract_initramfs
-	# tar -czvf $iter_folder/emt_uos_x86_64.tar.gz -C $iter_folder/emt_uos_x86_64_files . > /dev/null 2>&1
+	# tar -czvf $iter_folder/$uos_file_name -C $iter_folder/emt_uos_x86_64_files . > /dev/null 2>&1
 	# rm -rf $iter_folder/emt_uos_x86_64_files/
     done
 
