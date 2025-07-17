@@ -110,18 +110,10 @@ get_cert(){
 #
 extract_emt_tar() {
 
-    uos_tar_files_to_update=("$CPIO_OUTPUT" )
-
-    # run this for alpine_image folder and alpine_image_secureboot.
-    # In current case we dont need to run the loop for secureboot.
-    # But keeping the loop logic so that in future if needed and be enabled.
-    for iter_folder in  "${uos_tar_files_to_update[@]}";
-    do
-        echo "$iter_folder"
-	    mkdir -p $EXTRACTED_FILES_LOCATION
-	if ! tar -xf "$iter_folder"/$uos_file_name -C $EXTRACTED_FILES_LOCATION;
+	mkdir -p $EXTRACTED_FILES_LOCATION
+	if ! tar -xf "$CPIO_OUTPUT"/$uos_file_name -C $EXTRACTED_FILES_LOCATION;
 	then
-	    echo "unable to uncompress tar $iter_folder/$uos_file_name"
+	    echo "unable to uncompress tar $CPIO_OUTPUT/$uos_file_name"
 	    exit 1
 	fi
 
@@ -234,7 +226,6 @@ extract_emt_tar() {
 	# rm -rf $EXTRACTED_FILES_LOCATION/extract_initramfs
 	# tar -czvf $iter_folder/$uos_file_name -C $EXTRACTED_FILES_LOCATION . > /dev/null 2>&1
 	# rm -rf $iter_folder/emt_uos_x86_64_files/
-    done
 
 }
 
