@@ -72,6 +72,31 @@ export release_svc="${release_svc:-}"
 export tink_server_svc="${tink_server_svc:-}"
 export logging_svc="${logging_svc:-}"
 
+if [ -z "$oci_release_svc" ]; then
+    echo "oci_release_svc is empty. Exiting..."
+    exit 1
+fi
+
+if [ -z "$tink_stack_svc" ]; then
+    echo "tink_stack_svc is empty. Exiting..."
+    exit 1
+fi
+
+if [ -z "$release_svc" ]; then
+    echo "release_svc is empty. Exiting..."
+    exit 1
+fi
+
+if [ -z "$tink_server_svc" ]; then
+    echo "tink_server_svc is empty. Exiting..."
+    exit 1
+fi
+
+if [ -z "$logging_svc" ]; then
+    echo "logging_svc is empty. Exiting..."
+    exit 1
+fi
+
 # cp /etc/idp/ca.pem /etc/pki/ca-trust/source/anchors/
 # Update CA certificates
 update-ca-trust
