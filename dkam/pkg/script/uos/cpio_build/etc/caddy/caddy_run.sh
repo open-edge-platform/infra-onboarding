@@ -1,9 +1,9 @@
-#!/bin/sh -e
+#!/bin/sh
 
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-#set -x
+set -e
 
 TIMEOUT=600  # 10 minutes in seconds
 INTERVAL=3  # Check every 3 seconds
@@ -54,13 +54,6 @@ if [ -z "$host_guid" ]; then
     echo "Edge Node UUID is empty. exiting.."
     exit 1
 fi
-
-
-# # Update hosts if they were provided
-# extra_hosts_needed=$(printf '%s\n' "$EXTRA_HOSTS" | sed "s|,|\n|g")
-
-# printf '%s\n' "$extra_hosts_needed" >> /etc/hosts
-# echo "Adding extra host mappings completed"
 
 export http_proxy="$http_proxy"
 export https_proxy="$https_proxy"

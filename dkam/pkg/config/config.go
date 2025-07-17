@@ -69,7 +69,6 @@ type InfraConfig struct {
 	NetIP      string   `mapstructure:"netIp"`
 	NTPServers []string `mapstructure:"ntpServer"`
 	DNSServers []string `mapstructure:"nameServers"`
-	ExtraHosts []string `mapstructure:"extraHosts"`
 
 	FirewallReqAllow string `mapstructure:"firewallReqAllow"`
 	FirewallCfgAllow string `mapstructure:"firewallCfgAllow"`

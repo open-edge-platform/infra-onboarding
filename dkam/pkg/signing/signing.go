@@ -118,7 +118,6 @@ func replaceConfigPlaceholders(content []byte) string {
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__release_svc__", infraConfig.CDN)
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__tink_stack_svc__", infraConfig.ProvisioningService)
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__tink_server_svc__", infraConfig.TinkServerURL)
-	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__extra_hosts__", strings.Join(infraConfig.ExtraHosts, ","))
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__keycloak_url__", infraConfig.KeycloakURL)
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__oci_release_svc__", strings.Split(infraConfig.RegistryURL, ":")[0])
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__logging_svc__",

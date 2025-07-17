@@ -61,12 +61,6 @@ create_env_config() {
 	echo -e "logging_svc=$logging_svc" >> "$LOCATION_OF_ENV_CONFIG"
     fi
 
-    # only for the extra hosts which is a list we need to add this change the env file needs to
-    # the quotes else the source will fail.
-    if [ -n "$extra_hosts" ];
-    then
-	echo -e 'EXTRA_HOSTS="'"$extra_hosts"'"' >> "$LOCATION_OF_ENV_CONFIG"
-    fi
 
     # Add proxy configs
     if [ -n "$en_https_proxy" ];
