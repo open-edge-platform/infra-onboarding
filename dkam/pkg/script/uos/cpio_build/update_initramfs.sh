@@ -24,6 +24,7 @@ LOCATION_OF_EXTRA_FILES=$PWD/etc
 LOCATION_OF_ENV_CONFIG=$PWD/etc/emf/env_config
 LOCATION_OF_UOS_ENV=$PWD/etc/emf/
 IDP=$LOCATION_OF_EXTRA_FILES/idp
+EXTRACTED_FILES_LOCATION=$CPIO_OUTPUT/emt_uos_x86_64_files
 
 #######################################################################################################
 create_env_config() {
@@ -105,7 +106,7 @@ get_cert(){
 }
 #######################################################################################################
 #
-#create a new image from exsisting initramfs image after adding the extra_cpio archive into it.
+#create a new image from exsisting initramfs image.
 #
 extract_emt_tar() {
 
@@ -117,8 +118,8 @@ extract_emt_tar() {
     for iter_folder in  "${uos_tar_files_to_update[@]}";
     do
         echo "$iter_folder"
-	    mkdir -p "$iter_folder"/emt_uos_x86_64_files
-	if ! tar -xf "$iter_folder"/$uos_file_name -C "$iter_folder"/emt_uos_x86_64_files;
+	    mkdir -p $EXTRACTED_FILES_LOCATION
+	if ! tar -xf "$iter_folder"/$uos_file_name -C $EXTRACTED_FILES_LOCATION;
 	then
 	    echo "unable to uncompress tar $iter_folder/$uos_file_name"
 	    exit 1
@@ -127,8 +128,8 @@ extract_emt_tar() {
 	ls
 
 	# Check for files matching initramfs* and vmlinuz* and rename then
-	if initramfs_file=$(find "$iter_folder/emt_uos_x86_64_files/" -type f  -name 'initramfs*'| head -n 1); then
-	    mv "$initramfs_file" "$iter_folder/emt_uos_x86_64_files/initramfs-x86_64"
+	if initramfs_file=$(find "$EXTRACTED_FILES_LOCATION/" -type f  -name 'initramfs*'| head -n 1); then
+	    mv "$initramfs_file" "$EXTRACTED_FILES_LOCATION/initramfs-x86_64"
         echo "Renamed $initramfs_file to initramfs-x86_64"
 	else
 		echo "Error: initramfs not exist"
@@ -136,8 +137,8 @@ extract_emt_tar() {
 	fi
 
 
-	if vmlinuz_file=$(find "$iter_folder/emt_uos_x86_64_files/" -name 'vmlinuz*' | head -n 1); then
-	    mv "$vmlinuz_file" "$iter_folder/emt_uos_x86_64_files/vmlinuz-x86_64"
+	if vmlinuz_file=$(find "$EXTRACTED_FILES_LOCATION/" -name 'vmlinuz*' | head -n 1); then
+	    mv "$vmlinuz_file" "$EXTRACTED_FILES_LOCATION/vmlinuz-x86_64"
 	    echo "Renamed $vmlinuz_file to vmlinuz-x86_64"
 	else 
 	    echo "Error: vmlinuz not exist"
@@ -145,35 +146,35 @@ extract_emt_tar() {
 	fi
 
 	#Extract rootfs.tar.gz from initramfs and decompress
-	mkdir -p "$iter_folder"/emt_uos_x86_64_files/extract_initramfs
-	fakeroot sh -c "zcat $iter_folder/emt_uos_x86_64_files/initramfs-x86_64 | cpio -idmv -D $iter_folder/emt_uos_x86_64_files/extract_initramfs"
-	#zcat $iter_folder/emt_uos_x86_64_files/initramfs-x86_64 | cpio -idmv -D $iter_folder/emt_uos_x86_64_files/extract_initramfs || true #> /dev/null 2>&1
-	rm "$iter_folder"/emt_uos_x86_64_files/initramfs-x86_64
-	mkdir -p "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp
-	#tar -xvf $iter_folder/emt_uos_x86_64_files/extract_initramfs/rootfs.tar.gz -C $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp > /dev/null 2>&1
-    gzip -d "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/rootfs.tar.gz
-	mv "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/rootfs.tar "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp
-	mkdir -p "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
-    #cp $IDP/Intel.crt $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
-	cp $IDP/ca.pem $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
-    cp $IDP/server_cert.pem $iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
+	mkdir -p $EXTRACTED_FILES_LOCATION/extract_initramfs
+	fakeroot sh -c "zcat $EXTRACTED_FILES_LOCATION/initramfs-x86_64 | cpio -idmv -D $EXTRACTED_FILES_LOCATION/extract_initramfs"
+	#zcat $EXTRACTED_FILES_LOCATION/initramfs-x86_64 | cpio -idmv -D $EXTRACTED_FILES_LOCATION/extract_initramfs || true #> /dev/null 2>&1
+	rm $EXTRACTED_FILES_LOCATION/initramfs-x86_64
+	mkdir -p $EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp
+	#tar -xvf $EXTRACTED_FILES_LOCATION/extract_initramfs/rootfs.tar.gz -C $EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp > /dev/null 2>&1
+    gzip -d $EXTRACTED_FILES_LOCATION/extract_initramfs/rootfs.tar.gz
+	mv $EXTRACTED_FILES_LOCATION/extract_initramfs/rootfs.tar $EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp
+	mkdir -p $EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
+    #cp $IDP/Intel.crt $EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
+	cp $IDP/ca.pem $EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
+    cp $IDP/server_cert.pem $EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
 	#Copy env_config file and idp
-	tar -uf "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/emf/env_config
+	tar -uf $EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/emf/env_config
 	#Workaround for device-discovery
 	mkdir -p "$PWD"/etc/hook/
 	cp "$PWD"/etc/emf/env_config "$PWD"/etc/hook/env_config
-	tar -uf "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/hook/env_config
-	tar -uf "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/idp
+	tar -uf $EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/hook/env_config
+	tar -uf $EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/idp
 
     #Copy fluent-bit file and update
 	chmod +x "$PWD"/etc/fluent-bit/fluentbit_run.sh
-	tar -uf "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/fluent-bit/
+	tar -uf $EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/fluent-bit/
 
 	#Copy Caddy files and udpate
 	chmod +x "$PWD"/etc/caddy/caddy_run.sh
-	tar -uf "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/caddy/
+	tar -uf $EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar -C "$PWD" ./etc/caddy/
 
-    pushd "$iter_folder/emt_uos_x86_64_files/extract_initramfs/roottmp/" || exit
+    pushd "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/" || exit
 	tar -xvf rootfs.tar ./usr/lib/systemd/system/caddy.service
 	sed -i 's|User=caddy|User=root|' ./usr/lib/systemd/system/caddy.service
 	sed -i 's|Group=caddy|Group=root|' ./usr/lib/systemd/system/caddy.service
@@ -220,9 +221,9 @@ extract_emt_tar() {
 
 	gzip -c rootfs.tar > ../rootfs.tar.gz
 	popd || exit
-	rm -r "$iter_folder"/emt_uos_x86_64_files/extract_initramfs/roottmp/
+	rm -r $EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/
 
-	pushd "$iter_folder/emt_uos_x86_64_files/extract_initramfs/" || exit
+	pushd "$EXTRACTED_FILES_LOCATION/extract_initramfs/" || exit
 	
     #find . | cpio -o -H newc | gzip -9 > ../initramfs-x86_64
 	fakeroot sh -c "find . | cpio -o -H newc | gzip -9 > ../initramfs-x86_64"
@@ -230,8 +231,8 @@ extract_emt_tar() {
 	popd || exit
     #     ls $iter_folder/
 	# rm $iter_folder/$uos_file_name
-	# rm -rf $iter_folder/emt_uos_x86_64_files/extract_initramfs
-	# tar -czvf $iter_folder/$uos_file_name -C $iter_folder/emt_uos_x86_64_files . > /dev/null 2>&1
+	# rm -rf $EXTRACTED_FILES_LOCATION/extract_initramfs
+	# tar -czvf $iter_folder/$uos_file_name -C $EXTRACTED_FILES_LOCATION . > /dev/null 2>&1
 	# rm -rf $iter_folder/emt_uos_x86_64_files/
     done
 
