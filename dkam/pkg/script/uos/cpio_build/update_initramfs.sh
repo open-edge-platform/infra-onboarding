@@ -140,14 +140,11 @@ extract_emt_tar() {
 	#Extract rootfs.tar.gz from initramfs and decompress
 	mkdir -p $EXTRACTED_FILES_LOCATION/extract_initramfs
 	fakeroot sh -c "zcat $EXTRACTED_FILES_LOCATION/initramfs-x86_64 | cpio -idmv -D $EXTRACTED_FILES_LOCATION/extract_initramfs"
-	#zcat $EXTRACTED_FILES_LOCATION/initramfs-x86_64 | cpio -idmv -D $EXTRACTED_FILES_LOCATION/extract_initramfs || true #> /dev/null 2>&1
 	rm $EXTRACTED_FILES_LOCATION/initramfs-x86_64
 	mkdir -p $EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp
-	#tar -xvf $EXTRACTED_FILES_LOCATION/extract_initramfs/rootfs.tar.gz -C $EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp > /dev/null 2>&1
     gzip -d $EXTRACTED_FILES_LOCATION/extract_initramfs/rootfs.tar.gz
 	mv $EXTRACTED_FILES_LOCATION/extract_initramfs/rootfs.tar $EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp
 	mkdir -p $EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
-    #cp $IDP/Intel.crt $EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
 	cp $IDP/ca.pem $EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
     cp $IDP/server_cert.pem $EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/
 	#Copy env_config file and idp
@@ -170,8 +167,6 @@ extract_emt_tar() {
 	tar -xvf rootfs.tar ./usr/lib/systemd/system/caddy.service
 	sed -i 's|User=caddy|User=root|' ./usr/lib/systemd/system/caddy.service
 	sed -i 's|Group=caddy|Group=root|' ./usr/lib/systemd/system/caddy.service
-	# sed -i 's|ProtectSystem=full|ProtectSystem=strict|' ./usr/lib/systemd/system/caddy.service
-	# sed -i 's|ExecStartPost=/etc/edge-node/node/confs/post-caddy.sh|ReadWritePaths=/etc/pki/ca-trust|' ./usr/lib/systemd/system/caddy.service
 	sed -i 's|ExecStartPre=/usr/bin/caddy validate --config /etc/caddy/Caddyfile||' ./usr/lib/systemd/system/caddy.service
 	sed -i 's|ExecReload=/usr/bin/caddy reload --config /etc/caddy/Caddyfile||' ./usr/lib/systemd/system/caddy.service
 	sed -i 's|ExecStart=/usr/bin/caddy run --environ --config /etc/caddy/Caddyfile|ExecStart=/etc/caddy/caddy_run.sh|' ./usr/lib/systemd/system/caddy.service
@@ -193,7 +188,6 @@ extract_emt_tar() {
 	tar -uf rootfs.tar ./usr/lib/systemd/system/tink-worker.service
 
 	#Add crt for tink-worker
-	#tar -uf rootfs.tar ./etc/pki/ca-trust/source/anchors/Intel.crt
 	tar -uf rootfs.tar ./etc/pki/ca-trust/source/anchors/server_cert.pem
 	tar -uf rootfs.tar ./etc/pki/ca-trust/source/anchors/ca.pem
 
@@ -217,15 +211,9 @@ extract_emt_tar() {
 
 	pushd "$EXTRACTED_FILES_LOCATION/extract_initramfs/" || exit
 	
-    #find . | cpio -o -H newc | gzip -9 > ../initramfs-x86_64
 	fakeroot sh -c "find . | cpio -o -H newc | gzip -9 > ../initramfs-x86_64"
 
 	popd || exit
-    #     ls $iter_folder/
-	# rm $iter_folder/$uos_file_name
-	# rm -rf $EXTRACTED_FILES_LOCATION/extract_initramfs
-	# tar -czvf $iter_folder/$uos_file_name -C $EXTRACTED_FILES_LOCATION . > /dev/null 2>&1
-	# rm -rf $iter_folder/emt_uos_x86_64_files/
 
 }
 
