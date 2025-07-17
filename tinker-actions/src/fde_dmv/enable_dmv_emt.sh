@@ -17,7 +17,7 @@ TEST_ENABLE_DM_ON_ROOTFSB=false
 TEST_ON_ONLY_ONE_PART=false
 
 # Get the user provided lvm disk size number
-LVM_DISK_SIZE=0
+MINIMUM_LVM_SIZE=0
 
 # Set PARTITION_MODE to either standard or small
 #PARTITIONING_SCHEME="standard" # Default
@@ -62,7 +62,6 @@ rootfs_roothash_size=50
 #Global var which is updated
 single_hdd=-1
 check_all_disks=1
-
 #####################################################################################
 #####################################################################################
 set_ven_partitions() {
@@ -914,6 +913,13 @@ emt_main_dmv() {
     is_single_hdd
 
     partitioning_scheme
+
+    if [ "$MINIMUM_LVM_SIZE" != 0 ];
+    then
+        lvm_disk_size=$MINIMUM_LVM_SIZE
+    else
+        lvm_disk_size=0
+    fi
 
     if [ "$ven_mode_active" = true ];
     then
