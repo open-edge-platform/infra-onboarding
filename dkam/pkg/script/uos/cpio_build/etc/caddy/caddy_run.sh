@@ -90,7 +90,6 @@ if [ -z "$logging_svc" ]; then
     exit 1
 fi
 
-# cp /etc/idp/ca.pem /etc/pki/ca-trust/source/anchors/
 # Update CA certificates
 update-ca-trust
 echo "Added CA certificates to trust pool"
