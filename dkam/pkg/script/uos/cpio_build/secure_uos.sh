@@ -20,7 +20,7 @@ HASH_SIZE=512
 en_http_proxy="${en_http_proxy:-}"
 en_https_proxy="${en_https_proxy:-}"
 en_no_proxy="${en_no_proxy:-}"
-
+uos_file_name="emb_uos_x86_64.tar.gz"
 create_gpg_key() {
     if [ -f "$public_gpg_key" ];
     then
@@ -205,9 +205,9 @@ secure_uos() {
 
 resign_uos() {
 
-    if [ ! -f "$UOS_SECUREBOOT"/emt_uos_x86_64.tar.gz ] ;
+    if [ ! -f "$UOS_SECUREBOOT"/"$uos_file_name" ] ;
     then
-	echo "Place the hook image at ""$UOS_SECUREBOOT""/emt_uos_x86_64.tar.gz to proceed."
+	echo "Place the MicroOS image at ""$UOS_SECUREBOOT""/""$uos_file_name"" to proceed."
 	exit 1
     fi
 
