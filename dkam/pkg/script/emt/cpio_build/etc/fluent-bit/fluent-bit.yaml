@@ -1,0 +1,137 @@
+# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+service:
+  flush: 30
+  log_level: debug
+  parsers_file: /fluent-bit/etc/parsers.conf
+  log_file: /var/log/fb-uos.log
+
+pipeline:
+  inputs:
+    - name: tail
+      path: /var/log/client-auth/*client-auth.*log
+      read_from_head: true
+      tag: uOS_clientAuthLog
+      processors:
+        logs:
+          - name: opentelemetry_envelope
+          - name: content_modifier
+            context: attributes
+            action: upsert
+            key: "FileType"
+            value: "uOS_clientAuthLog"
+          - name: content_modifier
+            action: upsert
+            key: "hostGuid"
+            value: "${EDGENODE_UUID}"
+          - name: content_modifier
+            context: attributes
+            action: upsert
+            key: "source"
+            value: "edgenode_provisioning"
+
+    - name: tail
+      path: /var/log/syslog
+      read_from_head: true
+      tag: uOS_Syslog
+      processors:
+        logs:
+          - name: opentelemetry_envelope
+          - name: content_modifier
+            context: attributes
+            action: upsert
+            key: "FileType"
+            value: "uOS_Syslog"
+          - name: content_modifier
+            action: upsert
+            key: "hostGuid"
+            value: "${EDGENODE_UUID}"
+          - name: content_modifier
+            context: attributes
+            action: upsert
+            key: "source"
+            value: "edgenode_provisioning"
+
+    - name: tail
+      path: /var/log/*caddy.*log
+      read_from_head: true
+      tag: uOS_caddyLogs
+      processors:
+        logs:
+          - name: opentelemetry_envelope
+          - name: content_modifier
+            context: attributes
+            action: upsert
+            key: "FileType"
+            value: "uOS_caddyLogs"
+          - name: content_modifier
+            action: upsert
+            key: "hostGuid"
+            value: "${EDGENODE_UUID}"
+          - name: content_modifier
+            context: attributes
+            action: upsert
+            key: "source"
+            value: "edgenode_provisioning"
+
+    - name: tail
+      path: /var/log/*bootkit.*log
+      read_from_head: true
+      tag: uOS_bootkitLogs
+      processors:
+        logs:
+          - name: opentelemetry_envelope
+          - name: content_modifier
+            context: attributes
+            action: upsert
+            key: "FileType"
+            value: "uOS_bootkitLogs"
+          - name: content_modifier
+            action: upsert
+            key: "hostGuid"
+            value: "${EDGENODE_UUID}"
+          - name: content_modifier
+            context: attributes
+            action: upsert
+            key: "source"
+            value: "edgenode_provisioning"
+
+    - name: syslog
+      mode: udp
+      listen: 127.0.0.1
+      port: 5140
+      parser: syslog-rfc3164
+      tag: uOS_logs
+      processors:
+        logs:
+          - name: opentelemetry_envelope
+          - name: content_modifier
+            context: attributes
+            action: upsert
+            key: "FileType"
+            value: "uOS_logs"
+          - name: content_modifier
+            action: upsert
+            key: "hostGuid"
+            value: "${EDGENODE_UUID}"
+          - name: content_modifier
+            context: attributes
+            action: upsert
+            key: "source"
+            value: "edgenode_provisioning"
+
+  outputs:
+    - name: file
+      match: '*'
+      path: "/var/log"
+      file: "uos.log"
+      format: "out_file"
+
+    - name: opentelemetry
+      match: '*'
+      host: localhost
+      port: 24224
+      logs_uri: /v1/logs
+      tls: off
+      tls.verify: off
