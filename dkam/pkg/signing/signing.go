@@ -67,6 +67,15 @@ func SignMicroOS() (bool, error) {
 		return false, mdErr
 	}
 	zlog.Info().Msgf("Script output: %s", string(mdresult))
+
+	// Ensure the working directory is correct before running the script
+	wd, _ := os.Getwd()
+	zlog.Info().Msgf("Current working directory before script: %s", wd)
+	if wd != cpioPath {
+		zlog.InfraSec().Fatal().Msgf("Working directory mismatch: expected %s, got %s", cpioPath, wd)
+		return false, nil
+	}
+
 	//nolint:gosec // The script and arguments are trusted and validated before execution.
 	buildCmd := exec.Command("bash", "./update_initramfs.sh", config.DownloadPath)
 	output, buildErr := buildCmd.CombinedOutput()
