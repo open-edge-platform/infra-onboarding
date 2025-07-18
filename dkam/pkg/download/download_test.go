@@ -1,124 +1,88 @@
-// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0
-
-package download_test
+package download
 
 import (
+	"bytes"
 	"context"
-	"fmt"
+	"io"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
-	"github.com/open-edge-platform/infra-onboarding/dkam/internal/env"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
-	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/download"
 )
 
-const (
-	testDigest = "TEST_DIGEST"
-	testFile   = "TEST_FILE"
-)
-
-// Manifest example from OCI repo, used by DKAM to gather the hookOS.
-const exampleManifest = `
-		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
-         "config":{"mediaType":"application/vnd.intel.hookos.file",
-        "digest":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a","size":2},
-        "layers":[{
-            "mediaType":"application/vnd.oci.image.layer.v1.tar",
-            "digest":"` + testDigest + `",
-            "size":264193897,
-            "annotations":{"org.opencontainers.image.title":"hook_x86_64.tar.gz"}
-        }],
-        "annotations":{"org.opencontainers.image.created":"2025-03-18T16:44:00Z"}}`
-
-// Manifest example with no Annotation in Layers.
-const exampleManifestWrong = `
-		{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",
-         "config":{"mediaType":"application/vnd.intel.hookos.file",
-        "digest":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a","size":2},
-		"layers":[{
-			"mediaType":"application/vnd.oci.image.layer.v1.tar",
-			"digest":"` + testDigest + `",
-			"size":24800,
- 			"annotations":{"org.opencontainers.image.title":"hook_x86_64.tar.gz"}
-		}],
-		"annotations":{"org.opencontainers.image.created":"2025-03-18T16:44:00Z"}}`
-
-func TestMain(m *testing.M) {
-	var err error
-	config.PVC, err = os.MkdirTemp(os.TempDir(), "test_pvc")
-	if err != nil {
-		panic(fmt.Sprintf("Error creating temp directory: %v", err))
-	}
-
-	run := m.Run()
-	os.Exit(run)
+// MockRoundTripper implements http.RoundTripper for testing
+type MockRoundTripper struct {
+	ResponseBody string
+	StatusCode   int
+	Err          error
 }
 
-func TestDownloadMicroOS(t *testing.T) {
-	// TODO: refactor the test to improve functionality testing.
-	expectedFileContent := "GOOD TEST!"
-
-	// Create temporary folder and expected files and folder required by the DownloadMicroOS function
-	tmpFolderPath, err := os.MkdirTemp("/tmp", "test_download_microOS")
-	require.NoError(t, err)
-	defer os.RemoveAll(tmpFolderPath)
-	dkamTmpFolderPath := tmpFolderPath + "/tmp/"
-	dkamHookFolderPath := tmpFolderPath + "/hook/"
-	err = os.MkdirAll(dkamTmpFolderPath, 0o755)
-	require.NoError(t, err)
-
-	// Fake server to serve expected requests
-	mux := http.NewServeMux()
-	returnWrongManifest := false
-	mux.HandleFunc("/manifest/hookOS", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		if returnWrongManifest {
-			w.Write([]byte(exampleManifestWrong))
-		} else {
-			w.Write([]byte(exampleManifest))
-		}
-	})
-	// Path comes from digest in the exampleManifest
-	mux.HandleFunc("/blobs/"+testDigest, func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(expectedFileContent))
-	})
-	svr := httptest.NewServer(mux)
-	defer svr.Close()
-
-	// Override the RSProxy with test HTTP server
-	env.UOSRepo = svr.URL + "/manifest/hookOS"
-	dir := config.PVC
-	mkdirerr := os.MkdirAll(dir, 0o755)
-	if mkdirerr != nil {
-		fmt.Println("Error creating dir:", mkdirerr)
+func (m *MockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	if m.Err != nil {
+		return nil, m.Err
 	}
-	// Test: No tmpFolderPath/hook dir
-	t.Run("Fail", func(t *testing.T) {
-		_, err = download.DownloadMicroOS(context.Background())
-		require.NoError(t, err)
-	})
+	return &http.Response{
+		StatusCode: m.StatusCode,
+		Body:       io.NopCloser(bytes.NewBufferString(m.ResponseBody)),
+	}, nil
+}
 
-	err = os.MkdirAll(dkamHookFolderPath, 0o755)
-	require.NoError(t, err)
+func TestDownloadMicroOS_Success(t *testing.T) {
+	// Setup mock HTTP client
+	oldClient := client
+	client = &http.Client{Transport: &MockRoundTripper{ResponseBody: "testdata", StatusCode: 200}}
+	defer func() { client = oldClient }()
 
-	// Test: empty manifest
-	t.Run("NoAnnotationLayer", func(t *testing.T) {
-		returnWrongManifest = true
-		_, err = download.DownloadMicroOS(context.Background())
-		require.NoError(t, err)
-	})
+	// Setup config using SetInfraConfig
+	cfg := config.InfraConfig{
+		FileServerURL: "http://localhost",
+		EMBImageURL:   "emb_uos_x86_64.tar.gz",
+	}
+	config.SetInfraConfig(cfg)
 
-	// Test: successful, create tmpFolderPath/hook dir
-	t.Run("Success", func(t *testing.T) {
-		returnWrongManifest = false
-		_, err = download.DownloadMicroOS(context.Background())
-		require.NoError(t, err)
-	})
+	ok, err := DownloadMicroOS(context.Background())
+	if !ok || err != nil {
+		t.Fatalf("expected success, got err: %v", err)
+	}
+
+	// Check file exists
+	filePath := config.DownloadPath + "/" + cfg.EMBImageURL
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("expected file to be created, got err: %v", err)
+	}
+	if string(data) != "testdata" {
+		t.Fatalf("file contents mismatch: got %s", string(data))
+	}
+}
+
+func TestDownloadMicroOS_MissingConfig(t *testing.T) {
+	// Set empty config
+	cfg := config.InfraConfig{
+		FileServerURL: "",
+		EMBImageURL:   "",
+	}
+	config.SetInfraConfig(cfg)
+	ok, err := DownloadMicroOS(context.Background())
+	if ok || err == nil {
+		t.Fatalf("expected failure due to missing config")
+	}
+}
+
+func TestDownloadMicroOS_HTTPError(t *testing.T) {
+	oldClient := client
+	client = &http.Client{Transport: &MockRoundTripper{Err: io.EOF}}
+	defer func() { client = oldClient }()
+
+	cfg := config.InfraConfig{
+		FileServerURL: "http://localhost",
+		EMBImageURL:   "emb_uos_x86_64.tar.gz",
+	}
+	config.SetInfraConfig(cfg)
+
+	ok, err := DownloadMicroOS(context.Background())
+	if ok || err == nil {
+		t.Fatalf("expected HTTP error")
+	}
 }
