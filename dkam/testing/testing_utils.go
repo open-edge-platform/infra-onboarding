@@ -174,7 +174,6 @@ func PrepareTestInfraConfig(_ *testing.T) {
 		NetIP:                                 "dynamic",
 		NTPServers:                            []string{"ntp1.org", "ntp2.org"},
 		DNSServers:                            []string{"1.1.1.1"},
-		ExtraHosts:                            []string{},
 		FirewallReqAllow:                      "",
 		FirewallCfgAllow:                      "",
 		ENManifest: config.ENManifest{
