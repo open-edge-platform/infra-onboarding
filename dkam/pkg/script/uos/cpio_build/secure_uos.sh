@@ -163,7 +163,6 @@ package_signed_UOS(){
 
     sync
 
-    #tar -czvf hook_x86_64.tar.gz .
     if [ -d "/data" ]; then
         echo "Path /data exists."
         cp "$UOS_SECUREBOOT"/uos_sign_temp/initramfs-x86_64 /data

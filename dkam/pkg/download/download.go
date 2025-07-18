@@ -11,7 +11,6 @@ import (
 	"os"
 	"strings"
 
-	as "github.com/open-edge-platform/infra-core/inventory/v2/pkg/artifactservice"
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
@@ -88,20 +87,4 @@ func DownloadMicroOS(ctx context.Context) (bool, error) {
 
 	zlog.InfraSec().Info().Msg("File downloaded")
 	return true, nil
-}
-
-func CreateFile(filePath string, artifact *as.Artifact) error {
-	file, fileErr := os.Create(filePath)
-	if fileErr != nil {
-		zlog.InfraSec().Error().Err(fileErr).Msgf("Error while creating file %v", filePath)
-		return fileErr
-	}
-	defer file.Close()
-
-	_, err := file.Write(artifact.Data)
-	if err != nil {
-		zlog.InfraSec().Error().Err(err).Msgf("Error writing to file:%v", err)
-		return err
-	}
-	return nil
 }
