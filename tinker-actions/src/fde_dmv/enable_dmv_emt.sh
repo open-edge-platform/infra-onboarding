@@ -312,7 +312,7 @@ make_partition() {
     then
         if [ $lvm_disk_size -ge 1 ];
 	then
-	    reserved_end=$(parted -s "${DEST_DISK}" unit s print | awk '/ 9 / {gsub("s", "", $3); print int($3 * 512 / 1024 / 1024)}')
+	    reserved_end=$(parted -s "${DEST_DISK}" unit s print | awk '/reserved/ {gsub("s", "", $3); print int($3 * 512 / 1024 / 1024)}')
 	    lvm_start=$((reserved_end + 1))
 	    lvm_end=$((lvm_start + lvm_size))
             parted -s ${DEST_DISK} \
