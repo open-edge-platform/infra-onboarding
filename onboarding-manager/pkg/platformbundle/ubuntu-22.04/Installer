@@ -374,10 +374,8 @@ install_other_agents() {
         tpm-provision="$TPM_PROVISION_VERSION" \
         inbc-program="$INBC_PROGRAM_VERSION" \
         platform-update-agent="$PLATFORM_UPDATE_AGENT_VERSION" \
-        platform-telemetry-agent="$PLATFORM_TELEMETRY_AGENT_VERSION"
-        #platform-manageability-agent="$PLATFORM_MANAGEABILITY_AGENT_VERSION"
-
-      #
+        platform-telemetry-agent="$PLATFORM_TELEMETRY_AGENT_VERSION" \
+        platform-manageability-agent="$PLATFORM_MANAGEABILITY_AGENT_VERSION"
 
       # Remove docker. trtl and inbm-telemetry checks from INBM configuration file
       remove_lines_from_sotaSW /etc/intel_manageability.conf docker trtl inbm-telemetry
