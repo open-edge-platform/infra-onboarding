@@ -15,14 +15,12 @@ import (
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/download"
 )
 
-var (
-	client = &http.Client{
-		Transport: &http.Transport{
-			Proxy:             http.ProxyFromEnvironment,
-			ForceAttemptHTTP2: false,
-		},
-	}
-)
+var client = &http.Client{
+	Transport: &http.Transport{
+		Proxy:             http.ProxyFromEnvironment,
+		ForceAttemptHTTP2: false,
+	},
+}
 
 // MockRoundTripper implements http.RoundTripper for testing.
 type MockRoundTripper struct {

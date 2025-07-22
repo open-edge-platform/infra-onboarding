@@ -63,22 +63,15 @@ func SignMicroOS() (bool, error) {
 	mdCmd := exec.Command("chmod", "+x", "update_initramfs.sh")
 	mdresult, mdErr := mdCmd.CombinedOutput()
 	if mdErr != nil {
-		zlog.InfraSec().Fatal().Err(mdErr).Msgf("Failed to change mode build_uos_at_DKAM.sh script %v", mdErr)
+		zlog.InfraSec().Fatal().Err(mdErr).Msgf("Failed to change mode of update_initramfs.sh script %v", mdErr)
 		return false, mdErr
 	}
 	zlog.Info().Msgf("Script output: %s", string(mdresult))
 
 	// Ensure the working directory is correct before running the script
-	wd, err := os.Getwd()
-	if err != nil {
-		zlog.InfraSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
+	if err := verifyWorkingDirectory(cpioPath); err != nil {
+		zlog.InfraSec().Fatal().Err(err).Msgf("Working directory verification failed: %v", err)
 		return false, err
-	}
-
-	zlog.Info().Msgf("Current working directory before script: %s", wd)
-	if wd != cpioPath {
-		zlog.InfraSec().Fatal().Msgf("Working directory mismatch: expected %s, got %s", cpioPath, wd)
-		return false, nil
 	}
 
 	//nolint:gosec // The script and arguments are trusted and validated before execution.
@@ -95,6 +88,19 @@ func SignMicroOS() (bool, error) {
 		return false, errch
 	}
 	return true, nil
+}
+
+func verifyWorkingDirectory(expected string) error {
+	wd, err := os.Getwd()
+	if err != nil {
+		zlog.InfraSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
+		return err
+	}
+	if wd != expected {
+		zlog.InfraSec().Fatal().Msgf("Working directory mismatch: expected %s, got %s", expected, wd)
+		return os.ErrInvalid
+	}
+	return nil
 }
 
 func setupUOSDirectories() (string, error) {
