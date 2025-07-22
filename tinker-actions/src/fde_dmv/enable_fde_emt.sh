@@ -321,7 +321,7 @@ make_partition() {
 
 	    if [ "$min_lvm_size" -ge "$available_disk_space" ];
             then
-		echo "Minimum LVM size (${MINIMUM_LVM_SIZE}GB) is not available. Only ${available_disk_space}MB free."
+		echo "Available LVM size is  ${available_lvm_space}MB only."
 	    else
 		echo "Minimum LVM size is available."
 	    fi

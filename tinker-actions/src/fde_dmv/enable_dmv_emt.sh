@@ -210,10 +210,10 @@ make_partition() {
     then
 	if [ $lvm_disk_size -ge 1 ];
         then
-	    lvm_size=$(( lvm_disk_size*1024 ))
-            if [ "$lvm_size" -ge "$total_size_disk" ];
+	    min_lvm_size=$(( lvm_disk_size*1024 ))
+            if [ "$min_lvm_size" -ge "$total_size_disk" ];
 	    then
-                check_return_value 1 "$lvm_size is more than the disk size,please check"
+                echo "$min_lvm_size is more than the disk size,please check"
             fi
 	fi
 	total_size_disk=$(( 100 * 1024 ))
@@ -309,15 +309,15 @@ make_partition() {
             disk_used_mb=$(lsblk -b -n -o NAME,SIZE "$DEST_DISK" | grep -v "^$(basename $DEST_DISK)" | awk '{s+=$2} END {printf "%.0f", s / 1024 / 1024}')
             available_disk_space=$(( actual_disk_size - disk_used_mb ))
 
-            if [ "$lvm_size" -ge "$available_disk_space" ];
+            if [ "$min_lvm_size" -ge "$available_disk_space" ];
             then
-		echo "Minimum LVM size (${MINIMUM_LVM_SIZE}GB) is not available. Only ${available_lvm_space}MB free."
+		echo "Available LVM size is  ${available_lvm_space}MB only."
             else
 		echo "Minimum LVM size is available."
             fi
         fi
 	parted -s ${DEST_DISK} \
-		mkpart lvm ext4 "$(convert_mb_to_sectors "${total_size_disk}" 0)"s 100%
+	       mkpart lvm ext4 "$(convert_mb_to_sectors "${total_size_disk}" 0)"s 100%
 	check_return_value $? "Failed to create lvm parition"
     fi
 
@@ -391,20 +391,25 @@ make_partition_ven() {
 
     if [ $single_hdd -eq 0 ];
     then
+
+	forty_percent=$((remaining_size * 40 / 100))
+        emt_persistent_size=$((forty_percent <= 20480 ? forty_percent : 20480))
+        lvm_size=$((remaining_size - emt_persistent_size))
+
 	if [ $lvm_disk_size -ge 1 ];
         then
-            lvm_size=$(( lvm_disk_size*1024 ))
-	    if [ "$lvm_size" -ge "$total_size_disk" ];
+            min_lvm_size=$(( lvm_disk_size*1024 ))
+	    if [ "$min_lvm_size" -ge "$total_size_disk" ];
 	    then
-                check_return_value 1 "$lvm_size is more than the disk size,please check"
+                echo "$min_lvm_size is more than the disk size,please check $total_size_disk"
             else
-		total_size_disk=$(( total_size_disk - lvm_size ))
-		emt_persistent_size=$((total_size_disk - fixed_size))
+		if [ "$min_lvm_size" -ge "$lvm_size" ];
+		then
+		    echo "Available LVM size is $lvm_size"
+		else
+		    echo "Requested Minimum LVM size is available."
+                fi
             fi
-        else
-            forty_percent=$((remaining_size * 40 / 100))
-            emt_persistent_size=$((forty_percent <= 20480 ? forty_percent : 20480))
-            lvm_size=$((remaining_size - emt_persistent_size))
         fi
     elif [ "$single_hdd" -ne 0 ];
     then 
@@ -479,16 +484,9 @@ make_partition_ven() {
 
     if [ $single_hdd -eq 0 ];
     then
-	if [ $lvm_disk_size -ge 1 ];
-        then
-	    parted -s ${DEST_DISK} \
-		    mkpart lvm ext4 "$(convert_mb_to_sectors "${total_size_disk}" 0)"s 100%
-	    check_return_value $? "Failed to create LVM partition"
-	else
-            parted -s ${DEST_DISK} \
-		    mkpart lvm ext4 "$(convert_mb_to_sectors "${lvm_start}" 0)"s 100%
-	    check_return_value $? "Failed to create LVM partition"
-	fi
+	parted -s ${DEST_DISK} \
+		mkpart lvm ext4 "$(convert_mb_to_sectors "${lvm_start}" 0)"s 100%
+	check_return_value $? "Failed to create LVM partition"
     fi
 
     mkfs -t ext4 -L roothash -F "${DEST_DISK}${suffix}${roothash_partition}"
