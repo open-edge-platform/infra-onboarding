@@ -214,16 +214,9 @@ make_partition() {
             if [ "$lvm_size" -ge "$total_size_disk" ];
 	    then
                 check_return_value 1 "$lvm_size is more than the disk size,please check"
-	    else
-		total_size_disk=$(( 100 * 1024 ))
-		if [ "$lvm_size" -ge "$total_size_disk" ];
-		then
-		    echo "LVM partition will be created after the 100GB boundary"
-		else
-                    total_size_disk=$(( total_size_disk - lvm_size ))
-		fi
             fi
 	fi
+	total_size_disk=$(( 100 * 1024 ))
     fi
     echo "total_size_disk(fixed) ${total_size_disk}"
 
@@ -310,19 +303,22 @@ make_partition() {
     # Create LVM for single_hdd only when user chooses
     if [ $single_hdd -eq 0 ];
     then
-        if [ $lvm_disk_size -ge 1 ];
-	then
-	    reserved_end=$(parted -s "${DEST_DISK}" unit s print | awk '/reserved/ {gsub("s", "", $3); print int($3 * 512 / 1024 / 1024)}')
-	    lvm_start=$((reserved_end + 1))
-	    lvm_end=$((lvm_start + lvm_size))
-            parted -s ${DEST_DISK} \
-                    mkpart lvm ext4 "$(convert_mb_to_sectors "${lvm_start}" 0)"s "$(convert_mb_to_sectors "${lvm_end}" 1)"s
-            check_return_value $? "Failed to create LVM partition"
-        else
-	    parted -s ${DEST_DISK} \
-		    mkpart lvm ext4 "$(convert_mb_to_sectors "${total_size_disk}" 0)"s 100%
-	    check_return_value $? "Failed to create lvm parition"
-	fi
+	if [ $lvm_disk_size -ge 1 ];
+        then
+            actual_disk_size=$(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ printf "%.0f\n", $1 / (1024*1024) }')
+            disk_used_mb=$(lsblk -b -n -o NAME,SIZE "$DEST_DISK" | grep -v "^$(basename $DEST_DISK)" | awk '{s+=$2} END {printf "%.0f", s / 1024 / 1024}')
+            available_disk_space=$(( actual_disk_size - disk_used_mb ))
+
+            if [ "$lvm_size" -ge "$available_disk_space" ];
+            then
+		echo "Minimum LVM size (${MINIMUM_LVM_SIZE}GB) is not available. Only ${available_lvm_space}MB free."
+            else
+		echo "Minimum LVM size is available."
+            fi
+        fi
+	parted -s ${DEST_DISK} \
+		mkpart lvm ext4 "$(convert_mb_to_sectors "${total_size_disk}" 0)"s 100%
+	check_return_value $? "Failed to create lvm parition"
     fi
 
 
