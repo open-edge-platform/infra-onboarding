@@ -9,11 +9,11 @@ set -xueo pipefail
 data_dir=$1
 uos_file_name="emb_uos_x86_64.tar.gz"
 
-# shellcheck source=./secure_uos.sh
+# shellcheck disable=SC1091
 source secure_uos.sh
 
 pushd ../
-# shellcheck source=../config
+# shellcheck disable=SC1091
 source ./config
 popd || exit
 CPIO_OUTPUT=output
