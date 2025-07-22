@@ -69,7 +69,12 @@ func SignMicroOS() (bool, error) {
 	zlog.Info().Msgf("Script output: %s", string(mdresult))
 
 	// Ensure the working directory is correct before running the script
-	wd, _ := os.Getwd()
+	wd, err := os.Getwd()
+	if err != nil {
+		zlog.InfraSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
+		return false, err
+	}
+
 	zlog.Info().Msgf("Current working directory before script: %s", wd)
 	if wd != cpioPath {
 		zlog.InfraSec().Fatal().Msgf("Working directory mismatch: expected %s, got %s", cpioPath, wd)

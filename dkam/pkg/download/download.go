@@ -40,14 +40,14 @@ func DownloadMicroOS(ctx context.Context) (bool, error) {
 		return false, invErr
 	}
 
-	embImgUrl := config.GetInfraConfig().EMBImageURL
-	if embImgUrl == "" {
+	embImgURL := config.GetInfraConfig().EMBImageURL
+	if embImgURL == "" {
 		invErr := inv_errors.Errorf("EMBImageURL is not set in the configuration")
 		zlog.Err(invErr).Msg("")
 		return false, invErr
 	}
 
-	uOSUrl, err := url.JoinPath(fileServerAddress, embImgUrl)
+	uOSUrl, err := url.JoinPath(fileServerAddress, embImgURL)
 	if err != nil {
 		zlog.InfraSec().Error().Err(err).Msgf("Failed to generate MicroOS URL")
 		return false, err

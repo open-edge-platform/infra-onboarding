@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-package download
+package download_test
 
 import (
 	"bytes"
@@ -12,16 +12,26 @@ import (
 	"testing"
 
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
+	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/download"
 )
 
-// MockRoundTripper implements http.RoundTripper for testing
+var (
+	client = &http.Client{
+		Transport: &http.Transport{
+			Proxy:             http.ProxyFromEnvironment,
+			ForceAttemptHTTP2: false,
+		},
+	}
+)
+
+// MockRoundTripper implements http.RoundTripper for testing.
 type MockRoundTripper struct {
 	ResponseBody string
 	StatusCode   int
 	Err          error
 }
 
-func (m *MockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+func (m *MockRoundTripper) RoundTrip(_ *http.Request) (*http.Response, error) {
 	if m.Err != nil {
 		return nil, m.Err
 	}
@@ -44,7 +54,7 @@ func TestDownloadMicroOS_Success(t *testing.T) {
 	}
 	config.SetInfraConfig(cfg)
 
-	ok, err := DownloadMicroOS(context.Background())
+	ok, err := download.DownloadMicroOS(context.Background())
 	if !ok || err != nil {
 		t.Fatalf("expected success, got err: %v", err)
 	}
@@ -67,7 +77,7 @@ func TestDownloadMicroOS_MissingConfig(t *testing.T) {
 		EMBImageURL:   "",
 	}
 	config.SetInfraConfig(cfg)
-	ok, err := DownloadMicroOS(context.Background())
+	ok, err := download.DownloadMicroOS(context.Background())
 	if ok || err == nil {
 		t.Fatalf("expected failure due to missing config")
 	}
@@ -84,7 +94,7 @@ func TestDownloadMicroOS_HTTPError(t *testing.T) {
 	}
 	config.SetInfraConfig(cfg)
 
-	ok, err := DownloadMicroOS(context.Background())
+	ok, err := download.DownloadMicroOS(context.Background())
 	if ok || err == nil {
 		t.Fatalf("expected HTTP error")
 	}
