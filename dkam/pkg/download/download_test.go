@@ -15,13 +15,6 @@ import (
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/download"
 )
 
-var client = &http.Client{
-	Transport: &http.Transport{
-		Proxy:             http.ProxyFromEnvironment,
-		ForceAttemptHTTP2: false,
-	},
-}
-
 // MockRoundTripper implements http.RoundTripper for testing.
 type MockRoundTripper struct {
 	ResponseBody string
@@ -41,13 +34,13 @@ func (m *MockRoundTripper) RoundTrip(_ *http.Request) (*http.Response, error) {
 
 func TestDownloadMicroOS_Success(t *testing.T) {
 	// Setup mock HTTP client
-	oldClient := client
-	client = &http.Client{Transport: &MockRoundTripper{ResponseBody: "testdata", StatusCode: 200}}
-	defer func() { client = oldClient }()
+	oldClient := download.Client
+	download.Client = &http.Client{Transport: &MockRoundTripper{ResponseBody: "testdata", StatusCode: 200}}
+	defer func() { download.Client = oldClient }()
 
 	// Setup config using SetInfraConfig
 	cfg := config.InfraConfig{
-		FileServerURL: "http://localhost",
+		FileServerURL: "localhost",
 		EMBImageURL:   "emb_uos_x86_64.tar.gz",
 	}
 	config.SetInfraConfig(cfg)
@@ -82,9 +75,9 @@ func TestDownloadMicroOS_MissingConfig(t *testing.T) {
 }
 
 func TestDownloadMicroOS_HTTPError(t *testing.T) {
-	oldClient := client
-	client = &http.Client{Transport: &MockRoundTripper{Err: io.EOF}}
-	defer func() { client = oldClient }()
+	oldClient := download.Client
+	download.Client = &http.Client{Transport: &MockRoundTripper{Err: io.EOF}}
+	defer func() { download.Client = oldClient }()
 
 	cfg := config.InfraConfig{
 		FileServerURL: "http://localhost",

@@ -18,7 +18,7 @@ import (
 
 var (
 	zlog   = logging.GetLogger("InfraDKAMDownload")
-	client = &http.Client{
+	Client = &http.Client{
 		Transport: &http.Transport{
 			Proxy:             http.ProxyFromEnvironment,
 			ForceAttemptHTTP2: false,
@@ -63,7 +63,7 @@ func DownloadMicroOS(ctx context.Context) (bool, error) {
 	}
 
 	// Perform the HTTP GET request
-	resp, err := client.Do(req)
+	resp, err := Client.Do(req)
 	if err != nil {
 		zlog.InfraSec().Error().Err(err).Msgf("Failed to connect to release server to download package manifest: %v", err)
 		return false, err
