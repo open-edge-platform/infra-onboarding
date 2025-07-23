@@ -9,6 +9,7 @@ path = [
     "go.sum",
 
     "**.md",
+    "pkg/script/uos/cpio_build/etc/fluent-bit/parsers.conf",
 ]
 
 SPDX-FileCopyrightText = "2025 Intel Corporation"

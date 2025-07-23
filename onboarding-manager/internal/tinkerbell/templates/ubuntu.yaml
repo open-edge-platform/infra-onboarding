@@ -25,6 +25,11 @@ tasks:
       - name: "stream-os-image"
         image: {{ .TinkerActionImageQemuNbdImage2Disk }}
         timeout: 9800
+        volumes:
+          - /run:/run:rw
+          - /tmp:/tmp:rw
+          - /var:/var:rw
+          - /dev/nbd0:/dev/nbd0:rw
         pid: "host"
         environment:
           IMG_URL: {{ .DeviceInfoOSImageURL }}
