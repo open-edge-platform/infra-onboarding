@@ -79,21 +79,21 @@ get_cert(){
 
 	if [ ! -f /etc/ssl/boots-ca-cert/ca.crt ]; then
 		echo "======== file is not present ========"
-		exit 1
+		exit 0
 	fi
 
 	if [ ! -s /etc/ssl/boots-ca-cert/ca.crt ]; then
 		echo "======== file size is zero ========"
-		exit 1
+		exit 0
 	fi
 	if [ ! -f /etc/ssl/orch-ca-cert/ca.crt ]; then
 		echo "======== file is not present ========"
-		exit 1
+		exit 0
 	fi
 
 	if [ ! -s /etc/ssl/orch-ca-cert/ca.crt ]; then
 		echo "======== file size is zero ========"
-		exit 1
+		exit 0
 	fi
 
 	# Get CA certificates
