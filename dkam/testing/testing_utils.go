@@ -21,6 +21,7 @@ const (
 	TestManifestRepo       = "test-manifest-repo"
 	CorrectTestManifestTag = "correct"
 	EmptyTestManifestTag   = "empty"
+	TestMicroOSfileName    = "test-uos-file"
 )
 
 func exampleManifest(digest string, fileLen int) string {
@@ -110,8 +111,20 @@ packages:
 			w.WriteHeader(http.StatusOK)
 			// empty data
 		})
+	mux.HandleFunc("/"+TestMicroOSfileName,
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			// return test data
+			w.Write([]byte("testdata"))
+		})
 
 	svr := httptest.NewServer(mux)
+	config.SetInfraConfig(config.InfraConfig{
+		ENManifestRepo:     TestManifestRepo,
+		ENAgentManifestTag: CorrectTestManifestTag,
+		CDN:                svr.URL,
+		EMBImageURL:        TestMicroOSfileName,
+	})
 
 	testRegistryEndpoint, _ := strings.CutPrefix(svr.URL, "http://")
 

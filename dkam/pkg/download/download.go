@@ -27,13 +27,13 @@ var (
 )
 
 const (
-	uosFileName = "emb_uos_x86_64.tar.gz"
+	UOSFileName = "emb_uos_x86_64.tar.gz"
 )
 
 //nolint:revive // Keeping the function name for clarity and consistency.
 func DownloadMicroOS(ctx context.Context) (bool, error) {
 	zlog.Info().Msgf("Inside Download and sign artifact... %s", config.DownloadPath)
-	fileServerAddress := strings.Split(config.GetInfraConfig().FileServerURL, ":")[0]
+	fileServerAddress := config.GetInfraConfig().CDN
 	if fileServerAddress == "" {
 		invErr := inv_errors.Errorf("FileServerURL is not set in the configuration")
 		zlog.Err(invErr).Msg("")
@@ -70,7 +70,7 @@ func DownloadMicroOS(ctx context.Context) (bool, error) {
 	}
 	defer resp.Body.Close()
 
-	uOSFilePath := config.DownloadPath + "/" + uosFileName
+	uOSFilePath := config.DownloadPath + "/" + UOSFileName
 
 	file, fileerr := os.Create(uOSFilePath)
 	if fileerr != nil {

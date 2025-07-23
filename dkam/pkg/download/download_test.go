@@ -40,8 +40,8 @@ func TestDownloadMicroOS_Success(t *testing.T) {
 
 	// Setup config using SetInfraConfig
 	cfg := config.InfraConfig{
-		FileServerURL: "localhost",
-		EMBImageURL:   "emb_uos_x86_64.tar.gz",
+		CDN:         "localhost",
+		EMBImageURL: "test-file",
 	}
 	config.SetInfraConfig(cfg)
 
@@ -51,7 +51,7 @@ func TestDownloadMicroOS_Success(t *testing.T) {
 	}
 
 	// Check file exists
-	filePath := config.DownloadPath + "/" + cfg.EMBImageURL
+	filePath := config.DownloadPath + "/" + download.UOSFileName
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		t.Fatalf("expected file to be created, got err: %v", err)
@@ -64,8 +64,8 @@ func TestDownloadMicroOS_Success(t *testing.T) {
 func TestDownloadMicroOS_MissingConfig(t *testing.T) {
 	// Set empty config
 	cfg := config.InfraConfig{
-		FileServerURL: "",
-		EMBImageURL:   "",
+		CDN:         "",
+		EMBImageURL: "",
 	}
 	config.SetInfraConfig(cfg)
 	ok, err := download.DownloadMicroOS(context.Background())
@@ -80,8 +80,8 @@ func TestDownloadMicroOS_HTTPError(t *testing.T) {
 	defer func() { download.Client = oldClient }()
 
 	cfg := config.InfraConfig{
-		FileServerURL: "http://localhost",
-		EMBImageURL:   "emb_uos_x86_64.tar.gz",
+		CDN:         "http://localhost",
+		EMBImageURL: "test-file",
 	}
 	config.SetInfraConfig(cfg)
 
