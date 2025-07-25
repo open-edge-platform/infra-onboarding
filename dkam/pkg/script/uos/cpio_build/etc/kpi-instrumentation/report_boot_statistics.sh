@@ -32,8 +32,7 @@ for cmdline in $(tr ' ' '\n' < "$input_file"); do
         continue
     fi
     if [[ "$bootTracepoint" == s_* ]]; then
-        value=$(parse_hex_to_uint32 "$bootTracepointValue" 2>/dev/null)
-        if [[ $? -ne 0 ]]; then
+         if ! value=$(parse_hex_to_uint32 "$bootTracepointValue" 2>/dev/null); then
             echo "Failed to print boot statistics $bootTracepoint"
         else
             echo "Reporting boot KPI $bootTracepoint $value"
