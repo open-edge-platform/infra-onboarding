@@ -185,7 +185,7 @@ update_systemd_services() {
     tar -xvf rootfs.tar ./usr/lib/systemd/system/tink-worker.service
     sed -i '/^\[Unit\]/,/^$/s/^After=network-online.target/After=network-online.target caddy.service/' ./usr/lib/systemd/system/tink-worker.service
     sed -i '/^After=network-online.target caddy.service$/a Requires=caddy.service' ./usr/lib/systemd/system/tink-worker.service
-    sed -i '/^ExecStart=/i ExecStartPre=/etc/kpi-instrumentation/report_boot_statistics.sh' ./usr/lib/systemd/system/tink-worker.service
+    sed -i '/^ExecStart=/i ExecStartPre=-/etc/kpi-instrumentation/report_boot_statistics.sh' ./usr/lib/systemd/system/tink-worker.service
 
     tar -uf rootfs.tar ./usr/lib/systemd/system/caddy.service
     tar -uf rootfs.tar ./usr/lib/systemd/system/fluent-bit.service
