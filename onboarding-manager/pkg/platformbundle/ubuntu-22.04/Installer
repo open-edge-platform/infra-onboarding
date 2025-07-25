@@ -322,6 +322,8 @@ install_other_agents() {
       echo "platform-update-agent platform-update-agent/enaDebURL string ${CADDY_APT_PROXY_URL}" | debconf-set-selections
       echo "platform-update-agent platform-update-agent/updateServiceURL string ${UPDATE_SERVICE_URL}" | debconf-set-selections
       echo "telemetry-agent telemetry-agent/telemetrymanager.serviceURL string ${TELEMETRY_MANAGER_URL}" | debconf-set-selections
+      echo "platform-manageability-agent platform-manageability-agent/manageability.serviceURL string ${PLATFORM_MANAGEABILITY_URL}" | debconf-set-selections
+      echo "platform-manageability-agent platform-manageability-agent/rpsAddress string ${RPS_ADDRESS}" | debconf-set-selections
       
       #Download and install lms debian package for PMA
       if [ "$RS_TYPE" == "auth" ]; then
