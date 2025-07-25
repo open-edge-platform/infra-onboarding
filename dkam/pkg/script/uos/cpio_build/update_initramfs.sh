@@ -160,6 +160,8 @@ copy_service_files() {
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/fluent-bit/
     chmod +x "$PWD/etc/caddy/caddy_run.sh"
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/caddy/
+    chmod +x "$PWD/etc/kpi-instrumentation/report_boot_statistics.sh"
+    tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/kpi-instrumentation/report_boot_statistics.sh
 }
 
 update_systemd_services() {
@@ -183,6 +185,7 @@ update_systemd_services() {
     tar -xvf rootfs.tar ./usr/lib/systemd/system/tink-worker.service
     sed -i '/^\[Unit\]/,/^$/s/^After=network-online.target/After=network-online.target caddy.service/' ./usr/lib/systemd/system/tink-worker.service
     sed -i '/^After=network-online.target caddy.service$/a Requires=caddy.service' ./usr/lib/systemd/system/tink-worker.service
+    sed -i '/^ExecStart=/i ExecStartPre=/etc/kpi-instrumentation/report_boot_statistics.sh' ./usr/lib/systemd/system/tink-worker.service
 
     tar -uf rootfs.tar ./usr/lib/systemd/system/caddy.service
     tar -uf rootfs.tar ./usr/lib/systemd/system/fluent-bit.service
