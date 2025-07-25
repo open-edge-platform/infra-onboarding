@@ -5,59 +5,86 @@ package download
 
 import (
 	"context"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
+	"strings"
 
-	as "github.com/open-edge-platform/infra-core/inventory/v2/pkg/artifactservice"
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
-	"github.com/open-edge-platform/infra-onboarding/dkam/internal/env"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
 )
 
-var zlog = logging.GetLogger("InfraDKAMDownload")
+var (
+	zlog   = logging.GetLogger("InfraDKAMDownload")
+	Client = &http.Client{
+		Transport: &http.Transport{
+			Proxy:             http.ProxyFromEnvironment,
+			ForceAttemptHTTP2: false,
+		},
+	}
+)
+
+const (
+	UOSFileName = "emb_uos_x86_64.tar.gz"
+)
 
 //nolint:revive // Keeping the function name for clarity and consistency.
 func DownloadMicroOS(ctx context.Context) (bool, error) {
 	zlog.Info().Msgf("Inside Download and sign artifact... %s", config.DownloadPath)
-	repo := env.HookOSRepo
-	hookOSVersion := env.HookOSVersion
-	zlog.InfraSec().Info().Msgf("Hook OS repo URL is %s and HookOS version is %s",
-		repo, hookOSVersion)
-	artifacts, err := as.DownloadArtifacts(ctx, repo, hookOSVersion)
-	if err != nil {
-		invErr := inv_errors.Errorf("Error downloading HookOS for tag %s", hookOSVersion)
+	fileServerAddress := config.GetInfraConfig().CDN
+	if fileServerAddress == "" {
+		invErr := inv_errors.Errorf("FileServerURL is not set in the configuration")
 		zlog.Err(invErr).Msg("")
+		return false, invErr
 	}
 
-	if artifacts != nil && len(*artifacts) > 0 {
-		for _, artifact := range *artifacts {
-			zlog.InfraSec().Info().Msgf("Downloading artifact %s", artifact.Name)
-			filePath := config.DownloadPath + "/" + artifact.Name
+	embImgURL := config.GetInfraConfig().EMBImageURL
+	if embImgURL == "" {
+		invErr := inv_errors.Errorf("EMBImageURL is not set in the configuration")
+		zlog.Err(invErr).Msg("")
+		return false, invErr
+	}
 
-			err = CreateFile(filePath, &artifact)
-			if err != nil {
-				zlog.InfraSec().Error().Err(err).Msg("Error writing to file")
-				return false, err
-			}
-		}
+	uOSUrl, err := url.JoinPath(fileServerAddress, embImgURL)
+	if err != nil {
+		zlog.InfraSec().Error().Err(err).Msgf("Failed to generate MicroOS URL")
+		return false, err
+	}
+	if !strings.HasPrefix(uOSUrl, "http://") && !strings.HasPrefix(uOSUrl, "https://") {
+		uOSUrl = "https://" + uOSUrl
+	}
+	zlog.InfraSec().Info().Msgf("Downloading uOS from URL: %s", uOSUrl)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, uOSUrl, http.NoBody)
+	if err != nil {
+		zlog.InfraSec().Error().Err(err).Msgf("Failed to create GET request to release server: %v", err)
+		return false, err
+	}
+
+	// Perform the HTTP GET request
+	resp, err := Client.Do(req)
+	if err != nil {
+		zlog.InfraSec().Error().Err(err).Msgf("Failed to connect to release server to download package manifest: %v", err)
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	uOSFilePath := config.DownloadPath + "/" + UOSFileName
+
+	file, fileerr := os.Create(uOSFilePath)
+	if fileerr != nil {
+		zlog.InfraSec().Error().Err(fileerr).Msgf("Failed to create file:%v", fileerr)
+		return false, fileerr
+	}
+	defer file.Close()
+
+	// Copy the response body to the local file
+	_, copyErr := io.Copy(file, resp.Body)
+	if copyErr != nil {
+		zlog.InfraSec().Error().Err(copyErr).Msgf("Error while copying content ")
 	}
 
 	zlog.InfraSec().Info().Msg("File downloaded")
 	return true, nil
-}
-
-func CreateFile(filePath string, artifact *as.Artifact) error {
-	file, fileErr := os.Create(filePath)
-	if fileErr != nil {
-		zlog.InfraSec().Error().Err(fileErr).Msgf("Error while creating file %v", filePath)
-		return fileErr
-	}
-	defer file.Close()
-
-	_, err := file.Write(artifact.Data)
-	if err != nil {
-		zlog.InfraSec().Error().Err(err).Msgf("Error writing to file:%v", err)
-		return err
-	}
-	return nil
 }
