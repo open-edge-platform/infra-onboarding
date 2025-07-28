@@ -172,8 +172,6 @@ func GetCommonInfraTemplateVariables(infraConfig config.InfraConfig, osType osv1
 
 		"NETIP": infraConfig.NetIP,
 
-		"EXTRA_HOSTS": infraConfig.ExtraHosts,
-
 		"FIREWALL_RULES": firewallRules,
 
 		// TODO: keeping OS-dependence for now, but will be removed once we reach the final solution
