@@ -41,7 +41,7 @@ type InfraConfig struct {
 	LogsObservabilityURL    string `mapstructure:"orchPlatformObsLogs"`
 	MetricsObservabilityURL string `mapstructure:"orchPlatformObsMetrics"`
 	ManageabilityURL        string `mapstructure:"orchPlatformManageability"`
-	RPSAddress              string `mapstructure:"rpsAddress"`
+	RPSAddress              string `mapstructure:"orchRPSAddress"`
 	KeycloakURL             string `mapstructure:"orchKeycloak"`
 	TelemetryURL            string `mapstructure:"orchTelemetry"`
 	RegistryURL             string `mapstructure:"orchRegistry"`

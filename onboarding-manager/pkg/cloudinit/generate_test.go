@@ -31,7 +31,7 @@ func TestMain(m *testing.M) {
 	projectRoot = filepath.Dir(filepath.Dir(wd))
 	currentDir = wd
 
-	cleanupFunc := dkam_testing.StartTestReleaseService("test-profile")
+	cleanupFunc := dkam_testing.StartTestReleaseService()
 
 	run := m.Run()
 	cleanupFunc()
