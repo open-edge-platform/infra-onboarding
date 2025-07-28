@@ -220,7 +220,7 @@ install_node_agent(){
         else
             oras pull "${REGISTRY_URL}/${DEB_PACKAGES_REPO}/node-agent:$NODE_AGENT_VERSION"
         fi
-        
+
         if [ ! -f "${PKGFILE}" ]; then
             echo "node agent debian could not be downloaded. Aborting installation"
             exit 1
@@ -357,10 +357,10 @@ install_other_agents() {
         tar -xvf rpc_linux_x64.tar.gz -C /etc/intel_edge_node
         rm -rf rpc_linux_x64.tar.gz
         mv /etc/intel_edge_node/rpc_linux_x64 /etc/intel_edge_node/rpc
-        else
-            echo "Downloaded file does not exist. Aborting installation."
-            exit 1
-        fi
+      else
+          echo "Downloaded file does not exist. Aborting installation."
+          exit 1
+      fi
       apt-get update
       apt-get install -y -o Dpkg::Options::="--force-confnew" \
         cluster-agent="$CLUSTER_AGENT_VERSION" \
