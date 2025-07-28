@@ -21,9 +21,9 @@ const (
 	writeMode = 0o600
 )
 
-func SignHookOS() (bool, error) {
+func SignMicroOS() (bool, error) {
 	zlog.InfraSec().Info().Msgf("Script dir %s", config.ScriptPath)
-	buildScriptPath, err := setupHookDirectories()
+	buildScriptPath, err := setupUOSDirectories()
 	if err != nil {
 		return false, err
 	}
@@ -43,13 +43,6 @@ func SignHookOS() (bool, error) {
 	if errconf != nil {
 		zlog.InfraSec().Fatal().Err(errconf).Msgf("Error writing modified config file: %v", errconf)
 	}
-	modeCmd := exec.Command("chmod", "+x", "secure_hookos.sh")
-	result, modeErr := modeCmd.CombinedOutput()
-	if modeErr != nil {
-		zlog.InfraSec().Fatal().Err(modeErr).Msgf("Failed to change mode secure_hookos %v", modeErr)
-		return false, modeErr
-	}
-	zlog.Info().Msgf("Script output: %s", string(result))
 	cpioPath := buildScriptPath + "/cpio_build"
 	zlog.InfraSec().Info().Msgf("cpioPath dir %s", cpioPath)
 
@@ -58,15 +51,31 @@ func SignHookOS() (bool, error) {
 		zlog.InfraSec().Fatal().Err(errcpio).Msgf("Error changing working directory: %v\n", errcpio)
 		return false, errcpio
 	}
-	mdCmd := exec.Command("chmod", "+x", "build_image_at_DKAM.sh")
+
+	modeCmd := exec.Command("chmod", "+x", "secure_uos.sh")
+	result, modeErr := modeCmd.CombinedOutput()
+	if modeErr != nil {
+		zlog.InfraSec().Fatal().Err(modeErr).Msgf("Failed to change mode secure_uos %v", modeErr)
+		return false, modeErr
+	}
+	zlog.Info().Msgf("Script output: %s", string(result))
+
+	mdCmd := exec.Command("chmod", "+x", "update_initramfs.sh")
 	mdresult, mdErr := mdCmd.CombinedOutput()
 	if mdErr != nil {
-		zlog.InfraSec().Fatal().Err(mdErr).Msgf("Failed to change mode build_image_at_DKAM.sh script %v", mdErr)
+		zlog.InfraSec().Fatal().Err(mdErr).Msgf("Failed to change mode of update_initramfs.sh script %v", mdErr)
 		return false, mdErr
 	}
 	zlog.Info().Msgf("Script output: %s", string(mdresult))
+
+	// Ensure the working directory is correct before running the script
+	if err := verifyWorkingDirectory(cpioPath); err != nil {
+		zlog.InfraSec().Fatal().Err(err).Msgf("Working directory verification failed: %v", err)
+		return false, err
+	}
+
 	//nolint:gosec // The script and arguments are trusted and validated before execution.
-	buildCmd := exec.Command("bash", "./build_image_at_DKAM.sh", config.DownloadPath)
+	buildCmd := exec.Command("bash", "./update_initramfs.sh", config.DownloadPath)
 	output, buildErr := buildCmd.CombinedOutput()
 	if buildErr != nil {
 		zlog.InfraSec().Fatal().Err(buildErr).Msgf("Failed to sign microOS script %v", buildErr)
@@ -81,16 +90,29 @@ func SignHookOS() (bool, error) {
 	return true, nil
 }
 
-func setupHookDirectories() (string, error) {
-	hookDir := config.ScriptPath + "/hook"
-	buildScriptPath := config.DownloadPath + "/hook"
-	zlog.InfraSec().Info().Msgf("Hook OS dir %s", buildScriptPath)
+func verifyWorkingDirectory(expected string) error {
+	wd, err := os.Getwd()
+	if err != nil {
+		zlog.InfraSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
+		return err
+	}
+	if wd != expected {
+		zlog.InfraSec().Fatal().Msgf("Working directory mismatch: expected %s, got %s", expected, wd)
+		return os.ErrInvalid
+	}
+	return nil
+}
+
+func setupUOSDirectories() (string, error) {
+	uosDir := config.ScriptPath + "/uos"
+	buildScriptPath := config.DownloadPath + "/uos"
+	zlog.InfraSec().Info().Msgf("UOS dir %s", buildScriptPath)
 	mkdirErr := os.MkdirAll(buildScriptPath, fileMode)
 	if mkdirErr != nil {
 		zlog.InfraSec().Error().Err(mkdirErr).Msgf("Error creating directory: %v", mkdirErr)
 		return "", mkdirErr
 	}
-	if err := copyDir(hookDir, buildScriptPath); err != nil {
+	if err := copyDir(uosDir, buildScriptPath); err != nil {
 		zlog.InfraSec().Info().Msgf("Error copying directory:%v", err)
 		return "", err
 	}
@@ -116,7 +138,6 @@ func replaceConfigPlaceholders(content []byte) string {
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__release_svc__", infraConfig.CDN)
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__tink_stack_svc__", infraConfig.ProvisioningService)
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__tink_server_svc__", infraConfig.TinkServerURL)
-	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__extra_hosts__", strings.Join(infraConfig.ExtraHosts, ","))
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__keycloak_url__", infraConfig.KeycloakURL)
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__oci_release_svc__", strings.Split(infraConfig.RegistryURL, ":")[0])
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__logging_svc__",
@@ -170,7 +191,8 @@ func BuildSignIpxe() (bool, error) {
 	zlog.InfraSec().Info().Msgf("Domain: %s", config.GetInfraConfig().ProvisioningService)
 
 	tinkURLString := "<TINK_STACK_URL>"
-	chainPath := config.ScriptPath + "/" + "chain.ipxe"
+	ipxePath := config.ScriptPath + "/ipxe"
+	chainPath := ipxePath + "/" + "chain.ipxe"
 	targetChainPath := config.DownloadPath + "/" + "chain.ipxe"
 	// Copy the file
 	cpErr := copyFile(chainPath, targetChainPath)
@@ -199,10 +221,10 @@ func BuildSignIpxe() (bool, error) {
 		zlog.Info().Msg("Search string not found in the file.")
 	}
 
-	errcpio := os.Chdir(config.ScriptPath)
-	if errcpio != nil {
-		zlog.InfraSec().Fatal().Err(errcpio).Msgf("Error changing working directory: %v\n", errcpio)
-		return false, errcpio
+	errIpxe := os.Chdir(ipxePath)
+	if errIpxe != nil {
+		zlog.InfraSec().Fatal().Err(errIpxe).Msgf("Error changing working directory: %v\n", errIpxe)
+		return false, errIpxe
 	}
 	//nolint:gosec // The script and arguments are trusted and validated before execution.
 	cmd := exec.Command("bash", "./build_sign_ipxe.sh", config.DownloadPath)
