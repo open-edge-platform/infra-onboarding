@@ -40,8 +40,6 @@ type InfraConfig struct {
 	ReleaseServiceURL       string `mapstructure:"orchRelease"`
 	LogsObservabilityURL    string `mapstructure:"orchPlatformObsLogs"`
 	MetricsObservabilityURL string `mapstructure:"orchPlatformObsMetrics"`
-	ManageabilityURL        string `mapstructure:"orchPlatformManageability"`
-	RPSAddress              string `mapstructure:"orchRPSAddress"`
 	KeycloakURL             string `mapstructure:"orchKeycloak"`
 	TelemetryURL            string `mapstructure:"orchTelemetry"`
 	RegistryURL             string `mapstructure:"orchRegistry"`

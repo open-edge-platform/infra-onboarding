@@ -61,8 +61,6 @@ packages:
     version: 1.2.4
   - name: platform-update-agent
     version: 1.3.4
-  - name: platform-manageability-agent
-    version: 1.2.4
   - name: caddy
     version: 2.7.6
   - name: inbc-program
@@ -164,8 +162,6 @@ func PrepareTestInfraConfig(_ *testing.T) {
 		OnboardingURL:                         "onboarding.test:443",
 		OnboardingStreamURL:                   "onboarding-stream.test:443",
 		CDN:                                   "cdn.test:443",
-		ManageabilityURL:                      "manageability.test:443",
-		RPSAddress:                            "rps.test",
 		SystemConfigFsInotifyMaxUserInstances: 1,
 		SystemConfigVmOverCommitMemory:        1,
 		SystemConfigKernelPanicOnOops:         1,
@@ -209,10 +205,6 @@ func PrepareTestInfraConfig(_ *testing.T) {
 				},
 				{
 					Name:    "platform-telemetry-agent",
-					Version: "1.0.0",
-				},
-				{
-					Name:    "platform-manageability-agent",
 					Version: "1.0.0",
 				},
 				{
