@@ -168,6 +168,7 @@ update_systemd_services() {
     tar -xvf rootfs.tar ./usr/lib/systemd/system/device-discovery.service
     sed -i 's|StandardOutput=journal|StandardOutput=journal+console|' ./usr/lib/systemd/system/device-discovery.service
     sed -i 's|StandardError=journal|StandardError=journal+console|' ./usr/lib/systemd/system/device-discovery.service
+    sed -i '/^\[Service\]/a Restart=on-failure\nRestartSec=5' ./usr/lib/systemd/system/device-discovery.service
 
     tar -xvf rootfs.tar ./usr/lib/systemd/system/caddy.service
     sed -i 's|User=caddy|User=root|' ./usr/lib/systemd/system/caddy.service
