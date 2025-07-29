@@ -8,7 +8,7 @@ go 1.24.4
 require (
 	github.com/envoyproxy/protoc-gen-validate v1.2.1
 	github.com/google/uuid v1.6.0
-	github.com/open-edge-platform/infra-core/inventory/v2 v2.28.1
+	github.com/open-edge-platform/infra-core/inventory/v2 v2.29.0
 	github.com/open-edge-platform/infra-onboarding/dkam v1.29.0
 	github.com/open-edge-platform/orch-library/go v0.6.1
 	github.com/pkg/errors v0.9.1
@@ -191,5 +191,5 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
-replace github.com/open-edge-platform/infra-onboarding/dkam => ../dkam
 
+replace github.com/open-edge-platform/infra-onboarding/dkam => ../dkam
