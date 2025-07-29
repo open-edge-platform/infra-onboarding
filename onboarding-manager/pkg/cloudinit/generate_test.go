@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -31,7 +30,7 @@ func TestMain(m *testing.M) {
 	projectRoot = filepath.Dir(filepath.Dir(wd))
 	currentDir = wd
 
-	cleanupFunc := dkam_testing.StartTestReleaseService("test-profile")
+	cleanupFunc := dkam_testing.StartTestReleaseService()
 
 	run := m.Run()
 	cleanupFunc()
@@ -106,7 +105,6 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
 					newCfg := infraConfig
 					newCfg.ClusterURL = clusterURL
-					newCfg.ExtraHosts = strings.Split("1.1.1.1 a.test,2.2.2.2 b.test", ",")
 					newCfg.FirewallCfgAllow = `
 		[
 		    {
@@ -136,7 +134,6 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
 					newCfg := infraConfig
 					newCfg.ClusterURL = clusterURL
-					newCfg.ExtraHosts = strings.Split("1.1.1.1 a.test,2.2.2.2 b.test", ",")
 					newCfg.FirewallCfgAllow = `
 		[
 		    {
@@ -393,7 +390,6 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
 					newCfg := infraConfig
 					newCfg.ClusterURL = clusterURL
-					newCfg.ExtraHosts = strings.Split("1.1.1.1 a.test,2.2.2.2 b.test", ",")
 					newCfg.FirewallCfgAllow = `
 [
     {
@@ -424,7 +420,6 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 				infraConfigOverride: func(infraConfig config.InfraConfig) config.InfraConfig {
 					newCfg := infraConfig
 					newCfg.ClusterURL = clusterURL
-					newCfg.ExtraHosts = strings.Split("1.1.1.1 a.test,2.2.2.2 b.test", ",")
 					newCfg.FirewallCfgAllow = `
 [
     {
