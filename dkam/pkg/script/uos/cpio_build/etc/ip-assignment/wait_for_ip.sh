@@ -4,20 +4,19 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Read /proc/cmdline and extract string after worker_id
-worker_id=""
-for i in $(cat "/proc/cmdline"); do
-    if [[ "$i" == worker_id=* ]]; then
-        worker_id="${i#worker_id=}"
-        break
-    fi
-done
+worker_id=$(grep -oP 'worker_id=\K[^ ]+' /proc/cmdline)
+if [ -z "$worker_id" ]; then
+    echo "Worker ID not found in cmdline"
+    exit 1
+fi
 echo "Worker ID: ${worker_id}"
 
 SLEEP_TIME=3
 NUMBER_OF_RETRIES=10
 
 # Check if IP address is assigned to interface matching MAC address with worker_id
-for iface in $(ls /sys/class/net); do
+for iface in /sys/class/net/*; do
+    iface=$(basename "$iface")
     mac_address=$(cat "/sys/class/net/$iface/address")
     if [[ "$mac_address" == "$worker_id" ]]; then
         for ((attempt=1; attempt<=NUMBER_OF_RETRIES; attempt++)); do
