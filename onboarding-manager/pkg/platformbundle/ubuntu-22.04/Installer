@@ -357,9 +357,9 @@ install_other_agents() {
             exit 1
         fi
         echo "Checksum verification successful."
-        tar -xvf rpc_linux_x64.tar.gz -C /etc/intel_edge_node
+        tar -xvf rpc_linux_x64.tar.gz -C /usr/bin
         rm -rf rpc_linux_x64.tar.gz
-        mv /etc/intel_edge_node/rpc_linux_x64 /etc/intel_edge_node/rpc
+        mv /usr/bin/rpc_linux_x64 /usr/bin/rpc
       else
           echo "Downloaded file does not exist. Aborting installation."
           exit 1
