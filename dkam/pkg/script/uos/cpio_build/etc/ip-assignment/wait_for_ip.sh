@@ -19,8 +19,8 @@ NUMBER_OF_RETRIES=10
 # Check if IP address is assigned to interface matching MAC address with worker_id
 for iface in $(ls /sys/class/net); do
     mac_address=$(cat "/sys/class/net/$iface/address")
-    for ((attempt=1; attempt<=NUMBER_OF_RETRIES; attempt++)); do
-        if [[ "$mac_address" == "$worker_id" ]]; then
+    if [[ "$mac_address" == "$worker_id" ]]; then
+        for ((attempt=1; attempt<=NUMBER_OF_RETRIES; attempt++)); do
             ip_address=$(ip addr show "$iface" | awk '/inet / {print $2}' | cut -d/ -f1)
             if [[ -n "$ip_address" ]]; then
                 echo "IP Address $ip_address is assigned to interface $iface with MAC $mac_address"
@@ -29,8 +29,8 @@ for iface in $(ls /sys/class/net); do
                 echo "Attempt $attempt/$NUMBER_OF_RETRIES: No IP address assigned to interface $iface with MAC $mac_address yet"
                 sleep "$SLEEP_TIME"
             fi
-        fi
-    done
+        done
+    fi
 done
 
 echo "No interface found with MAC address matching worker_id: $worker_id"
