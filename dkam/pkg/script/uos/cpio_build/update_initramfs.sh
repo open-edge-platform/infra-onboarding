@@ -160,10 +160,17 @@ copy_service_files() {
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/fluent-bit/
     chmod +x "$PWD/etc/caddy/caddy_run.sh"
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/caddy/
+    chmod +x "$PWD/etc/kpi-instrumentation/report_boot_statistics.sh"
+    tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/kpi-instrumentation/report_boot_statistics.sh
+    chmod +x "$PWD/etc/ip-assignment/wait_for_ip.sh"
+    tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/ip-assignment/wait_for_ip.sh
 }
 
 update_systemd_services() {
     pushd "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/" || exit
+
+    tar -xvf rootfs.tar ./usr/lib/systemd/system/device-discovery.service
+    sed -i '/^ExecStart=/i ExecStartPre=/etc/ip-assignment/wait_for_ip.sh' ./usr/lib/systemd/system/device-discovery.service
 
     tar -xvf rootfs.tar ./usr/lib/systemd/system/caddy.service
     sed -i 's|User=caddy|User=root|' ./usr/lib/systemd/system/caddy.service
@@ -183,7 +190,9 @@ update_systemd_services() {
     tar -xvf rootfs.tar ./usr/lib/systemd/system/tink-worker.service
     sed -i '/^\[Unit\]/,/^$/s/^After=network-online.target/After=network-online.target caddy.service/' ./usr/lib/systemd/system/tink-worker.service
     sed -i '/^After=network-online.target caddy.service$/a Requires=caddy.service' ./usr/lib/systemd/system/tink-worker.service
+    sed -i '/^ExecStart=/i ExecStartPre=-/etc/kpi-instrumentation/report_boot_statistics.sh' ./usr/lib/systemd/system/tink-worker.service
 
+    tar -uf rootfs.tar ./usr/lib/systemd/system/device-discovery.service
     tar -uf rootfs.tar ./usr/lib/systemd/system/caddy.service
     tar -uf rootfs.tar ./usr/lib/systemd/system/fluent-bit.service
     tar -uf rootfs.tar ./usr/lib/systemd/system/tink-worker.service
