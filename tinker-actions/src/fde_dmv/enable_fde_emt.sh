@@ -210,7 +210,7 @@ make_partition() {
 
     swap_size=$(( $swap_size * 1024 ))
 
-    total_size_disk=$(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ printf "%.0f\n", $1 / (1024*1024) }')
+    total_size_disk=$(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ print int($1 / (1024*1024)) }')
 
     # For single HDD Size should be total disk - lvm_size in GB provided as input by the User
     if [ $single_hdd -eq 0 ];
@@ -314,7 +314,7 @@ make_partition() {
     then
 	if [ $lvm_disk_size -ge 1 ];
         then
-	    actual_disk_size=$(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ printf "%.0f\n", $1 / (1024*1024) }')
+	    actual_disk_size=$(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ print int($1 / (1024*1024)) }')
 	    disk_used_mb=$(lsblk -b -n -o NAME,SIZE "$DEST_DISK" \
                     | awk -v disk="$(basename "$DEST_DISK")" '$1 != disk {s+=$2} END {printf "%.0f", s / 1024 / 1024}')
 	    available_disk_space=$(( actual_disk_size - disk_used_mb ))
