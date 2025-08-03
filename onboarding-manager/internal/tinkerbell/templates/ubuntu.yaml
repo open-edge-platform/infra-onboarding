@@ -148,6 +148,9 @@ tasks:
           systemctl enable install-profile-pkgs-and-node-agent.service &&
           sed -i 's|ExecStart=/lib/systemd/systemd-networkd-wait-online|ExecStart=/lib/systemd/systemd-networkd-wait-online --timeout=5|' /usr/lib/systemd/system/systemd-networkd-wait-online.service &&
           systemctl disable snapd.seeded.service"
+      - name: "efibootset-for-diskboot"
+        image: {{ .TinkerActionImageEfibootset }}
+        timeout: 560
 {{- if eq .DeviceInfoSecurityFeature "SECURITY_FEATURE_SECURE_BOOT_AND_FULL_DISK_ENCRYPTION" }}
       - name: "fde-encryption"
         image: {{ .TinkerActionImageFdeDmv }}
@@ -156,9 +159,6 @@ tasks:
       - name: "kernel-upgrade"
         image: {{ .TinkerActionImageKernelUpgrade }}
         timeout: 9800
-      - name: "efibootset-for-diskboot"
-        image: {{ .TinkerActionImageEfibootset }}
-        timeout: 560
       - name: "reboot"
         image: public.ecr.aws/l0g8r8j6/tinkerbell/hub/reboot-action:latest
         timeout: 90
