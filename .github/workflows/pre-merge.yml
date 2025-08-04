@@ -93,7 +93,7 @@ jobs:
       run_lint: true
       run_test: true
       run_validate_clean_folder: true
-      run_docker_build: false
+      run_docker_build: true
       run_artifact: false
       prefix_tag_separator: "/"
       project_folder: ${{ matrix.project_folder }}
