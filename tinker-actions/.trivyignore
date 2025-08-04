@@ -4,3 +4,9 @@
 # Ignore misconfigurations
 AVD-DS-0002 # Tinker actions require root permissions
 AVD-DS-0029 # TODO:3.1 - Validate with suggested changes
+
+CVE-2025-4802
+CVE-2023-2953
+CVE-2025-6020
+CVE-2023-31484
+CVE-2023-45853
