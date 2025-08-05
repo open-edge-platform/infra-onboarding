@@ -16,6 +16,9 @@ TEST_ENABLE_DM_ON_ROOTFSB=false
 # Test flag for only partition
 TEST_ON_ONLY_ONE_PART=false
 
+# Get the user provided lvm disk size number
+MINIMUM_LVM_SIZE=0
+
 # Set PARTITION_MODE to either standard or small
 #PARTITIONING_SCHEME="standard" # Default
 
@@ -199,12 +202,20 @@ make_partition() {
 
     swap_size=$(( swap_size * 1024 ))
 
-    total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
+    total_size_disk=$(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ print int($1 / (1024*1024)) }')
     echo "total_size_disk(detected) ${total_size_disk}"
 
-    # For single HDD reduce the size to 100 and fit everything inside it
+    # For single HDD Size should be total disk - lvm_size in GB provided as input by the User
     if [ $single_hdd -eq 0 ];
     then
+	if [ $lvm_disk_size -ge 1 ];
+        then
+	    min_lvm_size=$(( lvm_disk_size*1024 ))
+            if [ "$min_lvm_size" -ge "$total_size_disk" ];
+	    then
+                echo "$min_lvm_size is more than the disk size,please check"
+            fi
+	fi
 	total_size_disk=$(( 100 * 1024 ))
     fi
     echo "total_size_disk(fixed) ${total_size_disk}"
@@ -289,11 +300,24 @@ make_partition() {
     fi
 
 
+    # Create LVM for single_hdd only when user chooses
     if [ $single_hdd -eq 0 ];
     then
+	if [ $lvm_disk_size -ge 1 ];
+        then
+            actual_disk_size=$(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ print int($1 / (1024*1024)) }')
+            disk_used_mb=$(lsblk -b -n -o NAME,SIZE "$DEST_DISK" | grep -v "^$(basename $DEST_DISK)" | awk '{s+=$2} END {printf "%.0f", s / 1024 / 1024}')
+            available_disk_space=$(( actual_disk_size - disk_used_mb ))
+
+            if [ "$min_lvm_size" -ge "$available_disk_space" ];
+            then
+		echo "Available LVM size is  ${available_lvm_space}MB only."
+            else
+		echo "Minimum LVM size is available."
+            fi
+        fi
 	parted -s ${DEST_DISK} \
 	       mkpart lvm ext4 "$(convert_mb_to_sectors "${total_size_disk}" 0)"s 100%
-
 	check_return_value $? "Failed to create lvm parition"
     fi
 
@@ -345,7 +369,7 @@ make_partition() {
 make_partition_ven() {
     # Logic for partitioning when PARTITION_MODE is VEN
 
-    total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
+    total_size_disk=$(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ print int($1 / (1024*1024)) }')
     echo "total_size_disk(detected) ${total_size_disk}"
     suffix=$(fix_partition_suffix)
     boot_size=$(lsblk -bno SIZE "${DEST_DISK}1")
@@ -367,9 +391,26 @@ make_partition_ven() {
 
     if [ $single_hdd -eq 0 ];
     then
-        forty_percent=$((remaining_size * 40 / 100))
+
+	forty_percent=$((remaining_size * 40 / 100))
         emt_persistent_size=$((forty_percent <= 20480 ? forty_percent : 20480))
         lvm_size=$((remaining_size - emt_persistent_size))
+
+	if [ $lvm_disk_size -ge 1 ];
+        then
+            min_lvm_size=$(( lvm_disk_size*1024 ))
+	    if [ "$min_lvm_size" -ge "$total_size_disk" ];
+	    then
+                echo "$min_lvm_size is more than the disk size,please check $total_size_disk"
+            else
+		if [ "$min_lvm_size" -ge "$lvm_size" ];
+		then
+		    echo "Available LVM size is $lvm_size"
+		else
+		    echo "Requested Minimum LVM size is available."
+                fi
+            fi
+        fi
     elif [ "$single_hdd" -ne 0 ];
     then 
         emt_persistent_size=$remaining_size
@@ -443,9 +484,9 @@ make_partition_ven() {
 
     if [ $single_hdd -eq 0 ];
     then
-        parted -s ${DEST_DISK} \
-            mkpart lvm ext4 "$(convert_mb_to_sectors "${lvm_start}" 0)"s 100%
-        check_return_value $? "Failed to create LVM partition"
+	parted -s ${DEST_DISK} \
+		mkpart lvm ext4 "$(convert_mb_to_sectors "${lvm_start}" 0)"s 100%
+	check_return_value $? "Failed to create LVM partition"
     fi
 
     mkfs -t ext4 -L roothash -F "${DEST_DISK}${suffix}${roothash_partition}"
@@ -841,7 +882,7 @@ EOT
 
 #####################################################################################
 partitioning_scheme() {
-    total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
+    total_size_disk=$(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ print int($1 / (1024*1024)) }')
 
     if [ "$total_size_disk" -le 112640 ]; then
 	echo "Disk size is less than or equal to 110GB"
@@ -866,6 +907,13 @@ emt_main_dmv() {
     is_single_hdd
 
     partitioning_scheme
+
+    if [ "$MINIMUM_LVM_SIZE" != 0 ];
+    then
+        lvm_disk_size=$MINIMUM_LVM_SIZE
+    else
+        lvm_disk_size=0
+    fi
 
     if [ "$ven_mode_active" = true ];
     then

@@ -4,7 +4,7 @@
 FROM debian:12.10
 
 # Update perl-base to the fixed version (CVE-2024-56406)
-RUN apt-get update && apt-get install -y perl-base=5.36.0-7+deb12u2
+RUN apt-get update && apt-get install -y --no-install-recommends perl-base=5.36.0-7+deb12u2
 
 RUN apt update && apt install -y parted grub-common udev grub-pc-bin grub-efi-amd64-bin dosfstools wget iproute2
 

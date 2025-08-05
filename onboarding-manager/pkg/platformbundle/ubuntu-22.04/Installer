@@ -65,6 +65,45 @@ print_error_on_console() {
 
 trap 'print_error_on_console ${LINENO}' ERR
 
+get_rs_token() {
+    if [ "$RS_TYPE" == "auth" ]; then
+        # Temp file to store response
+        tempfile=$(mktemp)
+
+        echo "get access token from orchestrator"
+        # Save the response to the temporary file
+        curl -X POST -u "$CLIENT_ID:$CLIENT_SECRET" -d "grant_type=client_credentials" https://${KEYCLOAK_FQDN}/realms/master/protocol/openid-connect/token -o "$tempfile"
+
+        # Check the exit status of curl
+        if [ ! -s "$tempfile" ]; then
+            echo "error in getting Keycloak token"
+            rm "$tempfile"
+            exit 1
+        fi
+
+        # Parse the response with jq
+        AT=$(jq -r '.access_token' "$tempfile")
+        rm "$tempfile"
+
+        # Get RS token now
+        tempfile=$(mktemp)
+        curl -XGET https://${RELEASE_FQDN}/token -H "Authorization: Bearer $AT" -o "$tempfile"
+
+        if [ ! -s "$tempfile" ]; then
+            echo "error in getting Release Service token"
+            rm "$tempfile"
+            exit 1
+        fi
+
+        RS_AT=$(cat "$tempfile")
+        rm "$tempfile"
+        echo "$RS_AT"  # Return the token
+    else
+        echo "RS_TYPE is not auth"
+        echo ""  # Return empty string for non-auth
+    fi
+}
+
 install_dependencies() {
     if grep -q "install_dependencies done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping install_dependencies"
@@ -106,40 +145,7 @@ install_node_agent(){
 		echo "Skipping install_node_agent"
     else
         rm -f /etc/apt/sources.list.d/edge-node.list
-        if [ "$RS_TYPE" == "auth" ]; then
-            # Temp file to store response
-            tempfile=$(mktemp)
-
-            echo "get access token from orchestrator"
-            # Save the response to the temporary file
-            curl -X POST -u "$CLIENT_ID:$CLIENT_SECRET" -d "grant_type=client_credentials" https://${KEYCLOAK_FQDN}/realms/master/protocol/openid-connect/token -o "$tempfile"
-
-            # Check the exit status of curl
-            if [ ! -s "$tempfile" ]; then
-                echo "error in getting Keycloak token"
-                rm "$tempfile"
-                exit 1
-            fi
-
-            # Parse the response with jq
-            AT=$(jq -r '.access_token' "$tempfile")
-            rm "$tempfile"
-
-            # Get RS token now
-            tempfile=$(mktemp)
-            curl -XGET https://${RELEASE_FQDN}/token -H "Authorization: Bearer $AT" -o "$tempfile"
-
-            if [ ! -s "$tempfile" ]; then
-                echo "error in getting Release Service token"
-                rm "$tempfile"
-                exit 1
-            fi
-
-            RS_AT=$(cat "$tempfile")
-            rm "$tempfile"
-        else
-            echo "RS_TYPE is not auth"
-        fi
+        RS_AT=$(get_rs_token)
 
         echo "setup oras"
         ORAS_VERSION="1.1.0"
@@ -184,7 +190,7 @@ install_node_agent(){
 
         echo "download caddy deb package..."
         CADDY_PKGFILE="./caddy_${CADDY_VERSION}_linux_amd64.deb"
-         if [ "$RS_TYPE" == "auth" ]; then
+        if [ "$RS_TYPE" == "auth" ]; then
             echo "${RS_AT}" | oras pull "${REGISTRY_URL}/${DEB_PACKAGES_REPO}/caddy:$CADDY_VERSION" --password-stdin
         else
             oras pull "${REGISTRY_URL}/${DEB_PACKAGES_REPO}/caddy:$CADDY_VERSION"
@@ -301,6 +307,9 @@ install_other_agents() {
   if grep -q "install_other_agents done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
   		echo "Skipping install_other_agents"
   else
+      # Get authentication token
+      RS_AT=$(get_rs_token)
+
       echo "Install bare-metal agents..."
       echo "cluster-agent cluster-agent/cluster-orchestrator-url string ${CLUSTER_ORCH_URL}" | debconf-set-selections
       echo "hardware-discovery-agent hardware-discovery-agent/onboarding.serviceURL string ${HW_INVENTORY_URL}" | debconf-set-selections
@@ -311,7 +320,50 @@ install_other_agents() {
       echo "platform-update-agent platform-update-agent/enaDebURL string ${CADDY_APT_PROXY_URL}" | debconf-set-selections
       echo "platform-update-agent platform-update-agent/updateServiceURL string ${UPDATE_SERVICE_URL}" | debconf-set-selections
       echo "telemetry-agent telemetry-agent/telemetrymanager.serviceURL string ${TELEMETRY_MANAGER_URL}" | debconf-set-selections
+      echo "platform-manageability-agent platform-manageability-agent/manageability.serviceURL string ${PLATFORM_MANAGEABILITY_URL}" | debconf-set-selections
+      echo "platform-manageability-agent platform-manageability-agent/rpsAddress string ${RPS_ADDRESS}" | debconf-set-selections
 
+      #Download and install lms debian package for PMA
+      if [ "$RS_TYPE" == "auth" ]; then
+        curl -kfsSL "https://$CADDY_APT_PROXY_URL/${FILE_RS_ROOT}/repository/vpro/lms/lms-2506.0.0-Linux.deb" -H "Authorization: Bearer $RS_AT" -o lms-2506.0.0-Linux.deb
+      else
+        curl -kfsSL "https://$CADDY_APT_PROXY_URL/${FILE_RS_ROOT}/repository/vpro/lms/lms-2506.0.0-Linux.deb" -o lms-2506.0.0-Linux.deb
+      fi
+      if [ ! -f "lms-2506.0.0-Linux.deb" ]; then
+        echo "lms debian package could not be downloaded. Continuing with installation..."
+      else
+        echo "install lms"
+        if apt-get install -y -o Dpkg::Options::="--force-confnew" ./lms-2506.0.0-Linux.deb; then
+          echo "LMS package installed successfully"
+          sudo systemctl stop lms.service
+          sudo systemctl disable lms.service
+          sudo systemctl mask lms.service
+        else
+          echo "WARNING: Failed to install LMS package. Platform manageability features may not work properly."
+          echo "Continuing with installation..."
+        fi
+        rm -f lms-2506.0.0-Linux.deb
+      fi
+
+      #Download RPC binary
+      echo "Download RPC binary"
+      expected_checksum="609b3a69f6534005ca0bf62b12b04c1d18cbc28decc6cf2d5d03d0bc521d9de8"
+      curl -LO "https://github.com/device-management-toolkit/rpc-go/releases/download/v2.48.2/rpc_linux_x64.tar.gz"
+
+      if [ -f "rpc_linux_x64.tar.gz" ]; then
+        actual_checksum=$(sha256sum "rpc_linux_x64.tar.gz" | awk '{print $1}')
+        if [ "$actual_checksum" != "$expected_checksum" ]; then
+            echo "Checksum mismatch. File may be corrupted."
+            exit 1
+        fi
+        echo "Checksum verification successful."
+        tar -xvf rpc_linux_x64.tar.gz -C /usr/bin
+        rm -rf rpc_linux_x64.tar.gz
+        mv /usr/bin/rpc_linux_x64 /usr/bin/rpc
+      else
+          echo "Downloaded file does not exist. Aborting installation."
+          exit 1
+      fi
       apt-get update
       apt-get install -y -o Dpkg::Options::="--force-confnew" \
         cluster-agent="$CLUSTER_AGENT_VERSION" \
@@ -327,7 +379,8 @@ install_other_agents() {
         tpm-provision="$TPM_PROVISION_VERSION" \
         inbc-program="$INBC_PROGRAM_VERSION" \
         platform-update-agent="$PLATFORM_UPDATE_AGENT_VERSION" \
-        platform-telemetry-agent="$PLATFORM_TELEMETRY_AGENT_VERSION"
+        platform-telemetry-agent="$PLATFORM_TELEMETRY_AGENT_VERSION" \
+        platform-manageability-agent="$PLATFORM_MANAGEABILITY_AGENT_VERSION"
 
       # Remove docker. trtl and inbm-telemetry checks from INBM configuration file
       remove_lines_from_sotaSW /etc/intel_manageability.conf docker trtl inbm-telemetry

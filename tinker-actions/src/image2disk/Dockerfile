@@ -4,7 +4,7 @@
 # NOTICE: This file has been modified by Intel Corporation.
 # Original file can be found at https://github.com/tinkerbell/actions.
 
-FROM golang:1.24.1-alpine AS image2disk
+FROM golang:1.24.4-alpine3.21 AS image2disk
 RUN apk add --no-cache git ca-certificates gcc linux-headers musl-dev
 COPY . /src/image2disk
 COPY pkg /pkg/

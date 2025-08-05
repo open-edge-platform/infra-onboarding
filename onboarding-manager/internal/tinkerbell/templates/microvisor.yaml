@@ -56,6 +56,54 @@ tasks:
           MODE: "0755"
           DIRMODE: "0755"
           CONTENTS: {{ .CustomConfigs }}
+{{- if .DeviceInfoIsStandaloneNode }}
+      - name: "custom-configs-split"
+        image: {{ .TinkerActionImageCexec }}
+        timeout: 200
+        environment:
+          FS_TYPE: ext4
+          CHROOT: y
+          UPDATE_RESOLV_CONF: true
+          HTTP_PROXY: {{ .EnvENProxyHTTP }}
+          HTTPS_PROXY: {{ .EnvENProxyHTTPS }}
+          NO_PROXY: {{ .EnvENProxyNoProxy }}
+          DEFAULT_INTERPRETER: "/bin/sh -c"
+          CMD_LINE: |
+            awk -v RS='\x1F' 'BEGIN{i=0} {
+              fn=sprintf("/etc/cloud/cloud.cfg.d/%02d_infra.cfg", i++);
+              print > fn; close(fn); system("chmod 755 " fn)
+            }' /etc/cloud/cloud.cfg.d/custom.cfg
+            # Process all numbered config files (except 99_infra.cfg)
+            curl -sL https://github.com/mikefarah/yq/releases/download/v4.42.1/yq_linux_amd64 -o /tmp/yq
+            chmod +x /tmp/yq
+            for config_file in /etc/cloud/cloud.cfg.d/[0-9][0-9]_infra.cfg; do
+              if [ -f "$config_file" ] && [ "$(basename "$config_file")" != "99_infra.cfg" ]; then
+                if grep -q "^write_files:" "$config_file"; then
+                  # Get total number of write_files entries
+                  total=$(/tmp/yq e '.write_files | length' "$config_file" 2>/dev/null || echo "0")
+                  if [ "$total" -gt 0 ]; then
+                    # Extract and create files from write_files
+                    for i in $(seq 0 $((total-1))); do
+                      path=$(/tmp/yq e ".write_files[$i].path" "$config_file" 2>/dev/null)
+                      perms=$(/tmp/yq e ".write_files[$i].permissions" "$config_file" 2>/dev/null)
+                      content=$(/tmp/yq e -r ".write_files[$i].content" "$config_file" 2>/dev/null)
+                      # Set default permissions if not specified
+                      [ "$perms" = "null" ] && perms="0644"
+                      if [ "$path" != "null" ] && [ -n "$content" ]; then
+                        mkdir -p "$(dirname "$path")"
+                        echo "$content" > "$path"
+                        chmod "$perms" "$path"
+                      fi
+                    done
+                    # Remove write_files section and save back
+                    /tmp/yq e 'del(.write_files)' "$config_file" > "${config_file}.tmp" && mv "${config_file}.tmp" "$config_file"
+                  fi
+                fi
+              fi
+            done
+            # Cleanup
+            rm -f /etc/cloud/cloud.cfg.d/custom.cfg /tmp/yq
+{{- else }}
       - name: "custom-configs-split"
         image: {{ .TinkerActionImageCexec }}
         timeout: 200
@@ -67,8 +115,9 @@ tasks:
             awk -v RS='\x1F' 'BEGIN{i=0} {
               fn=sprintf("/etc/cloud/cloud.cfg.d/%02d_infra.cfg", i++);
               print > fn; close(fn); system("chmod 755 " fn)
-            }' /etc/cloud/cloud.cfg.d/custom.cfg &&
+            }' /etc/cloud/cloud.cfg.d/custom.cfg
             rm -f /etc/cloud/cloud.cfg.d/custom.cfg
+{{- end }}
 {{- end }}
       - name: "cloud-init-ds-identity"
         image: {{ .TinkerActionImageWriteFile }}

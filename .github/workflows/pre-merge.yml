@@ -30,10 +30,10 @@ jobs:
         with:
           persist-credentials: false
       - name: "Verify Branch Name"
-        uses: open-edge-platform/orch-ci/verify-branch-name@628dd6e7fd94a3e765e389b5bb43d90fbe3de421  # 0.1.32
+        uses: open-edge-platform/orch-ci/verify-branch-name@14aa8ce3d0a5455574fc7fce7d90b2d18636c68e  # 0.1.40
       - name: "Discover Changed Subfolders"
         id: discover-changes
-        uses: open-edge-platform/orch-ci/discover-changed-subfolders@628dd6e7fd94a3e765e389b5bb43d90fbe3de421  # 0.1.32
+        uses: open-edge-platform/orch-ci/discover-changed-subfolders@14aa8ce3d0a5455574fc7fce7d90b2d18636c68e  # 0.1.40
       - name: "Filter Out Unwanted Changed Subfolders"
         id: filter-changes
         env:
@@ -85,7 +85,7 @@ jobs:
       fail-fast: false
       matrix:
         project_folder: ${{ fromJson(needs.pre-checks.outputs.filtered_projects) }}
-    uses: open-edge-platform/orch-ci/.github/workflows/pre-merge.yml@628dd6e7fd94a3e765e389b5bb43d90fbe3de421  # 0.1.32
+    uses: open-edge-platform/orch-ci/.github/workflows/pre-merge.yml@14aa8ce3d0a5455574fc7fce7d90b2d18636c68e  # 0.1.40
     with:
       run_version_check: true
       run_dep_version_check: true
@@ -93,7 +93,7 @@ jobs:
       run_lint: true
       run_test: true
       run_validate_clean_folder: true
-      run_docker_build: false
+      run_docker_build: true
       run_artifact: false
       prefix_tag_separator: "/"
       project_folder: ${{ matrix.project_folder }}

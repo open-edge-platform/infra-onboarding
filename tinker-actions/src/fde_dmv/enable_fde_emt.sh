@@ -14,6 +14,10 @@ TEST_ENABLE_DM_ON_ROOTFSB=false
 
 # Test flag for only partition
 TEST_ON_ONLY_ONE_PART=false
+
+# Get the user provided lvm disk size number
+MINIMUM_LVM_SIZE=0
+
 ####
 ####
 #####################################################################################
@@ -206,13 +210,22 @@ make_partition() {
 
     swap_size=$(( $swap_size * 1024 ))
 
-    total_size_disk=$(fdisk -l ${DEST_DISK} | grep -i ${DEST_DISK} | head -1 |  awk '/GiB/{ print int($3)*1024} /TiB/{ print int($3)*1024*1024}')
+    total_size_disk=$(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ print int($1 / (1024*1024)) }')
 
-    # For single HDD reduce the size to 100 and fit everything inside it
+    # For single HDD Size should be total disk - lvm_size in GB provided as input by the User
     if [ $single_hdd -eq 0 ];
     then
+        if [ $lvm_disk_size -ge 1 ];
+        then
+            min_lvm_size=$(( lvm_disk_size*1024 ))
+            if [ "$min_lvm_size" -ge "$total_size_disk" ];
+            then
+                check_return_value 1 "$lvm_size is more than the disk size,please check"
+            fi
+        fi
 	total_size_disk=$(( 100 * 1024 ))
     fi
+    echo "total_size_disk(fixed) ${total_size_disk}"
 
     #####
     if $COMPLETE_FDE_DMVERITY;
@@ -296,15 +309,27 @@ make_partition() {
 	check_return_value $? "Failed to create paritions"
     fi
 
-
+    # Create LVM for single_hdd only when user chooses
     if [ $single_hdd -eq 0 ];
     then
-	parted -s ${DEST_DISK} \
-	       mkpart lvm ext4 $(convert_mb_to_sectors "${total_size_disk}" 0)s 100%
+	if [ $lvm_disk_size -ge 1 ];
+        then
+	    actual_disk_size=$(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ print int($1 / (1024*1024)) }')
+	    disk_used_mb=$(lsblk -b -n -o NAME,SIZE "$DEST_DISK" \
+                    | awk -v disk="$(basename "$DEST_DISK")" '$1 != disk {s+=$2} END {printf "%.0f", s / 1024 / 1024}')
+	    available_disk_space=$(( actual_disk_size - disk_used_mb ))
 
+	    if [ "$min_lvm_size" -ge "$available_disk_space" ];
+            then
+		echo "Available LVM size is  ${available_lvm_space}MB only."
+	    else
+		echo "Minimum LVM size is available."
+	    fi
+	fi
+	parted -s ${DEST_DISK} \
+		mkpart lvm ext4 "$(convert_mb_to_sectors "${total_size_disk}" 0)"s 100%
 	check_return_value $? "Failed to create lvm parition"
     fi
-
 
     suffix=$(fix_partition_suffix)
 
@@ -891,6 +916,13 @@ emt_main() {
     get_dest_disk
 
     is_single_hdd
+
+    if [ "$MINIMUM_LVM_SIZE" != 0 ];
+    then
+        lvm_disk_size=$MINIMUM_LVM_SIZE
+    else
+        lvm_disk_size=0
+    fi
 
     make_partition
 

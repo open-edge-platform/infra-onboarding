@@ -21,6 +21,7 @@ const (
 	TestManifestRepo       = "test-manifest-repo"
 	CorrectTestManifestTag = "correct"
 	EmptyTestManifestTag   = "empty"
+	TestMicroOSfileName    = "test-uos-file"
 )
 
 func exampleManifest(digest string, fileLen int) string {
@@ -61,6 +62,8 @@ packages:
     version: 1.2.4
   - name: platform-update-agent
     version: 1.3.4
+  - name: platform-manageability-agent
+    version: 1.2.4
   - name: caddy
     version: 2.7.6
   - name: inbc-program
@@ -110,8 +113,20 @@ packages:
 			w.WriteHeader(http.StatusOK)
 			// empty data
 		})
+	mux.HandleFunc("/"+TestMicroOSfileName,
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			// return test data
+			w.Write([]byte("testdata"))
+		})
 
 	svr := httptest.NewServer(mux)
+	config.SetInfraConfig(config.InfraConfig{
+		ENManifestRepo:     TestManifestRepo,
+		ENAgentManifestTag: CorrectTestManifestTag,
+		CDN:                svr.URL,
+		EMBImageURL:        TestMicroOSfileName,
+	})
 
 	testRegistryEndpoint, _ := strings.CutPrefix(svr.URL, "http://")
 
@@ -162,6 +177,8 @@ func PrepareTestInfraConfig(_ *testing.T) {
 		OnboardingURL:                         "onboarding.test:443",
 		OnboardingStreamURL:                   "onboarding-stream.test:443",
 		CDN:                                   "cdn.test:443",
+		ManageabilityURL:                      "manageability.test:443",
+		RPSAddress:                            "rps.test",
 		SystemConfigFsInotifyMaxUserInstances: 1,
 		SystemConfigVmOverCommitMemory:        1,
 		SystemConfigKernelPanicOnOops:         1,
@@ -174,7 +191,6 @@ func PrepareTestInfraConfig(_ *testing.T) {
 		NetIP:                                 "dynamic",
 		NTPServers:                            []string{"ntp1.org", "ntp2.org"},
 		DNSServers:                            []string{"1.1.1.1"},
-		ExtraHosts:                            []string{},
 		FirewallReqAllow:                      "",
 		FirewallCfgAllow:                      "",
 		ENManifest: config.ENManifest{
@@ -205,6 +221,10 @@ func PrepareTestInfraConfig(_ *testing.T) {
 				},
 				{
 					Name:    "platform-telemetry-agent",
+					Version: "1.0.0",
+				},
+				{
+					Name:    "platform-manageability-agent",
 					Version: "1.0.0",
 				},
 				{

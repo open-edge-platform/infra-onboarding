@@ -37,7 +37,7 @@ RUN groupadd --gid $USER_GID $USERNAME && \
     m4 git gettext autopoint pkg-config \
     autoconf-archive python3 bison flex \
     gawk efitools sbsigntool gnupg uuid-runtime \
-    pax curl unzip
+    curl unzip cpio fakeroot
 
 ARG REPO_URL
 ARG VERSION
@@ -55,9 +55,7 @@ COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/open-edge-platf
 COPY --from=build --chown=$USER_UID:$USER_GID /go/src/github.com/open-edge-platform/infra-onboarding/dkam/pkg /home/$USERNAME/pkg
 
 RUN chown -R $USERNAME:$USERNAME /home/$USERNAME
-RUN chmod +x pkg/script/build_sign_ipxe.sh
-RUN chmod +x pkg/script/hook/secure_hookos.sh
-RUN chmod +x pkg/script/hook/cpio_build/build_image_at_DKAM.sh
+RUN chmod +x pkg/script/ipxe/build_sign_ipxe.sh
 USER appuser
 
 ENTRYPOINT ["dkammgr"]

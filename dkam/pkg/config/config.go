@@ -40,6 +40,8 @@ type InfraConfig struct {
 	ReleaseServiceURL       string `mapstructure:"orchRelease"`
 	LogsObservabilityURL    string `mapstructure:"orchPlatformObsLogs"`
 	MetricsObservabilityURL string `mapstructure:"orchPlatformObsMetrics"`
+	ManageabilityURL        string `mapstructure:"orchDeviceManager"`
+	RPSAddress              string `mapstructure:"orchRPSHost"`
 	KeycloakURL             string `mapstructure:"orchKeycloak"`
 	TelemetryURL            string `mapstructure:"orchTelemetry"`
 	RegistryURL             string `mapstructure:"orchRegistry"`
@@ -69,12 +71,13 @@ type InfraConfig struct {
 	NetIP      string   `mapstructure:"netIp"`
 	NTPServers []string `mapstructure:"ntpServer"`
 	DNSServers []string `mapstructure:"nameServers"`
-	ExtraHosts []string `mapstructure:"extraHosts"`
 
 	FirewallReqAllow string `mapstructure:"firewallReqAllow"`
 	FirewallCfgAllow string `mapstructure:"firewallCfgAllow"`
 
 	ENManifest ENManifest
+
+	EMBImageURL string `mapstructure:"embImageUrl"`
 }
 
 // Edge Node Agents release manifest.

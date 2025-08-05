@@ -28,10 +28,6 @@ keycloak_url="__keycloak_url__"
 
 #provide harbor or docker registry where tinker_actions are hosted
 
-# provide extra hosts needed to resolve domain names.
-# example
-#extra_hosts="10.114.181.238 api-proxy.kind.internal,10.114.181.238 app-orch.kind.internal,10.114.181.238 cluster-orch-edge-node.kind.internal"
-extra_hosts="__extra_hosts__"
 #NGINX runtime configs
 release_svc="__release_svc__"
 oci_release_svc="__oci_release_svc__"
