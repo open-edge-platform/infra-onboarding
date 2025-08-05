@@ -4,3 +4,17 @@
 # Ignore misconfigurations
 AVD-DS-0002 # Tinker actions require root permissions
 AVD-DS-0029 # TODO:3.1 - Validate with suggested changes
+
+# CVEs are ignored for efibootset due to the following reasons
+# CVEs related to GRUB packages are ignored
+CVE-2025-4802
+CVE-2023-2953
+CVE-2025-6020
+CVE-2023-31484
+CVE-2023-45853
+CVE-2024-45782
+CVE-2024-56737
+CVE-2025-0624
+CVE-2025-0678
+CVE-2025-0689
+CVE-2025-1125
