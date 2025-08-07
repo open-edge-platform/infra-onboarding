@@ -56,7 +56,7 @@ tasks:
           MODE: "0755"
           DIRMODE: "0755"
           CONTENTS: {{ .CustomConfigs }}
-{{- if .DeviceInfoIsStandaloneNode }}
+{{- if eq .DeviceInfoIsStandaloneNode "true" }}
       - name: "custom-configs-split"
         image: {{ .TinkerActionImageCexec }}
         timeout: 200
