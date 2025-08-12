@@ -12,6 +12,9 @@ AVD-KSV-0014
 # We should be safe to ignore CVE-2020-8559 as long as we use kube-api server that doesn't respond with redirects.
 CVE-2020-8559
 
+# FIXME Upgrade of golang to 1.24.6 to be taken up post 3.1 release
+CVE-2025-47907
+
 # PostgreSQL CVEs
 CVE-2023-45853
 CVE-2023-7104
