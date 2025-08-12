@@ -147,3 +147,6 @@ CVE-2023-45283
 CVE-2023-45287
 CVE-2023-45288
 CVE-2024-37370
+
+# Upgrade of golang to 1.24.6 to be taken up post 3.1 release
+CVE-2025-47907
