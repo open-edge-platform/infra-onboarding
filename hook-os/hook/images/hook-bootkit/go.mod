@@ -1,6 +1,8 @@
 module github.com/tinkerbell/hook/hook-bootkit
 
-go 1.22.7
+go 1.23.0
+
+toolchain go1.23.12
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
@@ -34,8 +36,8 @@ require (
 	go.opentelemetry.io/otel/sdk v1.26.0 // indirect
 	go.opentelemetry.io/otel/trace v1.26.0 // indirect
 	golang.org/x/mod v0.8.0 // indirect
-	golang.org/x/net v0.23.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
+	golang.org/x/net v0.40.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.6.0 // indirect
 	gotest.tools/v3 v3.5.0 // indirect

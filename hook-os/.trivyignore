@@ -7,6 +7,9 @@ AVD-DS-0002
 
 # Ignore vulnerabilities
 
+# FIXME Upgrade of golang to 1.24.6 to be taken up post 3.1 release
+CVE-2025-47907
+
 # Vulnerabilities in fluent-bit
 CVE-2025-4802
 CVE-2023-2953
@@ -25,9 +28,16 @@ CVE-2025-22869
 CVE-2024-34156
 CVE-2024-24790
 CVE-2025-30204
+CVE-2025-48384
+CVE-2025-48385
+CVE-2025-22868
 
 # Vulnerabilities in hook-docker
 CVE-2025-31498
 CVE-2024-6387
 CVE-2025-31115
 CVE-2023-45288
+
+
+# Vulnerabilities in device-discovery
+CVE-2025-6965
