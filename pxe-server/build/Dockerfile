@@ -10,9 +10,9 @@ RUN apt-get update && \
 
 # Download sources for dependent packages and create tar archive
 RUN mkdir -p /sources && \
-    # Install dpkg-dev for source package handling
     apt-get update && \
-    apt-get install -y --no-install-recommends dpkg-dev tar && \
+    # Install dpkg-dev for source package handling
+    apt-get install -y --no-install-recommends dpkg-dev=1.21.22 tar=1.34+dfsg-1.2+deb12u1 xz-utils=5.4.1-1 && \
     # Create source repositories
     echo "deb-src http://deb.debian.org/debian bookworm main" > /etc/apt/sources.list.d/debian-sources.list && \
     echo "deb-src http://deb.debian.org/debian-security bookworm-security main" >> /etc/apt/sources.list.d/debian-sources.list && \
@@ -30,21 +30,23 @@ RUN mkdir -p /sources && \
     echo "libnftnl11:1.2.4-2" >> /tmp/target_packages.txt && \
     echo "libxtables12:1.8.9-2" >> /tmp/target_packages.txt && \
     echo "netbase:6.4" >> /tmp/target_packages.txt && \
-    echo "runit-helper:2.15.2" >> /tmp/target_packages.txt && \
-    # Download source for each package
-    cd /sources && \
-    while IFS=: read package version; do \
+    echo "runit-helper:2.15.2" >> /tmp/target_packages.txt
+
+# Set working directory for source download operations
+WORKDIR /sources
+
+# Download source for each package
+# hadolint ignore=DL3003
+RUN while IFS=: read -r package version; do \
         echo "Getting source for: $package ($version)"; \
-        mkdir -p "$package" && cd "$package" && \
-        apt-get source "$package=$version" 2>/dev/null || \
-        apt-get source "$package" 2>/dev/null || \
-        echo "No source available for $package"; \
-        cd /sources; \
+        mkdir -p "$package" && \
+        (cd "$package" && \
+         apt-get source "$package=$version" 2>/dev/null || \
+         apt-get source "$package" 2>/dev/null || \
+         echo "No source available for $package"); \
     done < /tmp/target_packages.txt && \
-    # Install xz-utils for better compression
-    apt-get install -y --no-install-recommends xz-utils && \
     echo "Creating compressed tar archive of all sources" && \
-    tar -cJf /sources.tar.xz -C /sources . && \
+    tar -cJf /sources.tar.xz . && \
     # Clean up apt cache
     rm -rf /var/lib/apt/lists/*
 
