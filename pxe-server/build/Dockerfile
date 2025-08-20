@@ -6,6 +6,7 @@ FROM debian:12.11-slim AS builder
 # Set shell with pipefail for safer pipe operations
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+# If dnsmasq version is updated, note that the versions in the source processing should also be updated.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         dnsmasq=2.90-4~deb12u1 && \
