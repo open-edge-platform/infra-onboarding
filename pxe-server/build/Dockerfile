@@ -3,6 +3,9 @@
 
 FROM debian:12.11-slim AS builder
 
+# Set shell with pipefail for safer pipe operations
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         dnsmasq=2.90-4~deb12u1 && \
@@ -50,32 +53,20 @@ RUN while IFS=: read -r package version; do \
     # Clean up apt cache
     rm -rf /var/lib/apt/lists/*
 
+# Copy all dnsmasq dependencies to a staging directory  
+RUN mkdir -p /deps/lib/x86_64-linux-gnu && \
+    for lib in $(ldd /usr/sbin/dnsmasq | grep "=> /" | awk '{print $3}'); do \
+        case "$lib" in \
+            /lib/x86_64-linux-gnu/*) \
+                cp "$lib" /deps/lib/x86_64-linux-gnu/ && \
+                echo "Copied: $lib" ;; \
+        esac; \
+    done
+
 FROM gcr.io/distroless/base-debian12@sha256:cef75d12148305c54ef5769e6511a5ac3c820f39bf5c8a4fbfd5b76b4b8da843
 
-# Copy only the required libraries for dnsmasq
-COPY --from=builder /lib/x86_64-linux-gnu/libdbus-1.so.3 /lib/x86_64-linux-gnu/
-COPY --from=builder /lib/x86_64-linux-gnu/libidn2.so.0 /lib/x86_64-linux-gnu/
-COPY --from=builder /lib/x86_64-linux-gnu/libnetfilter_conntrack.so.3 /lib/x86_64-linux-gnu/
-COPY --from=builder /lib/x86_64-linux-gnu/libnettle.so.8 /lib/x86_64-linux-gnu/
-COPY --from=builder /lib/x86_64-linux-gnu/libhogweed.so.6 /lib/x86_64-linux-gnu/
-COPY --from=builder /lib/x86_64-linux-gnu/libgmp.so.10 /lib/x86_64-linux-gnu/
-COPY --from=builder /lib/x86_64-linux-gnu/libnftables.so.1 /lib/x86_64-linux-gnu/
-COPY --from=builder /lib/x86_64-linux-gnu/libc.so.6 /lib/x86_64-linux-gnu/
-COPY --from=builder /lib/x86_64-linux-gnu/libsystemd.so.0 /lib/x86_64-linux-gnu/
-COPY --from=builder /lib/x86_64-linux-gnu/libunistring.so.2 /lib/x86_64-linux-gnu/
-COPY --from=builder /lib/x86_64-linux-gnu/libnfnetlink.so.0 /lib/x86_64-linux-gnu/
-COPY --from=builder /lib/x86_64-linux-gnu/libmnl.so.0 /lib/x86_64-linux-gnu/
-COPY --from=builder /lib/x86_64-linux-gnu/libnftnl.so.11 /lib/x86_64-linux-gnu/
-COPY --from=builder /lib/x86_64-linux-gnu/libxtables.so.12 /lib/x86_64-linux-gnu/
-COPY --from=builder /lib/x86_64-linux-gnu/libjansson.so.4 /lib/x86_64-linux-gnu/
-COPY --from=builder /lib/x86_64-linux-gnu/libcap.so.2 /lib/x86_64-linux-gnu/
-COPY --from=builder /lib/x86_64-linux-gnu/libgcrypt.so.20 /lib/x86_64-linux-gnu/
-COPY --from=builder /lib/x86_64-linux-gnu/liblzma.so.5 /lib/x86_64-linux-gnu/
-COPY --from=builder /lib/x86_64-linux-gnu/libzstd.so.1 /lib/x86_64-linux-gnu/
-COPY --from=builder /lib/x86_64-linux-gnu/liblz4.so.1 /lib/x86_64-linux-gnu/
-COPY --from=builder /lib/x86_64-linux-gnu/libgpg-error.so.0 /lib/x86_64-linux-gnu/
-# Copy the dynamic linker
-COPY --from=builder /lib64/ld-linux-x86-64.so.2 /lib64/
+# Copy all discovered dependencies
+COPY --from=builder /deps/lib/x86_64-linux-gnu/ /lib/x86_64-linux-gnu/
 
 COPY --from=builder /usr/sbin/dnsmasq /usr/sbin/dnsmasq
 COPY --from=builder /sources.tar.xz /sources.tar.xz
