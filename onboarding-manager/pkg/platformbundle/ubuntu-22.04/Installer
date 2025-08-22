@@ -112,7 +112,7 @@ install_dependencies() {
         rm -f /etc/apt/sources.list.d/edge-node.list
         apt-get update
         echo -e "\e[32m[install git python3-pip]\e[0m"
-        sudo apt-get install -y curl wget unzip apparmor iptables lvm2 cryptsetup lxc mosquitto tpm2-abrmd tpm2-tools software-properties-common python3-venv git jq libpq5 python3-pip ca-certificates gnupg dmidecode
+        sudo apt-get install -y curl wget unzip apparmor iptables lvm2 cryptsetup lxc mosquitto tpm2-abrmd tpm2-tools software-properties-common python3-venv git jq libpq5 python3-pip ca-certificates gnupg dmidecode libace-dev cmake python3 libglib2.0-dev libcurl4-openssl-dev libxerces-c-dev libnl-3-dev libnl-route-3-dev libxml2-dev libidn2-0-dev xsltproc docbook-xsl devscripts
 
         # IMPORTANT: These hardcoded uid/gid must be aligned to that in Edge Microvisor Toolkit specified in cluster-agent.conf.
         # If additional new users or groups need to be created by DKAM, they MUST be added after the users and group created below to
@@ -322,27 +322,64 @@ install_other_agents() {
       echo "telemetry-agent telemetry-agent/telemetrymanager.serviceURL string ${TELEMETRY_MANAGER_URL}" | debconf-set-selections
       echo "platform-manageability-agent platform-manageability-agent/manageability.serviceURL string ${PLATFORM_MANAGEABILITY_URL}" | debconf-set-selections
       echo "platform-manageability-agent platform-manageability-agent/rpsAddress string ${RPS_ADDRESS}" | debconf-set-selections
+      
+      # Download, build and install LMS
+      LMS_VERSION="2506.0.0.0"
+      expected_checksum="bfdcbfb6b2a739321998a0772767c1532ede70f4bd38cdbe48488b59d118a086"
 
-      #Download and install lms debian package for PMA
-      if [ "$RS_TYPE" == "auth" ]; then
-        curl -kfsSL "https://$CADDY_APT_PROXY_URL/${FILE_RS_ROOT}/repository/vpro/lms/lms-2506.0.0-Linux.deb" -H "Authorization: Bearer $RS_AT" -o lms-2506.0.0-Linux.deb
-      else
-        curl -kfsSL "https://$CADDY_APT_PROXY_URL/${FILE_RS_ROOT}/repository/vpro/lms/lms-2506.0.0-Linux.deb" -o lms-2506.0.0-Linux.deb
-      fi
-      if [ ! -f "lms-2506.0.0-Linux.deb" ]; then
-        echo "lms debian package could not be downloaded. Continuing with installation..."
-      else
-        echo "install lms"
-        if apt-get install -y -o Dpkg::Options::="--force-confnew" ./lms-2506.0.0-Linux.deb; then
-          echo "LMS package installed successfully"
-          sudo systemctl stop lms.service
-          sudo systemctl disable lms.service
-          sudo systemctl mask lms.service
-        else
-          echo "WARNING: Failed to install LMS package. Platform manageability features may not work properly."
-          echo "Continuing with installation..."
+      curl -fsSL --connect-timeout 30 --max-time 300 \
+      "https://github.com/intel/lms/archive/refs/tags/v${LMS_VERSION}.tar.gz" \
+      -o "v${LMS_VERSION}.tar.gz"
+
+      if [ -f "v${LMS_VERSION}.tar.gz" ]; then
+        actual_checksum=$(sha256sum "v${LMS_VERSION}.tar.gz" | awk '{print $1}')
+        if [ "$actual_checksum" != "$expected_checksum" ]; then
+            echo "ERROR: Checksum mismatch. Expected: $expected_checksum, Got: $actual_checksum"
+            rm -f "v${LMS_VERSION}.tar.gz"
+            exit 1
         fi
-        rm -f lms-2506.0.0-Linux.deb
+        echo "Checksum verification successful."
+        
+        tar -xzf "v${LMS_VERSION}.tar.gz"
+        rm -f "v${LMS_VERSION}.tar.gz"
+        cd "lms-${LMS_VERSION}" || exit 1
+        
+        export LMS_ROOT="$PWD"
+        mkdir -p build && cd build || exit 1
+        
+        cmake -Wno-dev -DBUILD_SHARED_LIBS=OFF -DNETWORK_NM=OFF \
+            -DNETWORK_CN=OFF -DCMAKE_INSTALL_PREFIX=/usr "$LMS_ROOT"
+        
+        if ! make -j"$(($(nproc) / 2))"; then
+            echo "ERROR: LMS build failed"
+            exit 1
+        fi
+        
+        # Create package without sudo, then install with sudo
+        if ! make package; then
+            echo "ERROR: LMS package creation failed"
+            exit 1
+        fi
+        
+        if [ -f "./lms-2506.0.0-Linux.deb" ]; then
+            echo "LMS package built successfully"
+            if sudo apt-get install -y -o Dpkg::Options::="--force-confnew" "./lms-2506.0.0-Linux.deb"; then
+            echo "LMS package installed successfully"
+            sudo systemctl stop lms.service
+            sudo systemctl disable lms.service
+            sudo systemctl mask lms.service
+            rm -f "lms-2506.0.0-Linux.deb"
+            else
+            echo "WARNING: Failed to install LMS package. Platform manageability features may not work properly."
+            echo "Continuing with installation..."
+            fi
+        else
+            echo "ERROR: LMS package not found. Build failed."
+            exit 1
+        fi
+      else
+        echo "ERROR: Failed to download LMS source. Aborting installation."
+        exit 1
       fi
 
       #Download RPC binary
@@ -354,7 +391,6 @@ install_other_agents() {
         actual_checksum=$(sha256sum "rpc_linux_x64.tar.gz" | awk '{print $1}')
         if [ "$actual_checksum" != "$expected_checksum" ]; then
             echo "Checksum mismatch. File may be corrupted."
-            exit 1
         fi
         echo "Checksum verification successful."
         tar -xvf rpc_linux_x64.tar.gz -C /usr/bin
