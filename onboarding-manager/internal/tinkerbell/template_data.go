@@ -9,15 +9,19 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
 
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/util/collections"
+	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/env"
 	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
+	networkconfig "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/tinkerbell/config"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/cloudinit"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/platformbundle"
 	platformbundleubuntu2204 "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/platformbundle/ubuntu-22.04"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -77,6 +81,10 @@ const (
 	// Use a delimiter that is highly unlikely to appear in any config or script.
 	// ASCII Unit Separator (0x1F) is a safe choice.
 	customConfigDelimiter = "\x1F"
+)
+
+var (
+	zlog = logging.GetLogger("TinkerTemplateData")
 )
 
 type TinkerActionImages struct {
@@ -339,9 +347,524 @@ func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.Dev
 }
 
 func getCustomConfigs(deviceInfo onboarding_types.DeviceInfo) string {
-	concatenated := collections.ConcatMapValuesSorted(deviceInfo.CustomConfigs, customConfigDelimiter)
-	if concatenated != "" {
-		return strconv.Quote(concatenated)
+	var allConfigs []string
+
+	// Check for network configuration file and generate multi-NIC config if available
+	networkConfigManager := networkconfig.NewNetworkConfigManager()
+	networkConfig, err := networkConfigManager.LoadNetworkConfig()
+	if err != nil {
+		zlog.Warn().Err(err).Msg("Failed to load network configuration, using single NIC setup")
+	} else if networkConfig != nil {
+		zlog.Info().Msg("Generating multi-NIC configuration from config file")
+		multiNICConfig := generateMultiNICCloudInitConfig(networkConfig)
+		if multiNICConfig != "" {
+			allConfigs = append(allConfigs, multiNICConfig)
+		}
+	} else {
+		zlog.Info().Msg("No network configuration file found, using single NIC setup")
 	}
-	return ""
+
+	// Process any additional custom configs from DeviceInfo
+	if len(deviceInfo.CustomConfigs) > 0 {
+		processedConfigs := processCustomConfigs(deviceInfo.CustomConfigs)
+		allConfigs = append(allConfigs, processedConfigs...)
+	}
+
+	if len(allConfigs) == 0 {
+		return ""
+	}
+
+	// Merge all configurations intelligently
+	finalConfig := mergeAllConfigurations(allConfigs)
+	return strconv.Quote(finalConfig)
+}
+
+// generateMultiNICCloudInitConfig generates cloud-init configuration from network config file
+func generateMultiNICCloudInitConfig(networkConfig *networkconfig.NetworkConfig) string {
+	if networkConfig == nil || len(networkConfig.Interfaces) == 0 {
+		return ""
+	}
+
+	config := map[string]interface{}{
+		"network": generateNetworkSection(networkConfig),
+	}
+
+	// Add custom routes and commands if specified
+	if len(networkConfig.Routes) > 0 {
+		runcmd := generateRouteCommands(networkConfig.Routes)
+		if len(runcmd) > 0 {
+			config["runcmd"] = runcmd
+		}
+	}
+
+	yamlData, err := yaml.Marshal(config)
+	if err != nil {
+		zlog.Error().Err(err).Msg("Failed to marshal network config to cloud-init")
+		return ""
+	}
+
+	return "#cloud-config\n" + string(yamlData)
+}
+
+// generateNetworkSection generates the network section for cloud-init
+func generateNetworkSection(networkConfig *networkconfig.NetworkConfig) map[string]interface{} {
+	network := map[string]interface{}{
+		"version": 2,
+	}
+
+	// Generate ethernets section
+	if len(networkConfig.Interfaces) > 0 {
+		ethernets := make(map[string]interface{})
+		for _, iface := range networkConfig.Interfaces {
+			ethernets[iface.Name] = generateInterfaceConfig(iface)
+		}
+		network["ethernets"] = ethernets
+	}
+
+	// Generate VLANs section
+	if len(networkConfig.VLANs) > 0 {
+		vlans := make(map[string]interface{})
+		for _, vlan := range networkConfig.VLANs {
+			vlans[vlan.Name] = generateVLANConfig(vlan)
+		}
+		network["vlans"] = vlans
+	}
+
+	// Generate bonds section
+	if len(networkConfig.Bonds) > 0 {
+		bonds := make(map[string]interface{})
+		for _, bond := range networkConfig.Bonds {
+			bonds[bond.Name] = generateBondConfig(bond)
+		}
+		network["bonds"] = bonds
+	}
+
+	return network
+}
+
+// generateInterfaceConfig generates configuration for a single interface
+func generateInterfaceConfig(iface networkconfig.InterfaceConfig) map[string]interface{} {
+	config := map[string]interface{}{
+		"match": map[string]interface{}{
+			"macaddress": iface.MacAddress,
+		},
+		"set-name": iface.Name,
+	}
+
+	if iface.DHCPMode {
+		config["dhcp4"] = true
+	} else if len(iface.Addresses) > 0 {
+		config["addresses"] = iface.Addresses
+	}
+
+	if iface.Gateway != "" {
+		config["gateway4"] = iface.Gateway
+	}
+
+	if len(iface.DNS) > 0 {
+		config["nameservers"] = map[string]interface{}{
+			"addresses": iface.DNS,
+		}
+	}
+
+	if iface.MTU > 0 {
+		config["mtu"] = iface.MTU
+	}
+
+	if iface.Optional {
+		config["optional"] = true
+	}
+
+	return config
+}
+
+// generateVLANConfig generates configuration for a VLAN
+func generateVLANConfig(vlan networkconfig.VLANConfig) map[string]interface{} {
+	config := map[string]interface{}{
+		"id":   vlan.ID,
+		"link": vlan.Link,
+	}
+
+	if len(vlan.Addresses) > 0 {
+		config["addresses"] = vlan.Addresses
+	}
+
+	if vlan.Gateway != "" {
+		config["gateway4"] = vlan.Gateway
+	}
+
+	if len(vlan.DNS) > 0 {
+		config["nameservers"] = map[string]interface{}{
+			"addresses": vlan.DNS,
+		}
+	}
+
+	return config
+}
+
+// generateBondConfig generates configuration for a bond
+func generateBondConfig(bond networkconfig.BondConfig) map[string]interface{} {
+	config := map[string]interface{}{
+		"interfaces": bond.Interfaces,
+		"parameters": map[string]interface{}{
+			"mode": bond.Mode,
+		},
+	}
+
+	if len(bond.Addresses) > 0 {
+		config["addresses"] = bond.Addresses
+	}
+
+	if bond.Gateway != "" {
+		config["gateway4"] = bond.Gateway
+	}
+
+	if len(bond.DNS) > 0 {
+		config["nameservers"] = map[string]interface{}{
+			"addresses": bond.DNS,
+		}
+	}
+
+	return config
+}
+
+// generateRouteCommands generates runcmd entries for custom routes
+func generateRouteCommands(routes []networkconfig.RouteConfig) []string {
+	var commands []string
+
+	for _, route := range routes {
+		cmd := fmt.Sprintf("ip route add %s", route.To)
+		
+		if route.Via != "" {
+			cmd += fmt.Sprintf(" via %s", route.Via)
+		}
+		
+		if route.Interface != "" {
+			cmd += fmt.Sprintf(" dev %s", route.Interface)
+		}
+		
+		if route.Metric > 0 {
+			cmd += fmt.Sprintf(" metric %d", route.Metric)
+		}
+
+		commands = append(commands, cmd)
+	}
+
+	return commands
+}
+
+// mergeAllConfigurations merges all configurations intelligently
+func mergeAllConfigurations(configs []string) string {
+	if len(configs) == 0 {
+		return ""
+	}
+	if len(configs) == 1 {
+		return configs[0]
+	}
+
+	// Separate cloud-init configs from others
+	var cloudInitConfigs []string
+	var otherConfigs []string
+
+	for _, config := range configs {
+		if isCloudInitConfig(config) {
+			cloudInitConfigs = append(cloudInitConfigs, config)
+		} else {
+			otherConfigs = append(otherConfigs, config)
+		}
+	}
+
+	var result []string
+
+	// Merge cloud-init configs
+	if len(cloudInitConfigs) > 0 {
+		merged := mergeCloudInitConfigs(cloudInitConfigs)
+		if merged != "" {
+			result = append(result, merged)
+		}
+	}
+
+	// Add other configs
+	result = append(result, otherConfigs...)
+
+	return strings.Join(result, customConfigDelimiter)
+}
+
+// processCustomConfigs handles cloud-init config processing with network merging support
+func processCustomConfigs(configs map[string]string) []string {
+	var cloudInitConfigs []string
+	var otherConfigs []string
+
+	// Separate cloud-init configs from other types
+	for name, config := range configs {
+		if strings.TrimSpace(config) == "" {
+			zlog.Warn().Msgf("Skipping empty custom config: %s", name)
+			continue
+		}
+
+		if isCloudInitConfig(config) {
+			cloudInitConfigs = append(cloudInitConfigs, config)
+		} else {
+			zlog.Warn().Msgf("Custom config '%s' is not cloud-init format, including as-is", name)
+			otherConfigs = append(otherConfigs, config)
+		}
+	}
+
+	var result []string
+
+	// Process cloud-init configs with intelligent merging
+	if len(cloudInitConfigs) > 0 {
+		merged := mergeCloudInitConfigs(cloudInitConfigs)
+		if merged != "" {
+			result = append(result, merged)
+		}
+	}
+
+	// Add other configs as-is
+	result = append(result, otherConfigs...)
+
+	return result
+}
+
+// isCloudInitConfig checks if a config is a valid cloud-init configuration
+func isCloudInitConfig(config string) bool {
+	trimmed := strings.TrimSpace(config)
+	return strings.HasPrefix(trimmed, "#cloud-config")
+}
+
+// mergeCloudInitConfigs intelligently merges multiple cloud-init configurations
+func mergeCloudInitConfigs(configs []string) string {
+	if len(configs) == 0 {
+		return ""
+	}
+	if len(configs) == 1 {
+		return configs[0]
+	}
+
+	zlog.Info().Msgf("Merging %d cloud-init configurations", len(configs))
+
+	// Parse first config as base
+	var baseConfig map[string]interface{}
+	if err := yaml.Unmarshal([]byte(configs[0]), &baseConfig); err != nil {
+		zlog.Error().Err(err).Msg("Failed to parse base cloud-init config, falling back to concatenation")
+		return fallbackConcatenation(configs)
+	}
+
+	// Merge subsequent configs
+	for i, config := range configs[1:] {
+		var customConfig map[string]interface{}
+		if err := yaml.Unmarshal([]byte(config), &customConfig); err != nil {
+			zlog.Error().Err(err).Msgf("Failed to parse custom config %d, skipping", i+1)
+			continue
+		}
+		baseConfig = mergeCloudInitMaps(baseConfig, customConfig)
+	}
+
+	// Marshal back to YAML
+	merged, err := yaml.Marshal(baseConfig)
+	if err != nil {
+		zlog.Error().Err(err).Msg("Failed to marshal merged config, falling back to concatenation")
+		return fallbackConcatenation(configs)
+	}
+
+	return "#cloud-config\n" + string(merged)
+}
+
+// mergeCloudInitMaps performs deep merge of cloud-init configuration maps
+func mergeCloudInitMaps(base, custom map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	// Copy base configuration
+	for k, v := range base {
+		result[k] = v
+	}
+
+	// Merge custom configuration with special handling for network sections
+	for k, v := range custom {
+		if k == "#cloud-config" || strings.HasPrefix(k, "#") {
+			continue // Skip comments and cloud-config markers
+		}
+
+		if existing, exists := result[k]; exists {
+			switch k {
+			case "network":
+				result[k] = mergeNetworkConfig(existing, v)
+			case "write_files":
+				result[k] = mergeWriteFiles(existing, v)
+			case "runcmd":
+				result[k] = mergeRunCmds(existing, v)
+			case "packages":
+				result[k] = mergePackages(existing, v)
+			default:
+				// For other sections, custom config takes precedence
+				result[k] = v
+			}
+		} else {
+			result[k] = v
+		}
+	}
+
+	return result
+}
+
+// mergeNetworkConfig merges network configurations with special handling for multiple NICs
+func mergeNetworkConfig(existing, custom interface{}) interface{} {
+	existingMap, existingOk := existing.(map[string]interface{})
+	customMap, customOk := custom.(map[string]interface{})
+
+	if !existingOk || !customOk {
+		zlog.Warn().Msg("Network config not in expected format, using custom")
+		return custom
+	}
+
+	result := make(map[string]interface{})
+
+	// Copy existing network config
+	for k, v := range existingMap {
+		result[k] = v
+	}
+
+	// Merge custom network config with special handling for ethernets
+	for k, v := range customMap {
+		if k == "ethernets" {
+			result[k] = mergeEthernetConfigs(result[k], v)
+		} else {
+			// For version, renderer, etc., custom takes precedence
+			result[k] = v
+		}
+	}
+
+	return result
+}
+
+// mergeEthernetConfigs merges ethernet interface configurations (allows multiple NICs)
+func mergeEthernetConfigs(existing, custom interface{}) interface{} {
+	existingMap, existingOk := existing.(map[string]interface{})
+	customMap, customOk := custom.(map[string]interface{})
+
+	if !existingOk && !customOk {
+		return nil
+	}
+	if !existingOk {
+		return custom
+	}
+	if !customOk {
+		return existing
+	}
+
+	result := make(map[string]interface{})
+
+	// Copy existing ethernet configs
+	for k, v := range existingMap {
+		result[k] = v
+	}
+
+	// Add/override custom ethernet configs (this allows multiple NICs)
+	for k, v := range customMap {
+		if _, exists := result[k]; exists {
+			zlog.Warn().Msgf("Overriding existing ethernet config for interface: %s", k)
+		}
+		result[k] = v
+	}
+
+	zlog.Info().Msgf("Merged ethernet configurations for %d interfaces", len(result))
+	return result
+}
+
+// mergeWriteFiles merges write_files arrays
+func mergeWriteFiles(existing, custom interface{}) interface{} {
+	existingSlice, existingOk := existing.([]interface{})
+	customSlice, customOk := custom.([]interface{})
+
+	if !existingOk && !customOk {
+		return nil
+	}
+	if !existingOk {
+		return custom
+	}
+	if !customOk {
+		return existing
+	}
+
+	// Concatenate file lists
+	result := make([]interface{}, 0, len(existingSlice)+len(customSlice))
+	result = append(result, existingSlice...)
+	result = append(result, customSlice...)
+
+	return result
+}
+
+// mergeRunCmds merges runcmd arrays
+func mergeRunCmds(existing, custom interface{}) interface{} {
+	existingSlice, existingOk := existing.([]interface{})
+	customSlice, customOk := custom.([]interface{})
+
+	if !existingOk && !customOk {
+		return nil
+	}
+	if !existingOk {
+		return custom
+	}
+	if !customOk {
+		return existing
+	}
+
+	// Concatenate command lists
+	result := make([]interface{}, 0, len(existingSlice)+len(customSlice))
+	result = append(result, existingSlice...)
+	result = append(result, customSlice...)
+
+	return result
+}
+
+// mergePackages merges package arrays
+func mergePackages(existing, custom interface{}) interface{} {
+	existingSlice, existingOk := existing.([]interface{})
+	customSlice, customOk := custom.([]interface{})
+
+	if !existingOk && !customOk {
+		return nil
+	}
+	if !existingOk {
+		return custom
+	}
+	if !customOk {
+		return existing
+	}
+
+	// Deduplicate and merge package lists
+	packageSet := make(map[string]bool)
+	var result []interface{}
+
+	// Add existing packages
+	for _, pkg := range existingSlice {
+		if pkgStr, ok := pkg.(string); ok {
+			if !packageSet[pkgStr] {
+				packageSet[pkgStr] = true
+				result = append(result, pkg)
+			}
+		} else {
+			result = append(result, pkg)
+		}
+	}
+
+	// Add custom packages (deduplicate)
+	for _, pkg := range customSlice {
+		if pkgStr, ok := pkg.(string); ok {
+			if !packageSet[pkgStr] {
+				packageSet[pkgStr] = true
+				result = append(result, pkg)
+			}
+		} else {
+			result = append(result, pkg)
+		}
+	}
+
+	return result
+}
+
+// fallbackConcatenation provides a simple fallback when YAML merging fails
+func fallbackConcatenation(configs []string) string {
+	zlog.Warn().Msg("Using fallback concatenation for cloud-init configs")
+	return strings.Join(configs, customConfigDelimiter)
 }
