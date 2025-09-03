@@ -274,6 +274,3 @@ CVE-2025-38622
 CVE-2025-38650
 CVE-2025-38653
 CVE-2025-38666
-
-# Upgrade of golang to 1.24.6 to be taken up post 3.1 release
-CVE-2025-47907
