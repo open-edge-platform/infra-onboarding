@@ -9,7 +9,7 @@ go 1.24.1
 
 require (
 	github.com/containerd/containerd v1.7.27
-	github.com/docker/docker v27.5.1+incompatible
+	github.com/docker/docker v28.0.0+incompatible
 	github.com/go-logr/logr v1.4.2
 	github.com/go-logr/zapr v1.3.0
 	github.com/opencontainers/runtime-spec v1.2.0
