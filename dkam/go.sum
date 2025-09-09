@@ -166,8 +166,8 @@ github.com/mitchellh/reflectwalk v1.0.2 h1:G2LzWKi524PWgd3mLHV8Y5k7s6XUvT0Gef6zx
 github.com/mitchellh/reflectwalk v1.0.2/go.mod h1:mSTlrgnPZtwu0c4WaC2kGObEpuNDbx0jmZXqmk4esnw=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
-github.com/open-edge-platform/infra-core/inventory/v2 v2.30.0 h1:h72IByyUsbAnO74+TQXSuBsS7C0aRz5Uzc2RNQA8j0Y=
-github.com/open-edge-platform/infra-core/inventory/v2 v2.30.0/go.mod h1:OvbcT5ZJZ2u6RIPrejJyoFnB2Vf7LiM4xqDvemBIZbY=
+github.com/open-edge-platform/infra-core/inventory/v2 v2.30.1 h1:IfYUMDhjfm1iF2VEZ4pm+i0VYaoWvihUG6WjZ5ER/FM=
+github.com/open-edge-platform/infra-core/inventory/v2 v2.30.1/go.mod h1:OvbcT5ZJZ2u6RIPrejJyoFnB2Vf7LiM4xqDvemBIZbY=
 github.com/open-edge-platform/orch-library/go v0.6.1 h1:IGR2ic73f3obnhlxTRfHcyYMbPbYu7BSqa9UYyEZ78Q=
 github.com/open-edge-platform/orch-library/go v0.6.1/go.mod h1:3Tes/GJfwYbnQa/1scbKiLbjZrL4fJEouFk28oo5/c8=
 github.com/open-edge-platform/orch-library/go/dazl v0.5.4 h1:Rx/bSAZiLjEEBjUiJEzBvT0fQv5huT5FQ2Ke3IMUhiE=
