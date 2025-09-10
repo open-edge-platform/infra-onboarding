@@ -191,3 +191,5 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
+
+replace github.com/open-edge-platform/infra-core/inventory/v2 => ../../../rootfs/infra-core/inventory
