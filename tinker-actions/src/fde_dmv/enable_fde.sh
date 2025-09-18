@@ -4,14 +4,16 @@
 # SPDX-License-Identifier: Apache-2.0
 
 #####################################################################################
-# Patition information
-rootfs_partition=1
-boot_partition=2
-swap_partition=3
-tep_partition=4
-reserved_partition=5
-efi_partition=15
-singlehdd_lvm_partition=6
+# Partition information
+# partitions are updated as part of the script based on the version of Ubuntu.
+# This here is a reference only.
+# rootfs_partition=1
+# boot_partition=2
+# swap_partition=3
+# tep_partition=4
+# reserved_partition=5
+# efi_partition=15
+# singlehdd_lvm_partition=6
 
 # DEST_DISK set from the template.yaml file as an environment variable.
 
@@ -53,14 +55,15 @@ tpm2_cryptsetup='#!/bin/sh
 /usr/bin/askpass "Passphrase for $CRYPTTAB_SOURCE ($CRYPTTAB_NAME): "
 '
 
-tpm2_initramfs_tool='#!/bin/sh
-PREREQ=""
+get_tpm2_initramfs_tool() {
+    echo "#!/bin/sh
+PREREQ=\"\"
 prereqs()
 {
-   echo "$PREREQ"
+   echo \"\$PREREQ\"
 }
 
-case $1 in
+case \$1 in
 prereqs)
    prereqs
    exit 0
@@ -72,10 +75,10 @@ esac
 copy_exec /usr/lib/x86_64-linux-gnu/libtss2-tcti-device.so.0
 copy_exec /usr/bin/tpm2-initramfs-tool
 copy_exec /usr/bin/tpm2_pcrextend
-copy_exec /usr/lib/cryptsetup/askpass /usr/bin
 
-copy_exec /etc/initramfs-tools/tpm2-cryptsetup
-'
+copy_exec ${initramfs_loc}/tpm2-cryptsetup
+"
+}
 
 #####################################################################################
 fstab_rootfs_partition=" / ext4 discard,errors=remount-ro       0 1"
@@ -115,6 +118,50 @@ check_return_value() {
 	echo "$2"
 	exit 1
     fi
+}
+
+#####################################################################################
+set_correct_partition() {
+    export rootfs_partition=1
+
+    mkdir -p rfs
+    suffix=$(fix_partition_suffix)
+    mount "${DEST_DISK}${suffix}${rootfs_partition}" rfs
+    check_return_value $? "Failed to mount rootfs"
+
+    cat rfs/etc/lsb-release | grep -i "22.04"
+    if [ $? -eq 0 ];
+    then
+        #ubuntu 22.04 partitions
+        export boot_partition=2
+        export swap_partition=3
+        export tep_partition=4
+        export reserved_partition=5
+        export efi_partition=15
+        export singlehdd_lvm_partition=6
+        export ubuntu_version=22.04
+        export initramfs_loc="/etc/initramfs-tools"
+    else
+        #ubuntu 24.04 partitions
+        export boot_partition=16
+        export swap_partition=2
+        export tep_partition=3
+        export reserved_partition=4
+        export efi_partition=15
+        export singlehdd_lvm_partition=5
+        export ubuntu_version=24.04
+        export initramfs_loc="/usr/share/initramfs-tools"
+    fi
+
+    umount rfs
+    echo "Partitions set as:"
+    echo "  rootfs:        $rootfs_partition"
+    echo "  boot:          $boot_partition"
+    echo "  swap:          $swap_partition"
+    echo "  tep:           $tep_partition"
+    echo "  reserved:      $reserved_partition"
+    echo "  efi:           $efi_partition"
+    echo "  singlehdd_lvm: $singlehdd_lvm_partition"
 }
 
 #####################################################################################
@@ -294,9 +341,12 @@ make_partition_single_hdd() {
 
     suffix=$(fix_partition_suffix)
 
-    #/boot is now kept in a different partition
-    mkfs -t ext4 -L boot -F "${DEST_DISK}${suffix}${boot_partition}"
-    check_return_value $? "Failed to mkfs boot"
+    if [ "$ubuntu_version" == "22.04" ];
+    then
+        #/boot is now kept in a different partition
+        mkfs -t ext4 -L boot -F "${DEST_DISK}${suffix}${boot_partition}"
+        check_return_value $? "Failed to mkfs boot"
+    fi
 
     #swap space creation
     # mkswap "${DEST_DISK}${suffix}${swap_partition}"
@@ -361,9 +411,12 @@ make_partition() {
 
     suffix=$(fix_partition_suffix)
 
-    #/boot is now kept in a different partition
-    mkfs -t ext4 -L boot -F "${DEST_DISK}${suffix}${boot_partition}"
-    check_return_value $? "Failed to mkfs boot"
+    if [ "$ubuntu_version" == "22.04" ];
+    then
+        #/boot is now kept in a different partition
+        mkfs -t ext4 -L boot -F "${DEST_DISK}${suffix}${boot_partition}"
+        check_return_value $? "Failed to mkfs boot"
+    fi
 
     #swap space creation
     # mkswap "${DEST_DISK}${suffix}${swap_partition}"
@@ -418,7 +471,7 @@ create_single_hdd_lvmg() {
 	echo "vgcreate is completed"
 
 	block_dev_actual_partition_uuid=$(blkid "${DEST_DISK}${suffix}${singlehdd_lvm_partition}" -s UUID -o value)
-	echo -e "lvmvg_crypt UUID=${block_dev_actual_partition_uuid} none luks,discard,initramfs,keyscript=/etc/initramfs-tools/tpm2-cryptsetup" >> /mnt/etc/crypttab
+	echo -e "lvmvg_crypt UUID=${block_dev_actual_partition_uuid} none luks,discard,initramfs,keyscript=${initramfs_loc}/tpm2-cryptsetup" >> /mnt/etc/crypttab
 
 	mkdir -p /mnt/media/lvmvg
 
@@ -598,7 +651,7 @@ partition_other_devices() {
 	# add to fstab and crypttab
 
 	block_dev_actual_partition_uuid=$(blkid "/dev/${block_dev}${part_suffix}1" -s UUID -o value)
-	echo -e "${block_dev}_crypt UUID=${block_dev_actual_partition_uuid} none luks,discard,initramfs,keyscript=/etc/initramfs-tools/tpm2-cryptsetup" >> /mnt/etc/crypttab
+	echo -e "${block_dev}_crypt UUID=${block_dev_actual_partition_uuid} none luks,discard,initramfs,keyscript=${initramfs_loc}/tpm2-cryptsetup" >> /mnt/etc/crypttab
 
 	mkdir -p /mnt/media/${block_dev}
 	# block_dev_uuid=$(blkid "/dev/mapper/${block_dev}_crypt" -s UUID -o value )
@@ -651,13 +704,14 @@ ${fstab_efi_partition}"
 
     #update crypttab aswell
     rootfs_actual_partition_uuid=$(blkid "${DEST_DISK}${suffix}${rootfs_partition}" -s UUID -o value)
-    echo -e "rootfs_crypt UUID=${rootfs_actual_partition_uuid} none luks,discard,keyscript=/etc/initramfs-tools/tpm2-cryptsetup" > /mnt/etc/crypttab
+    echo -e "rootfs_crypt UUID=${rootfs_actual_partition_uuid} none luks,discard,keyscript=${initramfs_loc}/tpm2-cryptsetup" > /mnt/etc/crypttab
 
     swap_actual_partition_uuid=$(blkid "${DEST_DISK}${suffix}${swap_partition}" -s UUID -o value)
-    echo -e "swap_crypt UUID=${swap_actual_partition_uuid} none luks,discard,keyscript=/etc/initramfs-tools/tpm2-cryptsetup" >> /mnt/etc/crypttab
+    echo -e "swap_crypt UUID=${swap_actual_partition_uuid} none luks,discard,keyscript=${initramfs_loc}/tpm2-cryptsetup" >> /mnt/etc/crypttab
 
     #update resume
-    echo -e "RESUME=/dev/mapper/swap_crypt" >/mnt/etc/initramfs-tools/conf.d/resume
+    mkdir -p /mnt${initramfs_loc}/conf.d/
+    echo -e "RESUME=/dev/mapper/swap_crypt" >/mnt${initramfs_loc}/conf.d/resume
 }
 
 #####################################################################################
@@ -704,25 +758,30 @@ enable_luks(){
     # rm -rf rfs_backup/*
     # check_return_value $? "Failed to cleanup rfs backup"
 
-    #move boot to different partition
-    mkdir -p rfs/boot2
-    cp -rp rfs/boot/* rfs/boot2
-    check_return_value $? "Failed to backup boot"
+    if [ "$ubuntu_version" == "22.04" ];
+    then
+    # in ubuntu 22.04 /boot is part of rootfs
+        #move boot to different partition
+        mkdir -p rfs/boot2
+        cp -rp rfs/boot/* rfs/boot2
+        check_return_value $? "Failed to backup boot"
 
-    rm -rf rfs/boot
-    mkdir rfs/boot
+        rm -rf rfs/boot
+        mkdir rfs/boot
 
-    mount "${DEST_DISK}${suffix}${boot_partition}" rfs/boot
-    cp -rp rfs/boot2/* rfs/boot/
-    check_return_value $? "Failed to copy the boot back"
+        mount "${DEST_DISK}${suffix}${boot_partition}" rfs/boot
+        cp -rp rfs/boot2/* rfs/boot/
+        check_return_value $? "Failed to copy the boot back"
 
-    rm -rf rfs/boot2
-    umount rfs/boot
+        rm -rf rfs/boot2
+        umount rfs/boot
+    fi
+
     umount rfs
     umount rfs_backup
 
     #cleanup copied backup of rfs
-    cleanup_rfs_backup &
+    # cleanup_rfs_backup &
 
     ### setup swap luks
     cryptsetup luksFormat  \
@@ -771,14 +830,22 @@ enable_luks(){
     cp $luks_key /mnt/luks_key
 
     #install the required scripts inside the initramfs
-    echo -e "${tpm2_cryptsetup}" > /mnt/etc/initramfs-tools/tpm2-cryptsetup
-    echo -e "${tpm2_initramfs_tool}" > /mnt/etc/initramfs-tools/hooks/tpm2-initramfs-tool
-    echo -e "${tpm2_pcrextend}" > /mnt/etc/initramfs-tools/scripts/init-bottom/pcr_extend.sh
-    
+    echo -e "${tpm2_cryptsetup}" > /mnt${initramfs_loc}/tpm2-cryptsetup
+    get_tpm2_initramfs_tool > /mnt${initramfs_loc}/hooks/tpm2-initramfs-tool
+    echo -e "${tpm2_pcrextend}" > /mnt${initramfs_loc}/scripts/init-bottom/pcr_extend.sh
+
+    if [ "$ubuntu_version" == "24.04" ];
+    then
+        sed -i '$d' /mnt/etc/default/grub.d/40-force-partuuid.cfg
+        kernel_version=$(ls /mnt/boot/vmlinuz-* | grep -o "[0-9]\+\.[0-9]\+\.\S*" | sort -V | tail -1)
+    else
+        kernel_version="all"
+    fi
+
     # make them executable
-    chmod +x /mnt/etc/initramfs-tools/tpm2-cryptsetup
-    chmod +x /mnt/etc/initramfs-tools/hooks/tpm2-initramfs-tool
-    chmod +x /mnt/etc/initramfs-tools/scripts/init-bottom/pcr_extend.sh
+    chmod +x /mnt${initramfs_loc}/tpm2-cryptsetup
+    chmod +x /mnt${initramfs_loc}/hooks/tpm2-initramfs-tool
+    chmod +x /mnt${initramfs_loc}/scripts/init-bottom/pcr_extend.sh
 
     mtab_to_fstab
 
@@ -798,8 +865,13 @@ enable_luks(){
 
     apt update
 
+    dpkg --configure -a
+    dpkg --triggers-only --pending
+
     apt install -y tpm2-tools cryptsetup tpm2-initramfs-tool
 
+    dpkg --configure -a
+    dpkg --triggers-only --pending
     #setup tpm
     tpm2-initramfs-tool seal --data $(cat /luks_key) --pcrs 15
     if [ $? -ne 0 ]
@@ -810,7 +882,10 @@ enable_luks(){
     
     rm -rf /luks_key
 
-    update-initramfs -u -k all
+    sleep 2
+    echo "kernel_version $kernel_version"
+
+    DPKG_MAINTSCRIPT_PACKAGE="" update-initramfs -u -k $kernel_version -v
     if [ $? -ne 0 ]
     then
 	echo "update-initramfs failed"
@@ -862,6 +937,7 @@ EOT
 main() {
 
     get_dest_disk
+    set_correct_partition
 
     is_single_hdd
 
