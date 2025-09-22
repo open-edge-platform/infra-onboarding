@@ -156,6 +156,8 @@ tasks:
       - name: "kernel-upgrade"
         image: {{ .TinkerActionImageKernelUpgrade }}
         timeout: 9800
+        environment:
+          LVM_SIZE: {{ .DeviceInfoLVMSize }}
       - name: "efibootset-for-diskboot"
         image: {{ .TinkerActionImageEfibootset }}
         timeout: 560

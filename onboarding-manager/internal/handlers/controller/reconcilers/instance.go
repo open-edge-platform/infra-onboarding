@@ -405,6 +405,7 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		HwSerialID:       host.GetSerialNumber(),
 		HwMacID:          host.GetPxeMac(),
 		HwIP:             host.GetBmcIp(),
+		LVMSize:          uint64(host.GetLvmSize()),
 		Hostname:         host.GetResourceId(), // we use resource ID as hostname to uniquely identify a host
 		SecurityFeature:  instance.GetSecurityFeature(),
 		OSImageURL:       osLocationURL,

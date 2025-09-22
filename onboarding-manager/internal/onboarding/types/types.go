@@ -57,5 +57,7 @@ type (
 		CustomConfigs map[string]string
 		// IsStandaloneNode indicates whether EN should be provisioned as a standalone node
 		IsStandaloneNode bool
+		// LVMSize is the size of LVM to be created on the host
+		LVMSize uint64
 	}
 )
