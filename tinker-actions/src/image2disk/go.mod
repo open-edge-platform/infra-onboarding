@@ -13,7 +13,7 @@ require (
 	github.com/klauspost/compress v1.18.0
 	github.com/lmittmann/tint v1.0.7
 	github.com/mattn/go-isatty v0.0.20
-	github.com/ulikunitz/xz v0.5.12
+	github.com/ulikunitz/xz v0.5.15
 	golang.org/x/sys v0.31.0
 )
 
