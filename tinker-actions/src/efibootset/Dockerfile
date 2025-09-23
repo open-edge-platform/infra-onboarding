@@ -1,10 +1,10 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-FROM debian:12.10
+FROM debian:13.1
 
 # Update perl-base to the fixed version (CVE-2024-56406)
-RUN apt-get update && apt-get install -y --no-install-recommends perl-base=5.36.0-7+deb12u2
+RUN apt-get update && apt-get install -y --no-install-recommends perl-base=5.40.1-6
 
 RUN apt update && apt install -y parted grub-common udev grub-pc-bin grub-efi-amd64-bin dosfstools wget iproute2
 
