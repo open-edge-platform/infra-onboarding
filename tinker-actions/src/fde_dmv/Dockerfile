@@ -4,7 +4,7 @@
 FROM debian:13.1
 
 # Update perl-base to the fixed version (CVE-2024-56406)
-RUN apt-get update && apt-get install -y --no-install-recommends perl-base=5.36.0-7+deb12u2
+RUN apt-get update && apt-get install -y --no-install-recommends perl-base=5.40.1-6
 
 RUN apt-get update && apt-get install -y --no-install-recommends parted cryptsetup-bin tpm2-tools xxd
 RUN apt-get update && apt-get install -y --no-install-recommends lvm2 procps
