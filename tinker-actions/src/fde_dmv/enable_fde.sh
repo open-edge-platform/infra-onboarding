@@ -269,43 +269,43 @@ make_partition_single_hdd() {
     #
     if [[ $total_size_disk -gt 100 ]];
     then
-	total_size_disk=100
-	#Bare minimum needed to encrypt rootfs is 3GB
-	reserved_size=3
-	reserved_end=$total_size_disk
+        total_size_disk=100
+        #Bare minimum needed to encrypt rootfs is 3GB
+        reserved_size=3
+        reserved_end=$total_size_disk
 
     else
-	minimum_size=$(( $reserved_size + $tep_size + $swap_size + $boot_size + $bare_min_rootfs_size ))
-	if [[ $minimum_size -gt $total_size_disk ]];
-	then
-	    # This entire if block is to start optimization of the each of the blocks.
-	    difference=$(( $minimum_size - $total_size_disk ))
+        minimum_size=$(( $reserved_size + $tep_size + $swap_size + $boot_size + $bare_min_rootfs_size ))
+        if [[ $minimum_size -gt $total_size_disk ]];
+        then
+            # This entire if block is to start optimization of the each of the blocks.
+            difference=$(( $minimum_size - $total_size_disk ))
 
-	    # first check for the reserved size a mininum of 2 is needed.
-	    if [[ $difference -gt 0 ]];
-	    then
-		difference=$(( $difference - 3 ))
-		reserved_size=$(( $reserved_size - 3 ))
-	    fi
+            # first check for the reserved size a mininum of 2 is needed.
+            if [[ $difference -gt 0 ]];
+            then
+            difference=$(( $difference - 3 ))
+            reserved_size=$(( $reserved_size - 3 ))
+            fi
 
-	    # trusted compute will be given only 2 GB in such a constrainted environment.
-	    if [[ $difference -gt 0 ]];
-	    then
-		difference=$(( $difference - 12 ))
-		tep_size=$(( $tep_size - 12 ))
-	    fi
+            # trusted compute will be given only 2 GB in such a constrainted environment.
+            if [[ $difference -gt 0 ]];
+            then
+            difference=$(( $difference - 12 ))
+            tep_size=$(( $tep_size - 12 ))
+            fi
 
-	    # last for the critical one. if the swap space is cut to less than half FDE will not proceed.
-	    if [[ $difference -gt 0 ]];
-	    then
-		temp_swap_size=$(( $swap_size - $difference ))
-		if [[ $temp_swap_size -lt $swap_size ]];
-		then
-		    echo "PLATFORM CANNOT SUPPORT SWAP SPACE."
-		    exit 1
-		fi
-	    fi
-	fi
+            # last for the critical one. if the swap space is cut to less than half FDE will not proceed.
+            if [[ $difference -gt 0 ]];
+            then
+            temp_swap_size=$(( $swap_size - $difference ))
+            if [[ $temp_swap_size -lt $swap_size ]];
+            then
+                echo "PLATFORM CANNOT SUPPORT SWAP SPACE."
+                exit 1
+            fi
+            fi
+        fi
     fi
 
     #####
@@ -370,7 +370,7 @@ make_partition() {
     # limit swap size to 128GB
     if [[ $swap_size -gt 128 ]];
     then
-	swap_size=128
+        swap_size=128
     fi
 
     total_size_disk=$(parted -s ${DEST_DISK} p | grep -i ${DEST_DISK} | awk '{ print $3 }' | sed  's/GB//g' )
@@ -401,11 +401,11 @@ make_partition() {
     #####
 
     parted -s ${DEST_DISK} \
-	   resizepart $rootfs_partition "${rootfs_end}GB" \
-	   mkpart primary ext4 "${boot_start}GB" "${swap_start}GB" \
-	   mkpart primary linux-swap "${swap_start}GB" "${tep_start}GB" \
-	   mkpart primary ext4 "${tep_start}GB"  "${reserved_start}GB" \
-	   mkpart primary ext4 "${reserved_start}GB"  100%
+        resizepart $rootfs_partition "${rootfs_end}GB" \
+        mkpart primary ext4 "${boot_start}GB" "${swap_start}GB" \
+        mkpart primary linux-swap "${swap_start}GB" "${tep_start}GB" \
+        mkpart primary ext4 "${tep_start}GB"  "${reserved_start}GB" \
+        mkpart primary ext4 "${reserved_start}GB"  100%
 
     check_return_value $? "Failed to create paritions"
 
@@ -449,36 +449,36 @@ save_rootfs_on_ram(){
 create_single_hdd_lvmg() {
     if [ $single_hdd -eq 0 ];
     then
-	cryptsetup luksFormat  \
-		   --batch-mode \
-		   --pbkdf-memory=2097152 \
-		   --pbkdf-parallel=8  \
-		   --cipher=aes-xts-plain64 \
-		   --reduce-device-size 32M \
-		   "${DEST_DISK}${suffix}${singlehdd_lvm_partition}" \
-		   $luks_key
+        cryptsetup luksFormat  \
+            --batch-mode \
+            --pbkdf-memory=2097152 \
+            --pbkdf-parallel=8  \
+            --cipher=aes-xts-plain64 \
+            --reduce-device-size 32M \
+            "${DEST_DISK}${suffix}${singlehdd_lvm_partition}" \
+            $luks_key
 
-	check_return_value $? "Failed to luks format for lvmvg ${DEST_DISK}${suffix}${singlehdd_lvm_partition}"
+        check_return_value $? "Failed to luks format for lvmvg ${DEST_DISK}${suffix}${singlehdd_lvm_partition}"
 
-	cryptsetup luksOpen "${DEST_DISK}${suffix}${singlehdd_lvm_partition}" "lvmvg_crypt" --key-file=$luks_key
-	check_return_value $? "Failed to luks open lvmvg_crypt"
+        cryptsetup luksOpen "${DEST_DISK}${suffix}${singlehdd_lvm_partition}" "lvmvg_crypt" --key-file=$luks_key
+        check_return_value $? "Failed to luks open lvmvg_crypt"
 
-	pvcreate "/dev/mapper/lvmvg_crypt"
-	check_return_value $? "Failed to make mkfs ext4 on lvmvg_crypt"
+        pvcreate "/dev/mapper/lvmvg_crypt"
+        check_return_value $? "Failed to make mkfs ext4 on lvmvg_crypt"
 
-	vgcreate lvmvg "/dev/mapper/lvmvg_crypt"
-	check_return_value $? "Failed to create a lvmvg group"
-	echo "vgcreate is completed"
+        vgcreate lvmvg "/dev/mapper/lvmvg_crypt"
+        check_return_value $? "Failed to create a lvmvg group"
+        echo "vgcreate is completed"
 
-	block_dev_actual_partition_uuid=$(blkid "${DEST_DISK}${suffix}${singlehdd_lvm_partition}" -s UUID -o value)
-	echo -e "lvmvg_crypt UUID=${block_dev_actual_partition_uuid} none luks,discard,initramfs,keyscript=${initramfs_loc}/tpm2-cryptsetup" >> /mnt/etc/crypttab
+        block_dev_actual_partition_uuid=$(blkid "${DEST_DISK}${suffix}${singlehdd_lvm_partition}" -s UUID -o value)
+        echo -e "lvmvg_crypt UUID=${block_dev_actual_partition_uuid} none luks,discard,initramfs,keyscript=${initramfs_loc}/tpm2-cryptsetup" >> /mnt/etc/crypttab
 
-	mkdir -p /mnt/media/lvmvg
+        mkdir -p /mnt/media/lvmvg
 
-	fstab_block_dev="/dev/mapper/lvmvg_crypt /media/lvmvg ext4 discard,errors=remount-ro       0 1"
+        fstab_block_dev="/dev/mapper/lvmvg_crypt /media/lvmvg ext4 discard,errors=remount-ro       0 1"
 
 
-	mount "/dev/mapper/lvmvg_crypt" /mnt/media/lvmvg
+        mount "/dev/mapper/lvmvg_crypt" /mnt/media/lvmvg
     fi
 
 }
@@ -500,27 +500,27 @@ block_disk_phy_block_disk() {
 
     for block_dev in ${list_block_devices[@]};
     do
-	grep -i "${DEST_DISK}" <<< "/dev/${block_dev}"
-	if [ $? -eq 0 ]
-	then
-	    continue
-	fi
+        grep -i "${DEST_DISK}" <<< "/dev/${block_dev}"
+        if [ $? -eq 0 ]
+        then
+            continue
+        fi
 
-	# get info if there is a 4kB physical block present
-	parted -s "/dev/${block_dev}" print | grep -i sector | grep -q 4098.$
-	if [ $? -eq 0 ];
-	then
-	    block_size_4k=$(( 1 + $block_size_4k ))
-	    export disk_4k="$disk_4k /dev/${block_dev}"
-	fi
+        # get info if there is a 4kB physical block present
+        parted -s "/dev/${block_dev}" print | grep -i sector | grep -q 4098.$
+        if [ $? -eq 0 ];
+        then
+            block_size_4k=$(( 1 + $block_size_4k ))
+            export disk_4k="$disk_4k /dev/${block_dev}"
+        fi
 
-	parted -s "/dev/${block_dev}" print | grep -i sector | grep -q 512.$
-	if [ $? -eq 0 ];
-	then
-	    block_size_512=$(( 1 + $block_size_512 ))
-	    export disk_512="$disk_512 /dev/${block_dev}"
-	fi
-	echo "512 $block_size_512"
+        parted -s "/dev/${block_dev}" print | grep -i sector | grep -q 512.$
+        if [ $? -eq 0 ];
+        then
+            block_size_512=$(( 1 + $block_size_512 ))
+            export disk_512="$disk_512 /dev/${block_dev}"
+        fi
+        echo "512 $block_size_512"
     done
 
     echo "Total 4kB phy sectors block disk $block_size_4k $disk_4k"
@@ -528,7 +528,7 @@ block_disk_phy_block_disk() {
 
     if [ $block_size_512 -ne 0 ] && [ $block_size_4k -ne 0 ];
     then
-	export UPDATE_SECTOR="--sector-size 512"
+        export UPDATE_SECTOR="--sector-size 512"
     fi
 }
 
@@ -545,44 +545,44 @@ update_lvmvg() {
     #bigger lvm will be used by orchestrator
     for disk in $list_of_lvmg_part;
     do
-	size=$(lsblk -b --output SIZE -n -d "${disk}")
-	parted -s "${disk}" print | grep -i sector | grep -q 512.$
-	if [ $? -eq 0 ];
-	then
-	    size_512=$(( $size_512 + $size ))
-	    list_of_lvmg_part_512+=" ${disk} "
-	else
-	    size_4k=$(( $size_4k + $size ))
-	    list_of_lvmg_part_4k+=" ${disk} "
-	fi
+        size=$(lsblk -b --output SIZE -n -d "${disk}")
+        parted -s "${disk}" print | grep -i sector | grep -q 512.$
+        if [ $? -eq 0 ];
+        then
+            size_512=$(( $size_512 + $size ))
+            list_of_lvmg_part_512+=" ${disk} "
+        else
+            size_4k=$(( $size_4k + $size ))
+            list_of_lvmg_part_4k+=" ${disk} "
+        fi
     done
 
     if [ $size_4k -gt $size_512 ];
     then
-	echo "Selected 4k block sized disks because of higher total size"
-	if [[ $list_of_lvmg_part_4k != '' ]];
-	then
-	    vgcreate lvmvg $list_of_lvmg_part_4k
-	    check_return_value $? "Failed to create LVMVG with 4k blocks"
-	fi
+        echo "Selected 4k block sized disks because of higher total size"
+        if [[ $list_of_lvmg_part_4k != '' ]];
+        then
+            vgcreate lvmvg $list_of_lvmg_part_4k
+            check_return_value $? "Failed to create LVMVG with 4k blocks"
+        fi
 
-	if [[ $list_of_lvmg_part_512 != '' ]];
-	then
-	    vgcreate lvmvg2 $list_of_lvmg_part_512
-	    check_return_value $? "Failed to create LVMVG with 512 blocks"
-	fi
-    else
-	if [[ $list_of_lvmg_part_512 != '' ]];
-	then
-	    vgcreate lvmvg $list_of_lvmg_part_512
-	    check_return_value $? "Failed to create LVMVG-2 with 512 blocks"
-	fi
+        if [[ $list_of_lvmg_part_512 != '' ]];
+        then
+            vgcreate lvmvg2 $list_of_lvmg_part_512
+            check_return_value $? "Failed to create LVMVG with 512 blocks"
+        fi
+        else
+        if [[ $list_of_lvmg_part_512 != '' ]];
+        then
+            vgcreate lvmvg $list_of_lvmg_part_512
+            check_return_value $? "Failed to create LVMVG-2 with 512 blocks"
+        fi
 
-	if [[ $list_of_lvmg_part_4k != '' ]];
-	then
-	    vgcreate lvmvg2 $list_of_lvmg_part_4k
-	    check_return_value $? "Failed to create LVMVG-2 with 4k blocks"
-	fi
+        if [[ $list_of_lvmg_part_4k != '' ]];
+        then
+            vgcreate lvmvg2 $list_of_lvmg_part_4k
+            check_return_value $? "Failed to create LVMVG-2 with 4k blocks"
+        fi
     fi
 
 }
@@ -598,80 +598,80 @@ partition_other_devices() {
     list_of_lvmg_part=''
     for block_dev in ${list_block_devices[@]};
     do
-	grep -i "${DEST_DISK}" <<< "/dev/${block_dev}"
-	if [ $? -eq 0 ]
-	then
-	   continue
-	fi
-	#if its removable disk don't do LVM
-	removable=$(lsblk -n -d -o RM "/dev/${block_dev}")
-	if [ "$removable" -eq 1 ];
-	then
-	   continue
-	fi
+        grep -i "${DEST_DISK}" <<< "/dev/${block_dev}"
+        if [ $? -eq 0 ]
+        then
+            continue
+        fi
+        #if its removable disk don't do LVM
+        removable=$(lsblk -n -d -o RM "/dev/${block_dev}")
+        if [ "$removable" -eq 1 ];
+        then
+            continue
+        fi
 
-	#Delete all partitions on that disk to make it ready for luks with 1 partition only
-	line_num=$(parted -s "/dev/${block_dev}" print | awk '$1 == "Number" { print NR }')
-	partition_num=$(parted -s "/dev/${block_dev}" print | awk 'NR > $line_num { print $1}')
-	for part in $partition_num;
-	do
-	    echo "partition in $disk $part will be deleted"
-	    rm_part=$(parted -s "/dev/${block_dev}" rm "$part")
-	done
+        #Delete all partitions on that disk to make it ready for luks with 1 partition only
+        line_num=$(parted -s "/dev/${block_dev}" print | awk '$1 == "Number" { print NR }')
+        partition_num=$(parted -s "/dev/${block_dev}" print | awk 'NR > $line_num { print $1}')
+        for part in $partition_num;
+        do
+            echo "partition in $disk $part will be deleted"
+            rm_part=$(parted -s "/dev/${block_dev}" rm "$part")
+        done
 
-	# new partition
-	parted -s "/dev/${block_dev}" \
-	       mklabel gpt \
-	       mkpart primary ext4 0% 100%
+        # new partition
+        parted -s "/dev/${block_dev}" \
+            mklabel gpt \
+            mkpart primary ext4 0% 100%
 
-	check_return_value $? "Failed to run parted for /dev/${block_dev}"
+        check_return_value $? "Failed to run parted for /dev/${block_dev}"
 
-	part_suffix=$(get_partition_suffix "/dev/${block_dev}" )
+        part_suffix=$(get_partition_suffix "/dev/${block_dev}" )
 
-	cryptsetup luksFormat  \
-		   --batch-mode \
-		   --pbkdf-memory=2097152 \
-		   --pbkdf-parallel=8  \
-		   --cipher=aes-xts-plain64 \
-		   --reduce-device-size 32M $UPDATE_SECTOR\
-		   "/dev/${block_dev}${part_suffix}1" \
-		   $luks_key
+        cryptsetup luksFormat  \
+            --batch-mode \
+            --pbkdf-memory=2097152 \
+            --pbkdf-parallel=8  \
+            --cipher=aes-xts-plain64 \
+            --reduce-device-size 32M $UPDATE_SECTOR\
+            "/dev/${block_dev}${part_suffix}1" \
+            $luks_key
 
-	check_return_value $? "Failed to luks format for /dev/${block_dev}${part_suffix}1"
+        check_return_value $? "Failed to luks format for /dev/${block_dev}${part_suffix}1"
 
-	cryptsetup luksOpen "/dev/${block_dev}${part_suffix}1" "${block_dev}_crypt" --key-file=$luks_key
-	check_return_value $? "Failed to luks open ${block_dev}${part_suffix}1_crypt"
+        cryptsetup luksOpen "/dev/${block_dev}${part_suffix}1" "${block_dev}_crypt" --key-file=$luks_key
+        check_return_value $? "Failed to luks open ${block_dev}${part_suffix}1_crypt"
 
-	# mkfs.ext4 -F "/dev/mapper/${block_dev}_crypt"
-	pvcreate "/dev/mapper/${block_dev}_crypt"
-	check_return_value $? "Failed to make mkfs ext4 on ${block_dev}_crypt"
+        # mkfs.ext4 -F "/dev/mapper/${block_dev}_crypt"
+        pvcreate "/dev/mapper/${block_dev}_crypt"
+        check_return_value $? "Failed to make mkfs ext4 on ${block_dev}_crypt"
 
-	list_of_lvmg_part+=" /dev/mapper/${block_dev}_crypt"
+        list_of_lvmg_part+=" /dev/mapper/${block_dev}_crypt"
 
-	# add to fstab and crypttab
+        # add to fstab and crypttab
 
-	block_dev_actual_partition_uuid=$(blkid "/dev/${block_dev}${part_suffix}1" -s UUID -o value)
-	echo -e "${block_dev}_crypt UUID=${block_dev_actual_partition_uuid} none luks,discard,initramfs,keyscript=${initramfs_loc}/tpm2-cryptsetup" >> /mnt/etc/crypttab
+        block_dev_actual_partition_uuid=$(blkid "/dev/${block_dev}${part_suffix}1" -s UUID -o value)
+        echo -e "${block_dev}_crypt UUID=${block_dev_actual_partition_uuid} none luks,discard,initramfs,keyscript=${initramfs_loc}/tpm2-cryptsetup" >> /mnt/etc/crypttab
 
-	mkdir -p /mnt/media/${block_dev}
-	# block_dev_uuid=$(blkid "/dev/mapper/${block_dev}_crypt" -s UUID -o value )
-	fstab_block_dev="/dev/mapper/${block_dev}_crypt /media/${block_dev} ext4 discard,errors=remount-ro       0 1"
-	#echo -e "${fstab_block_dev}" >> /mnt/etc/fstab
+        mkdir -p /mnt/media/${block_dev}
+        # block_dev_uuid=$(blkid "/dev/mapper/${block_dev}_crypt" -s UUID -o value )
+        fstab_block_dev="/dev/mapper/${block_dev}_crypt /media/${block_dev} ext4 discard,errors=remount-ro       0 1"
+        #echo -e "${fstab_block_dev}" >> /mnt/etc/fstab
 
-	mount "/dev/mapper/${block_dev}_crypt" /mnt/media/${block_dev}
+        mount "/dev/mapper/${block_dev}_crypt" /mnt/media/${block_dev}
     done
 
     if [[ $list_of_lvmg_part != '' ]];
     then
-	vgcreate lvmvg $list_of_lvmg_part
-	if [ $? -ne 0 ]
-	then
-	    export list_of_lvmg_part=$list_of_lvmg_part
-	    echo "Failed to create a lvmvg group"
-	    echo "Trying with separated sectors"
-	    update_lvmvg
-	fi
-	echo "vgcreate is completed"
+        vgcreate lvmvg $list_of_lvmg_part
+    if [ $? -ne 0 ]
+    then
+        export list_of_lvmg_part=$list_of_lvmg_part
+        echo "Failed to create a lvmvg group"
+        echo "Trying with separated sectors"
+        update_lvmvg
+    fi
+        echo "vgcreate is completed"
     fi
 
 }
@@ -728,13 +728,13 @@ enable_luks(){
     # cat $luks_key
 
     cryptsetup luksFormat  \
-	       --batch-mode \
-	       --pbkdf-memory=2097152 \
-	       --pbkdf-parallel=8  \
-	       --cipher=aes-xts-plain64 \
-	       --reduce-device-size 32M \
-	       "${DEST_DISK}${suffix}${rootfs_partition}" \
-	       $luks_key
+            --batch-mode \
+            --pbkdf-memory=2097152 \
+            --pbkdf-parallel=8  \
+            --cipher=aes-xts-plain64 \
+            --reduce-device-size 32M \
+            "${DEST_DISK}${suffix}${rootfs_partition}" \
+            $luks_key
     
     check_return_value $? "Failed to luks format"
 
