@@ -96,6 +96,7 @@ func main() {
 		fmt.Printf("-----SHA256 not provided proceeding without checksum check \n")
 	}
 
+	tls_ca_cert := os.Getenv("TLS_CA_CERT")
 	// We can ignore the error and default compressed to false.
 	cmp, _ := strconv.ParseBool(compressedEnv)
 	re, er := strconv.ParseBool(retryEnabled)
@@ -111,7 +112,7 @@ func main() {
 	interval := time.Duration(pi) * time.Second
 
 	operation := func() error {
-		if err := image.Write(ctx, log, u.String(), disk, cmp, interval); err != nil {
+		if err := image.Write(ctx, log, u.String(), disk, cmp, interval, tls_ca_cert); err != nil {
 			return fmt.Errorf("error writing image to disk: %w", err)
 		}
 		return nil
