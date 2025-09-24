@@ -9,7 +9,10 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -23,13 +26,29 @@ import (
 
 // Write will pull an image and write it to network boot device (nbd) using qemu-nbd
 // before writing to an underlying device.
-func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice string, compressed bool, progressInterval time.Duration) error {
+func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice string, compressed bool, progressInterval time.Duration, tlsCaCert string) error {
+	// Create HTTP client with custom TLS configuration if CA cert is provided
+	client := http.DefaultClient
+	if tlsCaCert != "" {
+		caCertPool := x509.NewCertPool()
+		if !caCertPool.AppendCertsFromPEM([]byte(tlsCaCert)) {
+			return errors.New("failed to append CA cert to pool")
+		}
+
+		transport := &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: caCertPool,
+			},
+		}
+		client = &http.Client{Transport: transport}
+	}
+
 	// Create and execute an HTTP GET request to download the image
 	req, err := http.NewRequestWithContext(ctx, "GET", sourceImage, nil)
 	if err != nil {
 		return err
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to download image from the URL: %v", err)
 	}
@@ -78,11 +97,11 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 	expectedSHA256 := os.Getenv("SHA256")
 	// if SHA256 env variable provided as input, compare the expected SHA256 with img_url SHA256
 	if len(expectedSHA256) != 0 && actualSHA256 != expectedSHA256 {
-		log.Info(fmt.Sprintf("-----Mismatch SHA256 for actualSHA256 & expectedSHA256 ---\n"))
+		log.Info("-----Mismatch SHA256 for actualSHA256 & expectedSHA256 ---\n")
 		log.Info(fmt.Sprintf("expectedSHA256 : [%s] ", expectedSHA256))
 		log.Info(fmt.Sprintf("actualSHA256 : [%s] ", actualSHA256))
 		log.Error("------SHA256 MISMATCH---------")
-		return fmt.Errorf("Image SHA-256 hash mismatch")
+		return fmt.Errorf("image SHA-256 hash mismatch")
 	}
 	log.Info(fmt.Sprintf("SHA-256 hash of the downloaded file: %s", actualSHA256))
 	log.Info("Successfully verified SHA-256 checksum")
