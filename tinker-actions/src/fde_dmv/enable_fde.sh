@@ -17,6 +17,12 @@
 
 # DEST_DISK set from the template.yaml file as an environment variable.
 
+# Pass LVM_SIZE to set the minimum size of LVM in GBs. The script will
+# create an LVM partition of at least this size.
+
+# Pass MINIMUM_ROOTFS_SIZE to set the minimum size of rootfs in GBs. The script will
+# create an rootfs partition of at least this size.
+
 #####################################################################################
 # Partitions in %
 # read as 90% or 91%
@@ -30,7 +36,8 @@ tep_size=14
 reserved_size=5
 boot_size=5
 bare_min_rootfs_size=25
-rootfs_size=40
+rootfs_size=50
+persistent_size=20
 
 #####################################################################################
 #Global var which is updated
@@ -137,18 +144,20 @@ set_correct_partition() {
         export swap_partition=3
         export tep_partition=4
         export reserved_partition=5
+        export persistent_partition=6
+        export singlehdd_lvm_partition=7
         export efi_partition=15
-        export singlehdd_lvm_partition=6
         export ubuntu_version=22.04
         export initramfs_loc="/etc/initramfs-tools"
     else
         #ubuntu 24.04 partitions
-        export boot_partition=16
         export swap_partition=2
         export tep_partition=3
         export reserved_partition=4
+        export persistent_partition=5
+        export singlehdd_lvm_partition=6
         export efi_partition=15
-        export singlehdd_lvm_partition=5
+        export boot_partition=16
         export ubuntu_version=24.04
         export initramfs_loc="/usr/share/initramfs-tools"
     fi
@@ -162,6 +171,44 @@ set_correct_partition() {
     echo "  reserved:      $reserved_partition"
     echo "  efi:           $efi_partition"
     echo "  singlehdd_lvm: $singlehdd_lvm_partition"
+}
+
+#####################################################################################
+mininum_lvm_requested() {
+
+    echo "LVM_SIZE $LVM_SIZE"
+    if [ -z "${LVM_SIZE+x}" ] || [ "$LVM_SIZE" -lt 0 ];
+    then
+        #default minimum lvm size is 20GB
+        export lvm_size=20
+        echo "LVM_SIZE set to 20GB"
+    else
+        if ! [[ "$LVM_SIZE" =~ ^[0-9]+$ ]]; then
+            echo "LVM_SIZE must be a positive integer."
+            exit 1
+        fi
+        echo "LVM_SIZE is set to $LVM_SIZE"
+        export lvm_size=$LVM_SIZE
+    fi
+}
+
+#####################################################################################
+minimum_rootfs_requested() {
+
+    echo "MINIMUM_ROOTFS_SIZE $MINIMUM_ROOTFS_SIZE"
+    if [ -z "${MINIMUM_ROOTFS_SIZE+x}" ] || [ "$MINIMUM_ROOTFS_SIZE" -lt 0 ];
+    then
+        #default minimum rootfs size is 50GB
+        export rootfs_size=50
+        echo "MINIMUM_ROOTFS_SIZE set to 50GB"
+    else
+        if ! [[ "$MINIMUM_ROOTFS_SIZE" =~ ^[0-9]+$ ]]; then
+            echo "MINIMUM_ROOTFS_SIZE must be a positive integer."
+            exit 1
+        fi
+        echo "MINIMUM_ROOTFS_SIZE is set to $MINIMUM_ROOTFS_SIZE"
+        export rootfs_size=$MINIMUM_ROOTFS_SIZE
+    fi
 }
 
 #####################################################################################
@@ -263,15 +310,32 @@ make_partition_single_hdd() {
     # all partitions apart from lvm we cant risk exceeding the swap size.
     swap_size=$(echo "$ram_size" | awk '{printf ("%.0f\n", sqrt($1))}')
 
+    if [[ $swap_size -gt 128 ]];
+    then
+        swap_size=128
+    fi
+
     total_size_disk=$(parted -s ${DEST_DISK} p | grep -i ${DEST_DISK} | awk '{ print $3 }' | sed  's/GB//g' )
+    actual_disk_size=$total_size_disk
 
     # Size of OS with all other partitions are capped to 100GB
     #
     if [[ $total_size_disk -gt 100 ]];
     then
-        total_size_disk=100
+        #total_size_disk=100
+
         #Bare minimum needed to encrypt rootfs is 3GB
         reserved_size=3
+
+        # for u24 boot size is not used would mean that rootfs_size will increase by 5GB
+        total_size_disk=$(( $reserved_size + $tep_size + $swap_size + $boot_size + $rootfs_size ))
+
+        if [[ $total_size_disk -gt $actual_disk_size ]];
+        then
+            total_size_disk=$actual_disk_size
+            echo "Sizes are adjusted to actual disk size $actual_disk_size"
+        fi
+
         reserved_end=$total_size_disk
 
     else
@@ -309,43 +373,72 @@ make_partition_single_hdd() {
     fi
 
     #####
+    lvm_start=$(( $actual_disk_size - $lvm_size))
+    persistent_start=$(( $total_size_disk))
 
     reserved_start=$(( $total_size_disk - $reserved_size ))
     tep_start=$(( $reserved_start - $tep_size ))
     swap_start=$(( $tep_start - $swap_size ))
-    boot_start=$(( $swap_start - $boot_size ))
-    rootfs_end=$boot_start
+    if [ "$ubuntu_version" == "22.04" ];
+    then
+        boot_start=$(( $swap_start - $boot_size ))
+        rootfs_end=$boot_start
+    else 
+        rootfs_end=$(( $swap_start ))
+        boot_start="Not used"
+    fi
 
     #####
 
     #####
     # logging needed to understand the block splits
     echo "DEST_DISK  ${DEST_DISK}"
-    echo "rootfs_partition  $rootfs_partition       rootfs_end        ${rootfs_end}GB"
-    echo "boot_start         ${boot_start}GB        swap_start        ${swap_start}GB"
-    echo "swap_start         ${swap_start}GB        tep_start         ${tep_start}GB"
-    echo "tep_start          ${tep_start}GB         reserved_start    ${reserved_start}GB"
-    echo "reserved_start     ${reserved_start}GB    reserved_end      ${reserved_end}GB"
-    echo "reserved_start     ${reserved_end}GB    total_size_disk   ${total_size_disk}GB"
+    echo "rootfs_partition  $rootfs_partition       rootfs_end         ${rootfs_end}GB"
+    echo "boot_start         ${boot_start}GB        swap_start         ${swap_start}GB"
+    echo "swap_start         ${swap_start}GB        tep_start          ${tep_start}GB"
+    echo "tep_start          ${tep_start}GB         reserved_start     ${reserved_start}GB"
+    echo "reserved_start     ${reserved_start}GB    reserved_end       ${reserved_end}GB"
+    echo "Persistent start   ${persistent_start}GB  Persistent end     ${lvm_start}GB"
+    echo "LVM start          ${lvm_start}GB         actual_disk_size   ${actual_disk_size}GB"
     #####
 
-    parted -s ${DEST_DISK} \
-	   resizepart $rootfs_partition "${rootfs_end}GB" \
-	   mkpart primary ext4 "${boot_start}GB" "${swap_start}GB" \
-	   mkpart primary linux-swap "${swap_start}GB" "${tep_start}GB" \
-	   mkpart primary ext4 "${tep_start}GB"  "${reserved_start}GB" \
-	   mkpart primary ext4 "${reserved_start}GB" "${reserved_end}GB" \
-	   mkpart primary ext4 "${reserved_end}GB" 100%
+    if [[ $lvm_size -gt 0 ]]
+    then
+        # to be used in the parted command only
+        parted_for_lvm="mkpart lvm ext4 ${lvm_start}GB 100%"
+    fi
 
-    check_return_value $? "Failed to create paritions"
 
     suffix=$(fix_partition_suffix)
 
     if [ "$ubuntu_version" == "22.04" ];
     then
+
+        parted -s ${DEST_DISK} \
+            resizepart $rootfs_partition "${rootfs_end}GB" \
+            mkpart boot            ext4       "${boot_start}GB"     "${swap_start}GB" \
+            mkpart swap            linux-swap "${swap_start}GB"     "${tep_start}GB" \
+            mkpart trusted_compute ext4       "${tep_start}GB"      "${reserved_start}GB" \
+            mkpart reserved        ext4       "${reserved_start}GB" "${reserved_end}GB" \
+            mkpart persistent      ext4       "${persistent_start}GB" "${lvm_start}GB" \
+            ${parted_for_lvm}
+
+        check_return_value $? "Failed to create paritions"
+
         #/boot is now kept in a different partition
         mkfs -t ext4 -L boot -F "${DEST_DISK}${suffix}${boot_partition}"
         check_return_value $? "Failed to mkfs boot"
+    else
+        #ubuntu 24.04
+        parted -s ${DEST_DISK} \
+            resizepart $rootfs_partition "${rootfs_end}GB" \
+            mkpart swap            linux-swap "${swap_start}GB"      "${tep_start}GB" \
+            mkpart trusted_compute ext4       "${tep_start}GB"       "${reserved_start}GB" \
+            mkpart reserved        ext4       "${reserved_start}GB"   "${reserved_end}GB" \
+            mkpart persistent      ext4       "${persistent_start}GB" "${lvm_start}GB" \
+            ${parted_for_lvm}
+
+        check_return_value $? "Failed to create paritions"
     fi
 
     #swap space creation
@@ -383,7 +476,10 @@ make_partition() {
     echo "Dest_disk=${DEST_DISK} tep_space_end=$tep_space_end swap_space_end=$swap_space_end"
 
     #####
-    reserved_start=$(( $total_size_disk - $reserved_size ))
+    total_required_size_disk=$(( $reserved_size + $tep_size + $swap_size + $boot_size + $rootfs_size ))
+    persistent_start=$(( $total_required_size_disk))
+
+    reserved_start=$(( $persistent_start - $reserved_size ))
     tep_start=$(( $reserved_start - $tep_size ))
     swap_start=$(( $tep_start - $swap_size ))
     boot_start=$(( $swap_start - $boot_size ))
@@ -397,25 +493,39 @@ make_partition() {
     echo "boot_start         ${boot_start}GB        swap_start       ${swap_start}GB"
     echo "swap_start         ${swap_start}GB        tep_start        ${tep_start}GB"
     echo "tep_start          ${tep_start}GB         reserved_start   ${reserved_start}GB"
-    echo "reserved_start     ${reserved_start}GB   total_size_disk   ${total_size_disk}GB"
+    echo "reserved_start     ${reserved_start}GB   reserved_end      ${persistent_start}GB"
+    echo "Persistent start   ${persistent_start}GB  Persistent end   ${total_size_disk}GB"
     #####
 
-    parted -s ${DEST_DISK} \
-        resizepart $rootfs_partition "${rootfs_end}GB" \
-        mkpart primary ext4 "${boot_start}GB" "${swap_start}GB" \
-        mkpart primary linux-swap "${swap_start}GB" "${tep_start}GB" \
-        mkpart primary ext4 "${tep_start}GB"  "${reserved_start}GB" \
-        mkpart primary ext4 "${reserved_start}GB"  100%
 
-    check_return_value $? "Failed to create paritions"
 
     suffix=$(fix_partition_suffix)
 
     if [ "$ubuntu_version" == "22.04" ];
     then
+        parted -s ${DEST_DISK} \
+            resizepart $rootfs_partition "${rootfs_end}GB" \
+            mkpart boot            ext4       "${boot_start}GB"     "${swap_start}GB" \
+            mkpart swap            linux-swap "${swap_start}GB"     "${tep_start}GB" \
+            mkpart trusted_compute ext4       "${tep_start}GB"      "${reserved_start}GB" \
+            mkpart reserved        ext4       "${reserved_start}GB" "${persistent_start}GB" \
+            mkpart persistent      ext4       "${persistent_start}GB" 100%
+
+        check_return_value $? "Failed to create paritions"
+
         #/boot is now kept in a different partition
         mkfs -t ext4 -L boot -F "${DEST_DISK}${suffix}${boot_partition}"
         check_return_value $? "Failed to mkfs boot"
+    else
+        #ubuntu 24.04
+        parted -s ${DEST_DISK} \
+            resizepart $rootfs_partition "${rootfs_end}GB" \
+            mkpart swap            linux-swap "${swap_start}GB"      "${tep_start}GB" \
+            mkpart trusted_compute ext4       "${tep_start}GB"       "${reserved_start}GB" \
+            mkpart reserved        ext4       "${reserved_start}GB"   "${persistent_start}GB" \
+            mkpart persistent      ext4       "${persistent_start}GB" 100%
+
+        check_return_value $? "Failed to create paritions"
     fi
 
     #swap space creation
@@ -447,7 +557,7 @@ save_rootfs_on_ram(){
 
 #####################################################################################
 create_single_hdd_lvmg() {
-    if [ $single_hdd -eq 0 ];
+    if [ $single_hdd -eq 0 ] && [ $lvm_size -gt 0 ];
     then
         cryptsetup luksFormat  \
             --batch-mode \
@@ -685,6 +795,7 @@ mtab_to_fstab() {
     rootfs_uuid=$(blkid /dev/mapper/rootfs_crypt -s UUID -o value )
     swap_uuid=$(blkid /dev/mapper/swap_crypt -s UUID -o value )
     boot_uuid=$(blkid "${DEST_DISK}${suffix}${boot_partition}" -s UUID -o value)
+    persistent_partition_uuid=$(blkid "${DEST_DISK}${suffix}${persistent_partition}" -s UUID -o value)
     
     # rootfs_uuid=$(lsblk /dev/mapper/rootfs_crypt -o uuid -n )
     # boot_uuid=$(lsblk "${DEST_DISK}${suffix}${boot_partition}" -o uuid -n )
@@ -695,10 +806,13 @@ mtab_to_fstab() {
     # fstab_swap_partition="${DEST_DISK}${suffix}${swap_partition} none swap sw 0 0"
     fstab_swap_partition="/dev/mapper/swap_crypt swap swap default 0 0"
 
+    fstab_persistent_dev="/dev/mapper/persistent_crypt /var/lib/rancher ext4 discard,errors=remount-ro       0 1"
+
     fstab_complete="uuid=${rootfs_uuid} ${fstab_rootfs_partition}
 ${DEST_DISK}${suffix}${boot_partition} ${fstab_boot_partition}
 ${fstab_swap_partition}
-${fstab_efi_partition}"
+${fstab_efi_partition}
+${fstab_persistent_dev}"
     
     echo -e "${fstab_complete}" > /mnt/etc/fstab
 
@@ -712,6 +826,9 @@ ${fstab_efi_partition}"
     #update resume
     mkdir -p /mnt${initramfs_loc}/conf.d/
     echo -e "RESUME=/dev/mapper/swap_crypt" >/mnt${initramfs_loc}/conf.d/resume
+
+    echo -e "persistent_crypt UUID=${persistent_partition_uuid} none luks,discard,initramfs,keyscript=${initramfs_loc}/tpm2-cryptsetup" >> /mnt/etc/crypttab
+
 }
 
 #####################################################################################
@@ -785,13 +902,13 @@ enable_luks(){
 
     ### setup swap luks
     cryptsetup luksFormat  \
-	       --batch-mode \
-	       --pbkdf-memory=2097152 \
-	       --pbkdf-parallel=8  \
-	       --cipher=aes-xts-plain64 \
-	       --reduce-device-size 32M \
-	       "${DEST_DISK}${suffix}${swap_partition}" \
-	       $luks_key
+        --batch-mode \
+        --pbkdf-memory=2097152 \
+        --pbkdf-parallel=8  \
+        --cipher=aes-xts-plain64 \
+        --reduce-device-size 32M \
+        "${DEST_DISK}${suffix}${swap_partition}" \
+        $luks_key
     
     check_return_value $? "Failed to luks format swap partition"
 
@@ -803,6 +920,28 @@ enable_luks(){
     check_return_value $? "Failed to mkswap"
 
     ### setup swap luks completed
+
+    ### Setup persistent partition
+    cryptsetup luksFormat  \
+        --batch-mode \
+        --pbkdf-memory=2097152 \
+        --pbkdf-parallel=8  \
+        --cipher=aes-xts-plain64 \
+        --reduce-device-size 32M \
+        "${DEST_DISK}${suffix}${persistent_partition}" \
+        $luks_key
+
+    check_return_value $? "Failed to luks format persistent partition"
+
+    cryptsetup luksOpen "${DEST_DISK}${suffix}${persistent_partition}" persistent_crypt --key-file=$luks_key
+    check_return_value $? "Failed to luks open persistent partition"
+
+    mkfs.ext4 -F /dev/mapper/persistent_crypt
+    check_return_value $? "Failed to make mkfs ext4 on persistent"
+
+    
+
+    ### Setup persistent partition completed
 
     # mounts needed to make the chroot work
     mount /dev/mapper/rootfs_crypt /mnt
@@ -907,7 +1046,9 @@ enable_luks(){
     fi
 
     #TODO fix this as part of the deployment yaml
-    #sed -i 's/console=tty1 console=ttyS0/console=ttyS0,115200/' /boot/grub/grub.cfg
+    sed -i 's/console=tty1 console=ttyS0/console=ttyS0,115200/' /boot/grub/grub.cfg
+
+    systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target systemd-logind
     
 EOT
 
@@ -917,7 +1058,7 @@ EOT
     mount_points=($(grep -i "/mnt"  /proc/mounts | awk '{print $2}' | sort -nr))
     for mounted_dir in ${mount_points[@]};
     do
-	umount $mounted_dir
+        umount $mounted_dir
     done
     # umount /mnt/sys
     # umount /mnt/proc      
@@ -928,24 +1069,22 @@ EOT
     # umount /mnt
 }
 
-
-
-
-
-
 #####################################################################################
 main() {
 
     get_dest_disk
     set_correct_partition
 
+    mininum_lvm_requested
+    minimum_rootfs_requested
+
     is_single_hdd
 
     if [ $single_hdd -eq 0 ];
     then
-	make_partition_single_hdd
+        make_partition_single_hdd
     else
-	make_partition
+        make_partition
     fi
 
     save_rootfs_on_ram

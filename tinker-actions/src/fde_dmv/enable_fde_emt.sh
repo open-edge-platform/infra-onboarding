@@ -16,7 +16,7 @@ TEST_ENABLE_DM_ON_ROOTFSB=false
 TEST_ON_ONLY_ONE_PART=false
 
 # Get the user provided lvm disk size number
-MINIMUM_LVM_SIZE=0
+#MINIMUM_LVM_SIZE=0
 
 ####
 ####
@@ -108,6 +108,25 @@ check_return_value() {
     then
 	echo "$2"
 	exit 1
+    fi
+}
+
+#####################################################################################
+mininum_lvm_requested() {
+
+    echo "MINIMUM_LVM_SIZE $MINIMUM_LVM_SIZE"
+    if [ -z "${MINIMUM_LVM_SIZE+x}" ] || [ "$MINIMUM_LVM_SIZE" -lt 0 ];
+    then
+        #default minimum lvm size is 0
+        export lvm_disk_size=0
+        echo "MINIMUM_LVM_SIZE set to 0"
+    else
+        if ! [[ "$MINIMUM_LVM_SIZE" =~ ^[0-9]+$ ]]; then
+            echo "MINIMUM_LVM_SIZE must be a positive integer."
+            exit 1
+        fi
+        echo "MINIMUM_LVM_SIZE is set to $MINIMUM_LVM_SIZE"
+        export lvm_disk_size=$MINIMUM_LVM_SIZE
     fi
 }
 
@@ -917,12 +936,7 @@ emt_main() {
 
     is_single_hdd
 
-    if [ "$MINIMUM_LVM_SIZE" != 0 ];
-    then
-        lvm_disk_size=$MINIMUM_LVM_SIZE
-    else
-        lvm_disk_size=0
-    fi
+    mininum_lvm_requested
 
     make_partition
 
