@@ -6,14 +6,14 @@
 
 module img2disk
 
-go 1.24.1
+go 1.24.6
 
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/klauspost/compress v1.18.0
 	github.com/lmittmann/tint v1.0.7
 	github.com/mattn/go-isatty v0.0.20
-	github.com/ulikunitz/xz v0.5.12
+	github.com/ulikunitz/xz v0.5.15
 	golang.org/x/sys v0.31.0
 )
 
