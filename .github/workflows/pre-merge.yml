@@ -9,6 +9,7 @@ on:
     branches:
       - main
       - release-*
+  workflow_dispatch:
 
 env:
   MARKDOWNLINT_CLI_VER: 0.44.0
