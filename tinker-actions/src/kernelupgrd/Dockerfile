@@ -3,7 +3,7 @@
 
 FROM alpine:3.21.3
 
-RUN apk update && apk --no-cache add lsblk sgdisk parted e2fsprogs-extra cloud-utils-growpart util-linux eudev 
+RUN apk update && apk --no-cache add lsblk sgdisk parted e2fsprogs-extra cloud-utils-growpart util-linux eudev lvm2 bc
 
 
 COPY kernel_upgrade.sh /
