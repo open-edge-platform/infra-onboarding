@@ -159,8 +159,19 @@ else
         #one partition for OS, Other partition for LVM
         if [ "$count" -eq 1 ]; then
                 echo "Single Disk"
+                lvm_size=$LVM_SIZE
+
+                total_disk_size=$(parted -m "/dev/$os_disk" unit GB print | grep "^/dev" | cut -d: -f2 | sed 's/GB//')
+                
+                if [ "$lvm_size" -ge "$total_disk_size" ]; then
+                  echo "$lvm_size is more than the disk size,please check"
+                  exit 1
+                else
+                  total_size_disk=$(( total_disk_size - lvm_size ))
+                fi
+                
                 NEW_PARTITION_SIZE="100%"
-                RESIZE_SIZE="100GB"
+                RESIZE_SIZE="${total_size_disk}G"
                 sgdisk -e "/dev/${os_disk}"
                 echo yes | parted ---pretend-input-tty "/dev/${os_disk}"  resizepart "${part_number}" "$RESIZE_SIZE"
                 partprobe "/dev/${os_disk}" 
