@@ -17,7 +17,7 @@ TEST_ENABLE_DM_ON_ROOTFSB=false
 TEST_ON_ONLY_ONE_PART=false
 
 # Get the user provided lvm disk size number
-MINIMUM_LVM_SIZE=0
+MINIMUM_LVM_SIZE=$LVM_SIZE
 
 # Set PARTITION_MODE to either standard or small
 #PARTITIONING_SCHEME="standard" # Default
@@ -215,8 +215,8 @@ make_partition() {
 	    then
                 echo "$min_lvm_size is more than the disk size,please check"
             fi
-	fi
-	total_size_disk=$(( 100 * 1024 ))
+	fi	
+	total_size_disk=$(( total_size_disk - min_lvm_size ))
     fi
     echo "total_size_disk(fixed) ${total_size_disk}"
 
