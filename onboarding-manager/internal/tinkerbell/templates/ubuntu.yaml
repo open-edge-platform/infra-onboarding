@@ -152,6 +152,8 @@ tasks:
       - name: "fde-encryption"
         image: {{ .TinkerActionImageFdeDmv }}
         timeout: 560
+        environment:
+          LVM_SIZE: {{ .DeviceInfoLVMSize }}
 {{- end }}
       - name: "kernel-upgrade"
         image: {{ .TinkerActionImageKernelUpgrade }}
