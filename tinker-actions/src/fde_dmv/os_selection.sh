@@ -20,7 +20,7 @@ get_partition_suffix() {
 run_enable_fde()
 {
     disk_device=""
-
+	export LVM_SIZE=$LVM_SIZE
     list_block_devices=($(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*/ {if ($3 !="0B" && $4 ==0)  {print $1}}'))
     for block_dev in ${list_block_devices[@]};
     do
