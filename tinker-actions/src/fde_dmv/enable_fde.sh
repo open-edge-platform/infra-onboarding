@@ -374,6 +374,11 @@ make_partition_single_hdd() {
 
     #####
     lvm_start=$(( $actual_disk_size - $lvm_size))
+    if [[ $lvm_start -lt 0 ]]
+    then
+        # If invalid lvm size is passed make it 20GB
+        lvm_start=$(( $actual_disk_size - 20))
+    fi
     persistent_start=$(( $total_size_disk))
 
     reserved_start=$(( $total_size_disk - $reserved_size ))
@@ -1046,10 +1051,8 @@ enable_luks(){
     fi
 
     #TODO fix this as part of the deployment yaml
-    sed -i 's/console=tty1 console=ttyS0/console=ttyS0,115200/' /boot/grub/grub.cfg
+    #sed -i 's/console=tty1 console=ttyS0/console=ttyS0,115200/' /boot/grub/grub.cfg
 
-    systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target systemd-logind
-    
 EOT
 
 
