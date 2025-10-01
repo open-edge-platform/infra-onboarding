@@ -65,6 +65,91 @@ print_error_on_console() {
 
 trap 'print_error_on_console ${LINENO}' ERR
 
+install_lms_rpc(){
+    if grep -q "install_lms_rpc done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_lms_rpc"
+    else
+        # Download, build and install LMS
+        LMS_VERSION="2506.0.0.0"
+        expected_checksum="bfdcbfb6b2a739321998a0772767c1532ede70f4bd38cdbe48488b59d118a086"
+
+        curl -fsSL --connect-timeout 30 --max-time 300 \
+        "https://github.com/intel/lms/archive/refs/tags/v${LMS_VERSION}.tar.gz" \
+        -o "v${LMS_VERSION}.tar.gz"
+
+        if [ -f "v${LMS_VERSION}.tar.gz" ]; then
+            actual_checksum=$(sha256sum "v${LMS_VERSION}.tar.gz" | awk '{print $1}')
+            if [ "$actual_checksum" != "$expected_checksum" ]; then
+                echo "ERROR: Checksum mismatch. Expected: $expected_checksum, Got: $actual_checksum"
+                rm -f "v${LMS_VERSION}.tar.gz"
+                exit 1
+            fi
+            echo "Checksum verification successful."
+            
+            tar -xzf "v${LMS_VERSION}.tar.gz"
+            rm -f "v${LMS_VERSION}.tar.gz"
+            cd "lms-${LMS_VERSION}" || exit 1
+            
+            export LMS_ROOT="$PWD"
+            mkdir -p build && cd build || exit 1
+            
+            cmake -Wno-dev -DBUILD_SHARED_LIBS=OFF -DNETWORK_NM=OFF \
+                -DNETWORK_CN=OFF -DCMAKE_INSTALL_PREFIX=/usr "$LMS_ROOT"
+            
+            if ! make -j"$(($(nproc) / 2))"; then
+                echo "ERROR: LMS build failed"
+                exit 1
+            fi
+            
+            # Create package without sudo, then install with sudo
+            if ! make package; then
+                echo "ERROR: LMS package creation failed"
+                exit 1
+            fi
+            
+            if [ -f "./lms-2506.0.0-Linux.deb" ]; then
+                echo "LMS package built successfully"
+                if sudo apt-get install -y -o Dpkg::Options::="--force-confnew" "./lms-2506.0.0-Linux.deb"; then
+                echo "LMS package installed successfully"
+                sudo systemctl stop lms.service
+                sudo systemctl disable lms.service
+                sudo systemctl mask lms.service
+                rm -f "lms-2506.0.0-Linux.deb"
+                else
+                echo "WARNING: Failed to install LMS package. Platform manageability features may not work properly."
+                echo "Continuing with installation..."
+                fi
+            else
+                echo "ERROR: LMS package not found. Build failed."
+                exit 1
+            fi
+        else
+            echo "ERROR: Failed to download LMS source. Aborting installation."
+            exit 1
+        fi
+
+        #Download RPC binary
+        echo "Download RPC binary"
+        expected_checksum="609b3a69f6534005ca0bf62b12b04c1d18cbc28decc6cf2d5d03d0bc521d9de8"
+        curl -LO "https://github.com/device-management-toolkit/rpc-go/releases/download/v2.48.2/rpc_linux_x64.tar.gz"
+
+        if [ -f "rpc_linux_x64.tar.gz" ]; then
+            actual_checksum=$(sha256sum "rpc_linux_x64.tar.gz" | awk '{print $1}')
+            if [ "$actual_checksum" != "$expected_checksum" ]; then
+                echo "Checksum mismatch. File may be corrupted."
+            fi
+            echo "Checksum verification successful."
+            tar -xvf rpc_linux_x64.tar.gz -C /usr/bin
+            rm -rf rpc_linux_x64.tar.gz
+            mv /usr/bin/rpc_linux_x64 /usr/bin/rpc
+        else
+            echo "Downloaded file does not exist. Aborting installation."
+            exit 1
+        fi
+        echo "install_lms_rpc done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
+}
+
 get_rs_token() {
     if [ "$RS_TYPE" == "auth" ]; then
         # Temp file to store response
@@ -176,6 +261,18 @@ install_node_agent(){
             # Add the etcd if it doesn't exist
             useradd -r -c "etcd user" -s /sbin/nologin -M "$USERNAME" -U
             echo "User '$USERNAME' added successfully."
+        fi
+
+        
+        if [ -s "/opt/edge-node/node/platform_manageability_agent.sh" ]; then
+            source /opt/edge-node/node/platform_manageability_agent.sh
+        else
+            echo "/opt/edge-node/node/platform_manageability_agent.sh file does not exists"
+            exit 1
+        fi
+        if [ "$VPRO_ENABLE" = "true" ]; then
+            sed -i '/serviceClients:/ s/platform-manageability-agent, *//; /serviceClients:/ s/, *platform-manageability-agent//; /serviceClients:/ s/platform-manageability-agent//' /etc/edge-node/node/confs/node-agent.yaml
+
         fi
 
         echo "node-agent node-agent/onboarding.serviceURL string ${HW_INVENTORY_URL}" | debconf-set-selections
@@ -320,86 +417,7 @@ install_other_agents() {
       echo "platform-update-agent platform-update-agent/enaDebURL string ${CADDY_APT_PROXY_URL}" | debconf-set-selections
       echo "platform-update-agent platform-update-agent/updateServiceURL string ${UPDATE_SERVICE_URL}" | debconf-set-selections
       echo "telemetry-agent telemetry-agent/telemetrymanager.serviceURL string ${TELEMETRY_MANAGER_URL}" | debconf-set-selections
-      echo "platform-manageability-agent platform-manageability-agent/manageability.serviceURL string ${PLATFORM_MANAGEABILITY_URL}" | debconf-set-selections
-      echo "platform-manageability-agent platform-manageability-agent/rpsAddress string ${RPS_ADDRESS}" | debconf-set-selections
-      
-      # Download, build and install LMS
-      LMS_VERSION="2506.0.0.0"
-      expected_checksum="bfdcbfb6b2a739321998a0772767c1532ede70f4bd38cdbe48488b59d118a086"
 
-      curl -fsSL --connect-timeout 30 --max-time 300 \
-      "https://github.com/intel/lms/archive/refs/tags/v${LMS_VERSION}.tar.gz" \
-      -o "v${LMS_VERSION}.tar.gz"
-
-      if [ -f "v${LMS_VERSION}.tar.gz" ]; then
-        actual_checksum=$(sha256sum "v${LMS_VERSION}.tar.gz" | awk '{print $1}')
-        if [ "$actual_checksum" != "$expected_checksum" ]; then
-            echo "ERROR: Checksum mismatch. Expected: $expected_checksum, Got: $actual_checksum"
-            rm -f "v${LMS_VERSION}.tar.gz"
-            exit 1
-        fi
-        echo "Checksum verification successful."
-        
-        tar -xzf "v${LMS_VERSION}.tar.gz"
-        rm -f "v${LMS_VERSION}.tar.gz"
-        cd "lms-${LMS_VERSION}" || exit 1
-        
-        export LMS_ROOT="$PWD"
-        mkdir -p build && cd build || exit 1
-        
-        cmake -Wno-dev -DBUILD_SHARED_LIBS=OFF -DNETWORK_NM=OFF \
-            -DNETWORK_CN=OFF -DCMAKE_INSTALL_PREFIX=/usr "$LMS_ROOT"
-        
-        if ! make -j"$(($(nproc) / 2))"; then
-            echo "ERROR: LMS build failed"
-            exit 1
-        fi
-        
-        # Create package without sudo, then install with sudo
-        if ! make package; then
-            echo "ERROR: LMS package creation failed"
-            exit 1
-        fi
-        
-        if [ -f "./lms-2506.0.0-Linux.deb" ]; then
-            echo "LMS package built successfully"
-            if sudo apt-get install -y -o Dpkg::Options::="--force-confnew" "./lms-2506.0.0-Linux.deb"; then
-            echo "LMS package installed successfully"
-            sudo systemctl stop lms.service
-            sudo systemctl disable lms.service
-            sudo systemctl mask lms.service
-            rm -f "lms-2506.0.0-Linux.deb"
-            else
-            echo "WARNING: Failed to install LMS package. Platform manageability features may not work properly."
-            echo "Continuing with installation..."
-            fi
-        else
-            echo "ERROR: LMS package not found. Build failed."
-            exit 1
-        fi
-      else
-        echo "ERROR: Failed to download LMS source. Aborting installation."
-        exit 1
-      fi
-
-      #Download RPC binary
-      echo "Download RPC binary"
-      expected_checksum="609b3a69f6534005ca0bf62b12b04c1d18cbc28decc6cf2d5d03d0bc521d9de8"
-      curl -LO "https://github.com/device-management-toolkit/rpc-go/releases/download/v2.48.2/rpc_linux_x64.tar.gz"
-
-      if [ -f "rpc_linux_x64.tar.gz" ]; then
-        actual_checksum=$(sha256sum "rpc_linux_x64.tar.gz" | awk '{print $1}')
-        if [ "$actual_checksum" != "$expected_checksum" ]; then
-            echo "Checksum mismatch. File may be corrupted."
-        fi
-        echo "Checksum verification successful."
-        tar -xvf rpc_linux_x64.tar.gz -C /usr/bin
-        rm -rf rpc_linux_x64.tar.gz
-        mv /usr/bin/rpc_linux_x64 /usr/bin/rpc
-      else
-          echo "Downloaded file does not exist. Aborting installation."
-          exit 1
-      fi
       apt-get update
       apt-get install -y -o Dpkg::Options::="--force-confnew" \
         cluster-agent="$CLUSTER_AGENT_VERSION" \
@@ -415,8 +433,12 @@ install_other_agents() {
         tpm-provision="$TPM_PROVISION_VERSION" \
         inbc-program="$INBC_PROGRAM_VERSION" \
         platform-update-agent="$PLATFORM_UPDATE_AGENT_VERSION" \
-        platform-telemetry-agent="$PLATFORM_TELEMETRY_AGENT_VERSION" \
-        platform-manageability-agent="$PLATFORM_MANAGEABILITY_AGENT_VERSION"
+        platform-telemetry-agent="$PLATFORM_TELEMETRY_AGENT_VERSION"
+        if [ "$VPRO_ENABLE" = "true" ]; then
+          echo "platform-manageability-agent platform-manageability-agent/manageability.serviceURL string ${PLATFORM_MANAGEABILITY_URL}" | debconf-set-selections
+          echo "platform-manageability-agent platform-manageability-agent/rpsAddress string ${RPS_ADDRESS}" | debconf-set-selections
+          apt-get install -y -o Dpkg::Options::="--force-confnew" platform-manageability-agent="$PLATFORM_MANAGEABILITY_AGENT_VERSION"
+        fi        
 
       # Remove docker. trtl and inbm-telemetry checks from INBM configuration file
       remove_lines_from_sotaSW /etc/intel_manageability.conf docker trtl inbm-telemetry
@@ -556,6 +578,7 @@ install_dependencies 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 enable_kernel_config 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_syslogrotate_job 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 echo "Install agents..........................."
+install_lms_rpc 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_node_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_other_agents 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_syslogrotate_ufw 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
