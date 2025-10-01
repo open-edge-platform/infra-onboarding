@@ -263,18 +263,6 @@ install_node_agent(){
             echo "User '$USERNAME' added successfully."
         fi
 
-        
-        if [ -s "/opt/edge-node/node/platform_manageability_agent.sh" ]; then
-            source /opt/edge-node/node/platform_manageability_agent.sh
-        else
-            echo "/opt/edge-node/node/platform_manageability_agent.sh file does not exists"
-            exit 1
-        fi
-        if [ "$VPRO_ENABLE" = "true" ]; then
-            sed -i '/serviceClients:/ s/platform-manageability-agent, *//; /serviceClients:/ s/, *platform-manageability-agent//; /serviceClients:/ s/platform-manageability-agent//' /etc/edge-node/node/confs/node-agent.yaml
-
-        fi
-
         echo "node-agent node-agent/onboarding.serviceURL string ${HW_INVENTORY_URL}" | debconf-set-selections
         echo "node-agent node-agent/auth.accessTokenURL string ${NODE_ACCESS_URL}" | debconf-set-selections
         echo "node-agent node-agent/auth.rsTokenURL string ${NODE_RS_URL}" | debconf-set-selections
@@ -402,11 +390,8 @@ remove_lines_from_sotaSW() {
 
 install_other_agents() {
   if grep -q "install_other_agents done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-  		echo "Skipping install_other_agents"
+  	  echo "Skipping install_other_agents"
   else
-      # Get authentication token
-      RS_AT=$(get_rs_token)
-
       echo "Install bare-metal agents..."
       echo "cluster-agent cluster-agent/cluster-orchestrator-url string ${CLUSTER_ORCH_URL}" | debconf-set-selections
       echo "hardware-discovery-agent hardware-discovery-agent/onboarding.serviceURL string ${HW_INVENTORY_URL}" | debconf-set-selections
@@ -434,10 +419,14 @@ install_other_agents() {
         inbc-program="$INBC_PROGRAM_VERSION" \
         platform-update-agent="$PLATFORM_UPDATE_AGENT_VERSION" \
         platform-telemetry-agent="$PLATFORM_TELEMETRY_AGENT_VERSION"
-        if [ "$VPRO_ENABLE" = "true" ]; then
+
+        if [ "$PMA_ENABLE" = "true" ]; then
           echo "platform-manageability-agent platform-manageability-agent/manageability.serviceURL string ${PLATFORM_MANAGEABILITY_URL}" | debconf-set-selections
           echo "platform-manageability-agent platform-manageability-agent/rpsAddress string ${RPS_ADDRESS}" | debconf-set-selections
           apt-get install -y -o Dpkg::Options::="--force-confnew" platform-manageability-agent="$PLATFORM_MANAGEABILITY_AGENT_VERSION"
+        else
+          sed -i '/serviceClients:/ s/platform-manageability-agent, *//; /serviceClients:/ s/, *platform-manageability-agent//; /serviceClients:/ s/platform-manageability-agent//' /etc/edge-node/node/confs/node-agent.yaml
+          systemctl restart node-agent
         fi        
 
       # Remove docker. trtl and inbm-telemetry checks from INBM configuration file
