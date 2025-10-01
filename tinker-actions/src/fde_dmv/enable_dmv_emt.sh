@@ -107,6 +107,25 @@ check_return_value() {
 }
 
 #####################################################################################
+mininum_lvm_requested() {
+
+    echo "MINIMUM_LVM_SIZE $MINIMUM_LVM_SIZE"
+    if [ -z "${MINIMUM_LVM_SIZE+x}" ] || [ "$MINIMUM_LVM_SIZE" -lt 0 ];
+    then
+        #default minimum lvm size is 0
+        export lvm_disk_size=0
+        echo "MINIMUM_LVM_SIZE set to 0"
+    else
+        if ! [[ "$MINIMUM_LVM_SIZE" =~ ^[0-9]+$ ]]; then
+            echo "MINIMUM_LVM_SIZE must be a positive integer."
+            exit 1
+        fi
+        echo "MINIMUM_LVM_SIZE is set to $MINIMUM_LVM_SIZE"
+        export lvm_disk_size=$MINIMUM_LVM_SIZE
+    fi
+}
+
+#####################################################################################
 get_dest_disk()
 {
     disk_device=""
@@ -908,12 +927,7 @@ emt_main_dmv() {
 
     partitioning_scheme
 
-    if [ "$MINIMUM_LVM_SIZE" != 0 ];
-    then
-        lvm_disk_size=$MINIMUM_LVM_SIZE
-    else
-        lvm_disk_size=0
-    fi
+    mininum_lvm_requested
 
     if [ "$ven_mode_active" = true ];
     then
