@@ -420,6 +420,8 @@ install_other_agents() {
         platform-update-agent="$PLATFORM_UPDATE_AGENT_VERSION" \
         platform-telemetry-agent="$PLATFORM_TELEMETRY_AGENT_VERSION"
 
+        PMA_ENABLE=$(bash /opt/edge-node/node/check_vpro_ism_capable.sh)
+
         if [ "$PMA_ENABLE" = "true" ]; then
           echo "platform-manageability-agent platform-manageability-agent/manageability.serviceURL string ${PLATFORM_MANAGEABILITY_URL}" | debconf-set-selections
           echo "platform-manageability-agent platform-manageability-agent/rpsAddress string ${RPS_ADDRESS}" | debconf-set-selections
