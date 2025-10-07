@@ -47,6 +47,7 @@ type InfraConfig struct {
 	RegistryURL             string `mapstructure:"orchRegistry"`
 	FileServerURL           string `mapstructure:"orchFileServer"`
 	RSType                  string `mapstructure:"rsType"`
+	MaxAgentMemory          string `mapstructure:"maxAgentMemory"`
 
 	ProvisioningService string `mapstructure:"provisioningSvc"`
 	// ProvisioningServerURL full URL to the provisioning server, including prefixes and subpaths

@@ -418,6 +418,13 @@ install_other_agents() {
         platform-telemetry-agent="$PLATFORM_TELEMETRY_AGENT_VERSION" \
         platform-manageability-agent="$PLATFORM_MANAGEABILITY_AGENT_VERSION"
 
+      # Update maximum allowed memory for agents if provided
+      if [ -n "$MAX_AGENT_MEMORY" ]; then
+        systemctl stop platform-observability-health-check.service
+        sed -i "s/MemoryMax=.*/MemoryMax=$MAX_AGENT_MEMORY/g" /lib/systemd/system/platform-observability-health-check.service
+        systemctl start platform-observability-health-check.service
+      fi
+
       # Remove docker. trtl and inbm-telemetry checks from INBM configuration file
       remove_lines_from_sotaSW /etc/intel_manageability.conf docker trtl inbm-telemetry
       echo "install_other_agents done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME

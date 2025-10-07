@@ -161,6 +161,7 @@ func GetCommonInfraTemplateVariables(infraConfig config.InfraConfig, osType osv1
 		"ORCH_PLATFORM_MANAGEABILITY_HOST": strings.Split(infraConfig.ManageabilityURL, ":")[0],
 		"ORCH_PLATFORM_MANAGEABILITY_PORT": strings.Split(infraConfig.ManageabilityURL, ":")[1],
 		"RPS_ADDRESS":                      strings.Split(infraConfig.RPSAddress, ":")[0],
+		"MAX_AGENT_MEMORY":                 infraConfig.MaxAgentMemory,
 
 		"EN_HTTP_PROXY":  infraConfig.ENProxyHTTP,
 		"EN_HTTPS_PROXY": infraConfig.ENProxyHTTPS,
