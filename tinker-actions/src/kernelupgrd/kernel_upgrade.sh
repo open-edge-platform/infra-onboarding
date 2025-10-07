@@ -16,10 +16,10 @@ swap_part=3
 
 # Sync file system
 function sync_file_system(){
-rootfs_part=$1
+block_disk_part=$1
 # Check if the partition available 
 count=0
-while [ ! -b "$rootfs_part" ]; do
+while [ ! -b "$block_disk_part" ]; do
     sleep 1
     count=$((count+1))
     if [ "$count" -ge 15 ]; then
@@ -220,7 +220,7 @@ disk_size=$2
 disk="/dev/$os_disk"
 
 #get the number of devices attached to system ignoreing USB/Virtual/Removabale disks
-blk_devices=$(lsblk -dn -o NAME,TYPE,SIZE,TRAN | awk '$2 == "disk" && $4 ~ /^(sata|nvme)$/ && $3 != "0B" {print $1}')
+blk_devices=$(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*/ {if ($3 !="0B" && $4 ==0)  {print $1}}')
 set -- $blk_devices
 blk_disk_count=$#
 final_disk_list=""
@@ -266,15 +266,17 @@ lvm_size=$LVM_SIZE
 if [ "$blk_disk_count" -eq 1 ]; then
     disk_size_in_use=$((rootfs_size + swap_size + lvm_size))
     data_persistent=$(echo "$disk_size" - "$disk_size_in_use" | bc)
+    data_persistent_end_size=$(echo "$rootfs_size" + "$data_persistent" | bc )
 else
     disk_size_in_use=$((rootfs_size + swap_size))
     data_persistent=$(echo "$disk_size" - "$disk_size_in_use" | bc)
+    data_persistent_end_size=$(echo "$rootfs_size" + "$data_persistent" | bc )
 fi
 
 parted ---pretend-input-tty "${disk}" \
     resizepart "${rootfs_part_number}" "${rootfs_size}GB" \
-    mkpart primary ext4 "${rootfs_size}GB" "${data_persistent}GB" \
-    mkpart primary linux-swap "${data_persistent}GB" "$((swap_size + data_persistent))GB"
+    mkpart primary ext4 "${rootfs_size}GB" "${data_persistent_end_size}GB" \
+    mkpart primary linux-swap "${data_persistent_end_size}GB" "$((swap_size + data_persistent_end_size))GB"
 
 if [ "$?" -eq 0 ]; then
     echo "Successfully created the Ubuntu partitions"
@@ -299,8 +301,9 @@ else
     exit 1
 fi
 partprobe "${disk}"
-
+sleep 3
 # Creating the data-persistent volume and enabling the swap partition
+sync_file_system "${disk}${part_number}${data_persistent_part}"
 mkfs -t ext4 -L data_persistent -F "${disk}${part_number}${data_persistent_part}"
 mkswap "${disk}${part_number}${swap_part}"
 swapon "${disk}${part_number}${swap_part}"
@@ -339,7 +342,7 @@ fi
 rm -rf /mnt1
 
 ### Create LVM partitions based Single && Multiple disks
-if [ "$blk_disk_count" -eq 1 ]; then
+if [ "$blk_disk_count" -eq 1 ] && [ "$lvm_size" -ge 1 ]; then
     swap_partition_size_end=$(parted -ms $disk  print | tail -n 1 | awk -F: '{print $3}' | sed 's/[^0-9]*//g')
     parted "${disk}" --script mkpart primary ext4 "${swap_partition_size_end}GB" "$((lvm_size + swap_partition_size_end))GB"
     parted --script "${disk}" set 4 lvm on
@@ -348,11 +351,10 @@ if [ "$blk_disk_count" -eq 1 ]; then
     create_lvm_partition "${blk_disk_count}" "${disk}"
 
 #if more than 1 disk ditected then create the LVM partition on secondary disks
-else
+elif [ "$blk_disk_count" -ge 2 ]; then
     echo "found more than 1 disk for LVM creation"
     create_lvm_partition  "${blk_disk_count}" "${final_disk_list}"
 fi
-
 }
 
 ####@main#################
