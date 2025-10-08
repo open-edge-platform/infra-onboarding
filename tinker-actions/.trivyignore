@@ -18,3 +18,6 @@ CVE-2025-0624
 CVE-2025-0678
 CVE-2025-0689
 CVE-2025-1125
+# Ignore the below CVEs FDE-DMV tinker action
+CVE-2025-32988 # gnutls: Vulnerability in GnuTLS otherName SAN export
+CVE-2025-32990 # gnutls: Vulnerability in GnuTLS certtool template parsing
