@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends perl-base=5.40.
 RUN apt-get update && apt-get install -y --no-install-recommends parted cryptsetup-bin tpm2-tools xxd
 RUN apt-get update && apt-get install -y --no-install-recommends lvm2 procps
 
-RUN apt-get update && apt-get install -y --no-install-recommends file fdisk
+RUN apt-get update && apt-get install -y --no-install-recommends file fdisk e2fsprogs 
 
 COPY enable_fde.sh /
 COPY enable_fde_emt.sh /
