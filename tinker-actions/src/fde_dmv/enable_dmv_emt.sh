@@ -17,7 +17,7 @@ TEST_ENABLE_DM_ON_ROOTFSB=false
 TEST_ON_ONLY_ONE_PART=false
 
 # Get the user provided lvm disk size number
-MINIMUM_LVM_SIZE=0
+#LVM_SIZE=0
 
 # Set PARTITION_MODE to either standard or small
 #PARTITIONING_SCHEME="standard" # Default
@@ -79,7 +79,7 @@ fix_partition_suffix() {
     ret=$(grep -i "nvme" <<< "$DEST_DISK")
     if [ $? == 0 ]
     then
-	part_variable="p"
+        part_variable="p"
     fi
 
     echo $part_variable
@@ -91,7 +91,7 @@ get_partition_suffix() {
     ret=$(grep -i "nvme" <<< "$1")
     if [ $? == 0 ]
     then
-	part_variable="p"
+        part_variable="p"
     fi
 
     echo $part_variable
@@ -101,27 +101,27 @@ get_partition_suffix() {
 check_return_value() {
     if [ $1 -ne 0 ]
     then
-	echo "$2"
-	exit 1
+        echo "$2"
+        exit 1
     fi
 }
 
 #####################################################################################
 mininum_lvm_requested() {
 
-    echo "MINIMUM_LVM_SIZE $MINIMUM_LVM_SIZE"
-    if [ -z "${MINIMUM_LVM_SIZE+x}" ] || [ "$MINIMUM_LVM_SIZE" -lt 0 ];
+    echo "LVM_SIZE $LVM_SIZE"
+    if [ -z "${LVM_SIZE+x}" ] || [ "$LVM_SIZE" -lt 0 ];
     then
         #default minimum lvm size is 0
-        export lvm_disk_size=0
-        echo "MINIMUM_LVM_SIZE set to 0"
+        export lvm_disk_size=20
+        echo "LVM_SIZE set to 0"
     else
-        if ! [[ "$MINIMUM_LVM_SIZE" =~ ^[0-9]+$ ]]; then
-            echo "MINIMUM_LVM_SIZE must be a positive integer."
+        if ! [[ "$LVM_SIZE" =~ ^[0-9]+$ ]]; then
+            echo "LVM_SIZE must be a positive integer."
             exit 1
         fi
-        echo "MINIMUM_LVM_SIZE is set to $MINIMUM_LVM_SIZE"
-        export lvm_disk_size=$MINIMUM_LVM_SIZE
+        echo "LVM_SIZE is set to $LVM_SIZE"
+        export lvm_disk_size=$LVM_SIZE
     fi
 }
 
@@ -133,23 +133,23 @@ get_dest_disk()
     list_block_devices=($(lsblk -o NAME,TYPE,SIZE,RM | grep -i disk | awk '$1 ~ /sd*|nvme*/ {if ($3 !="0B" && $4 ==0)  {print $1}}'))
     for block_dev in ${list_block_devices[@]};
     do
-	#if there were any problems when the ubuntu was streamed.
-	printf 'OK\n'  | parted ---pretend-input-tty -m  "/dev/$block_dev" p
-	printf 'Fix\n' | parted ---pretend-input-tty -m  "/dev/$block_dev" p
+        #if there were any problems when the ubuntu was streamed.
+        printf 'OK\n'  | parted ---pretend-input-tty -m  "/dev/$block_dev" p
+        printf 'Fix\n' | parted ---pretend-input-tty -m  "/dev/$block_dev" p
 
-	parted "/dev/$block_dev" p | grep -i boot
-	if [ $? -ne 0 ];
-	then
-	   continue
-	fi
+        parted "/dev/$block_dev" p | grep -i boot
+        if [ $? -ne 0 ];
+        then
+           continue
+        fi
 
-	disk_device="/dev/$block_dev"
+        disk_device="/dev/$block_dev"
     done
 
     if [[ -z $disk_device ]];
     then
-	echo "Failed to get the disk device: Most likely no OS was installed"
-	exit 1
+        echo "Failed to get the disk device: Most likely no OS was installed"
+        exit 1
     fi
 
     export DEST_DISK=$disk_device
@@ -169,15 +169,15 @@ is_single_hdd() {
 
     if [ $count -eq 0 ];
     then
-	echo "No valid block devices found."
-	exit 1
+        echo "No valid block devices found."
+        exit 1
     fi
 
     if [ $count -eq 1 ];
     then
-	# send a 0 if there is only one HDD
-	single_hdd=0
-	echo "Single Disk selected"
+        # send a 0 if there is only one HDD
+        single_hdd=0
+        echo "Single Disk selected"
     fi
 
 }
@@ -205,18 +205,18 @@ make_partition() {
     # limit swap size to 128GB
     if [[ $swap_size -gt 128 ]];
     then
-	swap_size=128
+        swap_size=128
     fi
 
 
     if [ $single_hdd -eq 0 ];
     then
-	#
-	# limit swap size to sqrt of ramsize link https://help.ubuntu.com/community/SwapFaq
-	#
-	# this is to reconcile the requirement where we have a upper limit of 100GB for
-	# all partitions apart from lvm we cant risk exceeding the swap size.
-	swap_size=$(echo "$ram_size" | awk '{printf ("%.0f\n", sqrt($1))}')
+        #
+        # limit swap size to sqrt of ramsize link https://help.ubuntu.com/community/SwapFaq
+        #
+        # this is to reconcile the requirement where we have a upper limit of 100GB for
+        # all partitions apart from lvm we cant risk exceeding the swap size.
+        swap_size=$(echo "$ram_size" | awk '{printf ("%.0f\n", sqrt($1))}')
     fi
 
     swap_size=$(( swap_size * 1024 ))
@@ -227,38 +227,43 @@ make_partition() {
     # For single HDD Size should be total disk - lvm_size in GB provided as input by the User
     if [ $single_hdd -eq 0 ];
     then
-	if [ $lvm_disk_size -ge 1 ];
+        if [ $lvm_disk_size -ge 1 ];
         then
-	    min_lvm_size=$(( lvm_disk_size*1024 ))
+            min_lvm_size=$(( lvm_disk_size * 1024 ))
             if [ "$min_lvm_size" -ge "$total_size_disk" ];
-	    then
+            then
                 echo "$min_lvm_size is more than the disk size,please check"
             fi
-	fi
-	total_size_disk=$(( 100 * 1024 ))
+        fi
+        total_size_disk=$(( total_size_disk - min_lvm_size ))
+        if [[ $total_size_disk -lt 0 ]]
+        then
+            # If invalid lvm size is passed make it 20GB
+            total_size_disk=$(( total_size_disk + min_lvm_size - 20480 ))
+        fi
     fi
     echo "total_size_disk(fixed) ${total_size_disk}"
 
     #####
     if $COMPLETE_DMVERITY;
     then
-	reserved_start=$(( total_size_disk - reserved_size ))
-	swap_start=$(( reserved_start - swap_size ))
+        reserved_start=$(( total_size_disk - reserved_size ))
+        swap_start=$(( reserved_start - swap_size ))
 
-	roothash_start=$(( swap_start - rootfs_roothash_size ))
-	rootfs_b_start=$(( roothash_start - rootfs_size ))
-	root_hashmap_b_start=$(( rootfs_b_start - rootfs_hashmap_size ))
-	root_hashmap_a_start=$(( root_hashmap_b_start - rootfs_hashmap_size ))
+        roothash_start=$(( swap_start - rootfs_roothash_size ))
+        rootfs_b_start=$(( roothash_start - rootfs_size ))
+        root_hashmap_b_start=$(( rootfs_b_start - rootfs_hashmap_size ))
+        root_hashmap_a_start=$(( root_hashmap_b_start - rootfs_hashmap_size ))
 
-	emt_persistent_end=$root_hashmap_a_start
+        emt_persistent_end=$root_hashmap_a_start
     else
-	reserved_start=$(( total_size_disk - reserved_size ))
-	tep_start=$(( reserved_start - tep_size ))
-	swap_start=$(( tep_start - swap_size ))
+        reserved_start=$(( total_size_disk - reserved_size ))
+        tep_start=$(( reserved_start - tep_size ))
+        swap_start=$(( tep_start - swap_size ))
 
-	rootfs_b_start=$(( swap_start - rootfs_size ))
+        rootfs_b_start=$(( swap_start - rootfs_size ))
 
-	emt_persistent_end=$rootfs_b_start
+        emt_persistent_end=$rootfs_b_start
     fi
     #####
 
@@ -290,39 +295,39 @@ make_partition() {
 
     if $COMPLETE_DMVERITY;
     then
-	#this cmd only resizes parition. if there is an error this should handle it.
-	printf 'Fix\n' | parted ---pretend-input-tty ${DEST_DISK} \
-	       resizepart $emt_persistent_partition "$(convert_mb_to_sectors "${emt_persistent_end}" 1)"s
+        #this cmd only resizes parition. if there is an error this should handle it.
+        printf 'Fix\n' | parted ---pretend-input-tty ${DEST_DISK} \
+               resizepart $emt_persistent_partition "$(convert_mb_to_sectors "${emt_persistent_end}" 1)"s
 
-	check_return_value $? "Failed to resize emt persistent paritions"
+        check_return_value $? "Failed to resize emt persistent paritions"
 
-	#this cmd only creates new partitions.
-	parted -s ${DEST_DISK} \
-	       mkpart hashmap_a ext4  "$(convert_mb_to_sectors "${root_hashmap_a_start}" 0)"s "$(convert_mb_to_sectors "${root_hashmap_b_start}" 1)"s \
-	       mkpart hashmap_b ext4  "$(convert_mb_to_sectors "${root_hashmap_b_start}" 0)"s "$(convert_mb_to_sectors "${rootfs_b_start}" 1)"s \
-	       mkpart rootfs_b ext4   "$(convert_mb_to_sectors "${rootfs_b_start}" 0)"s       "$(convert_mb_to_sectors "${roothash_start}" 1)"s \
-	       mkpart roothash ext4   "$(convert_mb_to_sectors "${roothash_start}" 0)"s       "$(convert_mb_to_sectors "${swap_start}" 1)"s \
-	       mkpart swap linux-swap "$(convert_mb_to_sectors "${swap_start}" 0)"s           "$(convert_mb_to_sectors "${reserved_start}" 1)"s \
-	       mkpart reserved ext4   "$(convert_mb_to_sectors "${reserved_start}" 0)"s       "$(convert_mb_to_sectors "${total_size_disk}" 1)"s
+        #this cmd only creates new partitions.
+        parted -s ${DEST_DISK} \
+               mkpart hashmap_a ext4  "$(convert_mb_to_sectors "${root_hashmap_a_start}" 0)"s "$(convert_mb_to_sectors "${root_hashmap_b_start}" 1)"s \
+               mkpart hashmap_b ext4  "$(convert_mb_to_sectors "${root_hashmap_b_start}" 0)"s "$(convert_mb_to_sectors "${rootfs_b_start}" 1)"s \
+               mkpart rootfs_b ext4   "$(convert_mb_to_sectors "${rootfs_b_start}" 0)"s       "$(convert_mb_to_sectors "${roothash_start}" 1)"s \
+               mkpart roothash ext4   "$(convert_mb_to_sectors "${roothash_start}" 0)"s       "$(convert_mb_to_sectors "${swap_start}" 1)"s \
+               mkpart swap linux-swap "$(convert_mb_to_sectors "${swap_start}" 0)"s           "$(convert_mb_to_sectors "${reserved_start}" 1)"s \
+               mkpart reserved ext4   "$(convert_mb_to_sectors "${reserved_start}" 0)"s       "$(convert_mb_to_sectors "${total_size_disk}" 1)"s
 
 
-	check_return_value $? "Failed to create paritions"
+        check_return_value $? "Failed to create paritions"
     else
-	parted -s ${DEST_DISK} \
-	       resizepart $emt_persistent_partition "${emt_persistent_end}MB" \
-	       mkpart rootfs_b ext4 "${rootfs_b_start}MB" "${swap_start}MB" \
-	       mkpart swap linux-swap "${swap_start}MB" "${tep_start}MB" \
-	       mkpart tep ext4 "${tep_start}MB"  "${reserved_start}MB" \
-	       mkpart reserved ext4 "${reserved_start}MB"  "${total_size_disk}MB"
+        parted -s ${DEST_DISK} \
+               resizepart $emt_persistent_partition "${emt_persistent_end}MB" \
+               mkpart rootfs_b ext4 "${rootfs_b_start}MB" "${swap_start}MB" \
+               mkpart swap linux-swap "${swap_start}MB" "${tep_start}MB" \
+               mkpart tep ext4 "${tep_start}MB"  "${reserved_start}MB" \
+               mkpart reserved ext4 "${reserved_start}MB"  "${total_size_disk}MB"
 
-	check_return_value $? "Failed to create paritions"
+        check_return_value $? "Failed to create paritions"
     fi
 
 
     # Create LVM for single_hdd only when user chooses
     if [ $single_hdd -eq 0 ];
     then
-	if [ $lvm_disk_size -ge 1 ];
+        if [ $lvm_disk_size -ge 1 ];
         then
             actual_disk_size=$(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ print int($1 / (1024*1024)) }')
             disk_used_mb=$(lsblk -b -n -o NAME,SIZE "$DEST_DISK" | grep -v "^$(basename $DEST_DISK)" | awk '{s+=$2} END {printf "%.0f", s / 1024 / 1024}')
@@ -330,14 +335,15 @@ make_partition() {
 
             if [ "$min_lvm_size" -ge "$available_disk_space" ];
             then
-		echo "Available LVM size is  ${available_lvm_space}MB only."
+                echo "Available LVM size is  ${available_lvm_space}MB only."
             else
-		echo "Minimum LVM size is available."
+                echo "Minimum LVM size is available."
             fi
+            parted -s ${DEST_DISK} \
+               mkpart lvm ext4 "$(convert_mb_to_sectors "${total_size_disk}" 0)"s 100%
+
+            check_return_value $? "Failed to create lvm parition"
         fi
-	parted -s ${DEST_DISK} \
-	       mkpart lvm ext4 "$(convert_mb_to_sectors "${total_size_disk}" 0)"s 100%
-	check_return_value $? "Failed to create lvm parition"
     fi
 
 
@@ -345,13 +351,13 @@ make_partition() {
 
     if $COMPLETE_DMVERITY;
     then
-	#roothash partition
-	mkfs -t ext4 -L roothash -F "${DEST_DISK}${suffix}${roothash_partition}"
-	check_return_value $? "Failed to mkfs roothash part"
+        #roothash partition
+        mkfs -t ext4 -L roothash -F "${DEST_DISK}${suffix}${roothash_partition}"
+        check_return_value $? "Failed to mkfs roothash part"
 
-	# rootfs for a/B updated
-	mkfs -t ext4 -L root_b -F "${DEST_DISK}${suffix}${rootfs_b_partition}"
-	check_return_value $? "Failed to mkfs rootfs part"
+        # rootfs for a/B updated
+        mkfs -t ext4 -L root_b -F "${DEST_DISK}${suffix}${rootfs_b_partition}"
+        check_return_value $? "Failed to mkfs rootfs part"
     fi
 
     # Save the emt persistent
@@ -364,7 +370,7 @@ make_partition() {
 
     # delete the complete emt persistent partition
     parted -s ${DEST_DISK} \
-	   rm "${emt_persistent_partition}"
+           rm "${emt_persistent_partition}"
 
     #resize rootfs a partition
     rootfs_a_start=$(parted ${DEST_DISK} unit MB print | awk '/^ '$rootfs_partition'/ {gsub(/MB/, "", $2); print $2}')
@@ -374,8 +380,8 @@ make_partition() {
 
     # resize part a
     parted -s ${DEST_DISK} \
-	   resizepart $rootfs_partition "$(convert_mb_to_sectors "${rootfs_a_end}" 1)"s \
-	   mkpart edge_persistent ext4 "$(convert_mb_to_sectors "${rootfs_a_end}" 0)"s "$(convert_mb_to_sectors "${emt_persistent_end}" 1)"s
+           resizepart $rootfs_partition "$(convert_mb_to_sectors "${rootfs_a_end}" 1)"s \
+           mkpart edge_persistent ext4 "$(convert_mb_to_sectors "${rootfs_a_end}" 0)"s "$(convert_mb_to_sectors "${emt_persistent_end}" 1)"s
 
     # restore the copied data from reserved
     #backup using dd
@@ -411,22 +417,22 @@ make_partition_ven() {
     if [ $single_hdd -eq 0 ];
     then
 
-	forty_percent=$((remaining_size * 40 / 100))
+        forty_percent=$((remaining_size * 40 / 100))
         emt_persistent_size=$((forty_percent <= 20480 ? forty_percent : 20480))
         lvm_size=$((remaining_size - emt_persistent_size))
 
-	if [ $lvm_disk_size -ge 1 ];
+        if [ $lvm_disk_size -ge 1 ];
         then
             min_lvm_size=$(( lvm_disk_size*1024 ))
-	    if [ "$min_lvm_size" -ge "$total_size_disk" ];
-	    then
+            if [ "$min_lvm_size" -ge "$total_size_disk" ];
+            then
                 echo "$min_lvm_size is more than the disk size,please check $total_size_disk"
             else
-		if [ "$min_lvm_size" -ge "$lvm_size" ];
-		then
-		    echo "Available LVM size is $lvm_size"
-		else
-		    echo "Requested Minimum LVM size is available."
+                if [ "$min_lvm_size" -ge "$lvm_size" ];
+                then
+                    echo "Available LVM size is $lvm_size"
+                else
+                    echo "Requested Minimum LVM size is available."
                 fi
             fi
         fi
@@ -471,7 +477,7 @@ make_partition_ven() {
     echo "rootfs_b_start       ${rootfs_b_start}MB       roothash_start       ${roothash_start}MB"
     echo "roothash_start       ${roothash_start}MB       swap_start           ${swap_start}MB"
     echo "swap_start           ${swap_start}MB           reserved_start       ${reserved_start}MB"
-    echo "reserved_start       ${reserved_start}MB	 lvm_start	      ${lvm_start}MB"
+    echo "reserved_start       ${reserved_start}MB         lvm_start              ${lvm_start}MB"
     echo "lvm_start            ${lvm_start}MB            lvm_end              ${lvm_end}MB"
     #####
     
@@ -497,15 +503,15 @@ make_partition_ven() {
         mkpart rootfs_b ext4 "$(convert_mb_to_sectors "${rootfs_b_start}" 0)"s "$(convert_mb_to_sectors "${roothash_start}" 1)"s \
         mkpart roothash ext4 "$(convert_mb_to_sectors "${roothash_start}" 0)"s "$(convert_mb_to_sectors "${swap_start}" 1)"s \
         mkpart swap linux-swap "$(convert_mb_to_sectors "${swap_start}" 0)"s "$(convert_mb_to_sectors "${reserved_start}" 1)"s \
-	mkpart reserved ext4  "$(convert_mb_to_sectors "${reserved_start}" 0)"s "$(convert_mb_to_sectors "$((reserved_start + reserved_size))" 1)"s
+        mkpart reserved ext4  "$(convert_mb_to_sectors "${reserved_start}" 0)"s "$(convert_mb_to_sectors "$((reserved_start + reserved_size))" 1)"s
 
     check_return_value $? "Failed to create partitions"
 
     if [ $single_hdd -eq 0 ];
     then
-	parted -s ${DEST_DISK} \
-		mkpart lvm ext4 "$(convert_mb_to_sectors "${lvm_start}" 0)"s 100%
-	check_return_value $? "Failed to create LVM partition"
+        parted -s ${DEST_DISK} \
+                mkpart lvm ext4 "$(convert_mb_to_sectors "${lvm_start}" 0)"s 100%
+        check_return_value $? "Failed to create LVM partition"
     fi
 
     mkfs -t ext4 -L roothash -F "${DEST_DISK}${suffix}${roothash_partition}"
@@ -524,7 +530,7 @@ make_partition_ven() {
 
     # delete the complete emt persistent partition
     parted -s ${DEST_DISK} \
-	   rm "${emt_persistent_partition}"
+           rm "${emt_persistent_partition}"
 
     #resize rootfs a partition
     rootfs_a_start=$(parted ${DEST_DISK} unit MB print | awk '/^ '$rootfs_partition'/ {gsub(/MB/, "", $2); print $2}')
@@ -534,8 +540,8 @@ make_partition_ven() {
 
     # resize part a
     parted -s ${DEST_DISK} \
-	   resizepart $rootfs_partition "$(convert_mb_to_sectors "${rootfs_a_end}" 1)"s \
-	   mkpart edge_persistent ext4 "$(convert_mb_to_sectors "${rootfs_a_end}" 0)"s "$(convert_mb_to_sectors "${emt_persistent_end}" 1)"s
+           resizepart $rootfs_partition "$(convert_mb_to_sectors "${rootfs_a_end}" 1)"s \
+           mkpart edge_persistent ext4 "$(convert_mb_to_sectors "${rootfs_a_end}" 0)"s "$(convert_mb_to_sectors "${emt_persistent_end}" 1)"s
 
     # restore the copied data from reserved
     #backup using dd
@@ -547,16 +553,16 @@ make_partition_ven() {
 
 #####################################################################################
 create_single_hdd_lvmg() {
-    if [ $single_hdd -eq 0 ];
+    if [ $single_hdd -eq 0 ] && [ $lvm_disk_size -gt 0 ];
     then
 
-	dd if=/dev/zero of="${DEST_DISK}${suffix}${singlehdd_lvm_partition}" bs=100MB count=1
-	pvcreate -ff "${DEST_DISK}${suffix}${singlehdd_lvm_partition}"
-	check_return_value $? "Failed to make mkfs ext4 on lvmvg_crypt"
+        dd if=/dev/zero of="${DEST_DISK}${suffix}${singlehdd_lvm_partition}" bs=100MB count=1
+        pvcreate -ff "${DEST_DISK}${suffix}${singlehdd_lvm_partition}"
+        check_return_value $? "Failed to make mkfs ext4 on lvmvg_crypt"
 
-	vgcreate lvmvg "${DEST_DISK}${suffix}${singlehdd_lvm_partition}"
-	check_return_value $? "Failed to create a lvmvg group"
-	echo "vgcreate is completed"
+        vgcreate lvmvg "${DEST_DISK}${suffix}${singlehdd_lvm_partition}"
+        check_return_value $? "Failed to create a lvmvg group"
+        echo "vgcreate is completed"
     fi
 
 }
@@ -578,29 +584,29 @@ block_disk_phy_block_disk() {
 
     for block_dev in ${list_block_devices[@]};
     do
-	grep -i "${DEST_DISK}" <<< "/dev/${block_dev}"
-	if [ $? -eq 0 ]
-	then
-	    continue
-	fi
+        grep -i "${DEST_DISK}" <<< "/dev/${block_dev}"
+        if [ $? -eq 0 ]
+        then
+            continue
+        fi
 
-	# get info if there is a 4kB physical block present
-	parted -s "/dev/${block_dev}" print | grep -i sector | grep -q 4098.$
-	if [ $? -eq 0 ];
-	then
-	    block_size_4k=$(( 1 + block_size_4k ))
-	    disk_4k="$disk_4k /dev/${block_dev}"
-	    export disk_4k
-	fi
+        # get info if there is a 4kB physical block present
+        parted -s "/dev/${block_dev}" print | grep -i sector | grep -q 4098.$
+        if [ $? -eq 0 ];
+        then
+            block_size_4k=$(( 1 + block_size_4k ))
+            disk_4k="$disk_4k /dev/${block_dev}"
+            export disk_4k
+        fi
 
-	parted -s "/dev/${block_dev}" print | grep -i sector | grep -q 512.$
-	if [ $? -eq 0 ];
-	then
-	    block_size_512=$(( 1 + block_size_512 ))
-	    disk_512="$disk_512 /dev/${block_dev}"
-	    export disk_512
-	fi
-	echo "512 $block_size_512"
+        parted -s "/dev/${block_dev}" print | grep -i sector | grep -q 512.$
+        if [ $? -eq 0 ];
+        then
+            block_size_512=$(( 1 + block_size_512 ))
+            disk_512="$disk_512 /dev/${block_dev}"
+            export disk_512
+        fi
+        echo "512 $block_size_512"
     done
 
     echo "Total 4kB phy sectors block disk $block_size_4k $disk_4k"
@@ -608,7 +614,7 @@ block_disk_phy_block_disk() {
 
     if [ $block_size_512 -ne 0 ] && [ $block_size_4k -ne 0 ];
     then
-	export UPDATE_SECTOR="--sector-size 512"
+        export UPDATE_SECTOR="--sector-size 512"
     fi
 }
 
@@ -625,44 +631,44 @@ update_lvmvg() {
     #bigger lvm will be used by orchestrator
     for disk in $list_of_lvmg_part;
     do
-	size=$(lsblk -b --output SIZE -n -d "${disk}")
-	parted -s "${disk}" print | grep -i sector | grep -q 512.$
-	if [ $? -eq 0 ];
-	then
-	    size_512=$(( size_512 + size ))
-	    list_of_lvmg_part_512+=" ${disk} "
-	else
-	    size_4k=$(( size_4k + size ))
-	    list_of_lvmg_part_4k+=" ${disk} "
-	fi
+        size=$(lsblk -b --output SIZE -n -d "${disk}")
+        parted -s "${disk}" print | grep -i sector | grep -q 512.$
+        if [ $? -eq 0 ];
+        then
+            size_512=$(( size_512 + size ))
+            list_of_lvmg_part_512+=" ${disk} "
+        else
+            size_4k=$(( size_4k + size ))
+            list_of_lvmg_part_4k+=" ${disk} "
+        fi
     done
 
     if [ $size_4k -gt $size_512 ];
     then
-	echo "Selected 4k block sized disks because of higher total size"
-	if [[ $list_of_lvmg_part_4k != '' ]];
-	then
-	    vgcreate lvmvg $list_of_lvmg_part_4k
-	    check_return_value $? "Failed to create LVMVG with 4k blocks"
-	fi
+        echo "Selected 4k block sized disks because of higher total size"
+        if [[ $list_of_lvmg_part_4k != '' ]];
+        then
+            vgcreate lvmvg $list_of_lvmg_part_4k
+            check_return_value $? "Failed to create LVMVG with 4k blocks"
+        fi
 
-	if [[ $list_of_lvmg_part_512 != '' ]];
-	then
-	    vgcreate lvmvg2 $list_of_lvmg_part_512
-	    check_return_value $? "Failed to create LVMVG with 512 blocks"
-	fi
+        if [[ $list_of_lvmg_part_512 != '' ]];
+        then
+            vgcreate lvmvg2 $list_of_lvmg_part_512
+            check_return_value $? "Failed to create LVMVG with 512 blocks"
+        fi
     else
-	if [[ $list_of_lvmg_part_512 != '' ]];
-	then
-	    vgcreate lvmvg $list_of_lvmg_part_512
-	    check_return_value $? "Failed to create LVMVG-2 with 512 blocks"
-	fi
+        if [[ $list_of_lvmg_part_512 != '' ]];
+        then
+            vgcreate lvmvg $list_of_lvmg_part_512
+            check_return_value $? "Failed to create LVMVG-2 with 512 blocks"
+        fi
 
-	if [[ $list_of_lvmg_part_4k != '' ]];
-	then
-	    vgcreate lvmvg2 $list_of_lvmg_part_4k
-	    check_return_value $? "Failed to create LVMVG-2 with 4k blocks"
-	fi
+        if [[ $list_of_lvmg_part_4k != '' ]];
+        then
+            vgcreate lvmvg2 $list_of_lvmg_part_4k
+            check_return_value $? "Failed to create LVMVG-2 with 4k blocks"
+        fi
     fi
 
 }
@@ -679,49 +685,49 @@ partition_other_devices() {
     list_of_lvmg_part=''
     for block_dev in ${list_block_devices[@]};
     do
-	grep -i "${DEST_DISK}" <<< "/dev/${block_dev}"
-	if [ $? -eq 0 ]
-	then
-	   continue
-	fi
+        grep -i "${DEST_DISK}" <<< "/dev/${block_dev}"
+        if [ $? -eq 0 ]
+        then
+           continue
+        fi
 
-	#Delete all partitions on that disk to make it ready for luks with 1 partition only
-	line_num=$(parted -s "/dev/${block_dev}" print | awk '$1 == "Number" { print NR }')
-	partition_num=$(parted -s "/dev/${block_dev}" print | awk 'NR > $line_num { print $1}')
-	for part in $partition_num;
-	do
-	    echo "partition in $disk $part will be deleted"
-	    rm_part=$(parted -s "/dev/${block_dev}" rm "$part")
-	done
+        #Delete all partitions on that disk to make it ready for luks with 1 partition only
+        line_num=$(parted -s "/dev/${block_dev}" print | awk '$1 == "Number" { print NR }')
+        partition_num=$(parted -s "/dev/${block_dev}" print | awk 'NR > $line_num { print $1}')
+        for part in $partition_num;
+        do
+            echo "partition in $disk $part will be deleted"
+            rm_part=$(parted -s "/dev/${block_dev}" rm "$part")
+        done
 
-	# new partition
-	parted -s "/dev/${block_dev}" \
-	       mklabel gpt \
-	       mkpart primary ext4 0% 100%
+        # new partition
+        parted -s "/dev/${block_dev}" \
+               mklabel gpt \
+               mkpart primary ext4 0% 100%
 
-	check_return_value $? "Failed to run parted for /dev/${block_dev}"
+        check_return_value $? "Failed to run parted for /dev/${block_dev}"
 
-	part_suffix=$(get_partition_suffix "/dev/${block_dev}" )
+        part_suffix=$(get_partition_suffix "/dev/${block_dev}" )
 
-	dd if=/dev/zero of="/dev/${block_dev}${part_suffix}1" bs=100MB count=1
-	pvcreate "/dev/${block_dev}${part_suffix}1"
-	check_return_value $? "Failed to make mkfs ext4 on /dev/${block_dev}${part_suffix}1"
+        dd if=/dev/zero of="/dev/${block_dev}${part_suffix}1" bs=100MB count=1
+        pvcreate "/dev/${block_dev}${part_suffix}1"
+        check_return_value $? "Failed to make mkfs ext4 on /dev/${block_dev}${part_suffix}1"
 
-	list_of_lvmg_part+=" /dev/${block_dev}${part_suffix}1"
+        list_of_lvmg_part+=" /dev/${block_dev}${part_suffix}1"
 
     done
 
     if [[ $list_of_lvmg_part != '' ]];
     then
-	vgcreate lvmvg $list_of_lvmg_part
-	if [ $? -ne 0 ]
-	then
-	    export list_of_lvmg_part=$list_of_lvmg_part
-	    echo "Failed to create a lvmvg group"
-	    echo "Trying with separated sectors"
-	    update_lvmvg
-	fi
-	echo "vgcreate is completed"
+        vgcreate lvmvg $list_of_lvmg_part
+        if [ $? -ne 0 ]
+        then
+            export list_of_lvmg_part=$list_of_lvmg_part
+            echo "Failed to create a lvmvg group"
+            echo "Trying with separated sectors"
+            update_lvmvg
+        fi
+        echo "vgcreate is completed"
     fi
 
 }
@@ -779,7 +785,7 @@ enable_dmv(){
     create_single_hdd_lvmg
     if ! $TEST_ON_ONLY_ONE_PART;
     then
-	partition_other_devices
+        partition_other_devices
     fi
 
 
@@ -857,7 +863,7 @@ EOT
     mount_points=($(grep -i "/mnt"  /proc/mounts | awk '{print $2}' | sort -nr))
     for mounted_dir in ${mount_points[@]};
     do
-	umount $mounted_dir
+        umount $mounted_dir
     done
     echo "Completed all umounts"
 
@@ -866,36 +872,36 @@ EOT
 
     if $TEST_ENABLE_DM_ON_ROOTFSB;
     then
-	#backup using dd
-	rootfs_dd_count=$(fdisk -l ${DEST_DISK} | grep "${DEST_DISK}${suffix}${rootfs_partition}" | awk '{print int( ($4/2048/4) + 0.999999) }')
-	dd if="${DEST_DISK}${suffix}${rootfs_partition}" of="${DEST_DISK}${suffix}${rootfs_b_partition}" bs=4M count=$rootfs_dd_count status=progress
-	e2fsck -fy  "${DEST_DISK}${suffix}${rootfs_partition}"
-	sync
-	###############
+        #backup using dd
+        rootfs_dd_count=$(fdisk -l ${DEST_DISK} | grep "${DEST_DISK}${suffix}${rootfs_partition}" | awk '{print int( ($4/2048/4) + 0.999999) }')
+        dd if="${DEST_DISK}${suffix}${rootfs_partition}" of="${DEST_DISK}${suffix}${rootfs_b_partition}" bs=4M count=$rootfs_dd_count status=progress
+        e2fsck -fy  "${DEST_DISK}${suffix}${rootfs_partition}"
+        sync
+        ###############
     fi
     #############################
 
     if $COMPLETE_DMVERITY;
     then
-	mkdir /temp
+        mkdir /temp
 
-	mount "${DEST_DISK}${suffix}${roothash_partition}" /temp
-	check_return_value $? "Failed to mount rootfs"
+        mount "${DEST_DISK}${suffix}${roothash_partition}" /temp
+        check_return_value $? "Failed to mount rootfs"
 
         set -o pipefail
-	veritysetup format "${DEST_DISK}${suffix}${rootfs_partition}" "${DEST_DISK}${suffix}${root_hashmap_a_partition}" | grep Root | cut -f2 > /temp/part_a_roothash
-	check_return_value $? "Failed to do veritysetup"
+        veritysetup format "${DEST_DISK}${suffix}${rootfs_partition}" "${DEST_DISK}${suffix}${root_hashmap_a_partition}" | grep Root | cut -f2 > /temp/part_a_roothash
+        check_return_value $? "Failed to do veritysetup"
 
-	if $TEST_ENABLE_DM_ON_ROOTFSB;
-	then
-	    set -o pipefail
-	    veritysetup format "${DEST_DISK}${suffix}${rootfs_b_partition}" "${DEST_DISK}${suffix}${root_hashmap_b_partition}" | grep Root | cut -f2 > /temp/part_b_roothash
-	    check_return_value $? "Failed to do veritysetup"
-	fi
+        if $TEST_ENABLE_DM_ON_ROOTFSB;
+        then
+            set -o pipefail
+            veritysetup format "${DEST_DISK}${suffix}${rootfs_b_partition}" "${DEST_DISK}${suffix}${root_hashmap_b_partition}" | grep Root | cut -f2 > /temp/part_b_roothash
+            check_return_value $? "Failed to do veritysetup"
+        fi
 
-	umount /temp
-	rm -rf /temp
-	echo "Completed veritysetup"
+        umount /temp
+        rm -rf /temp
+        echo "Completed veritysetup"
     fi
 }
 
@@ -904,10 +910,10 @@ partitioning_scheme() {
     total_size_disk=$(lsblk -b -dn -o SIZE "$DEST_DISK" | awk '{ print int($1 / (1024*1024)) }')
 
     if [ "$total_size_disk" -le 112640 ]; then
-	echo "Disk size is less than or equal to 110GB"
-	echo "PARTITIONING_SCHEME small is enabled"
-	export ven_mode_active=true
-	return
+        echo "Disk size is less than or equal to 110GB"
+        echo "PARTITIONING_SCHEME small is enabled"
+        export ven_mode_active=true
+        return
     fi
 
     # Only applicable for single HDD.
@@ -932,9 +938,9 @@ emt_main_dmv() {
     if [ "$ven_mode_active" = true ];
     then
         set_ven_partitions
-	make_partition_ven
+        make_partition_ven
     else
-	make_partition
+        make_partition
     fi
 
     enable_dmv
