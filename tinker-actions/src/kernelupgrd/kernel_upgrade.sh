@@ -308,24 +308,39 @@ mkfs -t ext4 -L data_persistent -F "${disk}${part_number}${data_persistent_part}
 mkswap "${disk}${part_number}${swap_part}"
 swapon "${disk}${part_number}${swap_part}"
 
-# Create the /var/lib/rancher mount-point on data-persistent volume
+# Create the /var/lib/rancher,kubelet mount-point on data-persistent volume
 
 mkdir -p /mnt1
 mount "${disk}${part_number}${rootfs_part_number}" /mnt1
+
+# Create the rancher,kubelet mount points to persistent volume
+mkdir -p /mnt1/data_persistent
 mkdir -p /mnt1/var/lib/rancher
-mount "${disk}${part_number}${data_persistent_part}" /mnt1/var/lib/rancher
+mkdir -p /mnt1/var/lib/kubelet
+
+mount "${disk}${part_number}${data_persistent_part}" /mnt1/data_persistent
+
+mkdir -p /mnt1/data_persistent/rancher
+mkdir -p /mnt1/data_persistent/kubelet
+
+# Bind the volumes to persistent partitions
+mount --bind /mnt1/data_persistent/rancher /mnt1/var/lib/rancher
+mount --bind /mnt1/data_persistent/kubelet /mnt1/var/lib/kubelet
 
 # Update /etc/fstab for swap && data-persistent partitions
 
 data_persistent_uuid=$(blkid -s UUID -o value "${disk}${part_number}${data_persistent_part}")
 swap_uuid=$(blkid -s UUID -o value "${disk}${part_number}${swap_part}")
 
+
 mount "${disk}${part_number}${rootfs_part_number}" /mnt
 
-cat >> /mnt1/etc/fstab <<EOF
+cat >> /mnt/etc/fstab <<EOF
 
 # Data persistent volume
-UUID=$data_persistent_uuid   /var/lib/rancher   ext4   defaults   0 2
+UUID=$data_persistent_uuid   /data_persistent   ext4  discard,errors=remount-ro 0 1
+/data_persistent/rancher /var/lib/rancher none bind 0 0
+/data_persistent/kubelet /var/lib/kubelet none bind 0 0
 
 # Swap space
 UUID=$swap_uuid   none   swap   sw   0 0
@@ -334,9 +349,11 @@ sync
 if [ "$?" -eq 0 ]; then
     echo "Successfully Updated the /etc/fstable"
     umount -f -l /mnt1
+    umount -f -l /mnt
 else
     echo "Failed to update /etcfstab,please check!!"
     umount -f -l /mnt1
+    umount -f -l /mnt
     exit 1
 fi
 rm -rf /mnt1
