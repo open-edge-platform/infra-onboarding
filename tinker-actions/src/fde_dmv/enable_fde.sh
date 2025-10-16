@@ -811,7 +811,8 @@ mtab_to_fstab() {
     # fstab_swap_partition="${DEST_DISK}${suffix}${swap_partition} none swap sw 0 0"
     fstab_swap_partition="/dev/mapper/swap_crypt swap swap default 0 0"
 
-    fstab_persistent_dev="/dev/mapper/persistent_crypt /var/lib/rancher ext4 discard,errors=remount-ro       0 1"
+    fstab_persistent_dev="/dev/mapper/persistent_crypt /var/lib/rancher ext4 discard,errors=remount-ro       0 1
+/dev/mapper/persistent_crypt /var/lib/kubelet ext4 discard,errors=remount-ro       0 1"
 
     fstab_complete="uuid=${rootfs_uuid} ${fstab_rootfs_partition}
 ${DEST_DISK}${suffix}${boot_partition} ${fstab_boot_partition}
