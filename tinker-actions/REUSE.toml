@@ -9,6 +9,7 @@ path = [
     "**/go.sum",
 
     "**.md",
+    "**.svg",
 ]
 
 SPDX-FileCopyrightText = "2025 Intel Corporation"

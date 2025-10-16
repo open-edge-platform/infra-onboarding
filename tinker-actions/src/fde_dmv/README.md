@@ -231,3 +231,11 @@ hash tree. It prevents unauthorized modifications to the filesystem, making it i
 
 In summary, FDE focuses on encrypting partitions to ensure data confidentiality, while DMV adds integrity verification
  mechanisms to ensure that the root filesystem and other critical partitions remain unmodified and secure.
+
+## Partition Scheme for Edge microvisor toolkit
+
+![EMT partition](<partition_EMT.svg>)
+
+## Partition Scheme for Ubuntu
+
+![Ubuntu partition](<partition_ubuntu.svg>)

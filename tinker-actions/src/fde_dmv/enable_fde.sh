@@ -374,6 +374,11 @@ make_partition_single_hdd() {
 
     #####
     lvm_start=$(( $actual_disk_size - $lvm_size))
+    if [[ $lvm_start -lt 0 ]]
+    then
+        # If invalid lvm size is passed make it 20GB
+        lvm_start=$(( $actual_disk_size - 20))
+    fi
     persistent_start=$(( $total_size_disk))
 
     reserved_start=$(( $total_size_disk - $reserved_size ))
@@ -806,7 +811,8 @@ mtab_to_fstab() {
     # fstab_swap_partition="${DEST_DISK}${suffix}${swap_partition} none swap sw 0 0"
     fstab_swap_partition="/dev/mapper/swap_crypt swap swap default 0 0"
 
-    fstab_persistent_dev="/dev/mapper/persistent_crypt /var/lib/rancher ext4 discard,errors=remount-ro       0 1"
+    fstab_persistent_dev="/dev/mapper/persistent_crypt /var/lib/rancher ext4 discard,errors=remount-ro       0 1
+/dev/mapper/persistent_crypt /var/lib/kubelet ext4 discard,errors=remount-ro       0 1"
 
     fstab_complete="uuid=${rootfs_uuid} ${fstab_rootfs_partition}
 ${DEST_DISK}${suffix}${boot_partition} ${fstab_boot_partition}
@@ -1046,10 +1052,8 @@ enable_luks(){
     fi
 
     #TODO fix this as part of the deployment yaml
-    sed -i 's/console=tty1 console=ttyS0/console=ttyS0,115200/' /boot/grub/grub.cfg
+    #sed -i 's/console=tty1 console=ttyS0/console=ttyS0,115200/' /boot/grub/grub.cfg
 
-    systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target systemd-logind
-    
 EOT
 
 
