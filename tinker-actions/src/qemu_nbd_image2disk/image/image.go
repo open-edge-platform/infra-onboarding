@@ -26,12 +26,12 @@ import (
 
 // Write will pull an image and write it to network boot device (nbd) using qemu-nbd
 // before writing to an underlying device.
-func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice string, compressed bool, progressInterval time.Duration, tlsCaCert string) error {
+func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice string, compressed bool, progressInterval time.Duration, tlsCaCert []byte) error {
 	// Create HTTP client with custom TLS configuration if CA cert is provided
 	client := http.DefaultClient
-	if tlsCaCert != "" {
+	if tlsCaCert != nil {
 		caCertPool := x509.NewCertPool()
-		if !caCertPool.AppendCertsFromPEM([]byte(tlsCaCert)) {
+		if !caCertPool.AppendCertsFromPEM(tlsCaCert) {
 			return errors.New("failed to append CA cert to pool")
 		}
 
@@ -39,6 +39,7 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 			TLSClientConfig: &tls.Config{
 				RootCAs: caCertPool,
 			},
+			Proxy: http.ProxyFromEnvironment,
 		}
 		client = &http.Client{Transport: transport}
 	}
