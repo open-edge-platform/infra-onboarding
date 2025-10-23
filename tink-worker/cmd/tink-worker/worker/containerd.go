@@ -466,7 +466,7 @@ func EnsureFolder(folder string) error {
 	info, err := os.Stat(folder)
 	if os.IsNotExist(err) { //nolint:gocritic // ignore ifElseChain
 		// Folder does not exist, create it with 755 permissions
-		if err := os.Mkdir(folder, 0o755); err != nil {
+		if err := os.MkdirAll(folder, 0o755); err != nil {
 			return fmt.Errorf("failed to create %s folder: %w", folder, err)
 		}
 		fmt.Printf("%s folder created with 755 permissions", folder)
