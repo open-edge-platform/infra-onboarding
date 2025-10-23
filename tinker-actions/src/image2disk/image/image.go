@@ -13,6 +13,8 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -95,16 +97,32 @@ func (wc *WriteCounter) Write(p []byte) (int, error) {
 // Write will pull an image and write it to local storage device
 // with compress set to true it will use gzip compression to expand the data before
 // writing to an underlying device.
-func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice string, compressed bool, progressInterval time.Duration) error {
+func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice string, compressed bool, progressInterval time.Duration, tlsCaCert string) error {
 	req, err := http.NewRequestWithContext(ctx, "GET", sourceImage, nil)
 	if err != nil {
 		return err
 	}
+	client := http.DefaultClient
+	if tlsCaCert != "" {
+		caCertPool := x509.NewCertPool()
+		if !caCertPool.AppendCertsFromPEM([]byte(tlsCaCert)) {
+			return errors.New("failed to append CA cert to pool")
+		}
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
+		transport := &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: caCertPool,
+			},
+			Proxy: http.ProxyFromEnvironment,
+		}
+		client = &http.Client{Transport: transport}
 	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("Failed to download the image from URL: %v", err)
+	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode > 300 {
