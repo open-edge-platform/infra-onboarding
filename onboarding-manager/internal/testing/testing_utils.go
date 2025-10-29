@@ -146,7 +146,6 @@ func AssertInstanceStatuses(
 	assert.Equal(tb, expectedProvisioningStatus.StatusIndicator, instance.GetProvisioningStatusIndicator())
 	assert.Equal(tb, expectedUpdateStatus.Status, instance.GetUpdateStatus())
 	assert.Equal(tb, expectedUpdateStatus.StatusIndicator, instance.GetUpdateStatusIndicator())
-	assert.Equal(tb, "", instance.GetUpdateStatusDetail())
 	assert.Equal(tb, expectedTrustedAttestationStatus.Status, instance.GetTrustedAttestationStatus())
 	assert.Equal(tb, expectedTrustedAttestationStatus.StatusIndicator, instance.GetTrustedAttestationStatusIndicator())
 }

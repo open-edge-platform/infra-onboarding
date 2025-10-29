@@ -96,7 +96,6 @@ func PopulateInstanceUpdateStatus(
 ) {
 	instance.UpdateStatus = updateStatus.Status
 	instance.UpdateStatusIndicator = updateStatus.StatusIndicator
-	instance.UpdateStatusDetail = ""
 }
 
 func PopulateInstanceTrustedAttestationStatus(
@@ -116,21 +115,21 @@ func PopulateInstanceIdleStatus(
 	PopulateInstanceTrustedAttestationStatus(instance, om_status.TrustedAttestationStatusUnknown)
 }
 
-func PopulateCurrentOS(instance *computev1.InstanceResource, osResourceID string) {
-	instance.CurrentOs = &osv1.OperatingSystemResource{ResourceId: osResourceID}
-}
+//func PopulateCurrentOS(instance *computev1.InstanceResource, osResourceID string) {
+//	instance.CurrentOs = &osv1.OperatingSystemResource{ResourceId: osResourceID}
+//}
 
 func IsStandalone(instance *computev1.InstanceResource) (bool, error) {
-	if instance.GetDesiredOs() == nil {
+	if instance.GetOs() == nil {
 		return false, nil
 	}
 
-	if instance.GetDesiredOs().GetOsType() == osv1.OsType_OS_TYPE_MUTABLE {
+	if instance.GetOs().GetOsType() == osv1.OsType_OS_TYPE_MUTABLE {
 		// We don't support Standalone ENs for mutable OSes yet
 		return false, nil
 	}
 
-	osMetadata := instance.GetDesiredOs().GetMetadata()
+	osMetadata := instance.GetOs().GetMetadata()
 
 	if osMetadata == "" {
 		return false, nil

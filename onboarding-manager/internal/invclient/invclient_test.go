@@ -805,9 +805,7 @@ func TestOnboardingInventoryClient_GetInstanceResourceByResourceID(t *testing.T)
 	host := inv_testing.CreateHost(t, nil, nil)
 	osRes := inv_testing.CreateOs(t)
 	inst := inv_testing.CreateInstance(t, host, osRes)
-	inst.DesiredOs = osRes
 	inst.Os = osRes
-	inst.CurrentOs = osRes
 	inst.Host = host
 	type args struct {
 		tenantID         string
@@ -1817,7 +1815,6 @@ func TestOnboardingInventoryClient_SetInstanceStatusAndCurrentState(t *testing.T
 		instanceID         string
 		currentState       computev1.InstanceState
 		provisioningStatus inv_status.ResourceStatus
-		currentOS          *osv1.OperatingSystemResource
 	}
 	tests := []struct {
 		name    string
@@ -1835,7 +1832,7 @@ func TestOnboardingInventoryClient_SetInstanceStatusAndCurrentState(t *testing.T
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := invClient.UpdateInstance(tt.args.ctx, tt.args.tenantID, tt.args.instanceID, tt.args.currentState,
-				tt.args.provisioningStatus, tt.args.currentOS); (err != nil) != tt.wantErr {
+				tt.args.provisioningStatus); (err != nil) != tt.wantErr {
 				t.Errorf("OnboardingInventoryClient.UpdateInstance() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

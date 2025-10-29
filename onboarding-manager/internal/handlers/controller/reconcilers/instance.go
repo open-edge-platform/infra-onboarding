@@ -239,7 +239,6 @@ func (ir *InstanceReconciler) updateInstanceStatuses(
 		newInstance.GetInstanceStatusDetail(),
 		inv_status.New(newInstance.GetProvisioningStatus(), newInstance.GetProvisioningStatusIndicator()),
 		inv_status.New(newInstance.GetUpdateStatus(), newInstance.GetUpdateStatusIndicator()),
-		newInstance.GetUpdateStatusDetail(),
 		inv_status.New(newInstance.GetTrustedAttestationStatus(), newInstance.GetTrustedAttestationStatusIndicator()),
 	); err != nil {
 		zlogInst.InfraSec().InfraErr(err).Msgf("Failed to update instance status")
@@ -274,14 +273,13 @@ func (ir *InstanceReconciler) updateHostInstanceStatusAndCurrentState(
 		newInstance.GetResourceId(), newInstance.GetCurrentState(),
 		newInstance.GetProvisioningStatus())
 
-	if !util.IsSameInstanceStatusAndState(oldInstance, newInstance) || oldInstance.CurrentOs != newInstance.CurrentOs {
+	if !util.IsSameInstanceStatusAndState(oldInstance, newInstance) {
 		if err := ir.invClient.UpdateInstance(
 			ctx,
 			newInstance.GetTenantId(),
 			newInstance.GetResourceId(),
 			newInstance.GetCurrentState(),
 			inv_status.New(newInstance.GetProvisioningStatus(), newInstance.GetProvisioningStatusIndicator()),
-			newInstance.GetCurrentOs(),
 		); err != nil {
 			zlogInst.InfraSec().InfraErr(err).Msgf("Failed to update instance status")
 		}
@@ -356,37 +354,37 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 ) (onboarding_types.DeviceInfo, error) {
 	host := instance.GetHost() // eager-loaded
 
-	if instance.GetDesiredOs() == nil {
+	if instance.GetOs() == nil {
 		// this should not happen but just in case
 		return onboarding_types.DeviceInfo{}, inv_errors.Errorfc(codes.InvalidArgument,
 			"Instance %s doesn't have any OS associated", instance.GetResourceId())
 	}
 
-	desiredOs := instance.GetDesiredOs()
+	os := instance.GetOs()
 
 	zlogInst.Debug().Msgf("Converting Instance %s to device info. OS resource: %s",
-		instance.GetResourceId(), desiredOs)
+		instance.GetResourceId(), os)
 
 	localHostIP := "127.0.0.1"
 	var osLocationURL string
 	// OS and Installer location returned to EN points to a local server that proxies requests to Provisioning Nginx
-	switch desiredOs.GetOsType() {
+	switch os.GetOsType() {
 	case osv1.OsType_OS_TYPE_MUTABLE:
-		zlogInst.Debug().Msgf("Pulling %s image from %s", desiredOs.GetProfileName(), desiredOs.GetImageUrl())
-		osLocationURL = desiredOs.GetImageUrl()
+		zlogInst.Debug().Msgf("Pulling %s image from %s", os.GetProfileName(), os.GetImageUrl())
+		osLocationURL = os.GetImageUrl()
 	case osv1.OsType_OS_TYPE_IMMUTABLE:
-		osLocationURL = desiredOs.GetImageUrl()
+		osLocationURL = os.GetImageUrl()
 		_, err := url.ParseRequestURI(osLocationURL)
 		if err != nil {
 			// Microvisor can be pulled drirectly from Release Server or CDN Server
-			zlogInst.Debug().Msgf("Pulling %s image from CDN/RS Servers", desiredOs.GetProfileName())
+			zlogInst.Debug().Msgf("Pulling %s image from CDN/RS Servers", os.GetProfileName())
 			osLocationURL = fmt.Sprintf("http://%s/%s", localHostIP, osLocationURL)
 		} else {
-			zlogInst.Debug().Msgf("Pulling %s image from %s", desiredOs.GetProfileName(), osLocationURL)
+			zlogInst.Debug().Msgf("Pulling %s image from %s", os.GetProfileName(), osLocationURL)
 		}
 	default:
 		invErr := inv_errors.Errorf("Unsupported OS type %v, may result in wrong installation artifacts path",
-			desiredOs.GetOsType())
+			os.GetOsType())
 		zlogInst.InfraSec().Error().Err(invErr).Msg("")
 		return onboarding_types.DeviceInfo{}, invErr
 	}
@@ -409,30 +407,30 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		Hostname:         host.GetResourceId(), // we use resource ID as hostname to uniquely identify a host
 		SecurityFeature:  instance.GetSecurityFeature(),
 		OSImageURL:       osLocationURL,
-		OsImageSHA256:    desiredOs.GetSha256(),
+		OsImageSHA256:    os.GetSha256(),
 		TinkerVersion:    tinkerVersion,
-		OsType:           desiredOs.GetOsType(),
-		OSResourceID:     desiredOs.GetResourceId(),
-		PlatformBundle:   desiredOs.GetPlatformBundle(),
+		OsType:           os.GetOsType(),
+		OSResourceID:     os.GetResourceId(),
+		PlatformBundle:   os.GetPlatformBundle(),
 		IsStandaloneNode: isStandalone,
 	}
 
 	zlogInst.Debug().Msgf("DeviceInfo generated from OS resource (%s): %+v",
-		instance.GetDesiredOs().GetResourceId(), deviceInfo)
+		instance.GetOs().GetResourceId(), deviceInfo)
 
 	return deviceInfo, nil
 }
 
 func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance *computev1.InstanceResource) error {
-	if instance.GetDesiredOs() == nil {
-		zlogInst.Warn().Msgf("No desired OS specified for instance %s, skipping provisioning.",
+	if instance.GetOs() == nil {
+		zlogInst.Warn().Msgf("No OS specified for instance %s, skipping provisioning.",
 			instance.GetResourceId())
 		return nil
 	}
 
-	if instance.GetDesiredOs().GetOsProvider() != osv1.OsProviderKind_OS_PROVIDER_KIND_INFRA {
+	if instance.GetOs().GetOsProvider() != osv1.OsProviderKind_OS_PROVIDER_KIND_INFRA {
 		zlogInst.Debug().Msgf("Skipping OS provisioning for %s due to OS provider kind: %s",
-			instance.GetResourceId(), instance.GetDesiredOs().GetOsProvider().String())
+			instance.GetResourceId(), instance.GetOs().GetOsProvider().String())
 		return nil
 	}
 
@@ -447,7 +445,7 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 	oldInstance := proto.Clone(instance).(*computev1.InstanceResource)
 
 	zlogInst.Debug().Msgf("Trying to provision Instance %s with OS %s",
-		instance.GetResourceId(), instance.GetDesiredOs().GetName())
+		instance.GetResourceId(), instance.GetOs().GetName())
 
 	defer func() {
 		// if unrecoverable error, report error provisioning status

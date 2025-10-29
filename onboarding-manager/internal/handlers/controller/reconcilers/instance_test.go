@@ -61,7 +61,6 @@ func createOsWithArgs(tb testing.TB, doCleanup bool,
 	defer cancel()
 	osr = &osv1.OperatingSystemResource{
 		Name:              "test-os-" + getFirstNChars(getMD5Hash(fmt.Sprintf("%d", time.Now().UnixNano())), 8),
-		UpdateSources:     []string{"test entries"},
 		ImageUrl:          "example.raw.gz",
 		ProfileName:       inv_testing.GenerateRandomProfileName(),
 		Sha256:            inv_testing.GenerateRandomSha256(),
