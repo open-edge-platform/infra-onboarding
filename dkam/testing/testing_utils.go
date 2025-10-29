@@ -66,24 +66,8 @@ packages:
     version: 1.2.4
   - name: caddy
     version: 2.7.6
-  - name: inbc-program
-    version: 4.2.8.2-1
-  - name: inbm-configuration-agent
-    version: 4.2.8.2-1
-  - name: inbm-cloudadapter-agent
-    version: 4.2.8.2-1
-  - name: inbm-diagnostic-agent
-    version: 4.2.8.2-1
-  - name: inbm-dispatcher-agent
-    version: 4.2.8.2-1
-  - name: inbm-telemetry-agent
-    version: 4.2.8.2-1
-  - name: mqtt
-    version: 4.2.8.2-1
-  - name: tpm-provision
-    version: 4.2.8.2-1
-  - name: trtl
-    version: 4.2.8.2-1
+  - name: in-band-manageability
+    version: 1.0.2
 `
 	mux := http.NewServeMux()
 
@@ -157,7 +141,6 @@ func PrepareTestCaCertificateFile(t *testing.T) {
 	})
 }
 
-//nolint:funlen // test helper
 func PrepareTestInfraConfig(_ *testing.T) {
 	testConfig := config.InfraConfig{
 		ENAgentManifestTag:                    "latest-dev",
@@ -228,39 +211,7 @@ func PrepareTestInfraConfig(_ *testing.T) {
 					Version: "1.0.0",
 				},
 				{
-					Name:    "trtl",
-					Version: "1.0.0",
-				},
-				{
-					Name:    "inbm-cloudadapter-agent",
-					Version: "1.0.0",
-				},
-				{
-					Name:    "inbm-dispatcher-agent",
-					Version: "1.0.0",
-				},
-				{
-					Name:    "inbm-configuration-agent",
-					Version: "1.0.0",
-				},
-				{
-					Name:    "inbm-telemetry-agent",
-					Version: "1.0.0",
-				},
-				{
-					Name:    "inbm-diagnostic-agent",
-					Version: "1.0.0",
-				},
-				{
-					Name:    "mqtt",
-					Version: "1.0.0",
-				},
-				{
-					Name:    "tpm-provision",
-					Version: "1.0.0",
-				},
-				{
-					Name:    "inbc-program",
+					Name:    "in-band-manageability",
 					Version: "1.0.0",
 				},
 				{
