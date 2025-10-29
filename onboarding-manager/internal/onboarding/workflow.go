@@ -118,7 +118,7 @@ func runProdWorkflow(
 	deviceInfo.AuthClientID = clientID
 	deviceInfo.AuthClientSecret = clientSecret
 	deviceInfo.TenantID = instance.GetTenantId()
-	deviceInfo.OSTLSCACert = "-----BEGIN CERTIFICATE-----\nMIIF6jCCA9KgAwIBAgIUfPHYTpnbKjB9iOMdaDInm2kHK8YwDQYJKoZIhvcNAQEL\nBQAwajELMAkGA1UEBhMCVVMxDjAMBgNVBAgMBVN0YXRlMQ0wCwYDVQQHDARDaXR5\nMRUwEwYDVQQKDAxPcmdhbml6YXRpb24xCzAJBgNVBAsMAklUMRgwFgYDVQQDDA9u\nZ2lueC1vcy1zZXJ2ZXIwHhcNMjUxMDE1MDU1NTUzWhcNMjYxMDE1MDU1NTUzWjBq\nMQswCQYDVQQGEwJVUzEOMAwGA1UECAwFU3RhdGUxDTALBgNVBAcMBENpdHkxFTAT\nBgNVBAoMDE9yZ2FuaXphdGlvbjELMAkGA1UECwwCSVQxGDAWBgNVBAMMD25naW54\nLW9zLXNlcnZlcjCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAJ7TVLim\ntSryl1KekFvJFXNpxp+hOShnb7rPoX8rCPPWRoOlGXMUAfWuEn4Z7qeLSS5pje9v\ndVPLMWg25i4Y+ww2ovcbJxrmEaBLxscFLgafU0Iwo1TMpIngPd8rIAfIJ1+Lo/6C\nMS3yH5fXX+fLabcpda7RLDKVsX6dCwhdDH0jo8prt+xzVAPrgDoJYs+GVooD0P4x\niQy5i/t1uoPaLJlEeCXSnNGoeyIAMxfdFMUHZsFstxaGADvfT7g5zIRPKuqtIUNJ\nIpmyVOEWQ9xKIxAo5tI1IM4J91sW///UY18i77xqZZVP4vDiGZvdDDrIQxA9F/o3\nUZh4mr70rQ2ryVYT+5q1BnuK6mOy8KsHp5YeDnw0wjpQgKYuhgSBXjMQJXfd2G1y\nRz8hRXNKRFqrfM2q5OQL+BaKWoEtS+erF8bvG7aekME7fdKH22zg3h9G+xPR8zmE\nfXnUsZ9f9ItEQqzvVDoWrl6tPIr+WfRD0uIJvGjMzxvERMfKsEA8Q99DgaSDIoij\nbds2/zUNIpixQ9mF9kMzpKX8aR8APCIAXr0pKiL0E+IrEOiYQlL0b+rFIcAJTapd\nXYM+UCcOlMIykLALBvEbgWVoHx5usG4mCZfCl0TrCN4a3w+iC6GrPjGsTWap0vRd\nTBXrKOUNPhCJkJJ1DTU5kn10GQMEwzpQDd7vAgMBAAGjgYcwgYQwHQYDVR0OBBYE\nFGkmxCKoVaF2Hm99N5DJuN9XSnnDMB8GA1UdIwQYMBaAFGkmxCKoVaF2Hm99N5DJ\nuN9XSnnDMA8GA1UdEwEB/wQFMAMBAf8wMQYDVR0RBCowKIIJbG9jYWxob3N0gg9u\nZ2lueC1vcy1zZXJ2ZXKHBH8AAAGHBAqL2hQwDQYJKoZIhvcNAQELBQADggIBABln\nu76bEi9tQUDErOj+6cc3X7m22PDN5C6beof1vP9/dVZTljRacB43qcA7RpfWnx58\nGnYmz4T/+X6XsKauI+CRVV3tDIjOALnrVChAKPirAr2WqD+j74m1MArTTMFPKwKR\nFPzPCRGOUoPWdmFXRS0e1MkuIo5uBltr+ktqLJWegGAZeH2cyTLr11R2ZeYysf+H\nCQMulV6AJB0WM1lCSt5dr7SfFiIvPFTOtqfDpYS8O11oycQ1/P9XaWLcvPLUwtuN\nh4yXTsmzGDh1roQXZkyAc9nA6hUP6PULALF0PykMKbGcikgWPA/SMZW3t8lr7er0\nZs4f8ZiNjot5p85rKoWs/1Ern+DUL9uo8cVt2EGZkscEzusnF7iYivsB7eF0aL8f\nvPnKaxxs4v+hzxhdVNOzopLVnXBGLPAdqocd8G/raYQm4s4gyhonWluXOrWzg1kG\nIkHCgjYCkx7ZTGrTh7VqAH8+BhN27wb2IL696DJoGoDp0hlHkaUxmD6/EIPJq3Wr\n3O6kRpgJtwFyTR1reu1d5yTSVcyfV7VitPoeF10poaiIg36HmnM/KEwMviP8AT43\nM2OTz8woa1viKqRriRv3kLuLfvvhZnf5hsU2G5f3+1vkicD2wDAuJ5de15mV+F8P\nukTohEcyguJjLn30OBA4Pf+iWOfWAp63B1LCFT+l\n-----END CERTIFICATE-----\n"
+	deviceInfo.OSTLSCACert = instance.GetOs().GetTlsCaCert()
 
 	if instance.GetLocalaccount() != nil {
 		deviceInfo.LocalAccountUserName = instance.GetLocalaccount().Username
@@ -135,11 +135,6 @@ func runProdWorkflow(
 	templateName, found := templates.OSTypeToTemplateName[deviceInfo.OsType]
 	if !found {
 		return inv_errors.Errorf("Cannot find Tinkerbell template for OS type %s", deviceInfo.OsType)
-	}
-
-	// Validate that the template is in proper YAML format
-	if err := tinkerbell.ValidateTemplateYAML(templateName); err != nil {
-		return inv_errors.Errorf("Template validation failed for '%s': %v", templateName, err)
 	}
 
 	workflowHardwareMap, err := tinkerbell.GenerateWorkflowInputs(ctx, deviceInfo)

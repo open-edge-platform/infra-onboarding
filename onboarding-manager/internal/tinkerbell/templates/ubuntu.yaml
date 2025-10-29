@@ -34,7 +34,7 @@ tasks:
         environment:
           IMG_URL: {{ .DeviceInfoOSImageURL }}
           SHA256: {{ .DeviceInfoOsImageSHA256 }}
-          TLS_CA_CERT: {{ .DeviceInfoOSTLSCACert | indent 12 }}
+          TLS_CA_CERT: "{{ .DeviceInfoOSTLSCACert }}"
           HTTP_PROXY: {{ .EnvENProxyHTTP }}
           HTTPS_PROXY: {{ .EnvENProxyHTTPS }}
           NO_PROXY: {{ .EnvENProxyNoProxy }}
