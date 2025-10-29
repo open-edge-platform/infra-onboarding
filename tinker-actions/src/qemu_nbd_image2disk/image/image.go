@@ -12,7 +12,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
-	"errors"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"log/slog"
@@ -24,16 +24,61 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// min returns the minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 // Write will pull an image and write it to network boot device (nbd) using qemu-nbd
 // before writing to an underlying device.
 func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice string, compressed bool, progressInterval time.Duration, tlsCaCert []byte) error {
 	// Create HTTP client with custom TLS configuration if CA cert is provided
 	client := http.DefaultClient
-	if tlsCaCert != nil {
+	if len(tlsCaCert) > 0 {
+		log.Info("TLS CA certificate provided, configuring custom TLS client")
+		log.Debug(fmt.Sprintf("CA certificate length: %d bytes", len(tlsCaCert)))
+		log.Debug(fmt.Sprintf("CA certificate preview: %s...", string(tlsCaCert[:min(100, len(tlsCaCert))])))
+
+		// Validate that the certificate data looks like PEM format
+		certStr := string(tlsCaCert)
+		if !bytes.Contains(tlsCaCert, []byte("-----BEGIN CERTIFICATE-----")) {
+			log.Error("CA certificate does not contain PEM header")
+			return fmt.Errorf("invalid CA certificate: missing PEM header '-----BEGIN CERTIFICATE-----'")
+		}
+		if !bytes.Contains(tlsCaCert, []byte("-----END CERTIFICATE-----")) {
+			log.Error("CA certificate does not contain PEM footer")
+			return fmt.Errorf("invalid CA certificate: missing PEM footer '-----END CERTIFICATE-----'")
+		}
+
+		// Parse the certificate to validate it before adding to pool
+		block, rest := pem.Decode(tlsCaCert)
+		if block == nil {
+			log.Error("Failed to decode CA certificate as PEM", "cert", certStr)
+			log.Debug(fmt.Sprintf("Certificate data: %s", certStr))
+			return fmt.Errorf("invalid CA certificate: failed to decode PEM block")
+		}
+		log.Debug(fmt.Sprintf("Successfully decoded PEM block, type: %s, remaining bytes: %d", block.Type, len(rest)))
+
+		// Verify it's actually a certificate
+		_, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			log.Error("Failed to parse certificate from PEM block", "error", err)
+			return fmt.Errorf("invalid CA certificate: failed to parse X.509 certificate: %w", err)
+		}
+		log.Debug("Successfully validated certificate structure")
+
 		caCertPool := x509.NewCertPool()
 		if !caCertPool.AppendCertsFromPEM(tlsCaCert) {
-			return errors.New("failed to append CA cert to pool")
+			log.Error("Failed to append CA cert to pool - certificate may be corrupted or invalid")
+			log.Debug(fmt.Sprintf("Certificate string length: %d", len(certStr)))
+			log.Debug(fmt.Sprintf("Certificate preview: %s", certStr[:min(200, len(certStr))]))
+			return fmt.Errorf("failed to append CA cert to pool: certificate is not valid PEM format or is corrupted")
 		}
+
+		log.Info("Successfully added CA certificate to trust pool")
 
 		transport := &http.Transport{
 			TLSClientConfig: &tls.Config{
@@ -42,6 +87,9 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 			Proxy: http.ProxyFromEnvironment,
 		}
 		client = &http.Client{Transport: transport}
+		log.Info("HTTP client configured with custom TLS settings")
+	} else {
+		log.Info("No TLS CA certificate provided, using default HTTP client")
 	}
 
 	// Create and execute an HTTP GET request to download the image

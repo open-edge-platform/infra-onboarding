@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -96,7 +97,12 @@ func main() {
 		fmt.Printf("-----SHA256 not provided proceeding without checksum check \n")
 	}
 
-	tls_ca_cert := []byte(os.Getenv("TLS_CA_CERT"))
+	var tls_ca_cert []byte
+	tls_ca_cert_str := os.Getenv("TLS_CA_CERT")
+	if len(tls_ca_cert_str) > 0 {
+		tls_ca_cert_str := strings.ReplaceAll(os.Getenv("TLS_CA_CERT"), `\\n`, "\n")
+		tls_ca_cert = []byte(tls_ca_cert_str)
+	}
 	// We can ignore the error and default compressed to false.
 	cmp, _ := strconv.ParseBool(compressedEnv)
 	re, er := strconv.ParseBool(retryEnabled)
