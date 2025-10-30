@@ -8,13 +8,13 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"log/slog"
 	"net/url"
 	"os"
 	"os/signal"
 	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
@@ -100,8 +100,14 @@ func main() {
 	var tls_ca_cert []byte
 	tls_ca_cert_str := os.Getenv("TLS_CA_CERT")
 	if len(tls_ca_cert_str) > 0 {
-		tls_ca_cert_str := strings.ReplaceAll(os.Getenv("TLS_CA_CERT"), `\\n`, "\n")
-		tls_ca_cert = []byte(tls_ca_cert_str)
+		// Decode base64 encoded certificate string
+		decoded, err := base64.StdEncoding.DecodeString(tls_ca_cert_str)
+		if err != nil {
+			log.Error("Error decoding base64 TLS CA certificate", "err", err)
+			os.Exit(1)
+		}
+		tls_ca_cert = decoded
+		log.Info("TLS CA certificate decoded successfully")
 	}
 	// We can ignore the error and default compressed to false.
 	cmp, _ := strconv.ParseBool(compressedEnv)

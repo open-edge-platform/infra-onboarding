@@ -142,25 +142,6 @@ func structToMapStringString(input interface{}) map[string]string {
 	return result
 }
 
-// convertNewlinesToEscapes converts actual newline characters to the literal string "\n"
-// This is needed for YAML environment variables which must be single-line strings.
-// The receiving application (main.go) will convert these back to actual newlines.
-func convertNewlinesToEscapes(s string) string {
-	if s == "" {
-		return s
-	}
-
-	result := ""
-	for i := 0; i < len(s); i++ {
-		if s[i] == '\n' {
-			result += "\\n"
-		} else {
-			result += string(s[i])
-		}
-	}
-	return result
-}
-
 // flattenStruct recursively reads a nested struct and generates a flat map.
 func flattenStruct(val reflect.Value, prefix string, result map[string]string) {
 	if val.Kind() == reflect.Ptr {
@@ -359,7 +340,7 @@ func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.Dev
 	// 1. YAML environment variables need to be single-line strings
 	// 2. main.go expects literal \n sequences and converts them to actual newlines
 	if deviceInfo.OSTLSCACert != "" {
-		inputs.DeviceInfo.OSTLSCACert = convertNewlinesToEscapes(deviceInfo.OSTLSCACert)
+		inputs.DeviceInfo.OSTLSCACert = deviceInfo.OSTLSCACert
 	}
 
 	return structToMapStringString(inputs), nil
