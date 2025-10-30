@@ -8,7 +8,9 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"img2disk/image"
 	"log/slog"
 	"net/url"
 	"os"
@@ -16,8 +18,6 @@ import (
 	"strconv"
 	"syscall"
 	"time"
-
-	"img2disk/image"
 
 	dd "github.com/open-edge-platform/infra-onboarding/tinker-actions/pkg/drive_detection"
 
@@ -96,7 +96,18 @@ func main() {
 		fmt.Printf("-----SHA256 not provided proceeding without checksum check \n")
 	}
 
-	tls_ca_cert := os.Getenv("TLS_CA_CERT")
+	var tls_ca_cert []byte
+	tls_ca_cert_str := os.Getenv("TLS_CA_CERT")
+	if len(tls_ca_cert_str) > 0 {
+		decoded, err := base64.StdEncoding.DecodeString(tls_ca_cert_str)
+		if err != nil {
+			log.Error("Error decoding base64 TLS CA certificate", "err", err)
+			os.Exit(1)
+		}
+		tls_ca_cert = decoded
+		log.Info("TLS CA certificate decoded successfully")
+	}
+
 	// We can ignore the error and default compressed to false.
 	cmp, _ := strconv.ParseBool(compressedEnv)
 	re, er := strconv.ParseBool(retryEnabled)
