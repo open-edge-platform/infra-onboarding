@@ -300,14 +300,6 @@ func handleWorkflowStatus(instance *computev1.InstanceResource, workflow *tink.W
 			instance, computev1.InstanceState_INSTANCE_STATE_RUNNING,
 			om_status.NewStatusWithDetails(onSuccessProvisioningStatus, intermediateWorkflowState))
 
-		// FIXME: We retrieve original desired OS from workflow's template parameters (hardware map).
-		//  This is temporary, until we implement Day2 refactoring.
-		//osResourceID, exists := workflow.Spec.HardwareMap["DeviceInfoOSResourceID"]
-		//if !exists {
-		//	return inv_errors.Errorf("OS resource ID not found in Tinkerbell workflow %s", workflow.Name)
-		//}
-
-		//util.PopulateCurrentOS(instance, osResourceID)
 		// don't set Rebooting for Standalone ENs as we don't have agents that will converge to Running eventually
 		isStandalone, err := util.IsStandalone(instance)
 		if err != nil {

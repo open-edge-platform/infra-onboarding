@@ -115,10 +115,6 @@ func PopulateInstanceIdleStatus(
 	PopulateInstanceTrustedAttestationStatus(instance, om_status.TrustedAttestationStatusUnknown)
 }
 
-//func PopulateCurrentOS(instance *computev1.InstanceResource, osResourceID string) {
-//	instance.CurrentOs = &osv1.OperatingSystemResource{ResourceId: osResourceID}
-//}
-
 func IsStandalone(instance *computev1.InstanceResource) (bool, error) {
 	if instance.GetOs() == nil {
 		return false, nil
