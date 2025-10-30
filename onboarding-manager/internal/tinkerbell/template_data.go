@@ -335,13 +335,7 @@ func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.Dev
 		ENProxyNoProxy: infraConfig.ENProxyNoProxy,
 	}
 
-	// Convert actual newlines in the certificate to \n escape sequences
-	// This is required because:
-	// 1. YAML environment variables need to be single-line strings
-	// 2. main.go expects literal \n sequences and converts them to actual newlines
-	if deviceInfo.OSTLSCACert != "" {
-		inputs.DeviceInfo.OSTLSCACert = deviceInfo.OSTLSCACert
-	}
+	inputs.DeviceInfo.OSTLSCACert = deviceInfo.OSTLSCACert
 
 	return structToMapStringString(inputs), nil
 }
