@@ -9,7 +9,10 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/hex"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"log/slog"
@@ -23,13 +26,46 @@ import (
 
 // Write will pull an image and write it to network boot device (nbd) using qemu-nbd
 // before writing to an underlying device.
-func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice string, compressed bool, progressInterval time.Duration) error {
+func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice string, compressed bool, progressInterval time.Duration, tlsCaCert []byte) error {
+	// Create HTTP client with custom TLS configuration if CA cert is provided
+	client := http.DefaultClient
+	if len(tlsCaCert) > 0 {
+		err, valid := validate_cert(log, tlsCaCert)
+		if err != nil {
+			log.Error("Failed to validate CA certificate", "error", err)
+			return fmt.Errorf("failed to validate CA certificate: %w", err)
+		}
+		if !valid {
+			log.Error("Invalid CA certificate")
+			return fmt.Errorf("invalid CA certificate")
+		}
+
+		caCertPool := x509.NewCertPool()
+		if !caCertPool.AppendCertsFromPEM(tlsCaCert) {
+			log.Error("Failed to append CA cert to pool - certificate may be corrupted or invalid")
+			return fmt.Errorf("failed to append CA cert to pool: certificate is not valid PEM format or is corrupted")
+		}
+
+		log.Info("Successfully added CA certificate to trust pool")
+
+		transport := &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: caCertPool,
+			},
+			Proxy: http.ProxyFromEnvironment,
+		}
+		client = &http.Client{Transport: transport}
+		log.Info("HTTP client configured with custom TLS settings")
+	} else {
+		log.Info("No TLS CA certificate provided, using default HTTP client")
+	}
+
 	// Create and execute an HTTP GET request to download the image
 	req, err := http.NewRequestWithContext(ctx, "GET", sourceImage, nil)
 	if err != nil {
 		return err
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to download image from the URL: %v", err)
 	}
@@ -78,11 +114,11 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 	expectedSHA256 := os.Getenv("SHA256")
 	// if SHA256 env variable provided as input, compare the expected SHA256 with img_url SHA256
 	if len(expectedSHA256) != 0 && actualSHA256 != expectedSHA256 {
-		log.Info(fmt.Sprintf("-----Mismatch SHA256 for actualSHA256 & expectedSHA256 ---\n"))
+		log.Info("-----Mismatch SHA256 for actualSHA256 & expectedSHA256 ---\n")
 		log.Info(fmt.Sprintf("expectedSHA256 : [%s] ", expectedSHA256))
 		log.Info(fmt.Sprintf("actualSHA256 : [%s] ", actualSHA256))
 		log.Error("------SHA256 MISMATCH---------")
-		return fmt.Errorf("Image SHA-256 hash mismatch")
+		return fmt.Errorf("image SHA-256 hash mismatch")
 	}
 	log.Info(fmt.Sprintf("SHA-256 hash of the downloaded file: %s", actualSHA256))
 	log.Info("Successfully verified SHA-256 checksum")
@@ -179,4 +215,32 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 		return fmt.Errorf("failed to re-probe partitions on %s: %v", destinationDevice, err)
 	}
 	return nil
+}
+
+func validate_cert(log *slog.Logger, tlsCaCert []byte) (error, bool) {
+	certStr := string(tlsCaCert)
+	// Validate that the certificate data looks like PEM format
+	if !bytes.Contains(tlsCaCert, []byte("-----BEGIN CERTIFICATE-----")) {
+		return fmt.Errorf("invalid CA certificate: missing PEM header '-----BEGIN CERTIFICATE-----'"), false
+	}
+	if !bytes.Contains(tlsCaCert, []byte("-----END CERTIFICATE-----")) {
+		return fmt.Errorf("invalid CA certificate: missing PEM footer '-----END CERTIFICATE-----'"), false
+	}
+	block, rest := pem.Decode(tlsCaCert)
+	if block == nil {
+		log.Error("Failed to decode CA certificate as PEM", "cert", certStr)
+		log.Debug("Certificate data", "data", certStr)
+		log.Debug("Successfully decoded PEM block", "remainingBytes", len(rest))
+		// Parse the certificate to validate it before adding to pool
+		return fmt.Errorf("invalid CA certificate: failed to parse X.509 certificate"), false
+	}
+	// Verify it's actually a certificate
+	_, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		log.Error("Failed to parse certificate from PEM block", "error", err)
+		return fmt.Errorf("invalid CA certificate: failed to parse X.509 certificate: %w", err), false
+	}
+	log.Debug("Successfully validated certificate structure")
+
+	return nil, true
 }

@@ -8,6 +8,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -96,6 +97,18 @@ func main() {
 		fmt.Printf("-----SHA256 not provided proceeding without checksum check \n")
 	}
 
+	var tls_ca_cert []byte
+	tls_ca_cert_str := os.Getenv("TLS_CA_CERT")
+	if len(tls_ca_cert_str) > 0 {
+		// Decode base64 encoded certificate string
+		decoded, err := base64.StdEncoding.DecodeString(tls_ca_cert_str)
+		if err != nil {
+			log.Error("Error decoding base64 TLS CA certificate", "err", err)
+			os.Exit(1)
+		}
+		tls_ca_cert = decoded
+		log.Info("TLS CA certificate decoded successfully")
+	}
 	// We can ignore the error and default compressed to false.
 	cmp, _ := strconv.ParseBool(compressedEnv)
 	re, er := strconv.ParseBool(retryEnabled)
@@ -111,7 +124,7 @@ func main() {
 	interval := time.Duration(pi) * time.Second
 
 	operation := func() error {
-		if err := image.Write(ctx, log, u.String(), disk, cmp, interval); err != nil {
+		if err := image.Write(ctx, log, u.String(), disk, cmp, interval, tls_ca_cert); err != nil {
 			return fmt.Errorf("error writing image to disk: %w", err)
 		}
 		return nil
