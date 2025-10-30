@@ -15,6 +15,9 @@ CVE-2020-8559
 # FIXME Upgrade of golang to 1.24.6 to be taken up post 3.1 release
 CVE-2025-47907
 
+# FIXME Upgrade of golang to 1.24.9/1.25.3
+CVE-2025-58187
+
 # PostgreSQL CVEs
 CVE-2023-45853
 CVE-2023-7104
