@@ -29,7 +29,7 @@ func TestSBHandler_Stop(t *testing.T) {
 			t.Fatalf("Failed to serve: %v", err)
 		}
 	}()
-	//nolint:staticcheck // Ignoring SA2002 and SA1019 as these are valid in this test scenario.
+	//nolint:staticcheck // Ignoring SA1019 as these are valid in this test scenario
 	conn, conErr := grpc.Dial("localhost:13051", grpc.WithInsecure())
 	if conErr != nil {
 		t.Fatalf("Failed to dial server: %v", conErr)

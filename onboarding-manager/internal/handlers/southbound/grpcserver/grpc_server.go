@@ -741,7 +741,7 @@ func (s *InventoryClientService) checkNCreateInstance(ctx context.Context, tenan
 			Host: &computev1.HostResource{
 				ResourceId: host.ResourceId,
 			},
-			DesiredOs: &osv1.OperatingSystemResource{
+			Os: &osv1.OperatingSystemResource{
 				ResourceId: pconf.DefaultOs,
 			},
 			SecurityFeature: desiredSecurityFeature,

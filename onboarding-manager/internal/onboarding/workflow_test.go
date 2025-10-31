@@ -55,7 +55,7 @@ func TestCheckStatusOrRunProdWorkflow(t *testing.T) {
 					Host: &computev1.HostResource{
 						ResourceId: "host-084d9b08",
 					},
-					DesiredOs: &osv1.OperatingSystemResource{},
+					Os: &osv1.OperatingSystemResource{},
 				},
 			},
 			wantErr: true,
@@ -68,7 +68,7 @@ func TestCheckStatusOrRunProdWorkflow(t *testing.T) {
 					Host: &computev1.HostResource{
 						ResourceId: "host-084d9b08",
 					},
-					DesiredOs: &osv1.OperatingSystemResource{},
+					Os: &osv1.OperatingSystemResource{},
 				},
 			},
 			wantErr: true,
