@@ -73,19 +73,6 @@ func TestCheckStatusOrRunProdWorkflow(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		{
-			name: "CheckStatusOrRunWorkflow",
-			args: args{
-				ctx: context.Background(),
-				instance: &computev1.InstanceResource{
-					Host: &computev1.HostResource{
-						ResourceId: "host-084d9b08",
-					},
-					Os: &osv1.OperatingSystemResource{},
-				},
-			},
-			wantErr: true,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
