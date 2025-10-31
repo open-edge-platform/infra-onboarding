@@ -601,6 +601,7 @@ func (c *OnboardingInventoryClient) UpdateInstanceStatuses(ctx context.Context, 
 func (c *OnboardingInventoryClient) UpdateInstance(ctx context.Context, tenantID string, instanceID string,
 	currentState computev1.InstanceState,
 	provisioningStatus inv_status.ResourceStatus,
+	os *osv1.OperatingSystemResource,
 ) error {
 	updateInstance := &computev1.InstanceResource{
 		ResourceId:                  instanceID,
@@ -608,6 +609,7 @@ func (c *OnboardingInventoryClient) UpdateInstance(ctx context.Context, tenantID
 		ProvisioningStatus:          provisioningStatus.Status,
 		ProvisioningStatusIndicator: provisioningStatus.StatusIndicator,
 		ProvisioningStatusTimestamp: uint64(time.Now().Unix()), // #nosec G115
+		Os:                          os,
 	}
 
 	return c.UpdateInvResourceFields(ctx, tenantID, updateInstance, []string{
@@ -615,6 +617,7 @@ func (c *OnboardingInventoryClient) UpdateInstance(ctx context.Context, tenantID
 		computev1.InstanceResourceFieldProvisioningStatus,
 		computev1.InstanceResourceFieldProvisioningStatusIndicator,
 		computev1.InstanceResourceFieldProvisioningStatusTimestamp,
+		computev1.InstanceResourceEdgeOs,
 	})
 }
 
