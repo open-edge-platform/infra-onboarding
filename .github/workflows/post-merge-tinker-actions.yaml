@@ -21,7 +21,7 @@ jobs:
       contents: read
       security-events: write
       id-token: write
-    uses: open-edge-platform/orch-ci/.github/workflows/post-merge.yml@cf81328e4c9526e579181efb1f609af06071889b # v0.1.55
+    uses: open-edge-platform/orch-ci/.github/workflows/post-merge.yml@cf81328e4c9526e579181efb1f609af06071889b  # v0.1.55
     with:
       orch_ci_repo_ref: cf81328e4c9526e579181efb1f609af06071889b  # 0.1.55 Pin bootstrap action and scripts
       run_version_check: true
@@ -40,4 +40,3 @@ jobs:
       NO_AUTH_ECR_PUSH_USERNAME: ${{ secrets.NO_AUTH_ECR_PUSH_USERNAME }}
       NO_AUTH_ECR_PUSH_PASSWD: ${{ secrets.NO_AUTH_ECR_PUSH_PASSWD }}
       MSTEAMS_WEBHOOK: ${{ secrets.TEAMS_WEBHOOK }}
-
