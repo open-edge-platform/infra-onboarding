@@ -463,8 +463,8 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 
 	// Check status of Prod Workflow and initiate if it's not running.
 	if err := onboarding.CheckStatusOrRunProdWorkflow(ctx, deviceInfo, instance); err != nil {
-		zlogInst.InfraSec().Err(err).Msgf("Failed CheckStatusOrRunProdWorkflow - Instance %s with Host UUID %s",
-			instance.GetResourceId(), instance.GetHost().GetUuid())
+		zlogInst.InfraSec().Err(err).Msgf("Failed CheckStatusOrRunProdWorkflow - Instance %s with Host UUID %s and Error is %s",
+			instance.GetResourceId(), instance.GetHost().GetUuid(), err.Error())
 		return err
 	}
 

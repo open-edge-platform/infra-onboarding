@@ -21,3 +21,17 @@ CVE-2025-1125
 # Ignore the below CVEs FDE-DMV tinker action
 CVE-2025-32988 # gnutls: Vulnerability in GnuTLS otherName SAN export
 CVE-2025-32990 # gnutls: Vulnerability in GnuTLS certtool template parsing
+
+# Adding below CVE to ignore list
+# TODO Remove it once upgrade golang version to >=1.24.9
+CVE-2025-58187
+CVE-2025-47912
+CVE-2025-58183
+
+# FIXME CVEs related to http client, would be fixed before 3.2 release.
+# Lack of limit when parsing cookies can cause memory exhaustion in net/http
+CVE-2025-58186
+# Panic when validating certificates with DSA public keys in crypto/x509
+CVE-2025-58188
+# Excessive CPU consumption in Reader.ReadResponse in net/textproto
+CVE-2025-61724

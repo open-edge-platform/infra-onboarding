@@ -229,7 +229,7 @@ func tinkActionCexecImage(tinkerImageVersion string) string {
 func tinkActionDiskImage(tinkerImageVersion string) string {
 	iv := getTinkerImageVersion(tinkerImageVersion)
 	if v := os.Getenv(envTinkActionDiskImage); v != "" {
-		return fmt.Sprintf("%s:%s", v, iv)
+		return v
 	}
 	return fmt.Sprintf("%s:%s", defaultTinkActionDiskImage, iv)
 }
@@ -261,7 +261,7 @@ func tinkActionKernelupgradeImage(tinkerImageVersion string) string {
 func tinkActionQemuNbdImage2DiskImage(tinkerImageVersion string) string {
 	iv := getTinkerImageVersion(tinkerImageVersion)
 	if v := os.Getenv(envTinkActionQemuNbdImage2DiskImage); v != "" {
-		return fmt.Sprintf("%s:%s", v, iv)
+		return v
 	}
 	return fmt.Sprintf("%s:%s", defaultTinkActionQemuNbdImage2DiskImage, iv)
 }
@@ -334,6 +334,8 @@ func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.Dev
 		ENProxyHTTPS:   infraConfig.ENProxyHTTPS,
 		ENProxyNoProxy: infraConfig.ENProxyNoProxy,
 	}
+
+	inputs.DeviceInfo.OSTLSCACert = deviceInfo.OSTLSCACert
 
 	return structToMapStringString(inputs), nil
 }
