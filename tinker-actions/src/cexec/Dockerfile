@@ -5,7 +5,7 @@
 # Original file can be found at https://github.com/tinkerbell/actions.
 
 # Build cexec
-FROM golang:1.24.6-alpine3.21 AS cexec
+FROM golang:1.24.8-alpine3.22 AS cexec
 
 RUN apk add --no-cache git ca-certificates gcc linux-headers musl-dev
 COPY . /src/cexec
