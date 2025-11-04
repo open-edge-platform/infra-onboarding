@@ -20,18 +20,18 @@ func TestSBHandler_Stop(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to listen: %v", err)
 	}
-	//nosemgrep: go.grpc.security.grpc-server-insecure-connection.grpc-server-insecure-connection // test scenario
+	// nosemgrep: go.grpc.security.grpc-server-insecure-connection.grpc-server-insecure-connection // test scenario
 	grpcServer := grpc.NewServer()
-	//nolint:staticcheck // Ignoring SA2002 and SA1019 as these are valid in this test scenario.
+	// nolint:staticcheck // Ignoring SA2002 and SA1019 as these are valid in this test scenario.
 	go func() {
 		defer lis.Close()
 		if err := grpcServer.Serve(lis); err != nil {
-			//nolint:staticcheck,govet // Ignoring SA2002 and SA1019 as these are valid in this test scenario.
+			// nolint:staticcheck,govet // Ignoring SA2002 and SA1019 as these are valid in this test scenario.
 			t.Fatalf("Failed to serve: %v", err)
 		}
 	}()
-	//nosemgrep: go.grpc.security.grpc-client-insecure-connection.grpc-client-insecure-connection // test scenario
-	//nolint:staticcheck // Ignoring SA1019 as these are valid in this test scenario
+	// nosemgrep: go.grpc.security.grpc-client-insecure-connection.grpc-client-insecure-connection // test scenario
+	// nolint:staticcheck // Ignoring SA1019 as these are valid in this test scenario
 	conn, conErr := grpc.Dial("localhost:13051", grpc.WithInsecure())
 	if conErr != nil {
 		t.Fatalf("Failed to dial server: %v", conErr)
