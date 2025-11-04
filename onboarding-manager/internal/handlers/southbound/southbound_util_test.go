@@ -20,6 +20,8 @@ func TestSBHandler_Stop(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to listen: %v", err)
 	}
+	// nosemgrep: go.grpc.security.grpc-server-insecure-connection.grpc-server-insecure-connection
+	// Insecure gRPC server is acceptable in test scenarios - no security risk for local test environment
 	grpcServer := grpc.NewServer()
 	//nolint:staticcheck // Ignoring SA2002 and SA1019 as these are valid in this test scenario.
 	go func() {
@@ -29,6 +31,8 @@ func TestSBHandler_Stop(t *testing.T) {
 			t.Fatalf("Failed to serve: %v", err)
 		}
 	}()
+	// nosemgrep: go.grpc.security.grpc-client-insecure-connection.grpc-client-insecure-connection
+	// Insecure gRPC client connection is acceptable in test scenarios - no security risk for local test environment
 	//nolint:staticcheck // Ignoring SA1019 as these are valid in this test scenario
 	conn, conErr := grpc.Dial("localhost:13051", grpc.WithInsecure())
 	if conErr != nil {
