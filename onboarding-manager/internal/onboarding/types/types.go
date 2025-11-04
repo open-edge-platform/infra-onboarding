@@ -59,5 +59,7 @@ type (
 		IsStandaloneNode bool
 		// LVMSize is the size of LVM to be created on the host
 		UserLVMSize uint64
+		// TLS CA Certificate for HTTPS downloads from custom servers (e.g., nginx file server)
+		OSTLSCACert string
 	}
 )
