@@ -197,7 +197,7 @@ install_dependencies() {
         rm -f /etc/apt/sources.list.d/edge-node.list
         apt-get update
         echo -e "\e[32m[install git python3-pip]\e[0m"
-        sudo apt-get install -y curl wget unzip apparmor iptables lvm2 cryptsetup lxc mosquitto tpm2-abrmd tpm2-tools software-properties-common python3-venv git jq libpq5 python3-pip ca-certificates gnupg dmidecode libace-dev cmake python3 libglib2.0-dev libcurl4-openssl-dev libxerces-c-dev libnl-3-dev libnl-route-3-dev libxml2-dev libidn2-0-dev xsltproc docbook-xsl devscripts
+        sudo apt-get install -y curl wget unzip apparmor iptables lvm2 cryptsetup lxc tpm2-abrmd tpm2-tools software-properties-common python3-venv git jq libpq5 python3-pip ca-certificates gnupg dmidecode libace-dev cmake python3 libglib2.0-dev libcurl4-openssl-dev libxerces-c-dev libnl-3-dev libnl-route-3-dev libxml2-dev libidn2-0-dev xsltproc docbook-xsl devscripts
 
         # IMPORTANT: These hardcoded uid/gid must be aligned to that in Edge Microvisor Toolkit specified in cluster-agent.conf.
         # If additional new users or groups need to be created by DKAM, they MUST be added after the users and group created below to
