@@ -408,15 +408,7 @@ install_other_agents() {
         cluster-agent="$CLUSTER_AGENT_VERSION" \
         hardware-discovery-agent="$HARDWARE_DISCOVERY_AGENT_VERSION" \
         platform-observability-agent="$PLATFORM_OBSERVABILITY_AGENT_VERSION" \
-        trtl="$TRTL_VERSION" \
-        inbm-cloudadapter-agent="$INBM_CLOUDADAPTER_AGENT_VERSION" \
-        inbm-configuration-agent="$INBM_CONFIGURATION_AGENT_VERSION" \
-        inbm-dispatcher-agent="$INBM_DISPATCHER_AGENT_VERSION" \
-        inbm-telemetry-agent="$INBM_TELEMETRY_AGENT_VERSION" \
-        inbm-diagnostic-agent="$INBM_DIAGNOSTIC_AGENT_VERSION" \
-        mqtt="$MQTT_VERSION" \
-        tpm-provision="$TPM_PROVISION_VERSION" \
-        inbc-program="$INBC_PROGRAM_VERSION" \
+        in-band-manageability="$IN_BAND_MANAGEABILITY_VERSION" \
         platform-update-agent="$PLATFORM_UPDATE_AGENT_VERSION" \
         platform-telemetry-agent="$PLATFORM_TELEMETRY_AGENT_VERSION"
 
