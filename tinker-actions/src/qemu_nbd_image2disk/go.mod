@@ -3,7 +3,7 @@
 
 module qemu-nbd-img2disk
 
-go 1.24.8
+go 1.24.6
 
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible

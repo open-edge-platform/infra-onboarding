@@ -82,11 +82,13 @@ func CheckStatusOrRunProdWorkflow(ctx context.Context,
 		// 2) we already finished & removed workflow for Instance -> in this case we should never get here
 		runErr := runProdWorkflow(ctx, kubeClient, deviceInfo, instance)
 		if runErr != nil {
-			zlog.Error().Err(runErr).Msgf("Failed to run Prod workflow for host %s and Error is %s", deviceInfo.GUID, runErr.Error())
+			zlog.Error().Err(runErr).Msgf("Failed to run Prod workflow for host %s and Error is %s",
+				deviceInfo.GUID, runErr.Error())
 			return runErr
 		}
 
-		// runProdWorkflow returned no error, but we return an error here so that the upper layer can handle it appropriately
+		// runProdWorkflow returned no error, but we return an error here so that the
+		// upper layer can handle it appropriately
 		// and reconcile until the workflow is finished.
 		return inv_errors.Errorfr(inv_errors.Reason_OPERATION_IN_PROGRESS, "Prod workflow started, waiting for it to complete")
 	}
