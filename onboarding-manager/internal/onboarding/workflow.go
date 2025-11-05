@@ -82,16 +82,20 @@ func CheckStatusOrRunProdWorkflow(ctx context.Context,
 		// 2) we already finished & removed workflow for Instance -> in this case we should never get here
 		runErr := runProdWorkflow(ctx, kubeClient, deviceInfo, instance)
 		if runErr != nil {
+			zlog.Error().Err(runErr).Msgf("Failed to run Prod workflow for host %s and Error is %s",
+				deviceInfo.GUID, runErr.Error())
 			return runErr
 		}
 
-		// runProdWorkflow returned no error, but we return an error here so that the upper layer can handle it appropriately
+		// runProdWorkflow returned no error, but we return an error here so that the
+		// upper layer can handle it appropriately
 		// and reconcile until the workflow is finished.
 		return inv_errors.Errorfr(inv_errors.Reason_OPERATION_IN_PROGRESS, "Prod workflow started, waiting for it to complete")
 	}
 
 	if err != nil {
 		// some unexpected error, we fail to get workflow status
+		zlog.Error().Err(err).Msgf("Failed to run Prod workflow for host %s and Error is %s", deviceInfo.GUID, err.Error())
 		return err
 	}
 
@@ -116,6 +120,7 @@ func runProdWorkflow(
 	deviceInfo.AuthClientID = clientID
 	deviceInfo.AuthClientSecret = clientSecret
 	deviceInfo.TenantID = instance.GetTenantId()
+	deviceInfo.OSTLSCACert = instance.GetOs().GetTlsCaCert()
 
 	if instance.GetLocalaccount() != nil {
 		deviceInfo.LocalAccountUserName = instance.GetLocalaccount().Username
@@ -165,7 +170,7 @@ func getWorkflow(ctx context.Context, k8sCli client.Client, workflowName, hostRe
 	}
 
 	if clientErr != nil {
-		zlog.InfraSec().InfraErr(clientErr).Msgf("")
+		zlog.InfraSec().InfraErr(clientErr).Msgf("Failed to get workflow %s status. Error is %s", workflowName, clientErr.Error())
 		// some other error that may need retry
 		return nil, inv_errors.Errorf("Failed to get workflow %s status.", workflowName)
 	}
