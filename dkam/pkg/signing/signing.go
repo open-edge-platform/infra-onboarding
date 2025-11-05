@@ -107,6 +107,13 @@ func setupUOSDirectories() (string, error) {
 	uosDir := config.ScriptPath + "/uos"
 	buildScriptPath := config.DownloadPath + "/uos"
 	zlog.InfraSec().Info().Msgf("UOS dir %s", buildScriptPath)
+	if _, err := os.Stat(buildScriptPath); err == nil {
+		removeErr := os.RemoveAll(buildScriptPath)
+		if removeErr != nil {
+			zlog.InfraSec().Error().Err(removeErr).Msgf("Error removing existing directory: %v", removeErr)
+			return "", removeErr
+		}
+	}
 	mkdirErr := os.MkdirAll(buildScriptPath, fileMode)
 	if mkdirErr != nil {
 		zlog.InfraSec().Error().Err(mkdirErr).Msgf("Error creating directory: %v", mkdirErr)
