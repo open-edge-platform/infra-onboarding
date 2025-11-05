@@ -22,7 +22,7 @@ func TestSBHandler_Stop(t *testing.T) {
 	}
 	//osemgrep: go.grpc.security.grpc-server-insecure-connection.grpc-server-insecure-connection // test scenario
 	grpcServer := grpc.NewServer()
-	// nolint:staticcheck // Ignoring SA2002 and SA1019 as these are valid in this test scenario.
+	//nolint:staticcheck // Ignoring SA2002 and SA1019 as these are valid in this test scenario.
 	go func() {
 		defer lis.Close()
 		if err := grpcServer.Serve(lis); err != nil {
