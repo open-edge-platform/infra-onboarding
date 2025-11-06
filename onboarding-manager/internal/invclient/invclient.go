@@ -562,7 +562,6 @@ func (c *OnboardingInventoryClient) UpdateInstanceStatuses(ctx context.Context, 
 	instanceStatusDetail string,
 	provisioningStatus inv_status.ResourceStatus,
 	updateStatus inv_status.ResourceStatus,
-	updateStatusDetail string,
 	trustedAttestationStatus inv_status.ResourceStatus,
 ) error {
 	updateInstance := &computev1.InstanceResource{
@@ -576,7 +575,6 @@ func (c *OnboardingInventoryClient) UpdateInstanceStatuses(ctx context.Context, 
 		UpdateStatus:                      updateStatus.Status,
 		UpdateStatusIndicator:             updateStatus.StatusIndicator,
 		UpdateStatusTimestamp:             uint64(time.Now().Unix()), // #nosec G115
-		UpdateStatusDetail:                updateStatusDetail,
 		TrustedAttestationStatus:          trustedAttestationStatus.Status,
 		TrustedAttestationStatusIndicator: trustedAttestationStatus.StatusIndicator,
 		TrustedAttestationStatusTimestamp: uint64(time.Now().Unix()), // #nosec G115
@@ -593,7 +591,6 @@ func (c *OnboardingInventoryClient) UpdateInstanceStatuses(ctx context.Context, 
 		computev1.InstanceResourceFieldUpdateStatus,
 		computev1.InstanceResourceFieldUpdateStatusIndicator,
 		computev1.InstanceResourceFieldUpdateStatusTimestamp,
-		computev1.InstanceResourceFieldUpdateStatusDetail,
 		computev1.InstanceResourceFieldTrustedAttestationStatus,
 		computev1.InstanceResourceFieldTrustedAttestationStatusIndicator,
 		computev1.InstanceResourceFieldTrustedAttestationStatusTimestamp,
@@ -604,7 +601,7 @@ func (c *OnboardingInventoryClient) UpdateInstanceStatuses(ctx context.Context, 
 func (c *OnboardingInventoryClient) UpdateInstance(ctx context.Context, tenantID string, instanceID string,
 	currentState computev1.InstanceState,
 	provisioningStatus inv_status.ResourceStatus,
-	currentOS *osv1.OperatingSystemResource,
+	os *osv1.OperatingSystemResource,
 ) error {
 	updateInstance := &computev1.InstanceResource{
 		ResourceId:                  instanceID,
@@ -612,7 +609,7 @@ func (c *OnboardingInventoryClient) UpdateInstance(ctx context.Context, tenantID
 		ProvisioningStatus:          provisioningStatus.Status,
 		ProvisioningStatusIndicator: provisioningStatus.StatusIndicator,
 		ProvisioningStatusTimestamp: uint64(time.Now().Unix()), // #nosec G115
-		CurrentOs:                   currentOS,
+		Os:                          os,
 	}
 
 	return c.UpdateInvResourceFields(ctx, tenantID, updateInstance, []string{
@@ -620,7 +617,7 @@ func (c *OnboardingInventoryClient) UpdateInstance(ctx context.Context, tenantID
 		computev1.InstanceResourceFieldProvisioningStatus,
 		computev1.InstanceResourceFieldProvisioningStatusIndicator,
 		computev1.InstanceResourceFieldProvisioningStatusTimestamp,
-		computev1.InstanceResourceEdgeCurrentOs,
+		computev1.InstanceResourceEdgeOs,
 	})
 }
 

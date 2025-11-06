@@ -8,7 +8,7 @@ go 1.24.6
 require (
 	github.com/envoyproxy/protoc-gen-validate v1.2.1
 	github.com/google/uuid v1.6.0
-	github.com/open-edge-platform/infra-core/inventory/v2 v2.31.3
+	github.com/open-edge-platform/infra-core/inventory/v2 v2.32.0
 	github.com/open-edge-platform/infra-onboarding/dkam v1.32.6
 	github.com/open-edge-platform/orch-library/go v0.6.1
 	github.com/pkg/errors v0.9.1
