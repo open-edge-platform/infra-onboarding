@@ -332,10 +332,12 @@ func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.Dev
 	inputs.Env = Env{
 		ENProxyHTTP:    infraConfig.ENProxyHTTP,
 		ENProxyHTTPS:   infraConfig.ENProxyHTTPS,
-		ENProxyNoProxy: infraConfig.ENProxyNoProxy,
+		ENProxyNoProxy: infraConfig.ENProxyNoProxy + ",.devtools.intel.com",
 	}
 
 	inputs.DeviceInfo.OSTLSCACert = deviceInfo.OSTLSCACert
+	inputs.DeviceInfo.KernelVersion = deviceInfo.KernelVersion
+	inputs.DeviceInfo.SkipKernelUpgrade = deviceInfo.SkipKernelUpgrade
 
 	return structToMapStringString(inputs), nil
 }

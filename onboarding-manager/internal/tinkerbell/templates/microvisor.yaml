@@ -23,7 +23,11 @@ tasks:
         image: {{ .TinkerActionImageEraseNonRemovableDisk }}
         timeout: 560
       - name: "stream-os-image"
+{{- if contains ".img" .DeviceInfoOSImageURL }}
+        image: {{ .TinkerActionImageQemuNbdImage2Disk }}
+{{- else }}
         image: {{ .TinkerActionImageImage2Disk }}
+{{- end }}
         timeout: 9800
         pid: "host"
         environment:
