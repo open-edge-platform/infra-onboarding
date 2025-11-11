@@ -111,22 +111,21 @@ else
         echo "Something went wrong in $KERNEL_VERSION kernel installtion please check!!!"
         exit 1
     fi
-fi
+    update-initramfs -u -k all
 
-update-initramfs -u -k all
+    # Update the latest kernel version and kernel command line parameters in grub config file
+    sed -i 's/GRUB_DEFAULT=.*/GRUB_DEFAULT=1/g' etc/default/grub
+    sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX="quiet splash plymouth.enable=0 fastboot intel_iommu=on iommu=pt pci=realloc console=tty1 console=ttyS0,115200"/' etc/default/grub
 
-#update the latest kernel version and kernel command line parameters in grub config file
-sed -i 's/GRUB_DEFAULT=.*/GRUB_DEFAULT=1/g' etc/default/grub
-sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX="quiet splash plymouth.enable=0 fastboot intel_iommu=on iommu=pt pci=realloc console=tty1 console=ttyS0,115200"/' etc/default/grub
-
-update-grub
-if [ $? -eq 0 ]; then
-    echo "Successfuly Updated Kernel grub!!"
-else
-    echo "Something went wrong in updating the grub please check!!!"
-    exit 1
-fi
+    update-grub
+    if [ $? -eq 0 ]; then
+        echo "Successfully Updated Kernel grub!!"
+    else
+        echo "Something went wrong in updating the grub please check!!!"
+        exit 1
+    fi
 EOT
+fi
 
 mv /mnt/etc/apt/apt.conf.d/99needrestart.bkp /mnt/etc/apt/apt.conf.d/99needrestart
 
