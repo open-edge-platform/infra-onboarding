@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-FROM golang:1.24.6-alpine3.21 AS qemu-nbd-image2disk
+FROM golang:1.24.9-alpine3.21 AS qemu-nbd-image2disk
 RUN apk add --no-cache git ca-certificates gcc linux-headers musl-dev
 COPY . /src/qemu-nbd-image2disk
 COPY pkg /pkg/

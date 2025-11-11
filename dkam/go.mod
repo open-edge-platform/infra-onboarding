@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 module github.com/open-edge-platform/infra-onboarding/dkam
 
-go 1.24.6
+go 1.24.9
 
 require (
 	github.com/fsnotify/fsnotify v1.9.0
