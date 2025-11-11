@@ -44,12 +44,24 @@ fi
 
 mount $rootfs_part /mnt
 
-# Detect Ubuntu version and set KERNEL_VERSION accordingly
-if grep -q 'VERSION_ID="24.04"' "/mnt/etc/os-release"; then
-    KERNEL_VERSION="linux-image-6.11.0-17-generic"
-    mount $boot_part /mnt/boot
+if getenv KERNEL_VERSION; then
+    USER_KERNEL_VERSION=$(getenv KERNEL_VERSION)
+    echo "Using user provided kernel version: $USER_KERNEL_VERSION"
 else
-    KERNEL_VERSION="linux-image-6.8.0-52-generic"
+    USER_KERNEL_VERSION=""
+    echo "No kernel version provided, using default"
+fi
+if [ -n "$USER_KERNEL_VERSION" ]; then
+    KERNEL_VERSION=$USER_KERNEL_VERSION
+else
+    # Detect Ubuntu version and set KERNEL_VERSION accordingly
+    if grep -q 'VERSION_ID="24.04"' "/mnt/etc/os-release"; then
+        KERNEL_VERSION="linux-image-6.11.0-17-generic"
+        mount $boot_part /mnt/boot
+    else
+        # Ubuntu 22.04
+        KERNEL_VERSION="linux-image-6.8.0-52-generic"
+    fi
 fi
 if echo "$rootfs_part" | grep -q "rootfs_crypt"; then
     mount $boot_part /mnt/boot
@@ -70,28 +82,35 @@ mount --bind /etc/resolv.conf /mnt/etc/resolv.conf
 mv /mnt/etc/apt/apt.conf.d/99needrestart /mnt/etc/apt/apt.conf.d/99needrestart.bkp 
 
 
-#Get the Latest canonical 6.8 kerner version 
-export kernel_version=$(chroot /mnt /bin/bash -c "apt-cache search linux-image | grep $KERNEL_VERSION | tail -1 | awk '{print \$1}' | grep -oP '(?<=linux-image-)[0-9]+\.[0-9]+\.[0-9]+-[0-9]+'")
-
-if [ -z "kernel_version" ]; then
-    echo "Unable to get the kernel version $KERNEL_VERSION,please check !!!!"
-    exit 1
-fi
-
-#Enter into Ubuntu OS for the latest 6.x kernel instalation
-chroot /mnt /bin/bash <<EOT
-
-apt update
-
-#install 6.x kernel with all recommended packages and kernel modules
-apt install -y  linux-image-\${kernel_version}-generic linux-headers-\${kernel_version}-generic
-apt install -y --install-recommends linux-modules-extra-\${kernel_version}-generic
-
-if [ "$?" -eq 0 ]; then
-    echo "Successfully Installed $KERNEL_VERSION kernel"
+if [ -n "$SKIP_KERNEL_UPGRADE" = "true" ]; then
+    echo "Skipping the kernel upgrade as SKIP_KERNEL_UPGRADE is set"
 else
-    echo "Something went wrong in $KERNEL_VERSION kernel installtion please check!!!"
-    exit 1
+    # Update the canonical kernel version specified in KERNEL_VERSION variable
+    export kernel_version=$(chroot /mnt /bin/bash -c \
+        "apt-cache search linux-image | \
+        grep $KERNEL_VERSION | \
+        tail -1 | \
+        awk '{print \$1}' | \
+        grep -oP '(?<=linux-image-)[0-9]+\.[0-9]+\.[0-9]+-[0-9]+'")
+
+    if [ -z "$kernel_version" ]; then
+        echo "Unable to get the kernel version $KERNEL_VERSION,please check !!!!"
+        exit 1
+    fi
+    echo "Detected kernel version to install: $kernel_version"
+    #Enter into Ubuntu OS for the latest 6.x kernel instalation
+    chroot /mnt /bin/bash <<EOT
+    apt update
+    # Install 6.x kernel with all recommended packages and kernel modules
+    apt install -y  linux-image-\${kernel_version}-generic linux-headers-\${kernel_version}-generic
+    apt install -y --install-recommends linux-modules-extra-\${kernel_version}-generic
+
+    if [ "$?" -eq 0 ]; then
+        echo "Successfully Installed $KERNEL_VERSION kernel"
+    else
+        echo "Something went wrong in $KERNEL_VERSION kernel installtion please check!!!"
+        exit 1
+    fi
 fi
 
 update-initramfs -u -k all

@@ -23,7 +23,11 @@ tasks:
         image: {{ .TinkerActionImageEraseNonRemovableDisk }}
         timeout: 560
       - name: "stream-os-image"
+{{- if suffix ".img" .DeviceInfoOSImageURL }}
         image: {{ .TinkerActionImageQemuNbdImage2Disk }}
+{{- else }}
+        image: {{ .TinkerActionImageImage2Disk }}
+{{- end }}
         timeout: 9800
         volumes:
           - /run:/run:rw
@@ -32,6 +36,11 @@ tasks:
           - /dev/nbd0:/dev/nbd0:rw
         pid: "host"
         environment:
+{{- if suffix ".img" .DeviceInfoOSImageURL }}
+          COMPRESSED: false
+{{- else }}
+          COMPRESSED: true
+{{- end }}
           IMG_URL: {{ .DeviceInfoOSImageURL }}
           SHA256: {{ .DeviceInfoOsImageSHA256 }}
           TLS_CA_CERT: "{{ .DeviceInfoOSTLSCACert }}"
@@ -161,6 +170,12 @@ tasks:
         timeout: 9800
         environment:
           LVM_SIZE: {{ .DeviceInfoUserLVMSize }}
+{{- if ne .DeviceInfoKernelVersion "" }}
+          KERNEL_VERSION: {{ .DeviceInfoKernelVersion }}
+{{- end }}
+{{- if .DeviceInfoSkipKernelUpgrade }}
+          SKIP_KERNEL_UPGRADE: "true"
+{{- end }}
       - name: "efibootset-for-diskboot"
         image: {{ .TinkerActionImageEfibootset }}
         timeout: 560
