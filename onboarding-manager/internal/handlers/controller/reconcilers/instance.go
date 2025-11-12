@@ -352,6 +352,7 @@ func (ir *InstanceReconciler) reconcileInstance(
 	return request.Ack()
 }
 
+//nolint:cyclop // complexity is 12
 func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 ) (onboarding_types.DeviceInfo, error) {
 	host := instance.GetHost() // eager-loaded
