@@ -23,7 +23,7 @@ tasks:
         image: {{ .TinkerActionImageEraseNonRemovableDisk }}
         timeout: 560
       - name: "stream-os-image"
-{{- if contains ".img" .DeviceInfoOSImageURL }}
+{{- if hasSuffix ".img" .DeviceInfoOSImageURL }}
         image: {{ .TinkerActionImageQemuNbdImage2Disk }}
 {{- else }}
         image: {{ .TinkerActionImageImage2Disk }}
@@ -36,7 +36,7 @@ tasks:
           - /dev/nbd0:/dev/nbd0:rw
         pid: "host"
         environment:
-          COMPRESSED: {{ if hasSuffix ".img" .DeviceInfoOSImageURL }}false{{ else }}true{{ end }}
+          COMPRESSED: {{ if or (hasSuffix ".bz2" .DeviceInfoOSImageURL) (hasSuffix ".bzip2" .DeviceInfoOSImageURL) (hasSuffix ".gz" .DeviceInfoOSImageURL) (hasSuffix ".xz" .DeviceInfoOSImageURL) (hasSuffix ".zs" .DeviceInfoOSImageURL) (hasSuffix ".zst" .DeviceInfoOSImageURL) }}true{{ else }}false{{ end }}
           IMG_URL: {{ .DeviceInfoOSImageURL }}
           SHA256: {{ .DeviceInfoOsImageSHA256 }}
           TLS_CA_CERT: "{{ .DeviceInfoOSTLSCACert }}"

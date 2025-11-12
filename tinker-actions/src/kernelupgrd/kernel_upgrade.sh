@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
@@ -8,7 +8,6 @@ set -ex
 ##global variables#####
 os_disk=""
 part_number=""
-rootfs_partition_disk=""
 rootfs_part_number=1
 data_persistent_part=2
 swap_part=3
@@ -42,7 +41,7 @@ if [ "$?" -ne 0 ]; then
     exit 1
 fi
 
-mount $rootfs_part /mnt
+mount "$rootfs_part" /mnt
 
 if getenv KERNEL_VERSION; then
     USER_KERNEL_VERSION=$(getenv KERNEL_VERSION)
@@ -57,17 +56,17 @@ else
     # Detect Ubuntu version and set KERNEL_VERSION accordingly
     if grep -q 'VERSION_ID="24.04"' "/mnt/etc/os-release"; then
         KERNEL_VERSION="linux-image-6.11.0-17-generic"
-        mount $boot_part /mnt/boot
+        mount "$boot_part" /mnt/boot
     else
         # Ubuntu 22.04
         KERNEL_VERSION="linux-image-6.8.0-52-generic"
     fi
 fi
 if echo "$rootfs_part" | grep -q "rootfs_crypt"; then
-    mount $boot_part /mnt/boot
+    mount "$boot_part" /mnt/boot
 fi
 
-mount $efiboot_part /mnt/boot/efi
+mount "$efiboot_part" /mnt/boot/efi
 mount --bind /dev /mnt/dev
 mount --bind /dev/pts /mnt/dev/pts
 mount --bind /proc /mnt/proc
@@ -81,51 +80,47 @@ mount --bind /etc/resolv.conf /mnt/etc/resolv.conf
 
 mv /mnt/etc/apt/apt.conf.d/99needrestart /mnt/etc/apt/apt.conf.d/99needrestart.bkp 
 
+# Update the canonical kernel version specified in KERNEL_VERSION variable
+kernel_version=$(chroot /mnt /bin/bash -c \
+    "apt-cache search linux-image | \
+    grep $KERNEL_VERSION | \
+    tail -1 | \
+    awk '{print \$1}' | \
+    grep -oP '(?<=linux-image-)[0-9]+\.[0-9]+\.[0-9]+-[0-9]+'")
+export kernel_version
 
-if [ -n "$SKIP_KERNEL_UPGRADE" = "true" ]; then
-    echo "Skipping the kernel upgrade as SKIP_KERNEL_UPGRADE is set"
-else
-    # Update the canonical kernel version specified in KERNEL_VERSION variable
-    export kernel_version=$(chroot /mnt /bin/bash -c \
-        "apt-cache search linux-image | \
-        grep $KERNEL_VERSION | \
-        tail -1 | \
-        awk '{print \$1}' | \
-        grep -oP '(?<=linux-image-)[0-9]+\.[0-9]+\.[0-9]+-[0-9]+'")
-
-    if [ -z "$kernel_version" ]; then
-        echo "Unable to get the kernel version $KERNEL_VERSION,please check !!!!"
-        exit 1
-    fi
-    echo "Detected kernel version to install: $kernel_version"
-    #Enter into Ubuntu OS for the latest 6.x kernel instalation
-    chroot /mnt /bin/bash <<EOT
-    apt update
-    # Install 6.x kernel with all recommended packages and kernel modules
-    apt install -y  linux-image-\${kernel_version}-generic linux-headers-\${kernel_version}-generic
-    apt install -y --install-recommends linux-modules-extra-\${kernel_version}-generic
-
-    if [ "$?" -eq 0 ]; then
-        echo "Successfully Installed $KERNEL_VERSION kernel"
-    else
-        echo "Something went wrong in $KERNEL_VERSION kernel installtion please check!!!"
-        exit 1
-    fi
-    update-initramfs -u -k all
-
-    # Update the latest kernel version and kernel command line parameters in grub config file
-    sed -i 's/GRUB_DEFAULT=.*/GRUB_DEFAULT=1/g' etc/default/grub
-    sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX="quiet splash plymouth.enable=0 fastboot intel_iommu=on iommu=pt pci=realloc console=tty1 console=ttyS0,115200"/' etc/default/grub
-
-    update-grub
-    if [ $? -eq 0 ]; then
-        echo "Successfully Updated Kernel grub!!"
-    else
-        echo "Something went wrong in updating the grub please check!!!"
-        exit 1
-    fi
-EOT
+if [ -z "$kernel_version" ]; then
+    echo "Unable to get the kernel version $KERNEL_VERSION,please check !!!!"
+    exit 1
 fi
+echo "Detected kernel version to install: $kernel_version"
+#Enter into Ubuntu OS for the latest 6.x kernel instalation
+chroot /mnt /bin/bash <<EOT
+apt update
+# Install 6.x kernel with all recommended packages and kernel modules
+apt install -y  linux-image-\${kernel_version}-generic linux-headers-\${kernel_version}-generic
+apt install -y --install-recommends linux-modules-extra-\${kernel_version}-generic
+
+if [ "$?" -eq 0 ]; then
+    echo "Successfully Installed $KERNEL_VERSION kernel"
+else
+    echo "Something went wrong in $KERNEL_VERSION kernel installtion please check!!!"
+    exit 1
+fi
+update-initramfs -u -k all
+
+# Update the latest kernel version and kernel command line parameters in grub config file
+sed -i 's/GRUB_DEFAULT=.*/GRUB_DEFAULT=1/g' etc/default/grub
+sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX="quiet splash plymouth.enable=0 fastboot intel_iommu=on iommu=pt pci=realloc console=tty1 console=ttyS0,115200"/' etc/default/grub
+
+update-grub
+if [ $? -eq 0 ]; then
+    echo "Successfully Updated Kernel grub!!"
+else
+    echo "Something went wrong in updating the grub please check!!!"
+    exit 1
+fi
+EOT
 
 mv /mnt/etc/apt/apt.conf.d/99needrestart.bkp /mnt/etc/apt/apt.conf.d/99needrestart
 
@@ -395,6 +390,10 @@ fi
 ####@main#################
 
 #check if FDE Enabled on the disk
+skip_kernel_upgrade=false
+if [ -n "$SKIP_KERNEL_UPGRADE" ] && [ "$SKIP_KERNEL_UPGRADE" = "true" ]; then
+    skip_kernel_upgrade=true
+fi
 
 is_fde_set=$(blkid | grep -c "crypto_LUKS" || true)
 
@@ -405,8 +404,12 @@ if [ "$is_fde_set" -ge 1 ]; then
     rootfs_part="/dev/mapper/rootfs_crypt"
     efiboot_part=$(blkid | grep -i uefi | grep -i vfat |  awk -F: '{print $1}')
     boot_part=$(blkid | grep -i boot | grep -i ext4 |  awk -F: '{print $1}')
-
-    update_kernel_image $rootfs_part $efiboot_part $boot_part
+    if [ "$skip_kernel_upgrade" = true ]; then
+        echo "Skipping the kernel upgrade as SKIP_KERNEL_UPGRADE is set"
+    else
+        echo "Proceeding with the kernel upgrade"
+        update_kernel_image "$rootfs_part" "$efiboot_part" "$boot_part"
+    fi
 else
     echo "--------Starting the Partition creation on Ubuntu OS---------"
     #get the rootfs partition from the disk
@@ -441,7 +444,12 @@ else
 
     partition_disk "$ram_size" "$total_disk_size"
 
-    # Update the kernel 
-    update_kernel_image $rootfs_part $efiboot_part $boot_part
+    # Update the kernel
+    if [ "$skip_kernel_upgrade" = true ]; then
+        echo "Skipping the kernel upgrade as SKIP_KERNEL_UPGRADE is set"
+    else
+        echo "Proceeding with the kernel upgrade"
+        update_kernel_image "$rootfs_part" "$efiboot_part" "$boot_part"
+    fi
 
 fi
