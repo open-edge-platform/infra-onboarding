@@ -23,18 +23,14 @@ tasks:
         image: {{ .TinkerActionImageEraseNonRemovableDisk }}
         timeout: 560
       - name: "stream-os-image"
-{{- if contains ".img" .DeviceInfoOSImageURL }}
-        image: {{ .TinkerActionImageQemuNbdImage2Disk }}
-{{- else }}
         image: {{ .TinkerActionImageImage2Disk }}
-{{- end }}
         timeout: 9800
         pid: "host"
         environment:
           IMG_URL: {{ .DeviceInfoOSImageURL }}
           SHA256: {{ .DeviceInfoOsImageSHA256 }}
           TLS_CA_CERT: "{{ .DeviceInfoOSTLSCACert }}"
-          COMPRESSED: true
+          COMPRESSED: {{ if or (hasSuffix ".bz2" .DeviceInfoOSImageURL) (hasSuffix ".bzip2" .DeviceInfoOSImageURL) (hasSuffix ".gz" .DeviceInfoOSImageURL) (hasSuffix ".xz" .DeviceInfoOSImageURL) (hasSuffix ".zs" .DeviceInfoOSImageURL) (hasSuffix ".zst" .DeviceInfoOSImageURL) }}true{{ else }}false{{ end }}
           HTTP_PROXY: {{ .EnvENProxyHTTP }}
           HTTPS_PROXY: {{ .EnvENProxyHTTPS }}
           NO_PROXY: {{ .EnvENProxyNoProxy }}
