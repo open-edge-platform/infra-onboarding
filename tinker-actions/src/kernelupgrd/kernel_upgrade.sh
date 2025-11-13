@@ -404,12 +404,6 @@ if [ "$is_fde_set" -ge 1 ]; then
     rootfs_part="/dev/mapper/rootfs_crypt"
     efiboot_part=$(blkid | grep -i uefi | grep -i vfat |  awk -F: '{print $1}')
     boot_part=$(blkid | grep -i boot | grep -i ext4 |  awk -F: '{print $1}')
-    if [ "$skip_kernel_upgrade" = true ]; then
-        echo "Skipping the kernel upgrade as SKIP_KERNEL_UPGRADE is set"
-    else
-        echo "Proceeding with the kernel upgrade"
-        update_kernel_image "$rootfs_part" "$efiboot_part" "$boot_part"
-    fi
 else
     echo "--------Starting the Partition creation on Ubuntu OS---------"
     #get the rootfs partition from the disk
@@ -444,12 +438,11 @@ else
 
     partition_disk "$ram_size" "$total_disk_size"
 
-    # Update the kernel
-    if [ "$skip_kernel_upgrade" = true ]; then
-        echo "Skipping the kernel upgrade as SKIP_KERNEL_UPGRADE is set"
-    else
-        echo "Proceeding with the kernel upgrade"
-        update_kernel_image "$rootfs_part" "$efiboot_part" "$boot_part"
-    fi
-
 fi
+if [ "$skip_kernel_upgrade" = true ]; then
+    echo "Skipping the kernel upgrade as SKIP_KERNEL_UPGRADE is set"
+else
+    echo "Proceeding with the kernel upgrade"
+    update_kernel_image "$rootfs_part" "$efiboot_part" "$boot_part"
+fi
+echo "Kernel upgrade script completed successfully"
