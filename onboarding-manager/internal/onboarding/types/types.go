@@ -65,5 +65,7 @@ type (
 		KernelVersion string
 		// Skip kernel upgrade if set to true
 		SkipKernelUpgrade bool
+		// OSImageCompressed indicates whether the OS image is compressed
+		OSImageCompressed bool
 	}
 )

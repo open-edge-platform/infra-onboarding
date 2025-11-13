@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"google.golang.org/grpc/codes"
 	grpc_status "google.golang.org/grpc/status"
@@ -34,6 +35,11 @@ const (
 	instanceReconcilerLoggerName = "InstanceReconciler"
 
 	TinkStackURLTemplate = "http://%s/tink-stack"
+)
+
+var (
+	// Suported compression extensions for OS images
+	compressionExtensions = []string{".bz2", ".bzip2", ".gz", ".xz", ".zs", ".zst"}
 )
 
 // Misc variables.
@@ -420,6 +426,15 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		}
 	}
 
+	osImageCompressed := false
+	for _, ext := range compressionExtensions {
+		if strings.HasSuffix(osLocationURL, ext) {
+			zlogInst.Debug().Msgf("OS image URL %s indicates a compressed image", osLocationURL)
+			osImageCompressed = true
+			break
+		}
+	}
+
 	deviceInfo := onboarding_types.DeviceInfo{
 		GUID:              host.GetUuid(),
 		HwSerialID:        host.GetSerialNumber(),
@@ -437,6 +452,7 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		IsStandaloneNode:  isStandalone,
 		KernelVersion:     kernelVersion,
 		SkipKernelUpgrade: skipKernelUpgrade,
+		OSImageCompressed: osImageCompressed,
 	}
 
 	zlogInst.Debug().Msgf("DeviceInfo generated from OS resource (%s): %+v",
