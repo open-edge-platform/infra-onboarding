@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-FROM golang:1.24.6-alpine3.21 as readsbstat
+FROM golang:1.24.9-alpine3.21 as readsbstat
 
 COPY . /go/src/github.com/tinkerbell/hub/actions/read_sb_status
 WORKDIR /go/src/github.com/tinkerbell/hub/actions/read_sb_status
