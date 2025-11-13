@@ -3,7 +3,7 @@
 
 module github.com/open-edge-platform/infra-onboarding/tinker-actions/pkg/drive_detection
 
-go 1.24.6
+go 1.24.9
 
 require github.com/sirupsen/logrus v1.9.3
 
