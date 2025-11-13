@@ -41,7 +41,7 @@ if [ "$?" -ne 0 ]; then
     exit 1
 fi
 
-mount "$rootfs_part" /mnt
+mount $rootfs_part /mnt
 
 if getenv KERNEL_VERSION; then
     USER_KERNEL_VERSION=$(getenv KERNEL_VERSION)
@@ -56,17 +56,17 @@ else
     # Detect Ubuntu version and set KERNEL_VERSION accordingly
     if grep -q 'VERSION_ID="24.04"' "/mnt/etc/os-release"; then
         KERNEL_VERSION="linux-image-6.11.0-17-generic"
-        mount "$boot_part" /mnt/boot
+        mount $boot_part /mnt/boot
     else
         # Ubuntu 22.04
         KERNEL_VERSION="linux-image-6.8.0-52-generic"
     fi
 fi
 if echo "$rootfs_part" | grep -q "rootfs_crypt"; then
-    mount "$boot_part" /mnt/boot
+    mount $boot_part /mnt/boot
 fi
 
-mount "$efiboot_part" /mnt/boot/efi
+mount $efiboot_part /mnt/boot/efi
 mount --bind /dev /mnt/dev
 mount --bind /dev/pts /mnt/dev/pts
 mount --bind /proc /mnt/proc
@@ -443,6 +443,6 @@ if [ "$skip_kernel_upgrade" = true ]; then
     echo "Skipping the kernel upgrade as SKIP_KERNEL_UPGRADE is set"
 else
     echo "Proceeding with the kernel upgrade"
-    update_kernel_image "$rootfs_part" "$efiboot_part" "$boot_part"
+    update_kernel_image $rootfs_part $efiboot_part $boot_part
 fi
 echo "Kernel upgrade script completed successfully"
