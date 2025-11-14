@@ -139,6 +139,7 @@ func runProdWorkflow(
 		return inv_errors.Errorf("Cannot find Tinkerbell template for OS type %s", deviceInfo.OsType)
 	}
 
+	// Generate workflow inputs with context to support template functions like isQcow2
 	workflowHardwareMap, err := tinkerbell.GenerateWorkflowInputs(ctx, deviceInfo)
 	if err != nil {
 		return err

@@ -6,9 +6,13 @@ package tinkerbell
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
+	"time"
 
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/util/collections"
@@ -87,8 +91,7 @@ type TinkerActionImages struct {
 	Efibootset            string
 	KernelUpgrade         string
 	FdeDmv                string
-	QemuNbdImage2Disk     string
-	Image2Disk            string
+	StreamOSImageToDisk   string
 }
 
 type Env struct {
@@ -266,6 +269,58 @@ func tinkActionQemuNbdImage2DiskImage(tinkerImageVersion string) string {
 	return fmt.Sprintf("%s:%s", defaultTinkActionQemuNbdImage2DiskImage, iv)
 }
 
+// detectImageFormat probes the image URL to detect if it's qcow2 or raw format
+// Returns "qcow2" or "raw"
+func detectImageFormat(ctx context.Context, imageURL string) string {
+	// For .img files, probe the first few bytes to detect format
+	if strings.Contains(imageURL, ".img") {
+		client := &http.Client{
+			Timeout: 10 * time.Second,
+		}
+
+		req, err := http.NewRequestWithContext(ctx, "GET", imageURL, nil)
+		if err != nil {
+			return "raw" // default to raw on error
+		}
+
+		// Request only first 4 bytes to check magic number
+		req.Header.Set("Range", "bytes=0-3")
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return "raw" // default to raw on error
+		}
+		defer resp.Body.Close()
+
+		// Read first 4 bytes
+		header := make([]byte, 4)
+		n, err := io.ReadFull(resp.Body, header)
+		if err != nil || n < 4 {
+			return "raw" // default to raw on error
+		}
+
+		// QCOW2 magic number is 'Q', 'F', 'I', 0xfb (0x514649fb)
+		if header[0] == 'Q' && header[1] == 'F' && header[2] == 'I' && header[3] == 0xfb {
+			return "qcow2"
+		}
+
+		return "raw"
+	}
+
+	// For other extensions, default to raw
+	return "raw"
+}
+
+func getStreamOSToDiskTinkerActionImage(imageURL, tinkerImageVersion string) string {
+	imageFormat := detectImageFormat(context.Background(), imageURL)
+	if imageFormat == "qcow2" {
+		return tinkActionQemuNbdImage2DiskImage(tinkerImageVersion)
+	} else {
+		// raw image
+		return tinkActionDiskImage(tinkerImageVersion)
+	}
+}
+
 func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.DeviceInfo) (map[string]string, error) {
 	inputs := WorkflowInputs{
 		DeviceInfo: deviceInfo,
@@ -277,8 +332,7 @@ func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.Dev
 			Efibootset:            tinkActionEfibootImage(deviceInfo.TinkerVersion),
 			KernelUpgrade:         tinkActionKernelupgradeImage(deviceInfo.TinkerVersion),
 			FdeDmv:                tinkActionFdeDmvImage(deviceInfo.TinkerVersion),
-			QemuNbdImage2Disk:     tinkActionQemuNbdImage2DiskImage(deviceInfo.TinkerVersion),
-			Image2Disk:            tinkActionDiskImage(deviceInfo.TinkerVersion),
+			StreamOSImageToDisk:   getStreamOSToDiskTinkerActionImage(deviceInfo.OSImageURL, deviceInfo.TinkerVersion),
 		},
 	}
 
