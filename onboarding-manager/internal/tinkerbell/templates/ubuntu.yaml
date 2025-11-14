@@ -162,12 +162,8 @@ tasks:
         timeout: 9800
         environment:
           LVM_SIZE: {{ .DeviceInfoUserLVMSize }}
-{{- if ne .DeviceInfoKernelVersion "" }}
           KERNEL_VERSION: {{ .DeviceInfoKernelVersion }}
-{{- end }}
-{{- if .DeviceInfoSkipKernelUpgrade }}
-          SKIP_KERNEL_UPGRADE: "true"
-{{- end }}
+          SKIP_KERNEL_UPGRADE: {{ .DeviceInfoSkipKernelUpgrade }}
       - name: "efibootset-for-diskboot"
         image: {{ .TinkerActionImageEfibootset }}
         timeout: 560

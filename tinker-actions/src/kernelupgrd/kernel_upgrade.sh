@@ -43,15 +43,10 @@ fi
 
 mount $rootfs_part /mnt
 
-if getenv KERNEL_VERSION; then
-    USER_KERNEL_VERSION=$(getenv KERNEL_VERSION)
-    echo "Using user provided kernel version: $USER_KERNEL_VERSION"
-else
-    USER_KERNEL_VERSION=""
-    echo "No kernel version provided, using default"
-fi
+USER_KERNEL_VERSION="${KERNEL_VERSION:-}"
 if [ -n "$USER_KERNEL_VERSION" ]; then
     KERNEL_VERSION=$USER_KERNEL_VERSION
+    echo "Using user provided kernel version: $USER_KERNEL_VERSION"
 else
     # Detect Ubuntu version and set KERNEL_VERSION accordingly
     if grep -q 'VERSION_ID="24.04"' "/mnt/etc/os-release"; then
