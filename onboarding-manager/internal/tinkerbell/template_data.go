@@ -6,9 +6,14 @@ package tinkerbell
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
+	"time"
 
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/util/collections"
@@ -87,8 +92,7 @@ type TinkerActionImages struct {
 	Efibootset            string
 	KernelUpgrade         string
 	FdeDmv                string
-	QemuNbdImage2Disk     string
-	Image2Disk            string
+	StreamOSImageToDisk   string
 }
 
 type Env struct {
@@ -266,7 +270,93 @@ func tinkActionQemuNbdImage2DiskImage(tinkerImageVersion string) string {
 	return fmt.Sprintf("%s:%s", defaultTinkActionQemuNbdImage2DiskImage, iv)
 }
 
+// detectImageFormat probes the image URL to detect if it's qcow2 or raw format
+// Returns "qcow2" or "raw"
+func detectImageFormat(ctx context.Context, imageURL, httpProxy string) string {
+	// For .img files, probe the first few bytes to detect format
+	// Remove newline characters from imageURL
+	imageURL = strings.TrimSpace(imageURL)
+	zlog.Info().Msgf("Detecting image format for URL: %s", imageURL)
+	if strings.Contains(imageURL, ".img") {
+		transport := &http.Transport{}
+
+		// Configure proxy if provided
+		if strings.TrimSpace(httpProxy) != "" {
+			proxyURL, err := url.Parse(httpProxy)
+			if err != nil {
+				zlog.Warn().Err(err).Str("proxy", httpProxy).Msg("Failed to parse HTTP proxy URL, proceeding without proxy")
+			} else {
+				transport.Proxy = http.ProxyURL(proxyURL)
+				zlog.Info().Str("proxy", httpProxy).Msg("Using HTTP proxy for image format detection")
+			}
+		} else {
+			// Use proxy from environment variables if available
+			transport.Proxy = http.ProxyFromEnvironment
+		}
+
+		client := &http.Client{
+			Timeout:   30 * time.Second, // Increased timeout for slow connections
+			Transport: transport,
+		}
+
+		req, err := http.NewRequestWithContext(ctx, "GET", imageURL, nil)
+		if err != nil {
+			zlog.Warn().Err(err).Msg("Unable to create http request, defaulting to raw")
+			return "raw" // default to raw on error
+		}
+
+		// Request only first 4 bytes to check magic number
+		req.Header.Set("Range", "bytes=0-3")
+
+		resp, err := client.Do(req)
+		if err != nil {
+			zlog.Warn().Err(err).Str("url", imageURL).Msg("Unable to fetch image header, defaulting to raw")
+			return "raw" // default to raw on error
+		}
+		defer resp.Body.Close()
+
+		// Check if server supports range requests
+		if resp.StatusCode != http.StatusPartialContent && resp.StatusCode != http.StatusOK {
+			zlog.Warn().Int("status", resp.StatusCode).Msg("Unexpected HTTP status, defaulting to raw")
+			return "raw"
+		}
+
+		// Read first 4 bytes
+		header := make([]byte, 4)
+		n, err := io.ReadFull(resp.Body, header)
+		if err != nil || n < 4 {
+			zlog.Warn().Err(err).Int("bytes_read", n).Msg("Unable to read image header, defaulting to raw")
+			return "raw" // default to raw on error
+		}
+
+		// QCOW2 magic number is 'Q', 'F', 'I', 0xfb (0x514649fb)
+		if header[0] == 'Q' && header[1] == 'F' && header[2] == 'I' && header[3] == 0xfb {
+			zlog.Info().Msg("Detected qcow2 image format")
+			return "qcow2"
+		}
+
+		zlog.Info().Msg("Image format is not qcow2, defaulting to raw")
+		return "raw"
+	}
+
+	// For other extensions, default to raw
+	zlog.Info().Msg("Not a .img file, defaulting to raw format")
+	return "raw"
+}
+
+func getStreamOSToDiskTinkerActionImage(ctx context.Context, imageURL, httpProxy, tinkerImageVersion string) string {
+	imageFormat := detectImageFormat(ctx, imageURL, httpProxy)
+	zlog.Info().Msgf("Detected image format:%s for image URL: %s", imageFormat, imageURL)
+	if imageFormat == "qcow2" {
+		return tinkActionQemuNbdImage2DiskImage(tinkerImageVersion)
+	}
+	// raw image
+	return tinkActionDiskImage(tinkerImageVersion)
+}
+
 func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.DeviceInfo) (map[string]string, error) {
+	infraConfig := config.GetInfraConfig()
+
 	inputs := WorkflowInputs{
 		DeviceInfo: deviceInfo,
 		TinkerActionImage: TinkerActionImages{
@@ -277,12 +367,10 @@ func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.Dev
 			Efibootset:            tinkActionEfibootImage(deviceInfo.TinkerVersion),
 			KernelUpgrade:         tinkActionKernelupgradeImage(deviceInfo.TinkerVersion),
 			FdeDmv:                tinkActionFdeDmvImage(deviceInfo.TinkerVersion),
-			QemuNbdImage2Disk:     tinkActionQemuNbdImage2DiskImage(deviceInfo.TinkerVersion),
-			Image2Disk:            tinkActionDiskImage(deviceInfo.TinkerVersion),
+			StreamOSImageToDisk:   getStreamOSToDiskTinkerActionImage(ctx, deviceInfo.OSImageURL, infraConfig.ENProxyHTTP, deviceInfo.TinkerVersion),
 		},
 	}
 
-	infraConfig := config.GetInfraConfig()
 	opts := []cloudinit.Option{
 		cloudinit.WithOSType(deviceInfo.OsType),
 		cloudinit.WithTenantID(deviceInfo.TenantID),
@@ -332,10 +420,12 @@ func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.Dev
 	inputs.Env = Env{
 		ENProxyHTTP:    infraConfig.ENProxyHTTP,
 		ENProxyHTTPS:   infraConfig.ENProxyHTTPS,
-		ENProxyNoProxy: infraConfig.ENProxyNoProxy,
+		ENProxyNoProxy: infraConfig.ENProxyNoProxy + ",.devtools.intel.com",
 	}
 
 	inputs.DeviceInfo.OSTLSCACert = deviceInfo.OSTLSCACert
+	inputs.DeviceInfo.KernelVersion = deviceInfo.KernelVersion
+	inputs.DeviceInfo.SkipKernelUpgrade = deviceInfo.SkipKernelUpgrade
 
 	return structToMapStringString(inputs), nil
 }

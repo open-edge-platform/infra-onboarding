@@ -6,8 +6,10 @@ package reconcilers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"google.golang.org/grpc/codes"
 	grpc_status "google.golang.org/grpc/status"
@@ -33,6 +35,11 @@ const (
 	instanceReconcilerLoggerName = "InstanceReconciler"
 
 	TinkStackURLTemplate = "http://%s/tink-stack"
+)
+
+var (
+	// Suported compression extensions for OS images
+	compressionExtensions = []string{".bz2", ".bzip2", ".gz", ".xz", ".zs", ".zst"}
 )
 
 // Misc variables.
@@ -351,6 +358,7 @@ func (ir *InstanceReconciler) reconcileInstance(
 	return request.Ack()
 }
 
+//nolint:cyclop // complexity is 12
 func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 ) (onboarding_types.DeviceInfo, error) {
 	host := instance.GetHost() // eager-loaded
@@ -399,21 +407,52 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 		return onboarding_types.DeviceInfo{}, err
 	}
 
+	kernelVersion := ""
+	skipKernelUpgrade := false
+	if metadataJSON := os.GetMetadata(); metadataJSON != "" {
+		var metadata map[string]string
+		if err := json.Unmarshal([]byte(metadataJSON), &metadata); err == nil {
+			if kv, ok := metadata["kernelversion"]; ok {
+				kernelVersion = kv
+			}
+			if sku, ok := metadata["skipkernelupgrade"]; ok {
+				if sku == "true" {
+					skipKernelUpgrade = true
+				}
+			}
+		} else {
+			zlogInst.Info().Msgf("No Kernel version specified for instance %s "+
+				"and using the default kernel version", instance.GetResourceId())
+		}
+	}
+
+	osImageCompressed := false
+	for _, ext := range compressionExtensions {
+		if strings.HasSuffix(osLocationURL, ext) {
+			zlogInst.Debug().Msgf("OS image URL %s indicates a compressed image", osLocationURL)
+			osImageCompressed = true
+			break
+		}
+	}
+
 	deviceInfo := onboarding_types.DeviceInfo{
-		GUID:             host.GetUuid(),
-		HwSerialID:       host.GetSerialNumber(),
-		HwMacID:          host.GetPxeMac(),
-		HwIP:             host.GetBmcIp(),
-		UserLVMSize:      uint64(host.GetUserLvmSize()),
-		Hostname:         host.GetResourceId(), // we use resource ID as hostname to uniquely identify a host
-		SecurityFeature:  instance.GetSecurityFeature(),
-		OSImageURL:       osLocationURL,
-		OsImageSHA256:    os.GetSha256(),
-		TinkerVersion:    tinkerVersion,
-		OsType:           os.GetOsType(),
-		OSResourceID:     os.GetResourceId(),
-		PlatformBundle:   os.GetPlatformBundle(),
-		IsStandaloneNode: isStandalone,
+		GUID:              host.GetUuid(),
+		HwSerialID:        host.GetSerialNumber(),
+		HwMacID:           host.GetPxeMac(),
+		HwIP:              host.GetBmcIp(),
+		UserLVMSize:       uint64(host.GetUserLvmSize()),
+		Hostname:          host.GetResourceId(), // we use resource ID as hostname to uniquely identify a host
+		SecurityFeature:   instance.GetSecurityFeature(),
+		OSImageURL:        osLocationURL,
+		OsImageSHA256:     os.GetSha256(),
+		TinkerVersion:     tinkerVersion,
+		OsType:            os.GetOsType(),
+		OSResourceID:      os.GetResourceId(),
+		PlatformBundle:    os.GetPlatformBundle(),
+		IsStandaloneNode:  isStandalone,
+		KernelVersion:     kernelVersion,
+		SkipKernelUpgrade: skipKernelUpgrade,
+		OSImageCompressed: osImageCompressed,
 	}
 
 	zlogInst.Debug().Msgf("DeviceInfo generated from OS resource (%s): %+v",

@@ -8,7 +8,6 @@ set -ex
 ##global variables#####
 os_disk=""
 part_number=""
-rootfs_partition_disk=""
 rootfs_part_number=1
 data_persistent_part=2
 swap_part=3
@@ -44,12 +43,19 @@ fi
 
 mount $rootfs_part /mnt
 
-# Detect Ubuntu version and set KERNEL_VERSION accordingly
-if grep -q 'VERSION_ID="24.04"' "/mnt/etc/os-release"; then
-    KERNEL_VERSION="linux-image-6.11.0-17-generic"
-    mount $boot_part /mnt/boot
+USER_KERNEL_VERSION="${KERNEL_VERSION:-}"
+if [ -n "$USER_KERNEL_VERSION" ]; then
+    KERNEL_VERSION=$USER_KERNEL_VERSION
+    echo "Using user provided kernel version: $USER_KERNEL_VERSION"
 else
-    KERNEL_VERSION="linux-image-6.8.0-52-generic"
+    # Detect Ubuntu version and set KERNEL_VERSION accordingly
+    if grep -q 'VERSION_ID="24.04"' "/mnt/etc/os-release"; then
+        KERNEL_VERSION="linux-image-6.11.0-17-generic"
+        mount $boot_part /mnt/boot
+    else
+        # Ubuntu 22.04
+        KERNEL_VERSION="linux-image-6.8.0-52-generic"
+    fi
 fi
 if echo "$rootfs_part" | grep -q "rootfs_crypt"; then
     mount $boot_part /mnt/boot
@@ -69,21 +75,24 @@ mount --bind /etc/resolv.conf /mnt/etc/resolv.conf
 
 mv /mnt/etc/apt/apt.conf.d/99needrestart /mnt/etc/apt/apt.conf.d/99needrestart.bkp 
 
+# Update the canonical kernel version specified in KERNEL_VERSION variable
+kernel_version=$(chroot /mnt /bin/bash -c \
+    "apt-cache search linux-image | \
+    grep $KERNEL_VERSION | \
+    tail -1 | \
+    awk '{print \$1}' | \
+    grep -oP '(?<=linux-image-)[0-9]+\.[0-9]+\.[0-9]+-[0-9]+'")
+export kernel_version
 
-#Get the Latest canonical 6.8 kerner version 
-export kernel_version=$(chroot /mnt /bin/bash -c "apt-cache search linux-image | grep $KERNEL_VERSION | tail -1 | awk '{print \$1}' | grep -oP '(?<=linux-image-)[0-9]+\.[0-9]+\.[0-9]+-[0-9]+'")
-
-if [ -z "kernel_version" ]; then
+if [ -z "$kernel_version" ]; then
     echo "Unable to get the kernel version $KERNEL_VERSION,please check !!!!"
     exit 1
 fi
-
+echo "Detected kernel version to install: $kernel_version"
 #Enter into Ubuntu OS for the latest 6.x kernel instalation
 chroot /mnt /bin/bash <<EOT
-
 apt update
-
-#install 6.x kernel with all recommended packages and kernel modules
+# Install 6.x kernel with all recommended packages and kernel modules
 apt install -y  linux-image-\${kernel_version}-generic linux-headers-\${kernel_version}-generic
 apt install -y --install-recommends linux-modules-extra-\${kernel_version}-generic
 
@@ -93,16 +102,15 @@ else
     echo "Something went wrong in $KERNEL_VERSION kernel installtion please check!!!"
     exit 1
 fi
-
 update-initramfs -u -k all
 
-#update the latest kernel version and kernel command line parameters in grub config file
+# Update the latest kernel version and kernel command line parameters in grub config file
 sed -i 's/GRUB_DEFAULT=.*/GRUB_DEFAULT=1/g' etc/default/grub
 sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX="quiet splash plymouth.enable=0 fastboot intel_iommu=on iommu=pt pci=realloc console=tty1 console=ttyS0,115200"/' etc/default/grub
 
 update-grub
 if [ $? -eq 0 ]; then
-    echo "Successfuly Updated Kernel grub!!"
+    echo "Successfully Updated Kernel grub!!"
 else
     echo "Something went wrong in updating the grub please check!!!"
     exit 1
@@ -376,19 +384,17 @@ fi
 
 ####@main#################
 
-#check if FDE Enabled on the disk
+# Check if skip kernel upgrade flag is set
+skip_kernel_upgrade="${SKIP_KERNEL_UPGRADE:-false}"
 
+# Check if FDE Enabled on the disk
 is_fde_set=$(blkid | grep -c "crypto_LUKS" || true)
 
 if [ "$is_fde_set" -ge 1 ]; then
-
     echo "FDE Enabled on Disk!!!"
-
     rootfs_part="/dev/mapper/rootfs_crypt"
     efiboot_part=$(blkid | grep -i uefi | grep -i vfat |  awk -F: '{print $1}')
     boot_part=$(blkid | grep -i boot | grep -i ext4 |  awk -F: '{print $1}')
-
-    update_kernel_image $rootfs_part $efiboot_part $boot_part
 else
     echo "--------Starting the Partition creation on Ubuntu OS---------"
     #get the rootfs partition from the disk
@@ -422,8 +428,14 @@ else
     #partition the disk with swap and LVM
 
     partition_disk "$ram_size" "$total_disk_size"
-
-    # Update the kernel 
-    update_kernel_image $rootfs_part $efiboot_part $boot_part
-
 fi
+
+if [ "$skip_kernel_upgrade" = "true" ]; then
+    echo "Skipping the kernel upgrade as SKIP_KERNEL_UPGRADE is set to true"
+    exit 0
+else
+    echo "Proceeding with kernel upgrade"
+    update_kernel_image "$rootfs_part" "$efiboot_part" "$boot_part"
+fi
+
+echo "Kernel upgrade script completed successfully"
