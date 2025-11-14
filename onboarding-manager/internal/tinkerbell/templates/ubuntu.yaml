@@ -23,7 +23,7 @@ tasks:
         image: {{ .TinkerActionImageEraseNonRemovableDisk }}
         timeout: 560
       - name: "stream-os-image"
-        image: {{ .TinkerActionImageQemuNbdImage2Disk }}
+        image: {{ .TinkerActionImageStreamOSImageToDisk }}
         timeout: 9800
         volumes:
           - /run:/run:rw

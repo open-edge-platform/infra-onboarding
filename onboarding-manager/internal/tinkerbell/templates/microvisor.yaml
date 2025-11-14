@@ -23,7 +23,7 @@ tasks:
         image: {{ .TinkerActionImageEraseNonRemovableDisk }}
         timeout: 560
       - name: "stream-os-image"
-        image: {{ .TinkerActionImageImage2Disk }}
+        image: {{ .TinkerActionImageStreamOSImageToDisk }}
         timeout: 9800
         pid: "host"
         environment:
