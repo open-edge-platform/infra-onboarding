@@ -20,9 +20,9 @@ jobs:
       contents: read
       security-events: write
       id-token: write
-    uses: open-edge-platform/orch-ci/.github/workflows/post-merge.yml@fd197a9812cf15627d347eac2cf7b41fa8b1c3c2 # v0.1.60
+    uses: open-edge-platform/orch-ci/.github/workflows/post-merge.yml@50452868e1a7850e3f76e9247e6b6e436a9980e1  # v0.1.61
     with:
-      orch_ci_repo_ref: cf81328e4c9526e579181efb1f609af06071889b  # 0.1.55 Pin bootstrap action and scripts
+      orch_ci_repo_ref: 50452868e1a7850e3f76e9247e6b6e436a9980e1  # v0.1.61 Pin bootstrap action and scripts
       run_version_check: true
       run_dep_version_check: true
       run_build: true
@@ -34,8 +34,6 @@ jobs:
       project_folder: "hook-os"
     secrets:
       SYS_ORCH_GITHUB: ${{ secrets.SYS_ORCH_GITHUB }}
-      COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-      COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
       NO_AUTH_ECR_PUSH_USERNAME: ${{ secrets.NO_AUTH_ECR_PUSH_USERNAME }}
       NO_AUTH_ECR_PUSH_PASSWD: ${{ secrets.NO_AUTH_ECR_PUSH_PASSWD }}
       MSTEAMS_WEBHOOK: ${{ secrets.TEAMS_WEBHOOK }}
