@@ -5,6 +5,7 @@
 name: Post-Merge DKAM
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
