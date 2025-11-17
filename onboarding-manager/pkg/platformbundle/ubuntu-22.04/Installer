@@ -443,7 +443,11 @@ install_other_agents() {
         apt-get install -y -o Dpkg::Options::="--force-confnew" platform-manageability-agent="$PLATFORM_MANAGEABILITY_AGENT_VERSION"
       else
         sed -i '/serviceClients:/ s/platform-manageability-agent, *//; /serviceClients:/ s/, *platform-manageability-agent//; /serviceClients:/ s/platform-manageability-agent//' /etc/edge-node/node/confs/node-agent.yaml
-        systemctl restart node-agent
+        restart_needed=true
+      fi
+
+      if [ "$restart_needed" = true ]; then
+        systemctl restart node-agent.service
       fi
 
       # Remove docker. trtl and inbm-telemetry checks from INBM configuration file
