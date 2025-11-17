@@ -394,16 +394,10 @@ install_other_agents() {
   else
       restart_needed=false
 
-      echo "Install bare-metal agents..."
-      echo "cluster-agent cluster-agent/cluster-orchestrator-url string ${CLUSTER_ORCH_URL}" | debconf-set-selections
+      echo "Install bare-metal agents..."      
       echo "hardware-discovery-agent hardware-discovery-agent/onboarding.serviceURL string ${HW_INVENTORY_URL}" | debconf-set-selections
-      echo "platform-observability-agent platform-observability-agent/host string $OBSERVABILITY_LOGGING_URL" | debconf-set-selections
-      echo "platform-observability-agent platform-observability-agent/port string $OBSERVABILITY_LOGGING_PORT" | debconf-set-selections
-      echo "platform-observability-agent platform-observability-agent/metrics-host string $OBSERVABILITY_METRICS_URL" | debconf-set-selections
-      echo "platform-observability-agent platform-observability-agent/metrics-port string $OBSERVABILITY_METRICS_PORT" | debconf-set-selections
       echo "platform-update-agent platform-update-agent/enaDebURL string ${CADDY_APT_PROXY_URL}" | debconf-set-selections
       echo "platform-update-agent platform-update-agent/updateServiceURL string ${UPDATE_SERVICE_URL}" | debconf-set-selections
-      echo "telemetry-agent telemetry-agent/telemetrymanager.serviceURL string ${TELEMETRY_MANAGER_URL}" | debconf-set-selections
 
       apt-get update
 
@@ -418,10 +412,10 @@ install_other_agents() {
       apt-get install -y -o Dpkg::Options::="--force-confnew" \
         hardware-discovery-agent="$HARDWARE_DISCOVERY_AGENT_VERSION" \
         in-band-manageability="$IN_BAND_MANAGEABILITY_VERSION" \
-        platform-update-agent="$PLATFORM_UPDATE_AGENT_VERSION" \
-        platform-telemetry-agent="$PLATFORM_TELEMETRY_AGENT_VERSION"
+        platform-update-agent="$PLATFORM_UPDATE_AGENT_VERSION"
 
       if [ "$DISABLE_O11Y_PROFILE" = "true" ]; then
+        sed -i '/serviceClients:/ s/platform-telemetry-agent, *//; /serviceClients:/ s/, *platform-telemetry-agent//; /serviceClients:/ s/platform-telemetry-agent//' /etc/edge-node/node/confs/node-agent.yaml
         sed -i '/outboundClients:/ s/platform-observability-collector, *//; /outboundClients:/ s/, *platform-observability-collector//; /outboundClients:/ s/platform-observability-collector//' /etc/edge-node/node/confs/node-agent.yaml
         sed -i '/outboundClients:/ s/platform-observability-health-check, *//; /outboundClients:/ s/, *platform-observability-health-check//; /outboundClients:/ s/platform-observability-health-check//' /etc/edge-node/node/confs/node-agent.yaml
         sed -i '/outboundClients:/ s/platform-observability-logging, *//; /outboundClients:/ s/, *platform-observability-logging//; /outboundClients:/ s/platform-observability-logging//' /etc/edge-node/node/confs/node-agent.yaml
@@ -432,7 +426,10 @@ install_other_agents() {
         echo "platform-observability-agent platform-observability-agent/port string $OBSERVABILITY_LOGGING_PORT" | debconf-set-selections
         echo "platform-observability-agent platform-observability-agent/metrics-host string $OBSERVABILITY_METRICS_URL" | debconf-set-selections
         echo "platform-observability-agent platform-observability-agent/metrics-port string $OBSERVABILITY_METRICS_PORT" | debconf-set-selections
-        apt-get install -y -o Dpkg::Options::="--force-confnew"  platform-observability-agent="$PLATFORM_OBSERVABILITY_AGENT_VERSION"
+        echo "telemetry-agent telemetry-agent/telemetrymanager.serviceURL string ${TELEMETRY_MANAGER_URL}" | debconf-set-selections
+        apt-get install -y -o Dpkg::Options::="--force-confnew"  \
+          platform-observability-agent="$PLATFORM_OBSERVABILITY_AGENT_VERSION" \
+          platform-telemetry-agent="$PLATFORM_TELEMETRY_AGENT_VERSION"
       fi
 
       PMA_ENABLE=$(bash /opt/edge-node/node/check_vpro_ism_capable.sh)
