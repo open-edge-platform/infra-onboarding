@@ -432,7 +432,7 @@ install_other_agents() {
         echo "platform-observability-agent platform-observability-agent/port string $OBSERVABILITY_LOGGING_PORT" | debconf-set-selections
         echo "platform-observability-agent platform-observability-agent/metrics-host string $OBSERVABILITY_METRICS_URL" | debconf-set-selections
         echo "platform-observability-agent platform-observability-agent/metrics-port string $OBSERVABILITY_METRICS_PORT" | debconf-set-selections
-        apt-get install -y -o Dpkg::Options::="--force-confnew"  cluster-agent="$PLATFORM_OBSERVABILITY_AGENT_VERSION"
+        apt-get install -y -o Dpkg::Options::="--force-confnew"  platform-observability-agent="$PLATFORM_OBSERVABILITY_AGENT_VERSION"
       fi
 
       PMA_ENABLE=$(bash /opt/edge-node/node/check_vpro_ism_capable.sh)

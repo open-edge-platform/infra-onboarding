@@ -179,10 +179,6 @@ func GetCommonInfraTemplateVariables(infraConfig config.InfraConfig, osType osv1
 
 		// TODO: keeping OS-dependence for now, but will be removed once we reach the final solution
 		"IS_MICROVISOR": osType == osv1.OsType_OS_TYPE_IMMUTABLE,
-
-		"DISABLE_CO_PROFILE":   infraConfig.DisableCOProfile,
-		"DISABLE_AO_PROFILE":   infraConfig.DisableAOProfile,
-		"DISABLE_O11Y_PROFILE": infraConfig.DisableO11YProfile,
 	}
 
 	if osType == osv1.OsType_OS_TYPE_MUTABLE {
