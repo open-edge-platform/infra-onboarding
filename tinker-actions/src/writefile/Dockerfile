@@ -5,7 +5,7 @@
 # Original file can be found at https://github.com/tinkerbell/actions.
 
 # Build stream
-FROM golang:1.24.6-alpine3.21 AS writefile
+FROM golang:1.24.9-alpine3.21 AS writefile
 RUN apk add --no-cache git ca-certificates gcc musl-dev 
 COPY . /go/src/github.com/tinkerbell/hub/actions/writefile/v1
 COPY pkg /go/src/github.com/tinkerbell/hub/actions/pkg
