@@ -5,6 +5,7 @@
 name: Post-Merge Onboarding Manager
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
