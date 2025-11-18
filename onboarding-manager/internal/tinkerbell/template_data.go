@@ -82,6 +82,10 @@ const (
 	// Use a delimiter that is highly unlikely to appear in any config or script.
 	// ASCII Unit Separator (0x1F) is a safe choice.
 	customConfigDelimiter = "\x1F"
+	rawImageFormat        = "raw"
+	qcow2ImageFormat      = "qcow2"
+	httpTimeout           = 30 * time.Second
+	qcow2HeaderSize       = 4
 )
 
 type TinkerActionImages struct {
@@ -270,8 +274,10 @@ func tinkActionQemuNbdImage2DiskImage(tinkerImageVersion string) string {
 	return fmt.Sprintf("%s:%s", defaultTinkActionQemuNbdImage2DiskImage, iv)
 }
 
-// detectImageFormat probes the image URL to detect if it's qcow2 or raw format
-// Returns "qcow2" or "raw"
+// detectImageFormat probes the image URL to detect if it's qcow2 or raw format.
+// Returns "qcow2" or "raw".
+//
+//nolint:cyclop
 func detectImageFormat(ctx context.Context, imageURL, httpProxy string) string {
 	// For .img files, probe the first few bytes to detect format
 	// Remove newline characters from imageURL
@@ -295,53 +301,51 @@ func detectImageFormat(ctx context.Context, imageURL, httpProxy string) string {
 		}
 
 		client := &http.Client{
-			Timeout:   30 * time.Second, // Increased timeout for slow connections
+			Timeout:   httpTimeout, // Increased timeout for slow connections
 			Transport: transport,
 		}
 
-		req, err := http.NewRequestWithContext(ctx, "GET", imageURL, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, imageURL, nil)
 		if err != nil {
 			zlog.Warn().Err(err).Msg("Unable to create http request, defaulting to raw")
-			return "raw" // default to raw on error
+			return rawImageFormat // default to raw on error
 		}
-
-		// Request only first 4 bytes to check magic number
+		// Request only first qcow2HeaderSize bytes to check magic number
 		req.Header.Set("Range", "bytes=0-3")
 
 		resp, err := client.Do(req)
 		if err != nil {
 			zlog.Warn().Err(err).Str("url", imageURL).Msg("Unable to fetch image header, defaulting to raw")
-			return "raw" // default to raw on error
+			return rawImageFormat // default to raw on error
 		}
 		defer resp.Body.Close()
 
 		// Check if server supports range requests
 		if resp.StatusCode != http.StatusPartialContent && resp.StatusCode != http.StatusOK {
 			zlog.Warn().Int("status", resp.StatusCode).Msg("Unexpected HTTP status, defaulting to raw")
-			return "raw"
+			return rawImageFormat
 		}
-
-		// Read first 4 bytes
-		header := make([]byte, 4)
+		// Read first qcow2HeaderSize bytes
+		header := make([]byte, qcow2HeaderSize)
 		n, err := io.ReadFull(resp.Body, header)
-		if err != nil || n < 4 {
+		if err != nil || n < qcow2HeaderSize {
 			zlog.Warn().Err(err).Int("bytes_read", n).Msg("Unable to read image header, defaulting to raw")
-			return "raw" // default to raw on error
+			return rawImageFormat // default to raw on error
 		}
 
 		// QCOW2 magic number is 'Q', 'F', 'I', 0xfb (0x514649fb)
 		if header[0] == 'Q' && header[1] == 'F' && header[2] == 'I' && header[3] == 0xfb {
 			zlog.Info().Msg("Detected qcow2 image format")
-			return "qcow2"
+			return qcow2ImageFormat
 		}
 
 		zlog.Info().Msg("Image format is not qcow2, defaulting to raw")
-		return "raw"
+		return rawImageFormat
 	}
 
 	// For other extensions, default to raw
 	zlog.Info().Msg("Not a .img file, defaulting to raw format")
-	return "raw"
+	return rawImageFormat
 }
 
 func getStreamOSToDiskTinkerActionImage(ctx context.Context, imageURL, httpProxy, tinkerImageVersion string) string {
@@ -367,7 +371,8 @@ func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.Dev
 			Efibootset:            tinkActionEfibootImage(deviceInfo.TinkerVersion),
 			KernelUpgrade:         tinkActionKernelupgradeImage(deviceInfo.TinkerVersion),
 			FdeDmv:                tinkActionFdeDmvImage(deviceInfo.TinkerVersion),
-			StreamOSImageToDisk:   getStreamOSToDiskTinkerActionImage(ctx, deviceInfo.OSImageURL, infraConfig.ENProxyHTTP, deviceInfo.TinkerVersion),
+			StreamOSImageToDisk: getStreamOSToDiskTinkerActionImage(ctx, deviceInfo.OSImageURL,
+				infraConfig.ENProxyHTTP, deviceInfo.TinkerVersion),
 		},
 	}
 

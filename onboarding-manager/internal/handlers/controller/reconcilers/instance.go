@@ -38,7 +38,7 @@ const (
 )
 
 var (
-	// Suported compression extensions for OS images
+	// Supported compression extensions for OS images.
 	compressionExtensions = []string{".bz2", ".bzip2", ".gz", ".xz", ".zs", ".zst"}
 )
 
