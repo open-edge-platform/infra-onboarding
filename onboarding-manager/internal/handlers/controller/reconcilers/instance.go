@@ -37,14 +37,11 @@ const (
 	TinkStackURLTemplate = "http://%s/tink-stack"
 )
 
-var (
-	// Supported compression extensions for OS images.
-	compressionExtensions = []string{".bz2", ".bzip2", ".gz", ".xz", ".zs", ".zst"}
-)
-
 // Misc variables.
 var (
 	zlogInst = logging.GetLogger(instanceReconcilerLoggerName)
+	// Supported compression extensions for OS images.
+	compressionExtensions = []string{".bz2", ".bzip2", ".gz", ".xz", ".zs", ".zst"}
 )
 
 type InstanceReconciler struct {
@@ -409,20 +406,23 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 
 	kernelVersion := ""
 	skipKernelUpgrade := false
-	if metadataJSON := os.GetMetadata(); metadataJSON != "" {
-		var metadata map[string]string
-		if err := json.Unmarshal([]byte(metadataJSON), &metadata); err == nil {
-			if kv, ok := metadata["kernelversion"]; ok {
-				kernelVersion = kv
-			}
-			if sku, ok := metadata["skipkernelupgrade"]; ok {
-				if sku == "true" {
-					skipKernelUpgrade = true
+	// For immutable OS, check metadata for kernel version and skipKernelUpgrade flag
+	if os.GetOsType() == osv1.OsType_OS_TYPE_IMMUTABLE {
+		if metadataJSON := os.GetMetadata(); metadataJSON != "" {
+			var metadata map[string]string
+			if err := json.Unmarshal([]byte(metadataJSON), &metadata); err == nil {
+				if kv, ok := metadata["kernelversion"]; ok {
+					kernelVersion = kv
 				}
+				if sku, ok := metadata["skipkernelupgrade"]; ok {
+					if sku == "true" {
+						skipKernelUpgrade = true
+					}
+				}
+			} else {
+				zlogInst.Info().Msgf("No Kernel version specified for instance %s "+
+					"and using the default kernel version", instance.GetResourceId())
 			}
-		} else {
-			zlogInst.Info().Msgf("No Kernel version specified for instance %s "+
-				"and using the default kernel version", instance.GetResourceId())
 		}
 	}
 

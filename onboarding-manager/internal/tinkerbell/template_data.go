@@ -205,7 +205,7 @@ func getTinkerActionImage(imageName string) string {
 func tinkActionEraseNonRemovableDisk(tinkerImageVersion string) string {
 	iv := getTinkerImageVersion(tinkerImageVersion)
 	if v := os.Getenv(envTinkActionEraseNonRemovableDiskImage); v != "" {
-		return fmt.Sprintf("%s:%s", v, iv)
+		return v
 	}
 	return fmt.Sprintf("%s:%s", defaultEraseNonRemovableDiskImage, iv)
 }
@@ -213,7 +213,7 @@ func tinkActionEraseNonRemovableDisk(tinkerImageVersion string) string {
 func tinkActionSecurebootFlagReadImage(tinkerImageVersion string) string {
 	iv := getTinkerImageVersion(tinkerImageVersion)
 	if v := os.Getenv(envTinkActionSecurebootFlagReadImage); v != "" {
-		return fmt.Sprintf("%s:%s", v, iv)
+		return v
 	}
 	return fmt.Sprintf("%s:%s", defaultTinkActionSecurebootFlagReadImage, iv)
 }
@@ -221,7 +221,7 @@ func tinkActionSecurebootFlagReadImage(tinkerImageVersion string) string {
 func tinkActionWriteFileImage(tinkerImageVersion string) string {
 	iv := getTinkerImageVersion(tinkerImageVersion)
 	if v := os.Getenv(envTinkActionWriteFileImage); v != "" {
-		return fmt.Sprintf("%s:%s", v, iv)
+		return v
 	}
 	return fmt.Sprintf("%s:%s", defaultTinkActionWriteFileImage, iv)
 }
@@ -229,7 +229,7 @@ func tinkActionWriteFileImage(tinkerImageVersion string) string {
 func tinkActionCexecImage(tinkerImageVersion string) string {
 	iv := getTinkerImageVersion(tinkerImageVersion)
 	if v := os.Getenv(envTinkActionCexecImage); v != "" {
-		return fmt.Sprintf("%s:%s", v, iv)
+		return v
 	}
 	return fmt.Sprintf("%s:%s", defaultTinkActionCexecImage, iv)
 }
@@ -245,7 +245,7 @@ func tinkActionDiskImage(tinkerImageVersion string) string {
 func tinkActionEfibootImage(tinkerImageVersion string) string {
 	iv := getTinkerImageVersion(tinkerImageVersion)
 	if v := os.Getenv(envTinkActionEfibootImage); v != "" {
-		return fmt.Sprintf("%s:%s", v, iv)
+		return v
 	}
 	return fmt.Sprintf("%s:%s", defaultTinkActionEfibootImage, iv)
 }
@@ -253,7 +253,7 @@ func tinkActionEfibootImage(tinkerImageVersion string) string {
 func tinkActionFdeDmvImage(tinkerImageVersion string) string {
 	iv := getTinkerImageVersion(tinkerImageVersion)
 	if v := os.Getenv(envTinkActionFdeDmvImage); v != "" {
-		return fmt.Sprintf("%s:%s", v, iv)
+		return v
 	}
 	return fmt.Sprintf("%s:%s", defaultTinkActionFdeDmvImage, iv)
 }
@@ -261,7 +261,7 @@ func tinkActionFdeDmvImage(tinkerImageVersion string) string {
 func tinkActionKernelupgradeImage(tinkerImageVersion string) string {
 	iv := getTinkerImageVersion(tinkerImageVersion)
 	if v := os.Getenv(envTinkActionKerenlUpgradeImage); v != "" {
-		return fmt.Sprintf("%s:%s", v, iv)
+		return v
 	}
 	return fmt.Sprintf("%s:%s", defaultTinkActionKernelUpgradeImage, iv)
 }
@@ -277,7 +277,7 @@ func tinkActionQemuNbdImage2DiskImage(tinkerImageVersion string) string {
 // detectImageFormat probes the image URL to detect if it's qcow2 or raw format.
 // Returns "qcow2" or "raw".
 //
-//nolint:cyclop
+//nolint:cyclop // complexity is 12
 func detectImageFormat(ctx context.Context, imageURL, httpProxy string) string {
 	// For .img files, probe the first few bytes to detect format
 	// Remove newline characters from imageURL
@@ -425,7 +425,7 @@ func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.Dev
 	inputs.Env = Env{
 		ENProxyHTTP:    infraConfig.ENProxyHTTP,
 		ENProxyHTTPS:   infraConfig.ENProxyHTTPS,
-		ENProxyNoProxy: infraConfig.ENProxyNoProxy + ",.devtools.intel.com",
+		ENProxyNoProxy: infraConfig.ENProxyNoProxy,
 	}
 
 	inputs.DeviceInfo.OSTLSCACert = deviceInfo.OSTLSCACert
