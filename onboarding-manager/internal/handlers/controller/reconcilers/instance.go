@@ -292,8 +292,8 @@ func (ir *InstanceReconciler) reconcileInstance(
 	request rec_v2.Request[ReconcilerID],
 	instance *computev1.InstanceResource,
 ) rec_v2.Directive[ReconcilerID] {
-	zlogInst.Debug().Msgf("Reconciling Instance with ID %s, with Current state: %v, Desired state: %v",
-		instance.GetResourceId(), instance.GetCurrentState(), instance.GetDesiredState())
+	zlogInst.Info().Msgf("Reconciling Instance with ID %s, with Current state: %v, Desired state: %v, OS: %v",
+		instance.GetResourceId(), instance.GetCurrentState(), instance.GetDesiredState(), instance.GetOs())
 
 	if instance.GetDesiredState() == computev1.InstanceState_INSTANCE_STATE_RUNNING {
 		err := ir.tryProvisionInstance(ctx, instance)
