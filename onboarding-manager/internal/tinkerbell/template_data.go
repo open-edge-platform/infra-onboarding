@@ -305,7 +305,7 @@ func detectImageFormat(ctx context.Context, imageURL, httpProxy string) string {
 			Transport: transport,
 		}
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, imageURL, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, imageURL, http.NoBody)
 		if err != nil {
 			zlog.Warn().Err(err).Msg("Unable to create http request, defaulting to raw")
 			return rawImageFormat // default to raw on error
