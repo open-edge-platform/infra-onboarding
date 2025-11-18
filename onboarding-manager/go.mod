@@ -5,8 +5,6 @@ module github.com/open-edge-platform/infra-onboarding/onboarding-manager
 
 go 1.24.9
 
-toolchain go1.24.10
-
 require (
 	github.com/envoyproxy/protoc-gen-validate v1.2.1
 	github.com/google/uuid v1.6.0
