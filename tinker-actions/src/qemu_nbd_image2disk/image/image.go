@@ -7,20 +7,26 @@ package image
 
 import (
 	"bytes"
+	"compress/bzip2"
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
+	"github.com/klauspost/compress/zstd"
+	"github.com/ulikunitz/xz"
 	"golang.org/x/sys/unix"
 )
 
@@ -87,10 +93,24 @@ func Write(ctx context.Context, log *slog.Logger, sourceImage, destinationDevice
 
 	// Create a SHA-256 hash object
 	hash := sha256.New()
+	hashReader := io.TeeReader(resp.Body, hash)
+
+	var dataReader io.Reader = hashReader
+
+	// If compressed, wrap with appropriate decompressor
+	if compressed {
+		log.Info("Decompressing image", "format", filepath.Ext(sourceImage))
+		decompressor, err := createDecompressor(sourceImage, hashReader)
+		if err != nil {
+			return fmt.Errorf("failed to create decompressor: %w", err)
+		}
+		defer decompressor.Close()
+		dataReader = decompressor
+	}
 
 	// Copy the image to tmp file and simultaneously write to the hash
-	_, err = io.Copy(io.MultiWriter(tmpFile, hash), resp.Body)
-	if err != nil {
+	_, err = io.Copy(tmpFile, dataReader)
+	if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
 		return fmt.Errorf("failed to save the image to temp file: %v", err)
 	}
 	tmpFile.Close()
@@ -243,4 +263,38 @@ func validate_cert(log *slog.Logger, tlsCaCert []byte) (error, bool) {
 	log.Debug("Successfully validated certificate structure")
 
 	return nil, true
+}
+
+// createDecompressor returns a ReadCloser that decompresses data based on file extension
+func createDecompressor(imagePath string, reader io.Reader) (io.ReadCloser, error) {
+	ext := filepath.Ext(imagePath)
+
+	switch ext {
+	case ".bz2", ".bzip2":
+		return io.NopCloser(bzip2.NewReader(reader)), nil
+
+	case ".gz":
+		gzReader, err := gzip.NewReader(reader)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create gzip reader: %w", err)
+		}
+		return gzReader, nil
+
+	case ".xz":
+		xzReader, err := xz.NewReader(reader)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create xz reader: %w", err)
+		}
+		return io.NopCloser(xzReader), nil
+
+	case ".zs", ".zst":
+		zstdReader, err := zstd.NewReader(reader)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create zstd reader: %w", err)
+		}
+		return zstdReader.IOReadCloser(), nil
+
+	default:
+		return nil, fmt.Errorf("unsupported compression format: %s", ext)
+	}
 }
