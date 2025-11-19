@@ -78,6 +78,10 @@ type InfraConfig struct {
 	ENManifest ENManifest
 
 	EMBImageURL string `mapstructure:"embImageUrl"`
+
+	// Disable AOCO config
+	DisableCOProfile   bool `mapstructure:"disableCoProfile" yaml:"disableCoProfile"`
+	DisableO11YProfile bool `mapstructure:"disableO11yProfile" yaml:"disableO11yProfile"`
 }
 
 // Edge Node Agents release manifest.
