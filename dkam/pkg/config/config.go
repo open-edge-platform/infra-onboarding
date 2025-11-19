@@ -81,7 +81,6 @@ type InfraConfig struct {
 
 	// Disable AOCO config
 	DisableCOProfile   bool `mapstructure:"disableCoProfile" yaml:"disableCoProfile"`
-	DisableAOProfile   bool `mapstructure:"disableAoProfile" yaml:"disableAoProfile"`
 	DisableO11YProfile bool `mapstructure:"disableO11yProfile" yaml:"disableO11yProfile"`
 }
 
