@@ -13,7 +13,8 @@ on:
     paths:
       - "dkam/**"
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   post-merge-pipeline:
