@@ -11,7 +11,8 @@ on:
   schedule:
     - cron: '30 1 * * *'  # run every day
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   stale-auto-close:

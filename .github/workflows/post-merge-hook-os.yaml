@@ -13,7 +13,8 @@ on:
     paths:
       - "hook-os/**"
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   post-merge-pipeline:

@@ -13,7 +13,8 @@ on:
     paths:
       - "onboarding-manager/**"
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   post-merge-pipeline:
