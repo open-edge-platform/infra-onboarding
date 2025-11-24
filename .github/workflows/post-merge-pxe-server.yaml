@@ -6,14 +6,15 @@ name: Post-Merge PXE Server
 
 on:
   push:
-    workflow_dispatch:
     branches:
       - main
       - release-*
     paths:
       - "pxe-server/**"
+  workflow_dispatch:
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   post-merge-pipeline:
