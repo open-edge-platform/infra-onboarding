@@ -64,7 +64,7 @@ jobs:
       - run: |
           npm install -g \
           "markdownlint-cli@${{ env.MARKDOWNLINT_CLI_VER }}"
-      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
         id: setup_python
         with:
           python-version: '3.13'
@@ -87,7 +87,7 @@ jobs:
       fail-fast: false
       matrix:
         project_folder: ${{ fromJson(needs.pre-checks.outputs.filtered_projects) }}
-    uses: open-edge-platform/orch-ci/.github/workflows/pre-merge.yml@57ae89489027070792089531710c450af3b66c26  # 0.1.64
+    uses: open-edge-platform/orch-ci/.github/workflows/pre-merge.yml@79c4381f9be567527d8782094317b0282493e45a  # 0.1.66
     with:
       orch_ci_repo_ref: fd197a9812cf15627d347eac2cf7b41fa8b1c3c2  # 0.1.60
       run_version_check: true
