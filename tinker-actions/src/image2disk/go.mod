@@ -6,7 +6,7 @@
 
 module img2disk
 
-go 1.24.6
+go 1.24.9
 
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible

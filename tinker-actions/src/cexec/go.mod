@@ -5,7 +5,7 @@
 // Original file can be found at https://github.com/tinkerbell/actions.
 module cexec
 
-go 1.24.6
+go 1.24.9
 
 require (
 	github.com/open-edge-platform/infra-onboarding/tinker-actions/pkg/drive_detection v0.0.0
