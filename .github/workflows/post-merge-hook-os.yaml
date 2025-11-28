@@ -24,7 +24,6 @@ jobs:
       id-token: write
     uses: open-edge-platform/orch-ci/.github/workflows/post-merge.yml@592eafb7c84669729eb1adc610515bad61c3550b  # v0.1.67
     with:
-      orch_ci_repo_ref: da08a06e8aec70621e50ed4aec2fac5599839f45  # v0.1.62 Pin bootstrap action and scripts
       run_version_check: true
       run_dep_version_check: true
       run_build: true
