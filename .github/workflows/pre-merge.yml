@@ -28,7 +28,7 @@ jobs:
     env:
       GITHUB_ACTIONS: true
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
       - name: "Verify Branch Name"
@@ -55,7 +55,7 @@ jobs:
     if: ${{ contains(needs.pre-checks.outputs.other_changed_projects, '.github') || contains(needs.pre-checks.outputs.other_changed_projects, '.reuse') || contains(needs.pre-checks.outputs.other_changed_projects, 'LICENSES') || contains(needs.pre-checks.outputs.other_changed_projects, '""')}}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
       - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
@@ -89,7 +89,6 @@ jobs:
         project_folder: ${{ fromJson(needs.pre-checks.outputs.filtered_projects) }}
     uses: open-edge-platform/orch-ci/.github/workflows/pre-merge.yml@79c4381f9be567527d8782094317b0282493e45a  # 0.1.66
     with:
-      orch_ci_repo_ref: fd197a9812cf15627d347eac2cf7b41fa8b1c3c2  # 0.1.60
       run_version_check: true
       run_dep_version_check: true
       run_build: true
