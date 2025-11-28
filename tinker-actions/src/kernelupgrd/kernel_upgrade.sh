@@ -13,6 +13,108 @@ data_persistent_part=2
 swap_part=3
 ###############
 
+# Add labels to partitions if they don't exist
+add_partition_labels(){
+    echo "Checking and adding partition labels if needed..."
+
+    # Find EFI partition (FAT32, typically first partition on GPT)
+    efi_part=$(blkid -t TYPE=vfat | grep -E 'sd[a-z]+1|nvme[0-9]+n[0-9]+p1' | awk -F: '{print $1}' | head -n 1)
+
+    if [ -n "$efi_part" ]; then
+        current_label=$(blkid -s LABEL -o value "$efi_part" 2>/dev/null || echo "")
+        if [ -z "$current_label" ] || [ "$current_label" != "UEFI" ]; then
+            echo "Adding UEFI label to $efi_part"
+            fatlabel "$efi_part" UEFI
+            if [ $? -eq 0 ]; then
+                echo "Successfully labeled EFI partition as UEFI"
+            else
+                echo "Warning: Failed to label EFI partition"
+            fi
+        else
+            echo "EFI partition already has label: $current_label"
+        fi
+    fi
+
+    # Find rootfs partition (ext4, typically partition 2 or 3)
+    rootfs_part=$(blkid -t TYPE=ext4 | grep -v 'boot' | grep -E 'sd[a-z]+[0-9]+|nvme[0-9]+n[0-9]+p[0-9]+' | awk -F: '{print $1}' | head -n 1)
+
+    if [ -n "$rootfs_part" ]; then
+        current_label=$(blkid -s LABEL -o value "$rootfs_part" 2>/dev/null || echo "")
+        if [ -z "$current_label" ] || ! echo "$current_label" | grep -qE 'cloudimg-rootfs|rootfs'; then
+            echo "Adding cloudimg-rootfs label to $rootfs_part"
+            e2label "$rootfs_part" cloudimg-rootfs
+            if [ $? -eq 0 ]; then
+                echo "Successfully labeled rootfs partition as cloudimg-rootfs"
+            else
+                echo "Warning: Failed to label rootfs partition"
+            fi
+        else
+            echo "Rootfs partition already has label: $current_label"
+        fi
+    fi
+
+    # Find boot partition if it exists (ext4 with "boot" in label or specific size)
+    boot_part=$(blkid -t TYPE=ext4 | grep 'boot' | awk -F: '{print $1}' | head -n 1)
+
+    if [ -n "$boot_part" ]; then
+        current_label=$(blkid -s LABEL -o value "$boot_part" 2>/dev/null || echo "")
+        if [ -z "$current_label" ] || [ "$current_label" != "boot" ]; then
+            echo "Adding boot label to $boot_part"
+            e2label "$boot_part" boot
+            if [ $? -eq 0 ]; then
+                echo "Successfully labeled boot partition as boot"
+            else
+                echo "Warning: Failed to label boot partition"
+            fi
+        else
+            echo "Boot partition already has label: $current_label"
+        fi
+    fi
+
+    # Re-probe partitions to ensure kernel sees new labels
+    partprobe 2>/dev/null || true
+    blkid
+}
+
+# Identify partitions by filesystem type and characteristics
+identify_partitions(){
+    echo "Identifying partitions..."
+
+    # Find EFI partition (vfat, ~200-500MB, usually partition 1)
+    efiboot_part=$(blkid | grep -i vfat | grep -E 'sd[a-z]+1|nvme[0-9]+n[0-9]+p1' | awk -F: '{print $1}' | head -n 1)
+
+    if [ -z "$efiboot_part" ]; then
+        # Fallback: search by label
+        efiboot_part=$(blkid | grep -iE 'LABEL="(UEFI|EFI)"' | awk -F: '{print $1}' | head -n 1)
+    fi
+
+    # Find boot partition (ext4, ~1GB, contains "boot" in label or path)
+    boot_part=$(blkid | grep -i ext4 | grep -iE 'boot|LABEL="boot"' | awk -F: '{print $1}' | head -n 1)
+
+    # Find rootfs partition (ext4, largest partition, or has rootfs label)
+    rootfs_part=$(blkid | grep -iE 'cloudimg-rootfs|rootfs|LABEL="cloudimg-rootfs"' | grep -i ext4 | awk -F: '{print $1}' | head -n 1)
+
+    if [ -z "$rootfs_part" ]; then
+        # Fallback: find largest ext4 partition that's not boot
+        rootfs_part=$(blkid -t TYPE=ext4 | grep -v boot | awk -F: '{print $1}' | while read part; do
+            size=$(lsblk -b -n -o SIZE "$part" 2>/dev/null || echo 0)
+            echo "$size $part"
+        done | sort -rn | head -n 1 | awk '{print $2}')
+    fi
+
+    echo "Identified partitions:"
+    echo "  EFI: $efiboot_part"
+    echo "  Boot: $boot_part"
+    echo "  Rootfs: $rootfs_part"
+
+    if [ -z "$efiboot_part" ] || [ -z "$rootfs_part" ]; then
+        echo "Error: Could not identify required partitions"
+        exit 1
+    fi
+
+    export efiboot_part boot_part rootfs_part
+}
+
 # Sync file system
 function sync_file_system(){
 block_disk_part=$1
@@ -397,12 +499,19 @@ if [ "$is_fde_set" -ge 1 ]; then
     boot_part=$(blkid | grep -i boot | grep -i ext4 |  awk -F: '{print $1}')
 else
     echo "--------Starting the Partition creation on Ubuntu OS---------"
-    #get the rootfs partition from the disk
-
+    # Get the rootfs partition from the disk
     rootfs_part=$(blkid | grep -Ei 'cloudimg-rootfs|rootfs' | grep -i ext4 | awk -F: '{print $1}')
     efiboot_part=$(blkid | grep -i uefi | grep -i vfat |  awk -F: '{print $1}')
     boot_part=$(blkid | grep -i boot | grep -i ext4 |  awk -F: '{print $1}')
+    # if rootfs_part, efiboot_part, boot_part are empty if not found
+    if [ -z "$rootfs_part" ] || [ -z "$efiboot_part" ]; then
+        # Add labels first if they don't exist
+        add_partition_labels
 
+        # Identify partitions by label or filesystem characteristics
+        identify_partitions
+    fi
+    # Extract OS disk from rootfs partition
     if echo "$rootfs_part" | grep -q "nvme"; then
         os_disk=$(echo "$rootfs_part" | grep -oE 'nvme[0-9]+n[0-9]+' | head -n 1)
         part_number="p"
@@ -411,22 +520,19 @@ else
         part_number=""
     fi
 
-    echo "Partitions detected root:$rootfs_part efi:$efiboot_part"
+    echo "Partitions detected root:$rootfs_part efi:$efiboot_part boot:$boot_part"
 
-    #check the ram size && decide the sawp size based on it
-
+    # Check the ram size && decide the swap size based on it
     ram_size=$(free -g | grep -i mem | awk '{ print $2 }')
 
-    #get the total rootfs partition disk size
-
+    # Get the total rootfs partition disk size
     sgdisk -e "/dev/$os_disk"
     total_disk_size=$(parted -m "/dev/$os_disk" unit GB print | grep "^/dev" | cut -d: -f2 | sed 's/GB//')
     if echo "$total_disk_size" | grep -qE '^[0-9]+\.[0-9]+$'; then
         total_disk_size=$(printf "%.0f" "$total_disk_size")
     fi
 
-    #partition the disk with swap and LVM
-
+    # Partition the disk with swap and LVM
     partition_disk "$ram_size" "$total_disk_size"
 fi
 

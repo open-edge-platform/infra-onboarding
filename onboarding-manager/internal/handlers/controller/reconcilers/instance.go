@@ -406,8 +406,8 @@ func convertInstanceToDeviceInfo(instance *computev1.InstanceResource,
 
 	kernelVersion := ""
 	skipKernelUpgrade := false
-	// For immutable OS, check metadata for kernel version and skipKernelUpgrade flag
-	if os.GetOsType() == osv1.OsType_OS_TYPE_IMMUTABLE {
+	// For mutable OS, check metadata for kernel version and skipKernelUpgrade flag
+	if os.GetOsType() == osv1.OsType_OS_TYPE_MUTABLE {
 		if metadataJSON := os.GetMetadata(); metadataJSON != "" {
 			var metadata map[string]string
 			if err := json.Unmarshal([]byte(metadataJSON), &metadata); err == nil {
