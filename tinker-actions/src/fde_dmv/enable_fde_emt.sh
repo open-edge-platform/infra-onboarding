@@ -704,8 +704,15 @@ enable_luks(){
         e2fsck -fy  "${DEST_DISK}${suffix}${reserved_partition}"
         check_return_value $? "Failed to check fs on reserved partition"
 
+        sleep 10
         resize2fs -f "${DEST_DISK}${suffix}${reserved_partition}" $total_blocks
-        check_return_value $? "Failed to resize2fs reserved for rootfs"
+        if [ "$?" -eq 0 ]; then
+            echo "rootfs partition resized successfully"
+        else
+            echo "failed to resize the rootfs partition,please check!"
+            exit 1
+        fi
+        sleep 10
 
         #backup using dd
         dd if="${DEST_DISK}${suffix}${reserved_partition}" of=/dev/mapper/rootfs_crypt bs=4M count=$rootfs_dd_count status=progress
@@ -758,8 +765,15 @@ enable_luks(){
         e2fsck -fy  /dev/mapper/emt_persistent
         check_return_value $? "Failed to check fs on reserved for emt persistent"
 
+        sleep 10
         resize2fs -f /dev/mapper/emt_persistent $total_blocks
-        check_return_value $? "Failed to resize2fs reserved for rootfs"
+        if [ "$?" -eq 0 ]; then
+            echo "emt_persistent partition resized successfully"
+        else
+            echo "failed to resize the emt_persistent partition,please check!"
+            exit 1
+        fi
+        sleep 10
 
     fi
     ####

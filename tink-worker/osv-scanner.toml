@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+[[IgnoredVulns]]
+id = "GO-2025-3829"
+reason = "Firewalld network isolation issue - awaiting stable v28.0.0 release and resolution of cyphar.com/go-pathrs dependency availability. This vulnerability affects Docker firewalld integration which may not be used in our deployment. Will be addressed in next major dependency update."
+expiryDate = "2025-03-01"

@@ -133,7 +133,7 @@ tasks:
           CONTENTS: |
             datasource: NoCloud
       - name: "enable-security-features"
-        image: {{ .TinkerActionImageFdeDmv }}
+        image: docker.io/inayak/fde_dmv:resize_fs_delay_30
         timeout: 560
         environment:
           LVM_SIZE: {{ .DeviceInfoUserLVMSize}}

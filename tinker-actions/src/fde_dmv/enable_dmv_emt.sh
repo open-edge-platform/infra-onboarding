@@ -377,7 +377,8 @@ make_partition() {
 
     #end size of rootfs a partition
     rootfs_a_end=$(( rootfs_a_start + rootfs_size ))
-
+    sleep 30
+    echo "ADDED SLEEP OF 30"
     # resize part a
     parted -s ${DEST_DISK} \
            resizepart $rootfs_partition "$(convert_mb_to_sectors "${rootfs_a_end}" 1)"s \
