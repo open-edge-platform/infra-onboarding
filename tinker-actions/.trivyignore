@@ -35,3 +35,6 @@ CVE-2025-58186
 CVE-2025-58188
 # Excessive CPU consumption in Reader.ReadResponse in net/textproto
 CVE-2025-61724
+
+# Needs upgrade of golang to 1.24.11
+CVE-2025-61729
