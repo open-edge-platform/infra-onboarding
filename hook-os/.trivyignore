@@ -41,3 +41,9 @@ CVE-2023-45288
 
 # Vulnerabilities in device-discovery
 CVE-2025-6965
+
+# Found post 2025.2
+CVE-2025-32988
+CVE-2025-32990
+CVE-2025-8714
+CVE-2025-8715
