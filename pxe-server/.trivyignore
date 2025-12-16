@@ -5,3 +5,4 @@ CVE-2025-4802 # fix is not yet backported to Debian 12 (expected later in 2025)
 
 # Ignore specific vulnerabilities
 AVD-DS-0002 # dnsmasq must start as a root but will drop privileges
+
