@@ -155,5 +155,5 @@ CVE-2023-45288
 CVE-2024-37370
 
 
-# Needs upgrade of golang to 1.24.11
+# Needs golang upgrade to 1.24.11
 CVE-2025-61729
