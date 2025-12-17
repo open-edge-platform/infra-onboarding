@@ -22,7 +22,7 @@ jobs:
       contents: read
       security-events: write
       id-token: write
-    uses: open-edge-platform/orch-ci/.github/workflows/post-merge.yml@d3fe218ea585fb390b73c87f9e482cbe1424829c  # v0.1.68
+    uses: open-edge-platform/orch-ci/.github/workflows/post-merge.yml@20b640842e63420b06b3ff4247e608228e14c74a  # 2026.0.1
     with:
       orch_ci_repo_ref: d3fe218ea585fb390b73c87f9e482cbe1424829c # 0.1.68 Pin bootstrap action and scripts
       run_version_check: true
@@ -35,7 +35,7 @@ jobs:
       prefix_tag_separator: "/"
       project_folder: "dkam"
     secrets:
-      SYS_ORCH_GITHUB: ${{ secrets.SYS_ORCH_GITHUB }}
+      SYS_EMF_GH_TOKEN: ${{ secrets.SYS_EMF_GH_TOKEN }}
       NO_AUTH_ECR_PUSH_USERNAME: ${{ secrets.NO_AUTH_ECR_PUSH_USERNAME }}
       NO_AUTH_ECR_PUSH_PASSWD: ${{ secrets.NO_AUTH_ECR_PUSH_PASSWD }}
       MSTEAMS_WEBHOOK: ${{ secrets.TEAMS_WEBHOOK }}
