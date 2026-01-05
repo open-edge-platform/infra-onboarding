@@ -292,7 +292,7 @@ func deviceDiscovery(cfg *CLIConfig) error {
 		AuthScript:   ioOnboardingScript,
 	}
 	
-	// Create and execute orchestrator
-	orchestrator := mode.NewOrchestrator(orchestratorCfg)
+	// Create and execute onboarding orchestrator
+	orchestrator := mode.NewOnboardingOrchestrator(orchestratorCfg)
 	return orchestrator.Execute(ctx)
 }
