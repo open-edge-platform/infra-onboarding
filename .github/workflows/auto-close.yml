@@ -4,14 +4,15 @@
 
 name: Stale Pull Requests
 
-# After 30 days of no activity on a PR, the PR should be marked as stale,
-# a comment made on the PR informing the author of the new status,
+# After 30 days of no activity on a PR, the PR should be marked as stale, 
+# a comment made on the PR informing the author of the new status, 
 # and closed after 15 days if there is no further activity from the change to stale state.
 on:
   schedule:
     - cron: '30 1 * * *'  # run every day
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   stale-auto-close:
@@ -20,7 +21,7 @@ jobs:
       pull-requests: write
     runs-on: ${{ github.repository_owner == 'intel' && 'intel-ubuntu-latest' || 'ubuntu-latest' }}
     steps:
-      - uses: actions/stale@5f858e3efba33a5ca4407a664cc011ad407f2008  # v10.1.0
+      - uses: actions/stale@997185467fa4f803885201cee163a9f38240193d  # v10.1.1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           stale-pr-message: 'This pull request is stale because it has been open 30 days with no activity. Make a comment or update the PR to avoid closing PR after 15 days.'

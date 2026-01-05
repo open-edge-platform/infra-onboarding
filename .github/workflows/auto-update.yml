@@ -14,7 +14,8 @@ on:
       - main
       - release-*
 
-permissions: {}
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -29,11 +30,11 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           persist-credentials: false
 
       - name: Update pull requests
-        uses: open-edge-platform/orch-ci/.github/actions/pr_updater@fd197a9812cf15627d347eac2cf7b41fa8b1c3c2  # 0.1.60
+        uses: open-edge-platform/orch-ci/.github/actions/pr_updater@20b640842e63420b06b3ff4247e608228e14c74a  # 2026.0.1
         with:
-          github_token: ${{ secrets.SYS_ORCH_GITHUB }}
+          github_token: ${{ secrets.SYS_EMF_GH_TOKEN }}
