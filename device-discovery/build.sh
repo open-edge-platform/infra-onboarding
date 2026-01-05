@@ -25,4 +25,4 @@ export CGO_ENABLED
 export GOOS=linux
 export GOARCH=amd64
 
-go build -v -o app
+go build -v -o app ./cmd/device-discovery
