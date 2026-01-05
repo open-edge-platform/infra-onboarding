@@ -1,6 +1,11 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+# This Makefile builds the device-discovery binary and Docker image.
+# If your network is behind a proxy, please configure the proxy details:
+# export http_proxy=http://proxy-ip:proxy-port
+# export https_proxy=http://proxy-ip:proxy-port
+
 # Go parameters
 GOCMD=go
 GOBUILD=$(GOCMD) build
@@ -55,9 +60,8 @@ tidy: ## Tidy go modules
 	@echo "Tidying go modules..."
 	$(GOMOD) tidy
 
-docker-build: ## Build docker image
+docker-build: build ## Build docker image
 	@echo "Building Docker image..."
-	./build.sh
 	docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
 
 help: ## Display this help screen

@@ -23,11 +23,9 @@ Build the binary using:
 
 ```bash
 make build
-# or
-./build.sh
 ```
 
-The compiled binary will be named `app`.
+The compiled binary will be named `device-discovery`.
 
 ## Quick Start
 

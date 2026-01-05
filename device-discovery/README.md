@@ -23,7 +23,6 @@ device-discovery/
 │   │   └── parser.go              # Command line parser
 │   └── sysinfo/                   # System information
 │       └── sysinfo.go             # Hardware info retrieval (UUID, serial, IP, MAC)
-├── build.sh                       # Build script
 ├── client-auth.sh                 # Authentication helper script
 ├── Dockerfile                     # Container image definition
 ├── go.mod                         # Go module definition
@@ -58,12 +57,6 @@ make docker-build
 
 # View all available targets
 make help
-```
-
-### Using build.sh
-
-```bash
-./build.sh
 ```
 
 ### Manual build
@@ -251,8 +244,7 @@ make docker-build
 Or manually:
 
 ```bash
-./build.sh
-docker build -t device-discovery:latest .
+make docker-build
 ```
 
 ## License

@@ -17,7 +17,6 @@ device-discovery/
 ├── parse-kernel-arguments.go
 ├── system_info_by_mac.go
 ├── device-discovery_test.go
-├── build.sh
 ├── client-auth.sh
 ├── Dockerfile
 ├── go.mod
@@ -42,13 +41,12 @@ device-discovery/
 │   │   └── parser.go                  # Kernel argument parsing
 │   └── sysinfo/
 │       └── sysinfo.go                 # System information
-├── build.sh
 ├── client-auth.sh
 ├── Dockerfile
 ├── go.mod
 ├── go.sum
-├── Makefile                            # NEW: Build automation
-└── README.md                           # NEW: Documentation
+├── Makefile                            # Build automation
+└── README.md                           # Documentation
 ```
 
 ## File Mappings
@@ -78,7 +76,7 @@ Functions have been renamed to follow Go conventions:
 Constants moved from main package to `internal/config/` for better organization and reusability.
 
 ### 4. Build Process
-The build command has been updated:
+The build process now uses Make:
 
 **Old:**
 ```bash
@@ -87,7 +85,9 @@ go build -v -o app
 
 **New:**
 ```bash
-go build -v -o app ./cmd/device-discovery
+make build
+# or manually:
+go build -v -o device-discovery ./cmd/device-discovery
 ```
 
 ### 5. Import Paths
@@ -102,22 +102,14 @@ import (
 )
 ```
 
-## Updated Build Scripts
+## Updated Build Process
 
-### build.sh
-Updated to build from the new `cmd/device-discovery` path:
+### Makefile
+A comprehensive Makefile provides all build targets:
 ```bash
-go build -v -o app ./cmd/device-discovery
-```
-
-### Dockerfile
-No changes required - still copies the `app` binary built by `build.sh`.
-
-### NEW: Makefile
-A comprehensive Makefile has been added with targets:
-- `make build` - Build the application
-- `make test` - Run tests
-- `make clean` - Clean build artifacts
+make build          # Build the binary
+make test           # Run tests
+make clean          # Clean build artifacts
 - `make fmt` - Format code
 - `make vet` - Run go vet
 - `make tidy` - Tidy go modules
