@@ -4,11 +4,13 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,6 +21,9 @@ import (
 
 // CLIConfig holds all command-line configuration
 type CLIConfig struct {
+	// Config file
+	ConfigFile string
+
 	// Service endpoints
 	ObmSvc      string
 	ObsSvc      string
@@ -43,6 +48,13 @@ type CLIConfig struct {
 
 func main() {
 	cfg := parseCLIFlags()
+
+	// Load config file if specified
+	if cfg.ConfigFile != "" {
+		if err := loadConfigFile(cfg); err != nil {
+			log.Fatalf("Failed to load config file: %v", err)
+		}
+	}
 
 	// Validate required flags if not auto-detecting
 	if !cfg.AutoDetect {
@@ -92,6 +104,9 @@ func main() {
 func parseCLIFlags() *CLIConfig {
 	cfg := &CLIConfig{}
 
+	// Config file
+	flag.StringVar(&cfg.ConfigFile, "config", "", "Path to configuration file (optional)")
+
 	// Service endpoints
 	flag.StringVar(&cfg.ObmSvc, "obm-svc", "", "Onboarding manager service address (required)")
 	flag.StringVar(&cfg.ObsSvc, "obs-svc", "", "Onboarding stream service address (required)")
@@ -123,7 +138,7 @@ func parseCLIFlags() *CLIConfig {
 
 func printUsage() {
 	fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS]\n\n", os.Args[0])
-	fmt.Fprintf(os.Stderr, "Device Discovery CLI - Onboard devices to the infrastructure platform\n\n")
+	fmt.Fprintf(os.Stderr, "Device Discovery CLI - Onboard devices to the Open Edge platform\n\n")
 	fmt.Fprintf(os.Stderr, "Required Options:\n")
 	fmt.Fprintf(os.Stderr, "  -obm-svc string\n")
 	fmt.Fprintf(os.Stderr, "        Onboarding manager service address\n")
@@ -154,6 +169,11 @@ func printUsage() {
 	fmt.Fprintf(os.Stderr, "        Enable debug mode with timeout\n")
 	fmt.Fprintf(os.Stderr, "  -timeout duration\n")
 	fmt.Fprintf(os.Stderr, "        Timeout duration for debug mode (default: 5m0s)\n")
+	fmt.Fprintf(os.Stderr, "\nConfiguration File:\n")
+	fmt.Fprintf(os.Stderr, "  -config string\n")
+	fmt.Fprintf(os.Stderr, "        Path to configuration file (optional)\n")
+	fmt.Fprintf(os.Stderr, "        CLI flags override values from config file\n")
+	fmt.Fprintf(os.Stderr, "        Format: KEY=VALUE (one per line, # for comments)\n")
 	fmt.Fprintf(os.Stderr, "\nExamples:\n")
 	fmt.Fprintf(os.Stderr, "  # Auto-detect all system information\n")
 	fmt.Fprintf(os.Stderr, "  %s -obm-svc obm.example.com -obs-svc obs.example.com -obm-port 50051 \\\n", os.Args[0])
@@ -169,6 +189,142 @@ func printUsage() {
 	fmt.Fprintf(os.Stderr, "  %s -obm-svc obm.example.com -obs-svc obs.example.com -obm-port 50051 \\\n", os.Args[0])
 	fmt.Fprintf(os.Stderr, "    -keycloak-url keycloak.example.com -auto-detect -debug -timeout 10m \\\n")
 	fmt.Fprintf(os.Stderr, "    -extra-hosts \"registry.local:10.0.0.1,api.local:10.0.0.2\"\n\n")
+	fmt.Fprintf(os.Stderr, "  # Using a configuration file\n")
+	fmt.Fprintf(os.Stderr, "  %s -config /path/to/config.env\n\n", os.Args[0])
+	fmt.Fprintf(os.Stderr, "  # Override config file with CLI flags\n")
+	fmt.Fprintf(os.Stderr, "  %s -config /path/to/config.env -mac 00:11:22:33:44:55 -debug\n\n", os.Args[0])
+}
+
+// loadConfigFile loads configuration from a file.
+// CLI flags that are explicitly set will override values from the file.
+func loadConfigFile(cfg *CLIConfig) error {
+	file, err := os.Open(cfg.ConfigFile)
+	if err != nil {
+		return fmt.Errorf("failed to open config file: %w", err)
+	}
+	defer file.Close()
+
+	// Track which flags were explicitly set via CLI
+	explicitFlags := make(map[string]bool)
+	flag.Visit(func(f *flag.Flag) {
+		explicitFlags[f.Name] = true
+	})
+
+	// Parse config file
+	scanner := bufio.NewScanner(file)
+	lineNum := 0
+	for scanner.Scan() {
+		lineNum++
+		line := strings.TrimSpace(scanner.Text())
+
+		// Skip empty lines and comments
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		// Parse KEY=VALUE
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid format at line %d: %s (expected KEY=VALUE)", lineNum, line)
+		}
+
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+
+		// Remove quotes if present
+		value = strings.Trim(value, "\"'")
+
+		// Apply value only if the corresponding flag wasn't explicitly set
+		if err := applyConfigValue(cfg, key, value, explicitFlags); err != nil {
+			return fmt.Errorf("error at line %d: %w", lineNum, err)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("error reading config file: %w", err)
+	}
+
+	return nil
+}
+
+// applyConfigValue applies a configuration value to the appropriate field.
+func applyConfigValue(cfg *CLIConfig, key, value string, explicitFlags map[string]bool) error {
+	// Map config file keys to flag names
+	keyToFlag := map[string]string{
+		"OBM_SVC":      "obm-svc",
+		"OBS_SVC":      "obs-svc",
+		"OBM_PORT":     "obm-port",
+		"KEYCLOAK_URL": "keycloak-url",
+		"MAC":          "mac",
+		"SERIAL":       "serial",
+		"UUID":         "uuid",
+		"IP":           "ip",
+		"EXTRA_HOSTS":  "extra-hosts",
+		"CA_CERT":      "ca-cert",
+		"DEBUG":        "debug",
+		"TIMEOUT":      "timeout",
+		"AUTO_DETECT":  "auto-detect",
+	}
+
+	flagName, ok := keyToFlag[key]
+	if !ok {
+		// Unknown key - skip it with a warning
+		fmt.Fprintf(os.Stderr, "Warning: unknown config key '%s' (skipping)\n", key)
+		return nil
+	}
+
+	// Skip if this flag was explicitly set via CLI
+	if explicitFlags[flagName] {
+		return nil
+	}
+
+	// Apply the value
+	switch flagName {
+	case "obm-svc":
+		cfg.ObmSvc = value
+	case "obs-svc":
+		cfg.ObsSvc = value
+	case "obm-port":
+		port, err := strconv.Atoi(value)
+		if err != nil {
+			return fmt.Errorf("invalid port value '%s': %w", value, err)
+		}
+		cfg.ObmPort = port
+	case "keycloak-url":
+		cfg.KeycloakURL = value
+	case "mac":
+		cfg.MacAddr = value
+	case "serial":
+		cfg.SerialNumber = value
+	case "uuid":
+		cfg.UUID = value
+	case "ip":
+		cfg.IPAddress = value
+	case "extra-hosts":
+		cfg.ExtraHosts = value
+	case "ca-cert":
+		cfg.CaCertPath = value
+	case "debug":
+		debug, err := strconv.ParseBool(value)
+		if err != nil {
+			return fmt.Errorf("invalid debug value '%s': %w", value, err)
+		}
+		cfg.Debug = debug
+	case "timeout":
+		timeout, err := time.ParseDuration(value)
+		if err != nil {
+			return fmt.Errorf("invalid timeout value '%s': %w", value, err)
+		}
+		cfg.Timeout = timeout
+	case "auto-detect":
+		autoDetect, err := strconv.ParseBool(value)
+		if err != nil {
+			return fmt.Errorf("invalid auto-detect value '%s': %w", value, err)
+		}
+		cfg.AutoDetect = autoDetect
+	}
+
+	return nil
 }
 
 func validateConfig(cfg *CLIConfig) {
@@ -248,8 +404,10 @@ func autoDetectSystemInfo(cfg *CLIConfig) error {
 	}
 
 	// Auto-detect IP address from MAC if not provided
+	// Use retry logic to wait for DHCP assignment if needed
 	if cfg.IPAddress == "" && cfg.MacAddr != "" {
-		cfg.IPAddress, err = sysinfo.GetIPAddress(cfg.MacAddr)
+		fmt.Printf("Waiting for IP address assignment for MAC %s...\n", cfg.MacAddr)
+		cfg.IPAddress, err = sysinfo.GetIPAddressWithRetry(cfg.MacAddr, 10, 3*time.Second)
 		if err != nil {
 			return fmt.Errorf("failed to auto-detect IP address for MAC %s: %w", cfg.MacAddr, err)
 		}
