@@ -30,9 +30,6 @@ type OnboardingOrchestrator struct {
 
 	// Configuration
 	caCertPath string
-
-	// Embedded script for interactive mode
-	authScript []byte
 }
 
 // Config holds the configuration for the onboarding orchestrator.
@@ -46,7 +43,6 @@ type Config struct {
 	UUID         string
 	IPAddress    string
 	CaCertPath   string
-	AuthScript   []byte
 }
 
 // NewOnboardingOrchestrator creates a new onboarding orchestrator.
@@ -61,7 +57,6 @@ func NewOnboardingOrchestrator(cfg Config) *OnboardingOrchestrator {
 		uuid:         cfg.UUID,
 		ipAddress:    cfg.IPAddress,
 		caCertPath:   cfg.CaCertPath,
-		authScript:   cfg.AuthScript,
 	}
 }
 
@@ -151,7 +146,7 @@ func (o *OnboardingOrchestrator) executeInteractiveMode(ctx context.Context) err
 
 	// Step 1: Execute client-auth.sh for TTY-based authentication
 	fmt.Println("Executing client authentication script...")
-	if err := interactive.ExecuteAuthScript(ctx, o.authScript); err != nil {
+	if err := interactive.ExecuteAuthScript(ctx); err != nil {
 		return fmt.Errorf("failed to run client auth script: %w", err)
 	}
 

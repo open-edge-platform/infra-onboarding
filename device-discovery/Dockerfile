@@ -10,8 +10,8 @@ RUN apk update && apk upgrade openssl && apk add --no-cache dmidecode util-linux
 WORKDIR /app
 
 # Copy the Pre-built binary file from the local system to the Working Directory inside the container
-COPY device-discovery . 
-COPY client-auth.sh .
+# Note: client-auth.sh is now embedded in the binary via go:embed
+COPY device-discovery .
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

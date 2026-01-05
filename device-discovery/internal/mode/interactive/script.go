@@ -5,6 +5,7 @@ package interactive
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,10 +14,13 @@ import (
 	"device-discovery/internal/config"
 )
 
-// ExecuteAuthScript executes the client-auth.sh script for TTY-based authentication.
+//go:embed client-auth.sh
+var authScript []byte
+
+// ExecuteAuthScript executes the embedded client-auth.sh script for TTY-based authentication.
 // The script prompts the user for Keycloak credentials via TTY devices.
-func ExecuteAuthScript(ctx context.Context, scriptContent []byte) error {
-	tmpfile, err := config.CreateTempScript(scriptContent)
+func ExecuteAuthScript(ctx context.Context) error {
+	tmpfile, err := config.CreateTempScript(authScript)
 	if err != nil {
 		return fmt.Errorf("error creating temporary file: %w", err)
 	}

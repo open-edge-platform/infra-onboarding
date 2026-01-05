@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	_ "embed"
 	"flag"
 	"fmt"
 	"log"
@@ -18,58 +17,55 @@ import (
 	"device-discovery/internal/sysinfo"
 )
 
-//go:embed ../../client-auth.sh
-var ioOnboardingScript []byte
-
 // CLIConfig holds all command-line configuration
 type CLIConfig struct {
 	// Service endpoints
-	ObmSvc       string
-	ObsSvc       string
-	ObmPort      int
-	KeycloakURL  string
-	
+	ObmSvc      string
+	ObsSvc      string
+	ObmPort     int
+	KeycloakURL string
+
 	// Device information
 	MacAddr      string
 	SerialNumber string
 	UUID         string
 	IPAddress    string
-	
+
 	// Optional configuration
-	ExtraHosts   string
-	CaCertPath   string
-	Debug        bool
-	Timeout      time.Duration
-	
+	ExtraHosts string
+	CaCertPath string
+	Debug      bool
+	Timeout    time.Duration
+
 	// Auto-detection flags
-	AutoDetect   bool
+	AutoDetect bool
 }
 
 func main() {
 	cfg := parseCLIFlags()
-	
+
 	// Validate required flags if not auto-detecting
 	if !cfg.AutoDetect {
 		validateConfig(cfg)
 	}
-	
+
 	// Auto-detect system information if requested
 	if cfg.AutoDetect || cfg.MacAddr != "" {
 		if err := autoDetectSystemInfo(cfg); err != nil {
 			log.Fatalf("Failed to auto-detect system information: %v", err)
 		}
 	}
-	
+
 	// Validate after auto-detection
 	validateConfig(cfg)
-	
+
 	// Add extra hosts if provided
 	if cfg.ExtraHosts != "" {
 		if err := config.UpdateHosts(cfg.ExtraHosts); err != nil {
 			log.Fatalf("Failed to add extra hosts: %v", err)
 		}
 	}
-	
+
 	// Display configuration
 	fmt.Println("Device Discovery Configuration:")
 	fmt.Printf("  Onboarding Manager: %s:%d\n", cfg.ObmSvc, cfg.ObmPort)
@@ -84,44 +80,44 @@ func main() {
 		fmt.Printf("  Timeout: %v\n", cfg.Timeout)
 	}
 	fmt.Println()
-	
+
 	// Run device discovery
 	if err := deviceDiscovery(cfg); err != nil {
 		log.Fatalf("Device discovery failed: %v", err)
 	}
-	
+
 	fmt.Println("Device discovery completed successfully")
 }
 
 func parseCLIFlags() *CLIConfig {
 	cfg := &CLIConfig{}
-	
+
 	// Service endpoints
 	flag.StringVar(&cfg.ObmSvc, "obm-svc", "", "Onboarding manager service address (required)")
 	flag.StringVar(&cfg.ObsSvc, "obs-svc", "", "Onboarding stream service address (required)")
 	flag.IntVar(&cfg.ObmPort, "obm-port", 0, "Onboarding manager port (required)")
 	flag.StringVar(&cfg.KeycloakURL, "keycloak-url", "", "Keycloak authentication URL (required)")
-	
+
 	// Device information
 	flag.StringVar(&cfg.MacAddr, "mac", "", "MAC address of the device (required unless auto-detect)")
 	flag.StringVar(&cfg.SerialNumber, "serial", "", "Serial number (auto-detected if not provided)")
 	flag.StringVar(&cfg.UUID, "uuid", "", "System UUID (auto-detected if not provided)")
 	flag.StringVar(&cfg.IPAddress, "ip", "", "IP address (auto-detected from MAC if not provided)")
-	
+
 	// Optional configuration
 	flag.StringVar(&cfg.ExtraHosts, "extra-hosts", "", "Additional host mappings (comma-separated: 'host1:ip1,host2:ip2')")
 	flag.StringVar(&cfg.CaCertPath, "ca-cert", config.CaCertPath, "Path to CA certificate")
 	flag.BoolVar(&cfg.Debug, "debug", false, "Enable debug mode with timeout")
 	flag.DurationVar(&cfg.Timeout, "timeout", 5*time.Minute, "Timeout duration for debug mode")
-	
+
 	// Auto-detection
 	flag.BoolVar(&cfg.AutoDetect, "auto-detect", false, "Auto-detect all system information (MAC, serial, UUID, IP)")
-	
+
 	// Custom usage message
 	flag.Usage = printUsage
-	
+
 	flag.Parse()
-	
+
 	return cfg
 }
 
@@ -177,7 +173,7 @@ func printUsage() {
 
 func validateConfig(cfg *CLIConfig) {
 	var missing []string
-	
+
 	if cfg.ObmSvc == "" {
 		missing = append(missing, "-obm-svc")
 	}
@@ -202,18 +198,18 @@ func validateConfig(cfg *CLIConfig) {
 	if cfg.IPAddress == "" {
 		missing = append(missing, "-ip (or will be auto-detected from MAC)")
 	}
-	
+
 	// Only fail on critical missing fields
 	criticalMissing := []string{}
 	for _, field := range missing {
-		if !strings.Contains(field, "auto-detect") && 
-		   !strings.Contains(field, "-serial") && 
-		   !strings.Contains(field, "-uuid") && 
-		   !strings.Contains(field, "-ip") {
+		if !strings.Contains(field, "auto-detect") &&
+			!strings.Contains(field, "-serial") &&
+			!strings.Contains(field, "-uuid") &&
+			!strings.Contains(field, "-ip") {
 			criticalMissing = append(criticalMissing, field)
 		}
 	}
-	
+
 	if len(criticalMissing) > 0 {
 		fmt.Fprintf(os.Stderr, "Error: Missing required flags: %s\n\n", strings.Join(criticalMissing, ", "))
 		flag.Usage()
@@ -223,7 +219,7 @@ func validateConfig(cfg *CLIConfig) {
 
 func autoDetectSystemInfo(cfg *CLIConfig) error {
 	var err error
-	
+
 	// Auto-detect serial number if not provided
 	if cfg.SerialNumber == "" {
 		cfg.SerialNumber, err = sysinfo.GetSerialNumber()
@@ -232,7 +228,7 @@ func autoDetectSystemInfo(cfg *CLIConfig) error {
 		}
 		fmt.Printf("Auto-detected serial number: %s\n", cfg.SerialNumber)
 	}
-	
+
 	// Auto-detect UUID if not provided
 	if cfg.UUID == "" {
 		cfg.UUID, err = sysinfo.GetUUID()
@@ -241,7 +237,7 @@ func autoDetectSystemInfo(cfg *CLIConfig) error {
 		}
 		fmt.Printf("Auto-detected UUID: %s\n", cfg.UUID)
 	}
-	
+
 	// Auto-detect MAC address if auto-detect flag is set and MAC is empty
 	if cfg.AutoDetect && cfg.MacAddr == "" {
 		cfg.MacAddr, err = sysinfo.GetPrimaryMAC()
@@ -250,7 +246,7 @@ func autoDetectSystemInfo(cfg *CLIConfig) error {
 		}
 		fmt.Printf("Auto-detected MAC address: %s\n", cfg.MacAddr)
 	}
-	
+
 	// Auto-detect IP address from MAC if not provided
 	if cfg.IPAddress == "" && cfg.MacAddr != "" {
 		cfg.IPAddress, err = sysinfo.GetIPAddress(cfg.MacAddr)
@@ -259,14 +255,14 @@ func autoDetectSystemInfo(cfg *CLIConfig) error {
 		}
 		fmt.Printf("Auto-detected IP address: %s\n", cfg.IPAddress)
 	}
-	
+
 	return nil
 }
 
 func deviceDiscovery(cfg *CLIConfig) error {
 	var ctx context.Context
 	var cancel context.CancelFunc
-	
+
 	if cfg.Debug {
 		// Set a timeout when debug is true
 		ctx, cancel = context.WithTimeout(context.Background(), cfg.Timeout)
@@ -277,7 +273,7 @@ func deviceDiscovery(cfg *CLIConfig) error {
 		ctx = context.Background()
 		fmt.Println("Starting device onboarding without timeout")
 	}
-	
+
 	// Create orchestrator configuration
 	orchestratorCfg := mode.Config{
 		ObmSvc:       cfg.ObmSvc,
@@ -289,9 +285,8 @@ func deviceDiscovery(cfg *CLIConfig) error {
 		UUID:         cfg.UUID,
 		IPAddress:    cfg.IPAddress,
 		CaCertPath:   cfg.CaCertPath,
-		AuthScript:   ioOnboardingScript,
 	}
-	
+
 	// Create and execute onboarding orchestrator
 	orchestrator := mode.NewOnboardingOrchestrator(orchestratorCfg)
 	return orchestrator.Execute(ctx)
