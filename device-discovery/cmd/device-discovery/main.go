@@ -10,14 +10,11 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"strings"
-	"syscall"
 	"time"
 
-	"device-discovery/internal/auth"
-	"device-discovery/internal/client"
 	"device-discovery/internal/config"
+	"device-discovery/internal/mode"
 	"device-discovery/internal/sysinfo"
 )
 
@@ -274,134 +271,28 @@ func deviceDiscovery(cfg *CLIConfig) error {
 		// Set a timeout when debug is true
 		ctx, cancel = context.WithTimeout(context.Background(), cfg.Timeout)
 		defer cancel()
-		fmt.Println("Starting gRPC client with timeout")
+		fmt.Println("Starting device onboarding with timeout")
 	} else {
 		// Run without timeout if debug is false
 		ctx = context.Background()
-		fmt.Println("Starting gRPC client without timeout")
+		fmt.Println("Starting device onboarding without timeout")
 	}
 	
-	return grpcClient(ctx, cfg)
-}
-
-func grpcClient(ctx context.Context, cfg *CLIConfig) error {
-	// grpc streaming starts here
-	clientID, clientSecret, err, fallback := client.GrpcStreamClient(
-		ctx, 
-		cfg.ObsSvc, 
-		cfg.ObmPort, 
-		cfg.MacAddr, 
-		cfg.UUID, 
-		cfg.SerialNumber, 
-		cfg.IPAddress, 
-		cfg.CaCertPath,
-	)
-	
-	if fallback {
-		fmt.Printf("Executing fallback method because of error: %s\n", err)
-		
-		// Interactive client Auth starts here
-		if err := runClientAuthScript(ctx, ioOnboardingScript); err != nil {
-			return fmt.Errorf("failed to run client auth script: %w", err)
-		}
-		
-		// Retry logic for interactive onboarding
-		if err := client.RetryInfraOnboardNode(
-			ctx, 
-			cfg.ObmSvc, 
-			cfg.ObmPort, 
-			cfg.MacAddr, 
-			cfg.IPAddress, 
-			cfg.UUID, 
-			cfg.SerialNumber, 
-			cfg.CaCertPath, 
-			config.AccessTokenFile,
-		); err != nil {
-			return fmt.Errorf("max retries reached, could not complete device discovery: %w", err)
-		}
-		
-		fmt.Println("Device discovery completed (interactive mode)")
-		return nil
+	// Create orchestrator configuration
+	orchestratorCfg := mode.Config{
+		ObmSvc:       cfg.ObmSvc,
+		ObsSvc:       cfg.ObsSvc,
+		ObmPort:      cfg.ObmPort,
+		KeycloakURL:  cfg.KeycloakURL,
+		MacAddr:      cfg.MacAddr,
+		SerialNumber: cfg.SerialNumber,
+		UUID:         cfg.UUID,
+		IPAddress:    cfg.IPAddress,
+		CaCertPath:   cfg.CaCertPath,
+		AuthScript:   ioOnboardingScript,
 	}
 	
-	// Handle non-fallback case
-	if err != nil {
-		return fmt.Errorf("gRPC stream client error: %w", err)
-	}
-	
-	// Save client credentials
-	if err := config.SaveToFile(config.ClientIDPath, clientID); err != nil {
-		return fmt.Errorf("failed to save client ID: %w", err)
-	}
-	
-	if err := config.SaveToFile(config.ClientSecretPath, clientSecret); err != nil {
-		return fmt.Errorf("failed to save client secret: %w", err)
-	}
-	
-	fmt.Println("Credentials written successfully.")
-	
-	// Client authentication
-	idpAccessToken, releaseToken, err := auth.ClientAuth(
-		clientID, 
-		clientSecret, 
-		cfg.KeycloakURL, 
-		config.KeycloakTokenURL, 
-		config.ReleaseTokenURL, 
-		cfg.CaCertPath,
-	)
-	if err != nil {
-		return fmt.Errorf("authentication failed: %w", err)
-	}
-	
-	// Write access token
-	if err := config.SaveToFile(config.AccessTokenFile, idpAccessToken); err != nil {
-		return fmt.Errorf("failed to save access token: %w", err)
-	}
-	
-	// Write release token
-	if err := config.SaveToFile(config.ReleaseTokenFile, releaseToken); err != nil {
-		return fmt.Errorf("failed to save release token: %w", err)
-	}
-	
-	fmt.Println("Tokens saved successfully")
-	return nil
-}
-
-func runClientAuthScript(ctx context.Context, scriptContent []byte) error {
-	tmpfile, err := config.CreateTempScript(scriptContent)
-	if err != nil {
-		return fmt.Errorf("error creating temporary file: %w", err)
-	}
-	defer func() {
-		tmpfile.Close()
-		os.Remove(tmpfile.Name())
-	}()
-
-	cmd := exec.CommandContext(ctx, "/bin/sh", tmpfile.Name())
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("error starting command: %w", err)
-	}
-
-	done := make(chan error, 1)
-	go func() {
-		done <- cmd.Wait()
-	}()
-
-	select {
-	case err := <-done:
-		if err != nil {
-			if exitErr, ok := err.(*exec.ExitError); ok {
-				fmt.Printf("STDERR:\n%s\n", string(exitErr.Stderr))
-			}
-			return fmt.Errorf("error executing command: %w", err)
-		}
-		fmt.Println("client-auth.sh executed successfully")
-		return nil
-	case <-ctx.Done():
-		fmt.Println("client-auth.sh timed out, killing process group...")
-		syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) // Kill the process group
-		return fmt.Errorf("client-auth.sh timed out: %w", ctx.Err())
-	}
+	// Create and execute orchestrator
+	orchestrator := mode.NewOrchestrator(orchestratorCfg)
+	return orchestrator.Execute(ctx)
 }
