@@ -34,7 +34,7 @@ The compiled binary will be named `app`.
 ### Minimal Command (Auto-detect system info)
 
 ```bash
-./app -obm-svc obm.example.com \
+./device-discovery -obm-svc obm.example.com \
       -obs-svc obs.example.com \
       -obm-port 50051 \
       -keycloak-url keycloak.example.com \
@@ -44,7 +44,7 @@ The compiled binary will be named `app`.
 ### Specify MAC, Auto-detect Rest
 
 ```bash
-./app -obm-svc obm.example.com \
+./device-discovery -obm-svc obm.example.com \
       -obs-svc obs.example.com \
       -obm-port 50051 \
       -keycloak-url keycloak.example.com \
@@ -93,7 +93,7 @@ The compiled binary will be named `app`.
 Automatically detect all system information:
 
 ```bash
-./app \
+./device-discovery \
   -obm-svc onboarding-manager.example.com \
   -obs-svc onboarding-stream.example.com \
   -obm-port 50051 \
@@ -123,7 +123,7 @@ Device Discovery Configuration:
 Provide MAC address, auto-detect other information:
 
 ```bash
-./app \
+./device-discovery \
   -obm-svc onboarding-manager.example.com \
   -obs-svc onboarding-stream.example.com \
   -obm-port 50051 \
@@ -136,7 +136,7 @@ Provide MAC address, auto-detect other information:
 Specify all device information manually:
 
 ```bash
-./app \
+./device-discovery \
   -obm-svc onboarding-manager.example.com \
   -obs-svc onboarding-stream.example.com \
   -obm-port 50051 \
@@ -152,7 +152,7 @@ Specify all device information manually:
 Add custom host mappings to /etc/hosts:
 
 ```bash
-./app \
+./device-discovery \
   -obm-svc onboarding-manager.example.com \
   -obs-svc onboarding-stream.example.com \
   -obm-port 50051 \
@@ -166,7 +166,7 @@ Add custom host mappings to /etc/hosts:
 Enable debug mode with a 10-minute timeout:
 
 ```bash
-./app \
+./device-discovery \
   -obm-svc onboarding-manager.example.com \
   -obs-svc onboarding-stream.example.com \
   -obm-port 50051 \
@@ -181,7 +181,7 @@ Enable debug mode with a 10-minute timeout:
 Use a custom CA certificate location:
 
 ```bash
-./app \
+./device-discovery \
   -obm-svc onboarding-manager.example.com \
   -obs-svc onboarding-stream.example.com \
   -obm-port 50051 \
@@ -224,10 +224,10 @@ You can specify some values and let others be auto-detected:
 
 ```bash
 # Specify MAC, auto-detect serial/UUID/IP
-./app -obm-svc ... -mac 00:11:22:33:44:55
+./device-discovery -obm-svc ... -mac 00:11:22:33:44:55
 
 # Specify MAC and serial, auto-detect UUID/IP
-./app -obm-svc ... -mac 00:11:22:33:44:55 -serial CUSTOM-SERIAL
+./device-discovery -obm-svc ... -mac 00:11:22:33:44:55 -serial CUSTOM-SERIAL
 ```
 
 ## Advanced Usage
@@ -243,7 +243,7 @@ OBS_SVC="${OBS_SVC:-onboarding-stream.example.com}"
 OBM_PORT="${OBM_PORT:-50051}"
 KEYCLOAK_URL="${KEYCLOAK_URL:-keycloak.example.com}"
 
-./app \
+./device-discovery \
   -obm-svc "$OBM_SVC" \
   -obs-svc "$OBS_SVC" \
   -obm-port "$OBM_PORT" \
@@ -258,7 +258,7 @@ While the tool uses CLI flags, you can wrap it with environment variables:
 
 ```bash
 #!/bin/bash
-./app \
+./device-discovery \
   -obm-svc "${OBM_SVC}" \
   -obs-svc "${OBS_SVC}" \
   -obm-port "${OBM_PORT}" \
@@ -271,7 +271,7 @@ While the tool uses CLI flags, you can wrap it with environment variables:
 
 ```dockerfile
 FROM device-discovery:latest
-ENTRYPOINT ["./app"]
+ENTRYPOINT ["./device-discovery"]
 CMD ["-auto-detect"]
 ```
 
@@ -295,12 +295,12 @@ docker run device-discovery:latest \
 
 **Solution:** Ensure you provide all required flags:
 ```bash
-./app -obm-svc <value> -obs-svc <value> -obm-port <value> -keycloak-url <value> -mac <value>
+./device-discovery -obm-svc <value> -obs-svc <value> -obm-port <value> -keycloak-url <value> -mac <value>
 ```
 
 Or use auto-detection:
 ```bash
-./app -obm-svc <value> -obs-svc <value> -obm-port <value> -keycloak-url <value> -auto-detect
+./device-discovery -obm-svc <value> -obs-svc <value> -obm-port <value> -keycloak-url <value> -auto-detect
 ```
 
 #### 2. "Failed to auto-detect serial number" or UUID
@@ -309,7 +309,7 @@ Or use auto-detection:
 
 **Solution:** Run with sudo:
 ```bash
-sudo ./app -obm-svc ... -auto-detect
+sudo ./device-discovery -obm-svc ... -auto-detect
 ```
 
 #### 3. "No suitable network interface found"
@@ -318,7 +318,7 @@ sudo ./app -obm-svc ... -auto-detect
 
 **Solution:** 
 - Check network connectivity: `ip addr show`
-- Manually specify MAC address: `./app ... -mac 00:11:22:33:44:55`
+- Manually specify MAC address: `./device-discovery ... -mac 00:11:22:33:44:55`
 
 #### 4. "Failed to read CA certificate"
 
@@ -326,7 +326,7 @@ sudo ./app -obm-svc ... -auto-detect
 
 **Solution:** Specify correct CA certificate path:
 ```bash
-./app ... -ca-cert /path/to/ca-cert.pem
+./device-discovery ... -ca-cert /path/to/ca-cert.pem
 ```
 
 #### 5. Connection timeout in debug mode
@@ -335,16 +335,16 @@ sudo ./app -obm-svc ... -auto-detect
 
 **Solution:** Increase timeout:
 ```bash
-./app ... -debug -timeout 15m
+./device-discovery ... -debug -timeout 15m
 ```
 
 ### Getting Help
 
 Display help information:
 ```bash
-./app -h
+./device-discovery -h
 # or
-./app --help
+./device-discovery --help
 ```
 
 ### Verbose Output

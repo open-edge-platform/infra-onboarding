@@ -97,7 +97,7 @@ This function automatically detects the primary network interface MAC address.
 Created/Updated:
 - `README.md` - Updated with CLI usage
 - `CLI_GUIDE.md` - Comprehensive CLI guide
-- Help text with examples (`./app -h`)
+- Help text with examples (`./device-discovery -h`)
 
 ## Usage Comparison
 
@@ -118,14 +118,14 @@ worker_id=00:11:22:33:44:55 DEBUG=false TIMEOUT=5m
 
 3. Run:
 ```bash
-./app
+./device-discovery
 ```
 
 ### After (CLI Flags)
 
 Single command with all configuration:
 ```bash
-./app \
+./device-discovery \
   -obm-svc obm.example.com \
   -obs-svc obs.example.com \
   -obm-port 50051 \
@@ -176,7 +176,7 @@ Create a wrapper that reads environment variables and converts to flags:
 source /etc/hook/env_config
 
 # Convert to new CLI flags
-./app \
+./device-discovery \
   -obm-svc "$onboarding_manager_svc" \
   -obs-svc "$onboarding_stream_svc" \
   -obm-port "$OBM_PORT" \
@@ -192,10 +192,10 @@ Update automation scripts to use new CLI flags directly:
 ```bash
 # Old approach
 export onboarding_manager_svc=obm.example.com
-./app
+./device-discovery
 
 # New approach
-./app -obm-svc obm.example.com -obs-svc obs.example.com -obm-port 50051 -keycloak-url keycloak.example.com -auto-detect
+./device-discovery -obm-svc obm.example.com -obs-svc obs.example.com -obm-port 50051 -keycloak-url keycloak.example.com -auto-detect
 ```
 
 ## Backward Compatibility
@@ -232,13 +232,13 @@ make test
 
 #### 1. Production Deployment
 ```bash
-./app -obm-svc obm.prod.example.com -obs-svc obs.prod.example.com \
+./device-discovery -obm-svc obm.prod.example.com -obs-svc obs.prod.example.com \
       -obm-port 50051 -keycloak-url keycloak.prod.example.com -auto-detect
 ```
 
 #### 2. Development/Testing
 ```bash
-./app -obm-svc localhost -obs-svc localhost -obm-port 50051 \
+./device-discovery -obm-svc localhost -obs-svc localhost -obm-port 50051 \
       -keycloak-url localhost:8080 -mac 00:11:22:33:44:55 \
       -serial TEST-001 -uuid test-uuid -ip 127.0.0.1 -debug -timeout 10m
 ```
@@ -254,7 +254,7 @@ docker run device-discovery:latest \
 
 ```bash
 # Display help
-./app -h
+./device-discovery -h
 
 # View CLI guide
 cat CLI_GUIDE.md

@@ -69,7 +69,7 @@ make help
 ### Manual build
 
 ```bash
-go build -o app ./cmd/device-discovery
+go build -o device-discovery ./cmd/device-discovery
 ```
 
 ## Usage
@@ -79,7 +79,7 @@ Device Discovery now operates as a CLI utility with command-line flags for confi
 ### Basic Usage
 
 ```bash
-./app [OPTIONS]
+./device-discovery [OPTIONS]
 ```
 
 ### Required Flags
@@ -110,7 +110,7 @@ Device Discovery now operates as a CLI utility with command-line flags for confi
 
 #### 1. Auto-detect all system information
 ```bash
-./app -obm-svc obm.example.com \
+./device-discovery -obm-svc obm.example.com \
       -obs-svc obs.example.com \
       -obm-port 50051 \
       -keycloak-url keycloak.example.com \
@@ -119,7 +119,7 @@ Device Discovery now operates as a CLI utility with command-line flags for confi
 
 #### 2. Specify MAC address, auto-detect other info
 ```bash
-./app -obm-svc obm.example.com \
+./device-discovery -obm-svc obm.example.com \
       -obs-svc obs.example.com \
       -obm-port 50051 \
       -keycloak-url keycloak.example.com \
@@ -128,7 +128,7 @@ Device Discovery now operates as a CLI utility with command-line flags for confi
 
 #### 3. Fully manual configuration
 ```bash
-./app -obm-svc obm.example.com \
+./device-discovery -obm-svc obm.example.com \
       -obs-svc obs.example.com \
       -obm-port 50051 \
       -keycloak-url keycloak.example.com \
@@ -140,7 +140,7 @@ Device Discovery now operates as a CLI utility with command-line flags for confi
 
 #### 4. With debug mode and extra hosts
 ```bash
-./app -obm-svc obm.example.com \
+./device-discovery -obm-svc obm.example.com \
       -obs-svc obs.example.com \
       -obm-port 50051 \
       -keycloak-url keycloak.example.com \
@@ -153,9 +153,9 @@ Device Discovery now operates as a CLI utility with command-line flags for confi
 ### Getting Help
 
 ```bash
-./app -h
+./device-discovery -h
 # or
-./app --help
+./device-discovery --help
 ```
 
 ## Package Overview
@@ -210,19 +210,19 @@ The application supports multiple configuration methods:
 ### 1. CLI Flags (Recommended)
 Use command-line flags for explicit configuration:
 ```bash
-./app -obm-svc obm.example.com -obm-port 50051 -mac 00:11:22:33:44:55 ...
+./device-discovery -obm-svc obm.example.com -obm-port 50051 -mac 00:11:22:33:44:55 ...
 ```
 
 ### 2. Auto-Detection
 Let the application detect system information:
 ```bash
-./app -obm-svc obm.example.com -obm-port 50051 -auto-detect
+./device-discovery -obm-svc obm.example.com -obm-port 50051 -auto-detect
 ```
 
 ### 3. Hybrid Approach
 Specify some values manually, auto-detect others:
 ```bash
-./app -obm-svc obm.example.com -obm-port 50051 -mac 00:11:22:33:44:55
+./device-discovery -obm-svc obm.example.com -obm-port 50051 -mac 00:11:22:33:44:55
 # Serial, UUID, and IP will be auto-detected
 ```
 

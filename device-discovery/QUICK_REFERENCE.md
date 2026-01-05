@@ -2,7 +2,7 @@
 
 ## Usage
 ```bash
-./app [OPTIONS]
+./device-discovery [OPTIONS]
 ```
 
 ## Required Flags
@@ -18,29 +18,29 @@
 
 ### Auto-detect Everything
 ```bash
-./app -obm-svc OBM_HOST -obs-svc OBS_HOST -obm-port PORT -keycloak-url KC_URL -auto-detect
+./device-discovery -obm-svc OBM_HOST -obs-svc OBS_HOST -obm-port PORT -keycloak-url KC_URL -auto-detect
 ```
 
 ### Specify MAC, Auto-detect Rest
 ```bash
-./app -obm-svc OBM_HOST -obs-svc OBS_HOST -obm-port PORT -keycloak-url KC_URL -mac MAC_ADDR
+./device-discovery -obm-svc OBM_HOST -obs-svc OBS_HOST -obm-port PORT -keycloak-url KC_URL -mac MAC_ADDR
 ```
 
 ### Full Manual
 ```bash
-./app -obm-svc OBM_HOST -obs-svc OBS_HOST -obm-port PORT -keycloak-url KC_URL \
+./device-discovery -obm-svc OBM_HOST -obs-svc OBS_HOST -obm-port PORT -keycloak-url KC_URL \
       -mac MAC -serial SERIAL -uuid UUID -ip IP
 ```
 
 ### With Debug Mode
 ```bash
-./app -obm-svc OBM_HOST -obs-svc OBS_HOST -obm-port PORT -keycloak-url KC_URL \
+./device-discovery -obm-svc OBM_HOST -obs-svc OBS_HOST -obm-port PORT -keycloak-url KC_URL \
       -auto-detect -debug -timeout 10m
 ```
 
 ### With Extra Hosts
 ```bash
-./app -obm-svc OBM_HOST -obs-svc OBS_HOST -obm-port PORT -keycloak-url KC_URL \
+./device-discovery -obm-svc OBM_HOST -obs-svc OBS_HOST -obm-port PORT -keycloak-url KC_URL \
       -auto-detect -extra-hosts "host1:ip1,host2:ip2"
 ```
 
@@ -59,8 +59,8 @@
 
 ## Help
 ```bash
-./app -h
-./app --help
+./device-discovery -h
+./device-discovery --help
 ```
 
 ## Auto-Detection
@@ -75,7 +75,7 @@ When you omit flags, the application auto-detects:
 
 ### Scenario 1: New Device (Auto-detect)
 ```bash
-sudo ./app \
+sudo ./device-discovery \
   -obm-svc obm.example.com \
   -obs-svc obs.example.com \
   -obm-port 50051 \
@@ -85,7 +85,7 @@ sudo ./app \
 
 ### Scenario 2: Known MAC Address
 ```bash
-./app \
+./device-discovery \
   -obm-svc obm.example.com \
   -obs-svc obs.example.com \
   -obm-port 50051 \
@@ -95,7 +95,7 @@ sudo ./app \
 
 ### Scenario 3: Development/Testing
 ```bash
-./app \
+./device-discovery \
   -obm-svc localhost \
   -obs-svc localhost \
   -obm-port 50051 \

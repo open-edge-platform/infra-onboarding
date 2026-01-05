@@ -39,10 +39,10 @@ device-discovery/
 // Before: Environment variables
 export onboarding_manager_svc=...
 export OBM_PORT=...
-./app
+./device-discovery
 
 // After: CLI flags
-./app -obm-svc obm.example.com -obm-port 50051 -auto-detect
+./device-discovery -obm-svc obm.example.com -obm-port 50051 -auto-detect
 ```
 
 ### New Features
@@ -323,7 +323,7 @@ func TestDeviceDiscovery(t *testing.T) {
 
 ### Option 1: Use CLI Directly
 ```bash
-./app -obm-svc obm.example.com -obs-svc obs.example.com \
+./device-discovery -obm-svc obm.example.com -obs-svc obs.example.com \
       -obm-port 50051 -keycloak-url keycloak.example.com -auto-detect
 ```
 
@@ -331,7 +331,7 @@ func TestDeviceDiscovery(t *testing.T) {
 ```bash
 #!/bin/bash
 # Migrate from env vars to CLI
-./app \
+./device-discovery \
   -obm-svc "$onboarding_manager_svc" \
   -obs-svc "$onboarding_stream_svc" \
   -obm-port "$OBM_PORT" \

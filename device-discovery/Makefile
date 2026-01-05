@@ -11,7 +11,7 @@ GOMOD=$(GOCMD) mod
 GOFMT=gofmt
 
 # Binary name
-BINARY_NAME=app
+BINARY_NAME=device-discovery
 BINARY_PATH=./$(BINARY_NAME)
 
 # Build directory
