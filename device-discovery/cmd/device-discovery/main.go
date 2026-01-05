@@ -274,8 +274,8 @@ func deviceDiscovery(cfg *CLIConfig) error {
 		fmt.Println("Starting device onboarding without timeout")
 	}
 
-	// Create orchestrator configuration
-	orchestratorCfg := mode.Config{
+	// Create controller configuration
+	controllerCfg := mode.Config{
 		ObmSvc:       cfg.ObmSvc,
 		ObsSvc:       cfg.ObsSvc,
 		ObmPort:      cfg.ObmPort,
@@ -287,7 +287,7 @@ func deviceDiscovery(cfg *CLIConfig) error {
 		CaCertPath:   cfg.CaCertPath,
 	}
 
-	// Create and execute onboarding orchestrator
-	orchestrator := mode.NewOnboardingOrchestrator(orchestratorCfg)
-	return orchestrator.Execute(ctx)
+	// Create and execute onboarding controller
+	controller := mode.NewOnboardingController(controllerCfg)
+	return controller.Execute(ctx)
 }

@@ -13,9 +13,9 @@ import (
 	"device-discovery/internal/mode/noninteractive"
 )
 
-// OnboardingOrchestrator manages the device onboarding process, coordinating between
+// OnboardingController manages the device onboarding process, coordinating between
 // non-interactive (automatic) and interactive (manual) modes.
-type OnboardingOrchestrator struct {
+type OnboardingController struct {
 	// Service endpoints
 	obmSvc      string
 	obsSvc      string
@@ -45,9 +45,9 @@ type Config struct {
 	CaCertPath   string
 }
 
-// NewOnboardingOrchestrator creates a new onboarding orchestrator.
-func NewOnboardingOrchestrator(cfg Config) *OnboardingOrchestrator {
-	return &OnboardingOrchestrator{
+// NewOnboardingController creates a new onboarding controller.
+func NewOnboardingController(cfg Config) *OnboardingController {
+	return &OnboardingController{
 		obmSvc:       cfg.ObmSvc,
 		obsSvc:       cfg.ObsSvc,
 		obmPort:      cfg.ObmPort,
@@ -63,7 +63,7 @@ func NewOnboardingOrchestrator(cfg Config) *OnboardingOrchestrator {
 // Execute performs device onboarding, automatically switching between modes as needed.
 // It first attempts non-interactive mode, and falls back to interactive mode if the
 // device is not found in the system.
-func (o *OnboardingOrchestrator) Execute(ctx context.Context) error {
+func (o *OnboardingController) Execute(ctx context.Context) error {
 	fmt.Println("Starting device onboarding...")
 
 	// Try non-interactive mode first
@@ -84,7 +84,7 @@ func (o *OnboardingOrchestrator) Execute(ctx context.Context) error {
 }
 
 // tryNonInteractiveMode attempts automatic onboarding via streaming gRPC.
-func (o *OnboardingOrchestrator) tryNonInteractiveMode(ctx context.Context) noninteractive.StreamResult {
+func (o *OnboardingController) tryNonInteractiveMode(ctx context.Context) noninteractive.StreamResult {
 	fmt.Println("Attempting non-interactive (streaming) onboarding...")
 
 	client := noninteractive.NewClient(
@@ -101,7 +101,7 @@ func (o *OnboardingOrchestrator) tryNonInteractiveMode(ctx context.Context) noni
 }
 
 // completeNonInteractiveAuth completes the authentication flow for non-interactive mode.
-func (o *OnboardingOrchestrator) completeNonInteractiveAuth(clientID, clientSecret string) error {
+func (o *OnboardingController) completeNonInteractiveAuth(clientID, clientSecret string) error {
 	// Save client credentials
 	if err := config.SaveToFile(config.ClientIDPath, clientID); err != nil {
 		return fmt.Errorf("failed to save client ID: %w", err)
@@ -141,7 +141,7 @@ func (o *OnboardingOrchestrator) completeNonInteractiveAuth(clientID, clientSecr
 }
 
 // executeInteractiveMode performs manual onboarding with user authentication.
-func (o *OnboardingOrchestrator) executeInteractiveMode(ctx context.Context) error {
+func (o *OnboardingController) executeInteractiveMode(ctx context.Context) error {
 	fmt.Println("Starting interactive (manual) onboarding...")
 
 	// Step 1: Execute client-auth.sh for TTY-based authentication
