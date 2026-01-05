@@ -28,7 +28,7 @@ jobs:
     env:
       GITHUB_ACTIONS: true
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           persist-credentials: false
       - name: "Verify Branch Name"
@@ -55,21 +55,21 @@ jobs:
     if: ${{ contains(needs.pre-checks.outputs.other_changed_projects, '.github') || contains(needs.pre-checks.outputs.other_changed_projects, '.reuse') || contains(needs.pre-checks.outputs.other_changed_projects, 'LICENSES') || contains(needs.pre-checks.outputs.other_changed_projects, '""')}}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
+      - uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f  # v6.1.0
         with:
           node-version: '18'
       - run: |
           npm install -g \
           "markdownlint-cli@${{ env.MARKDOWNLINT_CLI_VER }}"
-      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
         id: setup_python
         with:
           python-version: '3.13'
       - name: Restore cached virtualenv
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb  # v5.0.1
         with:
           key: venv-${{ runner.os }}-${{ steps.setup_python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
           path: venv_infra
@@ -100,7 +100,7 @@ jobs:
       run_artifact: false
       prefix_tag_separator: "/"
       project_folder: ${{ matrix.project_folder }}
-      trivy_image_skip:  "postgres:16.4,quay.io/tinkerbell/hook-containerd:30084036-amd64,quay.io/tinkerbell/hook-runc:f0dbe53f-amd64"
+      trivy_image_skip: "postgres:16.4,quay.io/tinkerbell/hook-containerd:30084036-amd64,quay.io/tinkerbell/hook-runc:f0dbe53f-amd64"
       trivy_config_path: ${{ matrix.project_folder }}/trivy.yaml
     secrets:
       NO_AUTH_ECR_PUSH_USERNAME: ${{ secrets.NO_AUTH_ECR_PUSH_USERNAME }}
@@ -119,7 +119,7 @@ jobs:
         run: |
           results=("pre_merge_root_pipeline" "pre_merge_pipeline")
           status="OK"
-          
+
           for result in "${results[@]}"; do
             pipeline_result=$(eval echo \$$result)
             echo "${result} result: $pipeline_result"
@@ -127,7 +127,7 @@ jobs:
               status="KO"
             fi
           done
-          
+
           if [[ "$status" == "OK" ]]; then
             echo "Pre-merge check passed successfully."
           else
