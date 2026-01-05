@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-package main
+package client
 
 import (
 	"context"
@@ -10,16 +10,21 @@ import (
 	"io"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
-	// pb "stream-test/api"
 	pb "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/api/onboardingmgr/v1"
+	"golang.org/x/oauth2"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/oauth"
+
+	"device-discovery/internal/config"
 )
 
+// createSecureConnection creates a secure gRPC connection with TLS.
 func createSecureConnection(ctx context.Context, target string, caCertPath string) (*grpc.ClientConn, error) {
 	// Load the CA certificate
 	caCert, err := os.ReadFile(caCertPath)
@@ -50,7 +55,8 @@ func createSecureConnection(ctx context.Context, target string, caCertPath strin
 	return conn, nil
 }
 
-func grpcStreamClient(ctx context.Context, address string, port int, mac string, uuid string, serial string, ipAddress string, caCertPath string) (string, string, error, bool) {
+// GrpcStreamClient establishes a stream with the onboarding service.
+func GrpcStreamClient(ctx context.Context, address string, port int, mac string, uuid string, serial string, ipAddress string, caCertPath string) (string, string, error, bool) {
 	var fallback = false
 	target := fmt.Sprintf("%s:%d", address, port)
 	conn, err := createSecureConnection(ctx, target, caCertPath)
@@ -128,7 +134,7 @@ func grpcStreamClient(ctx context.Context, address string, port int, mac string,
 				}
 
 				// Save the Project ID to a file
-				if err := saveToFile(projectIDPath, projectID); err != nil {
+				if err := config.SaveToFile(config.ProjectIDPath, projectID); err != nil {
 					return "", "", fmt.Errorf("failed to save Project ID to file: %v", err), fallback
 				}
 
@@ -151,5 +157,108 @@ func grpcStreamClient(ctx context.Context, address string, port int, mac string,
 			return "", "", fmt.Errorf(resp.Status.Message), fallback
 		}
 	}
+}
 
+// GrpcInfraOnboardNodeJWT performs interactive onboarding using JWT authentication.
+func GrpcInfraOnboardNodeJWT(ctx context.Context, address string, port int, mac string, ip string, uuid string, serial string, caCertPath string, accessTokenPath string) error {
+	// Load the CA certificate
+	caCert, err := os.ReadFile(caCertPath)
+	if err != nil {
+		return fmt.Errorf("failed to read CA certificate: %v", err)
+	}
+	fmt.Println("caCert: ", caCert)
+	// Create a certificate pool from the CA certificate
+	certPool := x509.NewCertPool()
+	if !certPool.AppendCertsFromPEM(caCert) {
+		return fmt.Errorf("failed to append CA certificate to cert pool")
+	}
+
+	// Create the credentials using the certificate pool
+	creds := credentials.NewClientTLSFromCert(certPool, "")
+
+	// Read JWT token from file
+	jwtToken, err := os.ReadFile(accessTokenPath)
+	if err != nil {
+		return fmt.Errorf("failed to read JWT token from file: %v", err)
+	}
+	// Convert JWT token to string and trim whitespace
+	tokenString := strings.TrimSpace(string(jwtToken))
+
+	target := fmt.Sprintf("%s:%d", address, port)
+	conn, err := grpc.DialContext(
+		ctx,
+		target,
+		grpc.WithBlock(),
+		grpc.WithTransportCredentials(
+			creds,
+		),
+		grpc.WithPerRPCCredentials(
+			oauth.TokenSource{
+				TokenSource: oauth2.StaticTokenSource(
+					&oauth2.Token{AccessToken: tokenString}, // Send the access token as part of the HTTP Authorization header
+				),
+			},
+		),
+	)
+	if err != nil {
+		return fmt.Errorf("could not dial server %s: %v", target, err)
+	}
+	defer conn.Close()
+	fmt.Println("Dial Complete")
+
+	cli := pb.NewInteractiveOnboardingServiceClient(conn)
+	// Create a NodeData object
+	nodeData := &pb.NodeData{
+		Hwdata: []*pb.HwData{
+			{
+				MacId:     mac,
+				SutIp:     ip,
+				Uuid:      uuid,
+				Serialnum: serial,
+			},
+		},
+	}
+	// Create a NodeRequest object and set the Payload field
+	nodeRequest := &pb.CreateNodesRequest{
+		Payload: []*pb.NodeData{nodeData},
+	}
+	// Call the gRPC endpoint with the NodeRequest
+	var nodeResponse *pb.CreateNodesResponse
+	nodeResponse, err = cli.CreateNodes(ctx, nodeRequest)
+	if err != nil {
+		return fmt.Errorf("could not call gRPC endpoint for server %s: %v", target, err)
+	}
+
+	// Check if the ProjectId field is empty
+	if nodeResponse.ProjectId == "" {
+		return fmt.Errorf("received empty Project ID")
+	}
+
+	// Save the Project ID to a file
+	if err := config.SaveToFile(config.ProjectIDPath, nodeResponse.ProjectId); err != nil {
+		return fmt.Errorf("failed to save Project ID to file: %v", err)
+	}
+	return nil
+}
+
+// RetryInfraOnboardNode retries the interactive onboarding process with exponential backoff.
+func RetryInfraOnboardNode(ctx context.Context, obmSVC string, obmPort int, macAddr string, ipAddress string, uuid string, serialNumber string, caCertPath string, accessTokenFile string) error {
+	maxRetries := 3
+	retryDelay := 2 * time.Second // Fixed delay between retries
+
+	for retries := 0; retries < maxRetries; retries++ {
+		err := GrpcInfraOnboardNodeJWT(ctx, obmSVC, obmPort, macAddr, ipAddress, uuid, serialNumber, caCertPath, accessTokenFile)
+		if err == nil {
+			return nil
+		}
+
+		// Log the error and retry info
+		fmt.Printf("There was an error in updating the edge-node details with the onboarding manager: %v\n", err)
+		if retries < maxRetries-1 {
+			fmt.Printf("Retrying update... attempt %d of %d\n", retries+2, maxRetries) // retries+2 to show next attempt
+			time.Sleep(retryDelay + time.Duration(rand.Intn(1000))*time.Millisecond)   // Slight random jitter
+		}
+	}
+	
+	return fmt.Errorf("max retries reached")
 }

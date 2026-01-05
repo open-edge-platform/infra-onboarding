@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-package main
+package auth
 
 import (
 	"bytes"
@@ -145,11 +145,10 @@ func fetchReleaseToken(releaseServerURL string, accessToken string, caCertPath s
 	return token, nil
 }
 
-// clientAuth handles authentication and retrieves tokens
-func clientAuth(clientID string, clientSecret string, keycloakURL string, acceskTokenURL string, releaseTokenURL string, caCertPath string) (idpAccessToken string, releaseToken string, err error) {
-
+// ClientAuth handles authentication and retrieves tokens.
+func ClientAuth(clientID string, clientSecret string, keycloakURL string, accessTokenURL string, releaseTokenURL string, caCertPath string) (idpAccessToken string, releaseToken string, err error) {
 	// Fetch JWT access token from Keycloak
-	idpAccessToken, err = fetchAccessToken(keycloakURL+acceskTokenURL, clientID, clientSecret, caCertPath)
+	idpAccessToken, err = fetchAccessToken(keycloakURL+accessTokenURL, clientID, clientSecret, caCertPath)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get JWT access token from Keycloak: %v", err)
 	}
