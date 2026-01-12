@@ -161,10 +161,10 @@ func GetCommonInfraTemplateVariables(infraConfig config.InfraConfig, osType osv1
 		"ORCH_PLATFORM_MANAGEABILITY_HOST": strings.Split(infraConfig.ManageabilityURL, ":")[0],
 		"ORCH_PLATFORM_MANAGEABILITY_PORT": strings.Split(infraConfig.ManageabilityURL, ":")[1],
 		"RPS_ADDRESS":                      strings.Split(infraConfig.RPSAddress, ":")[0],
-		"SERVICE_CLIENTS":                  infraConfig.ENServiceClients,
-		"OUTBOUND_CLIENTS":                 infraConfig.ENOutboundClients,
+		"SERVICE_CLIENTS":                  strings.Join(infraConfig.ENServiceClients, ","),
+		"OUTBOUND_CLIENTS":                 strings.Join(infraConfig.ENOutboundClients, ","),
 		"METRICS_ENABLED":                  infraConfig.ENMetricsEnabled,
-		"TOKEN_CLIENTS":                    infraConfig.ENTokenClients,
+		"TOKEN_CLIENTS":                    strings.Join(infraConfig.ENTokenClients, ","),
 
 		"EN_HTTP_PROXY":  infraConfig.ENProxyHTTP,
 		"EN_HTTPS_PROXY": infraConfig.ENProxyHTTPS,
