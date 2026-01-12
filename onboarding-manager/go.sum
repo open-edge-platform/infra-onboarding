@@ -297,6 +297,8 @@ github.com/open-edge-platform/infra-core/inventory/v2 v2.33.3 h1:987SvU6hIRHimKo
 github.com/open-edge-platform/infra-core/inventory/v2 v2.33.3/go.mod h1:6utgen+dl47bYZCUW6Ug7NfL/NRAQjeHP0XljpnxhWQ=
 github.com/open-edge-platform/infra-onboarding/dkam v0.0.0-20260109171233-079d267a720b h1:ts2twNag3LVveZKAj455xBfHncdk2NRxWSy6mBAHN1Q=
 github.com/open-edge-platform/infra-onboarding/dkam v0.0.0-20260109171233-079d267a720b/go.mod h1:i86zhqYyUUDM/YQckKGhcauPamErV7o08F0zW/SGVZ4=
+github.com/open-edge-platform/infra-onboarding/dkam v0.0.0-20260112171151-3c06ce693055 h1:0tXCEbeShWwxZB47V0nMXtkKD28laDH/qQEKYbVo+4U=
+github.com/open-edge-platform/infra-onboarding/dkam v0.0.0-20260112171151-3c06ce693055/go.mod h1:i86zhqYyUUDM/YQckKGhcauPamErV7o08F0zW/SGVZ4=
 github.com/open-edge-platform/infra-onboarding/dkam v1.32.11 h1:GPU0zhB+iww4DTObbyUOkhMfZ41gzjENOPeNTcKNrYs=
 github.com/open-edge-platform/infra-onboarding/dkam v1.32.11/go.mod h1:n+SwGxR5meY0qDXxC3Fz9u0cSL4sWAkB7QwIG2LP4l8=
 github.com/open-edge-platform/orch-library/go v0.6.3 h1:zLdAtY5KuArT1D2xCvVLysD7r8GxqvkP8Vj1sO5ZJk8=
