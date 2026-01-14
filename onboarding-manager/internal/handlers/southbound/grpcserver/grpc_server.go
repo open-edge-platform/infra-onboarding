@@ -28,6 +28,7 @@ import (
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding"
 	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	pb "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/api/onboardingmgr/v1"
+	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/config"
 	om_status "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/status"
 )
 
@@ -676,6 +677,15 @@ func (s *InteractiveOnboardingService) CreateNodes(ctx context.Context, req *pb.
 }
 
 func (s *InventoryClientService) startZeroTouch(ctx context.Context, tenantID, hostResID string) error {
+	// Read the infra-config parameter skipOSProvisioning to decide whether to proceed with zero-touch provisioning.
+	infraConfig := config.GetInfraConfig()
+
+	if infraConfig.SkipOSProvisioning {
+		zlog.Info().Msgf("Skipping zero touch provisioning as per infra-config parameter, host ID %s tID=%s",
+			hostResID, tenantID)
+		return nil
+	}
+
 	zlog.Debug().Msgf("Starting zero touch for host ID %s  tenant ID %s...", hostResID, tenantID)
 	zlog.Info().Msgf("Starting zero touch for host")
 

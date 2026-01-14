@@ -182,6 +182,7 @@ func GetCommonInfraTemplateVariables(infraConfig config.InfraConfig, osType osv1
 
 		"DISABLE_CO_PROFILE":   infraConfig.DisableCOProfile,
 		"DISABLE_O11Y_PROFILE": infraConfig.DisableO11YProfile,
+		"SKIP_OS_PROVISIONING": infraConfig.SkipOSProvisioning,
 	}
 
 	if osType == osv1.OsType_OS_TYPE_MUTABLE {
