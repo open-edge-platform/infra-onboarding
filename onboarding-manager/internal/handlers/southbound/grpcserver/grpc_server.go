@@ -24,11 +24,11 @@ import (
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/providerconfiguration"
 	inv_status "github.com/open-edge-platform/infra-core/inventory/v2/pkg/status"
 	inv_tenant "github.com/open-edge-platform/infra-core/inventory/v2/pkg/tenant"
+	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/invclient"
 	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding"
 	onboarding_types "github.com/open-edge-platform/infra-onboarding/onboarding-manager/internal/onboarding/types"
 	pb "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/api/onboardingmgr/v1"
-	"github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/config"
 	om_status "github.com/open-edge-platform/infra-onboarding/onboarding-manager/pkg/status"
 )
 
