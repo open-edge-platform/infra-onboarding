@@ -48,6 +48,11 @@ type InfraConfig struct {
 	FileServerURL           string `mapstructure:"orchFileServer"`
 	RSType                  string `mapstructure:"rsType"`
 
+	ENServiceClients  []string `mapstructure:"enServiceClients"`
+	ENOutboundClients []string `mapstructure:"enOutboundClients"`
+	ENMetricsEnabled  string   `mapstructure:"enMetricsEnabled"`
+	ENTokenClients    []string `mapstructure:"enTokenClients"`
+
 	ProvisioningService string `mapstructure:"provisioningSvc"`
 	// ProvisioningServerURL full URL to the provisioning server, including prefixes and subpaths
 	ProvisioningServerURL string `mapstructure:"provisioningServerURL"`
