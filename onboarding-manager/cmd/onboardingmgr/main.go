@@ -149,13 +149,14 @@ func main() {
 		zlog.InfraSec().Fatal().Err(authInitErr).Msgf("Unable to initialize auth service")
 	}
 
+	var onboardingController *controller.OnboardingController
 	// Skip creating controller if skipOSProvisioning is true
 	if config.GetInfraConfig().SkipOSProvisioning {
 		zlog.InfraSec().Info().Msgf("Skipping Onboarding Controller creation as SkipOSProvisioning is set to true")
 	} else {
 		zlog.InfraSec().Info().Msgf("Creating Onboarding Controller")
 		// start onboarding controller.
-		onboardingController, err := controller.New(invClient, *enableTracing)
+		onboardingController, err = controller.New(invClient, *enableTracing)
 		if err != nil {
 			zlog.InfraSec().Fatal().Err(err).Msgf("Unable to create onboarding controller")
 		}
@@ -210,7 +211,9 @@ func main() {
 	// Terminate Onboarding Manager when termination signal received
 	close(termChan)
 	sbHandler.Stop()
-	onboardingController.Stop()
+	if onboardingController != nil {
+		onboardingController.Stop()
+	}
 	invClient.Close()
 
 	wg.Done()
