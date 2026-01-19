@@ -53,18 +53,26 @@ func printSummary() {
 }
 
 func main() {
-	watcher, watcherErr := SetWatcher()
-	if watcherErr != nil {
-		zlog.InfraSec().Fatal().Err(watcherErr).Msgf("Failed to set watcher.")
-		return
-	}
-	defer watcher.Close()
-
+	flag.Parse()
 	// Print a summary of the build
 	printSummary()
-	flag.Parse()
 	if err := config.Read(); err != nil {
 		zlog.InfraSec().Fatal().Err(err).Msgf("Failed to read config")
+	}
+	infraConfig := config.GetInfraConfig()
+	if infraConfig.SkipOSProvisioning {
+		zlog.InfraSec().Info().Msg("OS Provisioning is disabled")
+		if err := CurateVProInstaller(); err != nil {
+			zlog.InfraSec().Fatal().Err(err).Msg("Failed to curate vpro installer")
+		}
+	} else {
+		zlog.InfraSec().Info().Msg("OS Provisioning is enabled")
+		watcher, watcherErr := SetWatcher()
+		if watcherErr != nil {
+			zlog.InfraSec().Fatal().Err(watcherErr).Msgf("Failed to set watcher.")
+			return
+		}
+		defer watcher.Close()
 	}
 
 	setupTracingIfEnabled()
@@ -177,6 +185,18 @@ func BuildBinaries() error {
 	if signed {
 		zlog.InfraSec().Info().Msg("Signed MicroOS and moved to PVC")
 	}
+
+	return nil
+}
+
+func CurateVProInstaller() error {
+	// Curate vPro installer and copy to PVC
+	vproErr := dkammgr.CurateVProInstaller()
+	if vproErr != nil {
+		zlog.InfraSec().Error().Err(vproErr).Msg("Failed to curate vPro installer")
+		return vproErr
+	}
+	zlog.InfraSec().Info().Msg("Successfully curated vPro installer and moved to PVC")
 	return nil
 }
 

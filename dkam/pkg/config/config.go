@@ -116,6 +116,7 @@ var (
 )
 
 func Read() error {
+	zlog.Info().Msgf("Config file path: %s", *FlagConfigFilePath)
 	viper.SetConfigFile(*FlagConfigFilePath)
 	viper.SetTypeByDefaultValue(true)
 	if err := viper.ReadInConfig(); err != nil {
