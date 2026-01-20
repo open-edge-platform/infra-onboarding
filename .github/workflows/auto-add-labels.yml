@@ -23,7 +23,9 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     # Only run for PRs from the main repository (skip forks like Dependabot)
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    if: >
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/labeler@634933edcd8ababfe52f92936142cc22ac488b1b  # v6.0.1
         with:
