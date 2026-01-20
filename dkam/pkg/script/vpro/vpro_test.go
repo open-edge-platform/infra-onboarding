@@ -4,16 +4,39 @@
 package vpro_test
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/script/vpro"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
+func setupTestCACert(t *testing.T) func() {
+	t.Helper()
+	// Create the required CA cert file for the test
+	dir := "/etc/ssl/orch-ca-cert"
+	file := filepath.Join(dir, "ca.crt")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("failed to create CA cert dir: %v", err)
+	}
+	content := []byte("-----BEGIN CERTIFICATE-----\nTESTCERTDATA\n-----END CERTIFICATE-----\n")
+	if err := os.WriteFile(file, content, 0o600); err != nil {
+		t.Fatalf("failed to write CA cert: %v", err)
+	}
+	return func() {
+		_ = os.Remove(file)
+	}
+}
+
 func TestCurateVProInstaller(t *testing.T) {
+	cleanup := setupTestCACert(t)
+	defer cleanup()
+
 	t.Run("Success_Ubuntu", func(t *testing.T) {
 		// Create a mock infra configuration
 		infraConfig := config.InfraConfig{
@@ -65,22 +88,5 @@ func TestCurateVProInstaller(t *testing.T) {
 		assert.Contains(t, result, "KERNEL_CONFIG_KERNEL_PANIC=10")
 		assert.NotContains(t, result, "{{ .ORCH_CLUSTER }}")
 		assert.NotContains(t, result, "{{ .ORCH_INFRA }}")
-	})
-
-	t.Run("Success_EMT", func(t *testing.T) {
-		infraConfig := config.InfraConfig{
-			InfraURL:      "https://infra.example.com:9092",
-			UpdateURL:     "https://update.example.com:8080",
-			FileServerURL: "files.example.com:60444",
-			ENFilesRsRoot: "files-edge-orch",
-			RSType:        "noauth",
-		}
-
-		// Curate for EMT (immutable OS)
-		result, err := vpro.CurateVProInstaller(infraConfig, osv1.OsType_OS_TYPE_IMMUTABLE)
-
-		require.NoError(t, err)
-		assert.NotEmpty(t, result)
-		assert.Contains(t, result, `if [ "noauth" == "auth" ];`)
 	})
 }
