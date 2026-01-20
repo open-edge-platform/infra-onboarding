@@ -8,9 +8,9 @@ set -ex
 ##global variables#####
 os_disk=""
 part_number=""
-rootfs_part_number=1
-data_persistent_part=2
-swap_part=3
+rootfs_part_number=""
+data_persistent_part=""
+swap_part=""
 ###############
 
 # Sync file system
@@ -51,14 +51,18 @@ else
     # Detect Ubuntu version and set KERNEL_VERSION accordingly
     if grep -q 'VERSION_ID="24.04"' "/mnt/etc/os-release"; then
         KERNEL_VERSION="linux-image-6.11.0-17-generic"
-        mount $boot_part /mnt/boot
+	if [ -n "$boot_part" ]; then
+            mount $boot_part /mnt/boot
+	fi
     else
         # Ubuntu 22.04
         KERNEL_VERSION="linux-image-6.8.0-52-generic"
     fi
 fi
 if echo "$rootfs_part" | grep -q "rootfs_crypt"; then
-    mount $boot_part /mnt/boot
+    if [ -n "$boot_part" ]; then
+        mount $boot_part /mnt/boot
+    fi
 fi
 
 mount $efiboot_part /mnt/boot/efi
@@ -73,7 +77,9 @@ rm /mnt/etc/resolv.conf
 touch /mnt/etc/resolv.conf
 mount --bind /etc/resolv.conf /mnt/etc/resolv.conf
 
-mv /mnt/etc/apt/apt.conf.d/99needrestart /mnt/etc/apt/apt.conf.d/99needrestart.bkp 
+if [ -f /mnt/etc/apt/apt.conf.d/99needrestart ]; then
+    mv /mnt/etc/apt/apt.conf.d/99needrestart /mnt/etc/apt/apt.conf.d/99needrestart.bkp 
+fi
 
 # Update the canonical kernel version specified in KERNEL_VERSION variable
 kernel_version=$(chroot /mnt /bin/bash -c \
@@ -116,9 +122,9 @@ else
     exit 1
 fi
 EOT
-
-mv /mnt/etc/apt/apt.conf.d/99needrestart.bkp /mnt/etc/apt/apt.conf.d/99needrestart
-
+if [ -f /mnt/etc/apt/apt.conf.d/99needrestart.bkp ]; then
+    mv /mnt/etc/apt/apt.conf.d/99needrestart.bkp /mnt/etc/apt/apt.conf.d/99needrestart
+fi
 #unmount the partitions
 for mount in $(mount | grep '/mnt' | awk '{print $3}' | sort -nr); do
   umount "$mount"
@@ -135,7 +141,7 @@ lvm_disks="$@"
 #if one disk found and it has rootfs
 if [ "$blk_device_count" -eq "1" ];then
     echo "starting the LVM creation for the disk volume ${lvm_disks}"
-    lvm_part=$(parted -ms ${lvm_disks}  print | tail -n 1 | awk -F: '{print $1}')
+    lvm_part=$(echo "Fix" | parted -ms ${lvm_disks}  print | tail -n 1 | awk -F: '{print $1}')
     disks="${lvm_disks}${part_number}${lvm_part}"
 
 #more than one disk found
@@ -145,8 +151,8 @@ else
     while [ "$1" ]; do
         disk="/dev/$1"
         echo "starting the LVM creation for the disk volume $disk"
-        parted -s "$disk" mklabel gpt mkpart primary 0% 100%
-	parted --script "$disk" set 1 lvm on
+        echo "Fix" | parted -s "$disk" mklabel gpt mkpart primary 0% 100%
+	echo "Fix" | parted --script "$disk" set 1 lvm on
         partprobe
         fdisk -l "$disk"
         sync
@@ -281,7 +287,7 @@ else
     data_persistent_end_size=$(echo "$rootfs_size" + "$data_persistent" | bc )
 fi
 
-parted ---pretend-input-tty "${disk}" \
+parted --script "${disk}" \
     resizepart "${rootfs_part_number}" "${rootfs_size}GB" \
     mkpart primary ext4 "${rootfs_size}GB" "${data_persistent_end_size}GB" \
     mkpart primary linux-swap "${data_persistent_end_size}GB" "$((swap_size + data_persistent_end_size))GB"
@@ -310,6 +316,9 @@ else
 fi
 partprobe "${disk}"
 sleep 3
+data_persistent_part=$((rootfs_part_number + 1))
+swap_part=$((data_persistent_part+1))
+
 # Creating the data-persistent volume and enabling the swap partition
 sync_file_system "${disk}${part_number}${data_persistent_part}"
 mkfs -t ext4 -L data_persistent -F "${disk}${part_number}${data_persistent_part}"
@@ -368,9 +377,9 @@ rm -rf /mnt1
 
 ### Create LVM partitions based Single && Multiple disks
 if [ "$blk_disk_count" -eq 1 ] && [ "$lvm_size" -ge 1 ]; then
-    swap_partition_size_end=$(parted -ms $disk  print | tail -n 1 | awk -F: '{print $3}' | sed 's/[^0-9]*//g')
-    parted "${disk}" --script mkpart primary ext4 "${swap_partition_size_end}GB" "$((lvm_size + swap_partition_size_end))GB"
-    parted --script "${disk}" set 4 lvm on
+    swap_partition_size_end=$( echo "Fix" | parted -ms $disk  print | tail -n 1 | awk -F: '{print $3}' | sed 's/[^0-9]*//g')
+    echo "Fix" | parted "${disk}" --script mkpart primary ext4 "${swap_partition_size_end}GB" "$((lvm_size + swap_partition_size_end))GB"
+    echo "Fix" | parted --script "${disk}" set 4 lvm on
     partprobe "${disk}"
 
     create_lvm_partition "${blk_disk_count}" "${disk}"
@@ -406,9 +415,11 @@ else
     if echo "$rootfs_part" | grep -q "nvme"; then
         os_disk=$(echo "$rootfs_part" | grep -oE 'nvme[0-9]+n[0-9]+' | head -n 1)
         part_number="p"
+	rootfs_part_number=$(blkid | grep -Ei 'cloudimg-rootfs|rootfs'  | awk -F'[/:]' '{print $3}'| awk -F'p' '{print $2}')
     else
         os_disk=$(echo "$rootfs_part" | grep -oE 'sd[a-z]+' | head -n 1)
         part_number=""
+	rootfs_part_number=$(blkid | grep -Ei 'cloudimg-rootfs|rootfs' | awk -F'[/:]' '{print $3}' | sed 's/[^0-9]*//g')
     fi
 
     echo "Partitions detected root:$rootfs_part efi:$efiboot_part"
@@ -420,7 +431,7 @@ else
     #get the total rootfs partition disk size
 
     sgdisk -e "/dev/$os_disk"
-    total_disk_size=$(parted -m "/dev/$os_disk" unit GB print | grep "^/dev" | cut -d: -f2 | sed 's/GB//')
+    total_disk_size=$(echo "Fix" | parted -m "/dev/$os_disk" unit GB print | grep "^/dev" | cut -d: -f2 | sed 's/GB//')
     if echo "$total_disk_size" | grep -qE '^[0-9]+\.[0-9]+$'; then
         total_disk_size=$(printf "%.0f" "$total_disk_size")
     fi
