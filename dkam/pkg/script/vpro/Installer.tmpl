@@ -3,7 +3,6 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-exec &> >(tee >(systemd-cat -t /home/postinstall/Setup/installer.sh))
 set -euo pipefail
 
 {{- if .EN_HTTP_PROXY }}
@@ -35,6 +34,7 @@ touch "$SCRIPT_DIR/$SETUP_STATUS_FILENAME"
 touch "$SCRIPT_DIR/$STATUS_FILENAME"
 
 # Write agent variables to /etc/edge-node/node/agent_variables
+mkdir -p /etc/edge-node/node
 cat <<EOF > /etc/edge-node/node/agent_variables
 CLUSTER_ORCH_URL={{ .ORCH_CLUSTER }}
 HW_INVENTORY_URL={{ .ORCH_INFRA }}
@@ -67,30 +67,219 @@ FILE_RS_ROOT={{ .FILE_RS_ROOT }}
 EOF
 source /etc/edge-node/node/agent_variables
 
+CA_CERT="{{ .CA_CERT }}"
+CA_PEM="{{ .CA_PEM }}"
+
 # Kernel configuration from template
 KERNEL_CONFIG_OVER_COMMIT_MEMORY={{ .KERNEL_CONFIG_OVER_COMMIT_MEMORY }}
 KERNEL_CONFIG_KERNEL_PANIC={{ .KERNEL_CONFIG_KERNEL_PANIC }}
 KERNEL_CONFIG_PANIC_ON_OOPS={{ .KERNEL_CONFIG_PANIC_ON_OOPS }}
 KERNEL_CONFIG_MAX_USER_INSTANCE={{ .KERNEL_CONFIG_MAX_USER_INSTANCE }}
 
-#Get the function name which is causing error
-get_trap_func_name(){
-    line_number=$1
-    script_file="$0"
-    line_content=$(sed "${line_number}q;d" "$script_file")
-    func_name=$(echo $line_content | awk '{print $1}')
-    echo  "$func_name"
-}
-#Function to handle errors
-print_error_on_console() {
-    sudo dpkg --configure -a
-    local exit_code=$?
-    local line_number="$1"
-    local func_name=$(get_trap_func_name $line_number)
-    echo "[ERROR] in function ${func_name} at line ${line_number} - exit code: ${exit_code}" > /dev/tty1
+
+install_dependencies() {
+    if grep -q "install_dependencies done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_dependencies"
+    else
+        echo "Install all dependencies."
+        rm -f /etc/apt/sources.list.d/edge-node.list
+        apt-get update
+        echo -e "\e[32m[install git python3-pip]\e[0m"
+        sudo apt-get install -y curl wget unzip apparmor iptables lvm2 cryptsetup lxc tpm2-abrmd tpm2-tools software-properties-common python3-venv git jq libpq5 python3-pip ca-certificates gnupg dmidecode libace-dev cmake python3 libglib2.0-dev libcurl4-openssl-dev libxerces-c-dev libnl-3-dev libnl-route-3-dev libxml2-dev libidn2-0-dev xsltproc docbook-xsl devscripts
+
+        # IMPORTANT: These hardcoded uid/gid must be aligned to that in Edge Microvisor Toolkit specified in cluster-agent.conf.
+        # If additional new users or groups need to be created by DKAM, they MUST be added after the users and group created below to
+        # avoid those users or groups being assigned to IDs that are reserved. A list of the reserved UID and GID values are below:
+        #
+        #|----------|------------|--------------|
+        #|   Name   | User/Group | Reserverd ID |
+        #|----------|------------|--------------|
+        #|bm-agents |    Group   |      500     |
+        #|prometheus|    User    |      501     |
+        #|fluent-bit|    User    |      502     |
+        #|tc-agent  |    User    |      503     |
+        #|tc-ima    |    User    |      504     |
+        #|----------|------------|--------------|
+
+        groupadd -f bm-agents -g 500 --system
+        id -u prometheus &>/dev/null || useradd prometheus -u 501 --system -g bm-agents -s /sbin/nologin
+        id -u fluent-bit &>/dev/null || useradd fluent-bit -u 502 --system -g bm-agents -G adm -s /sbin/nologin
+        id -u node-agent &>/dev/null || useradd node-agent --system -g bm-agents -s /sbin/nologin
+        id -u platform-update-agent &>/dev/null || useradd platform-update-agent --system -g bm-agents -s /sbin/nologin
+        id -u tc-agent &>/dev/null || useradd tc-agent -u 503 --system -g bm-agents -s /sbin/nologin
+        id -u tc-ima &>/dev/null || useradd tc-ima -u 504 --system -g bm-agents -s /sbin/nologin
+
+        echo "install_dependencies done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
 }
 
-trap 'print_error_on_console ${LINENO}' ERR
+install_fws(){
+    if grep -q "install_fws done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_fws"
+    else
+        # Enable UFW
+        echo "Enable firwell"
+        systemctl enable ufw
+        echo "y" | ufw enable
+        ufw default allow outgoing
+        {{- if .FIREWALL_RULES }}
+        {{- range .FIREWALL_RULES }}
+        {{ . }}
+        {{- end }}
+        {{- end }}
+        ufw reload
+        echo "install_fws done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
+}
+
+enable_kernel_config(){
+    if grep -q "enable_kernel_config done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping enable_kernel_config"
+    else
+        echo "Enable kernel config"
+        sysctl -w vm.overcommit_memory=${KERNEL_CONFIG_OVER_COMMIT_MEMORY}
+        sysctl -w kernel.panic=${KERNEL_CONFIG_KERNEL_PANIC}
+        sysctl -w kernel.panic_on_oops=${KERNEL_CONFIG_PANIC_ON_OOPS}
+        sysctl -w fs.inotify.max_user_instances=${KERNEL_CONFIG_MAX_USER_INSTANCE}
+        echo vm.overcommit_memory=${KERNEL_CONFIG_OVER_COMMIT_MEMORY} | tee -a /etc/sysctl.conf
+        echo kernel.panic=${KERNEL_CONFIG_KERNEL_PANIC} | tee -a /etc/sysctl.conf
+        echo kernel.panic_on_oops=${KERNEL_CONFIG_PANIC_ON_OOPS} | tee -a /etc/sysctl.conf
+        echo fs.inotify.max_user_instances=${KERNEL_CONFIG_MAX_USER_INSTANCE} | tee -a /etc/sysctl.conf
+        sysctl -p
+        echo "enable_kernel_config done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
+}
+
+enable_NTP(){
+    if grep -q "enable_NTP done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+                echo "Skipping enable_NTP"
+    else
+	echo "Enable NTP"
+	ufw allow 123/udp
+	apt-get install systemd-timesyncd -y -q
+	cp /etc/systemd/timesyncd.conf /etc/systemd/timesyncd.conf.bak
+	ntpServers="{{ .NTP_SERVERS }}"
+	timeServers="NTP="
+	IFS=',' read -ra servers <<< "$ntpServers"
+	for server in "${servers[@]}"; do
+        	timeServers="$timeServers $server"
+	done
+	sed  's/.*#NTP=*./'"$timeServers"'/g' /etc/systemd/timesyncd.conf | sudo tee /etc/systemd/timesyncd.conf >>/dev/null
+	timedatectl set-ntp true
+	systemctl restart systemd-timesyncd
+	systemctl status systemd-timesyncd.service
+        echo "enable_NTP done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
+}
+
+install_syslogrotate_job(){
+if grep -q "install_syslogrotate_job done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+    echo "Skipping install_syslogrotate_job"
+else
+##### Managing log rotation
+echo "Install sys log"
+if ! sudo grep -q "cron.emf" "/etc/crontab"; then
+  sudo sed -i '$ d' /etc/crontab
+  echo "*/5 *   * * *   root    cd / && run-parts --report /etc/cron.emf" | sudo tee -a /etc/crontab
+  echo "#" | sudo tee -a /etc/crontab
+fi
+
+sudo rm -rf /etc/cron.emf
+sudo mkdir -p /etc/cron.emf
+sudo tee /etc/cron.emf/logrotate << 'END'
+#!/bin/sh
+/usr/sbin/logrotate /etc/logrotate.conf
+EXITVALUE=$?
+if [ $EXITVALUE != 0 ]; then
+    /usr/bin/logger -t logrotate "ALERT exited abnormally with [$EXITVALUE]"
+fi
+exit $EXITVALUE
+END
+
+sudo chmod +x /etc/cron.emf/logrotate
+
+sudo tee /etc/logrotate.d/rsyslog << 'END'
+/var/log/syslog
+/var/log/mail.info
+/var/log/mail.warn
+/var/log/mail.err
+/var/log/mail.log
+/var/log/daemon.log
+/var/log/kern.log
+/var/log/auth.log
+/var/log/user.log
+/var/log/lpr.log
+/var/log/cron.log
+/var/log/debug
+/var/log/messages
+{
+        rotate 4
+        weekly
+        missingok
+        size 1G
+        notifempty
+        compress
+        delaycompress
+        sharedscripts
+        postrotate
+                /usr/lib/rsyslog/rsyslog-rotate
+        endscript
+}
+END
+
+sudo systemctl restart rsyslog.service
+
+sudo systemctl restart cron.service
+sudo /usr/sbin/logrotate /etc/logrotate.conf
+##### Managing log rotation
+echo "install_syslogrotate_job done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
+fi
+}
+
+install_CA_cert(){
+    if grep -q "install_CA_cert done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+		echo "Skipping install_CA_cert"
+    else
+        echo "$CA_CERT" > /usr/local/share/ca-certificates/orch-ca.crt && update-ca-certificates -f
+        # Copy CA certificate to /etc/intel_edge_node to allow Observability pod to mount
+        mkdir -p /etc/intel_edge_node/orch-ca-cert
+        chmod 755 /etc/intel_edge_node/orch-ca-cert
+        chown root:root /etc/intel_edge_node/orch-ca-cert
+        echo "$CA_CERT" > /etc/intel_edge_node/orch-ca-cert/orch-ca.crt
+        echo "$CA_PEM" > /etc/intel_edge_node/orch-ca-cert/orch-ca.pem
+        chmod 644 /etc/intel_edge_node/orch-ca-cert/orch-ca.crt
+        chown root:root /etc/intel_edge_node/orch-ca-cert/orch-ca.crt
+        echo "install_CA_cert done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
+}
+
+install_oras(){
+    if grep -q "install_oras done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+        echo "Skipping install_oras"
+    else
+        echo "Install oras CLI tool"
+        echo "setup oras"
+        ORAS_VERSION="1.1.0"
+        expected_checksum="e09e85323b24ccc8209a1506f142e3d481e6e809018537c6b3db979c891e6ad7"
+        curl -LO "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz"
+        if [ -f "oras_1.1.0_linux_amd64.tar.gz" ]; then
+            actual_checksum=$(sha256sum "oras_1.1.0_linux_amd64.tar.gz" | awk '{print $1}')
+            if [ "$actual_checksum" != "$expected_checksum" ]; then
+                echo "Checksum mismatch. File may be corrupted."
+                exit 1
+            fi
+            echo "Checksum verification successful."
+        else
+            echo "Downloaded file does not exist. Aborting installation."
+            exit 1
+        fi
+        mkdir -p oras-install/
+        tar -zxf oras_${ORAS_VERSION}_*.tar.gz -C oras-install/
+        sudo mv oras-install/oras /usr/local/bin/
+        rm -rf oras_${ORAS_VERSION}_*.tar.gz oras-install/
+        echo "install_oras done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
+}
 
 install_device_discovery(){
     if grep -q "install_device_discovery done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
@@ -239,68 +428,12 @@ get_rs_token() {
     fi
 }
 
-install_dependencies() {
-    if grep -q "install_dependencies done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_dependencies"
-    else
-        echo "Install all dependencies."
-        rm -f /etc/apt/sources.list.d/edge-node.list
-        apt-get update
-        echo -e "\e[32m[install git python3-pip]\e[0m"
-        sudo apt-get install -y curl wget unzip apparmor iptables lvm2 cryptsetup lxc tpm2-abrmd tpm2-tools software-properties-common python3-venv git jq libpq5 python3-pip ca-certificates gnupg dmidecode libace-dev cmake python3 libglib2.0-dev libcurl4-openssl-dev libxerces-c-dev libnl-3-dev libnl-route-3-dev libxml2-dev libidn2-0-dev xsltproc docbook-xsl devscripts
-
-        # IMPORTANT: These hardcoded uid/gid must be aligned to that in Edge Microvisor Toolkit specified in cluster-agent.conf.
-        # If additional new users or groups need to be created by DKAM, they MUST be added after the users and group created below to
-        # avoid those users or groups being assigned to IDs that are reserved. A list of the reserved UID and GID values are below:
-        #
-        #|----------|------------|--------------|
-        #|   Name   | User/Group | Reserverd ID |
-        #|----------|------------|--------------|
-        #|bm-agents |    Group   |      500     |
-        #|prometheus|    User    |      501     |
-        #|fluent-bit|    User    |      502     |
-        #|tc-agent  |    User    |      503     |
-        #|tc-ima    |    User    |      504     |
-        #|----------|------------|--------------|
-
-        groupadd -f bm-agents -g 500 --system
-        id -u prometheus &>/dev/null || useradd prometheus -u 501 --system -g bm-agents -s /sbin/nologin
-        id -u fluent-bit &>/dev/null || useradd fluent-bit -u 502 --system -g bm-agents -G adm -s /sbin/nologin
-        id -u node-agent &>/dev/null || useradd node-agent --system -g bm-agents -s /sbin/nologin
-        id -u platform-update-agent &>/dev/null || useradd platform-update-agent --system -g bm-agents -s /sbin/nologin
-        id -u tc-agent &>/dev/null || useradd tc-agent -u 503 --system -g bm-agents -s /sbin/nologin
-        id -u tc-ima &>/dev/null || useradd tc-ima -u 504 --system -g bm-agents -s /sbin/nologin
-
-        echo "install_dependencies done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
 install_node_agent(){
     if grep -q "install_node_agent done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping install_node_agent"
     else
         rm -f /etc/apt/sources.list.d/edge-node.list
-        RS_AT=$(get_rs_token)
-
-        echo "setup oras"
-        ORAS_VERSION="1.1.0"
-        expected_checksum="e09e85323b24ccc8209a1506f142e3d481e6e809018537c6b3db979c891e6ad7"
-        curl -LO "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz"
-        if [ -f "oras_1.1.0_linux_amd64.tar.gz" ]; then
-            actual_checksum=$(sha256sum "oras_1.1.0_linux_amd64.tar.gz" | awk '{print $1}')
-            if [ "$actual_checksum" != "$expected_checksum" ]; then
-                    echo "Checksum mismatch. File may be corrupted."
-                    exit 1
-                fi
-                echo "Checksum verification successful."
-        else
-            echo "Downloaded file does not exist. Aborting installation."
-            exit 1
-        fi
-        mkdir -p oras-install/
-        tar -zxf oras_${ORAS_VERSION}_*.tar.gz -C oras-install/
-        sudo mv oras-install/oras /usr/local/bin/
-        rm -rf oras_${ORAS_VERSION}_*.tar.gz oras-install/
+        RS_AT=$(get_rs_token)      
 
         USERNAME="etcd"
 
@@ -398,78 +531,17 @@ install_other_agents() {
   	    echo "Skipping install_other_agents"
   else
         echo "Install other agents..."
-        echo "hardware-discovery-agent hardware-discovery-agent/onboarding.serviceURL string ${HW_INVENTORY_URL}" | debconf-set-selections
-        echo "platform-manageability-agent platform-manageability-agent/manageability.serviceURL string {{ .ORCH_PLATFORM_MANAGEABILITY_HOST }}:{{ .ORCH_PLATFORM_MANAGEABILITY_PORT }}" | debconf-set-selections
-        echo "platform-manageability-agent platform-manageability-agent/rpsAddress string {{ .RPS_ADDRESS }}" | debconf-set-selections
-        apt-get install -y -o Dpkg::Options::="--force-confnew" \
-        hardware-discovery-agent={{ index . "hardware-discovery-agent-VERSION" }} \
-        platform-manageability-agent={{ index . "platform-manageability-agent-VERSION" }}
+        echo "hardware-discovery-agent hardware-discovery-agent/onboarding.serviceURL string ${HW_INVENTORY_URL}" | debconf-set-selections        
+        apt-get install -y -o Dpkg::Options::="--force-confnew" hardware-discovery-agent={{ index . "hardware-discovery-agent-VERSION" }}
+        if rpc amtinfo | grep -iqE "AMT Pro Corporate|Intel Standard Manageability Corporate" > /dev/null; then
+            echo "platform-manageability-agent platform-manageability-agent/manageability.serviceURL string ${PLATFORM_MANAGEABILITY_URL}" | debconf-set-selections
+            echo "platform-manageability-agent platform-manageability-agent/rpsAddress string ${RPS_ADDRESS}" | debconf-set-selections
+            apt-get install -y -o Dpkg::Options::="--force-confnew" platform-manageability-agent="$PLATFORM_MANAGEABILITY_AGENT_VERSION"
+        else
+            sed -i '/serviceClients:/ s/platform-manageability-agent, *//; /serviceClients:/ s/, *platform-manageability-agent//; /serviceClients:/ s/platform-manageability-agent//' /etc/edge-node/node/confs/node-agent.yaml
+        fi
         echo "install_other_agents done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
   fi
-}
-
-install_syslogrotate_job(){
-if grep -q "install_syslogrotate_job done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-    echo "Skipping install_syslogrotate_job"
-else
-##### Managing log rotation
-echo "Install sys log"
-if ! sudo grep -q "cron.emf" "/etc/crontab"; then
-  sudo sed -i '$ d' /etc/crontab
-  echo "*/5 *   * * *   root    cd / && run-parts --report /etc/cron.emf" | sudo tee -a /etc/crontab
-  echo "#" | sudo tee -a /etc/crontab
-fi
-
-sudo rm -rf /etc/cron.emf
-sudo mkdir -p /etc/cron.emf
-sudo tee /etc/cron.emf/logrotate << 'END'
-#!/bin/sh
-/usr/sbin/logrotate /etc/logrotate.conf
-EXITVALUE=$?
-if [ $EXITVALUE != 0 ]; then
-    /usr/bin/logger -t logrotate "ALERT exited abnormally with [$EXITVALUE]"
-fi
-exit $EXITVALUE
-END
-
-sudo chmod +x /etc/cron.emf/logrotate
-
-sudo tee /etc/logrotate.d/rsyslog << 'END'
-/var/log/syslog
-/var/log/mail.info
-/var/log/mail.warn
-/var/log/mail.err
-/var/log/mail.log
-/var/log/daemon.log
-/var/log/kern.log
-/var/log/auth.log
-/var/log/user.log
-/var/log/lpr.log
-/var/log/cron.log
-/var/log/debug
-/var/log/messages
-{
-        rotate 4
-        weekly
-        missingok
-        size 1G
-        notifempty
-        compress
-        delaycompress
-        sharedscripts
-        postrotate
-                /usr/lib/rsyslog/rsyslog-rotate
-        endscript
-}
-END
-
-sudo systemctl restart rsyslog.service
-
-sudo systemctl restart cron.service
-sudo /usr/sbin/logrotate /etc/logrotate.conf
-##### Managing log rotation
-echo "install_syslogrotate_job done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-fi
 }
 
 install_syslogrotate_ufw(){
@@ -499,24 +571,6 @@ echo "install_syslogrotate_ufw done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
 fi
 }
 
-enable_kernel_config(){
-    if grep -q "enable_kernel_config done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping enable_kernel_config"
-    else
-        echo "Enable kernel config"
-        sysctl -w vm.overcommit_memory=${KERNEL_CONFIG_OVER_COMMIT_MEMORY}
-        sysctl -w kernel.panic=${KERNEL_CONFIG_KERNEL_PANIC}
-        sysctl -w kernel.panic_on_oops=${KERNEL_CONFIG_PANIC_ON_OOPS}
-        sysctl -w fs.inotify.max_user_instances=${KERNEL_CONFIG_MAX_USER_INSTANCE}
-        echo vm.overcommit_memory=${KERNEL_CONFIG_OVER_COMMIT_MEMORY} | tee -a /etc/sysctl.conf
-        echo kernel.panic=${KERNEL_CONFIG_KERNEL_PANIC} | tee -a /etc/sysctl.conf
-        echo kernel.panic_on_oops=${KERNEL_CONFIG_PANIC_ON_OOPS} | tee -a /etc/sysctl.conf
-        echo fs.inotify.max_user_instances=${KERNEL_CONFIG_MAX_USER_INSTANCE} | tee -a /etc/sysctl.conf
-        sysctl -p
-        echo "enable_kernel_config done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
 disable_unattended_upgrade(){
     if grep -q "disable_unattended_upgrade done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping disable_unattended_upgrade"
@@ -536,97 +590,6 @@ disable_unattended_upgrade(){
     fi
 }
 
-enable_netipplan() {
-    if grep -q "enable_netipplan done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping enable_netipplan"
-    else
-        echo "Enable NetIP"
-        # New values to update in the config.yaml file
-        new_values="network:
-                      version: 2
-                      renderer: networkd
-                      ethernets:
-                        id0:
-                          match:
-                            name: en*
-                          dhcp4: true"
-
-
-        # Update the content of the config.yaml file with new values
-        echo "$new_values" > /etc/netplan/config.yaml
-
-        # Apply the changes using the netplan apply command
-        netplan apply
-
-        echo "Config.yaml file updated successfully."
-        sed -i '/[Resolve]/d'  /etc/systemd/resolved.conf
-        sed -i '/DNS/d'  /etc/systemd/resolved.conf
-        echo "enable_netipplan done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
-enable_NTP(){
-    if grep -q "enable_NTP done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-                echo "Skipping enable_NTP"
-    else
-	echo "Enable NTP"
-	ufw allow 123/udp
-	apt-get install systemd-timesyncd -y -q
-	cp /etc/systemd/timesyncd.conf /etc/systemd/timesyncd.conf.bak
-	ntpServers="{{ .NTP_SERVERS }}"
-	timeServers="NTP="
-	IFS=',' read -ra servers <<< "$ntpServers"
-	for server in "${servers[@]}"; do
-        	timeServers="$timeServers $server"
-	done
-	sed  's/.*#NTP=*./'"$timeServers"'/g' /etc/systemd/timesyncd.conf | sudo tee /etc/systemd/timesyncd.conf >>/dev/null
-	timedatectl set-ntp true
-	systemctl restart systemd-timesyncd
-	systemctl status systemd-timesyncd.service
-        echo "enable_NTP done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
-install_fws(){
-    if grep -q "install_fws done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_fws"
-    else
-        # Enable UFW
-        echo "Enable firwell"
-        systemctl enable ufw
-        echo "y" | ufw enable
-        ufw default allow outgoing
-        {{- if .FIREWALL_RULES }}
-        {{- range .FIREWALL_RULES }}
-        {{ . }}
-        {{- end }}
-        {{- end }}
-        ufw reload
-        echo "install_fws done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
-install_CA_cert(){
-    if grep -q "install_CA_cert done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-		echo "Skipping install_CA_cert"
-    else
-        echo {{ .CA_CERT }} > /usr/local/share/ca-certificates/orch-ca.crt && update-ca-certificates -f
-        # Copy CA certificate to /etc/intel_edge_node to allow Observability pod to mount
-        mkdir -p /etc/intel_edge_node/orch-ca-cert
-        chmod 755 /etc/intel_edge_node/orch-ca-cert
-        chown root:root /etc/intel_edge_node/orch-ca-cert
-        echo {{ .CA_CERT }} > /etc/intel_edge_node/orch-ca-cert/orch-ca.crt
-        echo {{ .CA_PEM }} > /etc/intel_edge_node/orch-ca-cert/orch-ca.pem
-        chmod 644 /etc/intel_edge_node/orch-ca-cert/orch-ca.crt
-        chown root:root /etc/intel_edge_node/orch-ca-cert/orch-ca.crt
-        echo "install_CA_cert done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-    fi
-}
-
-
-{{- if eq .NETIP "dynamic" }}
-enable_netipplan 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-{{- end }}
 install_dependencies 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_fws 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 enable_kernel_config 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
@@ -634,10 +597,11 @@ enable_NTP 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_syslogrotate_job 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 echo "Install agents..........................."
 install_CA_cert 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_oras 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_device_discovery 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_lms_rpc 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_node_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_PMA 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_other_agents 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_syslogrotate_ufw 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 disable_unattended_upgrade 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 echo "Installation completed Successfuly on EdgeNode!!!!" > /dev/tty1
