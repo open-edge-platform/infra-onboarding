@@ -14,7 +14,7 @@ import (
 //go:embed Installer.tmpl
 var installerTemplate string
 
-// CurateVProInstaller curates the vPro installer script with infra configuration
+// CurateVProInstaller curates the vPro installer script with infra configuration.
 func CurateVProInstaller(infraConfig config.InfraConfig, osType osv1.OsType) (string, error) {
 	// Get all template variables from common infra configuration
 	templateVars, err := curation.GetCommonInfraTemplateVariables(infraConfig, osType)
@@ -22,7 +22,7 @@ func CurateVProInstaller(infraConfig config.InfraConfig, osType osv1.OsType) (st
 		return "", err
 	}
 
-	// Curate the template with variables
+	// Curate the template with variables.
 	curatedScript, err := curation.CurateFromTemplate(installerTemplate, templateVars)
 	if err != nil {
 		return "", err

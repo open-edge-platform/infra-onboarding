@@ -19,6 +19,8 @@ import (
 
 var zlog = logging.GetLogger("DKAM-Mgr")
 
+const installerFilePerm = 0o600
+
 // DownloadArtifacts downloads all required artifacts from the release service.
 func DownloadArtifacts(ctx context.Context) error {
 	zlog.InfraSec().Info().Msgf("Manifest Tag: %s", config.GetInfraConfig().ENAgentManifestTag)
@@ -64,7 +66,7 @@ func BuildSignIpxe() (bool, error) {
 	return true, nil
 }
 
-// CurateVProInstaller curates vPro installer script for Ubuntu and copies it to PVC
+// CurateVProInstaller curates vPro installer script for Ubuntu and copies it to PVC.
 func CurateVProInstaller() error {
 	infraConfig := config.GetInfraConfig()
 
@@ -78,31 +80,13 @@ func CurateVProInstaller() error {
 
 	// Write to PVC (/data)
 	destPath := filepath.Join(config.PVC, "Installer")
-	err = os.WriteFile(destPath, []byte(curatedScript), 0o755)
+	err = os.WriteFile(destPath, []byte(curatedScript), installerFilePerm)
 	if err != nil {
 		zlog.InfraSec().Error().Err(err).Msgf("Failed to write vPro installer to %s", destPath)
 		return err
 	}
 
 	zlog.InfraSec().Info().Msgf("Successfully curated and copied vPro installer to %s", destPath)
-
-	// Restrict access: allow only wget from /data/Installer, deny other folders in /data
-	installerDir := filepath.Dir(destPath)
-	if err := os.Chmod(installerDir, 0o755); err != nil {
-		zlog.InfraSec().Error().Err(err).Msgf("Failed to set permissions on %s", installerDir)
-	}
-	// Deny access to other folders in /data except 'Installer'
-	entries, err := os.ReadDir(config.PVC)
-	if err == nil {
-		for _, entry := range entries {
-			if entry.IsDir() && entry.Name() != "Installer" {
-				denyPath := filepath.Join(config.PVC, entry.Name())
-				if err := os.Chmod(denyPath, 0); err != nil {
-					zlog.InfraSec().Error().Err(err).Msgf("Failed to restrict access to %s", denyPath)
-				}
-			}
-		}
-	}
 
 	return nil
 }

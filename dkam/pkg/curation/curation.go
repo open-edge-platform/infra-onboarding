@@ -80,7 +80,7 @@ func getCaCert() (string, error) {
 	return string(caContent), nil
 }
 
-// Returns the concatenated content of orch-ca-cert and boots-ca-cert as a string
+// Returns the concatenated content of orch-ca-cert and boots-ca-cert as a string.
 func getCombinedCaPEM() (string, error) {
 	orchCa, err := os.ReadFile(config.OrchCACertificateFile)
 	if err != nil {
