@@ -48,19 +48,11 @@ CADDY_APT_PROXY_PORT={{ .ORCH_APT_PORT }}
 REGISTRY_URL={{ .IMG_REGISTRY_URL }}
 CADDY_REGISTRY_PROXY_URL={{ .IMG_REGISTRY_URL }}
 CADDY_REGISTRY_PROXY_PORT={{ .ORCH_IMG_PORT }}
-OBSERVABILITY_LOGGING_URL={{ .ORCH_PLATFORM_OBS_HOST }}
-OBSERVABILITY_LOGGING_PORT={{ .ORCH_PLATFORM_OBS_PORT }}
-OBSERVABILITY_METRICS_URL={{ .ORCH_PLATFORM_OBS_METRICS_HOST }}
-OBSERVABILITY_METRICS_PORT={{ .ORCH_PLATFORM_OBS_METRICS_PORT }}
-UPDATE_SERVICE_URL={{ .ORCH_UPDATE }}
-TELEMETRY_MANAGER_URL={{ .ORCH_TELEMETRY_HOST }}:{{ .ORCH_TELEMETRY_PORT }}
 PLATFORM_MANAGEABILITY_URL={{ .ORCH_PLATFORM_MANAGEABILITY_HOST }}:{{ .ORCH_PLATFORM_MANAGEABILITY_PORT }}
 RPS_ADDRESS={{ .RPS_ADDRESS }}
 KEYCLOAK_FQDN={{ .KEYCLOAK_FQDN }}
 RELEASE_FQDN={{ .RELEASE_FQDN }}
 RS_TYPE={{ .RS_TYPE }}
-DISABLE_CO_PROFILE={{ .DISABLE_CO_PROFILE }}
-DISABLE_O11Y_PROFILE={{ .DISABLE_O11Y_PROFILE }}
 APT_DISTRO={{ .APT_DISTRO }}
 DEB_PACKAGES_REPO={{ .DEB_PACKAGES_REPO }}
 FILE_RS_ROOT={{ .FILE_RS_ROOT }}
@@ -294,9 +286,11 @@ install_device_discovery(){
         -ca-cert /etc/intel_edge_node/orch-ca-cert/orch-ca.pem \
         -auto-detect
         echo "install_device_discovery done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-        if [[ -s "/etc/intel_edge_node/client-credentials/client_id" && -s "/etc/intel_edge_node/client-credentials/client_secret" ]]; then
-            CLIENT_ID=$(cat /etc/intel_edge_node/client-credentials/client_id)
-            CLIENT_SECRET=$(cat /etc/intel_edge_node/client-credentials/client_secret)
+        if [[ -s "/dev/shm/client_id" && -s "/dev/shm/client_secret" ]]; then
+            CLIENT_ID=$(cat /dev/shm/client_id)
+            cp /dev/shm/client_id /etc/intel_edge_node/client-credentials
+            CLIENT_SECRET=$(cat /dev/shm/client_secret)
+            cp /dev/shm/client_secret /etc/intel_edge_node/client-credentials
         else
             echo "Client credentials are not yet provisioned"
             exit 1
@@ -457,13 +451,11 @@ install_node_agent(){
         echo "Install caddy for node agent..."
 
         echo "download caddy deb package..."
-        CADDY_VERSION={{ index . "caddy-VERSION" }}
-        echo $CADDY_VERSION
-        CADDY_PKGFILE="./caddy_${CADDY_VERSION}_linux_amd64.deb"
+        CADDY_PKGFILE="./caddy_{{ index . "caddy-VERSION" }}_linux_amd64.deb"
         if [ "{{ .RS_TYPE }}" == "auth" ]; then
-            echo "${RS_AT}" | oras pull "{{ .IMG_REGISTRY_URL }}:{{ .ORCH_IMG_PORT }}/{{ .DEB_PACKAGES_REPO }}/caddy:$CADDY_VERSION" --password-stdin
+            echo "${RS_AT}" | oras pull "{{ .IMG_REGISTRY_URL }}/{{ .DEB_PACKAGES_REPO }}/caddy:{{ index . "caddy-VERSION" }}" --password-stdin
         else
-            oras pull "{{ .IMG_REGISTRY_URL }}:{{ .ORCH_IMG_PORT }}/{{ .DEB_PACKAGES_REPO }}/caddy:$CADDY_VERSION"
+            oras pull "{{ .IMG_REGISTRY_URL }}/{{ .DEB_PACKAGES_REPO }}/caddy:{{ index . "caddy-VERSION" }}"
         fi
 
         if [ ! -f "${CADDY_PKGFILE}" ]; then
@@ -479,15 +471,13 @@ install_node_agent(){
 
         echo "Install node agent..."
         echo "download node agent..."
-        NODE_AGENT_VERSION={{ index . "node-agent-VERSION" }}
-        echo $NODE_AGENT_VERSION
-        PKGFILE="./node-agent_${NODE_AGENT_VERSION}_amd64.deb"
+        PKGFILE="./node-agent_{{ index . "node-agent-VERSION" }}_amd64.deb"
 
         echo "download node agent"
          if [ "{{ .RS_TYPE }}" == "auth" ]; then
-            echo "${RS_AT}" | oras pull "{{ .IMG_REGISTRY_URL }}:{{ .ORCH_IMG_PORT }}/{{ .DEB_PACKAGES_REPO }}/node-agent:$NODE_AGENT_VERSION" --password-stdin
+            echo "${RS_AT}" | oras pull "{{ .IMG_REGISTRY_URL }}/{{ .DEB_PACKAGES_REPO }}/node-agent:{{ index . "node-agent-VERSION" }}" --password-stdin
         else
-            oras pull "{{ .IMG_REGISTRY_URL }}:{{ .ORCH_IMG_PORT }}/{{ .DEB_PACKAGES_REPO }}/node-agent:$NODE_AGENT_VERSION"
+            oras pull "{{ .IMG_REGISTRY_URL }}/{{ .DEB_PACKAGES_REPO }}/node-agent:{{ index . "node-agent-VERSION" }}"
         fi
 
         if [ ! -f "${PKGFILE}" ]; then
@@ -531,15 +521,22 @@ install_other_agents() {
   	    echo "Skipping install_other_agents"
   else
         echo "Install other agents..."
-        echo "hardware-discovery-agent hardware-discovery-agent/onboarding.serviceURL string ${HW_INVENTORY_URL}" | debconf-set-selections        
+        echo "hardware-discovery-agent hardware-discovery-agent/onboarding.serviceURL string {{ .ORCH_INFRA }}" | debconf-set-selections
         apt-get install -y -o Dpkg::Options::="--force-confnew" hardware-discovery-agent={{ index . "hardware-discovery-agent-VERSION" }}
         if rpc amtinfo | grep -iqE "AMT Pro Corporate|Intel Standard Manageability Corporate" > /dev/null; then
             echo "platform-manageability-agent platform-manageability-agent/manageability.serviceURL string ${PLATFORM_MANAGEABILITY_URL}" | debconf-set-selections
-            echo "platform-manageability-agent platform-manageability-agent/rpsAddress string ${RPS_ADDRESS}" | debconf-set-selections
-            apt-get install -y -o Dpkg::Options::="--force-confnew" platform-manageability-agent="$PLATFORM_MANAGEABILITY_AGENT_VERSION"
+            echo "platform-manageability-agent platform-manageability-agent/rpsAddress string {{ .RPS_ADDRESS }}" | debconf-set-selections
+            apt-get install -y -o Dpkg::Options::="--force-confnew" platform-manageability-agent={{ index . "platform-manageability-agent-VERSION" }}
         else
             sed -i '/serviceClients:/ s/platform-manageability-agent, *//; /serviceClients:/ s/, *platform-manageability-agent//; /serviceClients:/ s/platform-manageability-agent//' /etc/edge-node/node/confs/node-agent.yaml
         fi
+        sed -i '/serviceClients:/ s/cluster-agent, *//; /serviceClients:/ s/, *cluster-agent//; /serviceClients:/ s/cluster-agent//' /etc/edge-node/node/confs/node-agent.yaml
+        sed -i '/serviceClients:/ s/platform-update-agent, *//; /serviceClients:/ s/, *platform-update-agent//; /serviceClients:/ s/platform-update-agent//' /etc/edge-node/node/confs/node-agent.yaml
+        sed -i '/serviceClients:/ s/platform-telemetry-agent, *//; /serviceClients:/ s/, *platform-telemetry-agent//; /serviceClients:/ s/platform-telemetry-agent//' /etc/edge-node/node/confs/node-agent.yaml
+        sed -i '/outboundClients:/ s/platform-observability-collector, *//; /outboundClients:/ s/, *platform-observability-collector//; /outboundClients:/ s/platform-observability-collector//' /etc/edge-node/node/confs/node-agent.yaml
+        sed -i '/outboundClients:/ s/platform-observability-health-check, *//; /outboundClients:/ s/, *platform-observability-health-check//; /outboundClients:/ s/platform-observability-health-check//' /etc/edge-node/node/confs/node-agent.yaml
+        sed -i '/outboundClients:/ s/platform-observability-logging, *//; /outboundClients:/ s/, *platform-observability-logging//; /outboundClients:/ s/platform-observability-logging//' /etc/edge-node/node/confs/node-agent.yaml
+        sed -i '/outboundClients:/ s/platform-observability-metrics, *//; /outboundClients:/ s/, *platform-observability-metrics//; /outboundClients:/ s/platform-observability-metrics//' /etc/edge-node/node/confs/node-agent.yaml
         echo "install_other_agents done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
   fi
 }
@@ -604,5 +601,5 @@ install_node_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_other_agents 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_syslogrotate_ufw 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 disable_unattended_upgrade 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-echo "Installation completed Successfuly on EdgeNode!!!!" > /dev/tty1
+echo "Installation completed Successfuly on EdgeNode!!!!"
 echo "Installation done" > "$SCRIPT_DIR"/.base_pkg_install_done

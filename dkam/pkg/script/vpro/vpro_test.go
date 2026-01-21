@@ -18,8 +18,9 @@ import (
 
 func setupTestCACert(t *testing.T) func() {
 	t.Helper()
-	// Create the required CA cert file for the test
-	dir := "/etc/ssl/orch-ca-cert"
+	// Create the required CA cert file for the test in a temp dir
+	tempDir := t.TempDir()
+	dir := filepath.Join(tempDir, "orch-ca-cert")
 	file := filepath.Join(dir, "ca.crt")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatalf("failed to create CA cert dir: %v", err)
@@ -28,8 +29,11 @@ func setupTestCACert(t *testing.T) func() {
 	if err := os.WriteFile(file, content, 0o600); err != nil {
 		t.Fatalf("failed to write CA cert: %v", err)
 	}
+	// Set env var so code under test can find the CA cert
+	os.Setenv("ORCH_CA_CERT_PATH", file)
 	return func() {
 		_ = os.Remove(file)
+		os.Unsetenv("ORCH_CA_CERT_PATH")
 	}
 }
 
