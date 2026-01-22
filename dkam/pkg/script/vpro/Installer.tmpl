@@ -516,14 +516,13 @@ install_node_agent(){
     fi
 }
 
-install_other_agents() {
-  if grep -q "install_other_agents done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
-  	    echo "Skipping install_other_agents"
-  else
-        echo "Install other agents..."
-        echo "hardware-discovery-agent hardware-discovery-agent/onboarding.serviceURL string {{ .ORCH_INFRA }}" | debconf-set-selections
-        apt-get install -y -o Dpkg::Options::="--force-confnew" hardware-discovery-agent={{ index . "hardware-discovery-agent-VERSION" }}
-        if rpc amtinfo | grep -iqE "AMT Pro Corporate|Intel Standard Manageability Corporate" > /dev/null; then
+install_PMA() {
+    if grep -q "install_PMA done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+        echo "Skipping install_PMA"
+    else
+        echo "Install PMA..."
+        amt_output=$(rpc amtinfo)
+        if echo "$amt_output" | grep -iqE "AMT Pro Corporate|Intel Standard Manageability Corporate" > /dev/null; then
             echo "platform-manageability-agent platform-manageability-agent/manageability.serviceURL string ${PLATFORM_MANAGEABILITY_URL}" | debconf-set-selections
             echo "platform-manageability-agent platform-manageability-agent/rpsAddress string {{ .RPS_ADDRESS }}" | debconf-set-selections
             apt-get install -y -o Dpkg::Options::="--force-confnew" platform-manageability-agent={{ index . "platform-manageability-agent-VERSION" }}
@@ -537,7 +536,7 @@ install_other_agents() {
         sed -i '/outboundClients:/ s/platform-observability-health-check, *//; /outboundClients:/ s/, *platform-observability-health-check//; /outboundClients:/ s/platform-observability-health-check//' /etc/edge-node/node/confs/node-agent.yaml
         sed -i '/outboundClients:/ s/platform-observability-logging, *//; /outboundClients:/ s/, *platform-observability-logging//; /outboundClients:/ s/platform-observability-logging//' /etc/edge-node/node/confs/node-agent.yaml
         sed -i '/outboundClients:/ s/platform-observability-metrics, *//; /outboundClients:/ s/, *platform-observability-metrics//; /outboundClients:/ s/platform-observability-metrics//' /etc/edge-node/node/confs/node-agent.yaml
-        echo "install_other_agents done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
+        echo "install_PMA done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
   fi
 }
 
@@ -598,7 +597,7 @@ install_oras 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_device_discovery 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_lms_rpc 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_node_agent 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
-install_other_agents 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+install_PMA 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_syslogrotate_ufw 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 disable_unattended_upgrade 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 echo "Installation completed Successfuly on EdgeNode!!!!"
