@@ -40,7 +40,6 @@ func TestDownloadArtifacts(t *testing.T) {
 	}
 }
 
-//nolint:dupl // this is for SignMicroOS.
 func TestSignMicroOS(t *testing.T) {
 	currentDir, err := os.Getwd()
 	if err != nil {
@@ -65,7 +64,6 @@ func TestSignMicroOS(t *testing.T) {
 	}
 }
 
-//nolint:dupl // this is for BuildSignIpxe.
 func TestBuildSignIpxe1(t *testing.T) {
 	currentDir, err := os.Getwd()
 	if err != nil {

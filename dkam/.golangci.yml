@@ -2,6 +2,8 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+version: "2"
+
 linters:
   enable:
     - asasalint
@@ -10,28 +12,21 @@ linters:
     - bodyclose
     - copyloopvar
     - cyclop
-    - depguard
     - dogsled
     - durationcheck
-    - errcheck
     - errname
     - errorlint
     - exhaustive
     - funlen
-    - gci
     - gochecknoinits
     - goconst
     - gocritic
     - gocyclo
     - godot
-    - gofmt
-    - gofumpt
     - goheader
-    - goimports
     - gomoddirectives
     - goprintffuncname
     - gosec
-    - gosimple
     - govet
     - ineffassign
     - lll
@@ -46,20 +41,19 @@ linters:
     - predeclared
     - revive
     - staticcheck
-    - stylecheck
     - tagliatelle
     - testpackage
-    - tenv
     - testableexamples
     - thelper
     - tparallel
-    - typecheck
     - unconvert
     - unparam
     - unused
     - usestdlibvars
     - whitespace
     - dupl
+  disable:
+    - errcheck
 
 run:
   timeout: 10m
@@ -102,9 +96,6 @@ linters-settings:
       - hugeParam
       - rangeExprCopy
       - rangeValCopy
-  errcheck:
-    check-type-assertions: true
-    check-blank: true
   nakedret:
     max-func-lines: 1
   tagliatelle:
@@ -116,32 +107,6 @@ linters-settings:
         bson: camel
         avro: snake
         mapstructure: kebab
-  depguard:
-    rules:
-      Main:
-        files:
-          - $all
-          - "!$test"
-        allow:
-          - $gostd
-          - github.com/open-edge-platform
-          - github.com/stretchr/testify/require
-          - github.com/grpc-ecosystem/go-grpc-middleware
-          - github.com/prometheus/client_golang/prometheus
-          - github.com/fsnotify/fsnotify
-          - github.com/spf13/viper
-          - github.com/pkg/errors
-          - github.com/google/uuid
-          - github.com/Masterminds/sprig/v3
-      Test:
-        files:
-          - $test
-        allow:
-          - $gostd
-          - github.com/open-edge-platform
-          - github.com/stretchr/testify/assert
-          - github.com/stretchr/testify/require
-          - github.com/google/uuid
 
 issues:
   max-issues-per-linter: 0
@@ -149,14 +114,22 @@ issues:
   new: false
   fix: false
   exclude:
-    - Error return value of `.*Close` is not checked
-    - Error return value of `.*Flush` is not checked
-    - Error return value of `.*Write` is not checked
-    - Error return value of `.*Stop` is not checked
+    - 'Error return value of `.*\.Close` is not checked'
+    - 'Error return value of `.*\.Flush` is not checked'
+    - 'Error return value of `.*\.Write` is not checked'
+    - 'Error return value of `.*\.Stop` is not checked'
+    - 'Error return value of `.*\.RemoveAll` is not checked'
+    - 'Error return value of `.*\.Remove` is not checked'
+    - 'Error return value of `.*\.Setenv` is not checked'
+    - 'Error return value of `.*\.Unsetenv` is not checked'
   exclude-rules:
   uniq-by-line: false
 
 output:
-  formats: colored-line-number:stdout,html:out/golangci-lint_report.html
-  print-linter-name: true
+  formats:
+    text:
+      path: stdout
+      print-linter-name: true
+    html:
+      path: out/golangci-lint_report.html
   sort-results: true

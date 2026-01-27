@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
+// Package dkammgr provides functionality for downloading, signing, and managing kernel artifacts.
 package dkammgr
 
 import (
@@ -14,6 +15,7 @@ import (
 
 var zlog = logging.GetLogger("DKAM-Mgr")
 
+// DownloadArtifacts downloads all required artifacts from the release service.
 func DownloadArtifacts(ctx context.Context) error {
 	zlog.InfraSec().Info().Msgf("Manifest Tag: %s", config.GetInfraConfig().ENAgentManifestTag)
 
@@ -31,6 +33,7 @@ func DownloadArtifacts(ctx context.Context) error {
 	return nil
 }
 
+// SignMicroOS signs the MicroOS kernel image.
 func SignMicroOS() (bool, error) {
 	signed, err := signing.SignMicroOS()
 	if err != nil {
@@ -44,6 +47,7 @@ func SignMicroOS() (bool, error) {
 	return true, nil
 }
 
+// BuildSignIpxe builds and signs the iPXE boot loader.
 func BuildSignIpxe() (bool, error) {
 	signed, err := signing.BuildSignIpxe()
 	if err != nil {
