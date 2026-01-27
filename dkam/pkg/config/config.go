@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
+// Package config provides configuration management for the DKAM service.
 package config
 
 import (
@@ -20,13 +21,16 @@ import (
 )
 
 const (
+	// DefaultTimeout is the default timeout for HTTP requests.
 	DefaultTimeout = 3 * time.Second
 
-	DownloadPath           = "/tmp"
+	// DownloadPath is the directory path for downloading artifacts.
+	DownloadPath = "/tmp"
+	// BootsCaCertificateFile is the path to the CA certificate file.
 	BootsCaCertificateFile = "/etc/ssl/boots-ca-cert/ca.crt"
 )
 
-//nolint:tagliatelle // field names must be in line with charts values
+// InfraConfig holds the infrastructure configuration settings.
 type InfraConfig struct {
 	ENDebianPackagesRepo string `mapstructure:"enDebianPackagesRepo"`
 	ENFilesRsRoot        string `mapstructure:"enFilesRsRoot"`
@@ -85,17 +89,19 @@ type InfraConfig struct {
 	SkipOSProvisioning bool `mapstructure:"skipOSProvisioning" yaml:"skipOSProvisioning"`
 }
 
-// Edge Node Agents release manifest.
+// ENManifest represents the Edge Node Agents release manifest.
 type ENManifest struct {
 	Repository Repository      `yaml:"repository"`
 	Packages   []AgentsVersion `yaml:"packages"`
 }
 
+// Repository represents a container image repository.
 type Repository struct {
 	Codename  string `yaml:"codename"`
 	Component string `yaml:"component"`
 }
 
+// AgentsVersion represents version information for an agent.
 type AgentsVersion struct {
 	Name    string `yaml:"name"`
 	Version string `yaml:"version"`
@@ -115,6 +121,7 @@ var (
 	ScriptPath            = "/home/appuser/pkg/script"
 )
 
+// Read reads and validates the configuration from the config file.
 func Read() error {
 	viper.SetConfigFile(*FlagConfigFilePath)
 	viper.SetTypeByDefaultValue(true)
@@ -169,6 +176,7 @@ func Read() error {
 	return nil
 }
 
+// DownloadENManifest downloads the Edge Node manifest from the artifact service.
 func DownloadENManifest(manifestRepo, manifestTag string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
@@ -192,12 +200,14 @@ func DownloadENManifest(manifestRepo, manifestTag string) ([]byte, error) {
 	return artifact.Data, nil
 }
 
+// GetInfraConfig returns the current infrastructure configuration.
 func GetInfraConfig() InfraConfig {
 	configLock.RLock()
 	defer configLock.RUnlock()
 	return currentInfraConfig
 }
 
+// SetInfraConfig updates the current infrastructure configuration.
 func SetInfraConfig(config InfraConfig) {
 	zlog.InfraSec().Debug().Msgf("Setting infra configuration: %+v", config)
 	zlog.Info().Msgf("Using EN manifest tag: %q", config.ENAgentManifestTag)
