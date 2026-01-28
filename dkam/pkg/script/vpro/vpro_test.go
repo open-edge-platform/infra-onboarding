@@ -30,10 +30,10 @@ func setupTestCACert(t *testing.T) func() {
 		t.Fatalf("failed to write CA cert: %v", err)
 	}
 	// Set env var so code under test can find the CA cert
-	os.Setenv("ORCH_CA_CERT_PATH", file)
+	t.Setenv("ORCH_CA_CERT_PATH", file)
 	return func() {
 		_ = os.Remove(file)
-		os.Unsetenv("ORCH_CA_CERT_PATH")
+		// No need to unset env var, t.Setenv handles cleanup
 	}
 }
 
