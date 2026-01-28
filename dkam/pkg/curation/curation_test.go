@@ -12,6 +12,7 @@ import (
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/curation"
 )
 
+//nolint:funlen // Test function with many test cases
 func Test_ParseJSONUfwRules(t *testing.T) {
 	tests := map[string]struct {
 		jsonUfw     string
@@ -115,6 +116,7 @@ func Test_ParseJSONUfwRules(t *testing.T) {
 	}
 }
 
+//nolint:funlen // Test function with many test cases
 func Test_GenerateUFWCommand(t *testing.T) {
 	tests := map[string]struct {
 		ufwRule            curation.FirewallRule

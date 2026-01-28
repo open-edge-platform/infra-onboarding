@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
+// Package download provides functionality for downloading artifacts from release services.
 package download
 
 import (
@@ -17,7 +18,8 @@ import (
 )
 
 var (
-	zlog   = logging.GetLogger("InfraDKAMDownload")
+	zlog = logging.GetLogger("InfraDKAMDownload")
+	// Client is the HTTP client used for downloading artifacts.
 	Client = &http.Client{
 		Transport: &http.Transport{
 			Proxy:             http.ProxyFromEnvironment,
@@ -27,6 +29,7 @@ var (
 )
 
 const (
+	// UOSFileName is the filename for the micro OS archive.
 	UOSFileName = "emb_uos_x86_64.tar.gz"
 )
 
@@ -72,7 +75,7 @@ func DownloadMicroOS(ctx context.Context) (bool, error) {
 
 	uOSFilePath := config.DownloadPath + "/" + UOSFileName
 
-	file, fileerr := os.Create(uOSFilePath)
+	file, fileerr := os.Create(uOSFilePath) //nolint:gosec // Path is from trusted config
 	if fileerr != nil {
 		zlog.InfraSec().Error().Err(fileerr).Msgf("Failed to create file:%v", fileerr)
 		return false, fileerr

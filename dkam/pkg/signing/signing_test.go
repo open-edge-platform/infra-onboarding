@@ -49,7 +49,7 @@ func Test_copyFile(t *testing.T) {
 		},
 	}
 	defer func() {
-		os.Remove(wd + "dummy")
+		_ = os.Remove(wd + "dummy")
 	}()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -90,7 +90,7 @@ func Test_copyDir(t *testing.T) {
 		},
 	}
 	defer func() {
-		os.RemoveAll(wd + "dummy")
+		_ = os.RemoveAll(wd + "dummy")
 	}()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
