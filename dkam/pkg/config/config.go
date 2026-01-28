@@ -82,6 +82,8 @@ type InfraConfig struct {
 	// Disable AOCO config
 	DisableCOProfile   bool `mapstructure:"disableCoProfile" yaml:"disableCoProfile"`
 	DisableO11YProfile bool `mapstructure:"disableO11yProfile" yaml:"disableO11yProfile"`
+
+	SkipOSProvisioning bool `mapstructure:"skipOsProvisioning" yaml:"skipOsProvisioning"`
 }
 
 // Edge Node Agents release manifest.
@@ -115,6 +117,7 @@ var (
 )
 
 func Read() error {
+	zlog.Info().Msgf("Config file path: %s", *FlagConfigFilePath)
 	viper.SetConfigFile(*FlagConfigFilePath)
 	viper.SetTypeByDefaultValue(true)
 	if err := viper.ReadInConfig(); err != nil {

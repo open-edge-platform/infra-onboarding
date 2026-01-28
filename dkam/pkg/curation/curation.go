@@ -78,6 +78,23 @@ func getCaCert() (string, error) {
 	return string(caContent), nil
 }
 
+// Returns the concatenated content of orch-ca-cert and boots-ca-cert as a string.
+func getCombinedCaPEM() (string, error) {
+	orchCa, err := os.ReadFile(config.OrchCACertificateFile)
+	if err != nil {
+		return "", fmt.Errorf("failed to read orch-ca-cert: %w", err)
+	}
+	bootsCa, err := os.ReadFile(config.BootsCaCertificateFile)
+	if err != nil {
+		return "", fmt.Errorf("failed to read boots-ca-cert: %w", err)
+	}
+	var b strings.Builder
+	b.Write(orchCa)
+	b.WriteString("\n")
+	b.Write(bootsCa)
+	return b.String(), nil
+}
+
 // ufw rules if true, iptables otherwise.
 func getCustomFirewallRules(ufw bool) ([]string, error) {
 	reqRules, err := ParseJSONFirewallRules(config.GetInfraConfig().FirewallReqAllow)
@@ -127,6 +144,11 @@ func GetCommonInfraTemplateVariables(infraConfig config.InfraConfig, osType osv1
 		return nil, err
 	}
 
+	caPem, err := getCombinedCaPEM()
+	if err != nil {
+		return nil, err
+	}
+
 	firewallRules, err := getCustomFirewallRules(osType == osv1.OsType_OS_TYPE_MUTABLE)
 	if err != nil {
 		return nil, err
@@ -136,6 +158,8 @@ func GetCommonInfraTemplateVariables(infraConfig config.InfraConfig, osType osv1
 		"MODE": os.Getenv("MODE"),
 
 		"CA_CERT": caCert,
+
+		"CA_PEM": caPem,
 
 		"ORCH_CLUSTER":                     infraConfig.ClusterURL,
 		"ORCH_INFRA":                       infraConfig.InfraURL,
@@ -182,6 +206,9 @@ func GetCommonInfraTemplateVariables(infraConfig config.InfraConfig, osType osv1
 
 		"DISABLE_CO_PROFILE":   infraConfig.DisableCOProfile,
 		"DISABLE_O11Y_PROFILE": infraConfig.DisableO11YProfile,
+
+		"ONBOARDING_SVC_URL":        infraConfig.OnboardingURL,
+		"ONBOARDING_STREAM_SVC_URL": infraConfig.OnboardingStreamURL,
 	}
 
 	if osType == osv1.OsType_OS_TYPE_MUTABLE {
