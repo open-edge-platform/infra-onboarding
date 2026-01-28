@@ -284,7 +284,7 @@ install_device_discovery(){
         -obm-port 443 \
         -keycloak-url {{ .KEYCLOAK_URL }} \
         -ca-cert /etc/intel_edge_node/orch-ca-cert/orch-ca.pem \
-        -auto-detect
+        -auto-detect -disable-interactive
         echo "install_device_discovery done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
         if [[ -s "/dev/shm/client_id" && -s "/dev/shm/client_secret" ]]; then
             CLIENT_ID=$(cat /dev/shm/client_id)
