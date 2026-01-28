@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -162,6 +162,10 @@ func PrepareTestInfraConfig(_ *testing.T) {
 		CDN:                                   "cdn.test:443",
 		ManageabilityURL:                      "manageability.test:443",
 		RPSAddress:                            "rps.test",
+		ENServiceClients:                      []string{"test-service-client", "test-service-client1"},
+		ENOutboundClients:                     []string{"test-outbound-client"},
+		ENMetricsEnabled:                      "true",
+		ENTokenClients:                        []string{"test-token-client", "test-token-client1"},
 		SystemConfigFsInotifyMaxUserInstances: 1,
 		SystemConfigVmOverCommitMemory:        1,
 		SystemConfigKernelPanicOnOops:         1,
