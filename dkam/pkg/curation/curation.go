@@ -209,6 +209,7 @@ func GetCommonInfraTemplateVariables(infraConfig config.InfraConfig, osType osv1
 
 		"ONBOARDING_SVC_URL":        infraConfig.OnboardingURL,
 		"ONBOARDING_STREAM_SVC_URL": infraConfig.OnboardingStreamURL,
+		"SKIP_OS_PROVISIONING":      infraConfig.SkipOSProvisioning,
 	}
 
 	if osType == osv1.OsType_OS_TYPE_MUTABLE {

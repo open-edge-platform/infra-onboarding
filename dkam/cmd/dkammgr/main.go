@@ -61,8 +61,15 @@ func main() {
 	}
 	infraConfig := config.GetInfraConfig()
 	zlog.InfraSec().Info().Msgf("Skip OS provisioning : %t", infraConfig.SkipOSProvisioning)
+	
+	setupTracingIfEnabled()
+	
+	if *enableMetrics {
+		startMetricsServer()
+	}
+	
 	if infraConfig.SkipOSProvisioning {
-		zlog.InfraSec().Info().Msg("OS Provisioning is disabled")
+		zlog.InfraSec().Info().Msg("OS Provisioning is disabled, hence skipping download artifacts and signing")
 		if err := CurateVProInstaller(); err != nil {
 			zlog.InfraSec().Fatal().Err(err).Msg("Failed to curate vpro installer")
 		}
@@ -75,14 +82,11 @@ func main() {
 		}
 		defer watcher.Close()
 
-		setupTracingIfEnabled()
-
-		if *enableMetrics {
-			startMetricsServer()
-		}
 		if err := GetArtifacts(context.Background()); err != nil {
 			zlog.InfraSec().Fatal().Err(err).Msg("Failed to get artifacts")
 		}
+
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			if err := BuildBinaries(); err != nil {
