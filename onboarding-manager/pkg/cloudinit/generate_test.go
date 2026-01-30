@@ -450,6 +450,7 @@ func TestGenerateFromInfraConfig(t *testing.T) {
 				return
 			}
 			if !tt.wantErr {
+				//nolint:gosec // G304: Test file reads from controlled test directory
 				fileData, err := os.ReadFile(currentDir + "/testout/" + tt.expectedOutputFileName)
 				require.NoError(t, err)
 

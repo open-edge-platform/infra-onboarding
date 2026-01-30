@@ -39,8 +39,10 @@ const (
 	parallelism = 1
 )
 
+// Filter provides functionality for onboarding management.
 type Filter func(event *inv_v1.SubscribeEventsResponse) bool
 
+// OnboardingController provides functionality for onboarding management.
 type OnboardingController struct {
 	invClient   *invclient.OnboardingInventoryClient
 	filters     map[inv_v1.ResourceKind]Filter
@@ -49,6 +51,7 @@ type OnboardingController struct {
 	stop        chan bool
 }
 
+// New performs operations for onboarding management.
 func New(
 	invClient *invclient.OnboardingInventoryClient,
 	enableTracing bool,
@@ -76,6 +79,7 @@ func New(
 	}, nil
 }
 
+// Start performs operations for the receiver.
 func (obc *OnboardingController) Start() error {
 	if err := tinkerbell.Bootstrap(); err != nil {
 		return err
@@ -92,6 +96,7 @@ func (obc *OnboardingController) Start() error {
 	return nil
 }
 
+// Stop performs operations for the receiver.
 func (obc *OnboardingController) Stop() {
 	close(obc.stop)
 	obc.wg.Wait()

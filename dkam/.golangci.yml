@@ -52,7 +52,6 @@ linters:
     - usestdlibvars
     - whitespace
     - dupl
-  disable:
     - errcheck
 
 run:

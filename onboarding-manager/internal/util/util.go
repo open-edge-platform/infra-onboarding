@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
+// Package util provides common utility functions for onboarding management operations.
+//
+//nolint:revive // var-naming: util is a standard package name in internal directories
 package util
 
 import (
@@ -17,9 +20,11 @@ import (
 )
 
 const (
+	// IsStandaloneMetadataKey defines a configuration value.
 	IsStandaloneMetadataKey = "standalone-node"
 )
 
+// IsSameHostStatus performs operations for onboarding management.
 func IsSameHostStatus(
 	oldHost *computev1.HostResource,
 	newHost *computev1.HostResource,
@@ -28,6 +33,7 @@ func IsSameHostStatus(
 		oldHost.HostStatus == newHost.HostStatus
 }
 
+// IsSameOnboardingStatus performs operations for onboarding management.
 func IsSameOnboardingStatus(
 	oldHost *computev1.HostResource,
 	newHost *computev1.HostResource,
@@ -36,6 +42,7 @@ func IsSameOnboardingStatus(
 		oldHost.OnboardingStatus == newHost.OnboardingStatus
 }
 
+// IsSameInstanceStatusAndState performs operations for onboarding management.
 func IsSameInstanceStatusAndState(
 	oldInstance *computev1.InstanceResource,
 	newInstance *computev1.InstanceResource,
@@ -45,6 +52,7 @@ func IsSameInstanceStatusAndState(
 		oldInstance.ProvisioningStatusIndicator == newInstance.ProvisioningStatusIndicator
 }
 
+// PopulateHostStatus performs operations for onboarding management.
 func PopulateHostStatus(
 	instance *computev1.InstanceResource,
 	hostStatus inv_status.ResourceStatus,
@@ -54,6 +62,7 @@ func PopulateHostStatus(
 	host.HostStatusIndicator = hostStatus.StatusIndicator
 }
 
+// PopulateHostOnboardingStatus performs operations for onboarding management.
 func PopulateHostOnboardingStatus(
 	instance *computev1.InstanceResource,
 	onboardingStatus inv_status.ResourceStatus,
@@ -63,6 +72,7 @@ func PopulateHostOnboardingStatus(
 	host.OnboardingStatusIndicator = onboardingStatus.StatusIndicator
 }
 
+// PopulateInstanceProvisioningStatus performs operations for onboarding management.
 func PopulateInstanceProvisioningStatus(
 	instance *computev1.InstanceResource,
 	provisioningStatus inv_status.ResourceStatus,
@@ -71,6 +81,7 @@ func PopulateInstanceProvisioningStatus(
 	instance.ProvisioningStatusIndicator = provisioningStatus.StatusIndicator
 }
 
+// PopulateInstanceStatusAndCurrentState performs operations for onboarding management.
 func PopulateInstanceStatusAndCurrentState(
 	instance *computev1.InstanceResource,
 	currentState computev1.InstanceState,
@@ -81,6 +92,7 @@ func PopulateInstanceStatusAndCurrentState(
 	instance.ProvisioningStatusIndicator = provisioningStatus.StatusIndicator
 }
 
+// PopulateInstanceStatus performs operations for onboarding management.
 func PopulateInstanceStatus(
 	instance *computev1.InstanceResource,
 	instanceStatus inv_status.ResourceStatus,
@@ -90,6 +102,7 @@ func PopulateInstanceStatus(
 	instance.InstanceStatusDetail = ""
 }
 
+// PopulateInstanceUpdateStatus performs operations for onboarding management.
 func PopulateInstanceUpdateStatus(
 	instance *computev1.InstanceResource,
 	updateStatus inv_status.ResourceStatus,
@@ -98,6 +111,7 @@ func PopulateInstanceUpdateStatus(
 	instance.UpdateStatusIndicator = updateStatus.StatusIndicator
 }
 
+// PopulateInstanceTrustedAttestationStatus performs operations for onboarding management.
 func PopulateInstanceTrustedAttestationStatus(
 	instance *computev1.InstanceResource,
 	trustedAttestationStatus inv_status.ResourceStatus,
@@ -106,6 +120,7 @@ func PopulateInstanceTrustedAttestationStatus(
 	instance.TrustedAttestationStatusIndicator = trustedAttestationStatus.StatusIndicator
 }
 
+// PopulateInstanceIdleStatus performs operations for onboarding management.
 func PopulateInstanceIdleStatus(
 	instance *computev1.InstanceResource,
 ) {
@@ -115,6 +130,7 @@ func PopulateInstanceIdleStatus(
 	PopulateInstanceTrustedAttestationStatus(instance, om_status.TrustedAttestationStatusUnknown)
 }
 
+// IsStandalone performs operations for onboarding management.
 func IsStandalone(instance *computev1.InstanceResource) (bool, error) {
 	if instance.GetOs() == nil {
 		return false, nil

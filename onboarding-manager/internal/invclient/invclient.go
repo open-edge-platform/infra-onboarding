@@ -35,13 +35,18 @@ import (
 
 var inventoryTimeout = flag.Duration("invTimeout", DefaultInventoryTimeout, "Inventory API calls timeout")
 
+// MaxSerialNumberLength defines a configuration value.
 const MaxSerialNumberLength = 36
+
 const (
+	// DefaultInventoryTimeout defines a configuration value.
 	DefaultInventoryTimeout = 5 * time.Second
+	// ReconcileDefaultTimeout defines a configuration value.
 	ReconcileDefaultTimeout = 5 * time.Minute // Longer timeout for reconciling all resources
 	eventsWatcherBufSize    = 10
 )
 
+// ReconcileTimeout defines a configuration value.
 var ReconcileTimeout = flag.Duration(
 	"timeoutReconcileAll",
 	ReconcileDefaultTimeout,
@@ -53,12 +58,14 @@ var (
 	zlog       = logging.GetLogger(clientName)
 )
 
+// OnboardingInventoryClient provides functionality for onboarding management.
 type OnboardingInventoryClient struct {
 	Client          client.TenantAwareInventoryClient
 	Watcher         chan *client.WatchEvents
 	InternalWatcher chan *client.ResourceTenantIDCarrier // Channel to propagate internal events to the controller.
 }
 
+// Options provides functionality for onboarding management.
 type Options struct {
 	InventoryAddress string
 	EnableTracing    bool
@@ -66,6 +73,7 @@ type Options struct {
 	ClientKind       inv_v1.ClientKind
 }
 
+// Option provides functionality for onboarding management.
 type Option func(*Options)
 
 // WithInventoryAddress sets the Inventory Address.
@@ -89,6 +97,7 @@ func WithEnableMetrics(enableMetrics bool) Option {
 	}
 }
 
+// WithClientKind performs operations for onboarding management.
 func WithClientKind(clientKind inv_v1.ClientKind) Option {
 	return func(options *Options) {
 		options.ClientKind = clientKind
@@ -141,6 +150,7 @@ func NewOnboardingInventoryClientWithOptions(opts ...Option) (*OnboardingInvento
 	return NewOnboardingInventoryClient(invClient, eventsWatcher, internalWatchChannel)
 }
 
+// NewOnboardingInventoryClient performs operations for onboarding management.
 func NewOnboardingInventoryClient(
 	invClient client.TenantAwareInventoryClient,
 	watcher chan *client.WatchEvents,
@@ -154,6 +164,7 @@ func NewOnboardingInventoryClient(
 	return cli, nil
 }
 
+// Close performs operations for the receiver.
 func (c *OnboardingInventoryClient) Close() {
 	if err := c.Client.Close(); err != nil {
 		zlog.InfraSec().InfraErr(err).Msgf("")
@@ -216,6 +227,7 @@ func (c *OnboardingInventoryClient) createResource(ctx context.Context,
 	return rID, nil
 }
 
+// UpdateInvResourceFields performs operations for the receiver.
 func (c *OnboardingInventoryClient) UpdateInvResourceFields(ctx context.Context, tenantID string,
 	resource proto.Message, fields []string,
 ) error {
@@ -271,10 +283,12 @@ func (c *OnboardingInventoryClient) listAndReturnHost(
 	return host, nil
 }
 
+// FindAllInstances performs operations for the receiver.
 func (c *OnboardingInventoryClient) FindAllInstances(ctx context.Context) ([]*client.ResourceTenantIDCarrier, error) {
 	return c.FindAllResources(ctx, []inv_v1.ResourceKind{inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE})
 }
 
+// CreateHostResource performs operations for the receiver.
 func (c *OnboardingInventoryClient) CreateHostResource(ctx context.Context, tenantID string,
 	host *computev1.HostResource,
 ) (string, error) {
@@ -285,6 +299,7 @@ func (c *OnboardingInventoryClient) CreateHostResource(ctx context.Context, tena
 	})
 }
 
+// GetHostResources performs operations for the receiver.
 func (c *OnboardingInventoryClient) GetHostResources(ctx context.Context,
 ) (hostres []*computev1.HostResource, err error) {
 	filter := &inv_v1.ResourceFilter{
@@ -300,6 +315,7 @@ func (c *OnboardingInventoryClient) GetHostResources(ctx context.Context,
 	return util.GetSpecificResourceList[*computev1.HostResource](resources)
 }
 
+// GetHostResourceByResourceID performs operations for the receiver.
 func (c *OnboardingInventoryClient) GetHostResourceByResourceID(ctx context.Context, tenantID string,
 	resourceID string,
 ) (*computev1.HostResource, error) {
@@ -317,6 +333,7 @@ func (c *OnboardingInventoryClient) GetHostResourceByResourceID(ctx context.Cont
 	return host, nil
 }
 
+// GetHostBmcNic performs operations for the receiver.
 func (c *OnboardingInventoryClient) GetHostBmcNic(ctx context.Context, host *computev1.HostResource,
 ) (*computev1.HostnicResource, error) {
 	filter := &inv_v1.ResourceFilter{
@@ -353,6 +370,7 @@ func (c *OnboardingInventoryClient) GetHostBmcNic(ctx context.Context, host *com
 	return hostNics[0], nil
 }
 
+// GetHostResourceByUUID performs operations for the receiver.
 func (c *OnboardingInventoryClient) GetHostResourceByUUID(
 	ctx context.Context,
 	tenantID string,
@@ -375,6 +393,7 @@ func (c *OnboardingInventoryClient) GetHostResourceByUUID(
 	return c.listAndReturnHost(ctx, filter)
 }
 
+// UpdateHostResource performs operations for the receiver.
 func (c *OnboardingInventoryClient) UpdateHostResource(ctx context.Context, tenantID string, host *computev1.HostResource) error {
 	return c.UpdateInvResourceFields(ctx, tenantID, host, []string{
 		computev1.HostResourceFieldKind,
@@ -393,6 +412,7 @@ func (c *OnboardingInventoryClient) UpdateHostResource(ctx context.Context, tena
 	})
 }
 
+// UpdateHostStateAndRuntimeStatus performs operations for the receiver.
 func (c *OnboardingInventoryClient) UpdateHostStateAndRuntimeStatus(ctx context.Context,
 	tenantID string, host *computev1.HostResource,
 ) error {
@@ -423,6 +443,7 @@ func (c *OnboardingInventoryClient) updateHostCurrentState(ctx context.Context,
 	})
 }
 
+// SetHostStatus performs operations for the receiver.
 func (c *OnboardingInventoryClient) SetHostStatus(ctx context.Context, tenantID string, hostID string,
 	hostStatus inv_status.ResourceStatus,
 ) error {
@@ -440,6 +461,7 @@ func (c *OnboardingInventoryClient) SetHostStatus(ctx context.Context, tenantID 
 	})
 }
 
+// SetHostOnboardingStatus performs operations for the receiver.
 func (c *OnboardingInventoryClient) SetHostOnboardingStatus(ctx context.Context, tenantID string, hostID string,
 	onboardingStatus inv_status.ResourceStatus,
 ) error {
@@ -457,6 +479,7 @@ func (c *OnboardingInventoryClient) SetHostOnboardingStatus(ctx context.Context,
 	})
 }
 
+// SetHostStatusDetail performs operations for the receiver.
 // FIXME: ITEP-67453 This function duplicates SetHostOnboardingStatus. Consider refactoring to avoid redundancy.
 func (c *OnboardingInventoryClient) SetHostStatusDetail(ctx context.Context, tenantID string,
 	hostID string, onboardingStatus inv_status.ResourceStatus,
@@ -477,6 +500,7 @@ func (c *OnboardingInventoryClient) SetHostStatusDetail(ctx context.Context, ten
 	})
 }
 
+// DeleteHostResource performs operations for the receiver.
 func (c *OnboardingInventoryClient) DeleteHostResource(ctx context.Context, tenantID, resourceID string) error {
 	h := &computev1.HostResource{
 		ResourceId:   resourceID,
@@ -491,6 +515,7 @@ func (c *OnboardingInventoryClient) DeleteHostResource(ctx context.Context, tena
 	return nil
 }
 
+// CreateInstanceResource performs operations for the receiver.
 func (c *OnboardingInventoryClient) CreateInstanceResource(ctx context.Context, tenantID string,
 	inst *computev1.InstanceResource,
 ) (string, error) {
@@ -501,6 +526,7 @@ func (c *OnboardingInventoryClient) CreateInstanceResource(ctx context.Context, 
 	})
 }
 
+// GetInstanceResourceByResourceID performs operations for the receiver.
 func (c *OnboardingInventoryClient) GetInstanceResourceByResourceID(ctx context.Context, tenantID string,
 	resourceID string,
 ) (*computev1.InstanceResource, error) {
@@ -518,6 +544,7 @@ func (c *OnboardingInventoryClient) GetInstanceResourceByResourceID(ctx context.
 	return inst, nil
 }
 
+// GetInstanceResources performs operations for the receiver.
 func (c *OnboardingInventoryClient) GetInstanceResources(ctx context.Context) ([]*computev1.InstanceResource, error) {
 	filter := &inv_v1.ResourceFilter{
 		Resource: &inv_v1.Resource{
@@ -532,6 +559,7 @@ func (c *OnboardingInventoryClient) GetInstanceResources(ctx context.Context) ([
 	return util.GetSpecificResourceList[*computev1.InstanceResource](resources)
 }
 
+// UpdateInstanceCurrentState performs operations for the receiver.
 func (c *OnboardingInventoryClient) UpdateInstanceCurrentState(ctx context.Context, tenantID string,
 	instance *computev1.InstanceResource,
 ) error {
@@ -540,6 +568,7 @@ func (c *OnboardingInventoryClient) UpdateInstanceCurrentState(ctx context.Conte
 	})
 }
 
+// SetInstanceProvisioningStatus performs operations for the receiver.
 func (c *OnboardingInventoryClient) SetInstanceProvisioningStatus(ctx context.Context, tenantID string, instanceID string,
 	provisioningStatus inv_status.ResourceStatus,
 ) error {
@@ -557,6 +586,7 @@ func (c *OnboardingInventoryClient) SetInstanceProvisioningStatus(ctx context.Co
 	})
 }
 
+// UpdateInstanceStatuses performs operations for the receiver.
 func (c *OnboardingInventoryClient) UpdateInstanceStatuses(ctx context.Context, tenantID string, instanceID string,
 	instanceStatus inv_status.ResourceStatus,
 	instanceStatusDetail string,
@@ -598,6 +628,7 @@ func (c *OnboardingInventoryClient) UpdateInstanceStatuses(ctx context.Context, 
 	})
 }
 
+// UpdateInstance performs operations for the receiver.
 func (c *OnboardingInventoryClient) UpdateInstance(ctx context.Context, tenantID string, instanceID string,
 	currentState computev1.InstanceState,
 	provisioningStatus inv_status.ResourceStatus,
@@ -621,6 +652,7 @@ func (c *OnboardingInventoryClient) UpdateInstance(ctx context.Context, tenantID
 	})
 }
 
+// DeleteInstanceResource performs operations for the receiver.
 func (c *OnboardingInventoryClient) DeleteInstanceResource(ctx context.Context, tenantID, resourceID string) error {
 	inst := &computev1.InstanceResource{
 		ResourceId:   resourceID,
@@ -635,6 +667,7 @@ func (c *OnboardingInventoryClient) DeleteInstanceResource(ctx context.Context, 
 	return nil
 }
 
+// DeleteResource performs operations for the receiver.
 func (c *OnboardingInventoryClient) DeleteResource(ctx context.Context, tenantID, resourceID string) error {
 	zlog.Debug().Msgf("Delete resource: %v", resourceID)
 
@@ -652,6 +685,7 @@ func (c *OnboardingInventoryClient) DeleteResource(ctx context.Context, tenantID
 	return err
 }
 
+// CreateOSResource performs operations for the receiver.
 func (c *OnboardingInventoryClient) CreateOSResource(ctx context.Context, tenantID string,
 	os *osv1.OperatingSystemResource,
 ) (string, error) {
@@ -662,6 +696,7 @@ func (c *OnboardingInventoryClient) CreateOSResource(ctx context.Context, tenant
 	})
 }
 
+// GetOSResourceByResourceID performs operations for the receiver.
 func (c *OnboardingInventoryClient) GetOSResourceByResourceID(ctx context.Context, tenantID string,
 	resourceID string,
 ) (*osv1.OperatingSystemResource, error) {
@@ -679,6 +714,7 @@ func (c *OnboardingInventoryClient) GetOSResourceByResourceID(ctx context.Contex
 	return inst, nil
 }
 
+// GetLocalAccountResourceByResourceID performs operations for the receiver.
 func (c *OnboardingInventoryClient) GetLocalAccountResourceByResourceID(ctx context.Context, tenantID string,
 	resourceID string,
 ) (*localaccountv1.LocalAccountResource, error) {
@@ -696,6 +732,7 @@ func (c *OnboardingInventoryClient) GetLocalAccountResourceByResourceID(ctx cont
 	return inst, nil
 }
 
+// GetOSResources performs operations for the receiver.
 func (c *OnboardingInventoryClient) GetOSResources(ctx context.Context) ([]*osv1.OperatingSystemResource, error) {
 	filter := &inv_v1.ResourceFilter{
 		Resource: &inv_v1.Resource{
@@ -730,6 +767,7 @@ func (c *OnboardingInventoryClient) ListIPAddresses(ctx context.Context, hostNic
 	return util.GetSpecificResourceList[*network_v1.IPAddressResource](resources)
 }
 
+// FindAllResources performs operations for the receiver.
 func (c *OnboardingInventoryClient) FindAllResources(ctx context.Context,
 	kinds []inv_v1.ResourceKind,
 ) ([]*client.ResourceTenantIDCarrier, error) {
@@ -751,6 +789,7 @@ func (c *OnboardingInventoryClient) FindAllResources(ctx context.Context,
 	return allResources, nil
 }
 
+// GetProviderResources performs operations for the receiver.
 func (c *OnboardingInventoryClient) GetProviderResources(ctx context.Context) ([]*provider_v1.ProviderResource, error) {
 	filter := &inv_v1.ResourceFilter{
 		Resource: &inv_v1.Resource{
@@ -814,6 +853,7 @@ func (c *OnboardingInventoryClient) listAndReturnProvider(
 	return provider, nil
 }
 
+// GetProviderResourceByName performs operations for onboarding management.
 func GetProviderResourceByName(
 	ctx context.Context,
 	tenantID string,
@@ -835,6 +875,7 @@ func GetProviderResourceByName(
 	return c.listAndReturnProvider(ctx, filter)
 }
 
+// GetProviderConfig performs operations for the receiver.
 func (c *OnboardingInventoryClient) GetProviderConfig(
 	ctx context.Context,
 	tenantID string,
@@ -855,6 +896,7 @@ func (c *OnboardingInventoryClient) GetProviderConfig(
 	return &pconf, nil
 }
 
+// UpdateHostRegState performs operations for the receiver.
 func (c *OnboardingInventoryClient) UpdateHostRegState(ctx context.Context, tenantID string, resourceID string,
 	hostCurrentState computev1.HostState, hostIP string,
 	macid string,
@@ -880,6 +922,7 @@ func (c *OnboardingInventoryClient) UpdateHostRegState(ctx context.Context, tena
 	})
 }
 
+// UpdateHostCurrentStateNOnboardStatus performs operations for the receiver.
 func (c *OnboardingInventoryClient) UpdateHostCurrentStateNOnboardStatus(ctx context.Context, tenantID string, resourceID string,
 	hostIP string, macid string, hostCurrentState computev1.HostState, onboardingStatus inv_status.ResourceStatus,
 ) error {
@@ -903,6 +946,7 @@ func (c *OnboardingInventoryClient) UpdateHostCurrentStateNOnboardStatus(ctx con
 	})
 }
 
+// GetHostResource performs operations for the receiver.
 func (c *OnboardingInventoryClient) GetHostResource(
 	ctx context.Context,
 	filterType string,
@@ -932,6 +976,7 @@ func (c *OnboardingInventoryClient) GetHostResource(
 	return c.listAndReturnHost(ctx, filter)
 }
 
+// UpdateHostResourceStatus performs operations for the receiver.
 // UpdateHostStatus : update host required fields ,onboarding and registration status.
 func (c *OnboardingInventoryClient) UpdateHostResourceStatus(ctx context.Context, tenantID string, resourceID string,
 	host *computev1.HostResource, onboardingStatus inv_status.ResourceStatus,
@@ -965,6 +1010,7 @@ func (c *OnboardingInventoryClient) UpdateHostResourceStatus(ctx context.Context
 	})
 }
 
+// SendInternalEvent performs operations for the receiver.
 func (c *OnboardingInventoryClient) SendInternalEvent(tenantID, resourceID string) {
 	eventMessage := client.ResourceTenantIDCarrier{
 		TenantId:   tenantID,

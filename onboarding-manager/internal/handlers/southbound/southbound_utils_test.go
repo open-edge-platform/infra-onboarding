@@ -110,7 +110,9 @@ func StartOnboardingManagerTestingEnvironment() {
 
 func StopOnboardingManagerTestingEnvironment() {
 	if OMTestClientConn != nil {
-		OMTestClientConn.Close()
+		if err := OMTestClientConn.Close(); err != nil {
+			zlog.Error().Err(err).Msg("Failed to close test client connection")
+		}
 	}
 	if SBHandler != nil {
 		SBHandler.Stop()

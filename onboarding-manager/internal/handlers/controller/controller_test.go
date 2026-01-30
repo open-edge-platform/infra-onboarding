@@ -567,7 +567,11 @@ func TestOnboardingController_filterEvent_Case(t *testing.T) {
 			want: false,
 		},
 	}
-	defer os.Remove("internal/handlers/controller/__debug_bin2723494166")
+	defer func() {
+		if err := os.Remove("internal/handlers/controller/__debug_bin2723494166"); err != nil {
+			t.Logf("Failed to remove debug binary: %v", err)
+		}
+	}()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			obc := &OnboardingController{
