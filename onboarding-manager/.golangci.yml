@@ -17,14 +17,6 @@ output:
     html:
       path: out/golangci-lint_report.html
 linters:
-  disable:
-    - revive
-    - prealloc
-    - errcheck
-    - gosec
-    - noctx
-    - nolintlint
-    - staticcheck
   enable:
     - asasalint
     - asciicheck
@@ -63,6 +55,13 @@ linters:
     - unparam
     - usestdlibvars
     - whitespace
+    - revive
+    - prealloc
+    - errcheck
+    - gosec
+    - noctx
+    - nolintlint
+    - staticcheck
   settings:
     gomoddirectives:
       replace-local: true

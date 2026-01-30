@@ -19,10 +19,12 @@ import (
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 )
 
+// MockK8sClient provides functionality for onboarding management.
 type MockK8sClient struct {
 	mock.Mock
 }
 
+// Get performs operations for the receiver.
 func (k *MockK8sClient) Get(_ context.Context, key client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
 	args := k.Called()
 
@@ -37,36 +39,43 @@ func (k *MockK8sClient) Get(_ context.Context, key client.ObjectKey, obj client.
 	return args.Error(0)
 }
 
+// List performs operations for the receiver.
 func (k *MockK8sClient) List(_ context.Context, _ client.ObjectList, _ ...client.ListOption) error {
 	args := k.Called()
 	return args.Error(0)
 }
 
+// Create performs operations for the receiver.
 func (k *MockK8sClient) Create(_ context.Context, _ client.Object, _ ...client.CreateOption) error {
 	args := k.Called()
 	return args.Error(0)
 }
 
+// Delete performs operations for the receiver.
 func (k *MockK8sClient) Delete(_ context.Context, _ client.Object, _ ...client.DeleteOption) error {
 	args := k.Called()
 	return args.Error(0)
 }
 
+// Update performs operations for the receiver.
 func (k *MockK8sClient) Update(_ context.Context, _ client.Object, _ ...client.UpdateOption) error {
 	args := k.Called()
 	return args.Error(0)
 }
 
+// Patch performs operations for the receiver.
 func (k *MockK8sClient) Patch(_ context.Context, _ client.Object, _ client.Patch, _ ...client.PatchOption) error {
 	args := k.Called()
 	return args.Error(0)
 }
 
+// DeleteAllOf performs operations for the receiver.
 func (k *MockK8sClient) DeleteAllOf(_ context.Context, _ client.Object, _ ...client.DeleteAllOfOption) error {
 	args := k.Called()
 	return args.Error(0)
 }
 
+// Status performs operations for the receiver.
 func (k *MockK8sClient) Status() client.SubResourceWriter {
 	args := k.Called()
 	result, ok := args.Get(0).(client.SubResourceWriter)
@@ -76,6 +85,7 @@ func (k *MockK8sClient) Status() client.SubResourceWriter {
 	return result
 }
 
+// SubResource performs operations for the receiver.
 func (k *MockK8sClient) SubResource(_ string) client.SubResourceClient {
 	args := k.Called()
 	result, ok := args.Get(0).(client.SubResourceClient)
@@ -85,6 +95,7 @@ func (k *MockK8sClient) SubResource(_ string) client.SubResourceClient {
 	return result
 }
 
+// Scheme performs operations for the receiver.
 func (k *MockK8sClient) Scheme() *runtime.Scheme {
 	args := k.Called()
 	result, ok := args.Get(0).(*runtime.Scheme)
@@ -94,6 +105,7 @@ func (k *MockK8sClient) Scheme() *runtime.Scheme {
 	return result
 }
 
+// RESTMapper performs operations for the receiver.
 func (k *MockK8sClient) RESTMapper() meta.RESTMapper {
 	args := k.Called()
 	result, ok := args.Get(0).(meta.RESTMapper)
@@ -103,6 +115,7 @@ func (k *MockK8sClient) RESTMapper() meta.RESTMapper {
 	return result
 }
 
+// GroupVersionKindFor performs operations for the receiver.
 func (k *MockK8sClient) GroupVersionKindFor(_ runtime.Object) (schema.GroupVersionKind, error) {
 	args := k.Called()
 	result, ok := args.Get(0).(schema.GroupVersionKind)
@@ -112,6 +125,7 @@ func (k *MockK8sClient) GroupVersionKindFor(_ runtime.Object) (schema.GroupVersi
 	return result, args.Error(1)
 }
 
+// IsObjectNamespaced performs operations for the receiver.
 func (k *MockK8sClient) IsObjectNamespaced(_ runtime.Object) (bool, error) {
 	args := k.Called()
 	result, ok := args.Get(0).(bool)
@@ -121,6 +135,7 @@ func (k *MockK8sClient) IsObjectNamespaced(_ runtime.Object) (bool, error) {
 	return result, args.Error(1)
 }
 
+// K8sCliMockFactory performs operations for onboarding management.
 func K8sCliMockFactory(createShouldFail, getShouldFail, deleteShouldFail bool) func() (client.Client, error) {
 	k8sMock := &MockK8sClient{}
 

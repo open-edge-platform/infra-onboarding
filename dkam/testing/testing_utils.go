@@ -139,7 +139,11 @@ func PrepareTestCaCertificateFile(t *testing.T) {
 	require.NoError(t, err)
 	_, err = tmpFile.WriteString("TEST CA CONTENT")
 	require.NoError(t, err)
-	defer tmpFile.Close()
+	defer func() {
+		if err := tmpFile.Close(); err != nil {
+			t.Logf("Failed to close temp file: %v", err)
+		}
+	}()
 
 	originalCaCertificatePath := config.OrchCACertificateFile
 	config.OrchCACertificateFile = tmpFile.Name()

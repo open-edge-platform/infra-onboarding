@@ -9,9 +9,11 @@ import (
 )
 
 const (
+	// DummyHardwareName defines a configuration value.
 	DummyHardwareName = "eim-dummy-tink-hardware"
 )
 
+// Bootstrap performs operations for onboarding management.
 func Bootstrap() error {
 	zlog.Info().Msg("Bootstrapping Tinkerbell state")
 

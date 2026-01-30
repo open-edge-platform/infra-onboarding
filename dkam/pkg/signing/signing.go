@@ -259,13 +259,21 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer source.Close()
+	defer func() {
+		if err := source.Close(); err != nil {
+			zlog.InfraSec().Error().Err(err).Msg("Failed to close source file")
+		}
+	}()
 
 	destination, err := os.Create(dst) //nolint:gosec // Paths are from trusted config
 	if err != nil {
 		return err
 	}
-	defer destination.Close()
+	defer func() {
+		if err := destination.Close(); err != nil {
+			zlog.InfraSec().Error().Err(err).Msg("Failed to close destination file")
+		}
+	}()
 
 	_, err = io.Copy(destination, source)
 	if err != nil {

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
+// Package testing provides functionality for onboarding management.
 package testing
 
 import (
@@ -45,6 +46,7 @@ func (a *authServiceMock) Logout(_ context.Context) {
 	a.Called()
 }
 
+// AuthServiceMockFactory performs operations for onboarding management.
 func AuthServiceMockFactory(createShouldFail, getShouldFail,
 	revokeShouldFail bool,
 ) func(ctx context.Context) (auth.AuthService, error) {

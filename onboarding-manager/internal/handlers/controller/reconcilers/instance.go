@@ -34,6 +34,7 @@ import (
 const (
 	instanceReconcilerLoggerName = "InstanceReconciler"
 
+	// TinkStackURLTemplate defines a configuration value.
 	TinkStackURLTemplate = "http://%s/tink-stack"
 )
 
@@ -44,11 +45,13 @@ var (
 	compressionExtensions = []string{".bz2", ".bzip2", ".gz", ".xz", ".zs", ".zst"}
 )
 
+// InstanceReconciler provides functionality for onboarding management.
 type InstanceReconciler struct {
 	invClient     *invclient.OnboardingInventoryClient
 	enableTracing bool
 }
 
+// NewInstanceReconciler performs operations for onboarding management.
 func NewInstanceReconciler(c *invclient.OnboardingInventoryClient, enableTracing bool) *InstanceReconciler {
 	return &InstanceReconciler{
 		invClient:     c,
@@ -56,6 +59,7 @@ func NewInstanceReconciler(c *invclient.OnboardingInventoryClient, enableTracing
 	}
 }
 
+// Reconcile performs operations for the receiver.
 func (ir *InstanceReconciler) Reconcile(ctx context.Context,
 	request rec_v2.Request[ReconcilerID],
 ) rec_v2.Directive[ReconcilerID] {
@@ -109,12 +113,9 @@ func checkStatusUnknown(instance *computev1.InstanceResource,
 
 func checkStatusIdle(instance *computev1.InstanceResource,
 ) bool {
-	idleCheck := true
 	// Check if all statuses in instance are Idle
-	if instance.GetInstanceStatusIndicator() != statusv1.StatusIndication_STATUS_INDICATION_IDLE &&
-		instance.GetInstanceStatusIndicator() != statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED {
-		idleCheck = false
-	}
+	idleCheck := instance.GetInstanceStatusIndicator() == statusv1.StatusIndication_STATUS_INDICATION_IDLE ||
+		instance.GetInstanceStatusIndicator() == statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED
 	if instance.GetProvisioningStatusIndicator() != statusv1.StatusIndication_STATUS_INDICATION_IDLE &&
 		instance.GetProvisioningStatusIndicator() != statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED {
 		idleCheck = false
@@ -481,7 +482,6 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 		return err
 	}
 
-	//nolint:errcheck // this function currently not returning any error to handle
 	oldInstance := proto.Clone(instance).(*computev1.InstanceResource)
 
 	zlogInst.Debug().Msgf("Trying to provision Instance %s with OS %s",

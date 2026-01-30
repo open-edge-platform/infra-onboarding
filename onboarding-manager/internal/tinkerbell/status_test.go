@@ -195,7 +195,7 @@ func getDynamicTests() []struct {
 			workflow *tink.Workflow
 		}
 		want string
-	}, 3)
+	}, 0, len(tinkerbell.WorkflowStepToStatusDetail)*2+10)
 
 	for action, detail := range tinkerbell.WorkflowStepToStatusDetail {
 		tests = append(tests, struct {

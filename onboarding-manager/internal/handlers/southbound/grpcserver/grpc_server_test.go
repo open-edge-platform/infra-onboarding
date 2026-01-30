@@ -1390,8 +1390,12 @@ func TestInteractiveOnboardingServiceOnboardNodeStream(t *testing.T) {
 		},
 	}
 	defer func() {
-		os.Unsetenv("ONBOARDING_MANAGER_CLIENT_NAME")
-		os.Unsetenv("ONBOARDING_CREDENTIALS_SECRET_NAME")
+		if err := os.Unsetenv("ONBOARDING_MANAGER_CLIENT_NAME"); err != nil {
+			t.Logf("Failed to unset env: %v", err)
+		}
+		if err := os.Unsetenv("ONBOARDING_CREDENTIALS_SECRET_NAME"); err != nil {
+			t.Logf("Failed to unset env: %v", err)
+		}
 	}()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

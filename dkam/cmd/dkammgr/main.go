@@ -62,7 +62,11 @@ func main() {
 		zlog.InfraSec().Fatal().Err(watcherErr).Msgf("Failed to set watcher.")
 		return
 	}
-	defer watcher.Close()
+	defer func() {
+		if err := watcher.Close(); err != nil {
+			zlog.InfraSec().Error().Err(err).Msg("Failed to close watcher")
+		}
+	}()
 
 	// Print a summary of the build
 	printSummary()
