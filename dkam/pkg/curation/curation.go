@@ -214,6 +214,12 @@ func GetCommonInfraTemplateVariables(infraConfig config.InfraConfig, osType osv1
 		"ONBOARDING_SVC_URL":        infraConfig.OnboardingURL,
 		"ONBOARDING_STREAM_SVC_URL": infraConfig.OnboardingStreamURL,
 		"SKIP_OS_PROVISIONING":      infraConfig.SkipOSProvisioning,
+
+		// Modular node agent configuration
+		"NODE_SERVICE_CLIENTS":  strings.Join(infraConfig.ENServiceClients, ","),
+		"NODE_OUTBOUND_CLIENTS": strings.Join(infraConfig.ENOutboundClients, ","),
+		"NODE_METRICS_ENABLED":  infraConfig.ENMetricsEnabled,
+		"NODE_TOKEN_CLIENTS":    strings.Join(infraConfig.ENTokenClients, ","),
 	}
 
 	if osType == osv1.OsType_OS_TYPE_MUTABLE {
