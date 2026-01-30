@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
 exec &> >(tee >(systemd-cat -t /home/postinstall/Setup/installer.sh))
@@ -264,8 +264,12 @@ install_node_agent(){
         fi
 
         echo "node-agent node-agent/onboarding.serviceURL string ${HW_INVENTORY_URL}" | debconf-set-selections
+        echo "node-agent node-agent/status.serviceClients string ${NODE_SERVICE_CLIENTS}" | debconf-set-selections
+        echo "node-agent node-agent/status.outboundClients string ${NODE_OUTBOUND_CLIENTS}" | debconf-set-selections
+        echo "node-agent node-agent/metrics.enabled string ${NODE_METRICS_ENABLED}" | debconf-set-selections
         echo "node-agent node-agent/auth.accessTokenURL string ${NODE_ACCESS_URL}" | debconf-set-selections
         echo "node-agent node-agent/auth.rsTokenURL string ${NODE_RS_URL}" | debconf-set-selections
+        echo "node-agent node-agent/auth.tokenClients string ${NODE_TOKEN_CLIENTS}" | debconf-set-selections
         echo "node-agent node-agent/proxy.aptSourceURL string ${CADDY_APT_PROXY_URL}" | debconf-set-selections
         echo "node-agent node-agent/proxy.aptSourceProxyPort string ${CADDY_APT_PROXY_PORT}" | debconf-set-selections
         echo "node-agent node-agent/proxy.aptSourceFilesRSRoot string ${FILE_RS_ROOT}" | debconf-set-selections
