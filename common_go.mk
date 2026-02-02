@@ -119,17 +119,18 @@ ifeq ($(TEST_USE_DB), true)
 	$(MAKE) db-stop
 	$(MAKE) db-start
 endif
-	$(GOCMD) test -race -v -p 1 \
+	set -o pipefail; $(GOCMD) test -race -v -p 1 \
 	-coverpkg=$(TEST_PKG) -run $(TEST_TARGET) \
 	-coverprofile=$(OUT_DIR)/coverage.out \
 	-covermode $(TEST_COVER) $(if $(TEST_ARGS),-args $(TEST_ARGS)) \
-	| tee >(go-junit-report -set-exit-code > $(OUT_DIR)/report.xml)
+	2>&1 | tee >(go-junit-report -set-exit-code > $(OUT_DIR)/report.xml)
 	gocover-cobertura $(if $(TEST_IGNORE_FILES),-ignore-files $(TEST_IGNORE_FILES)) < $(OUT_DIR)/coverage.out > $(OUT_DIR)/coverage.xml
 	$(GOCMD) tool cover -html=$(OUT_DIR)/coverage.out -o $(OUT_DIR)/coverage.html
 	$(GOCMD) tool cover -func=$(OUT_DIR)/coverage.out -o $(OUT_DIR)/function_coverage.log
 ifeq ($(TEST_USE_DB), true)
 	$(MAKE) db-stop
 endif
+
 #### Postgress DB Targets ####
 
 db-start: ## Start the local postgres database. See: db-stop
