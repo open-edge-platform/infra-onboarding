@@ -4,6 +4,13 @@
 
 version: "2"
 
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+
 linters:
   enable:
     - asasalint
@@ -14,6 +21,7 @@ linters:
     - cyclop
     - dogsled
     - durationcheck
+    - errcheck
     - errname
     - errorlint
     - exhaustive
@@ -42,7 +50,6 @@ linters:
     - revive
     - staticcheck
     - tagliatelle
-    - testpackage
     - testableexamples
     - thelper
     - tparallel
