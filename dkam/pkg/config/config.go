@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 package config
@@ -47,6 +47,11 @@ type InfraConfig struct {
 	RegistryURL             string `mapstructure:"orchRegistry"`
 	FileServerURL           string `mapstructure:"orchFileServer"`
 	RSType                  string `mapstructure:"rsType"`
+
+	ENServiceClients  []string `mapstructure:"enServiceClients"`
+	ENOutboundClients []string `mapstructure:"enOutboundClients"`
+	ENMetricsEnabled  string   `mapstructure:"enMetricsEnabled"`
+	ENTokenClients    []string `mapstructure:"enTokenClients"`
 
 	ProvisioningService string `mapstructure:"provisioningSvc"`
 	// ProvisioningServerURL full URL to the provisioning server, including prefixes and subpaths
