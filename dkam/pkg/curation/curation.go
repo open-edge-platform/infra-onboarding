@@ -187,6 +187,7 @@ func GetCommonInfraTemplateVariables(
 
 		"DISABLE_CO_PROFILE":   infraConfig.DisableCOProfile,
 		"DISABLE_O11Y_PROFILE": infraConfig.DisableO11YProfile,
+		"SKIP_OS_PROVISIONING": infraConfig.SkipOSProvisioning,
 	}
 
 	//nolint:exhaustive // OS_TYPE_UNSPECIFIED handled by default case

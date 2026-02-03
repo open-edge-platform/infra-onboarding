@@ -85,6 +85,7 @@ type InfraConfig struct {
 	// Disable AOCO config
 	DisableCOProfile   bool `mapstructure:"disableCoProfile" yaml:"disableCoProfile"`
 	DisableO11YProfile bool `mapstructure:"disableO11yProfile" yaml:"disableO11yProfile"`
+	SkipOSProvisioning bool `mapstructure:"skipOSProvisioning" yaml:"skipOSProvisioning"`
 }
 
 // ENManifest represents the Edge Node Agents release manifest.
