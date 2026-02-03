@@ -73,16 +73,22 @@ func main() {
 		startMetricsServer()
 	}
 
-	if err := GetArtifacts(context.Background()); err != nil {
-		zlog.InfraSec().Fatal().Err(err).Msg("Failed to get artifacts")
-	}
+	if config.GetInfraConfig().SkipOSProvisioning {
+		zlog.InfraSec().Info().Msg("OS Provisioning is disabled, hence skipping download artifacts and signing")
+	} else {
+		zlog.InfraSec().Info().Msg("OS Provisioning is enabled.")
 
-	go func() {
-		defer wg.Done()
-		if err := BuildBinaries(); err != nil {
+		if err := GetArtifacts(context.Background()); err != nil {
 			zlog.InfraSec().Fatal().Err(err).Msg("Failed to get artifacts")
 		}
-	}()
+
+		go func() {
+			defer wg.Done()
+			if err := BuildBinaries(); err != nil {
+				zlog.InfraSec().Fatal().Err(err).Msg("Failed to get artifacts")
+			}
+		}()
+	}
 
 	setupOamServerAndSetReady(*enableTracing, *oamServerAddress)
 

@@ -97,7 +97,7 @@ func setupOamServerAndSetReady(enableTracing bool, oamServerAddress string) {
 	}
 }
 
-//nolint:cyclop // it's a main, complexity is 11
+//nolint:cyclop,funlen // it's a main, complexity is 11
 func main() {
 	// Print a summary of the build
 	printSummary()
@@ -149,39 +149,48 @@ func main() {
 		zlog.InfraSec().Fatal().Err(authInitErr).Msgf("Unable to initialize auth service")
 	}
 
-	onboardingController, err := controller.New(invClient, *enableTracing)
-	if err != nil {
-		zlog.InfraSec().Fatal().Err(err).Msgf("Unable to create onboarding controller")
-	}
+	var onboardingController *controller.OnboardingController
+	var sbHandler *southbound.SBHandler
+	var sbnioHandler *southbound.SBNioHandler
+	// Skip creating controller if skipOSProvisioning is true
+	if config.GetInfraConfig().SkipOSProvisioning {
+		zlog.InfraSec().Info().Msgf("Skipping Onboarding Controller creation as SkipOSProvisioning is set to true")
+	} else {
+		zlog.InfraSec().Info().Msgf("Creating Onboarding Controller")
+		// start onboarding controller.
+		onboardingController, err = controller.New(invClient, *enableTracing)
+		if err != nil {
+			zlog.InfraSec().Fatal().Err(err).Msgf("Unable to create onboarding controller")
+		}
 
-	err = onboardingController.Start()
-	if err != nil {
-		zlog.InfraSec().Fatal().Err(err).Msgf("Unable to start onboarding controller")
-	}
+		err = onboardingController.Start()
+		if err != nil {
+			zlog.InfraSec().Fatal().Err(err).Msgf("Unable to start onboarding controller")
+		}
 
-	// SB handler for IO.
-	sbHandler, err := southbound.NewSBHandler(invClient,
-		southbound.SBHandlerConfig{
-			ServerAddress:    *serverAddress,
-			EnableTracing:    *enableTracing,
-			EnableMetrics:    *enableMetrics,
-			MetricsAddress:   *metricsAddress,
-			InventoryAddress: *inventoryAddress,
-			EnableAuth:       *enableAuth,
-			RBAC:             *rbacRules,
-		})
-	if err != nil {
-		zlog.InfraSec().Fatal().Err(err).Msgf("Unable to create southbound handler")
-	}
+		// SB handler for IO.
+		sbHandler, err = southbound.NewSBHandler(invClient,
+			southbound.SBHandlerConfig{
+				ServerAddress:    *serverAddress,
+				EnableTracing:    *enableTracing,
+				EnableMetrics:    *enableMetrics,
+				MetricsAddress:   *metricsAddress,
+				InventoryAddress: *inventoryAddress,
+				EnableAuth:       *enableAuth,
+				RBAC:             *rbacRules,
+			})
+		if err != nil {
+			zlog.InfraSec().Fatal().Err(err).Msgf("Unable to create southbound handler")
+		}
 
-	// start SB IO handler.
-	err = sbHandler.Start()
-	if err != nil {
-		zlog.InfraSec().Fatal().Err(err).Msgf("Unable to start southbound handler")
+		// start SB IO handler.
+		err = sbHandler.Start()
+		if err != nil {
+			zlog.InfraSec().Fatal().Err(err).Msgf("Unable to start southbound handler")
+		}
 	}
-
 	// SB handler for NIO.
-	sbnioHandler, err := southbound.NewSBNioHandler(invClient, southbound.SBHandlerNioConfig{
+	sbnioHandler, err = southbound.NewSBNioHandler(invClient, southbound.SBHandlerNioConfig{
 		ServerAddressNio: *serverAddressNio,
 		EnableTracing:    *enableTracing,
 		InventoryAddress: *inventoryAddress,
@@ -202,8 +211,15 @@ func main() {
 
 	// Terminate Onboarding Manager when termination signal received
 	close(termChan)
-	sbHandler.Stop()
-	onboardingController.Stop()
+	if sbHandler != nil {
+		sbHandler.Stop()
+	}
+	if sbnioHandler != nil {
+		sbnioHandler.Stop()
+	}
+	if onboardingController != nil {
+		onboardingController.Stop()
+	}
 	invClient.Close()
 
 	wg.Done()
