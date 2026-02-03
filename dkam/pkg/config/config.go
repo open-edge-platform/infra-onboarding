@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 // Package config provides configuration management for the DKAM service.
@@ -54,7 +54,12 @@ type InfraConfig struct {
 	FileServerURL           string `mapstructure:"orch-file-server" yaml:"orch-file-server"`
 	RSType                  string `mapstructure:"rs-type" yaml:"rs-type"`
 
-	ProvisioningService string `mapstructure:"provisioning-svc" yaml:"provisioning-svc"`
+	ProvisioningService string   `mapstructure:"provisioning-svc" yaml:"provisioning-svc"`
+	ENServiceClients    []string `mapstructure:"en-service-clients" yaml:"en-service-clients"`
+	ENOutboundClients   []string `mapstructure:"en-outbound-clients" yaml:"en-outbound-clients"`
+	ENMetricsEnabled    string   `mapstructure:"en-metrics-enabled" yaml:"en-metrics-enabled"`
+	ENTokenClients      []string `mapstructure:"en-token-clients" yaml:"en-token-clients"`
+
 	// ProvisioningServerURL full URL to the provisioning server, including prefixes and subpaths
 	ProvisioningServerURL string `mapstructure:"provisioning-server-url" yaml:"provisioning-server-url"`
 	TinkServerURL         string `mapstructure:"tinker-svc" yaml:"tinker-svc"`
