@@ -6,10 +6,9 @@ package curation_test
 import (
 	"testing"
 
+	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/curation"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/curation"
 )
 
 //nolint:funlen // Test function with many test cases
