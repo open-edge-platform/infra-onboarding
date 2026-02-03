@@ -98,7 +98,7 @@ jobs:
       run_validate_clean_folder: true
       run_docker_build: true
       run_artifact: false
-      prefix_tag_separator: "/"
+      prefix_tag_separator: "/v"
       project_folder: ${{ matrix.project_folder }}
       trivy_image_skip: "postgres:16.4,quay.io/tinkerbell/hook-containerd:30084036-amd64,quay.io/tinkerbell/hook-runc:f0dbe53f-amd64"
       trivy_config_path: ${{ matrix.project_folder }}/trivy.yaml
