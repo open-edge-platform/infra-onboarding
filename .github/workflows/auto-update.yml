@@ -30,11 +30,11 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           persist-credentials: false
 
       - name: Update pull requests
-        uses: open-edge-platform/orch-ci/.github/actions/pr_updater@8fc2349c02d438e1707f99343069963fb49d3eba  # 2026.0.6
+        uses: open-edge-platform/orch-ci/.github/actions/pr_updater@467367d6f859a4654f2645ca78efd60035cf390c  # 2026.0.8
         with:
           github_token: ${{ secrets.SYS_EMF_GH_TOKEN }}

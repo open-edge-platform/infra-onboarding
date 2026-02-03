@@ -28,14 +28,14 @@ jobs:
     env:
       GITHUB_ACTIONS: true
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           persist-credentials: false
       - name: "Verify Branch Name"
-        uses: open-edge-platform/orch-ci/verify-branch-name@8fc2349c02d438e1707f99343069963fb49d3eba  # 2026.0.6
+        uses: open-edge-platform/orch-ci/verify-branch-name@467367d6f859a4654f2645ca78efd60035cf390c  # 2026.0.8
       - name: "Discover Changed Subfolders"
         id: discover-changes
-        uses: open-edge-platform/orch-ci/discover-changed-subfolders@8fc2349c02d438e1707f99343069963fb49d3eba  # 2026.0.6
+        uses: open-edge-platform/orch-ci/discover-changed-subfolders@467367d6f859a4654f2645ca78efd60035cf390c  # 2026.0.8
       - name: "Filter Out Unwanted Changed Subfolders"
         id: filter-changes
         env:
@@ -55,7 +55,7 @@ jobs:
     if: ${{ contains(needs.pre-checks.outputs.other_changed_projects, '.github') || contains(needs.pre-checks.outputs.other_changed_projects, '.reuse') || contains(needs.pre-checks.outputs.other_changed_projects, 'LICENSES') || contains(needs.pre-checks.outputs.other_changed_projects, '""')}}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           persist-credentials: false
       - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238  # v6.2.0
@@ -69,7 +69,7 @@ jobs:
         with:
           python-version: '3.13'
       - name: Restore cached virtualenv
-        uses: actions/cache@8b402f58fbc84540c8b491a91e594a4576fec3d7  # v5.0.2
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
         with:
           key: venv-${{ runner.os }}-${{ steps.setup_python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
           path: venv_infra
@@ -87,7 +87,7 @@ jobs:
       fail-fast: false
       matrix:
         project_folder: ${{ fromJson(needs.pre-checks.outputs.filtered_projects) }}
-    uses: open-edge-platform/orch-ci/.github/workflows/pre-merge.yml@8fc2349c02d438e1707f99343069963fb49d3eba  # 2026.0.6
+    uses: open-edge-platform/orch-ci/.github/workflows/pre-merge.yml@467367d6f859a4654f2645ca78efd60035cf390c  # 2026.0.8
     with:
       orch_ci_repo_ref: d3fe218ea585fb390b73c87f9e482cbe1424829c # 0.1.68 Pin bootstrap action and scripts
       run_version_check: true
