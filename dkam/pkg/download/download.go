@@ -79,7 +79,7 @@ func DownloadMicroOS(ctx context.Context) (bool, error) {
 
 	uOSFilePath := config.DownloadPath + "/" + UOSFileName
 
-	file, fileerr := os.Create(uOSFilePath) //nolint:gosec // Path is from trusted config
+	file, fileerr := os.Create(uOSFilePath)
 	if fileerr != nil {
 		zlog.InfraSec().Error().Err(fileerr).Msgf("Failed to create file:%v", fileerr)
 		return false, fileerr

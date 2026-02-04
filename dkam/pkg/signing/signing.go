@@ -216,7 +216,7 @@ func BuildSignIpxe() (bool, error) {
 
 	zlog.InfraSec().Info().Msg("chain.ipxe File copied successfully.")
 
-	content, err := os.ReadFile(targetChainPath) //nolint:gosec // Path is from trusted config
+	content, err := os.ReadFile(targetChainPath)
 	if err != nil {
 		zlog.InfraSec().Fatal().Err(err).Msgf("Error %v", err)
 	}
@@ -253,7 +253,7 @@ func BuildSignIpxe() (bool, error) {
 }
 
 func copyFile(src, dst string) error {
-	source, err := os.Open(src) //nolint:gosec // Paths are from trusted config
+	source, err := os.Open(src)
 	if err != nil {
 		return err
 	}
@@ -263,7 +263,7 @@ func copyFile(src, dst string) error {
 		}
 	}()
 
-	destination, err := os.Create(dst) //nolint:gosec // Paths are from trusted config
+	destination, err := os.Create(dst)
 	if err != nil {
 		return err
 	}

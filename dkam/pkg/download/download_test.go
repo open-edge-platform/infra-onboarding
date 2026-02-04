@@ -52,7 +52,7 @@ func TestDownloadMicroOS_Success(t *testing.T) {
 
 	// Check file exists
 	filePath := config.DownloadPath + "/" + download.UOSFileName
-	data, err := os.ReadFile(filePath) //nolint:gosec // Test code with controlled path
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		t.Fatalf("expected file to be created, got err: %v", err)
 	}

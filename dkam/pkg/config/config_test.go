@@ -9,10 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
-	dkam_testing "github.com/open-edge-platform/infra-onboarding/dkam/testing"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
+
+	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
+	dkam_testing "github.com/open-edge-platform/infra-onboarding/dkam/testing"
 )
 
 func TestMain(m *testing.M) {

@@ -14,6 +14,7 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
+
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
@@ -68,7 +69,7 @@ func getCaCert() (string, error) {
 		return "", inv_errors.Errorf("Cannot find CA certificate under given path")
 	}
 
-	caContent, err := os.ReadFile(caPath) //nolint:gosec // Path is from trusted config
+	caContent, err := os.ReadFile(caPath)
 	if err != nil {
 		zlog.InfraSec().Error().Err(err).Msg("")
 		return "", inv_errors.Errorf("Failed to read CA certificate file")

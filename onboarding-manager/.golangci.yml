@@ -95,6 +95,13 @@ linters:
             - sigs.k8s.io/controller-runtime/pkg/log/zap
             - github.com/stretchr/testify
             - github.com/prometheus/client_golang/prometheus
+            - google.golang.org/grpc
+            - google.golang.org/grpc/codes
+            - google.golang.org/grpc/reflection
+            - google.golang.org/grpc/status
+            - google.golang.org/protobuf/proto
+            - google.golang.org/protobuf/types/known/fieldmaskpb
+            - google.golang.org/genproto/googleapis/rpc/status
         Test:
           files:
             - $test
@@ -120,6 +127,16 @@ linters:
             - sigs.k8s.io/controller-runtime/pkg/client
             - sigs.k8s.io/controller-runtime/pkg/client/fake
             - github.com/pkg/errors
+            - google.golang.org/grpc
+            - google.golang.org/grpc/codes
+            - google.golang.org/grpc/credentials/insecure
+            - google.golang.org/grpc/metadata
+            - google.golang.org/grpc/status
+            - google.golang.org/grpc/test/bufconn
+            - google.golang.org/protobuf/proto
+            - google.golang.org/protobuf/types/known/fieldmaskpb
+            - gotest.tools/assert
+            - gopkg.in/yaml.v2
     dupl:
       threshold: 100
     errcheck:

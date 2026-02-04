@@ -13,13 +13,14 @@ import (
 	"syscall"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/metrics"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/oam"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/tracing"
 	"github.com/open-edge-platform/infra-onboarding/dkam/internal/dkammgr"
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (

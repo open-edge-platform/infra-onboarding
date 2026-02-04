@@ -13,8 +13,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
 	"github.com/stretchr/testify/require"
+
+	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
 )
 
 const (
