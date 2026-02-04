@@ -482,6 +482,7 @@ func (ir *InstanceReconciler) tryProvisionInstance(ctx context.Context, instance
 		return err
 	}
 
+	//nolint:errcheck // proto.Clone returns interface{} which cannot fail type assertion
 	oldInstance := proto.Clone(instance).(*computev1.InstanceResource)
 
 	zlogInst.Debug().Msgf("Trying to provision Instance %s with OS %s",

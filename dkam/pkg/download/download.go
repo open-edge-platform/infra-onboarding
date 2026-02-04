@@ -33,7 +33,7 @@ const (
 	UOSFileName = "emb_uos_x86_64.tar.gz"
 )
 
-//nolint:revive,cyclop,funlen // Handles validation, download, and error handling
+//nolint:revive,cyclop // Handles validation, download, and error handling
 func DownloadMicroOS(ctx context.Context) (bool, error) {
 	zlog.Info().Msgf("Inside Download and sign artifact... %s", config.DownloadPath)
 	fileServerAddress := config.GetInfraConfig().CDN
@@ -79,7 +79,7 @@ func DownloadMicroOS(ctx context.Context) (bool, error) {
 
 	uOSFilePath := config.DownloadPath + "/" + UOSFileName
 
-	file, fileerr := os.Create(uOSFilePath) //nolint:gosec // Path is from trusted config
+	file, fileerr := os.Create(uOSFilePath)
 	if fileerr != nil {
 		zlog.InfraSec().Error().Err(fileerr).Msgf("Failed to create file:%v", fileerr)
 		return false, fileerr

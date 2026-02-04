@@ -9,10 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
-	dkam_testing "github.com/open-edge-platform/infra-onboarding/dkam/testing"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
+
+	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
+	dkam_testing "github.com/open-edge-platform/infra-onboarding/dkam/testing"
 )
 
 func TestMain(m *testing.M) {
@@ -44,8 +45,8 @@ func TestRead(t *testing.T) {
 	f, err := os.CreateTemp(os.TempDir(), "infraconfig_*.yaml")
 	require.NoError(t, err)
 	defer func() {
-		if err := os.RemoveAll(f.Name()); err != nil {
-			t.Logf("Failed to remove temp file: %v", err)
+		if removeErr := os.RemoveAll(f.Name()); removeErr != nil {
+			t.Logf("Failed to remove temp file: %v", removeErr)
 		}
 	}()
 

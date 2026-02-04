@@ -24,7 +24,7 @@ const (
 
 // SignMicroOS signs the MicroOS kernel image with secure boot keys.
 //
-//nolint:funlen // Complex signing process, length is justified
+
 func SignMicroOS() (bool, error) {
 	zlog.InfraSec().Info().Msgf("Script dir %s", config.ScriptPath)
 	buildScriptPath, err := setupUOSDirectories()
@@ -218,7 +218,7 @@ func BuildSignIpxe() (bool, error) {
 
 	zlog.InfraSec().Info().Msg("chain.ipxe File copied successfully.")
 
-	content, err := os.ReadFile(targetChainPath) //nolint:gosec // Path is from trusted config
+	content, err := os.ReadFile(targetChainPath)
 	if err != nil {
 		zlog.InfraSec().Fatal().Err(err).Msgf("Error %v", err)
 	}
@@ -255,23 +255,23 @@ func BuildSignIpxe() (bool, error) {
 }
 
 func copyFile(src, dst string) error {
-	source, err := os.Open(src) //nolint:gosec // Paths are from trusted config
+	source, err := os.Open(src)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		if err := source.Close(); err != nil {
-			zlog.InfraSec().Error().Err(err).Msg("Failed to close source file")
+		if closeErr := source.Close(); closeErr != nil {
+			zlog.InfraSec().Error().Err(closeErr).Msg("Failed to close source file")
 		}
 	}()
 
-	destination, err := os.Create(dst) //nolint:gosec // Paths are from trusted config
+	destination, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		if err := destination.Close(); err != nil {
-			zlog.InfraSec().Error().Err(err).Msg("Failed to close destination file")
+		if closeErr := destination.Close(); closeErr != nil {
+			zlog.InfraSec().Error().Err(closeErr).Msg("Failed to close destination file")
 		}
 	}()
 

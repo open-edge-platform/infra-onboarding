@@ -8,7 +8,6 @@ run:
   modules-download-mode: readonly
   issues-exit-code: 1
   tests: true
-  timeout: 10m
 output:
   formats:
     text:
@@ -24,8 +23,8 @@ linters:
     - bodyclose
     - copyloopvar
     - cyclop
-    - depguard
     - dogsled
+    - dupl
     - durationcheck
     - errname
     - errorlint
@@ -39,13 +38,19 @@ linters:
     - goheader
     - gomoddirectives
     - goprintffuncname
+    - gosec
     - lll
     - misspell
     - mnd
     - nakedret
     - nilerr
     - nilnil
+    - noctx
+    - nolintlint
+    - prealloc
     - predeclared
+    - revive
+    - staticcheck
     - tagliatelle
     - testableexamples
     - testpackage
@@ -55,67 +60,24 @@ linters:
     - unparam
     - usestdlibvars
     - whitespace
-    - revive
-    - prealloc
-    - errcheck
-    - gosec
-    - noctx
-    - nolintlint
-    - staticcheck
   settings:
-    gomoddirectives:
-      replace-local: true
-      replace-allow-list:
-        - github.com/open-edge-platform/infra-onboarding/dkam
     cyclop:
       max-complexity: 10
-    misspell:
-      locale: US
-    lll:
-      line-length: 130
-      tab-width: 4
-    funlen:
-      lines: 100
-      statements: 50
-    exhaustive:
-      default-signifies-exhaustive: true
-    gocritic:
-      enabled-tags:
-        - diagnostic
-        - experimental
-        - opinionated
-        - performance
-        - style
-      disabled-checks:
-        - hugeParam
-        - rangeExprCopy
-        - rangeValCopy
-    nakedret:
-      max-func-lines: 1
-    tagliatelle:
-      case:
-        rules:
-          json: snake
-          yaml: snake
-          xml: camel
-          bson: camel
-          avro: snake
-          mapstructure: kebab
     depguard:
       rules:
-        main:
+        Main:
           files:
             - $all
             - '!$test'
           allow:
             - $gostd
             - github.com/open-edge-platform
-            - github.com/stretchr/testify
-            - github.com/grpc-ecosystem
+            - github.com/stretchr/testify/require
+            - github.com/grpc-ecosystem/go-grpc-middleware
             - entgo.io/ent
             - github.com/goccy/go-json
             - github.com/google
-            - google.golang.org
+            - github.com/grpc-ecosystem
             - github.com/lib/pq
             - github.com/mennanov/fmutils
             - github.com/labstack/echo
@@ -125,33 +87,111 @@ linters:
             - github.com/rs/zerolog
             - github.com/cenkalti/backoff
             - github.com/spf13
-            - k8s.io
+            - k8s.io/apimachinery
+            - k8s.io/client-go
             - github.com/tinkerbell
             - github.com/Nerzal/gocloak
             - github.com/scylladb/gocqlx
-            - sigs.k8s.io
-            - github.com/prometheus
-            - gopkg.in/yaml.v2
-        test:
+            - sigs.k8s.io/controller-runtime/pkg/client
+            - sigs.k8s.io/controller-runtime/pkg/log
+            - sigs.k8s.io/controller-runtime/pkg/log/zap
+            - github.com/stretchr/testify
+            - github.com/prometheus/client_golang/prometheus
+        Test:
           files:
             - $test
           allow:
             - $gostd
             - github.com/open-edge-platform
-            - github.com/stretchr/testify
+            - github.com/stretchr/testify/assert
             - github.com/goccy/go-json
             - github.com/google
-            - google.golang.org
             - github.com/grpc-ecosystem
             - github.com/mennanov/fmutils
             - github.com/onosproject
             - github.com/rs/zerolog
-            - k8s.io
-            - github.com/tinkerbell
-            - sigs.k8s.io
+            - github.com/stretchr/testify/require
+            - github.com/google/uuid
+            - github.com/grpc-ecosystem/go-grpc-middleware/util/metautils
+            - github.com/stretchr/testify/mock
+            - github.com/tinkerbell/tink/api/v1alpha1
+            - k8s.io/apimachinery/pkg/api/errors
+            - k8s.io/apimachinery/pkg/api/meta
+            - k8s.io/apimachinery/pkg/apis/meta/v1
+            - k8s.io/apimachinery/pkg/runtime
+            - k8s.io/apimachinery/pkg/runtime/schema
+            - sigs.k8s.io/controller-runtime/pkg/client
+            - sigs.k8s.io/controller-runtime/pkg/client/fake
             - github.com/pkg/errors
-            - gopkg.in/yaml.v2
-            - gotest.tools
+    dupl:
+      threshold: 100
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+    exhaustive:
+      default-signifies-exhaustive: true
+    funlen:
+      lines: 100
+      statements: 50
+    gocritic:
+      disabled-checks:
+        - hugeParam
+        - rangeExprCopy
+        - rangeValCopy
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - opinionated
+        - performance
+        - style
+    gomoddirectives:
+      replace-allow-list:
+        - github.com/open-edge-platform/infra-onboarding/dkam
+      replace-local: true
+    govet:
+      enable:
+        - shadow
+    lll:
+      line-length: 130
+      tab-width: 4
+    misspell:
+      locale: US
+    nakedret:
+      max-func-lines: 1
+    tagliatelle:
+      case:
+        rules:
+          avro: snake
+          bson: camel
+          json: snake
+          mapstructure: kebab
+          xml: camel
+          yaml: snake
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - path: (.+)\.go$
+        text: Error return value of `.*Close` is not checked
+      - path: (.+)\.go$
+        text: Error return value of `.*Flush` is not checked
+      - path: (.+)\.go$
+        text: Error return value of `.*Write` is not checked
+      - path: (.+)\.go$
+        text: Error return value of `.*Stop` is not checked
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  new: false
+  fix: false
 formatters:
   enable:
     - gci
@@ -164,28 +204,9 @@ formatters:
         - standard
         - default
         - prefix(github.com/open-edge-platform)
-issues:
-  max-issues-per-linter: 0
-  max-same-issues: 0
-  new: false
-  fix: false
-  exclude:
-    - Error return value of `.*Close` is not checked
-    - Error return value of `.*Flush` is not checked
-    - Error return value of `.*Write` is not checked
-    - Error return value of `.*Stop` is not checked
-    - Error return value of `.*Remove` is not checked
-    - Error return value of `.*Unsetenv` is not checked
-    - Error return value of `.*Setenv` is not checked
-    - 'G104: Errors unhandled'
-    - 'G304: Potential file inclusion via variable'
-    - 'G602: slice index out of range'
-    - 'directive.*is unused for linter'
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - errcheck
-        - gosec
-        - noctx
-        - nolintlint
-  uniq-by-line: false
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

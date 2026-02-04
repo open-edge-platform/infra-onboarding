@@ -338,8 +338,8 @@ func detectImageFormat(ctx context.Context, imageURL, httpProxy string) string {
 			return rawImageFormat // default to raw on error
 		}
 		defer func() {
-			if err := resp.Body.Close(); err != nil {
-				zlog.Error().Err(err).Msg("Failed to close response body")
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				zlog.Error().Err(closeErr).Msg("Failed to close response body")
 			}
 		}()
 
@@ -348,6 +348,7 @@ func detectImageFormat(ctx context.Context, imageURL, httpProxy string) string {
 			zlog.Warn().Int("status", resp.StatusCode).Msg("Unexpected HTTP status, defaulting to raw")
 			return rawImageFormat
 		}
+
 		// Read first qcow2HeaderSize bytes
 		header := make([]byte, qcow2HeaderSize)
 		n, err := io.ReadFull(resp.Body, header)

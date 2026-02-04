@@ -40,7 +40,8 @@ func TestDownloadArtifacts(t *testing.T) {
 	}
 }
 
-func TestSignMicroOS(t *testing.T) {
+func setupTestEnvironment(t *testing.T) {
+	t.Helper()
 	currentDir, err := os.Getwd()
 	if err != nil {
 		zlog.InfraSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
@@ -49,6 +50,10 @@ func TestSignMicroOS(t *testing.T) {
 	zlog.InfraSec().Info().Msgf("Current dir %s", currentDir)
 	parentDir := filepath.Join(currentDir, "..", "..")
 	config.ScriptPath = parentDir + "/pkg/script"
+}
+
+func TestSignMicroOS(t *testing.T) {
+	setupTestEnvironment(t)
 
 	// Call the function you want to test
 	result, err := dkammgr.SignMicroOS()
@@ -65,14 +70,7 @@ func TestSignMicroOS(t *testing.T) {
 }
 
 func TestBuildSignIpxe1(t *testing.T) {
-	currentDir, err := os.Getwd()
-	if err != nil {
-		zlog.InfraSec().Fatal().Err(err).Msgf("Error getting current working directory: %v", err)
-		return
-	}
-	zlog.InfraSec().Info().Msgf("Current dir %s", currentDir)
-	parentDir := filepath.Join(currentDir, "..", "..")
-	config.ScriptPath = parentDir + "/pkg/script"
+	setupTestEnvironment(t)
 
 	// Call the function you want to test
 	result, err := dkammgr.BuildSignIpxe()
