@@ -257,6 +257,8 @@ github.com/lestrrat-go/option/v2 v2.0.0 h1:XxrcaJESE1fokHy3FpaQ/cXW8ZsIdWcdFzzLO
 github.com/lestrrat-go/option/v2 v2.0.0/go.mod h1:oSySsmzMoR0iRzCDCaUfsCzxQHUEuhOViQObyy7S6Vg=
 github.com/lib/pq v1.10.9 h1:YXG7RB+JIjhP29X+OtkiDnYaXQwpS4JEWq7dtCCRUEw=
 github.com/lib/pq v1.10.9/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
+github.com/magefile/mage v1.15.0 h1:BvGheCMAsG3bWUDbZ8AyXXpCNwU9u5CB6sM+HNb9HYg=
+github.com/magefile/mage v1.15.0/go.mod h1:z5UZb/iS3GoOSn0JgWuiw7dxlurVYTu+/jHXqQg881A=
 github.com/mailru/easyjson v0.9.0 h1:PrnmzHw7262yW8sTBwxi1PdJA3Iw/EKBa8psRf7d9a4=
 github.com/mailru/easyjson v0.9.0/go.mod h1:1+xMtQp2MRNVL/V1bOzuP3aP8VNwRW55fQUto+XFtTU=
 github.com/mattn/go-colorable v0.1.13/go.mod h1:7S9/ev0klgBDR4GtXTXX8a3vIGJpMovkB8vQcUbaXHg=
@@ -297,6 +299,8 @@ github.com/open-edge-platform/infra-core/inventory/v2 v2.34.0 h1:gIUF9tot7mFyTmj
 github.com/open-edge-platform/infra-core/inventory/v2 v2.34.0/go.mod h1:NzKTZ1cCdSvixIvsA4Ig3zzsryIHQJHnF/bGQ1+JBbc=
 github.com/open-edge-platform/infra-onboarding/dkam v1.32.12-0.20260114080457-4e988bfcdb26 h1:q2pxv8o3+CFEP5Ivks7cBDSP3MoEdjbzUqrpZRAPqkE=
 github.com/open-edge-platform/infra-onboarding/dkam v1.32.12-0.20260114080457-4e988bfcdb26/go.mod h1:i86zhqYyUUDM/YQckKGhcauPamErV7o08F0zW/SGVZ4=
+github.com/open-edge-platform/infra-onboarding/dkam v1.32.12-0.20260203152220-9dcb309d8acf h1:4RSvyILAyz7I/3n1bAiDlY4h/mpbGuk3Rx2AHae+H/A=
+github.com/open-edge-platform/infra-onboarding/dkam v1.32.12-0.20260203152220-9dcb309d8acf/go.mod h1:i86zhqYyUUDM/YQckKGhcauPamErV7o08F0zW/SGVZ4=
 github.com/open-edge-platform/orch-library/go v0.6.3 h1:zLdAtY5KuArT1D2xCvVLysD7r8GxqvkP8Vj1sO5ZJk8=
 github.com/open-edge-platform/orch-library/go v0.6.3/go.mod h1:mYhs/KbcXPQWM+2cHZXyzeIIzM7xKvnNgsnHlFkXH0g=
 github.com/open-edge-platform/orch-library/go/dazl v0.5.4 h1:Rx/bSAZiLjEEBjUiJEzBvT0fQv5huT5FQ2Ke3IMUhiE=
