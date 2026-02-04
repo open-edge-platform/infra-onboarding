@@ -87,7 +87,7 @@ jobs:
       fail-fast: false
       matrix:
         project_folder: ${{ fromJson(needs.pre-checks.outputs.filtered_projects) }}
-    uses: open-edge-platform/orch-ci/.github/workflows/pre-merge.yml@cbb07adcf6182b93b6fa6832f1fb6f0a04b9aae5  # 2026.0.8
+    uses: open-edge-platform/orch-ci/.github/workflows/pre-merge.yml@e8b06cdf4bfa54d29c1416d4b4427cd4601b97ca  # 2026.0.8
     with:
       orch_ci_repo_ref: d3fe218ea585fb390b73c87f9e482cbe1424829c # 0.1.68 Pin bootstrap action and scripts
       run_version_check: true
