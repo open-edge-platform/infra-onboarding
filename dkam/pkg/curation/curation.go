@@ -14,7 +14,6 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
-
 	osv1 "github.com/open-edge-platform/infra-core/inventory/v2/pkg/api/os/v1"
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 	"github.com/open-edge-platform/infra-core/inventory/v2/pkg/logging"
@@ -69,7 +68,7 @@ func getCaCert() (string, error) {
 		return "", inv_errors.Errorf("Cannot find CA certificate under given path")
 	}
 
-	caContent, err := os.ReadFile(caPath)
+	caContent, err := os.ReadFile(caPath) //nolint:gosec // Path is from trusted config
 	if err != nil {
 		zlog.InfraSec().Error().Err(err).Msg("")
 		return "", inv_errors.Errorf("Failed to read CA certificate file")
@@ -123,7 +122,11 @@ func getAgentsListTemplateVariables() (map[string]interface{}, error) {
 
 // GetCommonInfraTemplateVariables prepares template variables for infrastructure configuration.
 //
+<<<<<<< HEAD
 
+=======
+//nolint:funlen // Complex configuration function, length is justified
+>>>>>>> b599a80320b1cfed43aeddd4c28d8582e48e7093
 func GetCommonInfraTemplateVariables(
 	infraConfig config.InfraConfig,
 	osType osv1.OsType,
@@ -191,6 +194,10 @@ func GetCommonInfraTemplateVariables(
 		"SKIP_OS_PROVISIONING": infraConfig.SkipOSProvisioning,
 	}
 
+<<<<<<< HEAD
+=======
+	//nolint:exhaustive // OS_TYPE_UNSPECIFIED handled by default case
+>>>>>>> b599a80320b1cfed43aeddd4c28d8582e48e7093
 	switch osType {
 	case osv1.OsType_OS_TYPE_MUTABLE:
 		templateVariables["FIREWALL_PROVIDER"] = "ufw"
@@ -333,6 +340,7 @@ func generateIptablesForPorts(portsList []string, ipAddr string) []string {
 	for _, port := range portsList {
 		port = strings.TrimSpace(port)
 		if ipAddr != "" {
+<<<<<<< HEAD
 			commands = append(commands,
 				fmt.Sprintf("iptables -A INPUT -p tcp -s %s --dport %s -j ACCEPT", ipAddr, port),
 				fmt.Sprintf("iptables -A INPUT -p udp -s %s --dport %s -j ACCEPT", ipAddr, port))
@@ -340,6 +348,13 @@ func generateIptablesForPorts(portsList []string, ipAddr string) []string {
 			commands = append(commands,
 				fmt.Sprintf("iptables -A INPUT -p tcp --dport %s -j ACCEPT", port),
 				fmt.Sprintf("iptables -A INPUT -p udp --dport %s -j ACCEPT", port))
+=======
+			commands = append(commands, fmt.Sprintf("iptables -A INPUT -p tcp -s %s --dport %s -j ACCEPT", ipAddr, port))
+			commands = append(commands, fmt.Sprintf("iptables -A INPUT -p udp -s %s --dport %s -j ACCEPT", ipAddr, port))
+		} else {
+			commands = append(commands, fmt.Sprintf("iptables -A INPUT -p tcp --dport %s -j ACCEPT", port))
+			commands = append(commands, fmt.Sprintf("iptables -A INPUT -p udp --dport %s -j ACCEPT", port))
+>>>>>>> b599a80320b1cfed43aeddd4c28d8582e48e7093
 		}
 	}
 	return commands

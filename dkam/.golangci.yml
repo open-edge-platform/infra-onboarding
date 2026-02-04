@@ -23,7 +23,6 @@ linters:
     - bodyclose
     - copyloopvar
     - cyclop
-    - depguard
     - dogsled
     - dupl
     - durationcheck

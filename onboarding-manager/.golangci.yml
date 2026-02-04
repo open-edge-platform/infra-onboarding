@@ -23,6 +23,7 @@ linters:
     - bodyclose
     - copyloopvar
     - cyclop
+    - depguard
     - dogsled
     - dupl
     - durationcheck
@@ -45,9 +46,6 @@ linters:
     - nakedret
     - nilerr
     - nilnil
-    - noctx
-    - nolintlint
-    - prealloc
     - predeclared
     - revive
     - staticcheck
@@ -116,7 +114,6 @@ linters:
             - github.com/stretchr/testify/mock
             - github.com/tinkerbell/tink/api/v1alpha1
             - k8s.io/apimachinery/pkg/api/errors
-            - k8s.io/apimachinery/pkg/api/meta
             - k8s.io/apimachinery/pkg/apis/meta/v1
             - k8s.io/apimachinery/pkg/runtime
             - k8s.io/apimachinery/pkg/runtime/schema
@@ -183,29 +180,6 @@ linters:
         text: Error return value of `.*Write` is not checked
       - path: (.+)\.go$
         text: Error return value of `.*Stop` is not checked
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
-issues:
-  max-issues-per-linter: 0
-  max-same-issues: 0
-  new: false
-  fix: false
-formatters:
-  enable:
-    - gci
-    - gofmt
-    - gofumpt
-    - goimports
-  settings:
-    gci:
-      sections:
-        - standard
-        - default
-        - prefix(github.com/open-edge-platform)
-  exclusions:
-    generated: lax
     paths:
       - third_party$
       - builtin$

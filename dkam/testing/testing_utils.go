@@ -13,9 +13,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/open-edge-platform/infra-onboarding/dkam/pkg/config"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -44,8 +43,6 @@ func exampleManifest(digest string, fileLen int) string {
 }
 
 // StartTestReleaseService starts a test HTTP server that simulates the release service.
-//
-
 func StartTestReleaseService() func() {
 	config.SetInfraConfig(config.InfraConfig{
 		ENManifestRepo:     TestManifestRepo,
@@ -155,8 +152,6 @@ func PrepareTestCaCertificateFile(t *testing.T) {
 }
 
 // PrepareTestInfraConfig sets up test infrastructure configuration.
-//
-
 func PrepareTestInfraConfig(_ *testing.T) {
 	testConfig := config.InfraConfig{
 		ENAgentManifestTag:                    "latest-dev",
