@@ -25,9 +25,9 @@ var zlog = logging.GetLogger("InfraCuration")
 
 // FirewallRule UFW Firewall structure in JSON, expected to be provided as environment variable.
 type FirewallRule struct {
-	SourceIP string `json:"source_ip,omitempty"`
+	SourceIP string `json:"sourceIp,omitempty"`
 	Ports    string `json:"ports,omitempty"`
-	IPVer    string `json:"ip_ver,omitempty"`
+	IPVer    string `json:"ipVer,omitempty"`
 	Protocol string `json:"protocol,omitempty"`
 }
 
