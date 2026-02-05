@@ -282,23 +282,53 @@ install_device_discovery(){
         echo "Skipping install_device_discovery"
     else
         echo "Install device-discovery"
-        ./device-discovery \
-        -obm-svc {{ .ONBOARDING_SVC_URL }} \
-        -obs-svc {{ .ONBOARDING_STREAM_SVC_URL }} \
-        -obm-port 443 \
-        -keycloak-url {{ .KEYCLOAK_URL }} \
-        -ca-cert /etc/intel_edge_node/orch-ca-cert/orch-ca.pem \
-        -auto-detect -disable-interactive
-        echo "install_device_discovery done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
-        if [[ -s "/dev/shm/client_id" && -s "/dev/shm/client_secret" ]]; then
-            CLIENT_ID=$(cat /dev/shm/client_id)
-            cp /dev/shm/client_id /etc/intel_edge_node/client-credentials
-            CLIENT_SECRET=$(cat /dev/shm/client_secret)
-            cp /dev/shm/client_secret /etc/intel_edge_node/client-credentials
-        else
-            echo "Client credentials are not yet provisioned"
+        
+        # Pre-seed debconf values for device-discovery-agent package
+        echo "device-discovery-agent device-discovery-agent/onboarding.serviceURL string {{ .ONBOARDING_SVC_URL }}" | debconf-set-selections
+        echo "device-discovery-agent device-discovery-agent/onboarding.servicePort string 443" | debconf-set-selections
+        echo "device-discovery-agent device-discovery-agent/discovery.serviceURL string {{ .ONBOARDING_STREAM_SVC_URL }}" | debconf-set-selections
+        echo "device-discovery-agent device-discovery-agent/auth.keycloakURL string {{ .KEYCLOAK_URL }}" | debconf-set-selections
+        echo "device-discovery-agent device-discovery-agent/onboarding.caCertPath string /etc/intel_edge_node/orch-ca-cert/orch-ca.pem" | debconf-set-selections
+        echo "device-discovery-agent device-discovery-agent/sysinfo.autoDetect boolean true" | debconf-set-selections
+        echo "device-discovery-agent device-discovery-agent/debug boolean false" | debconf-set-selections
+        echo "device-discovery-agent device-discovery-agent/disableInteractive boolean true" | debconf-set-selections
+        echo "device-discovery-agent device-discovery-agent/useKernelArgs boolean false" | debconf-set-selections
+        
+        echo "Download device-discovery package {{ index . "device-discovery-VERSION" }}"
+        DD_PKGFILE="./device-discovery_{{ index . "device-discovery-VERSION" }}_amd64.deb"
+        
+        oras pull "{{ .IMG_REGISTRY_URL }}/{{ .DEB_PACKAGES_REPO }}/device-discovery:{{ index . "device-discovery-VERSION" }}"
+        
+        if [ ! -f "${DD_PKGFILE}" ]; then
+            echo "device-discovery debian package could not be downloaded. Aborting installation"
             exit 1
         fi
+        
+        echo "Install device-discovery package"
+        apt-get install -y -o Dpkg::Options::="--force-confnew" "${DD_PKGFILE}"
+        
+        echo "Remove device-discovery debian"
+        rm -f "${DD_PKGFILE}"
+        
+        echo "Wait for device-discovery service to complete onboarding..."
+        # Wait for client credentials to be provisioned
+        max_wait=300  # 5 minutes timeout
+        elapsed=0
+        while [[ ! -s "/etc/intel_edge_node/client-credentials/client_id" || ! -s "/etc/intel_edge_node/client-credentials/client_secret" ]]; do
+            if [ $elapsed -ge $max_wait ]; then
+                echo "Timeout waiting for client credentials"
+                exit 1
+            fi
+            echo "Waiting for device-discovery to provision credentials... (${elapsed}s)"
+            sleep 5
+            elapsed=$((elapsed + 5))
+        done
+        
+        echo "Client credentials provisioned successfully"
+        CLIENT_ID=$(cat /dev/shm/client_id)
+        CLIENT_SECRET=$(cat /dev/shm/client_secret)
+        
+        echo "install_device_discovery done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
 
