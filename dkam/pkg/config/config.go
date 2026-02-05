@@ -31,6 +31,8 @@ const (
 )
 
 // InfraConfig holds the infrastructure configuration settings.
+//
+//nolint:tagliatelle // yaml tags use kebab-case for Kubernetes/Helm compatibility
 type InfraConfig struct {
 	ENDebianPackagesRepo string `mapstructure:"en-debian-packages-repo" yaml:"en-debian-packages-repo"`
 	ENFilesRsRoot        string `mapstructure:"en-files-rs-root" yaml:"en-files-rs-root"`
@@ -60,10 +62,10 @@ type InfraConfig struct {
 	OnboardingStreamURL   string `mapstructure:"om-stream-svc" yaml:"om-stream-svc"`
 	CDN                   string `mapstructure:"cdn-svc" yaml:"cdn-svc"`
 
-	SystemConfigFsInotifyMaxUserInstances uint32 `mapstructure:"system-config-fs-inotify-max-user-instances" yaml:"system-config-fs-inotify-max-user-instances"`
+	SystemConfigFsInotifyMaxUserInstances uint32 `mapstructure:"system-config-fs-inotify-max-user-instances" yaml:"system-config-fs-inotify-max-user-instances"` //nolint:lll // long struct tags required
 	//nolint:revive,stylecheck // keep the name in sync with charts values
-	SystemConfigVmOverCommitMemory uint32 `mapstructure:"system-config-vm-over-commit-memory" yaml:"system-config-vm-over-commit-memory"`
-	SystemConfigKernelPanicOnOops  uint32 `mapstructure:"system-config-kernel-panic-on-oops" yaml:"system-config-kernel-panic-on-oops"`
+	SystemConfigVmOverCommitMemory uint32 `mapstructure:"system-config-vm-over-commit-memory" yaml:"system-config-vm-over-commit-memory"` //nolint:lll // long struct tags required
+	SystemConfigKernelPanicOnOops  uint32 `mapstructure:"system-config-kernel-panic-on-oops" yaml:"system-config-kernel-panic-on-oops"`   //nolint:lll // long struct tags required
 	SystemConfigKernelPanic        uint32 `mapstructure:"system-config-kernel-panic" yaml:"system-config-kernel-panic"`
 
 	ENProxyHTTP    string `mapstructure:"en-proxy-http" yaml:"en-proxy-http"`

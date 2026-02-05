@@ -24,6 +24,8 @@ import (
 var zlog = logging.GetLogger("InfraCuration")
 
 // FirewallRule UFW Firewall structure in JSON, expected to be provided as environment variable.
+//
+//nolint:tagliatelle // json tags use camelCase to match external API format
 type FirewallRule struct {
 	SourceIP string `json:"sourceIp,omitempty"`
 	Ports    string `json:"ports,omitempty"`
