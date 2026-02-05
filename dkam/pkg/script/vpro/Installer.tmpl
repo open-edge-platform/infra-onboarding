@@ -294,10 +294,10 @@ install_device_discovery(){
         echo "device-discovery-agent device-discovery-agent/disableInteractive boolean true" | debconf-set-selections
         echo "device-discovery-agent device-discovery-agent/useKernelArgs boolean false" | debconf-set-selections
         
-        echo "Download device-discovery package {{ index . "device-discovery-VERSION" }}"
-        DD_PKGFILE="./device-discovery_{{ index . "device-discovery-VERSION" }}_amd64.deb"
+        echo "Download device-discovery-agent package {{ index . "device-discovery-agent-VERSION" }}"
+        DD_PKGFILE="./device-discovery-agent_{{ index . "device-discovery-agent-VERSION" }}_amd64.deb"
         
-        oras pull "{{ .IMG_REGISTRY_URL }}/{{ .DEB_PACKAGES_REPO }}/device-discovery:{{ index . "device-discovery-VERSION" }}"
+        oras pull "{{ .IMG_REGISTRY_URL }}/{{ .DEB_PACKAGES_REPO }}/device-discovery-agent:{{ index . "device-discovery-agent-VERSION" }}"
         
         if [ ! -f "${DD_PKGFILE}" ]; then
             echo "device-discovery debian package could not be downloaded. Aborting installation"
