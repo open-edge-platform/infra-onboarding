@@ -9,6 +9,7 @@ import (
 	tink "github.com/tinkerbell/tink/api/v1alpha1"
 )
 
+// WorkflowStepToStatusDetail defines a configuration value.
 var WorkflowStepToStatusDetail = map[string]string{
 	ActionEraseNonRemovableDisk:    "Erasing data from all non-removable disks",
 	ActionSecureBootStatusFlagRead: "Verifying Secure Boot settings",
@@ -30,6 +31,7 @@ var WorkflowStepToStatusDetail = map[string]string{
 	ActionCloudinitDsidentity: "Setting up cloud-init",
 }
 
+// GenerateStatusDetailFromWorkflowState performs operations for onboarding management.
 func GenerateStatusDetailFromWorkflowState(workflow *tink.Workflow) string {
 	if workflow == nil {
 		// no status detail if workflow doesn't exist yet

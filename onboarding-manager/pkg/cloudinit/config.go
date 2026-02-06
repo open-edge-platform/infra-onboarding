@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
+// Package cloudinit provides functionality for onboarding management.
 package cloudinit
 
 import (
@@ -10,6 +11,7 @@ import (
 	inv_errors "github.com/open-edge-platform/infra-core/inventory/v2/pkg/errors"
 )
 
+// Option provides functionality for onboarding management.
 type Option func(*cloudInitOptions)
 
 type cloudInitOptions struct {
@@ -111,12 +113,14 @@ func (opts cloudInitOptions) validateNonStandaloneOptions() error {
 	return nil
 }
 
+// WithRunAsStandalone performs operations for onboarding management.
 func WithRunAsStandalone() Option {
 	return func(options *cloudInitOptions) {
 		options.RunAsStandalone = true
 	}
 }
 
+// WithDevMode performs operations for onboarding management.
 func WithDevMode(username, password string) Option {
 	return func(options *cloudInitOptions) {
 		options.useDevMode = true
@@ -125,24 +129,28 @@ func WithDevMode(username, password string) Option {
 	}
 }
 
+// WithOSType performs operations for onboarding management.
 func WithOSType(osType osv1.OsType) Option {
 	return func(options *cloudInitOptions) {
 		options.OsType = osType
 	}
 }
 
+// WithTenantID performs operations for onboarding management.
 func WithTenantID(tenantID string) Option {
 	return func(options *cloudInitOptions) {
 		options.tenantID = tenantID
 	}
 }
 
+// WithHostname performs operations for onboarding management.
 func WithHostname(hostname string) Option {
 	return func(options *cloudInitOptions) {
 		options.hostname = hostname
 	}
 }
 
+// WithClientCredentials performs operations for onboarding management.
 func WithClientCredentials(clientID, clientSecret string) Option {
 	return func(options *cloudInitOptions) {
 		options.clientID = clientID
@@ -150,6 +158,7 @@ func WithClientCredentials(clientID, clientSecret string) Option {
 	}
 }
 
+// WithLocalAccount performs operations for onboarding management.
 func WithLocalAccount(localAccountUserName, sshKey string) Option {
 	return func(options *cloudInitOptions) {
 		options.useLocalAccount = true
@@ -158,12 +167,14 @@ func WithLocalAccount(localAccountUserName, sshKey string) Option {
 	}
 }
 
+// WithHostMACAddress performs operations for onboarding management.
 func WithHostMACAddress(mac string) Option {
 	return func(options *cloudInitOptions) {
 		options.hostMAC = mac
 	}
 }
 
+// WithPreserveIP performs operations for onboarding management.
 func WithPreserveIP(hostIP string, dnsServers []string) Option {
 	return func(options *cloudInitOptions) {
 		options.preserveIP = true

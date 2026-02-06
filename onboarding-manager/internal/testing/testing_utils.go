@@ -25,8 +25,9 @@ import (
 var (
 	clientName inv_testing.ClientType = "TestOnboardingInventoryClient"
 	zlog                              = logging.GetLogger("Onboarding-Manager-Testing")
-	InvClient  *invclient.OnboardingInventoryClient
-	mu         sync.Mutex
+	// InvClient defines a configuration value.
+	InvClient *invclient.OnboardingInventoryClient
+	mu        sync.Mutex
 )
 
 // CreateInventoryOnboardingClientForTesting is an helper function to create a new client.
@@ -50,6 +51,7 @@ func CreateInventoryOnboardingClientForTesting() {
 	}
 }
 
+// DeleteInventoryOnboardingClientForTesting performs operations for onboarding management.
 func DeleteInventoryOnboardingClientForTesting() {
 	mu.Lock()
 	defer mu.Unlock()
@@ -59,6 +61,8 @@ func DeleteInventoryOnboardingClientForTesting() {
 	delete(inv_testing.TestClientsEvents, clientName)
 }
 
+// AssertHost performs operations for onboarding management.
+//
 //nolint:dupl // This is for AssertHost.
 func AssertHost(
 	tb testing.TB,
@@ -82,6 +86,7 @@ func AssertHost(
 	assert.Equal(tb, expectedHostStatus.StatusIndicator, host.GetHostStatusIndicator())
 }
 
+// AssertHostOnboardingStatus performs operations for onboarding management.
 func AssertHostOnboardingStatus(tb testing.TB, resID string, expectedOnboardingStatus inv_status.ResourceStatus) {
 	tb.Helper()
 
@@ -95,6 +100,8 @@ func AssertHostOnboardingStatus(tb testing.TB, resID string, expectedOnboardingS
 	assert.Equal(tb, expectedOnboardingStatus.StatusIndicator, host.GetOnboardingStatusIndicator())
 }
 
+// AssertInstance performs operations for onboarding management.
+//
 //nolint:dupl // This is for AssertHost.
 func AssertInstance(
 	tb testing.TB,
@@ -120,6 +127,7 @@ func AssertInstance(
 	assert.Equal(tb, expectedProvisioningStatus.StatusIndicator, instance.GetProvisioningStatusIndicator())
 }
 
+// AssertInstanceStatuses performs operations for onboarding management.
 func AssertInstanceStatuses(
 	tb testing.TB,
 	tenantID string,

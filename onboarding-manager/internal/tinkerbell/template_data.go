@@ -26,22 +26,38 @@ import (
 )
 
 const (
-	ActionEraseNonRemovableDisk    = "erase-non-removable-disk" //#nosec G101 -- ignore false positive.
+	// ActionEraseNonRemovableDisk defines a configuration value.
+	ActionEraseNonRemovableDisk = "erase-non-removable-disk" //#nosec G101 -- ignore false positive.
+	// ActionSecureBootStatusFlagRead defines a configuration value.
 	ActionSecureBootStatusFlagRead = "secure-boot-status-flag-read"
-	ActionInstallScriptDownload    = "profile-pkg-and-node-agents-install-script-download"
-	ActionStreamOSImage            = "stream-os-image"
-	ActionCloudInitInstall         = "install-cloud-init"
-	ActionSystemConfiguration      = "system-configuration"
-	ActionCustomConfigInstall      = "custom-configs"
-	ActionCustomConfigSplit        = "custom-configs-split"
-	ActionInstallScript            = "service-script-for-profile-pkg-and-node-agents-install"
-	ActionEfibootset               = "efibootset-for-diskboot"
-	ActionFdeEncryption            = "fde-encryption"
-	ActionSecurityFeatures         = "enable-security-features"
-	ActionKernelupgrade            = "kernel-upgrade"
-	ActionReboot                   = "reboot"
-	ActionAddAptProxy              = "add-apt-proxy"
-	ActionCloudinitDsidentity      = "cloud-init-ds-identity"
+	// ActionInstallScriptDownload defines a configuration value.
+	ActionInstallScriptDownload = "profile-pkg-and-node-agents-install-script-download"
+	// ActionStreamOSImage defines a configuration value.
+	ActionStreamOSImage = "stream-os-image"
+	// ActionCloudInitInstall defines a configuration value.
+	ActionCloudInitInstall = "install-cloud-init"
+	// ActionSystemConfiguration defines a configuration value.
+	ActionSystemConfiguration = "system-configuration"
+	// ActionCustomConfigInstall defines a configuration value.
+	ActionCustomConfigInstall = "custom-configs"
+	// ActionCustomConfigSplit defines a configuration value.
+	ActionCustomConfigSplit = "custom-configs-split"
+	// ActionInstallScript defines a configuration value.
+	ActionInstallScript = "service-script-for-profile-pkg-and-node-agents-install"
+	// ActionEfibootset defines a configuration value.
+	ActionEfibootset = "efibootset-for-diskboot"
+	// ActionFdeEncryption defines a configuration value.
+	ActionFdeEncryption = "fde-encryption"
+	// ActionSecurityFeatures defines a configuration value.
+	ActionSecurityFeatures = "enable-security-features"
+	// ActionKernelupgrade defines a configuration value.
+	ActionKernelupgrade = "kernel-upgrade"
+	// ActionReboot defines a configuration value.
+	ActionReboot = "reboot"
+	// ActionAddAptProxy defines a configuration value.
+	ActionAddAptProxy = "add-apt-proxy"
+	// ActionCloudinitDsidentity defines a configuration value.
+	ActionCloudinitDsidentity = "cloud-init-ds-identity"
 )
 
 const (
@@ -88,6 +104,7 @@ const (
 	qcow2HeaderSize       = 4
 )
 
+// TinkerActionImages provides functionality for onboarding management.
 type TinkerActionImages struct {
 	EraseNonRemovableDisk string
 	WriteFile             string
@@ -99,12 +116,14 @@ type TinkerActionImages struct {
 	StreamOSImageToDisk   string
 }
 
+// Env provides functionality for onboarding management.
 type Env struct {
 	ENProxyHTTP    string
 	ENProxyHTTPS   string
 	ENProxyNoProxy string
 }
 
+// WorkflowInputs provides functionality for onboarding management.
 type WorkflowInputs struct {
 	Env               Env
 	DeviceInfo        onboarding_types.DeviceInfo
@@ -318,13 +337,18 @@ func detectImageFormat(ctx context.Context, imageURL, httpProxy string) string {
 			zlog.Warn().Err(err).Str("url", imageURL).Msg("Unable to fetch image header, defaulting to raw")
 			return rawImageFormat // default to raw on error
 		}
-		defer resp.Body.Close()
+		defer func() {
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				zlog.Error().Err(closeErr).Msg("Failed to close response body")
+			}
+		}()
 
 		// Check if server supports range requests
 		if resp.StatusCode != http.StatusPartialContent && resp.StatusCode != http.StatusOK {
 			zlog.Warn().Int("status", resp.StatusCode).Msg("Unexpected HTTP status, defaulting to raw")
 			return rawImageFormat
 		}
+
 		// Read first qcow2HeaderSize bytes
 		header := make([]byte, qcow2HeaderSize)
 		n, err := io.ReadFull(resp.Body, header)
@@ -334,6 +358,7 @@ func detectImageFormat(ctx context.Context, imageURL, httpProxy string) string {
 		}
 
 		// QCOW2 magic number is 'Q', 'F', 'I', 0xfb (0x514649fb)
+		//nolint:gosec // G602: Bounds already checked by qcow2HeaderSize read above
 		if header[0] == 'Q' && header[1] == 'F' && header[2] == 'I' && header[3] == 0xfb {
 			zlog.Info().Msg("Detected qcow2 image format")
 			return qcow2ImageFormat
@@ -358,6 +383,7 @@ func getStreamOSToDiskTinkerActionImage(ctx context.Context, imageURL, httpProxy
 	return tinkActionDiskImage(tinkerImageVersion)
 }
 
+// GenerateWorkflowInputs performs operations for onboarding management.
 func GenerateWorkflowInputs(ctx context.Context, deviceInfo onboarding_types.DeviceInfo) (map[string]string, error) {
 	infraConfig := config.GetInfraConfig()
 

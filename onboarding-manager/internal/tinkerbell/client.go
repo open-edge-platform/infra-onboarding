@@ -24,6 +24,7 @@ import (
 const defaultK8sClientTimeout = 3 * time.Second
 
 var (
+	// K8sClientFactory defines a configuration value.
 	K8sClientFactory = newK8SClient
 
 	clientName = "TinkerbellWorkflowHandler"
@@ -52,6 +53,7 @@ func newK8SClient() (client.Client, error) {
 	return kubeClient, nil
 }
 
+// NewWorkflow performs operations for onboarding management.
 func NewWorkflow(name, ns, hardwareRef, templateRef string, hardwareMap map[string]string) *tinkv1alpha1.Workflow {
 	wf := &tinkv1alpha1.Workflow{
 		TypeMeta: metav1.TypeMeta{
@@ -72,6 +74,7 @@ func NewWorkflow(name, ns, hardwareRef, templateRef string, hardwareMap map[stri
 	return wf
 }
 
+// CreateTemplate performs operations for onboarding management.
 func CreateTemplate(k8sNamespace, name string, rawTemplateData []byte) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultK8sClientTimeout)
 	defer cancel()
@@ -109,6 +112,7 @@ func CreateTemplate(k8sNamespace, name string, rawTemplateData []byte) error {
 	return nil
 }
 
+// CreateHardwareIfNotExists performs operations for onboarding management.
 func CreateHardwareIfNotExists(k8sNamespace, hwName string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultK8sClientTimeout)
 	defer cancel()
@@ -158,6 +162,7 @@ func deleteAllK8sResourcesOfKind(namespace string, kinds []client.Object) error 
 	return nil
 }
 
+// DeletePredefinedTinkerbellResources performs operations for onboarding management.
 func DeletePredefinedTinkerbellResources() error {
 	zlog.Debug().Msgf("Deleting all Tinkerbell Template and Hardware objects in namespace %s", env.K8sNamespace)
 	return deleteAllK8sResourcesOfKind(env.K8sNamespace, []client.Object{
@@ -166,6 +171,7 @@ func DeletePredefinedTinkerbellResources() error {
 	})
 }
 
+// CreateWorkflowIfNotExists performs operations for onboarding management.
 func CreateWorkflowIfNotExists(ctx context.Context, k8sCli client.Client, workflow *tinkv1alpha1.Workflow) error {
 	zlog.Info().Msgf("Creating new Tinkerbell workflow %s.", workflow.Name)
 	createErr := k8sCli.Create(ctx, workflow)
@@ -179,6 +185,7 @@ func CreateWorkflowIfNotExists(ctx context.Context, k8sCli client.Client, workfl
 	return nil
 }
 
+// DeleteWorkflowIfExists performs operations for onboarding management.
 func DeleteWorkflowIfExists(ctx context.Context, k8sNamespace, workflowName string) error {
 	ctx, cancel := context.WithTimeout(ctx, defaultK8sClientTimeout)
 	defer cancel()

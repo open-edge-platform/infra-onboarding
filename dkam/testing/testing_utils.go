@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+// Package testing provides test utilities and helpers for DKAM testing.
 package testing
 
 import (
@@ -18,10 +19,14 @@ import (
 )
 
 const (
-	TestManifestRepo       = "test-manifest-repo"
+	// TestManifestRepo is the test manifest repository name.
+	TestManifestRepo = "test-manifest-repo"
+	// CorrectTestManifestTag is the tag for correct test manifests.
 	CorrectTestManifestTag = "correct"
-	EmptyTestManifestTag   = "empty"
-	TestMicroOSfileName    = "test-uos-file"
+	// EmptyTestManifestTag is the tag for empty test manifests.
+	EmptyTestManifestTag = "empty"
+	// TestMicroOSfileName is the filename for test micro OS files.
+	TestMicroOSfileName = "test-uos-file"
 )
 
 func exampleManifest(digest string, fileLen int) string {
@@ -38,6 +43,7 @@ func exampleManifest(digest string, fileLen int) string {
 		"annotations":{"org.opencontainers.image.created":"2025-03-18T16:44:00Z"}}`, fileLen)
 }
 
+// StartTestReleaseService starts a test HTTP server that simulates the release service.
 func StartTestReleaseService() func() {
 	config.SetInfraConfig(config.InfraConfig{
 		ENManifestRepo:     TestManifestRepo,
@@ -78,19 +84,19 @@ packages:
 		func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			// return example manifest
-			w.Write([]byte(exampleManifest(testManifestDigestCorrect, len(expectedTestManifest))))
+			_, _ = w.Write([]byte(exampleManifest(testManifestDigestCorrect, len(expectedTestManifest))))
 		})
 	mux.HandleFunc("/v2/"+infraConfig.ENManifestRepo+"/blobs/"+testManifestDigestCorrect,
 		func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(expectedTestManifest))
+			_, _ = w.Write([]byte(expectedTestManifest))
 		})
 
 	mux.HandleFunc("/v2/"+infraConfig.ENManifestRepo+"/manifests/"+EmptyTestManifestTag,
 		func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			// return example manifest
-			w.Write([]byte(exampleManifest(testManifestDigestEmpty, 1)))
+			_, _ = w.Write([]byte(exampleManifest(testManifestDigestEmpty, 1)))
 		})
 	mux.HandleFunc("/v2/"+infraConfig.ENManifestRepo+"/blobs/"+testManifestDigestEmpty,
 		func(w http.ResponseWriter, _ *http.Request) {
@@ -101,7 +107,7 @@ packages:
 		func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			// return test data
-			w.Write([]byte("testdata"))
+			_, _ = w.Write([]byte("testdata"))
 		})
 
 	svr := httptest.NewServer(mux)
@@ -114,14 +120,15 @@ packages:
 
 	testRegistryEndpoint, _ := strings.CutPrefix(svr.URL, "http://")
 
-	os.Setenv("RSPROXY_ADDRESS", testRegistryEndpoint+"/")
+	_ = os.Setenv("RSPROXY_ADDRESS", testRegistryEndpoint+"/")
 
 	return func() {
-		os.Unsetenv("RSPROXY_ADDRESS")
+		_ = os.Unsetenv("RSPROXY_ADDRESS")
 		svr.Close()
 	}
 }
 
+// PrepareTestCaCertificateFile creates a temporary CA certificate file for testing.
 func PrepareTestCaCertificateFile(t *testing.T) {
 	t.Helper()
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "test_cert")
@@ -130,17 +137,22 @@ func PrepareTestCaCertificateFile(t *testing.T) {
 	require.NoError(t, err)
 	_, err = tmpFile.WriteString("TEST CA CONTENT")
 	require.NoError(t, err)
-	defer tmpFile.Close()
+	defer func() {
+		if err := tmpFile.Close(); err != nil {
+			t.Logf("Failed to close temp file: %v", err)
+		}
+	}()
 
 	originalCaCertificatePath := config.OrchCACertificateFile
 	config.OrchCACertificateFile = tmpFile.Name()
 
 	t.Cleanup(func() {
-		os.RemoveAll(tmpDir)
+		_ = os.RemoveAll(tmpDir)
 		config.OrchCACertificateFile = originalCaCertificatePath
 	})
 }
 
+// PrepareTestInfraConfig sets up test infrastructure configuration.
 func PrepareTestInfraConfig(_ *testing.T) {
 	testConfig := config.InfraConfig{
 		ENAgentManifestTag:                    "latest-dev",

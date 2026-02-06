@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
+// Package platformbundle provides functionality for onboarding management.
 package platformbundle
 
 import (
@@ -56,6 +57,7 @@ func validateAndParseArtifactURL(artifact string) (repo, tag string, err error) 
 	return parts[0], parts[1], nil
 }
 
+// FetchPlatformBundleData performs operations for onboarding management.
 func FetchPlatformBundleData(ctx context.Context, artifact string) (string, error) {
 	zlog.InfraSec().Info().Msgf("Fetch Platform Bundle for %s", artifact)
 	// Validate and parse the artifact string
@@ -89,6 +91,7 @@ func FetchPlatformBundleData(ctx context.Context, artifact string) (string, erro
 	return content, nil
 }
 
+// FetchPlatformBundleScripts performs operations for onboarding management.
 func FetchPlatformBundleScripts(ctx context.Context, platformBundle string) (PlatformBundleData, error) {
 	zlog.InfraSec().Info().Msgf("Platform bundle %s", platformBundle)
 	scripts := PlatformBundleData{}
@@ -123,6 +126,7 @@ func FetchPlatformBundleScripts(ctx context.Context, platformBundle string) (Pla
 	return scripts, nil
 }
 
+// DownloadPlatformBundle performs operations for onboarding management.
 func DownloadPlatformBundle(ctx context.Context, repo, tag string) (string, error) {
 	if repo == "" || tag == "" {
 		return "", inv_errors.Errorfc(codes.InvalidArgument, "Repo or tag is empty. Repo: %s, Tag: %s", repo, tag)

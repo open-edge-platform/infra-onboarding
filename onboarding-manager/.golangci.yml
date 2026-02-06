@@ -2,6 +2,19 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+version: "2"
+run:
+  go: ""
+  modules-download-mode: readonly
+  issues-exit-code: 1
+  tests: true
+output:
+  formats:
+    text:
+      path: stdout
+      print-linter-name: true
+    html:
+      path: out/golangci-lint_report.html
 linters:
   enable:
     - asasalint
@@ -10,188 +23,181 @@ linters:
     - bodyclose
     - copyloopvar
     - cyclop
+    - depguard
     - dogsled
+    - dupl
     - durationcheck
-    - errcheck
     - errname
     - errorlint
     - exhaustive
     - funlen
-    - gci
     - gochecknoinits
     - goconst
     - gocritic
     - gocyclo
     - godot
-    - gofmt
-    - gofumpt
     - goheader
-    - goimports
     - gomoddirectives
     - goprintffuncname
     - gosec
-    - gosimple
-    - govet
-    - ineffassign
     - lll
     - misspell
     - mnd
     - nakedret
     - nilerr
     - nilnil
-    - noctx
-    - nolintlint
-    - prealloc
     - predeclared
     - revive
     - staticcheck
-    - stylecheck
     - tagliatelle
-    - testpackage
-    - tenv
     - testableexamples
+    - testpackage
     - thelper
     - tparallel
-    - typecheck
     - unconvert
     - unparam
-    - unused
     - usestdlibvars
     - whitespace
-    - dupl
-
-run:
-  timeout: 10m
-  issues-exit-code: 1
-  tests: true
-  modules-download-mode: readonly
-  go: ""
-
-linters-settings:
-  gomoddirectives:
-    replace-local: true
-    replace-allow-list:
-      - github.com/open-edge-platform/infra-onboarding/dkam
-  cyclop:
-    max-complexity: 10
-  dupl:
-    threshold: 100
-  govet:
-    enable:
-      - shadow
-  misspell:
-    locale: US
-  lll:
-    line-length: 130
-    tab-width: 4
-  funlen:
-    lines: 100
-    statements: 50
-  exhaustive:
-    default-signifies-exhaustive: true
-  gci:
-    sections:
-      - standard
-      - default
-      - prefix(github.com/open-edge-platform)
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
-    disabled-checks:
-      - hugeParam
-      - rangeExprCopy
-      - rangeValCopy
-  errcheck:
-    check-type-assertions: true
-    check-blank: true
-  nakedret:
-    max-func-lines: 1
-  tagliatelle:
-    case:
+  settings:
+    cyclop:
+      max-complexity: 10
+    depguard:
       rules:
-        json: snake
-        yaml: snake
-        xml: camel
-        bson: camel
-        avro: snake
-        mapstructure: kebab
-  depguard:
+        Main:
+          files:
+            - $all
+            - '!$test'
+          allow:
+            - $gostd
+            - github.com/open-edge-platform
+            - github.com/stretchr/testify/require
+            - github.com/grpc-ecosystem/go-grpc-middleware
+            - entgo.io/ent
+            - github.com/goccy/go-json
+            - github.com/google
+            - github.com/grpc-ecosystem
+            - github.com/lib/pq
+            - github.com/mennanov/fmutils
+            - github.com/labstack/echo
+            - github.com/onosproject
+            - github.com/open-policy-agent
+            - github.com/pkg/errors
+            - github.com/rs/zerolog
+            - github.com/cenkalti/backoff
+            - github.com/spf13
+            - k8s.io/apimachinery
+            - k8s.io/client-go
+            - github.com/tinkerbell
+            - github.com/Nerzal/gocloak
+            - github.com/scylladb/gocqlx
+            - sigs.k8s.io/controller-runtime/pkg/client
+            - sigs.k8s.io/controller-runtime/pkg/log
+            - sigs.k8s.io/controller-runtime/pkg/log/zap
+            - github.com/stretchr/testify
+            - github.com/prometheus/client_golang/prometheus
+            - google.golang.org/grpc
+            - google.golang.org/grpc/codes
+            - google.golang.org/grpc/reflection
+            - google.golang.org/grpc/status
+            - google.golang.org/protobuf/proto
+            - google.golang.org/protobuf/types/known/fieldmaskpb
+            - google.golang.org/genproto/googleapis/rpc/status
+        Test:
+          files:
+            - $test
+          allow:
+            - $gostd
+            - github.com/open-edge-platform
+            - github.com/stretchr/testify/assert
+            - github.com/goccy/go-json
+            - github.com/google
+            - github.com/grpc-ecosystem
+            - github.com/mennanov/fmutils
+            - github.com/onosproject
+            - github.com/rs/zerolog
+            - github.com/stretchr/testify/require
+            - github.com/google/uuid
+            - github.com/grpc-ecosystem/go-grpc-middleware/util/metautils
+            - github.com/stretchr/testify/mock
+            - github.com/tinkerbell/tink/api/v1alpha1
+            - k8s.io/apimachinery/pkg/api/errors
+            - k8s.io/apimachinery/pkg/apis/meta/v1
+            - k8s.io/apimachinery/pkg/runtime
+            - k8s.io/apimachinery/pkg/runtime/schema
+            - sigs.k8s.io/controller-runtime/pkg/client
+            - sigs.k8s.io/controller-runtime/pkg/client/fake
+            - github.com/pkg/errors
+            - google.golang.org/grpc
+            - google.golang.org/grpc/codes
+            - google.golang.org/grpc/credentials/insecure
+            - google.golang.org/grpc/metadata
+            - google.golang.org/grpc/status
+            - google.golang.org/grpc/test/bufconn
+            - google.golang.org/protobuf/proto
+            - google.golang.org/protobuf/types/known/fieldmaskpb
+            - gotest.tools/assert
+            - gopkg.in/yaml.v2
+    dupl:
+      threshold: 100
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+    exhaustive:
+      default-signifies-exhaustive: true
+    funlen:
+      lines: 100
+      statements: 50
+    gocritic:
+      disabled-checks:
+        - hugeParam
+        - rangeExprCopy
+        - rangeValCopy
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - opinionated
+        - performance
+        - style
+    gomoddirectives:
+      replace-allow-list:
+        - github.com/open-edge-platform/infra-onboarding/dkam
+      replace-local: true
+    govet:
+      enable:
+        - shadow
+    lll:
+      line-length: 130
+      tab-width: 4
+    misspell:
+      locale: US
+    nakedret:
+      max-func-lines: 1
+    tagliatelle:
+      case:
+        rules:
+          avro: snake
+          bson: camel
+          json: snake
+          mapstructure: kebab
+          xml: camel
+          yaml: snake
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
     rules:
-      Main:
-        files:
-          - $all
-          - "!$test"
-        allow:
-          - $gostd
-          - github.com/open-edge-platform
-          - github.com/stretchr/testify/require
-          - github.com/grpc-ecosystem/go-grpc-middleware
-          - entgo.io/ent
-          - github.com/goccy/go-json
-          - github.com/google
-          - github.com/grpc-ecosystem
-          - github.com/lib/pq
-          - github.com/mennanov/fmutils
-          - github.com/labstack/echo
-          - github.com/onosproject
-          - github.com/open-policy-agent
-          - github.com/pkg/errors
-          - github.com/rs/zerolog
-          - github.com/cenkalti/backoff
-          - github.com/spf13
-          - k8s.io/apimachinery
-          - k8s.io/client-go
-          - github.com/tinkerbell
-          - github.com/Nerzal/gocloak
-          - github.com/scylladb/gocqlx
-          - sigs.k8s.io/controller-runtime/pkg/client
-          - sigs.k8s.io/controller-runtime/pkg/log
-          - sigs.k8s.io/controller-runtime/pkg/log/zap
-          - github.com/stretchr/testify
-          - github.com/prometheus/client_golang/prometheus
-      Test:
-        files:
-          - $test
-        allow:
-          - $gostd
-          - github.com/open-edge-platform
-          - github.com/stretchr/testify/assert
-          - github.com/goccy/go-json
-          - github.com/google
-          - github.com/grpc-ecosystem
-          - github.com/mennanov/fmutils
-          - github.com/onosproject
-          - github.com/rs/zerolog
-          - github.com/stretchr/testify/require
-          - github.com/google/uuid
-          - github.com/grpc-ecosystem/go-grpc-middleware/util/metautils
-          - github.com/stretchr/testify/mock
-          - github.com/tinkerbell/tink/api/v1alpha1
-          - k8s.io/apimachinery/pkg/api/errors
-          - k8s.io/apimachinery/pkg/api/meta
-          - k8s.io/apimachinery/pkg/apis/meta/v1
-          - k8s.io/apimachinery/pkg/runtime
-          - k8s.io/apimachinery/pkg/runtime/schema
-          - sigs.k8s.io/controller-runtime/pkg/client
-          - sigs.k8s.io/controller-runtime/pkg/client/fake
-          - github.com/pkg/errors
-issues:
-  max-issues-per-linter: 0
-  max-same-issues: 0
-  new: false
-  fix: false
-  exclude:
-    - Error return value of `.*Close` is not checked
-    - Error return value of `.*Flush` is not checked
-    - Error return value of `.*Write` is not checked
-    - Error return value of `.*Stop` is not checked
-  exclude-rules:
-  uniq-by-line: false
-output:
-  formats: colored-line-number:stdout,html:out/golangci-lint_report.html
-  print-linter-name: true
-  sort-results: true
+      - path: (.+)\.go$
+        text: Error return value of `.*Close` is not checked
+      - path: (.+)\.go$
+        text: Error return value of `.*Flush` is not checked
+      - path: (.+)\.go$
+        text: Error return value of `.*Write` is not checked
+      - path: (.+)\.go$
+        text: Error return value of `.*Stop` is not checked
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

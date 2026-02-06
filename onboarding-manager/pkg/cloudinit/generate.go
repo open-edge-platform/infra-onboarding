@@ -52,6 +52,7 @@ func templateVariablesFromOptions(options cloudInitOptions) map[string]interface
 	return extraVars
 }
 
+// GenerateFromInfraConfig performs operations for onboarding management.
 func GenerateFromInfraConfig(template string, infraConfig config.InfraConfig, opts ...Option) (string, error) {
 	options := defaultCloudInitOptions()
 	for _, opt := range opts {

@@ -4,6 +4,7 @@
 package signing
 
 import (
+	"context"
 	"io"
 	"os"
 	"os/exec"
@@ -21,6 +22,7 @@ const (
 	writeMode = 0o600
 )
 
+// SignMicroOS signs the MicroOS kernel image with secure boot keys.
 func SignMicroOS() (bool, error) {
 	zlog.InfraSec().Info().Msgf("Script dir %s", config.ScriptPath)
 	buildScriptPath, err := setupUOSDirectories()
@@ -52,7 +54,7 @@ func SignMicroOS() (bool, error) {
 		return false, errcpio
 	}
 
-	modeCmd := exec.Command("chmod", "+x", "secure_uos.sh")
+	modeCmd := exec.CommandContext(context.Background(), "chmod", "+x", "secure_uos.sh")
 	result, modeErr := modeCmd.CombinedOutput()
 	if modeErr != nil {
 		zlog.InfraSec().Fatal().Err(modeErr).Msgf("Failed to change mode secure_uos %v", modeErr)
@@ -60,7 +62,7 @@ func SignMicroOS() (bool, error) {
 	}
 	zlog.Info().Msgf("Script output: %s", string(result))
 
-	mdCmd := exec.Command("chmod", "+x", "update_initramfs.sh")
+	mdCmd := exec.CommandContext(context.Background(), "chmod", "+x", "update_initramfs.sh")
 	mdresult, mdErr := mdCmd.CombinedOutput()
 	if mdErr != nil {
 		zlog.InfraSec().Fatal().Err(mdErr).Msgf("Failed to change mode of update_initramfs.sh script %v", mdErr)
@@ -75,7 +77,7 @@ func SignMicroOS() (bool, error) {
 	}
 
 	//nolint:gosec // The script and arguments are trusted and validated before execution.
-	buildCmd := exec.Command("bash", "./update_initramfs.sh", config.DownloadPath)
+	buildCmd := exec.CommandContext(context.Background(), "bash", "./update_initramfs.sh", config.DownloadPath)
 	output, buildErr := buildCmd.CombinedOutput()
 	if buildErr != nil {
 		zlog.InfraSec().Fatal().Err(buildErr).Msgf("Failed to sign microOS script %v", buildErr)
@@ -146,7 +148,11 @@ func replaceConfigPlaceholders(content []byte) string {
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__tink_stack_svc__", infraConfig.ProvisioningService)
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__tink_server_svc__", infraConfig.TinkServerURL)
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__keycloak_url__", infraConfig.KeycloakURL)
-	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__oci_release_svc__", strings.Split(infraConfig.RegistryURL, ":")[0])
+	modifiedConfig = strings.ReplaceAll(
+		modifiedConfig,
+		"__oci_release_svc__",
+		strings.Split(infraConfig.RegistryURL, ":")[0],
+	)
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__logging_svc__",
 		strings.Split(infraConfig.LogsObservabilityURL, ":")[0])
 	modifiedConfig = strings.ReplaceAll(modifiedConfig, "__onboarding_manager_svc__", infraConfig.OnboardingURL)
@@ -192,6 +198,7 @@ func copyDir(src, dst string) error {
 	})
 }
 
+// BuildSignIpxe builds and signs the iPXE bootloader with secure boot keys.
 func BuildSignIpxe() (bool, error) {
 	provisioningServerURL := config.GetInfraConfig().ProvisioningServerURL
 	zlog.InfraSec().Info().Msgf("CDN boot DNS name %s", provisioningServerURL)
@@ -234,7 +241,7 @@ func BuildSignIpxe() (bool, error) {
 		return false, errIpxe
 	}
 	//nolint:gosec // The script and arguments are trusted and validated before execution.
-	cmd := exec.Command("bash", "./build_sign_ipxe.sh", config.DownloadPath)
+	cmd := exec.CommandContext(context.Background(), "bash", "./build_sign_ipxe.sh", config.DownloadPath)
 	zlog.Info().Msgf("signCmd: %s", cmd)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -250,13 +257,21 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer source.Close()
+	defer func() {
+		if closeErr := source.Close(); closeErr != nil {
+			zlog.InfraSec().Error().Err(closeErr).Msg("Failed to close source file")
+		}
+	}()
 
 	destination, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
-	defer destination.Close()
+	defer func() {
+		if closeErr := destination.Close(); closeErr != nil {
+			zlog.InfraSec().Error().Err(closeErr).Msg("Failed to close destination file")
+		}
+	}()
 
 	_, err = io.Copy(destination, source)
 	if err != nil {

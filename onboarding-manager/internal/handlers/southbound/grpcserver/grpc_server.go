@@ -42,12 +42,14 @@ const (
 	serialNumNotAvailable = "N/A"
 )
 
+// InventoryClientService provides functionality for onboarding management.
 type InventoryClientService struct {
 	invClient    *invclient.OnboardingInventoryClient
 	invClientAPI *invclient.OnboardingInventoryClient
 }
 
 type (
+	// InteractiveOnboardingService provides functionality for onboarding management.
 	InteractiveOnboardingService struct {
 		pb.UnimplementedInteractiveOnboardingServiceServer
 		InventoryClientService
@@ -57,6 +59,7 @@ type (
 )
 
 type (
+	// NonInteractiveOnboardingService provides functionality for onboarding management.
 	NonInteractiveOnboardingService struct {
 		pb.UnimplementedNonInteractiveOnboardingServiceServer
 		InventoryClientService
@@ -139,10 +142,15 @@ func NewNonInteractiveOnboardingService(invClient *invclient.OnboardingInventory
 	}, nil
 }
 
+// CopyNodeReqToNodeData performs operations for onboarding management.
 func CopyNodeReqToNodeData(payload []*pb.NodeData, tenantID string) ([]*computev1.HostResource, error) {
 	zlog.Info().Msgf("CopyNodeReqToNodeData")
 	zlog.Debug().Msgf("Parsing NodeData of length=%d", len(payload))
-	hosts := make([]*computev1.HostResource, 0)
+	var estimatedHosts int
+	for _, s := range payload {
+		estimatedHosts += len(s.Hwdata)
+	}
+	hosts := make([]*computev1.HostResource, 0, estimatedHosts)
 	for _, s := range payload {
 		for _, hwData := range s.Hwdata {
 			hostres := &computev1.HostResource{
@@ -426,6 +434,8 @@ func (s *NonInteractiveOnboardingService) getHostResource(req *pb.OnboardNodeStr
 	return hostResource, nil
 }
 
+// OnboardNodeStream performs operations for the receiver.
+//
 //nolint:cyclop // reason: cyclomatic complexity is high due to necessary handling
 func (s *NonInteractiveOnboardingService) OnboardNodeStream(
 	stream pb.NonInteractiveOnboardingService_OnboardNodeStreamServer,
@@ -562,6 +572,8 @@ func serialNumberValidationErrorIO(err error) bool {
 	return false
 }
 
+// CreateNodes performs operations for the receiver.
+//
 //nolint:funlen,cyclop // reason: function is long due to necessary logic; cyclomatic complexity is high due to necessary handling
 func (s *InteractiveOnboardingService) CreateNodes(ctx context.Context, req *pb.CreateNodesRequest) (
 	*pb.CreateNodesResponse, error,

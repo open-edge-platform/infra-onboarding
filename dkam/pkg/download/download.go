@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
+// Package download provides functionality for downloading artifacts from release services.
 package download
 
 import (
@@ -17,7 +18,8 @@ import (
 )
 
 var (
-	zlog   = logging.GetLogger("InfraDKAMDownload")
+	zlog = logging.GetLogger("InfraDKAMDownload")
+	// Client is the HTTP client used for downloading artifacts.
 	Client = &http.Client{
 		Transport: &http.Transport{
 			Proxy:             http.ProxyFromEnvironment,
@@ -27,10 +29,11 @@ var (
 )
 
 const (
+	// UOSFileName is the filename for the micro OS archive.
 	UOSFileName = "emb_uos_x86_64.tar.gz"
 )
 
-//nolint:revive // Keeping the function name for clarity and consistency.
+//nolint:revive,cyclop // Handles validation, download, and error handling
 func DownloadMicroOS(ctx context.Context) (bool, error) {
 	zlog.Info().Msgf("Inside Download and sign artifact... %s", config.DownloadPath)
 	fileServerAddress := config.GetInfraConfig().CDN
@@ -68,7 +71,11 @@ func DownloadMicroOS(ctx context.Context) (bool, error) {
 		zlog.InfraSec().Error().Err(err).Msgf("Failed to connect to release server to download package manifest: %v", err)
 		return false, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			zlog.InfraSec().Error().Err(err).Msg("Failed to close response body")
+		}
+	}()
 
 	uOSFilePath := config.DownloadPath + "/" + UOSFileName
 
@@ -77,7 +84,11 @@ func DownloadMicroOS(ctx context.Context) (bool, error) {
 		zlog.InfraSec().Error().Err(fileerr).Msgf("Failed to create file:%v", fileerr)
 		return false, fileerr
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			zlog.InfraSec().Error().Err(err).Msg("Failed to close file")
+		}
+	}()
 
 	// Copy the response body to the local file
 	_, copyErr := io.Copy(file, resp.Body)

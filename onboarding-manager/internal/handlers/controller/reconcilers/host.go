@@ -22,11 +22,13 @@ const loggerName = "HostReconciler"
 
 var zlogHost = logging.GetLogger(loggerName)
 
+// HostReconciler provides functionality for onboarding management.
 type HostReconciler struct {
 	invClient     *invclient.OnboardingInventoryClient
 	enableTracing bool
 }
 
+// NewHostReconciler performs operations for onboarding management.
 func NewHostReconciler(c *invclient.OnboardingInventoryClient, enableTracing bool) *HostReconciler {
 	return &HostReconciler{
 		invClient:     c,
@@ -34,6 +36,7 @@ func NewHostReconciler(c *invclient.OnboardingInventoryClient, enableTracing boo
 	}
 }
 
+// Reconcile performs operations for the receiver.
 func (hr *HostReconciler) Reconcile(ctx context.Context,
 	request rec_v2.Request[ReconcilerID],
 ) rec_v2.Directive[ReconcilerID] {

@@ -255,7 +255,11 @@ func Test_getWorkflow(t *testing.T) {
 	mockClient2.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(kubeErr.NewNotFound(schema.GroupResource{Group: "example.com", Resource: "myresource"}, "resource-name"))
 	t.Setenv("ENABLE_ACTION_TIMESTAMPS", "true")
-	defer os.Unsetenv("ENABLE_ACTION_TIMESTAMPS")
+	defer func() {
+		if err := os.Unsetenv("ENABLE_ACTION_TIMESTAMPS"); err != nil {
+			t.Logf("Failed to unset env: %v", err)
+		}
+	}()
 	type args struct {
 		ctx          context.Context
 		k8sCli       client.Client
@@ -311,11 +315,12 @@ func Test_getWorkflow(t *testing.T) {
 }
 
 func Test_handleWorkflowStatus_Case4(t *testing.T) {
-	tests := []handleWorkflowTestCase{
+	tests := make([]handleWorkflowTestCase, 0, 3+len(tinkerbell.WorkflowStepToStatusDetail)*2)
+	tests = append(tests,
 		createTestCase("HandleSuccessfulWorkflowStatus", tink.WorkflowStateSuccess, "Provisioned", false),
 		createTestCase("HandleFailedWorkflowStatus", tink.WorkflowStateFailed, "Provisioning Failed", true),
 		createTestCase("HandleInProgressWorkflowStatus", tink.WorkflowStateRunning, "Provisioning In Progress", true),
-	}
+	)
 	for action, detail := range tinkerbell.WorkflowStepToStatusDetail {
 		tests = append(tests, handleWorkflowTestCase{
 			name: fmt.Sprintf("SingleAction_%s_Success", action),

@@ -32,10 +32,14 @@ var (
 	enableTracing    = flag.Bool(tracing.EnableTracing, false, tracing.EnableTracingDescription)
 	traceURL         = flag.String(tracing.TraceURL, "", tracing.TraceURLDescription)
 	enableMetrics    = flag.Bool(metrics.EnableMetrics, false, metrics.EnableMetricsDescription)
-	metricsAddress   = flag.String(metrics.MetricsAddress, metrics.MetricsAddressDefault, metrics.MetricsAddressDescription)
-	readyChan        = make(chan bool, 1)
-	termChan         = make(chan bool, 1)
-	sigChan          = make(chan os.Signal, 1)
+	metricsAddress   = flag.String(
+		metrics.MetricsAddress,
+		metrics.MetricsAddressDefault,
+		metrics.MetricsAddressDescription,
+	)
+	readyChan = make(chan bool, 1)
+	termChan  = make(chan bool, 1)
+	sigChan   = make(chan os.Signal, 1)
 )
 
 var (
@@ -58,7 +62,11 @@ func main() {
 		zlog.InfraSec().Fatal().Err(watcherErr).Msgf("Failed to set watcher.")
 		return
 	}
-	defer watcher.Close()
+	defer func() {
+		if err := watcher.Close(); err != nil {
+			zlog.InfraSec().Error().Err(err).Msg("Failed to close watcher")
+		}
+	}()
 
 	// Print a summary of the build
 	printSummary()
@@ -146,7 +154,7 @@ func setupOamServerAndSetReady(enableTracing bool, oamServerAddress string) {
 func GetArtifacts(ctx context.Context) error {
 	outDir := filepath.Join(config.DownloadPath, "tmp")
 	// 0. cleanup
-	os.RemoveAll(outDir)
+	_ = os.RemoveAll(outDir)
 	zlog.InfraSec().Info().Msg("Get all artifacts...")
 	// Download release manifest.yaml file.
 	artifactsErr := dkammgr.DownloadArtifacts(ctx)

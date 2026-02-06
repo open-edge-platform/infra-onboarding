@@ -44,6 +44,7 @@ func generateWorkflowName(uuid string) string {
 	return fmt.Sprintf("workflow-%s", uuid)
 }
 
+// CheckWorkflowExist performs operations for onboarding management.
 func CheckWorkflowExist(ctx context.Context,
 	deviceInfo onboarding_types.DeviceInfo,
 	instance *computev1.InstanceResource,
@@ -63,6 +64,7 @@ func CheckWorkflowExist(ctx context.Context,
 	return true
 }
 
+// CheckStatusOrRunProdWorkflow performs operations for onboarding management.
 func CheckStatusOrRunProdWorkflow(ctx context.Context,
 	deviceInfo onboarding_types.DeviceInfo,
 	instance *computev1.InstanceResource,
@@ -287,6 +289,7 @@ func createENCredentialsIfNotExists(
 	return clientID, clientSecret, nil
 }
 
+// DeleteTinkerbellWorkflowIfExists performs operations for onboarding management.
 func DeleteTinkerbellWorkflowIfExists(ctx context.Context, hostUUID string) error {
 	return tinkerbell.DeleteWorkflowIfExists(ctx, env.K8sNamespace, generateWorkflowName(hostUUID))
 }
