@@ -83,12 +83,8 @@ install_dependencies() {
         echo -e "\e[32m[install git python3-pip]\e[0m"
         sudo apt-get install -y curl wget unzip apparmor iptables lvm2 cryptsetup lxc tpm2-abrmd tpm2-tools software-properties-common python3-venv git jq libpq5 python3-pip ca-certificates gnupg dmidecode libace-dev cmake python3 libglib2.0-dev libcurl4-openssl-dev libxerces-c-dev libnl-3-dev libnl-route-3-dev libxml2-dev libidn2-0-dev xsltproc docbook-xsl devscripts
 
-        groupadd -f bm-agents -g 500 --system
-        id -u prometheus &>/dev/null || useradd prometheus -u 501 --system -g bm-agents -s /sbin/nologin
-        id -u fluent-bit &>/dev/null || useradd fluent-bit -u 502 --system -g bm-agents -G adm -s /sbin/nologin
+        groupadd -f bm-agents -g 500 --system       
         id -u node-agent &>/dev/null || useradd node-agent --system -g bm-agents -s /sbin/nologin
-        id -u platform-update-agent &>/dev/null || useradd platform-update-agent --system -g bm-agents -s /sbin/nologin
-
         echo "install_dependencies done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
@@ -98,7 +94,7 @@ install_fws(){
 		echo "Skipping install_fws"
     else
         # Enable UFW
-        echo "Enable firwell"
+        echo "Enable firewall"
         systemctl enable ufw
         echo "y" | ufw enable
         ufw default allow outgoing
@@ -266,6 +262,7 @@ install_device_discovery(){
         echo "Skipping install_device_discovery"
     else
         echo "Install device-discovery"
+        #TODO to pull device discovery binary from release registry once it is available there
         ./device-discovery \
         -obm-svc {{ .ONBOARDING_SVC_URL }} \
         -obs-svc {{ .ONBOARDING_STREAM_SVC_URL }} \

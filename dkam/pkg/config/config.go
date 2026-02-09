@@ -54,12 +54,12 @@ type InfraConfig struct {
 	FileServerURL           string `mapstructure:"orch-file-server" yaml:"orch-file-server"`
 	RSType                  string `mapstructure:"rs-type" yaml:"rs-type"`
 
-	ENServiceClients    []string `mapstructure:"en-service-clients" yaml:"en-service-clients"`
-	ENOutboundClients   []string `mapstructure:"en-outbound-clients" yaml:"en-outbound-clients"`
-	ENMetricsEnabled    string   `mapstructure:"en-metrics-enabled" yaml:"en-metrics-enabled"`
-	ENTokenClients      []string `mapstructure:"en-token-clients" yaml:"en-token-clients"`
+	ENServiceClients  []string `mapstructure:"en-service-clients" yaml:"en-service-clients"`
+	ENOutboundClients []string `mapstructure:"en-outbound-clients" yaml:"en-outbound-clients"`
+	ENMetricsEnabled  string   `mapstructure:"en-metrics-enabled" yaml:"en-metrics-enabled"`
+	ENTokenClients    []string `mapstructure:"en-token-clients" yaml:"en-token-clients"`
 
-	ProvisioningService string   `mapstructure:"provisioning-svc" yaml:"provisioning-svc"`
+	ProvisioningService string `mapstructure:"provisioning-svc" yaml:"provisioning-svc"`
 	// ProvisioningServerURL full URL to the provisioning server, including prefixes and subpaths
 	ProvisioningServerURL string `mapstructure:"provisioning-server-url" yaml:"provisioning-server-url"`
 	TinkServerURL         string `mapstructure:"tinker-svc" yaml:"tinker-svc"`
