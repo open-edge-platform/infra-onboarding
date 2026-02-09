@@ -9,8 +9,8 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v1.3.0
 	github.com/google/uuid v1.6.0
 	github.com/open-edge-platform/infra-core/inventory/v2 v2.34.0
-	github.com/open-edge-platform/infra-onboarding/dkam v1.32.12-0.20260114080457-4e988bfcdb26
-	github.com/open-edge-platform/orch-library/go v0.6.3
+	github.com/open-edge-platform/infra-onboarding/dkam v1.32.12-0.20260209040706-76f530269823
+	github.com/open-edge-platform/orch-library/go v0.6.2
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/stretchr/testify v1.11.1
@@ -112,7 +112,6 @@ require (
 	github.com/lestrrat-go/option v1.0.1 // indirect
 	github.com/lestrrat-go/option/v2 v2.0.0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
-	github.com/magefile/mage v1.15.0 // indirect
 	github.com/mailru/easyjson v0.9.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
