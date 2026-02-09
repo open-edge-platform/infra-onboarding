@@ -83,27 +83,11 @@ install_dependencies() {
         echo -e "\e[32m[install git python3-pip]\e[0m"
         sudo apt-get install -y curl wget unzip apparmor iptables lvm2 cryptsetup lxc tpm2-abrmd tpm2-tools software-properties-common python3-venv git jq libpq5 python3-pip ca-certificates gnupg dmidecode libace-dev cmake python3 libglib2.0-dev libcurl4-openssl-dev libxerces-c-dev libnl-3-dev libnl-route-3-dev libxml2-dev libidn2-0-dev xsltproc docbook-xsl devscripts
 
-        # IMPORTANT: These hardcoded uid/gid must be aligned to that in Edge Microvisor Toolkit specified in cluster-agent.conf.
-        # If additional new users or groups need to be created by DKAM, they MUST be added after the users and group created below to
-        # avoid those users or groups being assigned to IDs that are reserved. A list of the reserved UID and GID values are below:
-        #
-        #|----------|------------|--------------|
-        #|   Name   | User/Group | Reserverd ID |
-        #|----------|------------|--------------|
-        #|bm-agents |    Group   |      500     |
-        #|prometheus|    User    |      501     |
-        #|fluent-bit|    User    |      502     |
-        #|tc-agent  |    User    |      503     |
-        #|tc-ima    |    User    |      504     |
-        #|----------|------------|--------------|
-
         groupadd -f bm-agents -g 500 --system
         id -u prometheus &>/dev/null || useradd prometheus -u 501 --system -g bm-agents -s /sbin/nologin
         id -u fluent-bit &>/dev/null || useradd fluent-bit -u 502 --system -g bm-agents -G adm -s /sbin/nologin
         id -u node-agent &>/dev/null || useradd node-agent --system -g bm-agents -s /sbin/nologin
         id -u platform-update-agent &>/dev/null || useradd platform-update-agent --system -g bm-agents -s /sbin/nologin
-        id -u tc-agent &>/dev/null || useradd tc-agent -u 503 --system -g bm-agents -s /sbin/nologin
-        id -u tc-ima &>/dev/null || useradd tc-ima -u 504 --system -g bm-agents -s /sbin/nologin
 
         echo "install_dependencies done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
