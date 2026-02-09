@@ -19,6 +19,7 @@ const (
 
 var zlogCliSecret = logging.GetLogger(loggerName)
 
+// FetchClientSecret performs operations for onboarding management.
 func FetchClientSecret(ctx context.Context, tenantID, uuid string) (clientID, clientSecret string, err error) {
 	authService, err := auth.AuthServiceFactory(ctx)
 	if err != nil {

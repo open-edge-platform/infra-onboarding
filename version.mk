@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 GOLINTVERSION_HAVE             := $(shell golangci-lint version | sed 's/.*version //' | sed 's/ .*//')
-GOLINTVERSION_REQ              := 1.64.5
+GOLINTVERSION_REQ              := 2.8.0
 GOJUNITREPORTVERSION_HAVE      := $(shell go-junit-report -version | sed s/.*" v"// | sed 's/ .*//')
 GOJUNITREPORTVERSION_REQ       := 2.1.0
-GOVERSION_REQ                  := 1.24.9
+GOVERSION_REQ                  := 1.25.5
 GOVERSION_HAVE                 := $(shell go version | sed 's/.*version go//' | sed 's/ .*//')
 GCC_REQ                        := $(shell command -v gcc)
 PROTOCGENDOCVERSION_HAVE       := $(shell protoc-gen-doc --version | sed s/.*"version "// | sed 's/ .*//')
@@ -64,7 +64,7 @@ ifeq ($(GOJUNITREPORT), true)
 	$(GOCMD) install github.com/jstemmer/go-junit-report/v2@v$(GOJUNITREPORTVERSION_REQ)
 endif
 ifeq ($(GOLINT), true)
-	$(GOCMD) install github.com/golangci/golangci-lint/cmd/golangci-lint@v$(GOLINTVERSION_REQ)
+	$(GOCMD) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v$(GOLINTVERSION_REQ)
 endif
 ifeq ($(PROTOCGENENT), true)
 	$(GOCMD) install entgo.io/contrib/entproto/cmd/protoc-gen-ent@v$(PROTOCGENENTVERSION_REQ)

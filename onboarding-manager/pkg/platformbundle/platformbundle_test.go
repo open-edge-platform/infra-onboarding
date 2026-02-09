@@ -147,7 +147,9 @@ func mockPlatformBundleHandler() *httptest.Server {
 	svr := httptest.NewServer(mux)
 
 	testRegistryEndpoint, _ := strings.CutPrefix(svr.URL, "http://")
-	os.Setenv("RSPROXY_ADDRESS", testRegistryEndpoint)
+	if err := os.Setenv("RSPROXY_ADDRESS", testRegistryEndpoint); err != nil {
+		panic(err) // In test setup, panic is acceptable
+	}
 
 	return svr
 }
@@ -156,7 +158,9 @@ func TestFetchPlatformBundleScripts(t *testing.T) {
 	server := mockPlatformBundleHandler()
 	defer func() {
 		server.Close()
-		os.Unsetenv("RSPROXY_ADDRESS")
+		if err := os.Unsetenv("RSPROXY_ADDRESS"); err != nil {
+			t.Logf("Failed to unset env: %v", err)
+		}
 	}()
 	type args struct {
 		ctx            context.Context

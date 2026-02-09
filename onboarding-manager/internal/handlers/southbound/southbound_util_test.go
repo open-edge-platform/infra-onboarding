@@ -5,6 +5,7 @@
 package southbound
 
 import (
+	"context"
 	"net"
 	"testing"
 
@@ -16,7 +17,7 @@ import (
 const rbacRules = "../../../rego/authz.rego"
 
 func TestSBHandler_Stop(t *testing.T) {
-	lis, err := net.Listen("tcp", "localhost:16541")
+	lis, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", "localhost:16541")
 	if err != nil {
 		t.Fatalf("Failed to listen: %v", err)
 	}
@@ -24,7 +25,11 @@ func TestSBHandler_Stop(t *testing.T) {
 	grpcServer := grpc.NewServer()
 	//nolint:staticcheck // Ignoring SA2002 and SA1019 as these are valid in this test scenario.
 	go func() {
-		defer lis.Close()
+		defer func() {
+			if err := lis.Close(); err != nil {
+				t.Logf("Failed to close listener: %v", err)
+			}
+		}()
 		if err := grpcServer.Serve(lis); err != nil {
 			//nolint:staticcheck,govet // Ignoring SA2002 and SA1019 as these are valid in this test scenario.
 			t.Fatalf("Failed to serve: %v", err)
@@ -36,7 +41,11 @@ func TestSBHandler_Stop(t *testing.T) {
 	if conErr != nil {
 		t.Fatalf("Failed to dial server: %v", conErr)
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			t.Logf("Failed to close connection: %v", err)
+		}
+	}()
 	type fields struct {
 		invClient *invclient.OnboardingInventoryClient
 		cfg       SBHandlerConfig

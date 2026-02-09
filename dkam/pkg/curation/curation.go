@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
+// Package curation provides functionality for curating and customizing infrastructure configurations.
 package curation
 
 import (
@@ -23,15 +24,16 @@ import (
 var zlog = logging.GetLogger("InfraCuration")
 
 // FirewallRule UFW Firewall structure in JSON, expected to be provided as environment variable.
+//
+//nolint:tagliatelle // json tags use camelCase to match external API format
 type FirewallRule struct {
-	//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
 	SourceIP string `json:"sourceIp,omitempty"`
 	Ports    string `json:"ports,omitempty"`
-	//nolint:tagliatelle // Renaming the json keys may effect while unmarshalling/marshaling so, used nolint.
 	IPVer    string `json:"ipVer,omitempty"`
 	Protocol string `json:"protocol,omitempty"`
 }
 
+// GetBMAgentsInfo retrieves bare metal agents information from the manifest.
 func GetBMAgentsInfo() (agentsList []config.AgentsVersion, distribution string, err error) {
 	configs := config.GetInfraConfig().ENManifest
 
@@ -121,7 +123,11 @@ func getAgentsListTemplateVariables() (map[string]interface{}, error) {
 	return templateVariables, nil
 }
 
-func GetCommonInfraTemplateVariables(infraConfig config.InfraConfig, osType osv1.OsType) (map[string]interface{}, error) {
+// GetCommonInfraTemplateVariables prepares template variables for infrastructure configuration.
+func GetCommonInfraTemplateVariables(
+	infraConfig config.InfraConfig,
+	osType osv1.OsType,
+) (map[string]interface{}, error) {
 	caCert, err := getCaCert()
 	if err != nil {
 		return nil, err
@@ -185,10 +191,13 @@ func GetCommonInfraTemplateVariables(infraConfig config.InfraConfig, osType osv1
 		"SKIP_OS_PROVISIONING": infraConfig.SkipOSProvisioning,
 	}
 
-	if osType == osv1.OsType_OS_TYPE_MUTABLE {
+	switch osType {
+	case osv1.OsType_OS_TYPE_MUTABLE:
 		templateVariables["FIREWALL_PROVIDER"] = "ufw"
-	} else if osType == osv1.OsType_OS_TYPE_IMMUTABLE {
+	case osv1.OsType_OS_TYPE_IMMUTABLE:
 		templateVariables["FIREWALL_PROVIDER"] = "iptables"
+	default:
+		// OS_TYPE_UNSPECIFIED - use default
 	}
 
 	if osType == osv1.OsType_OS_TYPE_MUTABLE {
@@ -205,6 +214,7 @@ func GetCommonInfraTemplateVariables(infraConfig config.InfraConfig, osType osv1
 	return templateVariables, nil
 }
 
+// CurateFromTemplate generates content from a template with the provided variables.
 func CurateFromTemplate(tmpl string, templateVariables map[string]interface{}) (string, error) {
 	// Parse and execute the template
 	// We use sprig to extend basic Go's text/template with more powerful keywords
@@ -266,6 +276,7 @@ func GenerateUFWCommands(rule FirewallRule) []string {
 	return commands
 }
 
+// GenerateIptablesCommands generates iptables commands from firewall rules.
 func GenerateIptablesCommands(rule FirewallRule) []string {
 	ipAddr := ""
 	if rule.SourceIP != "" {
@@ -275,7 +286,7 @@ func GenerateIptablesCommands(rule FirewallRule) []string {
 	//nolint:revive // Ignoring due to specific need for this structure
 	if rule.Protocol != "" {
 		if len(portsList) > 0 && portsList[0] != "" {
-			commands := []string{}
+			commands := []string{} //nolint:prealloc // Size unknown, dynamic allocation needed
 			for _, port := range portsList {
 				port = strings.TrimSpace(port)
 				commands = append(commands, generateIptablesForProtocol(rule.Protocol, ipAddr, port))
@@ -322,13 +333,13 @@ func generateIptablesForPorts(portsList []string, ipAddr string) []string {
 	for _, port := range portsList {
 		port = strings.TrimSpace(port)
 		if ipAddr != "" {
-			//nolint:gocritic
-			commands = append(commands, fmt.Sprintf("iptables -A INPUT -p tcp -s %s --dport %s -j ACCEPT", ipAddr, port))
-			commands = append(commands, fmt.Sprintf("iptables -A INPUT -p udp -s %s --dport %s -j ACCEPT", ipAddr, port))
+			commands = append(commands,
+				fmt.Sprintf("iptables -A INPUT -p tcp -s %s --dport %s -j ACCEPT", ipAddr, port),
+				fmt.Sprintf("iptables -A INPUT -p udp -s %s --dport %s -j ACCEPT", ipAddr, port))
 		} else {
-			//nolint:gocritic
-			commands = append(commands, fmt.Sprintf("iptables -A INPUT -p tcp --dport %s -j ACCEPT", port))
-			commands = append(commands, fmt.Sprintf("iptables -A INPUT -p udp --dport %s -j ACCEPT", port))
+			commands = append(commands,
+				fmt.Sprintf("iptables -A INPUT -p tcp --dport %s -j ACCEPT", port),
+				fmt.Sprintf("iptables -A INPUT -p udp --dport %s -j ACCEPT", port))
 		}
 	}
 	return commands

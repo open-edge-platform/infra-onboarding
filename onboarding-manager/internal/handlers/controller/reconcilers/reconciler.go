@@ -25,6 +25,7 @@ var (
 	retryMaxDelay = maxDelay
 )
 
+// ReconcilerID provides functionality for onboarding management.
 // Inventory resource IDs + tenant IDs are used to feed reconciler functions.
 type ReconcilerID string
 
@@ -32,18 +33,22 @@ func (id ReconcilerID) String() string {
 	return fmt.Sprintf("[tenantID=%s, resourceID=%s]", id.GetTenantID(), id.GetResourceID())
 }
 
+// GetTenantID performs operations for the receiver.
 func (id ReconcilerID) GetTenantID() string {
 	return strings.Split(string(id), "_")[0]
 }
 
+// GetResourceID performs operations for the receiver.
 func (id ReconcilerID) GetResourceID() string {
 	return strings.Split(string(id), "_")[1]
 }
 
+// NewReconcilerID performs operations for onboarding management.
 func NewReconcilerID(tenantID, resourceID string) ReconcilerID {
 	return ReconcilerID(fmt.Sprintf("%s_%s", tenantID, resourceID))
 }
 
+// HandleInventoryError performs operations for onboarding management.
 func HandleInventoryError(err error, request rec_v2.Request[ReconcilerID]) rec_v2.Directive[ReconcilerID] {
 	if _, ok := grpc_status.FromError(err); !ok {
 		return request.Ack()
@@ -61,6 +66,7 @@ func HandleInventoryError(err error, request rec_v2.Request[ReconcilerID]) rec_v
 	return nil
 }
 
+// HandleProvisioningError performs operations for onboarding management.
 func HandleProvisioningError(err error, request rec_v2.Request[ReconcilerID]) rec_v2.Directive[ReconcilerID] {
 	if _, ok := grpc_status.FromError(err); !ok {
 		return request.Ack()

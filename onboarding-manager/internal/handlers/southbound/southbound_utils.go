@@ -4,6 +4,7 @@
 package southbound
 
 import (
+	"context"
 	"net"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -24,6 +25,7 @@ var (
 	zlog       = logging.GetLogger(loggerName)
 )
 
+// SBHandlerConfig provides functionality for onboarding management.
 type SBHandlerConfig struct {
 	ServerAddress    string
 	InventoryAddress string
@@ -34,6 +36,7 @@ type SBHandlerConfig struct {
 	RBAC             string
 }
 
+// SBHandlerNioConfig provides functionality for onboarding management.
 // Nio config.
 type SBHandlerNioConfig struct {
 	ServerAddressNio string
@@ -41,6 +44,7 @@ type SBHandlerNioConfig struct {
 	EnableTracing    bool
 }
 
+// SBNioHandler provides functionality for onboarding management.
 // Nio Handler.
 type SBNioHandler struct {
 	invClient *invclient.OnboardingInventoryClient
@@ -49,6 +53,7 @@ type SBNioHandler struct {
 	server    *grpc.Server
 }
 
+// SBHandler provides functionality for onboarding management.
 type SBHandler struct {
 	invClient *invclient.OnboardingInventoryClient
 	cfg       SBHandlerConfig
@@ -57,8 +62,9 @@ type SBHandler struct {
 	server *grpc.Server
 }
 
+// NewSBHandler performs operations for onboarding management.
 func NewSBHandler(invClient *invclient.OnboardingInventoryClient, config SBHandlerConfig) (*SBHandler, error) {
-	lis, err := net.Listen("tcp", config.ServerAddress)
+	lis, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", config.ServerAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -66,6 +72,7 @@ func NewSBHandler(invClient *invclient.OnboardingInventoryClient, config SBHandl
 	return NewSBHandlerWithListener(lis, invClient, config), nil
 }
 
+// NewSBHandlerWithListener performs operations for onboarding management.
 func NewSBHandlerWithListener(listener net.Listener,
 	invClient *invclient.OnboardingInventoryClient,
 	config SBHandlerConfig,
@@ -85,7 +92,7 @@ func (sbh *SBHandler) Start() error {
 	if err != nil {
 		return err
 	}
-	var srvOpts []grpc.ServerOption
+	srvOpts := make([]grpc.ServerOption, 0, 1)
 	var unaryInter []grpc.UnaryServerInterceptor
 	unaryInter = append(unaryInter, inv_tenant.GetExtractTenantIDInterceptor(inv_tenant.GetOnboardingRoles()))
 	srvMetrics := metrics.GetServerMetricsWithLatency()
@@ -117,21 +124,24 @@ func (sbh *SBHandler) Start() error {
 	return nil
 }
 
+// Stop performs operations for the receiver.
 func (sbh *SBHandler) Stop() {
 	sbh.server.Stop()
 	zlog.InfraSec().Info().Msgf("SB handler stopped")
 }
 
+// NewSBNioHandler performs operations for onboarding management.
 func NewSBNioHandler(invClient *invclient.OnboardingInventoryClient,
 	config SBHandlerNioConfig,
 ) (*SBNioHandler, error) {
-	lis, err := net.Listen("tcp", config.ServerAddressNio)
+	lis, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", config.ServerAddressNio)
 	if err != nil {
 		return nil, err
 	}
 	return NewSBNioHandlerWithListener(lis, invClient, config), nil
 }
 
+// NewSBNioHandlerWithListener performs operations for onboarding management.
 func NewSBNioHandlerWithListener(listener net.Listener,
 	invClient *invclient.OnboardingInventoryClient,
 	config SBHandlerNioConfig,
@@ -143,6 +153,7 @@ func NewSBNioHandlerWithListener(listener net.Listener,
 	}
 }
 
+// Start performs operations for the receiver.
 // start SB Nio server.
 func (sbhnio *SBNioHandler) Start() error {
 	interactiveOnboardingService, err := grpcserver.NewNonInteractiveOnboardingService(sbhnio.invClient,
@@ -166,6 +177,7 @@ func (sbhnio *SBNioHandler) Start() error {
 	return nil
 }
 
+// Stop performs operations for the receiver.
 func (sbhnio *SBNioHandler) Stop() {
 	sbhnio.server.Stop()
 	zlog.InfraSec().Info().Msgf("SB NIO handler stopped")

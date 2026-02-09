@@ -44,7 +44,11 @@ func TestRead(t *testing.T) {
 	}
 	f, err := os.CreateTemp(os.TempDir(), "infraconfig_*.yaml")
 	require.NoError(t, err)
-	defer os.RemoveAll(f.Name())
+	defer func() {
+		if removeErr := os.RemoveAll(f.Name()); removeErr != nil {
+			t.Logf("Failed to remove temp file: %v", removeErr)
+		}
+	}()
 
 	out, err := yaml.Marshal(&testConfig)
 	require.NoError(t, err)
