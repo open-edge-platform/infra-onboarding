@@ -143,12 +143,15 @@ func PrepareTestCaCertificateFile(t *testing.T) {
 		}
 	}()
 
-	originalCaCertificatePath := config.OrchCACertificateFile
+	originalOrchCaCertificatePath := config.OrchCACertificateFile
+	originalBootsCaCertificatePath := config.BootsCaCertificateFile
 	config.OrchCACertificateFile = tmpFile.Name()
+	config.BootsCaCertificateFile = tmpFile.Name()
 
 	t.Cleanup(func() {
 		_ = os.RemoveAll(tmpDir)
-		config.OrchCACertificateFile = originalCaCertificatePath
+		config.OrchCACertificateFile = originalOrchCaCertificatePath
+		config.BootsCaCertificateFile = originalBootsCaCertificatePath
 	})
 }
 

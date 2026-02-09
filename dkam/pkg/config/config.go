@@ -26,8 +26,6 @@ const (
 
 	// DownloadPath is the directory path for downloading artifacts.
 	DownloadPath = "/tmp"
-	// BootsCaCertificateFile is the path to the CA certificate file.
-	BootsCaCertificateFile = "/etc/ssl/boots-ca-cert/ca.crt"
 )
 
 // InfraConfig holds the infrastructure configuration settings.
@@ -123,9 +121,10 @@ var (
 	currentInfraConfig InfraConfig
 	configLock         sync.RWMutex
 
-	PVC                   = "/data"
-	OrchCACertificateFile = "/etc/ssl/orch-ca-cert/ca.crt"
-	ScriptPath            = "/home/appuser/pkg/script"
+	PVC                    = "/data"
+	BootsCaCertificateFile = "/etc/ssl/boots-ca-cert/ca.crt"
+	OrchCACertificateFile  = "/etc/ssl/orch-ca-cert/ca.crt"
+	ScriptPath             = "/home/appuser/pkg/script"
 )
 
 // Read reads and validates the configuration from the config file.
