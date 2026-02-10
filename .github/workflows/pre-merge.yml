@@ -87,7 +87,7 @@ jobs:
       fail-fast: false
       matrix:
         project_folder: ${{ fromJson(needs.pre-checks.outputs.filtered_projects) }}
-    uses: open-edge-platform/orch-ci/.github/workflows/pre-merge.yml@70798ccece8a5856e220f1a6c250337628fc658e  # 2026.0.8
+    uses: open-edge-platform/orch-ci/.github/workflows/pre-merge.yml@8f843e282efdfe257e68fef5b71e5ce397925887  # 2026.0.8
     with:
       bootstrap_tools: "all,golangci-lint2"
       run_version_check: true
