@@ -7,7 +7,6 @@ version = 1
 path = [
     "VERSION",
     "*/go.sum",
-    "hook/**",
     "**.md",
 ]
 

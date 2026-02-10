@@ -1,15 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-# Ignore misconfigurations
-# Hook OS components require root permissions
-AVD-DS-0002 
-
 # Ignore vulnerabilities
-
-# FIXME Upgrade of golang to 1.24.6 to be taken up post 3.1 release
-CVE-2025-47907
-
 # Vulnerabilities in fluent-bit
 CVE-2025-4802
 CVE-2023-2953
@@ -18,47 +10,6 @@ CVE-2023-45853
 # Vulnerabilities in sqlite-libs
 CVE-2025-29087
 
-# Vulnerabilities in hook-bootkit
-CVE-2025-22874
-
-# Vulnerabilities in hook_dind
-CVE-2024-41110
-CVE-2024-45337
-CVE-2025-22869
-CVE-2024-34156
-CVE-2024-24790
-CVE-2025-30204
-CVE-2025-48384
-CVE-2025-48385
-CVE-2025-22868
-
-# Vulnerabilities in hook-docker
-CVE-2025-31498
-CVE-2024-6387
-CVE-2025-31115
-CVE-2023-45288
-
 
 # Vulnerabilities in device-discovery
 CVE-2025-6965
-
-# Found post 2025.2
-CVE-2025-32988
-CVE-2025-32990
-CVE-2025-8714
-CVE-2025-8715
-
-# Needs upgrade of golang to 1.24.11
-CVE-2025-61729
-
-CVE-2025-46334
-CVE-2025-26519
-CVE-2025-58183
-CVE-2025-58186
-CVE-2025-58187
-CVE-2024-25621
-CVE-2025-31133
-CVE-2025-52565
-CVE-2025-52881
-CVE-2025-3277
-CVE-2025-58050
