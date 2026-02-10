@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Ignore vulnerabilities
+# Device discovery require root permissions
+AVD-DS-0002
+
 # Vulnerabilities in fluent-bit
 CVE-2025-4802
 CVE-2023-2953
