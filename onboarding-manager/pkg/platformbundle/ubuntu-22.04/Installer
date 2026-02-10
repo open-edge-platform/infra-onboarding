@@ -223,14 +223,10 @@ install_dependencies() {
 
 	# Check if the Ubuntu Image is Desktop based or Server based
 	# if its Desktop based reisntall the timesync service
-	dpkg -l | grep -E "ubuntu-desktop(-minimal)?" | head -n1 > /dev/null
-        process=$?
-
-	if [ "$process" -eq 0 ]; then
+	if dpkg -l | grep -E "ubuntu-desktop(-minimal)?"; then
 	    echo "Desktop image detected,install timesync service"
 	    sudo apt reinstall -y systemd-timesyncd
 	fi
-
         echo "install_dependencies done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
