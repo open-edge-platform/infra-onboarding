@@ -32,66 +32,64 @@ const (
 //
 //nolint:tagliatelle // yaml tags use kebab-case for Kubernetes/Helm compatibility
 type InfraConfig struct {
-	ENDebianPackagesRepo string `mapstructure:"en-debian-packages-repo" yaml:"en-debian-packages-repo"`
-	ENFilesRsRoot        string `mapstructure:"en-files-rs-root" yaml:"en-files-rs-root"`
+	ENDebianPackagesRepo string `mapstructure:"enDebianPackagesRepo" yaml:"enDebianPackagesRepo"`
+	ENFilesRsRoot        string `mapstructure:"enFilesRsRoot" yaml:"enFilesRsRoot"`
 
-	ENManifestRepo     string `mapstructure:"en-manifest-repo" yaml:"en-manifest-repo"`
-	ENAgentManifestTag string `mapstructure:"en-agent-manifest-tag" yaml:"en-agent-manifest-tag"`
+	ENManifestRepo     string `mapstructure:"enManifestRepo" yaml:"enManifestRepo"`
+	ENAgentManifestTag string `mapstructure:"enAgentManifestTag" yaml:"enAgentManifestTag"`
 
-	InfraURL                string `mapstructure:"orch-infra" yaml:"orch-infra"`
-	ClusterURL              string `mapstructure:"orch-cluster" yaml:"orch-cluster"`
-	UpdateURL               string `mapstructure:"orch-update" yaml:"orch-update"`
-	ReleaseServiceURL       string `mapstructure:"orch-release" yaml:"orch-release"`
-	LogsObservabilityURL    string `mapstructure:"orch-platform-obs-logs" yaml:"orch-platform-obs-logs"`
-	MetricsObservabilityURL string `mapstructure:"orch-platform-obs-metrics" yaml:"orch-platform-obs-metrics"`
-	ManageabilityURL        string `mapstructure:"orch-device-manager" yaml:"orch-device-manager"`
-	RPSAddress              string `mapstructure:"orch-rps-host" yaml:"orch-rps-host"`
-	KeycloakURL             string `mapstructure:"orch-keycloak" yaml:"orch-keycloak"`
-	TelemetryURL            string `mapstructure:"orch-telemetry" yaml:"orch-telemetry"`
-	RegistryURL             string `mapstructure:"orch-registry" yaml:"orch-registry"`
-	FileServerURL           string `mapstructure:"orch-file-server" yaml:"orch-file-server"`
-	RSType                  string `mapstructure:"rs-type" yaml:"rs-type"`
+	InfraURL                string `mapstructure:"orchInfra" yaml:"orchInfra"`
+	ClusterURL              string `mapstructure:"orchCluster" yaml:"orchCluster"`
+	UpdateURL               string `mapstructure:"orchUpdate" yaml:"orchUpdate"`
+	ReleaseServiceURL       string `mapstructure:"orchRelease" yaml:"orchRelease"`
+	LogsObservabilityURL    string `mapstructure:"orchPlatformObsLogs" yaml:"orchPlatformObsLogs"`
+	MetricsObservabilityURL string `mapstructure:"orchPlatformObsMetrics" yaml:"orchPlatformObsMetrics"`
+	ManageabilityURL        string `mapstructure:"orchDeviceManager" yaml:"orchDeviceManager"`
+	RPSAddress              string `mapstructure:"orchRpsHost" yaml:"orchRpsHost"`
+	KeycloakURL             string `mapstructure:"orchKeycloak" yaml:"orchKeycloak"`
+	TelemetryURL            string `mapstructure:"orchTelemetry" yaml:"orchTelemetry"`
+	RegistryURL             string `mapstructure:"orchRegistry" yaml:"orchRegistry"`
+	FileServerURL           string `mapstructure:"orchFileServer" yaml:"orchFileServer"`
+	RSType                  string `mapstructure:"rsType" yaml:"rsType"`
 
-	ENServiceClients  []string `mapstructure:"en-service-clients" yaml:"en-service-clients"`
-	ENOutboundClients []string `mapstructure:"en-outbound-clients" yaml:"en-outbound-clients"`
-	ENMetricsEnabled  string   `mapstructure:"en-metrics-enabled" yaml:"en-metrics-enabled"`
-	ENTokenClients    []string `mapstructure:"en-token-clients" yaml:"en-token-clients"`
+	ENServiceClients  []string `mapstructure:"enServiceClients" yaml:"enServiceClients"`
+	ENOutboundClients []string `mapstructure:"enOutboundClients" yaml:"enOutboundClients"`
+	ENMetricsEnabled  string   `mapstructure:"enMetricsEnabled" yaml:"enMetricsEnabled"`
+	ENTokenClients    []string `mapstructure:"enTokenClients" yaml:"enTokenClients"`
 
-	ProvisioningService string `mapstructure:"provisioning-svc" yaml:"provisioning-svc"`
+	ProvisioningService string `mapstructure:"provisioningSvc" yaml:"provisioningSvc"`
 	// ProvisioningServerURL full URL to the provisioning server, including prefixes and subpaths
-	ProvisioningServerURL string `mapstructure:"provisioning-server-url" yaml:"provisioning-server-url"`
-	TinkServerURL         string `mapstructure:"tinker-svc" yaml:"tinker-svc"`
-	OnboardingURL         string `mapstructure:"om-svc" yaml:"om-svc"`
-	OnboardingStreamURL   string `mapstructure:"om-stream-svc" yaml:"om-stream-svc"`
-	CDN                   string `mapstructure:"cdn-svc" yaml:"cdn-svc"`
+	ProvisioningServerURL string `mapstructure:"provisioningServerURL" yaml:"provisioningServerURL"`
+	TinkServerURL         string `mapstructure:"tinkerSvc" yaml:"tinkerSvc"`
+	OnboardingURL         string `mapstructure:"omSvc" yaml:"omSvc"`
+	OnboardingStreamURL   string `mapstructure:"omStreamSvc" yaml:"omStreamSvc"`
+	CDN                   string `mapstructure:"cdnSvc" yaml:"cdnSvc"`
 
-	SystemConfigFsInotifyMaxUserInstances uint32 `mapstructure:"system-config-fs-inotify-max-user-instances" yaml:"system-config-fs-inotify-max-user-instances"` //nolint:lll // long struct tags required
+	SystemConfigFsInotifyMaxUserInstances uint32 `mapstructure:"systemConfigFsInotifyMaxUserInstances" yaml:"systemConfigFsInotifyMaxUserInstances"` //nolint:lll // long struct tags required
 	//nolint:revive,stylecheck // keep the name in sync with charts values
-	SystemConfigVmOverCommitMemory uint32 `mapstructure:"system-config-vm-over-commit-memory" yaml:"system-config-vm-over-commit-memory"` //nolint:lll // long struct tags required
-	SystemConfigKernelPanicOnOops  uint32 `mapstructure:"system-config-kernel-panic-on-oops" yaml:"system-config-kernel-panic-on-oops"`   //nolint:lll // long struct tags required
-	SystemConfigKernelPanic        uint32 `mapstructure:"system-config-kernel-panic" yaml:"system-config-kernel-panic"`
+	SystemConfigVmOverCommitMemory uint32 `mapstructure:"systemConfigVmOverCommitMemory" yaml:"systemConfigVmOverCommitMemory"` //nolint:lll // long struct tags required
+	SystemConfigKernelPanicOnOops  uint32 `mapstructure:"systemConfigKernelPanicOnOops" yaml:"systemConfigKernelPanicOnOops"`   //nolint:lll // long struct tags required
+	SystemConfigKernelPanic        uint32 `mapstructure:"systemConfigKernelPanic" yaml:"systemConfigKernelPanic"`
 
-	ENProxyHTTP    string `mapstructure:"en-proxy-http" yaml:"en-proxy-http"`
-	ENProxyHTTPS   string `mapstructure:"en-proxy-https" yaml:"en-proxy-https"`
-	ENProxyFTP     string `mapstructure:"en-proxy-ftp" yaml:"en-proxy-ftp"`
-	ENProxyNoProxy string `mapstructure:"en-proxy-no-proxy" yaml:"en-proxy-no-proxy"`
-	ENProxySocks   string `mapstructure:"en-proxy-socks" yaml:"en-proxy-socks"`
+	ENProxyHTTP    string   `mapstructure:"enProxyHTTP" yaml:"enProxyHTTP"`
+	ENProxyHTTPS   string   `mapstructure:"enProxyHTTPS" yaml:"enProxyHTTPS"`
+	ENProxyFTP     string   `mapstructure:"enProxyFTP" yaml:"enProxyFTP"`
+	ENProxyNoProxy string   `mapstructure:"enProxyNoProxy" yaml:"enProxyNoProxy"`
+	ENProxySocks   string   `mapstructure:"enProxySocks" yaml:"enProxySocks"`
+	NetIP          string   `mapstructure:"netIP" yaml:"netIP"`
+	NTPServers     []string `mapstructure:"ntpServer" yaml:"ntpServer"`
+	DNSServers     []string `mapstructure:"nameServers" yaml:"nameServers"`
 
-	NetIP      string   `mapstructure:"net-ip" yaml:"net-ip"`
-	NTPServers []string `mapstructure:"ntp-server" yaml:"ntp-server"`
-	DNSServers []string `mapstructure:"name-servers" yaml:"name-servers"`
-
-	FirewallReqAllow string `mapstructure:"firewall-req-allow" yaml:"firewall-req-allow"`
-	FirewallCfgAllow string `mapstructure:"firewall-cfg-allow" yaml:"firewall-cfg-allow"`
+	FirewallReqAllow string `mapstructure:"firewallReqAllow" yaml:"firewallReqAllow"`
+	FirewallCfgAllow string `mapstructure:"firewallCfgAllow" yaml:"firewallCfgAllow"`
 
 	ENManifest ENManifest
 
-	EMBImageURL string `mapstructure:"emb-image-url" yaml:"emb-image-url"`
-
+	EMBImageURL string `mapstructure:"embImageURL" yaml:"embImageURL"`
 	// Disable AOCO config
-	DisableCOProfile   bool `mapstructure:"disable-co-profile" yaml:"disable-co-profile"`
-	DisableO11YProfile bool `mapstructure:"disable-o11y-profile" yaml:"disable-o11y-profile"`
-	SkipOSProvisioning bool `mapstructure:"skip-os-provisioning" yaml:"skip-os-provisioning"`
+	DisableCOProfile   bool `mapstructure:"disableCoProfile" yaml:"disableCoProfile"`
+	DisableO11YProfile bool `mapstructure:"disableO11YProfile" yaml:"disableO11YProfile"`
+	SkipOSProvisioning bool `mapstructure:"skipOSProvisioning" yaml:"skipOSProvisioning"`
 }
 
 // ENManifest represents the Edge Node Agents release manifest.

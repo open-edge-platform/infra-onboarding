@@ -453,12 +453,12 @@ install_node_agent(){
         fi
 
         echo "node-agent node-agent/onboarding.serviceURL string {{ .ORCH_INFRA }}" | debconf-set-selections
-        echo "node-agent node-agent/status.serviceClients string {{ .NODE_SERVICE_CLIENTS }}" | debconf-set-selections
-        echo "node-agent node-agent/status.outboundClients string {{ .NODE_OUTBOUND_CLIENTS }}" | debconf-set-selections
-        echo "node-agent node-agent/metrics.enabled string {{ .NODE_METRICS_ENABLED }}" | debconf-set-selections
+        echo "node-agent node-agent/status.serviceClients string {{ .SERVICE_CLIENTS }}" | debconf-set-selections
+        echo "node-agent node-agent/status.outboundClients string {{ .OUTBOUND_CLIENTS }}" | debconf-set-selections
+        echo "node-agent node-agent/metrics.enabled string {{ .METRICS_ENABLED }}" | debconf-set-selections
         echo "node-agent node-agent/auth.accessTokenURL string {{ .KEYCLOAK_URL }}" | debconf-set-selections
         echo "node-agent node-agent/auth.rsTokenURL string {{ .RELEASE_TOKEN_URL }}" | debconf-set-selections
-        echo "node-agent node-agent/auth.tokenClients string {{ .NODE_TOKEN_CLIENTS }}" | debconf-set-selections
+        echo "node-agent node-agent/auth.tokenClients string {{ .TOKEN_CLIENTS }}" | debconf-set-selections
         echo "node-agent node-agent/proxy.aptSourceURL string {{ .FILE_SERVER }}" | debconf-set-selections
         echo "node-agent node-agent/proxy.aptSourceProxyPort string {{ .ORCH_APT_PORT }}" | debconf-set-selections
         echo "node-agent node-agent/proxy.aptSourceFilesRSRoot string {{ .FILE_RS_ROOT }}" | debconf-set-selections
