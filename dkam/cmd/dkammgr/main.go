@@ -83,6 +83,10 @@ func main() {
 
 	if config.GetInfraConfig().SkipOSProvisioning {
 		zlog.InfraSec().Info().Msg("OS Provisioning is disabled, hence skipping download artifacts and signing")
+		zlog.InfraSec().Info().Msg("Curating vpro installer and place it in PVC")
+		if err := CurateVProInstaller(); err != nil {
+			zlog.InfraSec().Fatal().Err(err).Msg("Failed to curate vpro installer")
+		}
 	} else {
 		zlog.InfraSec().Info().Msg("OS Provisioning is enabled.")
 
@@ -185,6 +189,17 @@ func BuildBinaries() error {
 	if signed {
 		zlog.InfraSec().Info().Msg("Signed MicroOS and moved to PVC")
 	}
+	return nil
+}
+
+func CurateVProInstaller() error {
+	// Curate vPro installer and copy to PVC
+	vproErr := dkammgr.CurateVProInstaller()
+	if vproErr != nil {
+		zlog.InfraSec().Error().Err(vproErr).Msg("Failed to curate vPro installer")
+		return vproErr
+	}
+	zlog.InfraSec().Info().Msg("Successfully curated vPro installer and moved to PVC")
 	return nil
 }
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 module github.com/open-edge-platform/infra-onboarding/onboarding-manager
@@ -9,8 +9,8 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v1.3.0
 	github.com/google/uuid v1.6.0
 	github.com/open-edge-platform/infra-core/inventory/v2 v2.34.0
-	github.com/open-edge-platform/infra-onboarding/dkam v1.32.12-0.20260114080457-4e988bfcdb26
-	github.com/open-edge-platform/orch-library/go v0.6.3
+	github.com/open-edge-platform/infra-onboarding/dkam v1.33.2-0.20260209181039-9a449b676671
+	github.com/open-edge-platform/orch-library/go v0.6.2
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/stretchr/testify v1.11.1

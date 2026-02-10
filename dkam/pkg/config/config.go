@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 // Package config provides configuration management for the DKAM service.
@@ -26,8 +26,6 @@ const (
 
 	// DownloadPath is the directory path for downloading artifacts.
 	DownloadPath = "/tmp"
-	// BootsCaCertificateFile is the path to the CA certificate file.
-	BootsCaCertificateFile = "/etc/ssl/boots-ca-cert/ca.crt"
 )
 
 // InfraConfig holds the infrastructure configuration settings.
@@ -53,6 +51,11 @@ type InfraConfig struct {
 	RegistryURL             string `mapstructure:"orch-registry" yaml:"orch-registry"`
 	FileServerURL           string `mapstructure:"orch-file-server" yaml:"orch-file-server"`
 	RSType                  string `mapstructure:"rs-type" yaml:"rs-type"`
+
+	ENServiceClients  []string `mapstructure:"en-service-clients" yaml:"en-service-clients"`
+	ENOutboundClients []string `mapstructure:"en-outbound-clients" yaml:"en-outbound-clients"`
+	ENMetricsEnabled  string   `mapstructure:"en-metrics-enabled" yaml:"en-metrics-enabled"`
+	ENTokenClients    []string `mapstructure:"en-token-clients" yaml:"en-token-clients"`
 
 	ProvisioningService string `mapstructure:"provisioning-svc" yaml:"provisioning-svc"`
 	// ProvisioningServerURL full URL to the provisioning server, including prefixes and subpaths
@@ -118,13 +121,15 @@ var (
 	currentInfraConfig InfraConfig
 	configLock         sync.RWMutex
 
-	PVC                   = "/data"
-	OrchCACertificateFile = "/etc/ssl/orch-ca-cert/ca.crt"
-	ScriptPath            = "/home/appuser/pkg/script"
+	PVC                    = "/data"
+	BootsCaCertificateFile = "/etc/ssl/boots-ca-cert/ca.crt"
+	OrchCACertificateFile  = "/etc/ssl/orch-ca-cert/ca.crt"
+	ScriptPath             = "/home/appuser/pkg/script"
 )
 
 // Read reads and validates the configuration from the config file.
 func Read() error {
+	zlog.Info().Msgf("Config file path: %s", *FlagConfigFilePath)
 	viper.SetConfigFile(*FlagConfigFilePath)
 	viper.SetTypeByDefaultValue(true)
 	if err := viper.ReadInConfig(); err != nil {

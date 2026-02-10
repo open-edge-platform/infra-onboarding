@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 // Package curation provides functionality for curating and customizing infrastructure configurations.
@@ -80,6 +80,23 @@ func getCaCert() (string, error) {
 	return string(caContent), nil
 }
 
+// Returns the concatenated content of orch-ca-cert and boots-ca-cert as a string.
+func getCombinedCaPEM() (string, error) {
+	orchCa, err := os.ReadFile(config.OrchCACertificateFile)
+	if err != nil {
+		return "", fmt.Errorf("failed to read orch-ca-cert: %w", err)
+	}
+	bootsCa, err := os.ReadFile(config.BootsCaCertificateFile)
+	if err != nil {
+		return "", fmt.Errorf("failed to read boots-ca-cert: %w", err)
+	}
+	var b strings.Builder
+	b.Write(orchCa)
+	b.WriteString("\n")
+	b.Write(bootsCa)
+	return b.String(), nil
+}
+
 // ufw rules if true, iptables otherwise.
 func getCustomFirewallRules(ufw bool) ([]string, error) {
 	reqRules, err := ParseJSONFirewallRules(config.GetInfraConfig().FirewallReqAllow)
@@ -133,6 +150,11 @@ func GetCommonInfraTemplateVariables(
 		return nil, err
 	}
 
+	caPem, err := getCombinedCaPEM()
+	if err != nil {
+		return nil, err
+	}
+
 	firewallRules, err := getCustomFirewallRules(osType == osv1.OsType_OS_TYPE_MUTABLE)
 	if err != nil {
 		return nil, err
@@ -142,6 +164,8 @@ func GetCommonInfraTemplateVariables(
 		"MODE": os.Getenv("MODE"),
 
 		"CA_CERT": caCert,
+
+		"CA_PEM": caPem,
 
 		"ORCH_CLUSTER":                     infraConfig.ClusterURL,
 		"ORCH_INFRA":                       infraConfig.InfraURL,
@@ -167,6 +191,10 @@ func GetCommonInfraTemplateVariables(
 		"ORCH_PLATFORM_MANAGEABILITY_HOST": strings.Split(infraConfig.ManageabilityURL, ":")[0],
 		"ORCH_PLATFORM_MANAGEABILITY_PORT": strings.Split(infraConfig.ManageabilityURL, ":")[1],
 		"RPS_ADDRESS":                      strings.Split(infraConfig.RPSAddress, ":")[0],
+		"SERVICE_CLIENTS":                  strings.Join(infraConfig.ENServiceClients, ","),
+		"OUTBOUND_CLIENTS":                 strings.Join(infraConfig.ENOutboundClients, ","),
+		"METRICS_ENABLED":                  infraConfig.ENMetricsEnabled,
+		"TOKEN_CLIENTS":                    strings.Join(infraConfig.ENTokenClients, ","),
 
 		"EN_HTTP_PROXY":  infraConfig.ENProxyHTTP,
 		"EN_HTTPS_PROXY": infraConfig.ENProxyHTTPS,
@@ -189,6 +217,9 @@ func GetCommonInfraTemplateVariables(
 		"DISABLE_CO_PROFILE":   infraConfig.DisableCOProfile,
 		"DISABLE_O11Y_PROFILE": infraConfig.DisableO11YProfile,
 		"SKIP_OS_PROVISIONING": infraConfig.SkipOSProvisioning,
+
+		"ONBOARDING_SVC_URL":        infraConfig.OnboardingURL,
+		"ONBOARDING_STREAM_SVC_URL": infraConfig.OnboardingStreamURL,
 	}
 
 	switch osType {

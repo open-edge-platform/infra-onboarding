@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -143,12 +143,15 @@ func PrepareTestCaCertificateFile(t *testing.T) {
 		}
 	}()
 
-	originalCaCertificatePath := config.OrchCACertificateFile
+	originalOrchCaCertificatePath := config.OrchCACertificateFile
+	originalBootsCaCertificatePath := config.BootsCaCertificateFile
 	config.OrchCACertificateFile = tmpFile.Name()
+	config.BootsCaCertificateFile = tmpFile.Name()
 
 	t.Cleanup(func() {
 		_ = os.RemoveAll(tmpDir)
-		config.OrchCACertificateFile = originalCaCertificatePath
+		config.OrchCACertificateFile = originalOrchCaCertificatePath
+		config.BootsCaCertificateFile = originalBootsCaCertificatePath
 	})
 }
 
@@ -174,6 +177,10 @@ func PrepareTestInfraConfig(_ *testing.T) {
 		CDN:                                   "cdn.test:443",
 		ManageabilityURL:                      "manageability.test:443",
 		RPSAddress:                            "rps.test",
+		ENServiceClients:                      []string{"test-service-client", "test-service-client1"},
+		ENOutboundClients:                     []string{"test-outbound-client"},
+		ENMetricsEnabled:                      "true",
+		ENTokenClients:                        []string{"test-token-client", "test-token-client1"},
 		SystemConfigFsInotifyMaxUserInstances: 1,
 		SystemConfigVmOverCommitMemory:        1,
 		SystemConfigKernelPanicOnOops:         1,
