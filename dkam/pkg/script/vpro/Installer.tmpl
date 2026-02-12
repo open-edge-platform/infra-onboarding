@@ -303,6 +303,8 @@ install_device_discovery(){
         done
         
         echo "Client credentials provisioned successfully"
+        CLIENT_ID=$(cat /etc/intel_edge_node/client-credentials/client_id)
+        CLIENT_SECRET=$(cat /etc/intel_edge_node/client-credentials/client_secret)
         
         echo "install_device_discovery done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
