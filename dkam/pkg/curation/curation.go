@@ -165,8 +165,6 @@ func GetCommonInfraTemplateVariables(
 
 		"CA_CERT": caCert,
 
-		"CA_PEM": caPem,
-
 		"ORCH_CLUSTER":                     infraConfig.ClusterURL,
 		"ORCH_INFRA":                       infraConfig.InfraURL,
 		"ORCH_UPDATE":                      infraConfig.UpdateURL,
@@ -222,6 +220,18 @@ func GetCommonInfraTemplateVariables(
 		"ONBOARDING_STREAM_SVC_URL": infraConfig.OnboardingStreamURL,
 	}
 
+	if config.GetInfraConfig().SkipOSProvisioning {
+		templateVariables["CA_PEM"] = caPem
+	}
+
+	if err := setOSSpecificVariables(templateVariables, osType); err != nil {
+		return nil, err
+	}
+
+	return templateVariables, nil
+}
+
+func setOSSpecificVariables(templateVariables map[string]interface{}, osType osv1.OsType) error {
 	switch osType {
 	case osv1.OsType_OS_TYPE_MUTABLE:
 		templateVariables["FIREWALL_PROVIDER"] = "ufw"
@@ -234,7 +244,7 @@ func GetCommonInfraTemplateVariables(
 	if osType == osv1.OsType_OS_TYPE_MUTABLE {
 		agentsListVariables, err := getAgentsListTemplateVariables()
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		for agentsPackage, agentsVersion := range agentsListVariables {
@@ -242,7 +252,7 @@ func GetCommonInfraTemplateVariables(
 		}
 	}
 
-	return templateVariables, nil
+	return nil
 }
 
 // CurateFromTemplate generates content from a template with the provided variables.
