@@ -13,10 +13,6 @@ dkam:
   - changed-files:
     - any-glob-to-any-file: "dkam/**"
 
-hook-os:
-  - changed-files:
-    - any-glob-to-any-file: "hook-os/**"
-
 onboarding-manager:
   - changed-files:
     - any-glob-to-any-file: "onboarding-manager/**"

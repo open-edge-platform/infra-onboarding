@@ -11,12 +11,6 @@
 
 ## Overview
 
-Hook is the Tinkerbell Installation Environment for bare-metal. It runs in-memory, installs operating system,
-and handles deprovisioning. It is based on [LinuxKit](https://github.com/linuxkit/linuxkit).
-
-This repo is forked from the open source repo [github.com/tinkerbell/hook](https://github.com/tinkerbell/hook).
-Summary of all the changes and contributions can be found [here](CHANGELOG.md)
-
 Following components have been added to the open source HookOS for our specific purpose
 
 - Device Discovery: This service can read all the hardware data (serial number, UUID etc) and send out to the Edge Orchestrator
@@ -51,7 +45,7 @@ targets. The following is a list of makefile targets that support developer acti
 make <COMPONENT NAME>
 ```
 
-Components can be `device_discovery`, `fluent-bit` or `hook_dind`
+Components can be `device_discovery`, `fluent-bit`
 
 Example
 
@@ -77,83 +71,6 @@ All the configurable parameter details can be found in [config.template](config.
 
 ```bash
 make certs
-```
-
-#### Build HookOS kernel container image
-
-**NOTE**: This target will build kernel container image even if another image with identical tag is available locally
-or in the Production Release service.
-
-```bash
-make kernel
-```
-
-The container image tag is determined by
-
-1. Linux kernel version: For this project we currently support only `Linux 5.10`.
-Its a Long-Term Support (LTS) kernel which is deemed to receive security updates and bug fixes until end of 2026.
-2. Linux kernel point release: Extensive provisioning tests across various platforms have been
-successfully conducted using Kernel Point Release `228`, which is the current default point release.
-This can be modified by updating `HOOK_KERNEL_POINT_RELEASE` inside [Makefile](Makefile).
-3. `SHA256` hash of combined contents of [Dockerfile](hook-os/hook/kernel/Dockerfile) and
-[kernel parameters](hook-os/hook/kernel/configs/generic-5.10.y-x86_64):
-Any change to these files will lead to a different kernel tag.
-
-Example of a kernel tag: `5.10.228-95e4df98`
-
-**NOTE: It has been observed that building the kernel with identical parameters**
-**and environment variables results in a different container image SHA ID in every run.**
-
-#### Builds HookOS binaries
-
-**NOTE**:This target fails if the kernel container image is not available locally or in the Production Release service.
-So either run `make kernel` before executing this target or run `make build` to combine both.
-
-```bash
-make binaries
-```
-
-The output can be found in the `out/` directory.
-
-#### Builds the complete HookOS artifact
-
-```bash
-make build
-```
-
-The output can be found in the `out/` directory.
-
-This process compiles all components, creates placeholders for certificates,
-builds the kernel (if necessary), generates the binaries, and packages everything into a `.tar.gz` archive file.
-
-The kernel image is built fresh locally only if the expected image tag is not available locally
-or in the Production Release service.
-
-#### Publish HookOS kernel as a container image to Production Release Service
-
-**NOTE**:This target is intended exclusively for use within the CI/CD pipeline.
-
-```bash
-make push-kernel-ci
-```
-
-This pushes the HookOS kernel image to the Release Service only if the image tag
-(not to be confused by image SHA ID) isn't already present in the Release Service.
-
-#### Publish HookOS as a OCI artifact to Production Release Service
-
-**NOTE**:This target is intended exclusively for use within the CI/CD pipeline.
-
-```bash
-make publish-binaries-ci
-```
-
-#### Publish both HookOS kernel container image and HookOS OCI artifact
-
-**NOTE**:This target is intended exclusively for use within the CI/CD pipeline.
-
-```bash
-make artifact-publish
 ```
 
 #### Lint for License, ShellCheck, and Markdown

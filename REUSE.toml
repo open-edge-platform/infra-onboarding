@@ -7,7 +7,6 @@ version = 1
 path = [
     "**.md",
     "dkam/**",
-    "hook-os/**",
     "onboarding-manager/**",
     "tinker-actions/**",
 ]

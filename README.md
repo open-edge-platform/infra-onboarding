@@ -15,8 +15,6 @@ The repository comprises the following components and services:
 - [**Onboarding-Manager**](onboarding-manager/): implements a resource manager to onboard and provision edge nodes.
 - [**DKAM**](dkam/): Dynamic Kit Adaptation Module, manages OS profiles, builds iPXE binaries with digital signatures,
   and facilitates MicroOS operating system provisioning, based on the manifest file in the orchestrator environment.
-- [**HookOS**](hook-os/): contains the Tinkerbell installation environment for bare-metal. It runs in-memory, installs
-  operating system, and handles deprovisioning.
 - [**Tinker Actions**](tinker-actions/): contains custom Tinkerbell Actions that are used to compose Tinkerbell Workflows.
 - [**PXE Server**](pxe-server/): optional component that implements ProxyDHCP and TFTP server to support PXE booting.
 

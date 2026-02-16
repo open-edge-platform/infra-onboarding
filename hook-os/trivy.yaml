@@ -11,5 +11,3 @@ scan:
   # Default is empty.
   # The code in the following directories is unchanged from the open-source version.
   skip-dirs:
-    - hook/images/hook-containerd
-    - hook/images/hook-runc
