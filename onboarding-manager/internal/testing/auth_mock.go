@@ -77,3 +77,9 @@ func AuthServiceMockFactory(createShouldFail, getShouldFail,
 		return authMock, nil
 	}
 }
+
+// Apply applies the given patch to the object.
+func (m *MockK8sClient) Apply(ctx context.Context, obj client.Object) error {
+	args := m.Called(ctx, obj)
+	return args.Error(0)
+}
