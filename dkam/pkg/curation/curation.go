@@ -150,11 +150,6 @@ func GetCommonInfraTemplateVariables(
 		return nil, err
 	}
 
-	caPem, err := getCombinedCaPEM()
-	if err != nil {
-		return nil, err
-	}
-
 	firewallRules, err := getCustomFirewallRules(osType == osv1.OsType_OS_TYPE_MUTABLE)
 	if err != nil {
 		return nil, err
@@ -164,8 +159,6 @@ func GetCommonInfraTemplateVariables(
 		"MODE": os.Getenv("MODE"),
 
 		"CA_CERT": caCert,
-
-		"CA_PEM": caPem,
 
 		"ORCH_CLUSTER":                     infraConfig.ClusterURL,
 		"ORCH_INFRA":                       infraConfig.InfraURL,
@@ -222,6 +215,22 @@ func GetCommonInfraTemplateVariables(
 		"ONBOARDING_STREAM_SVC_URL": infraConfig.OnboardingStreamURL,
 	}
 
+	if config.GetInfraConfig().SkipOSProvisioning {
+		caPem, err := getCombinedCaPEM()
+		if err != nil {
+			return nil, err
+		}
+		templateVariables["CA_PEM"] = caPem
+	}
+
+	if err := setOSSpecificVariables(templateVariables, osType); err != nil {
+		return nil, err
+	}
+
+	return templateVariables, nil
+}
+
+func setOSSpecificVariables(templateVariables map[string]interface{}, osType osv1.OsType) error {
 	switch osType {
 	case osv1.OsType_OS_TYPE_MUTABLE:
 		templateVariables["FIREWALL_PROVIDER"] = "ufw"
@@ -234,7 +243,7 @@ func GetCommonInfraTemplateVariables(
 	if osType == osv1.OsType_OS_TYPE_MUTABLE {
 		agentsListVariables, err := getAgentsListTemplateVariables()
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		for agentsPackage, agentsVersion := range agentsListVariables {
@@ -242,7 +251,7 @@ func GetCommonInfraTemplateVariables(
 		}
 	}
 
-	return templateVariables, nil
+	return nil
 }
 
 // CurateFromTemplate generates content from a template with the provided variables.
