@@ -150,11 +150,6 @@ func GetCommonInfraTemplateVariables(
 		return nil, err
 	}
 
-	caPem, err := getCombinedCaPEM()
-	if err != nil {
-		return nil, err
-	}
-
 	firewallRules, err := getCustomFirewallRules(osType == osv1.OsType_OS_TYPE_MUTABLE)
 	if err != nil {
 		return nil, err
@@ -221,6 +216,10 @@ func GetCommonInfraTemplateVariables(
 	}
 
 	if config.GetInfraConfig().SkipOSProvisioning {
+		caPem, err := getCombinedCaPEM()
+		if err != nil {
+			return nil, err
+		}
 		templateVariables["CA_PEM"] = caPem
 	}
 
