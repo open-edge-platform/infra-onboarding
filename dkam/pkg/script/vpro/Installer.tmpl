@@ -454,11 +454,6 @@ install_node_agent(){
             echo "User '$USERNAME' added successfully."
         fi
 
-        # Ensure bm-agents group and required users exist before node-agent installation
-        groupadd -f bm-agents -g 500 --system
-        id -u node-agent &>/dev/null || useradd node-agent --system -g bm-agents -s /sbin/nologin
-        id -u platform-update-agent &>/dev/null || useradd platform-update-agent --system -g bm-agents -s /sbin/nologin
-
         echo "node-agent node-agent/onboarding.serviceURL string {{ .ORCH_INFRA }}" | debconf-set-selections
         echo "node-agent node-agent/status.serviceClients string {{ .SERVICE_CLIENTS }}" | debconf-set-selections
         echo "node-agent node-agent/status.outboundClients string {{ .OUTBOUND_CLIENTS }}" | debconf-set-selections
