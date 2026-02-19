@@ -86,6 +86,7 @@ install_dependencies() {
 
         groupadd -f bm-agents -g 500 --system       
         id -u node-agent &>/dev/null || useradd node-agent --system -g bm-agents -s /sbin/nologin
+        id -u platform-update-agent &>/dev/null || useradd platform-update-agent --system -g bm-agents -s /sbin/nologin
         echo "install_dependencies done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
