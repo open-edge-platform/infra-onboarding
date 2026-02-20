@@ -321,6 +321,7 @@ install_node_agent(){
 
         echo "install node agent"
         apt-get install -y -o Dpkg::Options::="--force-confnew" "${PKGFILE}"
+        apt-mark hold node-agent
 
         echo "remove node agent debian"
         rm -f "${PKGFILE}"
@@ -417,12 +418,14 @@ install_other_agents() {
       else
         echo "cluster-agent cluster-agent/cluster-orchestrator-url string ${CLUSTER_ORCH_URL}" | debconf-set-selections
         apt-get install -y -o Dpkg::Options::="--force-confnew"  cluster-agent="$CLUSTER_AGENT_VERSION"
+        apt-mark hold cluster-agent
       fi
 
       apt-get install -y -o Dpkg::Options::="--force-confnew" \
         hardware-discovery-agent="$HARDWARE_DISCOVERY_AGENT_VERSION" \
         in-band-manageability="$IN_BAND_MANAGEABILITY_VERSION" \
         platform-update-agent="$PLATFORM_UPDATE_AGENT_VERSION"
+      apt-mark hold hardware-discovery-agent in-band-manageability platform-update-agent
 
       if [ "$DISABLE_O11Y_PROFILE" = "true" ]; then
         sed -i '/serviceClients:/ s/platform-telemetry-agent, *//; /serviceClients:/ s/, *platform-telemetry-agent//; /serviceClients:/ s/platform-telemetry-agent//' /etc/edge-node/node/confs/node-agent.yaml
@@ -440,6 +443,7 @@ install_other_agents() {
         apt-get install -y -o Dpkg::Options::="--force-confnew"  \
           platform-observability-agent="$PLATFORM_OBSERVABILITY_AGENT_VERSION" \
           platform-telemetry-agent="$PLATFORM_TELEMETRY_AGENT_VERSION"
+        apt-mark hold platform-observability-agent platform-telemetry-agent
       fi
 
       PMA_ENABLE=$(bash /opt/edge-node/node/check_vpro_ism_capable.sh)
@@ -449,6 +453,7 @@ install_other_agents() {
         echo "platform-manageability-agent platform-manageability-agent/rpsAddress string ${RPS_ADDRESS}" | debconf-set-selections
         echo "platform-manageability-agent platform-manageability-agent/metrics.enabled string ${NODE_METRICS_ENABLED}" | debconf-set-selections
         apt-get install -y -o Dpkg::Options::="--force-confnew" platform-manageability-agent="$PLATFORM_MANAGEABILITY_AGENT_VERSION"
+        apt-mark hold platform-manageability-agent
       else
         sed -i '/serviceClients:/ s/platform-manageability-agent, *//; /serviceClients:/ s/, *platform-manageability-agent//; /serviceClients:/ s/platform-manageability-agent//' /etc/edge-node/node/confs/node-agent.yaml
         restart_needed=true
