@@ -14,6 +14,9 @@ import (
 //go:embed Installer.tmpl
 var installerTemplate string
 
+//go:embed uninstall.sh
+var uninstallScript string
+
 // CurateVProInstaller curates the vPro installer script with infra configuration.
 func CurateVProInstaller(infraConfig config.InfraConfig, osType osv1.OsType) (string, error) {
 	// Get all template variables from common infra configuration
@@ -29,4 +32,9 @@ func CurateVProInstaller(infraConfig config.InfraConfig, osType osv1.OsType) (st
 	}
 
 	return curatedScript, nil
+}
+
+// GetVProUninstallScript returns the vPro uninstall script.
+func GetVProUninstallScript() string {
+	return uninstallScript
 }
