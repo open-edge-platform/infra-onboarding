@@ -3,7 +3,7 @@
 
 module github.com/open-edge-platform/infra-onboarding/onboarding-manager
 
-go 1.25.5
+go 1.25.7
 
 require (
 	github.com/envoyproxy/protoc-gen-validate v1.3.0
