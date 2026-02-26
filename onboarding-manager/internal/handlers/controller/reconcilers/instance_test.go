@@ -127,8 +127,18 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 	instance := inv_testing.CreateInstanceWithProvider(t, host, osRes, providerResource)
 	instanceID := instance.GetResourceId()
 
+	// Ensure instance is created in the database before reconciliation
+	// Added to fix CI flakiness, where reconciliation 
+	// happens before instance creation, causing the test to fail
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify instance exists before proceeding with reconciliation
+	ctx := context.Background()
+	_, err := om_testing.InvClient.GetInstanceResourceByResourceID(ctx, instance.GetTenantId(), instanceID)
+	require.NoError(t, err, "Instance should exist after creation")
+
 	// performing reconciliation
-	err := instanceController.Reconcile(reconcilers.NewReconcilerID(instance.GetTenantId(), instanceID))
+	err = instanceController.Reconcile(reconcilers.NewReconcilerID(instance.GetTenantId(), instanceID))
 	assert.NoError(t, err, "Reconciliation failed")
 
 	// making sure no changes to the Instance has happened
