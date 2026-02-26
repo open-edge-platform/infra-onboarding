@@ -19,6 +19,7 @@ SERVICES=(
     "device-discovery-agent.service"
     "node-agent.service"
     "platform-manageability-agent.service"
+    "lms.service"
 )
 
 FILES=(
@@ -27,6 +28,9 @@ FILES=(
     "/etc/apparmor.d/opt.edge-node.bin.platform-manageability-agent"
     "/etc/apparmor.d/opt.edge-node.bin.node-agent"
     "/etc/apparmor.d/opt.edge-node.bin.device-discovery-agent"
+    "/usr/bin/rpc"
+    "/usr/local/bin/oras"
+    "/usr/local/share/ca-certificates/orch-ca.crt"
 )
 
 DIRS=(
@@ -110,11 +114,11 @@ main() {
 
     # Remove packages
     log "Removing packages"
-    run apt-get remove -y node-agent platform-manageability-agent device-discovery-agent 2>/dev/null || true
+    run apt-get remove -y node-agent platform-manageability-agent device-discovery-agent lms caddy 2>/dev/null || true
 
     # Purge packages
     log "Purging packages"
-    run apt-get purge -y node-agent platform-manageability-agent device-discovery-agent 2>/dev/null || true
+    run apt-get purge -y node-agent platform-manageability-agent device-discovery-agent lms caddy 2>/dev/null || true
 
     if ! remove_manifest_entries; then
         warn "No install manifest found. Falling back to default cleanup list."
@@ -124,6 +128,10 @@ main() {
         remove_path "$f"
     done
 
+    # Update CA certificates after removing orchestrator CA
+    log "Updating CA certificates"
+    run update-ca-certificates --fresh 2>/dev/null || true
+
     for d in "${DIRS[@]}"; do
         remove_path "$d"
     done
@@ -131,15 +139,14 @@ main() {
     # Remove agent user accounts and groups
     log "Removing agent user accounts and groups"
     run userdel pm-agent 2>/dev/null || true
-    run userdel hd-agent 2>/dev/null || true
     run userdel device-discovery-agent 2>/dev/null || true
     run userdel node-agent 2>/dev/null || true
+    run userdel etcd 2>/dev/null || true
     run groupdel bm-agents 2>/dev/null || true
 
     # Remove sudoers files
     log "Removing sudoers files"
     remove_path "/etc/sudoers.d/pm-agent"
-    remove_path "/etc/sudoers.d/hd-agent"
     remove_path "/etc/sudoers.d/device-discovery-agent"
     remove_path "/etc/sudoers.d/node-agent"
 
