@@ -61,6 +61,15 @@ RS_TYPE={{ .RS_TYPE }}
 APT_DISTRO={{ .APT_DISTRO }}
 DEB_PACKAGES_REPO={{ .DEB_PACKAGES_REPO }}
 FILE_RS_ROOT={{ .FILE_RS_ROOT }}
+ONBOARDING_SVC_URL={{ .ONBOARDING_SVC_URL }}
+ONBOARDING_SVC_PORT=443
+ONBOARDING_STREAM_SVC_URL={{ .ONBOARDING_STREAM_SVC_URL }}
+KEYCLOAK_URL={{ .KEYCLOAK_URL }}
+CA_PEM=/etc/intel_edge_node/orch-ca-cert/orch-ca.pem
+AUTO_DETECT=true
+DEBUG=false
+DISABLE_INTERACTIVE=true
+KERNEL_ARGS=false
 EOF
 source /etc/edge-node/node/agent_variables
 
@@ -263,17 +272,6 @@ install_device_discovery(){
     if grep -q "install_device_discovery done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
         echo "Skipping install_device_discovery"
     else
-        # Pre-seed debconf values for device-discovery-agent package
-        echo "device-discovery-agent device-discovery-agent/onboarding.serviceURL string {{ .ONBOARDING_SVC_URL }}" | debconf-set-selections
-        echo "device-discovery-agent device-discovery-agent/onboarding.servicePort string 443" | debconf-set-selections
-        echo "device-discovery-agent device-discovery-agent/discovery.serviceURL string {{ .ONBOARDING_STREAM_SVC_URL }}" | debconf-set-selections
-        echo "device-discovery-agent device-discovery-agent/auth.keycloakURL string {{ .KEYCLOAK_URL }}" | debconf-set-selections
-        echo "device-discovery-agent device-discovery-agent/onboarding.caCertPath string /etc/intel_edge_node/orch-ca-cert/orch-ca.pem" | debconf-set-selections
-        echo "device-discovery-agent device-discovery-agent/sysinfo.autoDetect boolean true" | debconf-set-selections
-        echo "device-discovery-agent device-discovery-agent/debug boolean false" | debconf-set-selections
-        echo "device-discovery-agent device-discovery-agent/disableInteractive boolean true" | debconf-set-selections
-        echo "device-discovery-agent device-discovery-agent/useKernelArgs boolean false" | debconf-set-selections
-        
         echo "Download device-discovery-agent package {{ index . "device-discovery-agent-VERSION" }}"
         DD_PKGFILE="./device-discovery-agent_{{ index . "device-discovery-agent-VERSION" }}_amd64.deb"
         
@@ -454,18 +452,6 @@ install_node_agent(){
             echo "User '$USERNAME' added successfully."
         fi
 
-        echo "node-agent node-agent/onboarding.serviceURL string {{ .ORCH_INFRA }}" | debconf-set-selections
-        echo "node-agent node-agent/status.serviceClients string {{ .SERVICE_CLIENTS }}" | debconf-set-selections
-        echo "node-agent node-agent/status.outboundClients string {{ .OUTBOUND_CLIENTS }}" | debconf-set-selections
-        echo "node-agent node-agent/metrics.enabled string {{ .METRICS_ENABLED }}" | debconf-set-selections
-        echo "node-agent node-agent/auth.accessTokenURL string {{ .KEYCLOAK_URL }}" | debconf-set-selections
-        echo "node-agent node-agent/auth.rsTokenURL string {{ .RELEASE_TOKEN_URL }}" | debconf-set-selections
-        echo "node-agent node-agent/auth.tokenClients string {{ .TOKEN_CLIENTS }}" | debconf-set-selections
-        echo "node-agent node-agent/proxy.aptSourceURL string {{ .FILE_SERVER }}" | debconf-set-selections
-        echo "node-agent node-agent/proxy.aptSourceProxyPort string {{ .ORCH_APT_PORT }}" | debconf-set-selections
-        echo "node-agent node-agent/proxy.aptSourceFilesRSRoot string {{ .FILE_RS_ROOT }}" | debconf-set-selections
-        echo "node-agent node-agent/auth.RSType string {{ .RS_TYPE }}" | debconf-set-selections
-
         echo "Install caddy for node agent..."
 
         echo "download caddy deb package..."
@@ -541,9 +527,6 @@ install_PMA() {
         echo "Install PMA..."
         amt_output=$(rpc amtinfo)
         if echo "$amt_output" | grep -iqE "AMT Pro Corporate|Intel Standard Manageability Corporate" > /dev/null; then
-            echo "platform-manageability-agent platform-manageability-agent/manageability.serviceURL string ${PLATFORM_MANAGEABILITY_URL}" | debconf-set-selections
-            echo "platform-manageability-agent platform-manageability-agent/rpsAddress string {{ .RPS_ADDRESS }}" | debconf-set-selections
-            echo "platform-manageability-agent platform-manageability-agent/metrics.enabled string {{ .METRICS_ENABLED }}" | debconf-set-selections
             apt-get install -y -o Dpkg::Options::="--force-confnew" platform-manageability-agent={{ index . "platform-manageability-agent-VERSION" }}
         else
             sed -i '/serviceClients:/ s/platform-manageability-agent, *//; /serviceClients:/ s/, *platform-manageability-agent//; /serviceClients:/ s/platform-manageability-agent//' /etc/edge-node/node/confs/node-agent.yaml
