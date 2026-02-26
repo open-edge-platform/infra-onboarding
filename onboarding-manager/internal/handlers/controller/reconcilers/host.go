@@ -30,7 +30,7 @@ type HostReconciler struct {
 }
 
 // NewHostReconciler performs operations for onboarding management.
-func NewHostReconciler(c *invclient.OnboardingInventoryClient, enableTracing bool, skipOSProvisioning bool) *HostReconciler {
+func NewHostReconciler(c *invclient.OnboardingInventoryClient, enableTracing, skipOSProvisioning bool) *HostReconciler {
 	return &HostReconciler{
 		invClient:          c,
 		enableTracing:      enableTracing,
@@ -119,6 +119,7 @@ func (hr *HostReconciler) checkIfInstanceIsAssociated(ctx context.Context, host 
 	return nil
 }
 
+//nolint:cyclop // deleteHost requires multiple sequential cleanup operations
 func (hr *HostReconciler) deleteHost(
 	ctx context.Context,
 	host *computev1.HostResource,
