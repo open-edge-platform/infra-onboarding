@@ -74,7 +74,7 @@ func TestHostReconcileDeauthorization(t *testing.T) {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
 
-	hostReconciler := NewHostReconciler(om_testing.InvClient, true)
+	hostReconciler := NewHostReconciler(om_testing.InvClient, true, false)
 	require.NotNil(t, hostReconciler)
 
 	hostController := rec_v2.NewController[ReconcilerID](hostReconciler.Reconcile, rec_v2.WithParallelism(1))
@@ -153,7 +153,7 @@ func TestReconcileHostDeletion(t *testing.T) {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
 
-	hostReconciler := NewHostReconciler(om_testing.InvClient, true)
+	hostReconciler := NewHostReconciler(om_testing.InvClient, true, false)
 	require.NotNil(t, hostReconciler)
 
 	hostController := rec_v2.NewController[ReconcilerID](hostReconciler.Reconcile, rec_v2.WithParallelism(1))
@@ -309,7 +309,7 @@ func TestReconcileHostWithProvider(t *testing.T) {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
 
-	hostReconciler := NewHostReconciler(om_testing.InvClient, true)
+	hostReconciler := NewHostReconciler(om_testing.InvClient, true, false)
 	require.NotNil(t, hostReconciler)
 
 	hostController := rec_v2.NewController[ReconcilerID](hostReconciler.Reconcile, rec_v2.WithParallelism(1))
@@ -371,7 +371,7 @@ func TestNewHostReconciler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewHostReconciler(tt.args.c, false); !reflect.DeepEqual(got, tt.want) {
+			if got := NewHostReconciler(tt.args.c, false, false); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewHostReconciler() = %v, want %v", got, tt.want)
 			}
 		})

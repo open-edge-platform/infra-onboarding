@@ -52,24 +52,36 @@ type OnboardingController struct {
 }
 
 // New performs operations for onboarding management.
+// skipOSProvisioning: true, only host reconciler is created 
+//                     false, both host and instance reconciler are created
 func New(
 	invClient *invclient.OnboardingInventoryClient,
 	enableTracing bool,
+	skipOSProvisioning bool,
 ) (*OnboardingController, error) {
 	controllers := make(map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ReconcilerID])
 	filters := make(map[inv_v1.ResourceKind]Filter)
 
-	hostRcnl := reconcilers.NewHostReconciler(invClient, enableTracing)
+	// host reconciler for host lifecycle management (deletion, state transitions)
+	// Pass skipOSProvisioning flag so host deletion can handle instance checks appropriately
+	hostRcnl := reconcilers.NewHostReconciler(invClient, enableTracing, skipOSProvisioning)
 	hostCtrl := rec_v2.NewController[reconcilers.ReconcilerID](
 		hostRcnl.Reconcile, rec_v2.WithParallelism(parallelism))
 	controllers[inv_v1.ResourceKind_RESOURCE_KIND_HOST] = hostCtrl
 	filters[inv_v1.ResourceKind_RESOURCE_KIND_HOST] = hostEventFilter
 
-	instRcnl := reconcilers.NewInstanceReconciler(invClient, enableTracing)
-	instCtrl := rec_v2.NewController[reconcilers.ReconcilerID](
-		instRcnl.Reconcile, rec_v2.WithParallelism(parallelism))
-	controllers[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instCtrl
-	filters[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instanceEventFilter
+	// Only create instance reconciler when OS provisioning is enabled (full EMF profile)
+	// In vPro profile (skipOSProvisioning=true), instances are not used
+	if !skipOSProvisioning {
+		instRcnl := reconcilers.NewInstanceReconciler(invClient, enableTracing)
+		instCtrl := rec_v2.NewController[reconcilers.ReconcilerID](
+			instRcnl.Reconcile, rec_v2.WithParallelism(parallelism))
+		controllers[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instCtrl
+		filters[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instanceEventFilter
+		zlog.InfraSec().Info().Msgf("Instance reconciler created")
+	} else {
+		zlog.InfraSec().Info().Msgf("Skipping instance reconciler creation (skipOSProvisioning=true)")
+	}
 	return &OnboardingController{
 		invClient:   invClient,
 		filters:     filters,
