@@ -10,7 +10,7 @@ service:
 pipeline:
   inputs:
     - name: tail
-      path: /var/log/client-auth/*client-auth.*log
+      path: /var/log/*auth.*log
       read_from_head: true
       tag: uOS_clientAuthLog
       processors:
