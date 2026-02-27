@@ -153,23 +153,27 @@ func main() {
 	var onboardingController *controller.OnboardingController
 	var sbHandler *southbound.SBHandler
 	var sbnioHandler *southbound.SBNioHandler
-	// Skip creating controller if skipOSProvisioning is true
+
+	// Always create controller for host lifecycle management (deletion, state transitions)
+	// Skip only IO handler when skipOSProvisioning is true
+	// Pass skipOSProvisioning flag to conditionally create instance reconciler
+	skipOSProvisioning := config.GetInfraConfig().SkipOSProvisioning
+	zlog.InfraSec().Info().Msgf("Creating Onboarding Controller (skipOSProvisioning=%v)", skipOSProvisioning)
+	onboardingController, err = controller.New(invClient, *enableTracing, skipOSProvisioning)
+	if err != nil {
+		zlog.InfraSec().Fatal().Err(err).Msgf("Unable to create onboarding controller")
+	}
+
+	err = onboardingController.Start()
+	if err != nil {
+		zlog.InfraSec().Fatal().Err(err).Msgf("Unable to start onboarding controller")
+	}
+
+	// Skip creating IO handler if skipOSProvisioning is true
 	if config.GetInfraConfig().SkipOSProvisioning {
-		zlog.InfraSec().Info().Msgf("Skipping Onboarding Controller creation as SkipOSProvisioning is set to true")
+		zlog.InfraSec().Info().Msgf("Skipping IO SB Handler creation as SkipOSProvisioning is set to true")
 	} else {
-		zlog.InfraSec().Info().Msgf("Creating Onboarding Controller")
-		// start onboarding controller.
-		onboardingController, err = controller.New(invClient, *enableTracing)
-		if err != nil {
-			zlog.InfraSec().Fatal().Err(err).Msgf("Unable to create onboarding controller")
-		}
-
-		err = onboardingController.Start()
-		if err != nil {
-			zlog.InfraSec().Fatal().Err(err).Msgf("Unable to start onboarding controller")
-		}
-
-		// SB handler for IO.
+		// SB handler for IO (Interactive Onboarding with OS provisioning).
 		sbHandler, err = southbound.NewSBHandler(invClient,
 			southbound.SBHandlerConfig{
 				ServerAddress:    *serverAddress,

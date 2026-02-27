@@ -24,15 +24,17 @@ var zlogHost = logging.GetLogger(loggerName)
 
 // HostReconciler provides functionality for onboarding management.
 type HostReconciler struct {
-	invClient     *invclient.OnboardingInventoryClient
-	enableTracing bool
+	invClient          *invclient.OnboardingInventoryClient
+	enableTracing      bool
+	skipOSProvisioning bool
 }
 
 // NewHostReconciler performs operations for onboarding management.
-func NewHostReconciler(c *invclient.OnboardingInventoryClient, enableTracing bool) *HostReconciler {
+func NewHostReconciler(c *invclient.OnboardingInventoryClient, enableTracing, skipOSProvisioning bool) *HostReconciler {
 	return &HostReconciler{
-		invClient:     c,
-		enableTracing: enableTracing,
+		invClient:          c,
+		enableTracing:      enableTracing,
+		skipOSProvisioning: skipOSProvisioning,
 	}
 }
 
@@ -117,15 +119,21 @@ func (hr *HostReconciler) checkIfInstanceIsAssociated(ctx context.Context, host 
 	return nil
 }
 
+//nolint:cyclop // deleteHost requires multiple sequential cleanup operations
 func (hr *HostReconciler) deleteHost(
 	ctx context.Context,
 	host *computev1.HostResource,
 ) error {
 	zlogHost.Debug().Msgf("Deleting host ID %s (set current status Deleted)\n", host.GetResourceId())
 
-	// if a host has still relationship with Instance, do not proceed with deletion.
-	if err := hr.checkIfInstanceIsAssociated(ctx, host); err != nil {
-		return err
+	// In Full EMF mode (skipOSProvisioning=false), check if instance is still associated
+	// In vPro mode (skipOSProvisioning=true), instances are never created, so skip this check
+	if !hr.skipOSProvisioning {
+		if err := hr.checkIfInstanceIsAssociated(ctx, host); err != nil {
+			return err
+		}
+	} else {
+		zlogHost.Debug().Msgf("Skipping instance association check (skipOSProvisioning=true)")
 	}
 
 	if err := hr.invClient.SetHostStatusDetail(ctx, host.GetTenantId(), host.GetResourceId(),
