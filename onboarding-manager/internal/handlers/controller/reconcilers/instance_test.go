@@ -128,7 +128,7 @@ func TestReconcileInstanceWithProvider(t *testing.T) {
 	instanceID := instance.GetResourceId()
 
 	// Ensure instance is created in the database before reconciliation
-	// Added to fix CI flakiness, where reconciliation 
+	// Added to fix CI flakiness, where reconciliation
 	// happens before instance creation, causing the test to fail
 	time.Sleep(100 * time.Millisecond)
 

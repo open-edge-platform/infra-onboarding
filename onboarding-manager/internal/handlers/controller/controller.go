@@ -52,8 +52,9 @@ type OnboardingController struct {
 }
 
 // New performs operations for onboarding management.
-// skipOSProvisioning: true, only host reconciler is created 
-//                     false, both host and instance reconciler are created
+// skipOSProvisioning: true, only host reconciler is created
+//
+//	false, both host and instance reconciler are created
 func New(
 	invClient *invclient.OnboardingInventoryClient,
 	enableTracing bool,

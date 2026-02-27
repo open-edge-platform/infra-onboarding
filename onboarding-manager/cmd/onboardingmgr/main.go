@@ -153,7 +153,7 @@ func main() {
 	var onboardingController *controller.OnboardingController
 	var sbHandler *southbound.SBHandler
 	var sbnioHandler *southbound.SBNioHandler
-	
+
 	// Always create controller for host lifecycle management (deletion, state transitions)
 	// Skip only IO handler when skipOSProvisioning is true
 	// Pass skipOSProvisioning flag to conditionally create instance reconciler
