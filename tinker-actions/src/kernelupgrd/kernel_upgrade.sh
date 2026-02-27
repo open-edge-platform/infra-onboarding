@@ -112,7 +112,7 @@ update-initramfs -u -k all
 
 # Update the latest kernel version and kernel command line parameters in grub config file
 sed -i 's/GRUB_DEFAULT=.*/GRUB_DEFAULT=1/g' etc/default/grub
-sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX="quiet splash plymouth.enable=0 fastboot intel_iommu=on iommu=pt pci=realloc console=tty1 console=ttyS0,115200"/' etc/default/grub
+sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX="quiet splash plymouth.enable=0 fastboot intel_iommu=on iommu=pt pci=realloc  console=tty0 console=ttyS1,115200n8  video=1024x768@60 systemd.show_status=1"/' etc/default/grub
 
 update-grub
 if [ $? -eq 0 ]; then
