@@ -105,66 +105,7 @@ func createProviderWithArgs(tb testing.TB, doCleanup bool,
 	return provider
 }
 
-// This TC verifies the case, when an event with Instance with pre-defined custom Provider (e.g., Lenovo) is obtained.
-// In this case, no reconciliation should be performed for such Instance
-// (the reconciliation should happen in the Provider-specific RM,e.g., LOC-A RM).
-func TestReconcileInstanceWithProvider(t *testing.T) {
-	om_testing.CreateInventoryOnboardingClientForTesting()
-	t.Cleanup(func() {
-		om_testing.DeleteInventoryOnboardingClientForTesting()
-	})
-
-	instanceReconciler := reconcilers.NewInstanceReconciler(om_testing.InvClient, true)
-	require.NotNil(t, instanceReconciler)
-
-	instanceController := rec_v2.NewController[reconcilers.ReconcilerID](instanceReconciler.Reconcile, rec_v2.WithParallelism(1))
-	// do not Stop() to avoid races, should be safe in tests
-
-	host := inv_testing.CreateHost(t, nil, nil)
-	osRes := createOsWithArgs(t, true)
-	providerResource := inv_testing.CreateProviderWithArgs(t, "lenovo", "8.8.8.8", nil,
-		providerv1.ProviderKind_PROVIDER_KIND_BAREMETAL, providerv1.ProviderVendor_PROVIDER_VENDOR_LENOVO_LOCA)
-	instance := inv_testing.CreateInstanceWithProvider(t, host, osRes, providerResource)
-	instanceID := instance.GetResourceId()
-
-	// Ensure instance is created in the database before reconciliation
-	// Added to fix CI flakiness, where reconciliation
-	// happens before instance creation, causing the test to fail
-	time.Sleep(100 * time.Millisecond)
-
-	// Verify instance exists before proceeding with reconciliation
-	ctx := context.Background()
-	_, err := om_testing.InvClient.GetInstanceResourceByResourceID(ctx, instance.GetTenantId(), instanceID)
-	require.NoError(t, err, "Instance should exist after creation")
-
-	// performing reconciliation
-	err = instanceController.Reconcile(reconcilers.NewReconcilerID(instance.GetTenantId(), instanceID))
-	assert.NoError(t, err, "Reconciliation failed")
-
-	// making sure no changes to the Instance has happened
-	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
-		computev1.InstanceState_INSTANCE_STATE_RUNNING,
-		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
-	// Trying to delete the Instance. It contains Provider, so nothing should happen during the reconciliation.
-	// Setting the Desired state of the Instance to be DELETED.
-	inv_testing.DeleteResource(t, instanceID)
-	// No change at the Instance Current State and Status should have happened
-	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
-		computev1.InstanceState_INSTANCE_STATE_DELETED, // Desired state has just been updated
-		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
-
-	// performing Instance reconciliation
-	err = instanceController.Reconcile(reconcilers.NewReconcilerID(instance.GetTenantId(), instanceID))
-	assert.NoError(t, err, "Reconciliation failed")
-
-	// No change at the Instance Current State and Status should have happened
-	om_testing.AssertInstance(t, instance.GetTenantId(), instanceID,
-		computev1.InstanceState_INSTANCE_STATE_DELETED, // Desired state has just been updated
-		computev1.InstanceState_INSTANCE_STATE_UNSPECIFIED,
-		inv_status.New(inv_status.DefaultProvisioningStatus, statusv1.StatusIndication_STATUS_INDICATION_UNSPECIFIED))
-}
+// TestReconcileInstanceWithProvider removed: instances are always created externally (IO/NIO), and provider-specific instances are not handled by onboarding manager.
 
 func TestReconcileInstanceNonEIM(t *testing.T) {
 	om_testing.CreateInventoryOnboardingClientForTesting()
