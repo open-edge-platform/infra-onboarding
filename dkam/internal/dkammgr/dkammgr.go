@@ -90,3 +90,22 @@ func CurateVProInstaller() error {
 
 	return nil
 }
+
+// CopyVProUninstallScript copies the vPro uninstall script to PVC.
+func CopyVProUninstallScript() error {
+	zlog.InfraSec().Info().Msg("Copying vPro uninstall script to PVC")
+
+	uninstallScript := vpro.GetVProUninstallScript()
+
+	// Write to PVC (/data)
+	destPath := filepath.Join(config.PVC, "uninstall.sh")
+	err := os.WriteFile(destPath, []byte(uninstallScript), installerFilePerm)
+	if err != nil {
+		zlog.InfraSec().Error().Err(err).Msgf("Failed to write vPro uninstall script to %s", destPath)
+		return err
+	}
+
+	zlog.InfraSec().Info().Msgf("Successfully copied vPro uninstall script to %s", destPath)
+
+	return nil
+}
