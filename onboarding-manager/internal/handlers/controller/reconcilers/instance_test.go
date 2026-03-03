@@ -106,7 +106,7 @@ func createProviderWithArgs(tb testing.TB, doCleanup bool,
 }
 
 // TestReconcileInstanceWithProvider removed: instances are always
-// created externally (IO/NIO) and provider-specific instances 
+// created externally (IO/NIO) and provider-specific instances
 // are not handled by onboarding manager.
 
 func TestReconcileInstanceNonEIM(t *testing.T) {
