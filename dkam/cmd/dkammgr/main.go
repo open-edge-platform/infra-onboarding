@@ -200,6 +200,15 @@ func CurateVProInstaller() error {
 		return vproErr
 	}
 	zlog.InfraSec().Info().Msg("Successfully curated vPro installer and moved to PVC")
+
+	// Copy vPro uninstall script to PVC
+	uninstallErr := dkammgr.CopyVProUninstallScript()
+	if uninstallErr != nil {
+		zlog.InfraSec().Error().Err(uninstallErr).Msg("Failed to copy vPro uninstall script")
+		return uninstallErr
+	}
+	zlog.InfraSec().Info().Msg("Successfully copied vPro uninstall script to PVC")
+
 	return nil
 }
 
