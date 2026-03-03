@@ -44,11 +44,12 @@ type Filter func(event *inv_v1.SubscribeEventsResponse) bool
 
 // OnboardingController provides functionality for onboarding management.
 type OnboardingController struct {
-	invClient   *invclient.OnboardingInventoryClient
-	filters     map[inv_v1.ResourceKind]Filter
-	controllers map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ReconcilerID]
-	wg          *sync.WaitGroup
-	stop        chan bool
+	invClient          *invclient.OnboardingInventoryClient
+	filters            map[inv_v1.ResourceKind]Filter
+	controllers        map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ReconcilerID]
+	wg                 *sync.WaitGroup
+	stop               chan bool
+	skipOSProvisioning bool // true for vPro profile (no Tinkerbell), false for Full EMF
 }
 
 // New performs operations for onboarding management.
@@ -84,18 +85,26 @@ func New(
 		zlog.InfraSec().Info().Msgf("Skipping instance reconciler creation (skipOSProvisioning=true)")
 	}
 	return &OnboardingController{
-		invClient:   invClient,
-		filters:     filters,
-		controllers: controllers,
-		wg:          &sync.WaitGroup{},
-		stop:        make(chan bool),
+		invClient:          invClient,
+		filters:            filters,
+		controllers:        controllers,
+		wg:                 &sync.WaitGroup{},
+		stop:               make(chan bool),
+		skipOSProvisioning: skipOSProvisioning,
 	}, nil
 }
 
 // Start performs operations for the receiver.
 func (obc *OnboardingController) Start() error {
-	if err := tinkerbell.Bootstrap(); err != nil {
-		return err
+	// Only bootstrap Tinkerbell for Full EMF profile
+	// In vPro profile (skipOSProvisioning=true), Tinkerbell CRDs are not installed
+	if !obc.skipOSProvisioning {
+		if err := tinkerbell.Bootstrap(); err != nil {
+			return err
+		}
+		zlog.InfraSec().Info().Msgf("Tinkerbell bootstrap completed")
+	} else {
+		zlog.InfraSec().Info().Msgf("Skipping Tinkerbell bootstrap (vPro profile)")
 	}
 
 	if err := obc.reconcileAll(); err != nil {
