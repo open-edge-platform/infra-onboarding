@@ -50,7 +50,8 @@ func TestReconcileEvent(t *testing.T) {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 		tinkerbell.K8sClientFactory = currK8sClientFactory
 	})
-	nbHandler, err := New(om_testing.InvClient, false)
+	// Test Full EMF mode (skipOSProvisioning=false)
+	nbHandler, err := New(om_testing.InvClient, false, false)
 	require.NoError(t, err)
 
 	// Use a mock reconciler
@@ -120,7 +121,7 @@ func TestReconcileAll(t *testing.T) {
 		tinkerbell.K8sClientFactory = currK8sClientFactory
 	})
 
-	nbHandler, err := New(om_testing.InvClient, false)
+	nbHandler, err := New(om_testing.InvClient, false, false)
 	require.NoError(t, err)
 
 	// Use a mock reconciler
@@ -201,7 +202,7 @@ func TestReconcileNoControllers(t *testing.T) {
 		tinkerbell.K8sClientFactory = currK8sClientFactory
 	})
 
-	nbHandler, err := New(om_testing.InvClient, false)
+	nbHandler, err := New(om_testing.InvClient, false, false)
 	require.NoError(t, err)
 
 	// Use a mock reconciler
@@ -257,7 +258,8 @@ func TestFilterEventErrors(t *testing.T) {
 		om_testing.DeleteInventoryOnboardingClientForTesting()
 	})
 
-	nbHandler, err := New(om_testing.InvClient, false)
+	// Test Full EMF mode (skipOSProvisioning=false)
+	nbHandler, err := New(om_testing.InvClient, false, false)
 	require.NoError(t, err)
 
 	t.Run("FailedToValidateEvent", func(t *testing.T) {
@@ -300,7 +302,8 @@ func TestNew(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := New(tt.args.invClient, false)
+			// Test Full EMF mode (skipOSProvisioning=false)
+			_, err := New(tt.args.invClient, false, false)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
 				return
