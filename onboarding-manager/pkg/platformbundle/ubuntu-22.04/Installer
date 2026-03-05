@@ -65,6 +65,12 @@ print_error_on_console() {
 
 trap 'print_error_on_console ${LINENO}' ERR
 
+# Always use the bundle release of LMS RPC client which is tested and compatible with the LMS version
+# used in the platform manageability agent, instead of using the latest release from the public repo, to avoid any compatibility issue.
+# Refer https://device-management-toolkit.github.io/docs/2.32/release-notes/
+
+RPC_CLIENT_VERSION="v2.49.0"
+
 install_lms_rpc(){
     if grep -q "install_lms_rpc done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping install_lms_rpc"
@@ -131,7 +137,7 @@ install_lms_rpc(){
         #Download RPC binary
         echo "Download RPC binary"
         expected_checksum="609b3a69f6534005ca0bf62b12b04c1d18cbc28decc6cf2d5d03d0bc521d9de8"
-        curl -LO "https://github.com/device-management-toolkit/rpc-go/releases/download/v2.48.2/rpc_linux_x64.tar.gz"
+        curl -LO "https://github.com/device-management-toolkit/rpc-go/releases/download/${RPC_CLIENT_VERSION}/rpc_linux_x64.tar.gz"
 
         if [ -f "rpc_linux_x64.tar.gz" ]; then
             actual_checksum=$(sha256sum "rpc_linux_x64.tar.gz" | awk '{print $1}')
