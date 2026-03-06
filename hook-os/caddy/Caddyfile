@@ -31,6 +31,7 @@ http://localhost:7443 {
 
         transport http {
             tls
+            dial_timeout 10s
         }
     }
 }
@@ -55,6 +56,7 @@ http://localhost:7443 {
         transport http {
             tls
             tls_server_name {$release_svc}
+            dial_timeout 10s
         }
     }
 }
