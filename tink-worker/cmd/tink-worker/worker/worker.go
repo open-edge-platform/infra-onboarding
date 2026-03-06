@@ -50,6 +50,17 @@ func WithRetries(interval time.Duration, retries int) Option {
 	}
 }
 
+// WithPullImageRetries configures retry parameters specifically for image pulls.
+// interval is the initial backoff duration, retries is the max number of retries,
+// and maxBackoff caps the exponential backoff growth.
+func WithPullImageRetries(interval time.Duration, retries int, maxBackoff time.Duration) Option {
+	return func(w *Worker) {
+		w.pullImageRetries = retries
+		w.pullImageRetryInterval = interval
+		w.pullImageMaxBackoff = maxBackoff
+	}
+}
+
 // WithDataDir changes the default directory for a worker.
 func WithDataDir(dir string) Option {
 	return func(w *Worker) {
@@ -109,6 +120,10 @@ type Worker struct {
 
 	retries       int
 	retryInterval time.Duration
+
+	pullImageRetries       int
+	pullImageRetryInterval time.Duration
+	pullImageMaxBackoff    time.Duration
 }
 
 // NewWorker creates a new Worker, creating a new Docker registry client.
@@ -121,17 +136,20 @@ func NewWorker(
 	opts ...Option,
 ) *Worker {
 	w := &Worker{
-		workerID:         workerID,
-		dataDir:          defaultDataDir,
-		containerManager: containerManager,
-		logCapturer:      logCapturer,
-		tinkClient:       tinkClient,
-		logger:           logger,
-		captureLogs:      false,
-		createPrivileged: false,
-		retries:          3,
-		retryInterval:    time.Second * 3,
-		maxSize:          1 << 20,
+		workerID:               workerID,
+		dataDir:                defaultDataDir,
+		containerManager:       containerManager,
+		logCapturer:            logCapturer,
+		tinkClient:             tinkClient,
+		logger:                 logger,
+		captureLogs:            false,
+		createPrivileged:       false,
+		retries:                3,
+		retryInterval:          time.Second * 3,
+		pullImageRetries:       5,
+		pullImageRetryInterval: time.Second * 5,
+		pullImageMaxBackoff:    time.Second * 60,
+		maxSize:                1 << 20,
 	}
 	for _, opt := range opts {
 		opt(w)
@@ -224,14 +242,13 @@ func (w *Worker) execute(ctx context.Context, wfID string, action *proto.Workflo
 }
 
 // pullImageWithRetry attempts to pull an image with exponential backoff.
-// It retries up to w.retries times, starting with w.retryInterval and doubling
-// the backoff on each attempt, capped at 60 seconds.
+// It retries up to w.pullImageRetries times, starting with w.pullImageRetryInterval
+// and doubling the backoff on each attempt, capped at w.pullImageMaxBackoff.
 func (w *Worker) pullImageWithRetry(ctx context.Context, l logr.Logger, image string) error {
-	backoff := w.retryInterval
-	const maxBackoff = 60 * time.Second
+	backoff := w.pullImageRetryInterval
 
 	var lastErr error
-	for attempt := 0; attempt <= w.retries; attempt++ {
+	for attempt := 0; attempt <= w.pullImageRetries; attempt++ {
 		if attempt > 0 {
 			l.Info("retrying image pull", "attempt", attempt, "backoff", backoff.String(), "image", image)
 			select {
@@ -241,8 +258,8 @@ func (w *Worker) pullImageWithRetry(ctx context.Context, l logr.Logger, image st
 			}
 			// exponential backoff with cap
 			backoff *= 2
-			if backoff > maxBackoff {
-				backoff = maxBackoff
+			if backoff > w.pullImageMaxBackoff {
+				backoff = w.pullImageMaxBackoff
 			}
 		}
 
@@ -250,9 +267,9 @@ func (w *Worker) pullImageWithRetry(ctx context.Context, l logr.Logger, image st
 		if lastErr == nil {
 			return nil
 		}
-		l.Error(lastErr, "failed to pull image", "attempt", attempt+1, "maxAttempts", w.retries+1, "image", image)
+		l.Error(lastErr, "failed to pull image", "attempt", attempt+1, "maxAttempts", w.pullImageRetries+1, "image", image)
 	}
-	return fmt.Errorf("failed to pull image after %d attempts: %w", w.retries+1, lastErr)
+	return fmt.Errorf("failed to pull image after %d attempts: %w", w.pullImageRetries+1, lastErr)
 }
 
 // executeReaction executes special case OnTimeout/OnFailure actions.

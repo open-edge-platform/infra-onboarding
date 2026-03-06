@@ -21,10 +21,13 @@ import (
 )
 
 const (
-	defaultRetryIntervalSeconds = 3
-	defaultRetryCount           = 3
-	defaultMaxFileSize          = 10 * 1024 * 1024 // 10MB
-	defaultTimeoutMinutes       = 60
+	defaultRetryIntervalSeconds          = 3
+	defaultRetryCount                    = 3
+	defaultMaxFileSize                   = 10 * 1024 * 1024 // 10MB
+	defaultTimeoutMinutes                = 60
+	defaultPullImageRetryIntervalSeconds = 5
+	defaultPullImageRetryCount           = 5
+	defaultPullImageMaxBackoffSeconds    = 60
 )
 
 // NewRootCommand creates a new Tink Worker Cobra root command.
@@ -56,6 +59,9 @@ func NewRootCommand(version string) *cobra.Command {
 			pwd := viper.GetString("registry-password")
 			registry := viper.GetString("docker-registry")
 			captureActionLogs := viper.GetBool("capture-action-logs")
+			pullImageRetryInterval := viper.GetDuration("pull-image-retry-interval")
+			pullImageRetries := viper.GetInt("pull-image-max-retry")
+			pullImageMaxBackoff := viper.GetDuration("pull-image-max-backoff")
 
 			logger.Info("starting", "version", version)
 
@@ -86,6 +92,7 @@ func NewRootCommand(version string) *cobra.Command {
 				logger,
 				worker.WithMaxFileSize(maxFileSize),
 				worker.WithRetries(retryInterval, retries),
+				worker.WithPullImageRetries(pullImageRetryInterval, pullImageRetries, pullImageMaxBackoff),
 				worker.WithLogCapture(captureActionLogs),
 				worker.WithPrivileged(true))
 
@@ -106,6 +113,9 @@ func NewRootCommand(version string) *cobra.Command {
 	rootCmd.Flags().StringP("docker-registry", "r", "", "Sets the Docker registry (DOCKER_REGISTRY)")
 	rootCmd.Flags().StringP("registry-username", "u", "", "Sets the registry username (REGISTRY_USERNAME)")
 	rootCmd.Flags().StringP("registry-password", "p", "", "Sets the registry-password (REGISTRY_PASSWORD)")
+	rootCmd.Flags().Duration("pull-image-retry-interval", defaultPullImageRetryIntervalSeconds*time.Second, "Initial retry interval for image pulls with exponential backoff (PULL_IMAGE_RETRY_INTERVAL)")
+	rootCmd.Flags().Int("pull-image-max-retry", defaultPullImageRetryCount, "Maximum number of retries for image pulls (PULL_IMAGE_MAX_RETRY)")
+	rootCmd.Flags().Duration("pull-image-max-backoff", defaultPullImageMaxBackoffSeconds*time.Second, "Maximum backoff duration for image pull retries (PULL_IMAGE_MAX_BACKOFF)")
 
 	must := func(err error) {
 		if err != nil {

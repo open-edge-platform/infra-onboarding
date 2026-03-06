@@ -55,8 +55,9 @@ func TestPullImageWithRetry_SuccessOnFirstAttempt(t *testing.T) {
 				return nil
 			},
 		},
-		retries:       3,
-		retryInterval: 10 * time.Millisecond,
+		pullImageRetries:       3,
+		pullImageRetryInterval: 10 * time.Millisecond,
+		pullImageMaxBackoff:    60 * time.Second,
 	}
 
 	err := w.pullImageWithRetry(context.Background(), logr.Discard(), "test-image:latest")
@@ -82,8 +83,9 @@ func TestPullImageWithRetry_SuccessAfterRetries(t *testing.T) {
 				return nil
 			},
 		},
-		retries:       3,
-		retryInterval: 10 * time.Millisecond,
+		pullImageRetries:       3,
+		pullImageRetryInterval: 10 * time.Millisecond,
+		pullImageMaxBackoff:    60 * time.Second,
 	}
 
 	err := w.pullImageWithRetry(context.Background(), logr.Discard(), "test-image:latest")
@@ -106,8 +108,9 @@ func TestPullImageWithRetry_AllAttemptsFail(t *testing.T) {
 				return fmt.Errorf("persistent error")
 			},
 		},
-		retries:       maxRetries,
-		retryInterval: 10 * time.Millisecond,
+		pullImageRetries:       maxRetries,
+		pullImageRetryInterval: 10 * time.Millisecond,
+		pullImageMaxBackoff:    60 * time.Second,
 	}
 
 	err := w.pullImageWithRetry(context.Background(), logr.Discard(), "test-image:latest")
@@ -136,8 +139,9 @@ func TestPullImageWithRetry_ContextCancelled(t *testing.T) {
 				return fmt.Errorf("transient error")
 			},
 		},
-		retries:       5,
-		retryInterval: 100 * time.Millisecond,
+		pullImageRetries:       5,
+		pullImageRetryInterval: 100 * time.Millisecond,
+		pullImageMaxBackoff:    60 * time.Second,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -179,8 +183,9 @@ func TestPullImageWithRetry_ExponentialBackoff(t *testing.T) {
 				return nil
 			},
 		},
-		retries:       4,
-		retryInterval: 50 * time.Millisecond,
+		pullImageRetries:       4,
+		pullImageRetryInterval: 50 * time.Millisecond,
+		pullImageMaxBackoff:    60 * time.Second,
 	}
 
 	err := w.pullImageWithRetry(context.Background(), logr.Discard(), "test-image:latest")
@@ -220,8 +225,9 @@ func TestPullImageWithRetry_ZeroRetries(t *testing.T) {
 				return fmt.Errorf("error")
 			},
 		},
-		retries:       0,
-		retryInterval: 10 * time.Millisecond,
+		pullImageRetries:       0,
+		pullImageRetryInterval: 10 * time.Millisecond,
+		pullImageMaxBackoff:    60 * time.Second,
 	}
 
 	err := w.pullImageWithRetry(context.Background(), logr.Discard(), "test-image:latest")
