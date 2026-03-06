@@ -20,16 +20,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	defaultRetryIntervalSeconds          = 3
-	defaultRetryCount                    = 3
-	defaultMaxFileSize                   = 10 * 1024 * 1024 // 10MB
-	defaultTimeoutMinutes                = 60
-	defaultPullImageRetryIntervalSeconds = 5
-	defaultPullImageRetryCount           = 5
-	defaultPullImageMaxBackoffSeconds    = 60
-)
-
 // NewRootCommand creates a new Tink Worker Cobra root command.
 func NewRootCommand(version string) *cobra.Command {
 	config := zap.NewProductionConfig()
@@ -104,18 +94,18 @@ func NewRootCommand(version string) *cobra.Command {
 		},
 	}
 
-	rootCmd.Flags().Duration("retry-interval", defaultRetryIntervalSeconds*time.Second, "Retry interval in seconds (RETRY_INTERVAL)")
-	rootCmd.Flags().Duration("timeout", defaultTimeoutMinutes*time.Minute, "Max duration to wait for worker to complete. Set to '0' for no timeout (TIMEOUT)")
-	rootCmd.Flags().Int("max-retry", defaultRetryCount, "Maximum number of retries to attempt (MAX_RETRY)")
-	rootCmd.Flags().Int64("max-file-size", defaultMaxFileSize, "Maximum file size in bytes (MAX_FILE_SIZE)")
+	rootCmd.Flags().Duration("retry-interval", worker.DefaultRetryIntervalSeconds*time.Second, "Retry interval in seconds (RETRY_INTERVAL)")
+	rootCmd.Flags().Duration("timeout", worker.DefaultTimeoutMinutes*time.Minute, "Max duration to wait for worker to complete. Set to '0' for no timeout (TIMEOUT)")
+	rootCmd.Flags().Int("max-retry", worker.DefaultRetryCount, "Maximum number of retries to attempt (MAX_RETRY)")
+	rootCmd.Flags().Int64("max-file-size", worker.DefaultMaxFileSize, "Maximum file size in bytes (MAX_FILE_SIZE)")
 	rootCmd.Flags().Bool("capture-action-logs", true, "Capture action container output as part of worker logs")
 	rootCmd.Flags().Bool("tinkerbell-tls", true, "Connect to server via TLS or not (TINKERBELL_TLS)")
 	rootCmd.Flags().StringP("docker-registry", "r", "", "Sets the Docker registry (DOCKER_REGISTRY)")
 	rootCmd.Flags().StringP("registry-username", "u", "", "Sets the registry username (REGISTRY_USERNAME)")
 	rootCmd.Flags().StringP("registry-password", "p", "", "Sets the registry-password (REGISTRY_PASSWORD)")
-	rootCmd.Flags().Duration("pull-image-retry-interval", defaultPullImageRetryIntervalSeconds*time.Second, "Initial retry interval for image pulls with exponential backoff (PULL_IMAGE_RETRY_INTERVAL)")
-	rootCmd.Flags().Int("pull-image-max-retry", defaultPullImageRetryCount, "Maximum number of retries for image pulls (PULL_IMAGE_MAX_RETRY)")
-	rootCmd.Flags().Duration("pull-image-max-backoff", defaultPullImageMaxBackoffSeconds*time.Second, "Maximum backoff duration for image pull retries (PULL_IMAGE_MAX_BACKOFF)")
+	rootCmd.Flags().Duration("pull-image-retry-interval", worker.DefaultPullImageRetryIntervalSeconds*time.Second, "Initial retry interval for image pulls with exponential backoff (PULL_IMAGE_RETRY_INTERVAL)")
+	rootCmd.Flags().Int("pull-image-max-retry", worker.DefaultPullImageRetryCount, "Maximum number of retries for image pulls (PULL_IMAGE_MAX_RETRY)")
+	rootCmd.Flags().Duration("pull-image-max-backoff", worker.DefaultPullImageMaxBackoffSeconds*time.Second, "Maximum backoff duration for image pull retries (PULL_IMAGE_MAX_BACKOFF)")
 
 	must := func(err error) {
 		if err != nil {

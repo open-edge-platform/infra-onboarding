@@ -19,6 +19,15 @@ import (
 const (
 	defaultDataDir = "/worker"
 
+	// Default worker configuration values
+	DefaultRetryIntervalSeconds          = 3
+	DefaultRetryCount                    = 3
+	DefaultMaxFileSize                   = 10 * 1024 * 1024 // 10MB
+	DefaultTimeoutMinutes                = 60
+	DefaultPullImageRetryIntervalSeconds = 5
+	DefaultPullImageRetryCount           = 5
+	DefaultPullImageMaxBackoffSeconds    = 60
+
 	errGetWfContext       = "failed to get workflow context"
 	errGetWfActions       = "failed to get actions for workflow"
 	errReportActionStatus = "failed to report action status"
@@ -144,12 +153,12 @@ func NewWorker(
 		logger:                 logger,
 		captureLogs:            false,
 		createPrivileged:       false,
-		retries:                3,
-		retryInterval:          time.Second * 3,
-		pullImageRetries:       5,
-		pullImageRetryInterval: time.Second * 5,
-		pullImageMaxBackoff:    time.Second * 60,
-		maxSize:                1 << 20,
+		retries:                DefaultRetryCount,
+		retryInterval:          time.Second * DefaultRetryIntervalSeconds,
+		pullImageRetries:       DefaultPullImageRetryCount,
+		pullImageRetryInterval: time.Second * DefaultPullImageRetryIntervalSeconds,
+		pullImageMaxBackoff:    time.Second * DefaultPullImageMaxBackoffSeconds,
+		maxSize:                DefaultMaxFileSize,
 	}
 	for _, opt := range opts {
 		opt(w)
