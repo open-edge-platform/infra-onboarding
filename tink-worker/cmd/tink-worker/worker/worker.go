@@ -154,7 +154,7 @@ func (w Worker) getLogger(ctx context.Context) logr.Logger {
 func (w *Worker) execute(ctx context.Context, wfID string, action *proto.WorkflowAction) (proto.State, error) {
 	l := w.getLogger(ctx).WithValues("workflowID", wfID, "workerID", action.GetWorkerId(), "actionName", action.GetName(), "actionImage", action.GetImage())
 
-	if err := w.containerManager.PullImage(ctx, action.GetImage()); err != nil {
+	if err := w.pullImageWithRetry(ctx, l, action.GetImage()); err != nil {
 		return proto.State_STATE_RUNNING, errors.Wrap(err, "pull image")
 	}
 
@@ -221,6 +221,38 @@ func (w *Worker) execute(ctx context.Context, wfID string, action *proto.Workflo
 
 	l.Info("action container exited", "status", st)
 	return st, nil
+}
+
+// pullImageWithRetry attempts to pull an image with exponential backoff.
+// It retries up to w.retries times, starting with w.retryInterval and doubling
+// the backoff on each attempt, capped at 60 seconds.
+func (w *Worker) pullImageWithRetry(ctx context.Context, l logr.Logger, image string) error {
+	backoff := w.retryInterval
+	const maxBackoff = 60 * time.Second
+
+	var lastErr error
+	for attempt := 0; attempt <= w.retries; attempt++ {
+		if attempt > 0 {
+			l.Info("retrying image pull", "attempt", attempt, "backoff", backoff.String(), "image", image)
+			select {
+			case <-ctx.Done():
+				return fmt.Errorf("context cancelled while retrying image pull: %w", ctx.Err())
+			case <-time.After(backoff):
+			}
+			// exponential backoff with cap
+			backoff *= 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+		}
+
+		lastErr = w.containerManager.PullImage(ctx, image)
+		if lastErr == nil {
+			return nil
+		}
+		l.Error(lastErr, "failed to pull image", "attempt", attempt+1, "maxAttempts", w.retries+1, "image", image)
+	}
+	return fmt.Errorf("failed to pull image after %d attempts: %w", w.retries+1, lastErr)
 }
 
 // executeReaction executes special case OnTimeout/OnFailure actions.
