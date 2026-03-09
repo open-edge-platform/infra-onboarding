@@ -19,7 +19,7 @@ import (
 const (
 	defaultDataDir = "/worker"
 
-	// Default worker configuration values
+	// Default worker configuration values.
 	DefaultRetryIntervalSeconds          = 3
 	DefaultRetryCount                    = 3
 	DefaultMaxFileSize                   = 10 * 1024 * 1024 // 10MB
@@ -262,7 +262,7 @@ func (w *Worker) pullImageWithRetry(ctx context.Context, l logr.Logger, image st
 			l.Info("retrying image pull", "attempt", attempt, "backoff", backoff.String(), "image", image)
 			select {
 			case <-ctx.Done():
-				return fmt.Errorf("context cancelled while retrying image pull: %w", ctx.Err())
+				return fmt.Errorf("context canceled while retrying image pull: %w", ctx.Err())
 			case <-time.After(backoff):
 			}
 			// exponential backoff with cap

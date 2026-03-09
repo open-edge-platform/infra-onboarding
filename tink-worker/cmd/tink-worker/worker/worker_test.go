@@ -118,7 +118,7 @@ func TestPullImageWithRetry_AllAttemptsFail(t *testing.T) {
 		t.Fatal("expected error after all retries exhausted, got nil")
 	}
 
-	expectedCalls := int32(maxRetries + 1) // 1 initial + 3 retries
+	expectedCalls := int32(maxRetries) + 1 // 1 initial + 3 retries
 	if got := atomic.LoadInt32(&callCount); got != expectedCalls {
 		t.Fatalf("expected PullImage to be called %d times, got %d", expectedCalls, got)
 	}
@@ -145,7 +145,7 @@ func TestPullImageWithRetry_ContextCancelled(t *testing.T) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	// Cancel after a short delay so the first attempt fails but the retry backoff gets cancelled
+	// Cancel after a short delay so the first attempt fails but the retry backoff gets canceled
 	go func() {
 		time.Sleep(50 * time.Millisecond)
 		cancel()
@@ -153,7 +153,7 @@ func TestPullImageWithRetry_ContextCancelled(t *testing.T) {
 
 	err := w.pullImageWithRetry(ctx, logr.Discard(), "test-image:latest")
 	if err == nil {
-		t.Fatal("expected error when context is cancelled, got nil")
+		t.Fatal("expected error when context is canceled, got nil")
 	}
 
 	// Should have made at least 1 call (the initial attempt) but not all 6
