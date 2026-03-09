@@ -31,6 +31,7 @@ http://localhost:7443 {
 
         transport http {
             tls
+            dial_timeout 10s
         }
     }
 }
@@ -46,6 +47,7 @@ http://localhost:7443 {
         transport http {
             tls
             tls_server_name {$tink_stack_svc}
+            dial_timeout 10s
         }
     }
     reverse_proxy /files-edge-orch/repository/* {$release_svc}:443 {
@@ -55,6 +57,7 @@ http://localhost:7443 {
         transport http {
             tls
             tls_server_name {$release_svc}
+            dial_timeout 10s
         }
     }
 }
@@ -69,6 +72,7 @@ http://localhost:7443 {
         transport http {
             tls
             tls_server_name {$tink_server_svc}
+            dial_timeout 10s
         }
     }
 }
@@ -89,6 +93,7 @@ http://localhost:24224 {
         transport http {
             tls
             tls_server_name {$logging_svc}
+            dial_timeout 10s
         }
     }
 }
