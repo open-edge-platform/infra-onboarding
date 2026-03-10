@@ -159,6 +159,7 @@ copy_service_files() {
     chmod +x "$PWD/etc/fluent-bit/fluentbit_run.sh"
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/fluent-bit/
     chmod +x "$PWD/etc/caddy/caddy_run.sh"
+    chmod +x "$PWD/etc/caddy/tink-worker"
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/caddy/
     chmod +x "$PWD/etc/kpi-instrumentation/report_boot_statistics.sh"
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/kpi-instrumentation/report_boot_statistics.sh
@@ -188,6 +189,7 @@ update_systemd_services() {
     sed -i '/^\[Unit\]/,/^$/s/^Requires=network.target/Requires=network.target caddy.service/' ./usr/lib/systemd/system/fluent-bit.service
 
     tar -xvf rootfs.tar ./usr/lib/systemd/system/tink-worker.service
+    sed -i 's|ExecStart=/usr/bin/tink-worker|ExecStart=/etc/caddy/tink-worker|' ./usr/lib/systemd/system/tink-worker.service
     sed -i '/^\[Unit\]/,/^$/s/^After=network-online.target/After=network-online.target caddy.service/' ./usr/lib/systemd/system/tink-worker.service
     sed -i '/^After=network-online.target caddy.service$/a Requires=caddy.service' ./usr/lib/systemd/system/tink-worker.service
     sed -i '/^ExecStart=/i ExecStartPre=-/etc/kpi-instrumentation/report_boot_statistics.sh' ./usr/lib/systemd/system/tink-worker.service
