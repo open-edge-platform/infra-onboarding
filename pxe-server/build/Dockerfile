@@ -11,7 +11,6 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update && \
     apt-get upgrade -y --no-install-recommends && \
     apt-get install -y --no-install-recommends \
-        libc6 \
         dnsmasq=2.90-4~deb12u1 && \
     rm -rf /var/lib/apt/lists/*
 
