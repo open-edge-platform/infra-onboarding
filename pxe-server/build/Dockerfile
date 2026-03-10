@@ -1,14 +1,17 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-FROM debian:12.11-slim AS builder
+FROM debian:12.12-slim AS builder
+
 
 # Set shell with pipefail for safer pipe operations
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # If dnsmasq version is updated, note that the versions in the source processing should also be updated.
 RUN apt-get update && \
+    apt-get upgrade -y --no-install-recommends && \
     apt-get install -y --no-install-recommends \
+        libc6 \
         dnsmasq=2.90-4~deb12u1 && \
     rm -rf /var/lib/apt/lists/*
 
@@ -64,7 +67,7 @@ RUN mkdir -p /deps/lib/x86_64-linux-gnu && \
         esac; \
     done
 
-FROM gcr.io/distroless/base-debian12@sha256:cef75d12148305c54ef5769e6511a5ac3c820f39bf5c8a4fbfd5b76b4b8da843
+FROM gcr.io/distroless/base-debian12@sha256:937c7eaaf6f3f2d38a1f8c4aeff326f0c56e4593ea152e9e8f74d976dde52f56
 
 # Copy all discovered dependencies
 COPY --from=builder /deps/lib/x86_64-linux-gnu/ /lib/x86_64-linux-gnu/
