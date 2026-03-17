@@ -44,45 +44,67 @@ type Filter func(event *inv_v1.SubscribeEventsResponse) bool
 
 // OnboardingController provides functionality for onboarding management.
 type OnboardingController struct {
-	invClient   *invclient.OnboardingInventoryClient
-	filters     map[inv_v1.ResourceKind]Filter
-	controllers map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ReconcilerID]
-	wg          *sync.WaitGroup
-	stop        chan bool
+	invClient          *invclient.OnboardingInventoryClient
+	filters            map[inv_v1.ResourceKind]Filter
+	controllers        map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ReconcilerID]
+	wg                 *sync.WaitGroup
+	stop               chan bool
+	skipOSProvisioning bool // true for vPro profile (no Tinkerbell), false for Full EMF
 }
 
 // New performs operations for onboarding management.
+// skipOSProvisioning: true, only host reconciler is created
+//
+//	false, both host and instance reconciler are created
 func New(
 	invClient *invclient.OnboardingInventoryClient,
 	enableTracing bool,
+	skipOSProvisioning bool,
 ) (*OnboardingController, error) {
 	controllers := make(map[inv_v1.ResourceKind]*rec_v2.Controller[reconcilers.ReconcilerID])
 	filters := make(map[inv_v1.ResourceKind]Filter)
 
-	hostRcnl := reconcilers.NewHostReconciler(invClient, enableTracing)
+	// host reconciler for host lifecycle management (deletion, state transitions)
+	// Pass skipOSProvisioning flag so host deletion can handle instance checks appropriately
+	hostRcnl := reconcilers.NewHostReconciler(invClient, enableTracing, skipOSProvisioning)
 	hostCtrl := rec_v2.NewController[reconcilers.ReconcilerID](
 		hostRcnl.Reconcile, rec_v2.WithParallelism(parallelism))
 	controllers[inv_v1.ResourceKind_RESOURCE_KIND_HOST] = hostCtrl
 	filters[inv_v1.ResourceKind_RESOURCE_KIND_HOST] = hostEventFilter
 
-	instRcnl := reconcilers.NewInstanceReconciler(invClient, enableTracing)
-	instCtrl := rec_v2.NewController[reconcilers.ReconcilerID](
-		instRcnl.Reconcile, rec_v2.WithParallelism(parallelism))
-	controllers[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instCtrl
-	filters[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instanceEventFilter
+	// Only create instance reconciler when OS provisioning is enabled (full EMF profile)
+	// In vPro profile (skipOSProvisioning=true), instances are not used
+	if !skipOSProvisioning {
+		instRcnl := reconcilers.NewInstanceReconciler(invClient, enableTracing)
+		instCtrl := rec_v2.NewController[reconcilers.ReconcilerID](
+			instRcnl.Reconcile, rec_v2.WithParallelism(parallelism))
+		controllers[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instCtrl
+		filters[inv_v1.ResourceKind_RESOURCE_KIND_INSTANCE] = instanceEventFilter
+		zlog.InfraSec().Info().Msgf("Instance reconciler created")
+	} else {
+		zlog.InfraSec().Info().Msgf("Skipping instance reconciler creation (skipOSProvisioning=true)")
+	}
 	return &OnboardingController{
-		invClient:   invClient,
-		filters:     filters,
-		controllers: controllers,
-		wg:          &sync.WaitGroup{},
-		stop:        make(chan bool),
+		invClient:          invClient,
+		filters:            filters,
+		controllers:        controllers,
+		wg:                 &sync.WaitGroup{},
+		stop:               make(chan bool),
+		skipOSProvisioning: skipOSProvisioning,
 	}, nil
 }
 
 // Start performs operations for the receiver.
 func (obc *OnboardingController) Start() error {
-	if err := tinkerbell.Bootstrap(); err != nil {
-		return err
+	// Only bootstrap Tinkerbell for Full EMF profile
+	// In vPro profile (skipOSProvisioning=true), Tinkerbell CRDs are not installed
+	if !obc.skipOSProvisioning {
+		if err := tinkerbell.Bootstrap(); err != nil {
+			return err
+		}
+		zlog.InfraSec().Info().Msgf("Tinkerbell bootstrap completed")
+	} else {
+		zlog.InfraSec().Info().Msgf("Skipping Tinkerbell bootstrap (vPro profile)")
 	}
 
 	if err := obc.reconcileAll(); err != nil {
