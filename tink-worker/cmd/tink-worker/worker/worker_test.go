@@ -198,11 +198,12 @@ func TestPullImageWithRetry_ExponentialBackoff(t *testing.T) {
 
 	// Verify exponential backoff: each gap should be roughly double the previous.
 	// Gap 0->1: ~50ms, Gap 1->2: ~100ms, Gap 2->3: ~200ms
-	// We use generous tolerances since CI can be slow.
+	// We use generous tolerances since exponential backoff includes jitter
+	// and CI can be unpredictable.
 	expectedMinBackoffs := []time.Duration{
-		30 * time.Millisecond,  // 1st retry: ~50ms
-		60 * time.Millisecond,  // 2nd retry: ~100ms
-		120 * time.Millisecond, // 3rd retry: ~200ms
+		25 * time.Millisecond,  // 1st retry: ~50ms, jitter can bring it down
+		50 * time.Millisecond,  // 2nd retry: ~100ms
+		100 * time.Millisecond, // 3rd retry: ~200ms
 	}
 
 	for i := 0; i < len(timestamps)-1 && i < len(expectedMinBackoffs); i++ {
