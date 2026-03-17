@@ -265,18 +265,18 @@ func (w *Worker) pullImageWithRetry(ctx context.Context, image string) error {
 	b := backoff.WithContext(backoff.WithMaxRetries(bo, uint64(w.pullImageRetries)), ctx)
 	attempt := 0
 
-	err := backoff.RetryNotify(
-		func() error {
-			return w.containerManager.PullImage(ctx, image)
-		},
-		b,
-		func(err error, d time.Duration) {
-			attempt++
-			l.Info("retrying image pull", "attempt", attempt, "backoff", d.String(), "image", image, "error", err.Error())
-		},
-	)
+	operation := func() error {
+		attempt++
+		return w.containerManager.PullImage(ctx, image)
+	}
+
+	retryNotifier := func(err error, d time.Duration) {
+		l.Info("retrying image pull", "attempt", attempt, "duration", d.String(), "image", image, "error", err.Error())
+	}
+
+	err := backoff.RetryNotify(operation, b, retryNotifier)
 	if err != nil {
-		return fmt.Errorf("failed to pull image after %d attempts: %w", w.pullImageRetries+1, err)
+		return fmt.Errorf("failed to pull image after %d attempts: %w", attempt, err)
 	}
 
 	return nil
