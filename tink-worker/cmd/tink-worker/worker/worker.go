@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"github.com/tinkerbell/tink/internal/proto"
@@ -181,7 +182,7 @@ func (w Worker) getLogger(ctx context.Context) logr.Logger {
 func (w *Worker) execute(ctx context.Context, wfID string, action *proto.WorkflowAction) (proto.State, error) {
 	l := w.getLogger(ctx).WithValues("workflowID", wfID, "workerID", action.GetWorkerId(), "actionName", action.GetName(), "actionImage", action.GetImage())
 
-	if err := w.pullImageWithRetry(ctx, l, action.GetImage()); err != nil {
+	if err := w.pullImageWithRetry(ctx, action.GetImage()); err != nil {
 		return proto.State_STATE_RUNNING, errors.Wrap(err, "pull image")
 	}
 
@@ -253,32 +254,32 @@ func (w *Worker) execute(ctx context.Context, wfID string, action *proto.Workflo
 // pullImageWithRetry attempts to pull an image with exponential backoff.
 // It retries up to w.pullImageRetries times, starting with w.pullImageRetryInterval
 // and doubling the backoff on each attempt, capped at w.pullImageMaxBackoff.
-func (w *Worker) pullImageWithRetry(ctx context.Context, l logr.Logger, image string) error {
-	backoff := w.pullImageRetryInterval
+func (w *Worker) pullImageWithRetry(ctx context.Context, image string) error {
+	l := w.getLogger(ctx)
 
-	var lastErr error
-	for attempt := 0; attempt <= w.pullImageRetries; attempt++ {
-		if attempt > 0 {
-			l.Info("retrying image pull", "attempt", attempt, "backoff", backoff.String(), "image", image)
-			select {
-			case <-ctx.Done():
-				return fmt.Errorf("context canceled while retrying image pull: %w", ctx.Err())
-			case <-time.After(backoff):
-			}
-			// exponential backoff with cap
-			backoff *= 2
-			if backoff > w.pullImageMaxBackoff {
-				backoff = w.pullImageMaxBackoff
-			}
-		}
+	bo := backoff.NewExponentialBackOff()
+	bo.InitialInterval = w.pullImageRetryInterval
+	bo.MaxInterval = w.pullImageMaxBackoff
 
-		lastErr = w.containerManager.PullImage(ctx, image)
-		if lastErr == nil {
-			return nil
-		}
-		l.Error(lastErr, "failed to pull image", "attempt", attempt+1, "maxAttempts", w.pullImageRetries+1, "image", image)
+	//nolint:gosec // pullImageRetries is properly initialized and won't be negative in a way that causes issues here.
+	b := backoff.WithContext(backoff.WithMaxRetries(bo, uint64(w.pullImageRetries)), ctx)
+	attempt := 0
+
+	err := backoff.RetryNotify(
+		func() error {
+			return w.containerManager.PullImage(ctx, image)
+		},
+		b,
+		func(err error, d time.Duration) {
+			attempt++
+			l.Info("retrying image pull", "attempt", attempt, "backoff", d.String(), "image", image, "error", err.Error())
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to pull image after %d attempts: %w", w.pullImageRetries+1, err)
 	}
-	return fmt.Errorf("failed to pull image after %d attempts: %w", w.pullImageRetries+1, lastErr)
+
+	return nil
 }
 
 // executeReaction executes special case OnTimeout/OnFailure actions.

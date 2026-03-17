@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/tinkerbell/tink/internal/proto"
 )
 
@@ -60,7 +59,7 @@ func TestPullImageWithRetry_SuccessOnFirstAttempt(t *testing.T) {
 		pullImageMaxBackoff:    60 * time.Second,
 	}
 
-	err := w.pullImageWithRetry(context.Background(), logr.Discard(), "test-image:latest")
+	err := w.pullImageWithRetry(context.Background(), "test-image:latest")
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
@@ -88,7 +87,7 @@ func TestPullImageWithRetry_SuccessAfterRetries(t *testing.T) {
 		pullImageMaxBackoff:    60 * time.Second,
 	}
 
-	err := w.pullImageWithRetry(context.Background(), logr.Discard(), "test-image:latest")
+	err := w.pullImageWithRetry(context.Background(), "test-image:latest")
 	if err != nil {
 		t.Fatalf("expected no error after retries, got: %v", err)
 	}
@@ -113,7 +112,7 @@ func TestPullImageWithRetry_AllAttemptsFail(t *testing.T) {
 		pullImageMaxBackoff:    60 * time.Second,
 	}
 
-	err := w.pullImageWithRetry(context.Background(), logr.Discard(), "test-image:latest")
+	err := w.pullImageWithRetry(context.Background(), "test-image:latest")
 	if err == nil {
 		t.Fatal("expected error after all retries exhausted, got nil")
 	}
@@ -151,7 +150,7 @@ func TestPullImageWithRetry_ContextCancelled(t *testing.T) {
 		cancel()
 	}()
 
-	err := w.pullImageWithRetry(ctx, logr.Discard(), "test-image:latest")
+	err := w.pullImageWithRetry(ctx, "test-image:latest")
 	if err == nil {
 		t.Fatal("expected error when context is canceled, got nil")
 	}
@@ -188,7 +187,7 @@ func TestPullImageWithRetry_ExponentialBackoff(t *testing.T) {
 		pullImageMaxBackoff:    60 * time.Second,
 	}
 
-	err := w.pullImageWithRetry(context.Background(), logr.Discard(), "test-image:latest")
+	err := w.pullImageWithRetry(context.Background(), "test-image:latest")
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
@@ -230,7 +229,7 @@ func TestPullImageWithRetry_ZeroRetries(t *testing.T) {
 		pullImageMaxBackoff:    60 * time.Second,
 	}
 
-	err := w.pullImageWithRetry(context.Background(), logr.Discard(), "test-image:latest")
+	err := w.pullImageWithRetry(context.Background(), "test-image:latest")
 	if err == nil {
 		t.Fatal("expected error with zero retries, got nil")
 	}
