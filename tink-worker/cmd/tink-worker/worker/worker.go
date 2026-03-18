@@ -260,6 +260,7 @@ func (w *Worker) pullImageWithRetry(ctx context.Context, image string) error {
 	bo := backoff.NewExponentialBackOff()
 	bo.InitialInterval = w.pullImageRetryInterval
 	bo.MaxInterval = w.pullImageMaxBackoff
+	bo.Multiplier = 2.0
 
 	//nolint:gosec // pullImageRetries is properly initialized and won't be negative in a way that causes issues here.
 	b := backoff.WithContext(backoff.WithMaxRetries(bo, uint64(w.pullImageRetries)), ctx)
