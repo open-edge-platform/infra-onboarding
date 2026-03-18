@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"github.com/tinkerbell/tink/internal/proto"
@@ -18,6 +19,15 @@ import (
 
 const (
 	defaultDataDir = "/worker"
+
+	// Default worker configuration values.
+	DefaultRetryIntervalSeconds          = 3
+	DefaultRetryCount                    = 3
+	DefaultMaxFileSize                   = 10 * 1024 * 1024 // 10MB
+	DefaultTimeoutMinutes                = 60
+	DefaultPullImageRetryIntervalSeconds = 5
+	DefaultPullImageRetryCount           = 5
+	DefaultPullImageMaxBackoffSeconds    = 60
 
 	errGetWfContext       = "failed to get workflow context"
 	errGetWfActions       = "failed to get actions for workflow"
@@ -47,6 +57,17 @@ func WithRetries(interval time.Duration, retries int) Option {
 	return func(w *Worker) {
 		w.retries = retries
 		w.retryInterval = interval
+	}
+}
+
+// WithPullImageRetries configures retry parameters specifically for image pulls.
+// interval is the initial backoff duration, retries is the max number of retries,
+// and maxBackoff caps the exponential backoff growth.
+func WithPullImageRetries(interval time.Duration, retries int, maxBackoff time.Duration) Option {
+	return func(w *Worker) {
+		w.pullImageRetries = retries
+		w.pullImageRetryInterval = interval
+		w.pullImageMaxBackoff = maxBackoff
 	}
 }
 
@@ -109,6 +130,10 @@ type Worker struct {
 
 	retries       int
 	retryInterval time.Duration
+
+	pullImageRetries       int
+	pullImageRetryInterval time.Duration
+	pullImageMaxBackoff    time.Duration
 }
 
 // NewWorker creates a new Worker, creating a new Docker registry client.
@@ -121,17 +146,20 @@ func NewWorker(
 	opts ...Option,
 ) *Worker {
 	w := &Worker{
-		workerID:         workerID,
-		dataDir:          defaultDataDir,
-		containerManager: containerManager,
-		logCapturer:      logCapturer,
-		tinkClient:       tinkClient,
-		logger:           logger,
-		captureLogs:      false,
-		createPrivileged: false,
-		retries:          3,
-		retryInterval:    time.Second * 3,
-		maxSize:          1 << 20,
+		workerID:               workerID,
+		dataDir:                defaultDataDir,
+		containerManager:       containerManager,
+		logCapturer:            logCapturer,
+		tinkClient:             tinkClient,
+		logger:                 logger,
+		captureLogs:            false,
+		createPrivileged:       false,
+		retries:                DefaultRetryCount,
+		retryInterval:          time.Second * DefaultRetryIntervalSeconds,
+		pullImageRetries:       DefaultPullImageRetryCount,
+		pullImageRetryInterval: time.Second * DefaultPullImageRetryIntervalSeconds,
+		pullImageMaxBackoff:    time.Second * DefaultPullImageMaxBackoffSeconds,
+		maxSize:                DefaultMaxFileSize,
 	}
 	for _, opt := range opts {
 		opt(w)
@@ -154,7 +182,7 @@ func (w Worker) getLogger(ctx context.Context) logr.Logger {
 func (w *Worker) execute(ctx context.Context, wfID string, action *proto.WorkflowAction) (proto.State, error) {
 	l := w.getLogger(ctx).WithValues("workflowID", wfID, "workerID", action.GetWorkerId(), "actionName", action.GetName(), "actionImage", action.GetImage())
 
-	if err := w.containerManager.PullImage(ctx, action.GetImage()); err != nil {
+	if err := w.pullImageWithRetry(ctx, action.GetImage()); err != nil {
 		return proto.State_STATE_RUNNING, errors.Wrap(err, "pull image")
 	}
 
@@ -221,6 +249,38 @@ func (w *Worker) execute(ctx context.Context, wfID string, action *proto.Workflo
 
 	l.Info("action container exited", "status", st)
 	return st, nil
+}
+
+// pullImageWithRetry attempts to pull an image with exponential backoff.
+// It retries up to w.pullImageRetries times, starting with w.pullImageRetryInterval
+// and doubling the backoff on each attempt, capped at w.pullImageMaxBackoff.
+func (w *Worker) pullImageWithRetry(ctx context.Context, image string) error {
+	l := w.getLogger(ctx)
+
+	bo := backoff.NewExponentialBackOff()
+	bo.InitialInterval = w.pullImageRetryInterval
+	bo.MaxInterval = w.pullImageMaxBackoff
+	bo.Multiplier = 2.0
+
+	//nolint:gosec // pullImageRetries is properly initialized and won't be negative in a way that causes issues here.
+	b := backoff.WithContext(backoff.WithMaxRetries(bo, uint64(w.pullImageRetries)), ctx)
+	attempt := 0
+
+	operation := func() error {
+		attempt++
+		return w.containerManager.PullImage(ctx, image)
+	}
+
+	retryNotifier := func(err error, d time.Duration) {
+		l.Info("retrying image pull", "attempt", attempt, "duration", d.String(), "image", image, "error", err.Error())
+	}
+
+	err := backoff.RetryNotify(operation, b, retryNotifier)
+	if err != nil {
+		return fmt.Errorf("failed to pull image after %d attempts: %w", attempt, err)
+	}
+
+	return nil
 }
 
 // executeReaction executes special case OnTimeout/OnFailure actions.
