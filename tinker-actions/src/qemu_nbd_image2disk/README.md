@@ -17,15 +17,15 @@ is the execution time. `qemu_nbd_image2disk` has been observed to be significant
 While `qemuimg2disk` streams the file directly onto the disk using `qemu-img convert`, `qemu_nbd_image2disk` adds an intermediate
 step of downloading the image and then writing it onto the disk.
 
-| env var                   | data type | default value | required | description                                                                                        |
-|---------------------------|-----------|---------------|----------|----------------------------------------------------------------------------------------------------|
-| IMG_URL                   | string    | ""            | yes      | URL of the image to be streamed                                                                    |
-| DEST_DISK                 | string    | ""            | no       | Block device to write the image. If not provided its selected by pre-determined algo               |
-| RETRY_ENABLED             | bool      | true          | no       | Retry the Action, using exponential backoff based on `RETRY_DURATION_MINUTES`                      |
-| RETRY_DURATION_MINUTES    | int       | 10            | no       | Duration for which the Action will retry before failing                                            |
-| PROGRESS_INTERVAL_SECONDS | int       | 3             | no       | Interval at which the progress of the image transfer will be logged                                |
-| TEXT_LOGGING              | bool      | false         | no       | Output will be logged in human friendly text format, JSON used by default                          |
-| SHA256                    | string    | ""            | no       | SHA256 Checksum of `IMG_URL` for validation                                                        |
+| env var                   | data type | default value | required | description                                                                          |
+| ------------------------- | --------- | ------------- | -------- | ------------------------------------------------------------------------------------ |
+| IMG_URL                   | string    | ""            | yes      | URL of the image to be streamed                                                      |
+| DEST_DISK                 | string    | ""            | no       | Block device to write the image. If not provided its selected by pre-determined algo |
+| RETRY_ENABLED             | bool      | true          | no       | Retry the Action, using exponential backoff based on `RETRY_DURATION_MINUTES`        |
+| RETRY_DURATION_MINUTES    | int       | 10            | no       | Duration for which the Action will retry before failing                              |
+| PROGRESS_INTERVAL_SECONDS | int       | 3             | no       | Interval at which the progress of the image transfer will be logged                  |
+| TEXT_LOGGING              | bool      | false         | no       | Output will be logged in human friendly text format, JSON used by default            |
+| SHA256                    | string    | ""            | no       | SHA256 Checksum of `IMG_URL` for validation                                          |
 
 The below example will stream ubuntu cloud image (img format) and write it to the block storage disk `/dev/sda`.
 

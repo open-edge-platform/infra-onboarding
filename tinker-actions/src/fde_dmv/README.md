@@ -14,9 +14,9 @@ configures encrypted partitions(optional) with integrity verification for enhanc
 
 version: 1.18.1
 
-| env var              | data type | default value | required | description                                                                                                |
-|----------------------|-----------|---------------|----------|------------------------------------------------------------------------------------------------------------|
-| ENABLE_ONLY_DMVERITY | bool      | true          | yes      | When set to `true`, only DM-Verity is enabled. Set to `false` FDE, Secure Boot and DM-Verity is enabled.   |
+| env var              | data type | default value | required | description                                                                                              |
+| -------------------- | --------- | ------------- | -------- | -------------------------------------------------------------------------------------------------------- |
+| ENABLE_ONLY_DMVERITY | bool      | true          | yes      | When set to `true`, only DM-Verity is enabled. Set to `false` FDE, Secure Boot and DM-Verity is enabled. |
 
 The below example will enable FDE, DM-V and Secure Boot on the target Edge Node.
 

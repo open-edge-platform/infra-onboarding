@@ -22,18 +22,18 @@ Summary of all the changes and contributions can be found in the [CHANGELOG.md](
 
 Following is the list of tinker actions maintained:
 
-| Action Name             | Description                                                               |
-|-------------------------|---------------------------------------------------------------------------|
-| cexec                   | chroot and execute binaries                                               |
-| efibootset              | modify the boot order to prioritize the installed OS disk after a restart |
-| erase_non_removable_disks | wipe data out in all the non-removable physical disks connected         |
-| fde                     | setup and enable Full Disk Encryption                                     |
-| image2disk              | write images to a block device                                            |
-| kernelupgrd             | upgrade the kernel to the latest HWE version                              |
-| qemu_nbd_image2disk     | write image to block device using qemu-nbd and dd                         |
-| securebootflag          | check for secure boot                                                     |
-| emt_partition           | create partition for Edge Microvisor Toolkit                              |
-| writefile               | write a file to a file system on a block device                           |
+| Action Name               | Description                                                               |
+| ------------------------- | ------------------------------------------------------------------------- |
+| cexec                     | chroot and execute binaries                                               |
+| efibootset                | modify the boot order to prioritize the installed OS disk after a restart |
+| erase_non_removable_disks | wipe data out in all the non-removable physical disks connected           |
+| fde                       | setup and enable Full Disk Encryption                                     |
+| image2disk                | write images to a block device                                            |
+| kernelupgrd               | upgrade the kernel to the latest HWE version                              |
+| qemu_nbd_image2disk       | write image to block device using qemu-nbd and dd                         |
+| securebootflag            | check for secure boot                                                     |
+| emt_partition             | create partition for Edge Microvisor Toolkit                              |
+| writefile                 | write a file to a file system on a block device                           |
 
 ## Features
 
