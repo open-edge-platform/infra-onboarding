@@ -17,14 +17,14 @@ RUN --mount=type=cache,sharing=locked,id=gomod,target=/go/pkg/mod/cache \
 
 
 # Build final image
-FROM alpine:3.23.3
+FROM alpine:latest
 RUN apk upgrade --no-cache
-RUN apk add --no-cache lsblk libcrypto3 libssl3 curl
+RUN apk add --no-cache lsblk
 # Add Certificates into the image, for anything that does HTTPS calls
 COPY --from=writefile /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=writefile /go/src/github.com/tinkerbell/hub/actions/writefile/v1/writefile .
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:50054/healthz || exit 1
+  CMD wget --spider -q http://localhost:50054/healthz || exit 1
 ENTRYPOINT ["/writefile"]
