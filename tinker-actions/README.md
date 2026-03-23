@@ -18,7 +18,7 @@ or running custom scripts. These actions are executed in sequence as part of a T
 the provisioning and management of bare metal servers.
 
 Some of the tinker actions have been forked from the [github.com/tinkerbell/actions](https://github.com/tinkerbell/actions).
-Summary of all the changes and contributions can be found [here](CHANGELOG.md)
+Summary of all the changes and contributions can be found in the [CHANGELOG.md](CHANGELOG.md)
 
 Following is the list of tinker actions maintained:
 
