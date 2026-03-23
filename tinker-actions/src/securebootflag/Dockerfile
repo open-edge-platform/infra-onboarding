@@ -11,7 +11,7 @@ ENV GO111MODULE=on
 RUN go build -o main .
 
 # Build the final image
-FROM alpine:3.23.3
+FROM alpine:3.21
 RUN apk upgrade --no-cache
 
 COPY --from=readsbstat /go/src/github.com/tinkerbell/hub/actions/read_sb_status/run_sb.sh .

@@ -8,7 +8,7 @@ COPY pkg /pkg/
 WORKDIR /src/qemu-nbd-image2disk
 RUN CGO_ENABLED=1 GOOS=linux go build -a -ldflags "-linkmode external -extldflags '-static' -s -w" -o qemu-nbd-image2disk
 
-FROM alpine:3.23.3
+FROM alpine:3.21
 RUN apk upgrade --no-cache
 RUN apk add --no-cache lsblk qemu-img
 # Add Certificates into the image, for anything that does HTTPS calls

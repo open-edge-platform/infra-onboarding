@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-FROM alpine:3.23.3
+FROM alpine:3.21
 RUN apk upgrade --no-cache
 
 RUN apk update && apk --no-cache add lsblk sgdisk parted e2fsprogs-extra cloud-utils-growpart util-linux eudev lvm2 bc
