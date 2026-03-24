@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-FROM golang:1.25.8-bookworm as build
+FROM golang:1.25.7-bookworm as build
 
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
@@ -31,13 +31,21 @@ ARG USERNAME=appuser
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
+# hadolint ignore=DL3008,DL3009
 RUN groupadd --gid $USER_GID $USERNAME && \
     useradd --uid $USER_UID --gid $USER_GID -m $USERNAME && \
-    apt update && apt install -y autoconf automake make gcc \
+    apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates \
+    autoconf automake make gcc \
     m4 git gettext autopoint pkg-config \
     autoconf-archive python3 bison flex \
     gawk efitools sbsigntool gnupg uuid-runtime \
-    curl unzip cpio fakeroot
+    curl unzip cpio fakeroot && \
+    update-ca-certificates && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 ARG REPO_URL
 ARG VERSION
