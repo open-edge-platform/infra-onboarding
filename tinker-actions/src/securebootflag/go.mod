@@ -3,6 +3,6 @@
 
 module securebootflag
 
-go 1.24.9
+go 1.25.8
 
 //toolchain go1.21.4
