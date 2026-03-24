@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-FROM golang:1.24.9-alpine3.21 as readsbstat
+FROM golang:1.25.8-alpine3.23 as readsbstat
 
 COPY . /go/src/github.com/tinkerbell/hub/actions/read_sb_status
 WORKDIR /go/src/github.com/tinkerbell/hub/actions/read_sb_status
@@ -11,7 +11,8 @@ ENV GO111MODULE=on
 RUN go build -o main .
 
 # Build the final image
-FROM alpine:3.21.3
+FROM alpine:3.23.3
+RUN apk upgrade --no-cache
 
 COPY --from=readsbstat /go/src/github.com/tinkerbell/hub/actions/read_sb_status/run_sb.sh .
 COPY --from=readsbstat /go/src/github.com/tinkerbell/hub/actions/read_sb_status/main .
