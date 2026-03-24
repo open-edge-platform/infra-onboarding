@@ -8,6 +8,7 @@ updates:
     directories:
       - "/onboarding-manager"
       - "/dkam"
+      - "/tinker-actions/**"
     schedule:
       interval: daily
     open-pull-requests-limit: 3
@@ -22,6 +23,14 @@ updates:
       internal-dependencies:
         patterns:
           - "*open-edge-platform*"
+  - package-ecosystem: "docker"
+    directories:
+      - "/tinker-actions/**"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "[docker] "
   - package-ecosystem: "github-actions"
     directories:
       - "/"  # this enables searching only in /.github/workflows directory
