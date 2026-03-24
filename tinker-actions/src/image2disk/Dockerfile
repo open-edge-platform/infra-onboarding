@@ -4,7 +4,7 @@
 # NOTICE: This file has been modified by Intel Corporation.
 # Original file can be found at https://github.com/tinkerbell/actions.
 
-FROM golang:1.24.9-alpine3.21 AS image2disk
+FROM golang:1.25.8-alpine3.23 AS image2disk
 RUN apk add --no-cache git ca-certificates gcc linux-headers musl-dev
 COPY . /src/image2disk
 COPY pkg /pkg/
@@ -12,7 +12,8 @@ WORKDIR /src/image2disk
 
 RUN CGO_ENABLED=1 GOOS=linux go build -a -ldflags "-linkmode external -extldflags '-static' -s -w" -o image2disk
 
-FROM alpine:3.21.3
+FROM alpine:3.23.3
+RUN apk upgrade --no-cache
 RUN apk add --no-cache lsblk
 # Add Certificates into the image, for anything that does HTTPS calls
 COPY --from=image2disk /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
