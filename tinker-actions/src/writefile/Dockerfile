@@ -17,7 +17,7 @@ RUN --mount=type=cache,sharing=locked,id=gomod,target=/go/pkg/mod/cache \
 
 
 # Build final image
-FROM alpine:3.21
+FROM alpine:3.23.3
 RUN apk upgrade --no-cache
 RUN apk add --no-cache lsblk
 # Add Certificates into the image, for anything that does HTTPS calls

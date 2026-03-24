@@ -8,7 +8,7 @@ COPY pkg /pkg/
 WORKDIR /src/qemu-nbd-image2disk
 RUN CGO_ENABLED=1 GOOS=linux go build -a -ldflags "-linkmode external -extldflags '-static' -s -w" -o qemu-nbd-image2disk
 
-FROM alpine:3.21
+FROM alpine:3.23.3
 RUN apk upgrade --no-cache
 # Pull specific packages from v3.23 to resolve CVEs while keeping base on 3.21 to avoid OpenSSL CVE-2026-2673
 RUN apk add --no-cache lsblk

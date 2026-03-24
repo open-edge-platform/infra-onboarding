@@ -12,7 +12,7 @@ WORKDIR /src/image2disk
 
 RUN CGO_ENABLED=1 GOOS=linux go build -a -ldflags "-linkmode external -extldflags '-static' -s -w" -o image2disk
 
-FROM alpine:3.21
+FROM alpine:3.23.3
 RUN apk upgrade --no-cache
 RUN apk add --no-cache lsblk
 # Add Certificates into the image, for anything that does HTTPS calls
