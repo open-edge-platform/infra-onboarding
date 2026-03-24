@@ -25,7 +25,7 @@ WORKDIR /go/src/github.com/open-edge-platform/infra-onboarding/dkam
 
 RUN CGO_ENABLED=0 LABEL_REPO_URL=${REPO_URL} LABEL_VERSION=${VERSION} LABEL_REVISION=${REVISION} LABEL_BUILD_DATE=${BUILD_DATE} make ${MAKE_TARGET}
 
-FROM debian:12.12
+FROM debian:13.4
 
 ARG USERNAME=appuser
 ARG USER_UID=1000
@@ -35,11 +35,10 @@ ARG USER_GID=$USER_UID
 RUN groupadd --gid $USER_GID $USERNAME && \
     useradd --uid $USER_UID --gid $USER_GID -m $USERNAME && \
     apt-get update && \
-    apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
-    autoconf automake make gcc \
-    m4 git gettext autopoint pkg-config \
+    build-essential \
+    autoconf automake m4 git gettext autopoint pkg-config \
     autoconf-archive python3 bison flex \
     gawk efitools sbsigntool gnupg uuid-runtime \
     curl unzip cpio fakeroot && \
