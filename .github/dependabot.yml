@@ -8,7 +8,7 @@ updates:
     directories:
       - "/onboarding-manager"
       - "/dkam"
-      - "/tinker-actions/**"
+      - "/tinker-actions"
     schedule:
       interval: daily
     open-pull-requests-limit: 3
@@ -25,7 +25,7 @@ updates:
           - "*open-edge-platform*"
   - package-ecosystem: "docker"
     directories:
-      - "/tinker-actions/**"
+      - "/tinker-actions"
     schedule:
       interval: daily
     open-pull-requests-limit: 3
