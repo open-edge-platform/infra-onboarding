@@ -269,18 +269,6 @@ install_node_agent(){
             echo "User '$USERNAME' added successfully."
         fi
 
-        echo "node-agent node-agent/onboarding.serviceURL string ${HW_INVENTORY_URL}" | debconf-set-selections
-        echo "node-agent node-agent/status.serviceClients string ${NODE_SERVICE_CLIENTS}" | debconf-set-selections
-        echo "node-agent node-agent/status.outboundClients string ${NODE_OUTBOUND_CLIENTS}" | debconf-set-selections
-        echo "node-agent node-agent/metrics.enabled string ${NODE_METRICS_ENABLED}" | debconf-set-selections
-        echo "node-agent node-agent/auth.accessTokenURL string ${NODE_ACCESS_URL}" | debconf-set-selections
-        echo "node-agent node-agent/auth.rsTokenURL string ${NODE_RS_URL}" | debconf-set-selections
-        echo "node-agent node-agent/auth.tokenClients string ${NODE_TOKEN_CLIENTS}" | debconf-set-selections
-        echo "node-agent node-agent/proxy.aptSourceURL string ${CADDY_APT_PROXY_URL}" | debconf-set-selections
-        echo "node-agent node-agent/proxy.aptSourceProxyPort string ${CADDY_APT_PROXY_PORT}" | debconf-set-selections
-        echo "node-agent node-agent/proxy.aptSourceFilesRSRoot string ${FILE_RS_ROOT}" | debconf-set-selections
-        echo "node-agent node-agent/auth.RSType string ${RS_TYPE}" | debconf-set-selections
-
         echo "Install caddy for node agent..."
 
         echo "download caddy deb package..."
@@ -449,9 +437,6 @@ install_other_agents() {
       PMA_ENABLE=$(bash /opt/edge-node/node/check_vpro_ism_capable.sh)
 
       if [ "$PMA_ENABLE" = "true" ]; then
-        echo "platform-manageability-agent platform-manageability-agent/manageability.serviceURL string ${PLATFORM_MANAGEABILITY_URL}" | debconf-set-selections
-        echo "platform-manageability-agent platform-manageability-agent/rpsAddress string ${RPS_ADDRESS}" | debconf-set-selections
-        echo "platform-manageability-agent platform-manageability-agent/metrics.enabled string ${NODE_METRICS_ENABLED}" | debconf-set-selections
         apt-get install -y -o Dpkg::Options::="--force-confnew" platform-manageability-agent="$PLATFORM_MANAGEABILITY_AGENT_VERSION"
         apt-mark hold platform-manageability-agent
       else
