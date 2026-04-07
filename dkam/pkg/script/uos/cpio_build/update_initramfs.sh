@@ -160,8 +160,6 @@ copy_service_files() {
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/caddy/
     chmod +x "$PWD/etc/kpi-instrumentation/report_boot_statistics.sh"
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/kpi-instrumentation/report_boot_statistics.sh
-    chmod +x "$PWD/etc/ip-assignment/wait_for_ip.sh"
-    tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/ip-assignment/wait_for_ip.sh
 }
 
 update_systemd_services() {
