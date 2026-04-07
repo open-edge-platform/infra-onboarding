@@ -159,6 +159,7 @@ copy_service_files() {
     chmod +x "$PWD/etc/fluent-bit/fluentbit_run.sh"
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/fluent-bit/
     chmod +x "$PWD/etc/caddy/caddy_run.sh"
+    chmod +x "$PWD/etc/caddy/device-discovery-agent" #TODO: remove this post validation
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/caddy/
     chmod +x "$PWD/etc/kpi-instrumentation/report_boot_statistics.sh"
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/kpi-instrumentation/report_boot_statistics.sh
@@ -170,6 +171,7 @@ update_systemd_services() {
     pushd "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/" || exit
 
     tar -xvf rootfs.tar ./usr/lib/systemd/system/device-discovery.service
+    #TODO: remove this post validation
     sed -i 's|ExecStart=/usr/bin/device-discovery/device-discovery|ExecStart=/etc/caddy/device-discovery-agent -config /etc/emf/env_config -use-kernel-args|' ./usr/lib/systemd/system/device-discovery.service
 
     tar -xvf rootfs.tar ./usr/lib/systemd/system/caddy.service
