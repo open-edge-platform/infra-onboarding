@@ -149,9 +149,6 @@ copy_cert_and_env_files() {
     cp "$IDP/ca.pem" "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/"
     cp "$IDP/server_cert.pem" "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/"
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/emf/env_config
-    mkdir -p "$PWD/etc/hook/"
-    cp "$PWD/etc/emf/env_config" "$PWD/etc/hook/env_config"
-    tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/hook/env_config
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/idp
 }
 
