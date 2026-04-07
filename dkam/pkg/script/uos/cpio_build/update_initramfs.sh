@@ -52,8 +52,8 @@ create_env_config() {
 	echo -e "oci_release_svc=$oci_release_svc" 
 	echo -e "tink_stack_svc=$tink_stack_svc" 
 	echo -e "tink_server_svc=$tink_server_svc"
-	echo -e "onboarding_manager_svc=$onboarding_manager_svc"
-	echo -e "onboarding_stream_svc=$onboarding_stream_svc"
+	echo -e "OBM_SVC=$onboarding_manager_svc"
+	echo -e "OBS_SVC=$onboarding_stream_svc"
 	echo -e "OBM_PORT=443"
 	} >> "$LOCATION_OF_ENV_CONFIG"
     fi
@@ -170,7 +170,7 @@ update_systemd_services() {
     pushd "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/" || exit
 
     tar -xvf rootfs.tar ./usr/lib/systemd/system/device-discovery.service
-    sed -i '/^ExecStart=/i ExecStartPre=/etc/ip-assignment/wait_for_ip.sh' ./usr/lib/systemd/system/device-discovery.service
+    sed -i 's|ExecStart=/usr/bin/device-discovery/device-discovery|ExecStart=/etc/caddy/device-discovery-agent -config /etc/emf/env_config -use-kernel-args|' ./usr/lib/systemd/system/device-discovery.service
 
     tar -xvf rootfs.tar ./usr/lib/systemd/system/caddy.service
     sed -i 's|User=caddy|User=root|' ./usr/lib/systemd/system/caddy.service
