@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package testing //nolint:revive // used for testing only
+package testing //nolint:revive,nolintlint // used for testing only
 
 import (
 	"context"

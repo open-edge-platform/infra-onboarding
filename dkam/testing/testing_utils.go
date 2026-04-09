@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Package testing provides test utilities and helpers for DKAM testing.
-package testing //nolint:revive // used for testing only
+package testing //nolint:revive,nolintlint // used for testing only
 
 import (
 	"fmt"
