@@ -65,7 +65,7 @@ type containerdManager struct {
 }
 
 func NewContainerdManager(logger logr.Logger, registryDetails RegistryConnDetails) ContainerManager {
-	client, err := client.New(socketPath, client.WithDefaultNamespace(namespace))
+	c, err := client.New(socketPath, client.WithDefaultNamespace(namespace))
 	if err != nil {
 		panic(fmt.Errorf("error creating containerd client: %w", err))
 	}
@@ -74,7 +74,7 @@ func NewContainerdManager(logger logr.Logger, registryDetails RegistryConnDetail
 		registryDetails: registryDetails,
 		namespace:       namespace,
 		socketPath:      socketPath,
-		client:          client,
+		client:          c,
 	}
 }
 
