@@ -1,8 +1,9 @@
-// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-FileCopyrightText: (C) 2026 Intel Corporation
+//
 // SPDX-License-Identifier: Apache-2.0
 
 // Package testing provides functionality for onboarding management.
-package testing
+package testing //nolint:revive // used for testing only
 
 import (
 	"context"
