@@ -1,8 +1,8 @@
-// SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+// SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package testing
+package testing //nolint:revive,nolintlint // used for testing only
 
 import (
 	"context"

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 Intel Corporation
+// SPDX-FileCopyrightText: 2026 Intel Corporation
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
 	"github.com/go-logr/logr"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/client"
 	"github.com/pkg/errors"
 	"github.com/tinkerbell/tink/internal/proto"
 )
@@ -80,7 +80,7 @@ func (m *containerManager) CreateContainer(ctx context.Context, cmd []string, wf
 	hostConfig.Binds = append(hostConfig.Binds, action.GetVolumes()...)
 	l.Info("creating container", "command", cmd)
 	name := makeValidContainerName(action.GetName())
-	resp, err := m.cli.ContainerCreate(ctx, config, hostConfig, nil, nil, name)
+	resp, err := m.cli.ContainerCreate(ctx, client.ContainerCreateOptions{Config: config, HostConfig: hostConfig, Name: name})
 	if err != nil {
 		return "", errors.Wrap(err, "DOCKER CREATE")
 	}
@@ -97,25 +97,26 @@ func makeValidContainerName(name string) string {
 
 func (m *containerManager) StartContainer(ctx context.Context, id string) error {
 	m.getLogger(ctx).Info("starting container", "containerID", id)
-	return errors.Wrap(m.cli.ContainerStart(ctx, id, container.StartOptions{}), "DOCKER START")
+	_, err := m.cli.ContainerStart(ctx, id, client.ContainerStartOptions{})
+	return errors.Wrap(err, "DOCKER START")
 }
 
 func (m *containerManager) WaitForContainer(ctx context.Context, id string) (proto.State, error) {
 	// Inspect whether the container is in running state
-	if _, err := m.cli.ContainerInspect(ctx, id); err != nil {
+	if _, err := m.cli.ContainerInspect(ctx, id, client.ContainerInspectOptions{}); err != nil {
 		return proto.State_STATE_FAILED, nil //nolint:nilerr // error is not nil, but it returns nil
 	}
 
 	// send API call to wait for the container completion
-	wait, errC := m.cli.ContainerWait(ctx, id, container.WaitConditionNotRunning)
+	wait := m.cli.ContainerWait(ctx, id, client.ContainerWaitOptions{Condition: container.WaitConditionNotRunning})
 
 	select {
-	case status := <-wait:
+	case status := <-wait.Result:
 		if status.StatusCode == 0 {
 			return proto.State_STATE_SUCCESS, nil
 		}
 		return proto.State_STATE_FAILED, nil
-	case err := <-errC:
+	case err := <-wait.Error:
 		return proto.State_STATE_FAILED, err
 	case <-ctx.Done():
 		return proto.State_STATE_TIMEOUT, ctx.Err()
@@ -125,16 +126,16 @@ func (m *containerManager) WaitForContainer(ctx context.Context, id string) (pro
 func (m *containerManager) WaitForFailedContainer(ctx context.Context, id string, failedActionStatus chan proto.State) {
 	l := m.getLogger(ctx)
 	// send API call to wait for the container completion
-	wait, errC := m.cli.ContainerWait(ctx, id, container.WaitConditionNotRunning)
+	wait := m.cli.ContainerWait(ctx, id, client.ContainerWaitOptions{Condition: container.WaitConditionNotRunning})
 
 	select {
-	case status := <-wait:
+	case status := <-wait.Result:
 		if status.StatusCode == 0 {
 			failedActionStatus <- proto.State_STATE_SUCCESS
 			return
 		}
 		failedActionStatus <- proto.State_STATE_FAILED
-	case err := <-errC:
+	case err := <-wait.Error:
 		l.Error(err, "")
 		failedActionStatus <- proto.State_STATE_FAILED
 	case <-ctx.Done():
@@ -145,13 +146,15 @@ func (m *containerManager) WaitForFailedContainer(ctx context.Context, id string
 
 func (m *containerManager) RemoveContainer(ctx context.Context, id string) error {
 	// create options for removing container
-	opts := container.RemoveOptions{
+	opts := client.ContainerRemoveOptions{
 		Force:         true,
 		RemoveLinks:   false,
 		RemoveVolumes: true,
 	}
 	m.getLogger(ctx).Info("removing container", "containerID", id)
 
+	_, err := m.cli.ContainerRemove(ctx, id, opts)
+
 	// send API call to remove the container
-	return errors.Wrap(m.cli.ContainerRemove(ctx, id, opts), "DOCKER STOP")
+	return errors.Wrap(err, "DOCKER STOP")
 }
