@@ -538,15 +538,17 @@ install_PMA() {
     if grep -q "install_PMA done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
         echo "Skipping install_PMA"
     else
-        echo "Install PMA..."
         amt_output=$(rpc amtinfo)
         if echo "$amt_output" | grep -iqE "AMT Pro Corporate|Intel Standard Manageability Corporate" > /dev/null; then
+            echo "Install PMA..."
             echo "platform-manageability-agent platform-manageability-agent/manageability.serviceURL string ${PLATFORM_MANAGEABILITY_URL}" | debconf-set-selections
             echo "platform-manageability-agent platform-manageability-agent/rpsAddress string {{ .RPS_ADDRESS }}" | debconf-set-selections
             echo "platform-manageability-agent platform-manageability-agent/metrics.enabled string {{ .METRICS_ENABLED }}" | debconf-set-selections
             apt-get install -y -o Dpkg::Options::="--force-confnew" platform-manageability-agent={{ index . "platform-manageability-agent-VERSION" }}
         else
+            echo "Platform does not support AMT. Skipping PMA installation."
             sed -i '/serviceClients:/ s/platform-manageability-agent, *//; /serviceClients:/ s/, *platform-manageability-agent//; /serviceClients:/ s/platform-manageability-agent//' /etc/edge-node/node/confs/node-agent.yaml
+            systemctl restart node-agent.service
         fi
         echo "install_PMA done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
   fi
