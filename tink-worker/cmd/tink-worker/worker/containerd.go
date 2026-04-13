@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 Intel Corporation
+// SPDX-FileCopyrightText: 2026 Intel Corporation
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -16,13 +16,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containerd/containerd"
-	"github.com/containerd/containerd/cio"
-	"github.com/containerd/containerd/namespaces"
-	"github.com/containerd/containerd/oci"
-	"github.com/containerd/containerd/remotes/docker"
-	volumemounts "github.com/docker/docker/volume/mounts"
+	"github.com/containerd/containerd/v2/client"
+	"github.com/containerd/containerd/v2/core/remotes/docker"
+	"github.com/containerd/containerd/v2/defaults"
+	"github.com/containerd/containerd/v2/pkg/cio"
+	"github.com/containerd/containerd/v2/pkg/namespaces"
+	"github.com/containerd/containerd/v2/pkg/oci"
 	"github.com/go-logr/logr"
+	volumemounts "github.com/moby/moby/v2/daemon/volume/mounts"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/tinkerbell/tink/internal/proto"
@@ -59,12 +60,12 @@ type containerdManager struct {
 	logger          logr.Logger
 	registryDetails RegistryConnDetails
 	namespace       string
-	client          *containerd.Client
+	client          *client.Client
 	socketPath      string
 }
 
 func NewContainerdManager(logger logr.Logger, registryDetails RegistryConnDetails) ContainerManager {
-	client, err := containerd.New(socketPath, containerd.WithDefaultNamespace(namespace))
+	c, err := client.New(socketPath, client.WithDefaultNamespace(namespace))
 	if err != nil {
 		panic(fmt.Errorf("error creating containerd client: %w", err))
 	}
@@ -73,7 +74,7 @@ func NewContainerdManager(logger logr.Logger, registryDetails RegistryConnDetail
 		registryDetails: registryDetails,
 		namespace:       namespace,
 		socketPath:      socketPath,
-		client:          client,
+		client:          c,
 	}
 }
 
@@ -190,7 +191,7 @@ func (c *containerdManager) CreateContainer(ctx context.Context, cmd []string, w
 	}
 
 	name := newContainerName(action.GetName())
-	snps := c.client.SnapshotService(containerd.DefaultSnapshotter)
+	snps := c.client.SnapshotService(defaults.DefaultSnapshotter)
 	if _, err := snps.Stat(ctx, name); err == nil {
 		l.Info("snapshot exists, removing snapshot", "snapshot", name)
 		if err := snps.Remove(ctx, name); err != nil {
@@ -200,10 +201,10 @@ func (c *containerdManager) CreateContainer(ctx context.Context, cmd []string, w
 	container, err := c.client.NewContainer(
 		ctx,
 		name,
-		containerd.WithSnapshotter(containerd.DefaultSnapshotter),
-		containerd.WithNewSnapshot(name, image),
-		containerd.WithNewSpec(opts...),
-		containerd.WithImage(image),
+		client.WithSnapshotter(defaults.DefaultSnapshotter),
+		client.WithNewSnapshot(name, image),
+		client.WithNewSpec(opts...),
+		client.WithImage(image),
 	)
 	if err != nil {
 		return "", errors.Wrap(err, "CONTAINERD CREATE")
@@ -220,13 +221,13 @@ func (c *containerdManager) PullImage(ctx context.Context, imageName string) err
 	return err
 }
 
-func (c *containerdManager) pullImageByName(ctx context.Context, imageName string) (containerd.Image, error) {
+func (c *containerdManager) pullImageByName(ctx context.Context, imageName string) (client.Image, error) {
 	l := c.logger.WithValues("image", imageName)
 	l.Info("pulling image")
 
 	image, err := c.client.GetImage(ctx, imageName)
 	if err != nil {
-		opts := []containerd.RemoteOpt{containerd.WithPullUnpack}
+		opts := []client.RemoteOpt{client.WithPullUnpack}
 		if c.registryDetails.Registry != "" {
 			// Create a resolver with authentication details
 			resolver := docker.NewResolver(docker.ResolverOptions{
@@ -242,7 +243,7 @@ func (c *containerdManager) pullImageByName(ctx context.Context, imageName strin
 					}, nil
 				},
 			})
-			opts = append(opts, containerd.WithResolver(resolver))
+			opts = append(opts, client.WithResolver(resolver))
 		}
 		// if the image is not in namespaced context, then pull it
 		image, err = c.client.Pull(ctx, imageName, opts...)
@@ -274,7 +275,7 @@ func (c *containerdManager) RemoveContainer(ctx context.Context, id string) erro
 			return fmt.Errorf("failed to get task status: %w", err)
 		}
 
-		if status.Status == containerd.Running {
+		if status.Status == client.Running {
 			if err := task.Kill(ctx, syscall.SIGKILL); err != nil {
 				return fmt.Errorf("failed to kill task: %w", err)
 			}
@@ -287,7 +288,7 @@ func (c *containerdManager) RemoveContainer(ctx context.Context, id string) erro
 	}
 
 	// delete the container
-	err = container.Delete(ctx, containerd.WithSnapshotCleanup)
+	err = container.Delete(ctx, client.WithSnapshotCleanup)
 	if err != nil {
 		return errors.Wrap(err, "CONTAINERD REMOVE")
 	}
@@ -355,7 +356,7 @@ func (c *containerdManager) WaitForContainer(ctx context.Context, id string) (pr
 		return proto.State_STATE_FAILED, err
 	}
 
-	var exitStatusC <-chan containerd.ExitStatus
+	var exitStatusC <-chan client.ExitStatus
 	exitStatusC, err = task.Wait(ctx)
 	if err != nil {
 		return proto.State_STATE_FAILED, fmt.Errorf("error waiting on task: %w", err)
@@ -393,7 +394,7 @@ func (c *containerdManager) WaitForFailedContainer(ctx context.Context, id strin
 		return
 	}
 
-	var exitStatusC <-chan containerd.ExitStatus
+	var exitStatusC <-chan client.ExitStatus
 	exitStatusC, err = task.Wait(ctx)
 	if err != nil {
 		l.Error(err, "error waiting on task")
