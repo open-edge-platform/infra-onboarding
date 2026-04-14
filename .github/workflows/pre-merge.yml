@@ -69,7 +69,7 @@ jobs:
         with:
           python-version: '3.13'
       - name: Restore cached virtualenv
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7  # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
         with:
           key: venv-${{ runner.os }}-${{ steps.setup_python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
           path: venv_infra
@@ -87,7 +87,7 @@ jobs:
       fail-fast: false
       matrix:
         project_folder: ${{ fromJson(needs.pre-checks.outputs.filtered_projects) }}
-    uses: open-edge-platform/orch-ci/.github/workflows/pre-merge.yml@0bab962ebeb4bf9a592020d22a8dbcec2001801c  # 2026.1.1
+    uses: open-edge-platform/orch-ci/.github/workflows/pre-merge.yml@cd3e9a8d77db98ea1b3001fd879bdf5a56baa5e7  # 2026.1.1
     with:
       orch_ci_repo_ref: 3712c26c7ae6e8b3cc53af6e9e6bd8d47dc61420
       bootstrap_tools: "all,golangci-lint2"
