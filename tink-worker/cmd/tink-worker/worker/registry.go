@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 Intel Corporation
+// SPDX-FileCopyrightText: 2026 Intel Corporation
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -11,8 +11,8 @@ import (
 	"io"
 	"path"
 
-	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/api/types/registry"
+	"github.com/moby/moby/api/types/registry"
+	"github.com/moby/moby/client"
 	"github.com/pkg/errors"
 )
 
@@ -48,7 +48,7 @@ func (m *containerManager) PullImage(ctx context.Context, imageName string) erro
 	}
 	authStr := base64.URLEncoding.EncodeToString(encodedJSON)
 
-	out, err := m.cli.ImagePull(ctx, path.Join(m.registryDetails.Registry, imageName), image.PullOptions{RegistryAuth: authStr})
+	out, err := m.cli.ImagePull(ctx, path.Join(m.registryDetails.Registry, imageName), client.ImagePullOptions{RegistryAuth: authStr})
 	if err != nil {
 		return errors.Wrap(err, "DOCKER PULL")
 	}
