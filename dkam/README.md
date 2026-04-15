@@ -15,7 +15,7 @@
 The DKAM stands for Dynamic Kit Adaptation Module is a component
 in the Edge Infrastructure Manager, responsible for onboarding edge nodes with
 curated sets of bare metal agents and software that can support deployment
-of other apps. It prepares artifacts like iPXE and HookOS used for onboarding.
+of other apps. It prepares artifacts like iPXE and uOS used for onboarding.
 
 ## Features
 
@@ -23,7 +23,7 @@ of other apps. It prepares artifacts like iPXE and HookOS used for onboarding.
   UEFI BIOS Secure Boot Settings
 - iPXE build support: Build iPXE binary, inject orchestrator
   certificate and sign the binary for secure boot.
-- HookOS Configurations: Download prebuilt HookOS, inject certificates
+- uOS Configurations: Download prebuilt uOS, inject certificates
   and required configurations and sign the image.
 
 ## Get Started
