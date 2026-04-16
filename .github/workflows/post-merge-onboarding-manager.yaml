@@ -23,7 +23,7 @@ jobs:
       security-events: write
       id-token: write
       actions: read
-    uses: open-edge-platform/orch-ci/.github/workflows/post-merge.yml@a54943a045a0f86e4e3f6807d2579fca50baf4fb  # 2026.1.1
+    uses: open-edge-platform/orch-ci/.github/workflows/post-merge.yml@aff1e9efbc37ed254c0eea575f51d379f47dc9a0  # 2026.1.1
     with:
       bootstrap_tools: "all,golangci-lint2"
       run_version_check: true
