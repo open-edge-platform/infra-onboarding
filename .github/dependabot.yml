@@ -1,14 +1,12 @@
-# SPDX-FileCopyrightText: (C) 2025 Intel Corporation
+# SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
 ---
 version: 2
 updates:
+  # Go modules - separate block for each directory
   - package-ecosystem: "gomod"
-    directories:
-      - "/onboarding-manager"
-      - "/dkam"
-      - "/tinker-actions"
+    directory: "/onboarding-manager"
     schedule:
       interval: daily
     open-pull-requests-limit: 3
@@ -23,17 +21,53 @@ updates:
       internal-dependencies:
         patterns:
           - "*open-edge-platform*"
+
+  - package-ecosystem: "gomod"
+    directory: "/dkam"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "[gomod] "
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+        exclude-patterns: # Internal dependencies are update into separate PRs.
+          - "*open-edge-platform*"
+      internal-dependencies:
+        patterns:
+          - "*open-edge-platform*"
+
+  - package-ecosystem: "gomod"
+    directory: "/tinker-actions"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "[gomod] "
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+        exclude-patterns: # Internal dependencies are update into separate PRs.
+          - "*open-edge-platform*"
+      internal-dependencies:
+        patterns:
+          - "*open-edge-platform*"
+
+  # Docker
   - package-ecosystem: "docker"
-    directories:
-      - "/tinker-actions"
+    directory: "/tinker-actions"  # Changed from "directories" to "directory"
     schedule:
       interval: daily
     open-pull-requests-limit: 3
     commit-message:
       prefix: "[docker] "
+
+  # GitHub Actions
   - package-ecosystem: "github-actions"
-    directories:
-      - "/"  # this enables searching only in /.github/workflows directory
+    directory: "/"
     schedule:
       interval: daily
     open-pull-requests-limit: 10
