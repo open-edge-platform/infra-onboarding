@@ -43,15 +43,10 @@ endif
 #   https://readthedocs.intel.com/SecureCodingStandards/latest/compiler/golang/
 # -trimpath: Remove all file system paths from the resulting executable.
 # -gcflags="all=-m": Print optimizations applied by the compiler for review and verification against security requirements.
-# -gcflags="all=-spectre=all" Enable all available Spectre mitigations
+# Note: -spectre=all is not used as Go 1.24+ stdlib assembly is incompatible with retpoline mitigations.
 # -ldflags="all=-s -w" remove the symbol and debug info
 # -ldflags="all=-X ..." Embed binary build stamping information
-ifeq ($(GOARCH),arm64)
-	# Note that arm64 (Apple, similar) does not support any spectre mititations.
-  GOEXTRAFLAGS := -trimpath -gcflags="all=-spectre= -N -l" -asmflags="all=-spectre=" -ldflags="all=-s -w -X 'main.RepoURL=$(LABEL_REPO_URL)' -X 'main.Version=$(LABEL_VERSION)' -X 'main.Revision=$(LABEL_REVISION)' -X 'main.BuildDate=$(LABEL_BUILD_DATE)'"
-else
-  GOEXTRAFLAGS := -trimpath -gcflags="all=-spectre=all -N -l" -asmflags="all=-spectre=all" -ldflags="all=-s -w -X 'main.RepoURL=$(LABEL_REPO_URL)' -X 'main.Version=$(LABEL_VERSION)' -X 'main.Revision=$(LABEL_REVISION)' -X 'main.BuildDate=$(LABEL_BUILD_DATE)'"
-endif
+GOEXTRAFLAGS := -trimpath -gcflags="all=-N -l" -ldflags="all=-s -w -X 'main.RepoURL=$(LABEL_REPO_URL)' -X 'main.Version=$(LABEL_VERSION)' -X 'main.Revision=$(LABEL_REVISION)' -X 'main.BuildDate=$(LABEL_BUILD_DATE)'"
 
 # Postgres DB configuration and credentials for testing. This mimics the Aurora
 # production environment.

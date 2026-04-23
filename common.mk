@@ -52,12 +52,7 @@ ifeq ($(GO_CHECK), 1)
 	include ../common_go.mk
 endif
 
-ifeq ($(GOARCH),arm64)
-	# Note that arm64 (Apple, similar) does not support any spectre mitigations.
-	GOEXTRAFLAGS := -trimpath -gcflags="all=-spectre= -N -l" -asmflags="all=-spectre=" -ldflags="all=-s -w -X 'main.RepoURL=$(LABEL_REPO_URL)' -X 'main.Version=$(LABEL_VERSION)' -X 'main.Revision=$(LABEL_REVISION)' -X 'main.BuildDate=$(LABEL_BUILD_DATE)'"
-else
-	GOEXTRAFLAGS := -trimpath -gcflags="all=-N -l" -gcflags="./cmd/...=-N -l -spectre=all" -gcflags="./internal/...=-N -l -spectre=all" -gcflags="./pkg/...=-N -l -spectre=all" -asmflags="./cmd/...=-spectre=all" -asmflags="./internal/...=-spectre=all" -asmflags="./pkg/...=-spectre=all" -ldflags="all=-s -w -X 'main.RepoURL=$(LABEL_REPO_URL)' -X 'main.Version=$(LABEL_VERSION)' -X 'main.Revision=$(LABEL_REVISION)' -X 'main.BuildDate=$(LABEL_BUILD_DATE)'"
-endif
+GOEXTRAFLAGS := -trimpath -gcflags="all=-N -l" -ldflags="all=-s -w -X 'main.RepoURL=$(LABEL_REPO_URL)' -X 'main.Version=$(LABEL_VERSION)' -X 'main.Revision=$(LABEL_REVISION)' -X 'main.BuildDate=$(LABEL_BUILD_DATE)'"
 
 $(OUT_DIR): ## Create out directory
 	mkdir -p $(OUT_DIR)
