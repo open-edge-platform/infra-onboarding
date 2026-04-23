@@ -538,8 +538,7 @@ install_PMA() {
     if grep -q "install_PMA done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
         echo "Skipping install_PMA"
     else
-        amt_output=$(rpc amtinfo)
-        if echo "$amt_output" | grep -iqE "AMT Pro Corporate|Intel Standard Manageability Corporate" > /dev/null; then
+        if rpc amtinfo 2>/dev/null | grep -iqE "AMT Pro Corporate|Intel Standard Manageability Corporate"; then
             echo "Install PMA..."
             echo "platform-manageability-agent platform-manageability-agent/manageability.serviceURL string ${PLATFORM_MANAGEABILITY_URL}" | debconf-set-selections
             echo "platform-manageability-agent platform-manageability-agent/rpsAddress string {{ .RPS_ADDRESS }}" | debconf-set-selections
