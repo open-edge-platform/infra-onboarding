@@ -12,7 +12,7 @@ start_time=$(date +%s)
 
 while true; do
     # Check if the file exists and is non-empty
-    if [ -s "/dev/shm/idp_access_token" ]; then
+    if [ -s "/etc/intel_edge_node/client-credentials/idp_access_token" ]; then
         echo "Access token file is present and non-empty."
         break
     fi
@@ -26,23 +26,23 @@ while true; do
     sleep $INTERVAL
 done
 
-if [ ! -s "/dev/shm/release_token" ]; then
+if [ ! -s "/etc/intel_edge_node/client-credentials/release_token" ]; then
     echo "Release service token file is empty, exiting.."
     exit 1
 fi
 
-access_token=$(cat /dev/shm/idp_access_token)
+access_token=$(cat /etc/intel_edge_node/client-credentials/idp_access_token)
 export access_token
 
-release_token=$(cat /dev/shm/release_token)
+release_token=$(cat /etc/intel_edge_node/client-credentials/release_token)
 export release_token
 
-if [ ! -s "/dev/shm/project_id" ]; then
+if [ ! -s "/etc/intel_edge_node/client-credentials/project_id" ]; then
     echo "Project ID file is empty, exiting.."
     exit 1
 fi
 
-project_id=$(cat /dev/shm/project_id)
+project_id=$(cat /etc/intel_edge_node/client-credentials/project_id)
 export project_id
 
 # shellcheck source=/dev/null

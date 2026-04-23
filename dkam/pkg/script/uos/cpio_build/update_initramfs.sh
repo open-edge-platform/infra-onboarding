@@ -52,8 +52,8 @@ create_env_config() {
 	echo -e "oci_release_svc=$oci_release_svc" 
 	echo -e "tink_stack_svc=$tink_stack_svc" 
 	echo -e "tink_server_svc=$tink_server_svc"
-	echo -e "onboarding_manager_svc=$onboarding_manager_svc"
-	echo -e "onboarding_stream_svc=$onboarding_stream_svc"
+	echo -e "OBM_SVC=$onboarding_manager_svc"
+	echo -e "OBS_SVC=$onboarding_stream_svc"
 	echo -e "OBM_PORT=443"
 	} >> "$LOCATION_OF_ENV_CONFIG"
     fi
@@ -149,9 +149,6 @@ copy_cert_and_env_files() {
     cp "$IDP/ca.pem" "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/"
     cp "$IDP/server_cert.pem" "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/"
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/emf/env_config
-    mkdir -p "$PWD/etc/hook/"
-    cp "$PWD/etc/emf/env_config" "$PWD/etc/hook/env_config"
-    tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/hook/env_config
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/idp
 }
 
@@ -159,18 +156,18 @@ copy_service_files() {
     chmod +x "$PWD/etc/fluent-bit/fluentbit_run.sh"
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/fluent-bit/
     chmod +x "$PWD/etc/caddy/caddy_run.sh"
+    chmod +x "$PWD/etc/caddy/device-discovery-agent" #TODO: remove this post validation
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/caddy/
     chmod +x "$PWD/etc/kpi-instrumentation/report_boot_statistics.sh"
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/kpi-instrumentation/report_boot_statistics.sh
-    chmod +x "$PWD/etc/ip-assignment/wait_for_ip.sh"
-    tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/ip-assignment/wait_for_ip.sh
 }
 
 update_systemd_services() {
     pushd "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/" || exit
 
     tar -xvf rootfs.tar ./usr/lib/systemd/system/device-discovery.service
-    sed -i '/^ExecStart=/i ExecStartPre=/etc/ip-assignment/wait_for_ip.sh' ./usr/lib/systemd/system/device-discovery.service
+    #TODO: remove this post validation
+    sed -i 's|ExecStart=/usr/bin/device-discovery/device-discovery|ExecStart=/etc/caddy/device-discovery-agent -config /etc/emf/env_config -use-kernel-args|' ./usr/lib/systemd/system/device-discovery.service
 
     tar -xvf rootfs.tar ./usr/lib/systemd/system/caddy.service
     sed -i 's|User=caddy|User=root|' ./usr/lib/systemd/system/caddy.service
