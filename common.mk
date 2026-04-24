@@ -52,6 +52,8 @@ ifeq ($(GO_CHECK), 1)
 	include ../common_go.mk
 endif
 
+GOEXTRAFLAGS := -trimpath -gcflags="all=-N -l" -ldflags="all=-s -w -X 'main.RepoURL=$(LABEL_REPO_URL)' -X 'main.Version=$(LABEL_VERSION)' -X 'main.Revision=$(LABEL_REVISION)' -X 'main.BuildDate=$(LABEL_BUILD_DATE)'"
+
 $(OUT_DIR): ## Create out directory
 	mkdir -p $(OUT_DIR)
 
