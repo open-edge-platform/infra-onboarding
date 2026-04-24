@@ -289,10 +289,10 @@ github.com/onsi/ginkgo/v2 v2.22.0 h1:Yed107/8DjTr0lKCNt7Dn8yQ6ybuDRQoMGrNFKzMfHg
 github.com/onsi/ginkgo/v2 v2.22.0/go.mod h1:7Du3c42kxCUegi0IImZ1wUQzMBVecgIHjR1C+NkhLQo=
 github.com/onsi/gomega v1.36.1 h1:bJDPBO7ibjxcbHMgSCoo4Yj18UWbKDlLwX1x9sybDcw=
 github.com/onsi/gomega v1.36.1/go.mod h1:PvZbdDc8J6XJEpDK4HCuRBm8a6Fzp9/DmhC9C7yFlog=
-github.com/open-edge-platform/infra-core/inventory/v2 v2.35.0 h1:NlKK7Kh3x9JUB+dLwtSYfbyvG2nE+zy1FhNP/2Frh1c=
-github.com/open-edge-platform/infra-core/inventory/v2 v2.35.0/go.mod h1:WNM18zJ5iCFR9LgESM4RT/jgo+oicNrfdwtaOh19EHA=
-github.com/open-edge-platform/infra-onboarding/dkam v1.34.0 h1:VAJsezbcBeBYL6U4KHHR3mUwjGzw4RVQpldWIbPfwUM=
-github.com/open-edge-platform/infra-onboarding/dkam v1.34.0/go.mod h1:9HADFTmxppyWRIcUPW3PyMy+DGUjLqGEKWZnnJ5/Eeo=
+github.com/open-edge-platform/infra-core/inventory/v2 v2.35.1 h1:jBLsuc9+7FVW212d10cnaR+2p4XrTlgK3uWeJUMkwjY=
+github.com/open-edge-platform/infra-core/inventory/v2 v2.35.1/go.mod h1:wiWvyzTr13rOplddY7Mikmd46z5JR6sKDFdl2woEm1c=
+github.com/open-edge-platform/infra-onboarding/dkam v1.34.1 h1:kJZK2ZfXcAAPqNw4YNAXb/YBABc+EsLaRPlL3IpMyO4=
+github.com/open-edge-platform/infra-onboarding/dkam v1.34.1/go.mod h1:soDzxqgSvW13kHE0x3SGZgxn07Ty9wixCFyozTUAdMc=
 github.com/open-edge-platform/orch-library/go v0.6.3 h1:zLdAtY5KuArT1D2xCvVLysD7r8GxqvkP8Vj1sO5ZJk8=
 github.com/open-edge-platform/orch-library/go v0.6.3/go.mod h1:mYhs/KbcXPQWM+2cHZXyzeIIzM7xKvnNgsnHlFkXH0g=
 github.com/open-edge-platform/orch-library/go/dazl v0.5.4 h1:Rx/bSAZiLjEEBjUiJEzBvT0fQv5huT5FQ2Ke3IMUhiE=
