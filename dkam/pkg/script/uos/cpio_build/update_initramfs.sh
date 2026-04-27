@@ -176,8 +176,8 @@ update_systemd_services() {
     sed -i 's|ExecReload=/usr/bin/caddy reload --config /etc/caddy/Caddyfile||' ./usr/lib/systemd/system/caddy.service
     sed -i 's|ExecStart=/usr/bin/caddy run --environ --config /etc/caddy/Caddyfile|ExecStart=/etc/caddy/caddy_run.sh|' ./usr/lib/systemd/system/caddy.service
     sed -i '/^ExecStart=.*caddy_run\.sh$/a ReadWritePaths=/etc/pki/ca-trust' ./usr/lib/systemd/system/caddy.service
-    sed -i '/^\[Unit\]/,/^$/s/^After=network.target network-online.target/After=network.target network-online.target device-discovery.service/' ./usr/lib/systemd/system/caddy.service
-    sed -i '/^\[Unit\]/,/^$/s/^Requires=network-online.target/Requires=network-online.target device-discovery.service/' ./usr/lib/systemd/system/caddy.service
+    sed -i '/^\[Unit\]/,/^$/s/^After=network.target network-online.target/After=network.target network-online.target device-discovery-agent.service/' ./usr/lib/systemd/system/caddy.service
+    sed -i '/^\[Unit\]/,/^$/s/^Requires=network-online.target/Requires=network-online.target device-discovery-agent.service/' ./usr/lib/systemd/system/caddy.service
 
     tar -xvf rootfs.tar ./usr/lib/systemd/system/fluent-bit.service
     sed -i 's|ExecStart=/usr/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.conf|ExecStart=/etc/fluent-bit/fluentbit_run.sh|' ./usr/lib/systemd/system/fluent-bit.service
@@ -207,8 +207,8 @@ setup_getty_autologin() {
     mkdir -p ./etc/systemd/system/
     cp ./usr/lib/systemd/system/getty@.service ./etc/systemd/system/getty@tty1.service
     sed -i 's|^ExecStart=.*agetty.*|ExecStart=-/usr/sbin/agetty --autologin root --noclear %I|' ./etc/systemd/system/getty@tty1.service
-    sed -i '/^ConditionPathExists=/a Requires=device-discovery.service' ./etc/systemd/system/getty@tty1.service
-    sed -i '/^ConditionPathExists=/a After=device-discovery.service' ./etc/systemd/system/getty@tty1.service
+    sed -i '/^ConditionPathExists=/a Requires=device-discovery-agent.service' ./etc/systemd/system/getty@tty1.service
+    sed -i '/^ConditionPathExists=/a After=device-discovery-agent.service' ./etc/systemd/system/getty@tty1.service
     sed -i '/^DefaultInstance=tty1/a Alias=getty@tty1.service' ./etc/systemd/system/getty@tty1.service
     tar --delete -f rootfs.tar ./etc/systemd/system/getty.target.wants/getty@tty1.service
     mkdir -p ./etc/systemd/system/getty.target.wants/
