@@ -19,7 +19,7 @@ jobs:
       security-events: write   # required for SARIF upload
       id-token: write
       contents: read
-    uses: open-edge-platform/orch-ci/.github/workflows/post-merge-scorecard.yml@90de659876eeb170ca7e9121815025e8c0077ce5  # 2026.1.1
+    uses: open-edge-platform/orch-ci/.github/workflows/post-merge-scorecard.yml@671da50c286540d9dfc07c9d98bdac04cea55088  # 2026.1.1
     with:
       project_folder: "."
     secrets:
