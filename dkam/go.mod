@@ -5,7 +5,7 @@ module github.com/open-edge-platform/infra-onboarding/dkam
 go 1.26.1
 
 require (
-	github.com/fsnotify/fsnotify v1.9.0
+	github.com/fsnotify/fsnotify v1.10.0
 	github.com/magefile/mage v1.17.2
 	github.com/stretchr/testify v1.11.1
 	google.golang.org/grpc v1.80.0
