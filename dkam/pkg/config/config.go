@@ -38,19 +38,20 @@ type InfraConfig struct {
 	ENManifestRepo     string `mapstructure:"enManifestRepo" yaml:"enManifestRepo"`
 	ENAgentManifestTag string `mapstructure:"enAgentManifestTag" yaml:"enAgentManifestTag"`
 
-	InfraURL                string `mapstructure:"orchInfra" yaml:"orchInfra"`
-	ClusterURL              string `mapstructure:"orchCluster" yaml:"orchCluster"`
-	UpdateURL               string `mapstructure:"orchUpdate" yaml:"orchUpdate"`
-	ReleaseServiceURL       string `mapstructure:"orchRelease" yaml:"orchRelease"`
-	LogsObservabilityURL    string `mapstructure:"orchPlatformObsLogs" yaml:"orchPlatformObsLogs"`
-	MetricsObservabilityURL string `mapstructure:"orchPlatformObsMetrics" yaml:"orchPlatformObsMetrics"`
-	ManageabilityURL        string `mapstructure:"orchDeviceManager" yaml:"orchDeviceManager"`
-	RPSAddress              string `mapstructure:"orchRpsHost" yaml:"orchRpsHost"`
-	KeycloakURL             string `mapstructure:"orchKeycloak" yaml:"orchKeycloak"`
-	TelemetryURL            string `mapstructure:"orchTelemetry" yaml:"orchTelemetry"`
-	RegistryURL             string `mapstructure:"orchRegistry" yaml:"orchRegistry"`
-	FileServerURL           string `mapstructure:"orchFileServer" yaml:"orchFileServer"`
-	RSType                  string `mapstructure:"rsType" yaml:"rsType"`
+	InfraURL                   string `mapstructure:"orchInfra" yaml:"orchInfra"`
+	ClusterURL                 string `mapstructure:"orchCluster" yaml:"orchCluster"`
+	UpdateURL                  string `mapstructure:"orchUpdate" yaml:"orchUpdate"`
+	ReleaseServiceURL          string `mapstructure:"orchRelease" yaml:"orchRelease"`
+	LogsObservabilityURL       string `mapstructure:"orchPlatformObsLogs" yaml:"orchPlatformObsLogs"`
+	MetricsObservabilityURL    string `mapstructure:"orchPlatformObsMetrics" yaml:"orchPlatformObsMetrics"`
+	MetricsCLIObservabilityURL string `mapstructure:"orchPlatformObsMetricsCli" yaml:"orchPlatformObsMetricsCli"`
+	ManageabilityURL           string `mapstructure:"orchDeviceManager" yaml:"orchDeviceManager"`
+	RPSAddress                 string `mapstructure:"orchRpsHost" yaml:"orchRpsHost"`
+	KeycloakURL                string `mapstructure:"orchKeycloak" yaml:"orchKeycloak"`
+	TelemetryURL               string `mapstructure:"orchTelemetry" yaml:"orchTelemetry"`
+	RegistryURL                string `mapstructure:"orchRegistry" yaml:"orchRegistry"`
+	FileServerURL              string `mapstructure:"orchFileServer" yaml:"orchFileServer"`
+	RSType                     string `mapstructure:"rsType" yaml:"rsType"`
 
 	ENServiceClients  []string `mapstructure:"enServiceClients" yaml:"enServiceClients"`
 	ENOutboundClients []string `mapstructure:"enOutboundClients" yaml:"enOutboundClients"`
