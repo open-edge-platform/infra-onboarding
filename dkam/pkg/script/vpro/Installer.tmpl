@@ -591,8 +591,7 @@ enable_serial_console(){
             TTY="ttyS1"
         fi
         echo "Using $TTY for serial console"
-        systemctl start serial-getty@${TTY}.service
-        systemctl enable serial-getty@${TTY}.service
+        systemctl enable --now serial-getty@${TTY}.service
         echo "enable_serial_console done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
 }
@@ -617,7 +616,12 @@ configure_grub_sol(){
             sed -i "s|^GRUB_CMDLINE_LINUX_DEFAULT=.*|GRUB_CMDLINE_LINUX_DEFAULT=\"console=tty0 console=${TTY},115200n8\"|" "$GRUB_CONFIG"
             echo "Updated GRUB_CMDLINE_LINUX_DEFAULT:"
             grep "^GRUB_CMDLINE_LINUX_DEFAULT" "$GRUB_CONFIG"
-            update-grub
+            if ! command -v update-grub &>/dev/null; then
+                echo "ERROR: update-grub not found, skipping GRUB update"
+            elif ! update-grub; then
+                echo "ERROR: update-grub failed"
+                exit 1
+            fi
         fi
         echo "configure_grub_sol done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
     fi
