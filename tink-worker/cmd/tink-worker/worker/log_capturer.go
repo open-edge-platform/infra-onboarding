@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 Intel Corporation
+// SPDX-FileCopyrightText: 2026 Intel Corporation
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -10,9 +10,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
 	"github.com/go-logr/logr"
+	"github.com/moby/moby/client"
 )
 
 // DockerLogCapturer is a LogCapturer that can stream docker container logs to an io.Writer.
@@ -43,7 +42,7 @@ func NewDockerLogCapturer(cli client.ContainerAPIClient, logger logr.Logger, wri
 
 // CaptureLogs streams container logs to the capturer's writer.
 func (l *DockerLogCapturer) CaptureLogs(ctx context.Context, id string) {
-	reader, err := l.dockerClient.ContainerLogs(ctx, id, container.LogsOptions{
+	reader, err := l.dockerClient.ContainerLogs(ctx, id, client.ContainerLogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
 		Follow:     true,
