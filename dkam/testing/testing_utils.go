@@ -165,6 +165,7 @@ func PrepareTestInfraConfig(_ *testing.T) {
 		ReleaseServiceURL:                     "rs.test:443",
 		LogsObservabilityURL:                  "logs.test:443",
 		MetricsObservabilityURL:               "metrics.test:443",
+		MetricsCLIObservabilityURL:            "metrics-cli.test:443",
 		KeycloakURL:                           "keycloak.test:443",
 		TelemetryURL:                          "telemetry.test:443",
 		RegistryURL:                           "registry.test:443",
