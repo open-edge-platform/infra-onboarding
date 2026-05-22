@@ -12,6 +12,8 @@ on:
       - release-*
     paths:
       - "onboarding-manager/**"
+    tags:
+      - '*'
 
 permissions:
   contents: read

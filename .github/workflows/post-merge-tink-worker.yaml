@@ -11,6 +11,8 @@ on:
       - release-*
     paths:
       - "tink-worker/**"
+    tags:
+      - '*'
   workflow_dispatch:
 
 permissions:
