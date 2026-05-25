@@ -11,6 +11,8 @@ on:
       - release-*
     paths:
       - "tinker-actions/**"
+    tags:
+      - '*'
   workflow_dispatch:
 
 permissions:
