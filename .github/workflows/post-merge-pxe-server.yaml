@@ -11,8 +11,6 @@ on:
       - release-*
     paths:
       - "pxe-server/**"
-    tags:
-      - '*'
   workflow_dispatch:
 
 permissions:
