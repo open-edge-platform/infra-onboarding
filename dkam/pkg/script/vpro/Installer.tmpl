@@ -580,6 +580,53 @@ echo "install_syslogrotate_ufw done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
 fi
 }
 
+enable_serial_console(){
+    if grep -q "enable_serial_console done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+        echo "Skipping enable_serial_console"
+    else
+        echo "Enable serial console (SOL)"
+        TTY=$(dmesg | grep -oP 'ttyS\d+' | head -n1 || true)
+        if [ -z "$TTY" ]; then
+            echo "WARNING: No serial TTY detected from dmesg, defaulting to ttyS1"
+            TTY="ttyS1"
+        fi
+        echo "Using $TTY for serial console"
+        systemctl enable --now serial-getty@${TTY}.service
+        echo "enable_serial_console done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
+}
+
+configure_grub_sol(){
+    if grep -q "configure_grub_sol done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
+        echo "Skipping configure_grub_sol"
+    else
+        echo "Configure GRUB for Serial Over LAN (SOL)"
+        TTY=$(dmesg | grep -oP 'ttyS\d+' | head -n1 || true)
+        if [ -z "$TTY" ]; then
+            echo "WARNING: No serial TTY detected from dmesg, defaulting to ttyS1"
+            TTY="ttyS1"
+        fi
+        echo "Configuring GRUB to use ${TTY} for SOL"
+
+        GRUB_CONFIG="/etc/default/grub"
+        if [ ! -f "$GRUB_CONFIG" ]; then
+            echo "ERROR: $GRUB_CONFIG not found, skipping GRUB SOL configuration"
+        else
+            cp "$GRUB_CONFIG" "${GRUB_CONFIG}.bak"
+            sed -i "s|^GRUB_CMDLINE_LINUX_DEFAULT=.*|GRUB_CMDLINE_LINUX_DEFAULT=\"console=tty0 console=${TTY},115200n8\"|" "$GRUB_CONFIG"
+            echo "Updated GRUB_CMDLINE_LINUX_DEFAULT:"
+            grep "^GRUB_CMDLINE_LINUX_DEFAULT" "$GRUB_CONFIG"
+            if ! command -v update-grub &>/dev/null; then
+                echo "ERROR: update-grub not found, skipping GRUB update"
+            elif ! update-grub; then
+                echo "ERROR: update-grub failed"
+                exit 1
+            fi
+        fi
+        echo "configure_grub_sol done" | tee -a "$SCRIPT_DIR"/$STATUS_FILENAME
+    fi
+}
+
 disable_unattended_upgrade(){
     if grep -q "disable_unattended_upgrade done" "$SCRIPT_DIR"/$STATUS_FILENAME; then
 		echo "Skipping disable_unattended_upgrade"
@@ -603,6 +650,8 @@ install_dependencies 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_fws 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 enable_kernel_config 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 enable_NTP 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+enable_serial_console 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
+configure_grub_sol 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 install_syslogrotate_job 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
 echo "Install agents..........................."
 install_CA_cert 2>&1 | tee -a "$SCRIPT_DIR"/$SETUP_STATUS_FILENAME
