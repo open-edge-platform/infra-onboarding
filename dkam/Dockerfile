@@ -25,7 +25,7 @@ WORKDIR /go/src/github.com/open-edge-platform/infra-onboarding/dkam
 
 RUN CGO_ENABLED=0 LABEL_REPO_URL=${REPO_URL} LABEL_VERSION=${VERSION} LABEL_REVISION=${REVISION} LABEL_BUILD_DATE=${BUILD_DATE} make ${MAKE_TARGET}
 
-FROM debian:13.4
+FROM debian:13.5
 
 ARG USERNAME=appuser
 ARG USER_UID=1000
