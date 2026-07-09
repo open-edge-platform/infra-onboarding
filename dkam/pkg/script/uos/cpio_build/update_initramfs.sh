@@ -52,8 +52,8 @@ create_env_config() {
 	echo -e "oci_release_svc=$oci_release_svc" 
 	echo -e "tink_stack_svc=$tink_stack_svc" 
 	echo -e "tink_server_svc=$tink_server_svc"
-	echo -e "onboarding_manager_svc=$onboarding_manager_svc"
-	echo -e "onboarding_stream_svc=$onboarding_stream_svc"
+	echo -e "OBM_SVC=$onboarding_manager_svc"
+	echo -e "OBS_SVC=$onboarding_stream_svc"
 	echo -e "OBM_PORT=443"
 	} >> "$LOCATION_OF_ENV_CONFIG"
     fi
@@ -149,9 +149,6 @@ copy_cert_and_env_files() {
     cp "$IDP/ca.pem" "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/"
     cp "$IDP/server_cert.pem" "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/etc/pki/ca-trust/source/anchors/"
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/emf/env_config
-    mkdir -p "$PWD/etc/hook/"
-    cp "$PWD/etc/emf/env_config" "$PWD/etc/hook/env_config"
-    tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/hook/env_config
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/idp
 }
 
@@ -159,18 +156,18 @@ copy_service_files() {
     chmod +x "$PWD/etc/fluent-bit/fluentbit_run.sh"
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/fluent-bit/
     chmod +x "$PWD/etc/caddy/caddy_run.sh"
+    chmod +x "$PWD/etc/caddy/device-discovery-agent" #TODO: remove this post validation
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/caddy/
     chmod +x "$PWD/etc/kpi-instrumentation/report_boot_statistics.sh"
     tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/kpi-instrumentation/report_boot_statistics.sh
-    chmod +x "$PWD/etc/ip-assignment/wait_for_ip.sh"
-    tar -uf "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/rootfs.tar" -C "$PWD" ./etc/ip-assignment/wait_for_ip.sh
 }
 
 update_systemd_services() {
     pushd "$EXTRACTED_FILES_LOCATION/extract_initramfs/roottmp/" || exit
 
     tar -xvf rootfs.tar ./usr/lib/systemd/system/device-discovery.service
-    sed -i '/^ExecStart=/i ExecStartPre=/etc/ip-assignment/wait_for_ip.sh' ./usr/lib/systemd/system/device-discovery.service
+    #TODO: remove this post validation
+    sed -i 's|ExecStart=/usr/bin/device-discovery/device-discovery|ExecStart=/etc/caddy/device-discovery-agent -config /etc/emf/env_config -use-kernel-args|' ./usr/lib/systemd/system/device-discovery.service
 
     tar -xvf rootfs.tar ./usr/lib/systemd/system/caddy.service
     sed -i 's|User=caddy|User=root|' ./usr/lib/systemd/system/caddy.service
@@ -179,8 +176,8 @@ update_systemd_services() {
     sed -i 's|ExecReload=/usr/bin/caddy reload --config /etc/caddy/Caddyfile||' ./usr/lib/systemd/system/caddy.service
     sed -i 's|ExecStart=/usr/bin/caddy run --environ --config /etc/caddy/Caddyfile|ExecStart=/etc/caddy/caddy_run.sh|' ./usr/lib/systemd/system/caddy.service
     sed -i '/^ExecStart=.*caddy_run\.sh$/a ReadWritePaths=/etc/pki/ca-trust' ./usr/lib/systemd/system/caddy.service
-    sed -i '/^\[Unit\]/,/^$/s/^After=network.target network-online.target/After=network.target network-online.target device-discovery.service/' ./usr/lib/systemd/system/caddy.service
-    sed -i '/^\[Unit\]/,/^$/s/^Requires=network-online.target/Requires=network-online.target device-discovery.service/' ./usr/lib/systemd/system/caddy.service
+    sed -i '/^\[Unit\]/,/^$/s/^After=network.target network-online.target/After=network.target network-online.target device-discovery-agent.service/' ./usr/lib/systemd/system/caddy.service
+    sed -i '/^\[Unit\]/,/^$/s/^Requires=network-online.target/Requires=network-online.target device-discovery-agent.service/' ./usr/lib/systemd/system/caddy.service
 
     tar -xvf rootfs.tar ./usr/lib/systemd/system/fluent-bit.service
     sed -i 's|ExecStart=/usr/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.conf|ExecStart=/etc/fluent-bit/fluentbit_run.sh|' ./usr/lib/systemd/system/fluent-bit.service
@@ -210,8 +207,8 @@ setup_getty_autologin() {
     mkdir -p ./etc/systemd/system/
     cp ./usr/lib/systemd/system/getty@.service ./etc/systemd/system/getty@tty1.service
     sed -i 's|^ExecStart=.*agetty.*|ExecStart=-/usr/sbin/agetty --autologin root --noclear %I|' ./etc/systemd/system/getty@tty1.service
-    sed -i '/^ConditionPathExists=/a Requires=device-discovery.service' ./etc/systemd/system/getty@tty1.service
-    sed -i '/^ConditionPathExists=/a After=device-discovery.service' ./etc/systemd/system/getty@tty1.service
+    sed -i '/^ConditionPathExists=/a Requires=device-discovery-agent.service' ./etc/systemd/system/getty@tty1.service
+    sed -i '/^ConditionPathExists=/a After=device-discovery-agent.service' ./etc/systemd/system/getty@tty1.service
     sed -i '/^DefaultInstance=tty1/a Alias=getty@tty1.service' ./etc/systemd/system/getty@tty1.service
     tar --delete -f rootfs.tar ./etc/systemd/system/getty.target.wants/getty@tty1.service
     mkdir -p ./etc/systemd/system/getty.target.wants/
